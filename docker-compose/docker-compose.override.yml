@@ -109,7 +109,7 @@ services:
     ports:
       - 127.0.0.1:8780:8080
     volumes:
-      - c:/git/sitkatech/neptune/Neptune.GeoServer/data_dir:/opt/geoserver/data_dir
+      - c:/git/esassoc/neptune/Neptune.GeoServer/data_dir:/opt/geoserver/data_dir
       - c:/sitka/Neptune/GeoServer/geoserver-environment.properties:/opt/geoserver/geoserver-environment.properties
 
   neptune.celeryworker:
