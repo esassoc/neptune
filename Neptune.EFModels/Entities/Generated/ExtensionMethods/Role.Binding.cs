@@ -143,12 +143,12 @@ namespace Neptune.EFModels.Entities
     public partial class RoleJurisdictionManager : Role
     {
         private RoleJurisdictionManager(int roleID, string roleName, string roleDisplayName, string roleDescription) : base(roleID, roleName, roleDisplayName, roleDescription) {}
-        public static readonly RoleJurisdictionManager Instance = new RoleJurisdictionManager(5, @"JurisdictionManager", @"Jurisdication Manager", @"");
+        public static readonly RoleJurisdictionManager Instance = new RoleJurisdictionManager(5, @"JurisdictionManager", @"Jurisdiction Manager", @"");
     }
 
     public partial class RoleJurisdictionEditor : Role
     {
         private RoleJurisdictionEditor(int roleID, string roleName, string roleDisplayName, string roleDescription) : base(roleID, roleName, roleDisplayName, roleDescription) {}
-        public static readonly RoleJurisdictionEditor Instance = new RoleJurisdictionEditor(6, @"JurisdictionEditor", @"Jurisdication Editor", @"");
+        public static readonly RoleJurisdictionEditor Instance = new RoleJurisdictionEditor(6, @"JurisdictionEditor", @"Jurisdiction Editor", @"");
     }
 }
