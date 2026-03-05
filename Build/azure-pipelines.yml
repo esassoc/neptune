@@ -36,8 +36,8 @@ resources:
     ref: develop
   - repository: BuildTemplates
     type: github
-    name: sitkatech/BuildTemplates
-    endpoint: "sitkatech"
+    name: esassoc/BuildTemplates
+    endpoint: "esassoc"
   - repository: nereid
     name: Geosyntec/nereid
     type: github
