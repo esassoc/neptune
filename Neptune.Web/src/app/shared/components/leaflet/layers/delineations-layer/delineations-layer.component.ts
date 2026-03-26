@@ -23,6 +23,7 @@ export class DelineationsLayerComponent extends MapLayerBase implements OnChange
             format: "image/png",
             tiled: true,
             cql_filter: this.isAnalyzedInModelingModule ? "DelineationStatus = 'Verified' AND IsAnalyzedInModelingModule = 1" : "DelineationStatus = 'Verified'",
+            maxZoom: 22,
         } as any;
 
         this.layer = L.tileLayer.wms(environment.geoserverMapServiceUrl + "/wms?", this.wmsOptions);

@@ -126,6 +126,10 @@ export class TrashHomeComponent implements OnInit {
     public ovtaResultsDto$: Observable<OVTAResultsDto>;
     public boundingBox$: Observable<BoundingBoxDto>;
 
+    public isLoadingAreaBased$: Observable<boolean>;
+    public isLoadingLoadResults$: Observable<boolean>;
+    public isLoadingOvtaResults$: Observable<boolean>;
+
     private readonly loadingDeltaSubject = new Subject<number>();
     public readonly isLoading$ = this.loadingDeltaSubject.pipe(
         startWith(0),
@@ -241,6 +245,21 @@ export class TrashHomeComponent implements OnInit {
             switchMap((x) => this.trackRequest$(this.stormwaterJurisdictionService.getBoundingBoxByJurisdictionIDStormwaterJurisdiction(x.StormwaterJurisdictionID))),
             shareReplay({ bufferSize: 1, refCount: true })
         );
+
+        // Per-section loading: true until the corresponding data observable emits,
+        // OR when a jurisdiction-change HTTP request is in flight (tracked by isLoading$).
+        this.isLoadingAreaBased$ = combineLatest([
+            this.areaBasedAcreCalculationsDto$.pipe(map(() => false), startWith(true)),
+            this.isLoading$,
+        ]).pipe(map(([waiting, loading]) => waiting || loading));
+        this.isLoadingLoadResults$ = combineLatest([
+            this.loadResultsDto$.pipe(map(() => false), startWith(true)),
+            this.isLoading$,
+        ]).pipe(map(([waiting, loading]) => waiting || loading));
+        this.isLoadingOvtaResults$ = combineLatest([
+            this.ovtaResultsDto$.pipe(map(() => false), startWith(true)),
+            this.isLoading$,
+        ]).pipe(map(([waiting, loading]) => waiting || loading));
 
         this.treatmentBMPs$ = this.currentStormwaterJurisdiction$.pipe(
             switchMap((x) =>

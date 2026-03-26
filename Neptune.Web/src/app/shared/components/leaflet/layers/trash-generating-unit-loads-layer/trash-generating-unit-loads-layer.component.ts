@@ -32,6 +32,7 @@ export class TrashGeneratingUnitLoadsLayerComponent extends MapLayerBase impleme
             tiled: true,
             styles: this.style,
             cql_filter: cql_filter,
+            maxZoom: 22,
         } as any;
 
         this.layer = L.tileLayer.wms(environment.geoserverMapServiceUrl + "/wms?", this.wmsOptions);

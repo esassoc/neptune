@@ -57,6 +57,7 @@ export class GenericWmsWfsLayerComponent extends MapLayerBase implements OnChang
                 tiled: true,
                 styles: this.wmsStyle,
                 cql_filter: this.cqlFilter,
+                maxZoom: 22,
             } as any;
             this.layer = L.tileLayer.wms(environment.geoserverMapServiceUrl + "/wms?", wmsOptions);
         }

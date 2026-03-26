@@ -23,6 +23,7 @@ export class LandUseBlockLayerComponent extends MapLayerBase implements OnChange
             transparent: true,
             format: "image/png",
             tiled: true,
+            maxZoom: 22,
         } as any;
 
         this.layer = L.tileLayer.wms(environment.geoserverMapServiceUrl + "/wms?", this.wmsOptions);

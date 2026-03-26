@@ -17,7 +17,7 @@ export const Roles: LookupTableEntry[]  = [
   { Name: "Admin", DisplayName: "Administrator", Value: 1 },
   { Name: "Unassigned", DisplayName: "Unassigned", Value: 3 },
   { Name: "SitkaAdmin", DisplayName: "Sitka Administrator", Value: 4 },
-  { Name: "JurisdictionManager", DisplayName: "Jurisdication Manager", Value: 5 },
-  { Name: "JurisdictionEditor", DisplayName: "Jurisdication Editor", Value: 6 }
+  { Name: "JurisdictionManager", DisplayName: "Jurisdiction Manager", Value: 5 },
+  { Name: "JurisdictionEditor", DisplayName: "Jurisdiction Editor", Value: 6 }
 ];
 export const RolesAsSelectDropdownOptions = Roles.map((x) => ({ Value: x.Value, Label: x.DisplayName } as SelectDropdownOption));

@@ -24,6 +24,7 @@ export class PermitTypeLayerComponent extends MapLayerBase implements OnChanges,
             format: "image/png",
             tiled: true,
             styles: "permit_type",
+            maxZoom: 22,
         } as any;
 
         this.layer = L.tileLayer.wms(environment.geoserverMapServiceUrl + "/wms?", this.wmsOptions);

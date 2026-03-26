@@ -21,6 +21,7 @@ export class WqmpsLayerComponent extends MapLayerBase implements OnChanges {
             transparent: true,
             format: "image/png",
             tiled: true,
+            maxZoom: 22,
         } as any;
 
         this.layer = L.tileLayer.wms(environment.geoserverMapServiceUrl + "/wms?", this.wmsOptions);

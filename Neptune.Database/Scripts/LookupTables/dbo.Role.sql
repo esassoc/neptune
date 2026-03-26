@@ -3,8 +3,8 @@ USING (VALUES
 (1, 'Admin', 'Administrator', ''),
 (3, 'Unassigned', 'Unassigned', ''),
 (4, 'SitkaAdmin', 'Sitka Administrator', ''),
-(5, 'JurisdictionManager', 'Jurisdication Manager', ''),
-(6, 'JurisdictionEditor', 'Jurisdication Editor', '')
+(5, 'JurisdictionManager', 'Jurisdiction Manager', ''),
+(6, 'JurisdictionEditor', 'Jurisdiction Editor', '')
 )
 AS Source (RoleID, RoleName, RoleDisplayName, RoleDescription)
 ON Target.RoleID = Source.RoleID

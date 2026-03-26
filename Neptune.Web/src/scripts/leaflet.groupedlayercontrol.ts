@@ -340,6 +340,12 @@ export class GroupedLayers extends Control {
         }
         if (toBeAdded !== undefined) {
             this._map.addLayer(toBeAdded);
+            // When switching base layers, the newly added tile layer renders on top of
+            // existing overlay layers because it's appended last in the DOM.  Force a
+            // low z-index so it stays behind overlays (fixes base-layer-on-top bug).
+            if ((toBeAdded as any).setZIndex && !this._getLayer(L.Util.stamp(toBeAdded))?.overlay) {
+                (toBeAdded as any).setZIndex(0);
+            }
         }
         if (this.options.groupCheckboxes) {
             this._refreshGroupsCheckStates();
