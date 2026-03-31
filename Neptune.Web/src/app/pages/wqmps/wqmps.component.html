@@ -1,1 +1,27 @@
-<!-- Placeholder for Water Quality Management Plans component template -->
+<ng-template #addButton>
+    <button class="btn btn-primary" (click)="openAddModal()">Add Plan</button>
+</ng-template>
+<page-header pageTitle="Water Quality Management Plans" [templateRight]="addButton"></page-header>
+<app-alert-display></app-alert-display>
+<div class="page-body">
+    @if (boundingBox$ | async; as boundingBox) {
+        <hybrid-map-grid
+            [rowData]="wqmps$ | async"
+            [columnDefs]="columnDefs"
+            downloadFileName="water-quality-management-plans"
+            entityIDField="WaterQualityManagementPlanID"
+            (onMapLoad)="handleMapReady($event, boundingBox)"
+            [selectedValue]="selectedWaterQualityManagementPlanID"
+            [selectionFromMap]="true"
+            (selectedValueChange)="onSelectedWaterQualityManagementPlanIDChanged($event)"
+            [boundingBox]="boundingBox">
+            <wqmps-layer
+                [map]="map"
+                [layerControl]="layerControl"
+                [mode]="OverlayMode.ReferenceWithInteractivity"
+                [selectedID]="selectedWaterQualityManagementPlanID"
+                (selected)="onSelectedWaterQualityManagementPlanIDChanged($event, true)">
+            </wqmps-layer>
+        </hybrid-map-grid>
+    }
+</div>

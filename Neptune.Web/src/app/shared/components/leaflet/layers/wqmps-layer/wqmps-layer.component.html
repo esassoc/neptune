@@ -1,6 +1,22 @@
-<ng-template #layerName>
-    <span>WQMPs</span>
-</ng-template>
-<ng-template #legend>
-    <img src="./assets/main/map-legend-images/wqmpBoundary.png" style="height: 12px; margin-bottom: 4px" />
-</ng-template>
+<generic-wms-wfs-layer
+    [map]="map"
+    [layerControl]="layerControl"
+    [interactive]="interactive"
+    [displayOnLoad]="displayOnLoad"
+    [sortOrder]="sortOrder"
+    [cqlFilter]="cqlFilter"
+    [selectedID]="selectedID"
+    [wmsLayerName]="addToLayerControl || !selectedID ? wfsFeatureType : null"
+    [wmsStyle]="wmsStyle"
+    [wfsFeatureType]="wfsFeatureType"
+    [identifierProperty]="identifierProperty"
+    [overlayLabel]="overlayLabel"
+    [selectedStyle]="selectedStyle"
+    (selected)="selected.emit($event)">
+    <ng-template layerName>
+        <span>WQMPs</span>
+    </ng-template>
+    <ng-template legend>
+        <img src="./assets/main/map-legend-images/wqmpBoundary.png" style="height: 12px; margin-bottom: 4px" />
+    </ng-template>
+</generic-wms-wfs-layer>

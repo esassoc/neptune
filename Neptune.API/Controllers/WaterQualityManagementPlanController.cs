@@ -1,6 +1,9 @@
 using System.Collections.Generic;
+using System.Linq;
 using System.Threading.Tasks;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using Neptune.API.Services;
@@ -26,6 +29,16 @@ namespace Neptune.API.Controllers
         {
             var plans = await WaterQualityManagementPlans.ListAsDtoAsync(DbContext);
             return Ok(plans);
+        }
+
+        [HttpGet("grid")]
+        [AllowAnonymous]
+        [OptionalAuth]
+        public async Task<ActionResult<List<WaterQualityManagementPlanGridDto>>> ListAsGridDto()
+        {
+            var entities = await vWaterQualityManagementPlanDetaileds.ListViewableByPersonDtoAsync(DbContext, CallingUser);
+            var gridDtos = entities.Select(x => x.AsGridDto()).ToList();
+            return Ok(gridDtos);
         }
 
         [HttpGet("display-dtos")]
@@ -81,6 +94,17 @@ namespace Neptune.API.Controllers
         {
             var waterQualityManagementPlanDocumentDtos = await WaterQualityManagementPlanDocuments.ListByWaterQualityManagementPlanIDAsDtoAsync(DbContext, waterQualityManagementPlanID);
             return Ok(waterQualityManagementPlanDocumentDtos);
+        }
+
+        [HttpGet("hydrologic-subareas")]
+        [AdminFeature]
+        public async Task<ActionResult<List<HydrologicSubareaSimpleDto>>> ListHydrologicSubareas()
+        {
+            var subareas = await DbContext.HydrologicSubareas
+                .Select(x => new HydrologicSubareaSimpleDto { HydrologicSubareaID = x.HydrologicSubareaID, HydrologicSubareaName = x.HydrologicSubareaName })
+                .OrderBy(x => x.HydrologicSubareaName)
+                .ToListAsync();
+            return Ok(subareas);
         }
 
         [HttpGet("with-final-document")]

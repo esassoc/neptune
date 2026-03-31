@@ -1,3 +1,168 @@
+import { AsyncPipe } from "@angular/common";
 import { Component } from "@angular/core";
-@Component({ selector: "wqmps", standalone: true, template: "<h2>Water Quality Management Plans</h2>" })
-export class WqmpsComponent {}
+import { ColDef } from "ag-grid-community";
+import { Observable, tap } from "rxjs";
+import { DialogService } from "@ngneat/dialog";
+import { UtilityFunctionsService } from "src/app/services/utility-functions.service";
+import { AlertService } from "src/app/shared/services/alert.service";
+import { Alert } from "src/app/shared/models/alert";
+import { AlertContext } from "src/app/shared/models/enums/alert-context.enum";
+import { AlertDisplayComponent } from "src/app/shared/components/alert-display/alert-display.component";
+import { HybridMapGridComponent } from "src/app/shared/components/hybrid-map-grid/hybrid-map-grid.component";
+import { PageHeaderComponent } from "src/app/shared/components/page-header/page-header.component";
+import { WaterQualityManagementPlanService } from "src/app/shared/generated/api/water-quality-management-plan.service";
+import { WaterQualityManagementPlanGridDto } from "src/app/shared/generated/model/water-quality-management-plan-grid-dto";
+import { StormwaterJurisdictionService } from "src/app/shared/generated/api/stormwater-jurisdiction.service";
+import { BoundingBoxDto } from "src/app/shared/generated/model/bounding-box-dto";
+import { WqmpsLayerComponent } from "src/app/shared/components/leaflet/layers/wqmps-layer/wqmps-layer.component";
+import { NeptuneMapInitEvent } from "src/app/shared/components/leaflet/neptune-map/neptune-map.component";
+import { OverlayMode } from "src/app/shared/components/leaflet/layers/generic-wms-wfs-layer/overlay-mode.enum";
+import { WqmpModalComponent } from "./wqmp-modal/wqmp-modal.component";
+import { environment } from "src/environments/environment";
+
+@Component({
+    selector: "wqmps",
+    standalone: true,
+    imports: [PageHeaderComponent, AlertDisplayComponent, HybridMapGridComponent, AsyncPipe, WqmpsLayerComponent],
+    templateUrl: "./wqmps.component.html",
+})
+export class WqmpsComponent {
+    public OverlayMode = OverlayMode;
+    public wqmps$: Observable<WaterQualityManagementPlanGridDto[]>;
+    public columnDefs: ColDef[];
+    public isLoading = true;
+    public map: L.Map;
+    public layerControl: L.Control.Layers;
+    public boundingBox$: Observable<BoundingBoxDto>;
+    public selectedWaterQualityManagementPlanID: number;
+    private wqmps: WaterQualityManagementPlanGridDto[] = [];
+    private static NO_BOUNDARY_ALERT = "WqmpNoBoundary";
+
+    constructor(
+        private waterQualityManagementPlanService: WaterQualityManagementPlanService,
+        private stormwaterJurisdictionService: StormwaterJurisdictionService,
+        private utilityFunctionsService: UtilityFunctionsService,
+        private alertService: AlertService,
+        private dialogService: DialogService
+    ) {}
+
+    ngOnInit(): void {
+        this.columnDefs = [
+            this.utilityFunctionsService.createLinkHrefColumnDef("Name", "WaterQualityManagementPlanName", "WaterQualityManagementPlanID", {
+                HrefTemplate: `${environment.ocStormwaterToolsBaseUrl}/WaterQualityManagementPlan/Detail`,
+                FieldDefinitionType: "WaterQualityManagementPlan",
+                FieldDefinitionLabelOverride: "Name",
+            }),
+            this.utilityFunctionsService.createLinkColumnDef("Jurisdiction", "StormwaterJurisdictionName", "StormwaterJurisdictionID", {
+                InRouterLink: "/jurisdictions/",
+                FieldDefinitionType: "Jurisdiction",
+            }),
+            this.utilityFunctionsService.createBasicColumnDef("Priority", "WaterQualityManagementPlanPriorityDisplayName", {
+                UseCustomDropdownFilter: true,
+            }),
+            this.utilityFunctionsService.createBasicColumnDef("Status", "WaterQualityManagementPlanStatusDisplayName", {
+                UseCustomDropdownFilter: true,
+            }),
+            this.utilityFunctionsService.createBasicColumnDef("Development Type", "WaterQualityManagementPlanDevelopmentTypeDisplayName", {
+                UseCustomDropdownFilter: true,
+            }),
+            this.utilityFunctionsService.createBasicColumnDef("Land Use", "WaterQualityManagementPlanLandUseDisplayName", {
+                UseCustomDropdownFilter: true,
+            }),
+            this.utilityFunctionsService.createBasicColumnDef("Permit Term", "WaterQualityManagementPlanPermitTermDisplayName", {
+                UseCustomDropdownFilter: true,
+            }),
+            this.utilityFunctionsService.createDateColumnDef("Approval Date", "ApprovalDate", "MM/dd/yyyy"),
+            this.utilityFunctionsService.createDateColumnDef("Date of Construction", "DateOfConstruction", "MM/dd/yyyy"),
+            this.utilityFunctionsService.createBasicColumnDef("Hydromodification Applies", "HydromodificationAppliesTypeDisplayName", {
+                UseCustomDropdownFilter: true,
+                FieldDefinitionType: "HydromodificationApplies",
+            }),
+            this.utilityFunctionsService.createBasicColumnDef("Hydrologic Subarea", "HydrologicSubareaName", {
+                UseCustomDropdownFilter: true,
+            }),
+            this.utilityFunctionsService.createBasicColumnDef("Maintenance Contact Organization", "MaintenanceContactOrganization"),
+            this.utilityFunctionsService.createBasicColumnDef("Maintenance Contact Name", "MaintenanceContactName"),
+            this.utilityFunctionsService.createBasicColumnDef("Maintenance Contact Address", "MaintenanceContactAddress"),
+            this.utilityFunctionsService.createBasicColumnDef("Maintenance Contact Phone", "MaintenanceContactPhone"),
+            this.utilityFunctionsService.createBasicColumnDef("# of Inventoried BMPs", "TreatmentBMPCount"),
+            this.utilityFunctionsService.createBasicColumnDef("# of Simplified BMPs", "QuickBMPCount"),
+            this.utilityFunctionsService.createBasicColumnDef("Modeling Approach", "WaterQualityManagementPlanModelingApproachDisplayName", {
+                UseCustomDropdownFilter: true,
+            }),
+            this.utilityFunctionsService.createBasicColumnDef("# of Documents", "DocumentCount"),
+            this.utilityFunctionsService.createBasicColumnDef("Has Required Documents", "HasRequiredDocuments", {
+                FieldDefinitionType: "HasAllRequiredDocuments",
+                ValueGetter: (params) => {
+                    const value = params.data?.HasRequiredDocuments;
+                    if (value == null) return "";
+                    return value ? "Yes" : "No";
+                },
+            }),
+            this.utilityFunctionsService.createBasicColumnDef("Record Number", "RecordNumber"),
+            this.utilityFunctionsService.createBasicColumnDef("Recorded Parcel Acreage", "RecordedWQMPAreaInAcres"),
+            this.utilityFunctionsService.createDecimalColumnDef("Calculated Boundary Acreage", "CalculatedWQMPAcreage", {
+                DecimalPlacesToDisplay: 1,
+            }),
+            this.utilityFunctionsService.createBasicColumnDef("Associated APNs", "AssociatedAPNs"),
+            this.utilityFunctionsService.createDateColumnDef("Latest O&M Verification", "VerificationDate", "MM/dd/yyyy"),
+            this.utilityFunctionsService.createBasicColumnDef("Trash Capture Status", "TrashCaptureStatusTypeDisplayName", {
+                UseCustomDropdownFilter: true,
+                FieldDefinitionType: "TrashCaptureStatus",
+            }),
+            this.utilityFunctionsService.createBasicColumnDef("Trash Capture Effectiveness (%)", "TrashCaptureEffectiveness"),
+        ];
+
+        this.wqmps$ = this.waterQualityManagementPlanService.listAsGridDtoWaterQualityManagementPlan().pipe(
+            tap((wqmps) => {
+                this.wqmps = wqmps;
+                this.isLoading = false;
+            })
+        );
+        this.boundingBox$ = this.stormwaterJurisdictionService.getBoundingBoxStormwaterJurisdiction();
+    }
+
+    public handleMapReady(event: NeptuneMapInitEvent, boundingBox?: BoundingBoxDto) {
+        this.map = event.map;
+        this.layerControl = event.layerControl;
+        if (boundingBox && this.map) {
+            this.map.fitBounds([
+                [boundingBox.Bottom, boundingBox.Left],
+                [boundingBox.Top, boundingBox.Right],
+            ]);
+        }
+    }
+
+    public onSelectedWaterQualityManagementPlanIDChanged(selectedID: number, fromMap: boolean = false) {
+        if (this.selectedWaterQualityManagementPlanID == selectedID) return;
+        this.selectedWaterQualityManagementPlanID = selectedID;
+
+        this.alertService.removeAlertByUniqueCode(WqmpsComponent.NO_BOUNDARY_ALERT);
+        if (!fromMap && selectedID) {
+            const wqmp = this.wqmps.find((x) => x.WaterQualityManagementPlanID === selectedID);
+            if (wqmp && !wqmp.HasBoundary) {
+                this.alertService.pushAlert(
+                    new Alert("This WQMP does not have a boundary defined and cannot be shown on the map.", AlertContext.Info, true, WqmpsComponent.NO_BOUNDARY_ALERT)
+                );
+            }
+        }
+    }
+
+    public openAddModal(): void {
+        const dialogRef = this.dialogService.open(WqmpModalComponent, {
+            data: { mode: "add" },
+            width: "800px",
+        });
+        dialogRef.afterClosed$.subscribe((result) => {
+            if (result) {
+                this.alertService.clearAlerts();
+                this.alertService.pushAlert(new Alert("Water Quality Management Plan created successfully.", AlertContext.Success));
+                this.wqmps$ = this.waterQualityManagementPlanService.listAsGridDtoWaterQualityManagementPlan().pipe(
+                    tap((wqmps) => {
+                        this.wqmps = wqmps;
+                    })
+                );
+            }
+        });
+    }
+}

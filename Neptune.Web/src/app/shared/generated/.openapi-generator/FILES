@@ -70,6 +70,7 @@ model/geometry-geo-json-and-area-dto.ts
 model/geometry.ts
 model/hru-characteristic-dto.ts
 model/hru-log-dto.ts
+model/hydrologic-subarea-simple-dto.ts
 model/i-attributes-table.ts
 model/i-feature.ts
 model/land-use-block-grid-dto.ts
@@ -165,6 +166,7 @@ model/water-quality-management-plan-document-dto.ts
 model/water-quality-management-plan-document-extraction-result-dto.ts
 model/water-quality-management-plan-document-upsert-dto.ts
 model/water-quality-management-plan-dto.ts
+model/water-quality-management-plan-grid-dto.ts
 model/water-quality-management-plan-simple-dto.ts
 model/water-quality-management-plan-upsert-dto.ts
 model/watershed-dto.ts

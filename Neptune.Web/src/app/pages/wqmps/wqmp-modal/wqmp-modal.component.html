@@ -1,0 +1,85 @@
+<div class="modal-header">
+    <h3>Add Water Quality Management Plan</h3>
+</div>
+<div class="modal-body">
+    <app-alert-display></app-alert-display>
+    <form [formGroup]="formGroup">
+        <h4 class="section-title underline">Plan Details</h4>
+        <div class="grid-12">
+            <form-field class="g-col-6" [formControl]="formGroup.controls.WaterQualityManagementPlanName" fieldLabel="Name" [type]="FormFieldType.Text" [required]="true"
+                placeholder="Plan Name">
+            </form-field>
+            <form-field class="g-col-6" [formControl]="formGroup.controls.StormwaterJurisdictionID" fieldLabel="Jurisdiction" [type]="FormFieldType.Select" [required]="true"
+                placeholder="Select Jurisdiction" [formInputOptions]="jurisdictionOptions$ | async">
+            </form-field>
+            <form-field class="g-col-6" [formControl]="formGroup.controls.WaterQualityManagementPlanPriorityID" fieldLabel="Priority" [type]="FormFieldType.Select"
+                placeholder="Select Priority" [formInputOptions]="priorityOptions">
+            </form-field>
+            <form-field class="g-col-6" [formControl]="formGroup.controls.WaterQualityManagementPlanStatusID" fieldLabel="Status" [type]="FormFieldType.Select"
+                placeholder="Select Status" [formInputOptions]="statusOptions">
+            </form-field>
+            <form-field class="g-col-6" [formControl]="formGroup.controls.WaterQualityManagementPlanDevelopmentTypeID" fieldLabel="Development Type" [type]="FormFieldType.Select"
+                placeholder="Select Development Type" [formInputOptions]="developmentTypeOptions">
+            </form-field>
+            <form-field class="g-col-6" [formControl]="formGroup.controls.WaterQualityManagementPlanLandUseID" fieldLabel="Land Use" [type]="FormFieldType.Select"
+                placeholder="Select Land Use" [formInputOptions]="landUseOptions">
+            </form-field>
+            <form-field class="g-col-6" [formControl]="formGroup.controls.ApprovalDate" fieldLabel="Approval Date" [type]="FormFieldType.Date">
+            </form-field>
+            <form-field class="g-col-6" [formControl]="formGroup.controls.DateOfConstruction" fieldLabel="Date of Construction" [type]="FormFieldType.Date">
+            </form-field>
+            <form-field class="g-col-6" [formControl]="formGroup.controls.HydromodificationAppliesTypeID" fieldLabel="Hydromodification Applies" [type]="FormFieldType.Select"
+                placeholder="Select Option" [formInputOptions]="hydromodificationOptions">
+            </form-field>
+            <form-field class="g-col-6" [formControl]="formGroup.controls.HydrologicSubareaID" fieldLabel="Hydrologic Subarea" [type]="FormFieldType.Select"
+                placeholder="Select Hydrologic Subarea" [formInputOptions]="hydrologicSubareaOptions$ | async">
+            </form-field>
+            <form-field class="g-col-6" [formControl]="formGroup.controls.WaterQualityManagementPlanPermitTermID" fieldLabel="Permit Term" [type]="FormFieldType.Select"
+                placeholder="Select Permit Term" [formInputOptions]="permitTermOptions">
+            </form-field>
+            <form-field class="g-col-6" [formControl]="formGroup.controls.WaterQualityManagementPlanModelingApproachID" fieldLabel="Modeling Approach" [type]="FormFieldType.Select"
+                [required]="true" placeholder="Select Modeling Approach" [formInputOptions]="modelingApproachOptions">
+            </form-field>
+            <form-field class="g-col-6" [formControl]="formGroup.controls.RecordNumber" fieldLabel="Record Number" [type]="FormFieldType.Text" placeholder="Record Number">
+            </form-field>
+            <form-field class="g-col-6" [formControl]="formGroup.controls.RecordedWQMPAreaInAcres" fieldLabel="Recorded WQMP Area (Acres)" [type]="FormFieldType.Number"
+                placeholder="Area in Acres">
+            </form-field>
+            <form-field class="g-col-6" [formControl]="formGroup.controls.TrashCaptureStatusTypeID" fieldLabel="Trash Capture Status" [type]="FormFieldType.Select"
+                [required]="true" placeholder="Select Trash Capture Status" [formInputOptions]="trashCaptureStatusOptions">
+            </form-field>
+            @if (showTrashCaptureEffectiveness$ | async) {
+                <form-field class="g-col-6" [formControl]="formGroup.controls.TrashCaptureEffectiveness" fieldLabel="Trash Capture Effectiveness (%)" [type]="FormFieldType.Number"
+                    units="%" placeholder="1-99">
+                </form-field>
+            }
+        </div>
+
+        <h4 class="section-title underline mt-3">Maintenance Contact</h4>
+        <div class="grid-12">
+            <form-field class="g-col-6" [formControl]="formGroup.controls.MaintenanceContactName" fieldLabel="Name" [type]="FormFieldType.Text" placeholder="Contact Name">
+            </form-field>
+            <form-field class="g-col-6" [formControl]="formGroup.controls.MaintenanceContactOrganization" fieldLabel="Organization" [type]="FormFieldType.Text"
+                placeholder="Organization">
+            </form-field>
+            <form-field class="g-col-6" [formControl]="formGroup.controls.MaintenanceContactPhone" fieldLabel="Phone" [type]="FormFieldType.Text" placeholder="Phone Number">
+            </form-field>
+            <form-field class="g-col-6" [formControl]="formGroup.controls.MaintenanceContactAddress1" fieldLabel="Address Line 1" [type]="FormFieldType.Text"
+                placeholder="Address Line 1">
+            </form-field>
+            <form-field class="g-col-6" [formControl]="formGroup.controls.MaintenanceContactAddress2" fieldLabel="Address Line 2" [type]="FormFieldType.Text"
+                placeholder="Address Line 2">
+            </form-field>
+            <form-field class="g-col-4" [formControl]="formGroup.controls.MaintenanceContactCity" fieldLabel="City" [type]="FormFieldType.Text" placeholder="City">
+            </form-field>
+            <form-field class="g-col-4" [formControl]="formGroup.controls.MaintenanceContactState" fieldLabel="State" [type]="FormFieldType.Text" placeholder="State">
+            </form-field>
+            <form-field class="g-col-4" [formControl]="formGroup.controls.MaintenanceContactZip" fieldLabel="Zip" [type]="FormFieldType.Text" placeholder="Zip Code">
+            </form-field>
+        </div>
+    </form>
+</div>
+<div class="modal-footer">
+    <button class="btn btn-primary" (click)="save()" [disabled]="formGroup.invalid">Save</button>
+    <button class="btn btn-secondary" (click)="cancel()">Cancel</button>
+</div>

@@ -7533,6 +7533,47 @@
         }
       }
     },
+    "/water-quality-management-plans/grid": {
+      "get": {
+        "tags": [
+          "WaterQualityManagementPlan"
+        ],
+        "operationId": "ListAsGridDto_WaterQualityManagementPlan",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/WaterQualityManagementPlanGridDto"
+                  }
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/WaterQualityManagementPlanGridDto"
+                  }
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/WaterQualityManagementPlanGridDto"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "x-anonymous": true,
+        "x-optional-auth": true
+      }
+    },
     "/water-quality-management-plans/display-dtos": {
       "get": {
         "tags": [
@@ -7735,6 +7776,45 @@
                   "type": "array",
                   "items": {
                     "$ref": "#/components/schemas/WaterQualityManagementPlanDocumentDto"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/water-quality-management-plans/hydrologic-subareas": {
+      "get": {
+        "tags": [
+          "WaterQualityManagementPlan"
+        ],
+        "operationId": "ListHydrologicSubareas_WaterQualityManagementPlan",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/HydrologicSubareaSimpleDto"
+                  }
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/HydrologicSubareaSimpleDto"
+                  }
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/HydrologicSubareaSimpleDto"
                   }
                 }
               }
@@ -9237,6 +9317,20 @@
             "nullable": true
           },
           "HRUResponse": {
+            "type": "string",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "HydrologicSubareaSimpleDto": {
+        "type": "object",
+        "properties": {
+          "HydrologicSubareaID": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "HydrologicSubareaName": {
             "type": "string",
             "nullable": true
           }
@@ -13623,6 +13717,137 @@
               "$ref": "#/components/schemas/TreatmentBMPMinimalDto"
             },
             "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "WaterQualityManagementPlanGridDto": {
+        "type": "object",
+        "properties": {
+          "WaterQualityManagementPlanID": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "WaterQualityManagementPlanName": {
+            "type": "string",
+            "nullable": true
+          },
+          "StormwaterJurisdictionID": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "StormwaterJurisdictionName": {
+            "type": "string",
+            "nullable": true
+          },
+          "WaterQualityManagementPlanPriorityDisplayName": {
+            "type": "string",
+            "nullable": true
+          },
+          "WaterQualityManagementPlanStatusDisplayName": {
+            "type": "string",
+            "nullable": true
+          },
+          "WaterQualityManagementPlanDevelopmentTypeDisplayName": {
+            "type": "string",
+            "nullable": true
+          },
+          "WaterQualityManagementPlanLandUseDisplayName": {
+            "type": "string",
+            "nullable": true
+          },
+          "WaterQualityManagementPlanPermitTermDisplayName": {
+            "type": "string",
+            "nullable": true
+          },
+          "ApprovalDate": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          },
+          "DateOfConstruction": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          },
+          "HydromodificationAppliesTypeDisplayName": {
+            "type": "string",
+            "nullable": true
+          },
+          "HydrologicSubareaName": {
+            "type": "string",
+            "nullable": true
+          },
+          "MaintenanceContactOrganization": {
+            "type": "string",
+            "nullable": true
+          },
+          "MaintenanceContactName": {
+            "type": "string",
+            "nullable": true
+          },
+          "MaintenanceContactPhone": {
+            "type": "string",
+            "nullable": true
+          },
+          "MaintenanceContactAddress": {
+            "type": "string",
+            "nullable": true
+          },
+          "TreatmentBMPCount": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "QuickBMPCount": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "WaterQualityManagementPlanModelingApproachDisplayName": {
+            "type": "string",
+            "nullable": true
+          },
+          "DocumentCount": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "HasRequiredDocuments": {
+            "type": "boolean",
+            "nullable": true
+          },
+          "RecordNumber": {
+            "type": "string",
+            "nullable": true
+          },
+          "RecordedWQMPAreaInAcres": {
+            "type": "number",
+            "format": "double",
+            "nullable": true
+          },
+          "CalculatedWQMPAcreage": {
+            "type": "number",
+            "format": "double",
+            "nullable": true
+          },
+          "AssociatedAPNs": {
+            "type": "string",
+            "nullable": true
+          },
+          "VerificationDate": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          },
+          "TrashCaptureStatusTypeDisplayName": {
+            "type": "string",
+            "nullable": true
+          },
+          "TrashCaptureEffectiveness": {
+            "type": "integer",
+            "format": "int32",
+            "nullable": true
+          },
+          "HasBoundary": {
+            "type": "boolean"
           }
         },
         "additionalProperties": false

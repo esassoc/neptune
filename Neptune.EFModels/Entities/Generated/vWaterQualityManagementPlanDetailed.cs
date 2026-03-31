@@ -143,4 +143,6 @@ public partial class vWaterQualityManagementPlanDetailed
 
     [Column(TypeName = "datetime")]
     public DateTime? VerificationDate { get; set; }
+
+    public bool HasBoundary { get; set; }
 }

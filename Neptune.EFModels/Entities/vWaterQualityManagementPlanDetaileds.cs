@@ -1,4 +1,5 @@
 ﻿using Microsoft.EntityFrameworkCore;
+using Neptune.Models.DataTransferObjects;
 
 namespace Neptune.EFModels.Entities;
 
@@ -26,4 +27,44 @@ public static class vWaterQualityManagementPlanDetaileds
         return waterQualityManagementPlans.ToList();
     }
 
+    public static async Task<List<vWaterQualityManagementPlanDetailed>> ListViewableByPersonDtoAsync(NeptuneDbContext dbContext, PersonDto personDto)
+    {
+        var isAnonymousOrUnassigned = personDto == null || personDto.RoleID == (int)RoleEnum.Unassigned;
+
+        List<int> stormwaterJurisdictionIDsPersonCanView;
+        if (personDto != null && personDto.RoleID is (int)RoleEnum.Admin or (int)RoleEnum.SitkaAdmin)
+        {
+            stormwaterJurisdictionIDsPersonCanView = await dbContext.StormwaterJurisdictionPeople
+                .AsNoTracking().Select(x => x.StormwaterJurisdictionID).Distinct().ToListAsync();
+        }
+        else if (isAnonymousOrUnassigned)
+        {
+            stormwaterJurisdictionIDsPersonCanView = await dbContext.StormwaterJurisdictions.AsNoTracking()
+                .Where(x => x.StormwaterJurisdictionPublicWQMPVisibilityTypeID !=
+                            (int)StormwaterJurisdictionPublicWQMPVisibilityTypeEnum.None)
+                .Select(x => x.StormwaterJurisdictionID).ToListAsync();
+        }
+        else
+        {
+            stormwaterJurisdictionIDsPersonCanView = await dbContext.StormwaterJurisdictionPeople
+                .Where(x => x.PersonID == personDto.PersonID)
+                .Select(x => x.StormwaterJurisdictionID).ToListAsync();
+        }
+
+        var waterQualityManagementPlans = dbContext.vWaterQualityManagementPlanDetaileds.AsNoTracking()
+            .Where(x => stormwaterJurisdictionIDsPersonCanView.Contains(x.StormwaterJurisdictionID));
+
+        if (isAnonymousOrUnassigned)
+        {
+            return await waterQualityManagementPlans.Where(x =>
+                x.WaterQualityManagementPlanStatusID ==
+                (int)WaterQualityManagementPlanStatusEnum.Active ||
+                (x.WaterQualityManagementPlanStatusID ==
+                (int)WaterQualityManagementPlanStatusEnum.Inactive &&
+                x.StormwaterJurisdictionPublicWQMPVisibilityTypeID ==
+                (int)StormwaterJurisdictionPublicWQMPVisibilityTypeEnum.ActiveAndInactive)).ToListAsync();
+        }
+
+        return await waterQualityManagementPlans.ToListAsync();
+    }
 }

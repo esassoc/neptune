@@ -1,7 +1,8 @@
 MERGE INTO dbo.WaterQualityManagementPlanStatus AS Target
 USING (VALUES
 (1, 'Active', 'Active'),
-(2, 'Inactive', 'Inactive')
+(2, 'Inactive', 'Inactive'),
+(3, 'Draft', 'Draft')
 )
 AS Source (WaterQualityManagementPlanStatusID, WaterQualityManagementPlanStatusName, WaterQualityManagementPlanStatusDisplayName)
 ON Target.WaterQualityManagementPlanStatusID = Source.WaterQualityManagementPlanStatusID

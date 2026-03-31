@@ -25,7 +25,8 @@ select	wqmp.WaterQualityManagementPlanID, wqmp.WaterQualityManagementPlanName,
         isnull(tbmp.TreatmentBMPCount, 0) as TreatmentBMPCount, isnull(qbmp.QuickBMPCount, 0) as QuickBMPCount, isnull(scbmp.SourceControlBMPCount, 0) as SourceControlBMPCount, isnull(wqmpdoc.DocumentCount, 0) as DocumentCount,
         isnull(parcels.AssociatedAPNs, '') as AssociatedAPNs,
         cast(isnull(case when docTypeReq.RequiredDocumentCount = reqDocCount.RequiredDocumentCount then 1 else 0 end, 0) as bit) as HasRequiredDocuments,
-        wqmpv.WaterQualityManagementPlanVerifyID, wqmpv.LastEditedDate as VerificationDate
+        wqmpv.WaterQualityManagementPlanVerifyID, wqmpv.LastEditedDate as VerificationDate,
+        cast(case when wqmpb.WaterQualityManagementPlanID is not null then 1 else 0 end as bit) as HasBoundary
 from dbo.WaterQualityManagementPlan wqmp
 join dbo.StormwaterJurisdiction sj on wqmp.StormwaterJurisdictionID = sj.StormwaterJurisdictionID
 join dbo.Organization o on sj.OrganizationID = o.OrganizationID

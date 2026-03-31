@@ -14,14 +14,14 @@ Run `/db-build-scaffold` after you have finished editing SQL files in `Neptune.D
 
 1. **Build and deploy the DACPAC** to the local SQL Server:
    ```
-   cd C:/git/sitkatech/neptune/Build && powershell.exe -ExecutionPolicy Bypass -File DatabaseBuild.ps1
+   cd C:/git/esassoc/neptune/Build && powershell.exe -ExecutionPolicy Bypass -File DatabaseBuild.ps1
    ```
    - Must run from the `Build/` directory so PowerShell module imports resolve correctly.
    - If the build fails, report the error and stop.
 
 2. **Scaffold EF Core entities** from the updated database:
    ```
-   cd C:/git/sitkatech/neptune/Build && powershell.exe -ExecutionPolicy Bypass -File Scaffold.ps1
+   cd C:/git/esassoc/neptune/Build && powershell.exe -ExecutionPolicy Bypass -File Scaffold.ps1
    ```
    - This regenerates files in `Neptune.EFModels/Entities/Generated/`.
    - If the scaffold fails, report the error and stop.
