@@ -18,7 +18,6 @@ import { WqmpsLayerComponent } from "src/app/shared/components/leaflet/layers/wq
 import { NeptuneMapInitEvent } from "src/app/shared/components/leaflet/neptune-map/neptune-map.component";
 import { OverlayMode } from "src/app/shared/components/leaflet/layers/generic-wms-wfs-layer/overlay-mode.enum";
 import { WqmpModalComponent } from "./wqmp-modal/wqmp-modal.component";
-import { environment } from "src/environments/environment";
 
 @Component({
     selector: "wqmps",
@@ -48,8 +47,8 @@ export class WqmpsComponent {
 
     ngOnInit(): void {
         this.columnDefs = [
-            this.utilityFunctionsService.createLinkHrefColumnDef("Name", "WaterQualityManagementPlanName", "WaterQualityManagementPlanID", {
-                HrefTemplate: `${environment.ocStormwaterToolsBaseUrl}/WaterQualityManagementPlan/Detail`,
+            this.utilityFunctionsService.createLinkColumnDef("Name", "WaterQualityManagementPlanName", "WaterQualityManagementPlanID", {
+                InRouterLink: "/water-quality-management-plans/",
                 FieldDefinitionType: "WaterQualityManagementPlan",
                 FieldDefinitionLabelOverride: "Name",
             }),

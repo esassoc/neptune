@@ -50,7 +50,8 @@ namespace Neptune.API.Controllers
         }
 
         [HttpGet("{waterQualityManagementPlanID}")]
-        [AdminFeature]
+        [AllowAnonymous]
+        [OptionalAuth]
         [EntityNotFound(typeof(WaterQualityManagementPlan), "waterQualityManagementPlanID")]
         public async Task<ActionResult<WaterQualityManagementPlanDto>> Get([FromRoute] int waterQualityManagementPlanID)
         {
@@ -88,12 +89,68 @@ namespace Neptune.API.Controllers
         }
 
         [HttpGet("{waterQualityManagementPlanID}/documents")]
-        [AdminFeature]
+        [AllowAnonymous]
+        [OptionalAuth]
         [EntityNotFound(typeof(WaterQualityManagementPlan), "waterQualityManagementPlanID")]
         public async Task<ActionResult<IEnumerable<WaterQualityManagementPlanDocumentDto>>> ListDocuments([FromRoute] int waterQualityManagementPlanID)
         {
+            if (CallingUser == null || CallingUser.RoleID == (int)RoleEnum.Unassigned)
+            {
+                return Ok(new List<WaterQualityManagementPlanDocumentDto>());
+            }
             var waterQualityManagementPlanDocumentDtos = await WaterQualityManagementPlanDocuments.ListByWaterQualityManagementPlanIDAsDtoAsync(DbContext, waterQualityManagementPlanID);
             return Ok(waterQualityManagementPlanDocumentDtos);
+        }
+
+        [HttpGet("{waterQualityManagementPlanID}/quick-bmps")]
+        [AllowAnonymous]
+        [OptionalAuth]
+        [EntityNotFound(typeof(WaterQualityManagementPlan), "waterQualityManagementPlanID")]
+        public async Task<ActionResult<List<QuickBMPDto>>> ListQuickBMPs([FromRoute] int waterQualityManagementPlanID)
+        {
+            var quickBMPs = await QuickBMPs.ListByWaterQualityManagementPlanIDAsDtoAsync(DbContext, waterQualityManagementPlanID);
+            return Ok(quickBMPs);
+        }
+
+        [HttpGet("{waterQualityManagementPlanID}/source-control-bmps")]
+        [AllowAnonymous]
+        [OptionalAuth]
+        [EntityNotFound(typeof(WaterQualityManagementPlan), "waterQualityManagementPlanID")]
+        public async Task<ActionResult<List<SourceControlBMPDto>>> ListSourceControlBMPs([FromRoute] int waterQualityManagementPlanID)
+        {
+            var sourceControlBMPs = await SourceControlBMPs.ListByWaterQualityManagementPlanIDAsDtoAsync(DbContext, waterQualityManagementPlanID);
+            return Ok(sourceControlBMPs);
+        }
+
+        [HttpGet("{waterQualityManagementPlanID}/verifications")]
+        [AllowAnonymous]
+        [OptionalAuth]
+        [EntityNotFound(typeof(WaterQualityManagementPlan), "waterQualityManagementPlanID")]
+        public async Task<ActionResult<List<WaterQualityManagementPlanVerifyGridDto>>> ListVerifications([FromRoute] int waterQualityManagementPlanID)
+        {
+            var verifications = await WaterQualityManagementPlanVerifies.ListByWaterQualityManagementPlanIDAsDtoAsync(DbContext, waterQualityManagementPlanID);
+            return Ok(verifications);
+        }
+
+        [HttpGet("{waterQualityManagementPlanID}/modeled-performance")]
+        [AllowAnonymous]
+        [OptionalAuth]
+        [EntityNotFound(typeof(WaterQualityManagementPlan), "waterQualityManagementPlanID")]
+        public async Task<ActionResult<ProjectLoadReducingResultDto>> GetModeledPerformance([FromRoute] int waterQualityManagementPlanID)
+        {
+            var result = await WaterQualityManagementPlanModeledPerformance.GetModeledPerformanceAsync(DbContext, waterQualityManagementPlanID);
+            if (result == null) return Ok(null);
+            return Ok(result);
+        }
+
+        [HttpGet("{waterQualityManagementPlanID}/hru-characteristics")]
+        [AllowAnonymous]
+        [OptionalAuth]
+        [EntityNotFound(typeof(WaterQualityManagementPlan), "waterQualityManagementPlanID")]
+        public async Task<ActionResult<List<HRUCharacteristicDto>>> ListHRUCharacteristics([FromRoute] int waterQualityManagementPlanID)
+        {
+            var hruCharacteristics = await vHRUCharacteristics.ListByWaterQualityManagementPlanIDAsDtoAsync(DbContext, waterQualityManagementPlanID);
+            return Ok(hruCharacteristics);
         }
 
         [HttpGet("hydrologic-subareas")]

@@ -15,6 +15,7 @@ import { FieldDefinitionComponent } from "../field-definition/field-definition.c
 export class ModeledBmpPerformanceComponent {
     @Input() loadReducingResult!: ProjectLoadReducingResultDto;
     @Input() selectedTreatmentBMPID?: number | null;
+    @Input() siteRunoffLabel?: string;
     public ModeledPerformanceDisplayTypeEnum = ModeledPerformanceDisplayTypeEnum;
     public activeID: ModeledPerformanceDisplayTypeEnum = ModeledPerformanceDisplayTypeEnum.Total;
     public activeTab: string = "Total";

@@ -45,66 +45,6 @@ public static  class WaterQualityManagementPlanExtensionMethods
         return dto;
     }
 
-    public static WaterQualityManagementPlanDto AsDto(this WaterQualityManagementPlan plan)
-    {
-        return new WaterQualityManagementPlanDto
-        {
-            WaterQualityManagementPlanID = plan.WaterQualityManagementPlanID,
-            StormwaterJurisdictionID = plan.StormwaterJurisdictionID,
-            StormwaterJurisdictionOrganizationName = plan.StormwaterJurisdiction?.GetOrganizationDisplayName(),
-            WaterQualityManagementPlanLandUseID = plan.WaterQualityManagementPlanLandUseID,
-            WaterQualityManagementPlanLandUseDisplayName = plan.WaterQualityManagementPlanLandUse?.WaterQualityManagementPlanLandUseDisplayName,
-            WaterQualityManagementPlanPriorityID = plan.WaterQualityManagementPlanPriorityID,
-            WaterQualityManagementPlanPriorityDisplayName = plan.WaterQualityManagementPlanPriority?.WaterQualityManagementPlanPriorityDisplayName,
-            WaterQualityManagementPlanStatusID = plan.WaterQualityManagementPlanStatusID,
-            WaterQualityManagementPlanStatusDisplayName = plan.WaterQualityManagementPlanStatus?.WaterQualityManagementPlanStatusDisplayName,
-            WaterQualityManagementPlanDevelopmentTypeID = plan.WaterQualityManagementPlanDevelopmentTypeID,
-            WaterQualityManagementPlanDevelopmentTypeDisplayName = plan.WaterQualityManagementPlanDevelopmentType?.WaterQualityManagementPlanDevelopmentTypeDisplayName,
-            WaterQualityManagementPlanName = plan.WaterQualityManagementPlanName,
-            ApprovalDate = plan.ApprovalDate,
-            MaintenanceContactName = plan.MaintenanceContactName,
-            MaintenanceContactOrganization = plan.MaintenanceContactOrganization,
-            MaintenanceContactPhone = plan.MaintenanceContactPhone,
-            MaintenanceContactAddress1 = plan.MaintenanceContactAddress1,
-            MaintenanceContactAddress2 = plan.MaintenanceContactAddress2,
-            MaintenanceContactCity = plan.MaintenanceContactCity,
-            MaintenanceContactState = plan.MaintenanceContactState,
-            MaintenanceContactZip = plan.MaintenanceContactZip,
-            WaterQualityManagementPlanPermitTermID = plan.WaterQualityManagementPlanPermitTermID,
-            WaterQualityManagementPlanPermitTermDisplayName = plan.WaterQualityManagementPlanPermitTerm?.WaterQualityManagementPlanPermitTermDisplayName,
-            HydromodificationAppliesTypeID = plan.HydromodificationAppliesTypeID,
-            HydromodificationAppliesTypeDisplayName = plan.HydromodificationAppliesType?.HydromodificationAppliesTypeDisplayName,
-            DateOfConstruction = plan.DateOfConstruction,
-            HydrologicSubareaID = plan.HydrologicSubareaID,
-            HydrologicSubareaName = plan.HydrologicSubarea?.HydrologicSubareaName,
-            RecordNumber = plan.RecordNumber,
-            RecordedWQMPAreaInAcres = plan.RecordedWQMPAreaInAcres,
-            TrashCaptureStatusTypeID = plan.TrashCaptureStatusTypeID,
-            TrashCaptureEffectiveness = plan.TrashCaptureEffectiveness,
-            TrashCaptureStatusTypeDisplayName = plan.TrashCaptureStatusType?.TrashCaptureStatusTypeDisplayName,
-            WaterQualityManagementPlanModelingApproachID = plan.WaterQualityManagementPlanModelingApproachID,
-            LastNereidLogID = plan.LastNereidLogID,
-            WaterQualityManagementPlanBoundaryNotes = plan.WaterQualityManagementPlanBoundaryNotes,
-            //boundary bbox as WMS string
-            WaterQualityManagementPlanBoundaryBBox = plan.WaterQualityManagementPlanBoundary?.Geometry4326 != null 
-                ? $"{plan.WaterQualityManagementPlanBoundary.Geometry4326.EnvelopeInternal.MinX}, {plan.WaterQualityManagementPlanBoundary.Geometry4326.EnvelopeInternal.MinY}, {plan.WaterQualityManagementPlanBoundary.Geometry4326.EnvelopeInternal.MaxX}, {plan.WaterQualityManagementPlanBoundary.Geometry4326.EnvelopeInternal.MaxY}" 
-                : null,
-
-            Parcels = plan.WaterQualityManagementPlanParcels.Select(x => new ParcelDisplayDto()
-            {
-                ParcelID = x.ParcelID,
-                ParcelNumber = x.Parcel.ParcelNumber,
-            }).ToList(),
-
-            TreatmentBMPs = plan.TreatmentBMPs.Select(x => new TreatmentBMPMinimalDto()
-            {
-                TreatmentBMPID = x.TreatmentBMPID,
-                TreatmentBMPName = x.TreatmentBMPName,
-                Area = x.Delineation.GetDelineationArea()
-            }).ToList()
-        };
-    }
-
     public static WaterQualityManagementPlanSimpleDto AsSimpleDto(this WaterQualityManagementPlan plan)
     {
         return new WaterQualityManagementPlanSimpleDto

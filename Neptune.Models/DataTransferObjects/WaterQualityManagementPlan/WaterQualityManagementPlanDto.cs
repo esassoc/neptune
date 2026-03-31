@@ -39,6 +39,7 @@ public class WaterQualityManagementPlanDto
     public int? LastNereidLogID { get; set; }
     public string? WaterQualityManagementPlanBoundaryNotes { get; set; }
     public string? WaterQualityManagementPlanBoundaryBBox { get; set; }
+    public double? CalculatedWQMPAcreage { get; set; }
 
     public List<ParcelDisplayDto> Parcels { get; set; }
     public List<TreatmentBMPMinimalDto> TreatmentBMPs { get; set; }

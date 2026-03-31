@@ -7651,7 +7651,9 @@
               }
             }
           }
-        }
+        },
+        "x-anonymous": true,
+        "x-optional-auth": true
       },
       "put": {
         "tags": [
@@ -7781,7 +7783,260 @@
               }
             }
           }
-        }
+        },
+        "x-anonymous": true,
+        "x-optional-auth": true
+      }
+    },
+    "/water-quality-management-plans/{waterQualityManagementPlanID}/quick-bmps": {
+      "get": {
+        "tags": [
+          "WaterQualityManagementPlan"
+        ],
+        "operationId": "ListQuickBMPs_WaterQualityManagementPlan",
+        "parameters": [
+          {
+            "name": "waterQualityManagementPlanID",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/QuickBMPDto"
+                  }
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/QuickBMPDto"
+                  }
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/QuickBMPDto"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "x-anonymous": true,
+        "x-optional-auth": true
+      }
+    },
+    "/water-quality-management-plans/{waterQualityManagementPlanID}/source-control-bmps": {
+      "get": {
+        "tags": [
+          "WaterQualityManagementPlan"
+        ],
+        "operationId": "ListSourceControlBMPs_WaterQualityManagementPlan",
+        "parameters": [
+          {
+            "name": "waterQualityManagementPlanID",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/SourceControlBMPDto"
+                  }
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/SourceControlBMPDto"
+                  }
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/SourceControlBMPDto"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "x-anonymous": true,
+        "x-optional-auth": true
+      }
+    },
+    "/water-quality-management-plans/{waterQualityManagementPlanID}/verifications": {
+      "get": {
+        "tags": [
+          "WaterQualityManagementPlan"
+        ],
+        "operationId": "ListVerifications_WaterQualityManagementPlan",
+        "parameters": [
+          {
+            "name": "waterQualityManagementPlanID",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/WaterQualityManagementPlanVerifyGridDto"
+                  }
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/WaterQualityManagementPlanVerifyGridDto"
+                  }
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/WaterQualityManagementPlanVerifyGridDto"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "x-anonymous": true,
+        "x-optional-auth": true
+      }
+    },
+    "/water-quality-management-plans/{waterQualityManagementPlanID}/modeled-performance": {
+      "get": {
+        "tags": [
+          "WaterQualityManagementPlan"
+        ],
+        "operationId": "GetModeledPerformance_WaterQualityManagementPlan",
+        "parameters": [
+          {
+            "name": "waterQualityManagementPlanID",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProjectLoadReducingResultDto"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProjectLoadReducingResultDto"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProjectLoadReducingResultDto"
+                }
+              }
+            }
+          }
+        },
+        "x-anonymous": true,
+        "x-optional-auth": true
+      }
+    },
+    "/water-quality-management-plans/{waterQualityManagementPlanID}/hru-characteristics": {
+      "get": {
+        "tags": [
+          "WaterQualityManagementPlan"
+        ],
+        "operationId": "ListHRUCharacteristics_WaterQualityManagementPlan",
+        "parameters": [
+          {
+            "name": "waterQualityManagementPlanID",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/HRUCharacteristicDto"
+                  }
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/HRUCharacteristicDto"
+                  }
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/HRUCharacteristicDto"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "x-anonymous": true,
+        "x-optional-auth": true
       }
     },
     "/water-quality-management-plans/hydrologic-subareas": {
@@ -11653,6 +11908,11 @@
           "TotalTZnInflow": {
             "type": "number",
             "format": "double"
+          },
+          "LastCalculatedDate": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
           }
         },
         "additionalProperties": false
@@ -11803,6 +12063,52 @@
         },
         "additionalProperties": false
       },
+      "QuickBMPDto": {
+        "type": "object",
+        "properties": {
+          "QuickBMPID": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "QuickBMPName": {
+            "type": "string",
+            "nullable": true
+          },
+          "TreatmentBMPTypeName": {
+            "type": "string",
+            "nullable": true
+          },
+          "QuickBMPNote": {
+            "type": "string",
+            "nullable": true
+          },
+          "NumberOfIndividualBMPs": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "PercentOfSiteTreated": {
+            "type": "number",
+            "format": "double",
+            "nullable": true
+          },
+          "PercentCaptured": {
+            "type": "number",
+            "format": "double",
+            "nullable": true
+          },
+          "PercentRetained": {
+            "type": "number",
+            "format": "double",
+            "nullable": true
+          },
+          "DryWeatherFlowOverrideID": {
+            "type": "integer",
+            "format": "int32",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
       "RegionalSubbasinDto": {
         "type": "object",
         "properties": {
@@ -11871,6 +12177,36 @@
             "nullable": true
           },
           "SizingBasisTypeDisplayName": {
+            "type": "string",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "SourceControlBMPDto": {
+        "type": "object",
+        "properties": {
+          "SourceControlBMPID": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "SourceControlBMPAttributeName": {
+            "type": "string",
+            "nullable": true
+          },
+          "SourceControlBMPAttributeCategoryName": {
+            "type": "string",
+            "nullable": true
+          },
+          "SourceControlBMPAttributeCategoryID": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "IsPresent": {
+            "type": "boolean",
+            "nullable": true
+          },
+          "SourceControlBMPNote": {
             "type": "string",
             "nullable": true
           }
@@ -13054,7 +13390,29 @@
             "type": "string",
             "nullable": true
           },
+          "TreatmentBMPTypeName": {
+            "type": "string",
+            "nullable": true
+          },
+          "Notes": {
+            "type": "string",
+            "nullable": true
+          },
+          "DelineationStatus": {
+            "type": "string",
+            "nullable": true
+          },
           "Area": {
+            "type": "number",
+            "format": "double",
+            "nullable": true
+          },
+          "Latitude": {
+            "type": "number",
+            "format": "double",
+            "nullable": true
+          },
+          "Longitude": {
             "type": "number",
             "format": "double",
             "nullable": true
@@ -13704,6 +14062,11 @@
             "type": "string",
             "nullable": true
           },
+          "CalculatedWQMPAcreage": {
+            "type": "number",
+            "format": "double",
+            "nullable": true
+          },
           "Parcels": {
             "type": "array",
             "items": {
@@ -14055,6 +14418,43 @@
           "WaterQualityManagementPlanBoundaryNotes": {
             "type": "string",
             "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "WaterQualityManagementPlanVerifyGridDto": {
+        "type": "object",
+        "properties": {
+          "WaterQualityManagementPlanVerifyID": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "VerificationDate": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "LastEditedDate": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "LastEditedByPersonFullName": {
+            "type": "string",
+            "nullable": true
+          },
+          "WaterQualityManagementPlanVerifyTypeDisplayName": {
+            "type": "string",
+            "nullable": true
+          },
+          "WaterQualityManagementPlanVisitStatusDisplayName": {
+            "type": "string",
+            "nullable": true
+          },
+          "WaterQualityManagementPlanVerifyStatusDisplayName": {
+            "type": "string",
+            "nullable": true
+          },
+          "IsDraft": {
+            "type": "boolean"
           }
         },
         "additionalProperties": false

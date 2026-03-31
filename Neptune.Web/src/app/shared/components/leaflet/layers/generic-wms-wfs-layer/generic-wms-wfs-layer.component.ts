@@ -130,7 +130,14 @@ export class GenericWmsWfsLayerComponent extends MapLayerBase implements OnChang
                 geoJson.addTo(this.wfsLayer);
                 // Zoom to bounds
                 if ("getBounds" in geoJson && typeof geoJson.getBounds === "function" && this.map) {
-                    this.map.fitBounds(geoJson.getBounds());
+                    try {
+                        const bounds = geoJson.getBounds();
+                        if (bounds.isValid()) {
+                            this.map.fitBounds(bounds);
+                        }
+                    } catch (e) {
+                        // Bounds may be invalid if geometry is null or empty
+                    }
                 }
             });
             if (this.map) {

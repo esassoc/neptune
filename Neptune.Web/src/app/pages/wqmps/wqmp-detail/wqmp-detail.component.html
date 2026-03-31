@@ -1,0 +1,371 @@
+@if (wqmp$ | async; as wqmp) {
+    <page-header [pageTitle]="wqmp.WaterQualityManagementPlanName" [templateAbove]="templateAbove">
+        <ng-template #templateAbove>
+            <div class="back">
+                <a [routerLink]="['/water-quality-management-plans']" class="back__link">Back to WQMP Grid</a>
+            </div>
+        </ng-template>
+    </page-header>
+
+    <app-alert-display></app-alert-display>
+
+    <div class="grid-12">
+        <!-- Left Column -->
+        <div class="g-col-6">
+            <!-- Basics Card -->
+            <div class="card">
+                <div class="card-header">
+                    <span class="card-title">Basics</span>
+                    @if (currentPersonCanManage) {
+                        <a (click)="openEditModal(wqmp)" style="cursor: pointer"><icon class="icon-button" icon="CirclePencil"></icon></a>
+                    }
+                </div>
+                <div class="card-body">
+                    <dl class="grid-12">
+                        <dt class="g-col-5"><field-definition fieldDefinitionType="WaterQualityManagementPlan" fieldDefinitionLabelOverride="Name"></field-definition></dt>
+                        <dd class="g-col-7">{{ wqmp.WaterQualityManagementPlanName }}</dd>
+
+                        <dt class="g-col-5"><field-definition fieldDefinitionType="Jurisdiction"></field-definition></dt>
+                        <dd class="g-col-7">
+                            @if (!isAnonymousOrUnassigned) {
+                                <a [routerLink]="['/jurisdictions', wqmp.StormwaterJurisdictionID]">{{ wqmp.StormwaterJurisdictionOrganizationName }}</a>
+                            } @else {
+                                {{ wqmp.StormwaterJurisdictionOrganizationName }}
+                            }
+                        </dd>
+
+                        <dt class="g-col-5">Priority</dt>
+                        <dd class="g-col-7">{{ wqmp.WaterQualityManagementPlanPriorityDisplayName ?? "" }}</dd>
+
+                        <dt class="g-col-5">Status</dt>
+                        <dd class="g-col-7">{{ wqmp.WaterQualityManagementPlanStatusDisplayName ?? "" }}</dd>
+
+                        <dt class="g-col-5">Development Type</dt>
+                        <dd class="g-col-7">{{ wqmp.WaterQualityManagementPlanDevelopmentTypeDisplayName ?? "" }}</dd>
+
+                        <dt class="g-col-5">Land Use</dt>
+                        <dd class="g-col-7">{{ wqmp.WaterQualityManagementPlanLandUseDisplayName ?? "" }}</dd>
+
+                        <dt class="g-col-5">Permit Term</dt>
+                        <dd class="g-col-7">{{ wqmp.WaterQualityManagementPlanPermitTermDisplayName ?? "" }}</dd>
+
+                        <dt class="g-col-5">Approval Date</dt>
+                        <dd class="g-col-7">{{ wqmp.ApprovalDate ? (wqmp.ApprovalDate | date: "MM/dd/yyyy" : "+0000") : "" }}</dd>
+
+                        <dt class="g-col-5">Date of Construction</dt>
+                        <dd class="g-col-7">{{ wqmp.DateOfConstruction ? (wqmp.DateOfConstruction | date: "MM/dd/yyyy" : "+0000") : "" }}</dd>
+
+                        <dt class="g-col-5"><field-definition fieldDefinitionType="HydromodificationApplies"></field-definition></dt>
+                        <dd class="g-col-7">{{ wqmp.HydromodificationAppliesTypeDisplayName ?? "" }}</dd>
+
+                        <dt class="g-col-5">Hydrologic Subarea</dt>
+                        <dd class="g-col-7">{{ wqmp.HydrologicSubareaName ?? "" }}</dd>
+
+                        <dt class="g-col-5">Record Number</dt>
+                        <dd class="g-col-7">{{ wqmp.RecordNumber ?? "" }}</dd>
+
+                        <dt class="g-col-5">Recorded WQMP Area (Acres)</dt>
+                        <dd class="g-col-7">{{ wqmp.RecordedWQMPAreaInAcres ?? "" }}</dd>
+
+                        <dt class="g-col-5"><field-definition fieldDefinitionType="TrashCaptureStatus"></field-definition></dt>
+                        <dd class="g-col-7">{{ wqmp.TrashCaptureStatusTypeDisplayName }}</dd>
+
+                        @if (wqmp.TrashCaptureStatusTypeID === TrashCaptureStatusTypeEnum.Partial) {
+                            <dt class="g-col-5">Trash Capture Effectiveness</dt>
+                            <dd class="g-col-7">{{ wqmp.TrashCaptureEffectiveness }}%</dd>
+                        }
+
+                        @if (!isAnonymousOrUnassigned) {
+                            <dt class="g-col-5">Maintenance Contact</dt>
+                            <dd class="g-col-7">
+                                @if (wqmp.MaintenanceContactName) {
+                                    <div><strong>{{ wqmp.MaintenanceContactName }}</strong></div>
+                                }
+                                @if (wqmp.MaintenanceContactOrganization) {
+                                    <div><strong>{{ wqmp.MaintenanceContactOrganization }}</strong></div>
+                                }
+                                @if (wqmp.MaintenanceContactAddress1) {
+                                    <div>{{ wqmp.MaintenanceContactAddress1 }}</div>
+                                }
+                                @if (wqmp.MaintenanceContactAddress2) {
+                                    <div>{{ wqmp.MaintenanceContactAddress2 }}</div>
+                                }
+                                @if (wqmp.MaintenanceContactCity || wqmp.MaintenanceContactState || wqmp.MaintenanceContactZip) {
+                                    <div>{{ wqmp.MaintenanceContactCity }}@if (wqmp.MaintenanceContactCity && wqmp.MaintenanceContactState) {, }{{ wqmp.MaintenanceContactState }}@if ((wqmp.MaintenanceContactCity || wqmp.MaintenanceContactState) && wqmp.MaintenanceContactZip) {, }{{ wqmp.MaintenanceContactZip }}</div>
+                                }
+                                @if (wqmp.MaintenanceContactPhone) {
+                                    <div>Phone: {{ wqmp.MaintenanceContactPhone }}</div>
+                                }
+                                @if (!wqmp.MaintenanceContactName && !wqmp.MaintenanceContactOrganization) {
+                                    <em class="text-muted">Not provided</em>
+                                }
+                            </dd>
+                        }
+                    </dl>
+                </div>
+            </div>
+
+            <!-- Modeled Performance Card -->
+            <div class="card mt-3">
+                <div class="card-header">
+                    <span class="card-title"><field-definition fieldDefinitionType="ModeledPerformance"></field-definition></span>
+                </div>
+                <div class="card-body">
+                    @if (wqmp.WaterQualityManagementPlanModelingApproachID === WaterQualityManagementPlanModelingApproachEnum.Detailed && !wqmp.TreatmentBMPs?.length) {
+                        <p class="system-text">This WQMP is modeled using the detailed approach, but no structural BMPs have been inventoried, so no results are available.</p>
+                    } @else if (wqmp.WaterQualityManagementPlanModelingApproachID === WaterQualityManagementPlanModelingApproachEnum.Simplified && !wqmp.WaterQualityManagementPlanBoundaryBBox) {
+                        <p class="system-text">No treatment area has been defined for this Water Quality Management Plan. Add parcels to define the treatment area.</p>
+                    } @else if (quickBMPs$ | async; as quickBMPsForPerf) {
+                        @if (wqmp.WaterQualityManagementPlanModelingApproachID === WaterQualityManagementPlanModelingApproachEnum.Simplified && !quickBMPsForPerf.length) {
+                            <p class="system-text">This WQMP is modeled using the simplified approach, but no simplified structural BMPs have been inventoried, so no results are available.</p>
+                        } @else if (modeledPerformance$ | async; as modeledPerformance) {
+                            <modeled-bmp-performance [loadReducingResult]="modeledPerformance"></modeled-bmp-performance>
+                            @if (modeledPerformance.LastCalculatedDate) {
+                                <p class="system-text mt-2"><em>Results last calculated at {{ modeledPerformance.LastCalculatedDate | date: "MM/dd/yyyy h:mm a" }}</em></p>
+                            }
+                            <a [href]="aboutModelingBMPPerformanceUrl">About Modeling BMP Performance</a>
+                        } @else {
+                            <p class="system-text">No model results are available for this WQMP.</p>
+                        }
+                    } @else {
+                        <div [loadingSpinner]="{ isLoading: true, loadingHeight: 100 }"></div>
+                    }
+                </div>
+            </div>
+        </div>
+
+        <!-- Right Column -->
+        <div class="g-col-6">
+            <!-- Location & Map Card -->
+            <div class="card">
+                <div class="card-header">
+                    <span class="card-title">Locations</span>
+                </div>
+                <div class="card-body">
+                    <neptune-map [mapHeight]="'500px'" [showLegend]="false" [boundingBox]="boundingBox" (onMapLoad)="handleMapReady($event)">
+                        @if (mapIsReady) {
+                            <wqmps-layer
+                                [mode]="OverlayMode.Single"
+                                [selectedID]="waterQualityManagementPlanID"
+                                [map]="map"
+                                [layerControl]="layerControl"></wqmps-layer>
+                        }
+                    </neptune-map>
+                    <dl class="grid-12 mt-3">
+                        <dt class="g-col-5">Calculated Acreage of Assigned Boundary</dt>
+                        <dd class="g-col-7">{{ wqmp.CalculatedWQMPAcreage ?? "" }}</dd>
+
+                        <dt class="g-col-5">WQMP Boundary Notes</dt>
+                        <dd class="g-col-7">{{ wqmp.WaterQualityManagementPlanBoundaryNotes ?? "" }}</dd>
+                    </dl>
+                </div>
+            </div>
+
+            <!-- Land Use Statistics Card -->
+            <div class="card mt-3">
+                <div class="card-header">
+                    <span class="card-title">Land Use Statistics</span>
+                </div>
+                <div class="card-body">
+                    @if (hasHRUData && wqmp.WaterQualityManagementPlanBoundaryBBox) {
+                        <land-use-table [hruCharacteristics]="hruCharacteristicsSummaries"></land-use-table>
+                        @if (wqmp.WaterQualityManagementPlanModelingApproachID === WaterQualityManagementPlanModelingApproachEnum.Detailed) {
+                            <p class="system-text">Land Use Statistics are derived from the inventoried structural BMPs and may not exactly match the Calculated Parcel Area shown above.</p>
+                        }
+                    } @else if (!wqmp.WaterQualityManagementPlanBoundaryBBox) {
+                        <p class="system-text">No treatment area is provided for this Water Quality Management Plan. Land Use Statistics cannot be determined until a treatment area is provided.</p>
+                    } @else {
+                        <p class="system-text">Land Use Statistics have not been calculated for this Water Quality Management Plan.</p>
+                    }
+                </div>
+            </div>
+        </div>
+
+        <!-- Full-width sections -->
+
+        <!-- Associated Parcels -->
+        <div class="card g-col-12 mt-3">
+            <div class="card-header">
+                <span class="card-title">Associated Parcels</span>
+            </div>
+            <div class="card-body">
+                @if (wqmp.Parcels?.length) {
+                    <neptune-grid [rowData]="wqmp.Parcels" [columnDefs]="parcelColumnDefs" [pagination]="true" [height]="'300px'" [downloadFileName]="'Parcels'"></neptune-grid>
+                } @else {
+                    <p class="system-text">No parcels are associated with this WQMP.</p>
+                }
+            </div>
+        </div>
+
+        <!-- BMPs Section -->
+        <div class="card g-col-12 mt-3">
+            <div class="card-header">
+                <span class="card-title">BMPs</span>
+            </div>
+            <div class="card-body">
+                <!-- Modeling Approach -->
+                <h4>Modeling Approach</h4>
+                @for (approach of modelingApproaches; track approach.Value) {
+                    <div class="modeling-approach-row" [class.modeling-approach-selected]="approach.Value === wqmp.WaterQualityManagementPlanModelingApproachID"
+                        [class.modeling-approach-unselected]="approach.Value !== wqmp.WaterQualityManagementPlanModelingApproachID">
+                        <div class="modeling-approach-label">
+                            @if (approach.Value === wqmp.WaterQualityManagementPlanModelingApproachID) {
+                                <span class="modeling-approach-check">&#10004;</span>
+                            }
+                            <strong>{{ approach.DisplayName }}</strong>
+                        </div>
+                        <div class="modeling-approach-description">
+                            {{ modelingApproachDescriptions[approach.Value] }}
+                        </div>
+                    </div>
+                }
+
+                <!-- Inventoried Structural BMPs -->
+                <h4 class="mt-4">Inventoried Structural BMPs</h4>
+                @if (!isAnonymousOrUnassigned && wqmp.WaterQualityManagementPlanModelingApproachID === WaterQualityManagementPlanModelingApproachEnum.Simplified) {
+                    <div class="alert alert-info">
+                        This WQMP is modeled using the simplified approach; any explicitly inventoried BMPs entered here are not considered in modeling.
+                    </div>
+                }
+                @if (wqmp.TreatmentBMPs?.length) {
+                    <neptune-grid
+                        [rowData]="wqmp.TreatmentBMPs"
+                        [columnDefs]="treatmentBMPColumnDefs"
+                        [pagination]="true"
+                        [height]="'300px'"
+                        [downloadFileName]="'InventoriedBMPs'"></neptune-grid>
+                } @else {
+                    <p class="system-text">No Structural BMPs in Detailed Inventory have been selected.</p>
+                }
+
+                <!-- Simplified Structural BMPs (Quick BMPs) -->
+                <h4 class="mt-4">Simplified Structural BMPs</h4>
+                @if (!isAnonymousOrUnassigned && wqmp.WaterQualityManagementPlanModelingApproachID === WaterQualityManagementPlanModelingApproachEnum.Detailed) {
+                    <div class="alert alert-info">
+                        This WQMP is modeled by explicitly inventorying associated structural BMPs; any simplified BMPs entered here are informational only.
+                    </div>
+                }
+                @if (quickBMPs$ | async; as quickBMPs) {
+                    @if (quickBMPs.length) {
+                        <neptune-grid
+                            [rowData]="quickBMPs"
+                            [columnDefs]="quickBMPColumnDefs"
+                            [pagination]="true"
+                            [height]="'300px'"
+                            [downloadFileName]="'SimplifiedBMPs'"></neptune-grid>
+                    } @else {
+                        <p class="system-text">No simplified structural BMPs are associated with this WQMP.</p>
+                    }
+                } @else {
+                    <div [loadingSpinner]="{ isLoading: true, loadingHeight: 100 }"></div>
+                }
+
+                <!-- Source Control BMPs -->
+                <h4 class="mt-4">Source Control BMPs</h4>
+                @if (sourceControlBMPs$ | async; as sourceControlBMPs) {
+                    @if (sourceControlBMPs.length) {
+                        <table class="table table-condensed source-control-table">
+                            @for (group of sourceControlBMPsByCategory; track group.category) {
+                                <thead>
+                                    <tr>
+                                        <th colspan="3" class="category-header-cell"><h5>{{ group.category }}</h5></th>
+                                    </tr>
+                                    <tr>
+                                        <th>Source Control Attribute</th>
+                                        <th>Is Present</th>
+                                        <th>Notes</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    @for (bmp of group.bmps; track bmp.SourceControlBMPID) {
+                                        <tr>
+                                            <td>{{ bmp.SourceControlBMPAttributeName }}</td>
+                                            <td>
+                                                @if (bmp.IsPresent === true) {
+                                                    Yes
+                                                } @else if (bmp.IsPresent === false) {
+                                                    No
+                                                }
+                                            </td>
+                                            <td>{{ bmp.SourceControlBMPNote }}</td>
+                                        </tr>
+                                    }
+                                </tbody>
+                            }
+                        </table>
+                    } @else {
+                        <p class="system-text">No Source Control BMPs are present or have a note.</p>
+                    }
+                } @else {
+                    <div [loadingSpinner]="{ isLoading: true, loadingHeight: 100 }"></div>
+                }
+            </div>
+        </div>
+
+        <!-- Documents (authenticated only) -->
+        @if (!isAnonymousOrUnassigned) {
+            <div class="card g-col-12 mt-3">
+                <div class="card-header">
+                    <span class="card-title">Documents</span>
+                </div>
+                <div class="card-body">
+                    @if (documents$ | async; as documents) {
+                        @for (docGroup of documentsByType; track docGroup.typeDisplayName) {
+                            <h4>{{ docGroup.typeDisplayName }}</h4>
+                            @if (docGroup.documents.length) {
+                                @for (doc of docGroup.documents; track doc.WaterQualityManagementPlanDocumentID) {
+                                    <div class="document-entry">
+                                        @if (doc.FileResource?.FileResourceGUID) {
+                                            <a [href]="'/FileResource/' + doc.FileResource.FileResourceGUID" target="_blank">
+                                                {{ doc.DisplayName }} <i class="bi bi-download"></i>
+                                            </a>
+                                        } @else {
+                                            <span>{{ doc.DisplayName }}</span>
+                                        }
+                                        <dl class="dl-horizontal document-details">
+                                            <dt>Uploaded On</dt>
+                                            <dd>{{ doc.UploadDate | date: "MM/dd/yyyy" }}</dd>
+                                            <dt>File Type</dt>
+                                            <dd>{{ doc.FileResource?.FileResourceMimeType?.FileResourceMimeTypeDisplayName }}</dd>
+                                            <dt>Description</dt>
+                                            <dd>{{ doc.Description }}</dd>
+                                        </dl>
+                                    </div>
+                                }
+                            } @else {
+                                <p class="system-text">No documents provided</p>
+                            }
+                        }
+                    } @else {
+                        <div [loadingSpinner]="{ isLoading: true, loadingHeight: 100 }"></div>
+                    }
+                </div>
+            </div>
+        }
+
+        <!-- O&M Verification -->
+        <div class="card g-col-12 mt-3">
+            <div class="card-header">
+                <span class="card-title">WQMP O&amp;M Verification</span>
+            </div>
+            <div class="card-body">
+                @if (verifications$ | async; as verifications) {
+                    @if (verifications.length) {
+                        <neptune-grid
+                            [rowData]="verifications"
+                            [columnDefs]="verificationColumnDefs"
+                            [pagination]="true"
+                            [height]="'300px'"
+                            [downloadFileName]="'OMVerifications'"></neptune-grid>
+                    } @else {
+                        <p class="system-text">No Verifications have been provided</p>
+                    }
+                } @else {
+                    <div [loadingSpinner]="{ isLoading: true, loadingHeight: 100 }"></div>
+                }
+            </div>
+        </div>
+    </div>
+} @else {
+    <div [loadingSpinner]="{ isLoading: true, loadingHeight: 500 }"></div>
+}

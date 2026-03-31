@@ -64,6 +64,13 @@ const ANON_REGEX: RegexMap = {
     new RegExp("^/treatment-bmps/[^/]+/treatment-bmp-images$"),
     new RegExp("^/treatment-bmps/[^/]+/treatment-bmp-images/[^/]+$"),
     new RegExp("^/treatment-bmps/jurisdictions/[^/]+/verified/feature-collection$"),
+    new RegExp("^/water-quality-management-plans/[^/]+$"),
+    new RegExp("^/water-quality-management-plans/[^/]+/documents$"),
+    new RegExp("^/water-quality-management-plans/[^/]+/hru-characteristics$"),
+    new RegExp("^/water-quality-management-plans/[^/]+/modeled-performance$"),
+    new RegExp("^/water-quality-management-plans/[^/]+/quick-bmps$"),
+    new RegExp("^/water-quality-management-plans/[^/]+/source-control-bmps$"),
+    new RegExp("^/water-quality-management-plans/[^/]+/verifications$"),
   ],
   'POST': [
 
@@ -135,8 +142,6 @@ const SECURED_REGEX: RegexMap = {
     new RegExp("^/user-claims/[^/]+$"),
     new RegExp("^/users/[^/]+$"),
     new RegExp("^/water-quality-management-plan-documents/[^/]+$"),
-    new RegExp("^/water-quality-management-plans/[^/]+$"),
-    new RegExp("^/water-quality-management-plans/[^/]+/documents$"),
   ],
   'POST': [
     new RegExp("^/ai/water-quality-management-plan-documents/[^/]+/ask$"),

@@ -6,7 +6,7 @@ namespace Neptune.EFModels.Entities;
 
 public static class WaterQualityManagementPlans
 {
-    public static IQueryable<WaterQualityManagementPlan> GetImpl(NeptuneDbContext dbContext)
+    private static IQueryable<WaterQualityManagementPlan> GetImpl(NeptuneDbContext dbContext)
     {
         return dbContext.WaterQualityManagementPlans
             .Include(x => x.WaterQualityManagementPlanBoundary)
@@ -95,8 +95,12 @@ public static class WaterQualityManagementPlans
 
     public static async Task<List<WaterQualityManagementPlanDto>> ListAsDtoAsync(NeptuneDbContext dbContext)
     {
-        var entities = await GetImpl(dbContext).AsNoTracking().ToListAsync();
-        return entities.Select(x => x.AsDto()).ToList();
+        var dtos = await dbContext.WaterQualityManagementPlans
+            .AsNoTracking()
+            .Select(WaterQualityManagementPlanProjections.AsDto)
+            .ToListAsync();
+        await PopulateBoundaryBBoxes(dbContext, dtos);
+        return dtos;
     }
 
     public static async Task<List<WaterQualityManagementPlanDisplayDto>> ListAsDisplayDtoAsync(NeptuneDbContext dbContext)
@@ -118,8 +122,16 @@ public static class WaterQualityManagementPlans
 
     public static async Task<WaterQualityManagementPlanDto?> GetByIDAsDtoAsync(NeptuneDbContext dbContext, int waterQualityManagementPlanID)
     {
-        var entity = await GetImpl(dbContext).AsNoTracking().FirstOrDefaultAsync(x => x.WaterQualityManagementPlanID == waterQualityManagementPlanID);
-        return entity?.AsDto();
+        var dto = await dbContext.WaterQualityManagementPlans
+            .AsNoTracking()
+            .Where(x => x.WaterQualityManagementPlanID == waterQualityManagementPlanID)
+            .Select(WaterQualityManagementPlanProjections.AsDto)
+            .FirstOrDefaultAsync();
+        if (dto != null)
+        {
+            await PopulateBoundaryBBox(dbContext, dto);
+        }
+        return dto;
     }
 
     public static async Task<WaterQualityManagementPlanDto> CreateAsync(NeptuneDbContext dbContext, WaterQualityManagementPlanUpsertDto dto)
@@ -153,16 +165,53 @@ public static class WaterQualityManagementPlans
             {
             3066, 2845, 2856, 2857, 2850, 1623, 1632, 2528, 2531, 2343, 2527
         };
-        var entities = await dbContext.WaterQualityManagementPlans
-            .Include(x => x.StormwaterJurisdiction).ThenInclude(x => x.Organization)
-            .Include(x => x.WaterQualityManagementPlanDocuments)
-            .Include(x => x.WaterQualityManagementPlanBoundary)
-            .Include(x => x.WaterQualityManagementPlanParcels).ThenInclude(x => x.Parcel)
-            .Include(x => x.TreatmentBMPs).ThenInclude(x => x.Delineation)
+        var dtos = await dbContext.WaterQualityManagementPlans
             .Where(x => wqmpIDsToFilterBy.Contains(x.WaterQualityManagementPlanID) && x.WaterQualityManagementPlanDocuments
                 .Any(y => y.WaterQualityManagementPlanDocumentTypeID == (int)WaterQualityManagementPlanDocumentTypeEnum.FinalWQMP))
             .AsNoTracking()
+            .Select(WaterQualityManagementPlanProjections.AsDto)
             .ToListAsync();
-        return entities.Select(x => x.AsDto()).ToList();
+        await PopulateBoundaryBBoxes(dbContext, dtos);
+        return dtos;
+    }
+
+    private static async Task PopulateBoundaryBBox(NeptuneDbContext dbContext, WaterQualityManagementPlanDto dto)
+    {
+        var geometry4326 = await dbContext.WaterQualityManagementPlanBoundaries
+            .AsNoTracking()
+            .Where(x => x.WaterQualityManagementPlanID == dto.WaterQualityManagementPlanID)
+            .Select(x => x.Geometry4326)
+            .FirstOrDefaultAsync();
+
+        if (geometry4326 != null)
+        {
+            var env = geometry4326.EnvelopeInternal;
+            dto.WaterQualityManagementPlanBoundaryBBox = $"{env.MinX}, {env.MinY}, {env.MaxX}, {env.MaxY}";
+        }
+    }
+
+    private static async Task PopulateBoundaryBBoxes(NeptuneDbContext dbContext, List<WaterQualityManagementPlanDto> dtos)
+    {
+        if (!dtos.Any()) return;
+
+        var wqmpIDs = dtos.Select(x => x.WaterQualityManagementPlanID).ToList();
+        var boundaries = await dbContext.WaterQualityManagementPlanBoundaries
+            .AsNoTracking()
+            .Where(x => wqmpIDs.Contains(x.WaterQualityManagementPlanID))
+            .Select(x => new { x.WaterQualityManagementPlanID, x.Geometry4326 })
+            .ToListAsync();
+
+        var boundaryLookup = boundaries
+            .Where(x => x.Geometry4326 != null)
+            .ToDictionary(x => x.WaterQualityManagementPlanID, x => x.Geometry4326!);
+
+        foreach (var dto in dtos)
+        {
+            if (boundaryLookup.TryGetValue(dto.WaterQualityManagementPlanID, out var geometry4326))
+            {
+                var env = geometry4326.EnvelopeInternal;
+                dto.WaterQualityManagementPlanBoundaryBBox = $"{env.MinX}, {env.MinY}, {env.MaxX}, {env.MaxY}";
+            }
+        }
     }
 }

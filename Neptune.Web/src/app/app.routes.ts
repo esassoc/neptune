@@ -16,6 +16,7 @@ export const routeParams = {
     jurisdictionID: "jurisdictionID",
     regionalSubbasinID: "regionalSubbasinID",
     customAttributePurposeID: "customAttributePurposeID",
+    waterQualityManagementPlanID: "waterQualityManagementPlanID",
 };
 
 export const routes: Routes = [
@@ -431,6 +432,11 @@ export const routes: Routes = [
                 path: "water-quality-management-plans",
                 title: "Water Quality Management Plans",
                 loadComponent: () => import("./pages/wqmps/wqmps.component").then((m) => m.WqmpsComponent),
+            },
+            {
+                path: `water-quality-management-plans/:${routeParams.waterQualityManagementPlanID}`,
+                title: "WQMP Detail",
+                loadComponent: () => import("./pages/wqmps/wqmp-detail/wqmp-detail.component").then((m) => m.WqmpDetailComponent),
             },
             {
                 path: "wqmp-annual-report",

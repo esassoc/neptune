@@ -68,6 +68,36 @@ public static class vHRUCharacteristics
         return entities.Select(x => x.AsDto()).ToList();
     }
 
+    public static async Task<List<HRUCharacteristicDto>> ListByWaterQualityManagementPlanIDAsDtoAsync(
+        NeptuneDbContext dbContext, int waterQualityManagementPlanID)
+    {
+        var modelingApproachID = await dbContext.WaterQualityManagementPlans
+            .AsNoTracking()
+            .Where(x => x.WaterQualityManagementPlanID == waterQualityManagementPlanID)
+            .Select(x => x.WaterQualityManagementPlanModelingApproachID)
+            .FirstAsync();
+
+        List<vHRUCharacteristic> entities;
+        if (modelingApproachID == (int)WaterQualityManagementPlanModelingApproachEnum.Simplified)
+        {
+            entities = await dbContext.vHRUCharacteristics.AsNoTracking()
+                .Where(x => x.WaterQualityManagementPlanID == waterQualityManagementPlanID)
+                .ToListAsync();
+        }
+        else
+        {
+            var treatmentBMPIDs = await dbContext.TreatmentBMPs.AsNoTracking()
+                .Where(x => x.WaterQualityManagementPlanID == waterQualityManagementPlanID)
+                .Select(x => x.TreatmentBMPID)
+                .ToListAsync();
+            entities = await dbContext.vHRUCharacteristics.AsNoTracking()
+                .Where(x => x.TreatmentBMPID.HasValue && treatmentBMPIDs.Contains(x.TreatmentBMPID.Value))
+                .ToListAsync();
+        }
+
+        return entities.Select(x => x.AsDto()).ToList();
+    }
+
     public static async Task<List<HRUCharacteristicDto>> ListAsDtoAsync(NeptuneDbContext dbContext)
     {
         var entities = await dbContext.vHRUCharacteristics.AsNoTracking().ToListAsync();

@@ -1,5 +1,6 @@
 ﻿using Microsoft.EntityFrameworkCore;
 using Neptune.Common.DesignByContract;
+using Neptune.Models.DataTransferObjects;
 
 namespace Neptune.EFModels.Entities;
 
@@ -65,5 +66,38 @@ public static class WaterQualityManagementPlanVerifies
         return GetImpl(dbContext).AsNoTracking()
             .Where(x => x.WaterQualityManagementPlanID == waterQualityManagementPlanID)
             .OrderByDescending(x => x.VerificationDate).ToList();
+    }
+
+    public static async Task<List<WaterQualityManagementPlanVerifyGridDto>> ListByWaterQualityManagementPlanIDAsDtoAsync(
+        NeptuneDbContext dbContext, int waterQualityManagementPlanID)
+    {
+        var rawData = await dbContext.WaterQualityManagementPlanVerifies
+            .AsNoTracking()
+            .Where(x => x.WaterQualityManagementPlanID == waterQualityManagementPlanID)
+            .Select(x => new
+            {
+                x.WaterQualityManagementPlanVerifyID,
+                x.VerificationDate,
+                x.LastEditedDate,
+                LastEditedByPersonFullName = x.LastEditedByPerson.FirstName + " " + x.LastEditedByPerson.LastName,
+                x.WaterQualityManagementPlanVerifyTypeID,
+                x.WaterQualityManagementPlanVisitStatusID,
+                x.WaterQualityManagementPlanVerifyStatusID,
+                x.IsDraft,
+            })
+            .OrderByDescending(x => x.VerificationDate)
+            .ToListAsync();
+
+        return rawData.Select(x => new WaterQualityManagementPlanVerifyGridDto
+        {
+            WaterQualityManagementPlanVerifyID = x.WaterQualityManagementPlanVerifyID,
+            VerificationDate = x.VerificationDate,
+            LastEditedDate = x.LastEditedDate,
+            LastEditedByPersonFullName = x.LastEditedByPersonFullName,
+            WaterQualityManagementPlanVerifyTypeDisplayName = WaterQualityManagementPlanVerifyType.AllLookupDictionary.TryGetValue(x.WaterQualityManagementPlanVerifyTypeID, out var verifyType) ? verifyType.WaterQualityManagementPlanVerifyTypeDisplayName : null,
+            WaterQualityManagementPlanVisitStatusDisplayName = WaterQualityManagementPlanVisitStatus.AllLookupDictionary.TryGetValue(x.WaterQualityManagementPlanVisitStatusID, out var visitStatus) ? visitStatus.WaterQualityManagementPlanVisitStatusDisplayName : null,
+            WaterQualityManagementPlanVerifyStatusDisplayName = x.WaterQualityManagementPlanVerifyStatusID.HasValue && WaterQualityManagementPlanVerifyStatus.AllLookupDictionary.TryGetValue(x.WaterQualityManagementPlanVerifyStatusID.Value, out var verifyStatus) ? verifyStatus.WaterQualityManagementPlanVerifyStatusDisplayName : null,
+            IsDraft = x.IsDraft,
+        }).ToList();
     }
 }

@@ -24,6 +24,7 @@ import {
 import { HydromodificationAppliesTypesAsSelectDropdownOptions } from "src/app/shared/generated/enum/hydromodification-applies-type-enum";
 import { TrashCaptureStatusTypeEnum, TrashCaptureStatusTypesAsSelectDropdownOptions } from "src/app/shared/generated/enum/trash-capture-status-type-enum";
 import { DialogRef } from "@ngneat/dialog";
+import { WaterQualityManagementPlanDto } from "src/app/shared/generated/model/water-quality-management-plan-dto";
 
 @Component({
     selector: "wqmp-modal",
@@ -33,9 +34,9 @@ import { DialogRef } from "@ngneat/dialog";
     styleUrls: ["./wqmp-modal.component.scss"],
 })
 export class WqmpModalComponent implements OnInit {
-    public ref: DialogRef<{ mode: "add" }, boolean> = inject(DialogRef);
+    public ref: DialogRef<{ mode: "add" | "edit"; wqmp?: WaterQualityManagementPlanDto }, boolean> = inject(DialogRef);
     public FormFieldType = FormFieldType;
-    public mode: "add";
+    public mode: "add" | "edit";
 
     public formGroup = new FormGroup<WaterQualityManagementPlanUpsertDtoForm>({
         WaterQualityManagementPlanName: WaterQualityManagementPlanUpsertDtoFormControls.WaterQualityManagementPlanName(undefined, { validators: [Validators.required] }),
@@ -114,17 +115,58 @@ export class WqmpModalComponent implements OnInit {
         this.showTrashCaptureEffectiveness$ = this.formGroup.controls.TrashCaptureStatusTypeID.valueChanges.pipe(
             map((value) => value === TrashCaptureStatusTypeEnum.Partial)
         );
+
+        if (this.mode === "edit" && this.ref.data.wqmp) {
+            const wqmp = this.ref.data.wqmp;
+            this.formGroup.patchValue({
+                WaterQualityManagementPlanName: wqmp.WaterQualityManagementPlanName,
+                StormwaterJurisdictionID: wqmp.StormwaterJurisdictionID,
+                WaterQualityManagementPlanPriorityID: wqmp.WaterQualityManagementPlanPriorityID,
+                WaterQualityManagementPlanStatusID: wqmp.WaterQualityManagementPlanStatusID,
+                WaterQualityManagementPlanDevelopmentTypeID: wqmp.WaterQualityManagementPlanDevelopmentTypeID,
+                WaterQualityManagementPlanLandUseID: wqmp.WaterQualityManagementPlanLandUseID,
+                WaterQualityManagementPlanPermitTermID: wqmp.WaterQualityManagementPlanPermitTermID,
+                WaterQualityManagementPlanModelingApproachID: wqmp.WaterQualityManagementPlanModelingApproachID,
+                ApprovalDate: wqmp.ApprovalDate,
+                DateOfConstruction: wqmp.DateOfConstruction,
+                HydromodificationAppliesTypeID: wqmp.HydromodificationAppliesTypeID,
+                HydrologicSubareaID: wqmp.HydrologicSubareaID,
+                RecordNumber: wqmp.RecordNumber,
+                RecordedWQMPAreaInAcres: wqmp.RecordedWQMPAreaInAcres,
+                TrashCaptureStatusTypeID: wqmp.TrashCaptureStatusTypeID,
+                TrashCaptureEffectiveness: wqmp.TrashCaptureEffectiveness,
+                MaintenanceContactName: wqmp.MaintenanceContactName,
+                MaintenanceContactOrganization: wqmp.MaintenanceContactOrganization,
+                MaintenanceContactPhone: wqmp.MaintenanceContactPhone,
+                MaintenanceContactAddress1: wqmp.MaintenanceContactAddress1,
+                MaintenanceContactAddress2: wqmp.MaintenanceContactAddress2,
+                MaintenanceContactCity: wqmp.MaintenanceContactCity,
+                MaintenanceContactState: wqmp.MaintenanceContactState,
+                MaintenanceContactZip: wqmp.MaintenanceContactZip,
+            });
+        }
     }
 
     save(): void {
         if (this.formGroup.invalid) return;
         const dto = new WaterQualityManagementPlanUpsertDto(this.formGroup.value);
-        this.wqmpService.createWaterQualityManagementPlan(dto).subscribe({
-            next: () => {
-                this.ref.close(true);
-            },
-            error: () => {},
-        });
+
+        if (this.mode === "edit") {
+            const wqmpID = this.ref.data.wqmp?.WaterQualityManagementPlanID;
+            this.wqmpService.updateWaterQualityManagementPlan(wqmpID, dto).subscribe({
+                next: () => {
+                    this.ref.close(true);
+                },
+                error: () => {},
+            });
+        } else {
+            this.wqmpService.createWaterQualityManagementPlan(dto).subscribe({
+                next: () => {
+                    this.ref.close(true);
+                },
+                error: () => {},
+            });
+        }
     }
 
     cancel(): void {

@@ -1,5 +1,6 @@
 ﻿using Microsoft.EntityFrameworkCore;
 using Neptune.Common.DesignByContract;
+using Neptune.Models.DataTransferObjects;
 
 namespace Neptune.EFModels.Entities;
 
@@ -64,5 +65,16 @@ public static class QuickBMPs
     public static List<QuickBMP> List(NeptuneDbContext dbContext)
     {
         return GetImpl(dbContext).AsNoTracking().ToList();
+    }
+
+    public static async Task<List<QuickBMPDto>> ListByWaterQualityManagementPlanIDAsDtoAsync(
+        NeptuneDbContext dbContext, int waterQualityManagementPlanID)
+    {
+        return await dbContext.QuickBMPs
+            .AsNoTracking()
+            .Where(x => x.WaterQualityManagementPlanID == waterQualityManagementPlanID)
+            .Select(QuickBMPProjections.AsDto)
+            .OrderBy(x => x.QuickBMPName)
+            .ToListAsync();
     }
 }

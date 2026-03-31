@@ -108,6 +108,7 @@ export class ProjectLoadReducingResultDto {
     TotalTCuInflow?: number;
     TotalTPbInflow?: number;
     TotalTZnInflow?: number;
+    LastCalculatedDate?: string | null;
     constructor(obj?: any) {
         Object.assign(this, obj);
     }
@@ -211,6 +212,7 @@ export interface ProjectLoadReducingResultDtoForm {
     TotalTCuInflow?: FormControl<number>;
     TotalTPbInflow?: FormControl<number>;
     TotalTZnInflow?: FormControl<number>;
+    LastCalculatedDate?: FormControl<string>;
 }
 
 export class ProjectLoadReducingResultDtoFormControls { 
@@ -1175,6 +1177,16 @@ export class ProjectLoadReducingResultDtoFormControls {
         }
     );
     public static TotalTZnInflow = (value: FormControlState<number> | number = undefined, formControlOptions?: FormControlOptions | null) => new FormControl<number>(
+        value,
+        formControlOptions ?? 
+        {
+            nonNullable: false,
+            validators: 
+            [
+            ],
+        }
+    );
+    public static LastCalculatedDate = (value: FormControlState<string> | string = undefined, formControlOptions?: FormControlOptions | null) => new FormControl<string>(
         value,
         formControlOptions ?? 
         {

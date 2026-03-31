@@ -1,5 +1,6 @@
 ﻿using Microsoft.EntityFrameworkCore;
 using Neptune.Common.DesignByContract;
+using Neptune.Models.DataTransferObjects;
 
 namespace Neptune.EFModels.Entities;
 
@@ -50,5 +51,28 @@ public static class SourceControlBMPs
     public static List<SourceControlBMP> ListByWaterQualityManagementPlanIDWithChangeTracking(NeptuneDbContext dbContext, int waterQualityManagementPlanID)
     {
         return GetImpl(dbContext).Where(x => x.WaterQualityManagementPlanID == waterQualityManagementPlanID).ToList();
+    }
+
+    public static async Task<List<SourceControlBMPDto>> ListByWaterQualityManagementPlanIDAsDtoAsync(
+        NeptuneDbContext dbContext, int waterQualityManagementPlanID)
+    {
+        var dtos = await dbContext.SourceControlBMPs
+            .AsNoTracking()
+            .Where(x => x.WaterQualityManagementPlanID == waterQualityManagementPlanID)
+            .Where(x => x.SourceControlBMPNote != null || x.IsPresent == true)
+            .OrderBy(x => x.SourceControlBMPAttributeID)
+            .Select(SourceControlBMPProjections.AsDto)
+            .ToListAsync();
+
+        // Resolve category display names from the static binding class (not available in LINQ-to-SQL)
+        foreach (var dto in dtos)
+        {
+            if (SourceControlBMPAttributeCategory.AllLookupDictionary.TryGetValue(dto.SourceControlBMPAttributeCategoryID, out var category))
+            {
+                dto.SourceControlBMPAttributeCategoryName = category.SourceControlBMPAttributeCategoryName;
+            }
+        }
+
+        return dtos;
     }
 }

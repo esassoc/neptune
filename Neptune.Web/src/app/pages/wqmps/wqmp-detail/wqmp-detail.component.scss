@@ -1,0 +1,76 @@
+@use "/src/scss/abstracts" as *;
+
+.card-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+
+    .icon-button {
+        cursor: pointer;
+    }
+
+    a {
+        color: white;
+    }
+}
+
+.modeling-approach-row {
+    display: flex;
+    gap: 1rem;
+    margin-bottom: 1rem;
+    align-items: flex-start;
+
+    .modeling-approach-label {
+        min-width: 100px;
+        flex-shrink: 0;
+    }
+
+    .modeling-approach-check {
+        color: green;
+        margin-right: 0.25rem;
+    }
+
+    &.modeling-approach-unselected {
+        color: #c7c7c7;
+        font-style: italic;
+    }
+}
+
+.source-control-table {
+    width: 100%;
+
+    th,
+    td {
+        padding: 0.5rem;
+    }
+
+    .category-header-cell {
+        border-top: none;
+        border-bottom: none;
+
+        h5 {
+            margin-top: 1rem;
+            margin-bottom: 0;
+        }
+    }
+}
+
+.document-entry {
+    margin-bottom: 1rem;
+}
+
+.document-details {
+    margin-top: 0.25rem;
+    margin-left: 1rem;
+
+    dt {
+        float: left;
+        width: 120px;
+        font-weight: normal;
+        clear: left;
+    }
+
+    dd {
+        margin-left: 130px;
+    }
+}
