@@ -156,56 +156,79 @@ namespace Neptune.WebMvc.Controllers
                 return ViewBulkUploadOTVAAreas(new BulkUploadOVTAAreasViewModel());
             }
 
-            var onlandVisualTrashAssessmentAreaStagings = _dbContext.OnlandVisualTrashAssessmentAreaStagings.Where(x => x.UploadedByPersonID == CurrentPerson.PersonID).ToList();
-
-            var stormwaterJurisdictionID = onlandVisualTrashAssessmentAreaStagings.First().StormwaterJurisdictionID;
-            var stormwaterJurisdiction = StormwaterJurisdictions.GetByID(_dbContext, stormwaterJurisdictionID);
-            var stormwaterJurisdictionName = stormwaterJurisdiction.GetOrganizationDisplayName();
-
-            var ovtaAreaNames = _dbContext.OnlandVisualTrashAssessmentAreas.AsNoTracking()
-                .Where(x => x.StormwaterJurisdictionID == stormwaterJurisdictionID)
-                .Select(x => x.OnlandVisualTrashAssessmentAreaName).ToList();
-
-            var ovtaAreaStaging = _dbContext.OnlandVisualTrashAssessmentAreaStagings.AsNoTracking().Where(x =>
-                x.StormwaterJurisdictionID == stormwaterJurisdictionID &&
-                x.UploadedByPersonID == CurrentPerson.PersonID).ToList();
-
-            foreach (var ovtaArea in ovtaAreaStaging)
+            try
             {
-                if (ovtaAreaNames.Contains(ovtaArea.AreaName))
-                {
-                    var existingOVTA = _dbContext.OnlandVisualTrashAssessmentAreas.Single(x =>
-                        x.OnlandVisualTrashAssessmentAreaName == ovtaArea.AreaName &&
-                        x.StormwaterJurisdictionID == stormwaterJurisdictionID);
+                var onlandVisualTrashAssessmentAreaStagings = _dbContext.OnlandVisualTrashAssessmentAreaStagings.Where(x => x.UploadedByPersonID == CurrentPerson.PersonID).ToList();
 
-                    existingOVTA.AssessmentAreaDescription = ovtaArea.Description;
-                    existingOVTA.OnlandVisualTrashAssessmentAreaGeometry = ovtaArea.Geometry.ProjectTo2771();
-                    existingOVTA.OnlandVisualTrashAssessmentAreaGeometry4326 = ovtaArea.Geometry.ProjectTo4326();
+                var stormwaterJurisdictionID = onlandVisualTrashAssessmentAreaStagings.First().StormwaterJurisdictionID;
+                var stormwaterJurisdiction = StormwaterJurisdictions.GetByID(_dbContext, stormwaterJurisdictionID);
+                var stormwaterJurisdictionName = stormwaterJurisdiction.GetOrganizationDisplayName();
+
+                var ovtaAreaNames = _dbContext.OnlandVisualTrashAssessmentAreas.AsNoTracking()
+                    .Where(x => x.StormwaterJurisdictionID == stormwaterJurisdictionID)
+                    .Select(x => x.OnlandVisualTrashAssessmentAreaName).ToList();
+
+                var ovtaAreaStaging = _dbContext.OnlandVisualTrashAssessmentAreaStagings.AsNoTracking().Where(x =>
+                    x.StormwaterJurisdictionID == stormwaterJurisdictionID &&
+                    x.UploadedByPersonID == CurrentPerson.PersonID).ToList();
+
+                foreach (var ovtaArea in ovtaAreaStaging)
+                {
+                    if (ovtaAreaNames.Contains(ovtaArea.AreaName))
+                    {
+                        var existingOVTA = _dbContext.OnlandVisualTrashAssessmentAreas.Single(x =>
+                            x.OnlandVisualTrashAssessmentAreaName == ovtaArea.AreaName &&
+                            x.StormwaterJurisdictionID == stormwaterJurisdictionID);
+
+                        existingOVTA.AssessmentAreaDescription = ovtaArea.Description;
+                        existingOVTA.OnlandVisualTrashAssessmentAreaGeometry = ovtaArea.Geometry.ProjectTo2771();
+                        existingOVTA.OnlandVisualTrashAssessmentAreaGeometry4326 = ovtaArea.Geometry.ProjectTo4326();
+                    }
+                    else
+                    {
+                        var newOVTA = new OnlandVisualTrashAssessmentArea()
+                        {
+                            OnlandVisualTrashAssessmentAreaName = ovtaArea.AreaName,
+                            AssessmentAreaDescription = ovtaArea.Description,
+                            StormwaterJurisdictionID = ovtaArea.StormwaterJurisdictionID,
+                            OnlandVisualTrashAssessmentAreaGeometry = ovtaArea.Geometry,
+                            OnlandVisualTrashAssessmentAreaGeometry4326 = ovtaArea.Geometry.ProjectTo4326()
+                        };
+
+                        _dbContext.OnlandVisualTrashAssessmentAreas.AddRange(newOVTA);
+                    }
+                }
+
+                
+                await _dbContext.SaveChangesAsync();
+
+                await _dbContext.OnlandVisualTrashAssessmentAreaStagings.Where(x => x.UploadedByPersonID == CurrentPerson.PersonID).ExecuteDeleteAsync();
+
+                var successfulUploadCount = (int?)ovtaAreaStaging.Count;
+
+                SetMessageForDisplay($"{successfulUploadCount} OVTA areas were successfully uploaded for Jurisdiction {stormwaterJurisdictionName}");
+
+
+                return new RedirectResult($"{_webConfiguration.TrashModuleBaseUrl}/onland-visual-trash-assessment-areas");
+            }
+            catch (Exception e)
+            {
+                //Unsure that the message is this transparent outside of running locally, but worth having
+                if (e is DbUpdateException && e.InnerException != null && e.InnerException.Message.Contains("Violation of UNIQUE KEY constraint 'AK_OnlandVisualTrashAssessmentArea_OnlandVisualTrashAssessmentAreaName_StormwaterJurisdictionID'. Cannot insert duplicate key in object 'dbo.OnlandVisualTrashAssessmentArea'. The duplicate key value is"))
+                {
+                    var start = e.InnerException.Message.IndexOf('(') + 1;
+                    var end = e.InnerException.Message.IndexOf(',');
+                    var duplicateOVTAArea = e.InnerException.Message.Substring(start, end - start);
+                    ModelState.AddModelError("",
+                        $"The OVTA Area Name field must contain unique values. There was at least one duplicated OVTA Area Name: {duplicateOVTAArea}");
                 }
                 else
                 {
-                    var newOVTA = new OnlandVisualTrashAssessmentArea()
-                    {
-                        OnlandVisualTrashAssessmentAreaName = ovtaArea.AreaName,
-                        AssessmentAreaDescription = ovtaArea.Description,
-                        StormwaterJurisdictionID = ovtaArea.StormwaterJurisdictionID,
-                        OnlandVisualTrashAssessmentAreaGeometry = ovtaArea.Geometry,
-                        OnlandVisualTrashAssessmentAreaGeometry4326 = ovtaArea.Geometry.ProjectTo4326()
-                    };
-
-                    _dbContext.OnlandVisualTrashAssessmentAreas.AddRange(newOVTA);
+                    ModelState.AddModelError("", e.Message);
                 }
+
+                return ViewBulkUploadOTVAAreas(new BulkUploadOVTAAreasViewModel() { AreaName = "OVTAAreaName" });
             }
-
-            var successfulUploadCount = (int?)ovtaAreaStaging.Count;
-
-            SetMessageForDisplay($"{successfulUploadCount} OVTA areas were successfully uploaded for Jurisdiction {stormwaterJurisdictionName}");
-
-            await _dbContext.SaveChangesAsync();
-
-            await _dbContext.OnlandVisualTrashAssessmentAreaStagings.Where(x => x.UploadedByPersonID == CurrentPerson.PersonID).ExecuteDeleteAsync();
-
-            return new RedirectResult($"{_webConfiguration.TrashModuleBaseUrl}/onland-visual-trash-assessment-areas");
         }
 
         private PartialViewResult ViewApproveOVTAAreaGisUpload(ApproveOVTAAreaGisUploadViewModel viewModel)
