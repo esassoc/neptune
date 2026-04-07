@@ -12,6 +12,7 @@
 import { FormControl, FormControlOptions, FormControlState, Validators } from "@angular/forms";
 export class SourceControlBMPDto { 
     SourceControlBMPID?: number;
+    SourceControlBMPAttributeID?: number;
     SourceControlBMPAttributeName?: string | null;
     SourceControlBMPAttributeCategoryName?: string | null;
     SourceControlBMPAttributeCategoryID?: number;
@@ -24,6 +25,7 @@ export class SourceControlBMPDto {
 
 export interface SourceControlBMPDtoForm { 
     SourceControlBMPID?: FormControl<number>;
+    SourceControlBMPAttributeID?: FormControl<number>;
     SourceControlBMPAttributeName?: FormControl<string>;
     SourceControlBMPAttributeCategoryName?: FormControl<string>;
     SourceControlBMPAttributeCategoryID?: FormControl<number>;
@@ -33,6 +35,16 @@ export interface SourceControlBMPDtoForm {
 
 export class SourceControlBMPDtoFormControls { 
     public static SourceControlBMPID = (value: FormControlState<number> | number = undefined, formControlOptions?: FormControlOptions | null) => new FormControl<number>(
+        value,
+        formControlOptions ?? 
+        {
+            nonNullable: false,
+            validators: 
+            [
+            ],
+        }
+    );
+    public static SourceControlBMPAttributeID = (value: FormControlState<number> | number = undefined, formControlOptions?: FormControlOptions | null) => new FormControl<number>(
         value,
         formControlOptions ?? 
         {

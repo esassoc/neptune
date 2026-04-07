@@ -1,14 +1,18 @@
 import { AsyncPipe } from "@angular/common";
 import { Component } from "@angular/core";
 import { ColDef } from "ag-grid-community";
-import { Observable, tap } from "rxjs";
+import { map, Observable, shareReplay, tap } from "rxjs";
 import { DialogService } from "@ngneat/dialog";
+import { AuthenticationService } from "src/app/services/authentication.service";
 import { UtilityFunctionsService } from "src/app/services/utility-functions.service";
 import { AlertService } from "src/app/shared/services/alert.service";
 import { Alert } from "src/app/shared/models/alert";
 import { AlertContext } from "src/app/shared/models/enums/alert-context.enum";
 import { AlertDisplayComponent } from "src/app/shared/components/alert-display/alert-display.component";
 import { HybridMapGridComponent } from "src/app/shared/components/hybrid-map-grid/hybrid-map-grid.component";
+import { DelineationsLayerComponent } from "src/app/shared/components/leaflet/layers/delineations-layer/delineations-layer.component";
+import { JurisdictionsLayerComponent } from "src/app/shared/components/leaflet/layers/jurisdictions-layer/jurisdictions-layer.component";
+import { ParcelLayerComponent } from "src/app/shared/components/leaflet/layers/parcel-layer/parcel-layer.component";
 import { PageHeaderComponent } from "src/app/shared/components/page-header/page-header.component";
 import { WaterQualityManagementPlanService } from "src/app/shared/generated/api/water-quality-management-plan.service";
 import { WaterQualityManagementPlanGridDto } from "src/app/shared/generated/model/water-quality-management-plan-grid-dto";
@@ -17,12 +21,14 @@ import { BoundingBoxDto } from "src/app/shared/generated/model/bounding-box-dto"
 import { WqmpsLayerComponent } from "src/app/shared/components/leaflet/layers/wqmps-layer/wqmps-layer.component";
 import { NeptuneMapInitEvent } from "src/app/shared/components/leaflet/neptune-map/neptune-map.component";
 import { OverlayMode } from "src/app/shared/components/leaflet/layers/generic-wms-wfs-layer/overlay-mode.enum";
+import { DropdownToggleDirective } from "src/app/shared/directives/dropdown-toggle.directive";
+import { environment } from "src/environments/environment";
 import { WqmpModalComponent } from "./wqmp-modal/wqmp-modal.component";
 
 @Component({
     selector: "wqmps",
     standalone: true,
-    imports: [PageHeaderComponent, AlertDisplayComponent, HybridMapGridComponent, AsyncPipe, WqmpsLayerComponent],
+    imports: [PageHeaderComponent, AlertDisplayComponent, HybridMapGridComponent, AsyncPipe, WqmpsLayerComponent, ParcelLayerComponent, DelineationsLayerComponent, JurisdictionsLayerComponent, DropdownToggleDirective],
     templateUrl: "./wqmps.component.html",
 })
 export class WqmpsComponent {
@@ -34,18 +40,27 @@ export class WqmpsComponent {
     public layerControl: L.Control.Layers;
     public boundingBox$: Observable<BoundingBoxDto>;
     public selectedWaterQualityManagementPlanID: number;
+    public mapIsReady = false;
+    public siteUrl = environment.ocStormwaterToolsBaseUrl;
+    public currentPersonCanEdit$: Observable<boolean>;
     private wqmps: WaterQualityManagementPlanGridDto[] = [];
     private static NO_BOUNDARY_ALERT = "WqmpNoBoundary";
 
     constructor(
         private waterQualityManagementPlanService: WaterQualityManagementPlanService,
         private stormwaterJurisdictionService: StormwaterJurisdictionService,
+        private authenticationService: AuthenticationService,
         private utilityFunctionsService: UtilityFunctionsService,
         private alertService: AlertService,
         private dialogService: DialogService
     ) {}
 
     ngOnInit(): void {
+        this.currentPersonCanEdit$ = this.authenticationService.getCurrentUser().pipe(
+            map(() => this.authenticationService.doesCurrentUserHaveJurisdictionEditPermission()),
+            shareReplay(1)
+        );
+
         this.columnDefs = [
             this.utilityFunctionsService.createLinkColumnDef("Name", "WaterQualityManagementPlanName", "WaterQualityManagementPlanID", {
                 InRouterLink: "/water-quality-management-plans/",
@@ -124,6 +139,7 @@ export class WqmpsComponent {
     public handleMapReady(event: NeptuneMapInitEvent, boundingBox?: BoundingBoxDto) {
         this.map = event.map;
         this.layerControl = event.layerControl;
+        this.mapIsReady = true;
         if (boundingBox && this.map) {
             this.map.fitBounds([
                 [boundingBox.Bottom, boundingBox.Left],
