@@ -1,5 +1,5 @@
 import { Component, Input, OnInit, OnChanges, SimpleChanges } from "@angular/core";
-import { RouterLink } from "@angular/router";
+import { Router, RouterLink } from "@angular/router";
 import { DatePipe, AsyncPipe, CommonModule } from "@angular/common";
 import { Observable, of } from "rxjs";
 import { shareReplay, switchMap, tap } from "rxjs/operators";
@@ -43,7 +43,10 @@ import {
     WaterQualityManagementPlanDocumentTypes,
 } from "src/app/shared/generated/enum/water-quality-management-plan-document-type-enum";
 import { RoleEnum } from "src/app/shared/generated/enum/role-enum";
+import { DryWeatherFlowOverrides } from "src/app/shared/generated/enum/dry-weather-flow-override-enum";
 import { WqmpModalComponent } from "src/app/pages/wqmps/wqmp-modal/wqmp-modal.component";
+import { EditModelingApproachModalComponent, EditModelingApproachModalContext } from "src/app/pages/wqmps/wqmp-detail/edit-modeling-approach-modal/edit-modeling-approach-modal.component";
+import { EditTreatmentBMPsModalComponent, EditTreatmentBMPsModalContext } from "src/app/pages/wqmps/wqmp-detail/edit-treatment-bmps-modal/edit-treatment-bmps-modal.component";
 import { GroupByPipe } from "src/app/shared/pipes/group-by.pipe";
 import { SumPipe } from "src/app/shared/pipes/sum.pipe";
 import { environment } from "src/environments/environment";
@@ -80,6 +83,7 @@ export class WqmpDetailComponent implements OnInit, OnChanges {
 
     wqmp$: Observable<WaterQualityManagementPlanDto>;
     quickBMPs$: Observable<QuickBMPDto[]>;
+    quickBMPTotalRow: any[] = [];
     sourceControlBMPs$: Observable<SourceControlBMPDto[]>;
     documents$: Observable<WaterQualityManagementPlanDocumentDto[]>;
     verifications$: Observable<WaterQualityManagementPlanVerifyGridDto[]>;
@@ -101,6 +105,7 @@ export class WqmpDetailComponent implements OnInit, OnChanges {
     // Permissions
     currentUser: PersonDto;
     currentPersonCanManage = false;
+    currentPersonCanEdit = false;
     isAnonymousOrUnassigned = true;
 
     // Grid column defs
@@ -130,7 +135,8 @@ export class WqmpDetailComponent implements OnInit, OnChanges {
         private dialogService: DialogService,
         private alertService: AlertService,
         private groupByPipe: GroupByPipe,
-        private sumPipe: SumPipe
+        private sumPipe: SumPipe,
+        private router: Router
     ) {}
 
     ngOnInit(): void {
@@ -141,6 +147,7 @@ export class WqmpDetailComponent implements OnInit, OnChanges {
             this.currentUser = user;
             this.isAnonymousOrUnassigned = !user || user.RoleID == RoleEnum.Unassigned;
             this.currentPersonCanManage = this.authenticationService.doesCurrentUserHaveJurisdictionManagePermission();
+            this.currentPersonCanEdit = this.authenticationService.doesCurrentUserHaveJurisdictionEditPermission();
         });
     }
 
@@ -173,7 +180,12 @@ export class WqmpDetailComponent implements OnInit, OnChanges {
             shareReplay(1)
         );
 
-        this.quickBMPs$ = this.wqmpService.listQuickBMPsWaterQualityManagementPlan(this.waterQualityManagementPlanID);
+        this.quickBMPs$ = this.wqmpService.listQuickBMPsWaterQualityManagementPlan(this.waterQualityManagementPlanID).pipe(
+            tap((quickBMPs) => {
+                const totalPercentOfSiteTreated = quickBMPs.reduce((sum, bmp) => sum + (bmp.PercentOfSiteTreated ?? 0), 0);
+                this.quickBMPTotalRow = [{ QuickBMPName: "Total", PercentOfSiteTreated: totalPercentOfSiteTreated }];
+            })
+        );
         this.documents$ = this.wqmpService.listDocumentsWaterQualityManagementPlan(this.waterQualityManagementPlanID).pipe(
             tap((docs) => {
                 this.documentsByType = WaterQualityManagementPlanDocumentTypes.map((docType) => ({
@@ -282,14 +294,25 @@ export class WqmpDetailComponent implements OnInit, OnChanges {
             this.utilityFunctionsService.createDecimalColumnDef("Delineation Area (ac)", "Area", { DecimalPlacesToDisplay: 2 }),
         ];
 
+        const percentFormatter = (params) => (params.value != null ? `${Math.round(params.value)}%` : "");
         this.quickBMPColumnDefs = [
             this.utilityFunctionsService.createBasicColumnDef("Name", "QuickBMPName"),
             this.utilityFunctionsService.createBasicColumnDef("Type", "TreatmentBMPTypeName"),
             this.utilityFunctionsService.createBasicColumnDef("Notes", "QuickBMPNote"),
             this.utilityFunctionsService.createBasicColumnDef("# Individual BMPs", "NumberOfIndividualBMPs"),
-            this.utilityFunctionsService.createDecimalColumnDef("% Site Treated", "PercentOfSiteTreated", { DecimalPlacesToDisplay: 2 }),
-            this.utilityFunctionsService.createDecimalColumnDef("% Captured", "PercentCaptured", { DecimalPlacesToDisplay: 2 }),
-            this.utilityFunctionsService.createDecimalColumnDef("% Retained", "PercentRetained", { DecimalPlacesToDisplay: 2 }),
+            { headerName: "% Site Treated", field: "PercentOfSiteTreated", valueFormatter: percentFormatter, cellStyle: { "justify-content": "flex-end" } },
+            { headerName: "% Captured", field: "PercentCaptured", valueFormatter: percentFormatter, cellStyle: { "justify-content": "flex-end" } },
+            { headerName: "% Retained", field: "PercentRetained", valueFormatter: percentFormatter, cellStyle: { "justify-content": "flex-end" } },
+            {
+                headerName: "Dry Weather Flow Override",
+                field: "DryWeatherFlowOverrideID",
+                valueGetter: (params) => {
+                    if (params.node?.rowPinned) return "";
+                    const id = params.data?.DryWeatherFlowOverrideID;
+                    if (id == null) return "";
+                    return DryWeatherFlowOverrides.find((x) => x.Value === id)?.DisplayName ?? "No";
+                },
+            },
         ];
 
         this.verificationColumnDefs = [
@@ -333,5 +356,44 @@ export class WqmpDetailComponent implements OnInit, OnChanges {
                 this.loadData();
             }
         });
+    }
+
+    openEditModelingApproachModal(wqmp: WaterQualityManagementPlanDto): void {
+        const dialogRef = this.dialogService.open(EditModelingApproachModalComponent, {
+            data: { wqmpID: wqmp.WaterQualityManagementPlanID, currentApproachID: wqmp.WaterQualityManagementPlanModelingApproachID } as EditModelingApproachModalContext,
+            width: "600px",
+        });
+        dialogRef.afterClosed$.subscribe((result) => {
+            if (result) {
+                this.alertService.clearAlerts();
+                this.alertService.pushAlert(new Alert("Modeling approach updated successfully.", AlertContext.Success));
+                this.loadData();
+            }
+        });
+    }
+
+    openEditTreatmentBMPsModal(wqmp: WaterQualityManagementPlanDto): void {
+        const dialogRef = this.dialogService.open(EditTreatmentBMPsModalComponent, {
+            data: {
+                wqmpID: wqmp.WaterQualityManagementPlanID,
+                currentBMPIDs: wqmp.TreatmentBMPs?.map((b) => b.TreatmentBMPID) ?? [],
+            } as EditTreatmentBMPsModalContext,
+            width: "700px",
+        });
+        dialogRef.afterClosed$.subscribe((result) => {
+            if (result) {
+                this.alertService.clearAlerts();
+                this.alertService.pushAlert(new Alert("Treatment BMP associations updated successfully.", AlertContext.Success));
+                this.loadData();
+            }
+        });
+    }
+
+    navigateToEditQuickBMPs(): void {
+        this.router.navigate(["/water-quality-management-plans", this.waterQualityManagementPlanID, "edit-quick-bmps"]);
+    }
+
+    navigateToEditSourceControlBMPs(): void {
+        this.router.navigate(["/water-quality-management-plans", this.waterQualityManagementPlanID, "edit-source-control-bmps"]);
     }
 }

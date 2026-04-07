@@ -1,0 +1,67 @@
+@use "/src/scss/abstracts" as *;
+
+.source-control-category-panel {
+    margin-bottom: 1rem;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+
+    .panel-heading {
+        padding: 10px 15px;
+        background: whitesmoke;
+        cursor: pointer;
+        user-select: none;
+
+        h5 {
+            margin: 0;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+    }
+
+    .panel-body {
+        padding: 15px;
+    }
+}
+
+.source-control-edit-table {
+    th,
+    td {
+        padding: 0.25rem 0.5rem;
+        vertical-align: middle;
+        border: none;
+    }
+
+    th {
+        white-space: nowrap;
+        border-top: none;
+    }
+
+    .col-attribute {
+        width: 40%;
+    }
+
+    .col-present {
+        width: 15%;
+    }
+
+    .col-notes {
+        width: 45%;
+    }
+}
+
+.actions-row {
+    display: flex;
+    justify-content: flex-end;
+    gap: 0.5rem;
+}
+
+.radio-group {
+    display: flex;
+    gap: 1rem;
+
+    label {
+        margin: 0;
+        font-weight: normal;
+    }
+}

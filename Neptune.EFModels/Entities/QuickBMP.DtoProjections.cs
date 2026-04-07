@@ -9,6 +9,7 @@ public static class QuickBMPProjections
     {
         QuickBMPID = x.QuickBMPID,
         QuickBMPName = x.QuickBMPName,
+        TreatmentBMPTypeID = x.TreatmentBMPTypeID,
         TreatmentBMPTypeName = x.TreatmentBMPType.TreatmentBMPTypeName,
         QuickBMPNote = x.QuickBMPNote,
         NumberOfIndividualBMPs = x.NumberOfIndividualBMPs,

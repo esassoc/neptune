@@ -7838,6 +7838,56 @@
         },
         "x-anonymous": true,
         "x-optional-auth": true
+      },
+      "put": {
+        "tags": [
+          "WaterQualityManagementPlan"
+        ],
+        "operationId": "MergeQuickBMPs_WaterQualityManagementPlan",
+        "parameters": [
+          {
+            "name": "waterQualityManagementPlanID",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "array",
+                "items": {
+                  "$ref": "#/components/schemas/QuickBMPUpsertDto"
+                }
+              }
+            },
+            "text/json": {
+              "schema": {
+                "type": "array",
+                "items": {
+                  "$ref": "#/components/schemas/QuickBMPUpsertDto"
+                }
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "type": "array",
+                "items": {
+                  "$ref": "#/components/schemas/QuickBMPUpsertDto"
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
       }
     },
     "/water-quality-management-plans/{waterQualityManagementPlanID}/source-control-bmps": {
@@ -7890,6 +7940,56 @@
         },
         "x-anonymous": true,
         "x-optional-auth": true
+      },
+      "put": {
+        "tags": [
+          "WaterQualityManagementPlan"
+        ],
+        "operationId": "MergeSourceControlBMPs_WaterQualityManagementPlan",
+        "parameters": [
+          {
+            "name": "waterQualityManagementPlanID",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "array",
+                "items": {
+                  "$ref": "#/components/schemas/SourceControlBMPUpsertDto"
+                }
+              }
+            },
+            "text/json": {
+              "schema": {
+                "type": "array",
+                "items": {
+                  "$ref": "#/components/schemas/SourceControlBMPUpsertDto"
+                }
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "type": "array",
+                "items": {
+                  "$ref": "#/components/schemas/SourceControlBMPUpsertDto"
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
       }
     },
     "/water-quality-management-plans/{waterQualityManagementPlanID}/verifications": {
@@ -8109,6 +8209,196 @@
                   "type": "array",
                   "items": {
                     "$ref": "#/components/schemas/WaterQualityManagementPlanDto"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/water-quality-management-plans/{waterQualityManagementPlanID}/modeling-approach": {
+      "put": {
+        "tags": [
+          "WaterQualityManagementPlan"
+        ],
+        "operationId": "UpdateModelingApproach_WaterQualityManagementPlan",
+        "parameters": [
+          {
+            "name": "waterQualityManagementPlanID",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "integer",
+                "format": "int32"
+              }
+            },
+            "text/json": {
+              "schema": {
+                "type": "integer",
+                "format": "int32"
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "type": "integer",
+                "format": "int32"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/water-quality-management-plans/{waterQualityManagementPlanID}/treatment-bmps": {
+      "put": {
+        "tags": [
+          "WaterQualityManagementPlan"
+        ],
+        "operationId": "UpdateTreatmentBMPs_WaterQualityManagementPlan",
+        "parameters": [
+          {
+            "name": "waterQualityManagementPlanID",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "array",
+                "items": {
+                  "type": "integer",
+                  "format": "int32"
+                }
+              }
+            },
+            "text/json": {
+              "schema": {
+                "type": "array",
+                "items": {
+                  "type": "integer",
+                  "format": "int32"
+                }
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "type": "array",
+                "items": {
+                  "type": "integer",
+                  "format": "int32"
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/water-quality-management-plans/{waterQualityManagementPlanID}/available-treatment-bmps": {
+      "get": {
+        "tags": [
+          "WaterQualityManagementPlan"
+        ],
+        "operationId": "ListAvailableTreatmentBMPs_WaterQualityManagementPlan",
+        "parameters": [
+          {
+            "name": "waterQualityManagementPlanID",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/TreatmentBMPMinimalDto"
+                  }
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/TreatmentBMPMinimalDto"
+                  }
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/TreatmentBMPMinimalDto"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/water-quality-management-plans/source-control-bmp-attributes": {
+      "get": {
+        "tags": [
+          "WaterQualityManagementPlan"
+        ],
+        "operationId": "ListSourceControlBMPAttributes_WaterQualityManagementPlan",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/SourceControlBMPUpsertDto"
+                  }
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/SourceControlBMPUpsertDto"
+                  }
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/SourceControlBMPUpsertDto"
                   }
                 }
               }
@@ -12074,6 +12364,10 @@
             "type": "string",
             "nullable": true
           },
+          "TreatmentBMPTypeID": {
+            "type": "integer",
+            "format": "int32"
+          },
           "TreatmentBMPTypeName": {
             "type": "string",
             "nullable": true
@@ -12105,6 +12399,53 @@
             "type": "integer",
             "format": "int32",
             "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "QuickBMPUpsertDto": {
+        "required": [
+          "NumberOfIndividualBMPs",
+          "QuickBMPName",
+          "TreatmentBMPTypeID"
+        ],
+        "type": "object",
+        "properties": {
+          "TreatmentBMPTypeID": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "QuickBMPName": {
+            "minLength": 1,
+            "type": "string"
+          },
+          "QuickBMPNote": {
+            "type": "string",
+            "nullable": true
+          },
+          "PercentOfSiteTreated": {
+            "type": "number",
+            "format": "double",
+            "nullable": true
+          },
+          "PercentCaptured": {
+            "type": "number",
+            "format": "double",
+            "nullable": true
+          },
+          "PercentRetained": {
+            "type": "number",
+            "format": "double",
+            "nullable": true
+          },
+          "DryWeatherFlowOverrideID": {
+            "type": "integer",
+            "format": "int32",
+            "nullable": true
+          },
+          "NumberOfIndividualBMPs": {
+            "type": "integer",
+            "format": "int32"
           }
         },
         "additionalProperties": false
@@ -12201,6 +12542,41 @@
           "SourceControlBMPAttributeCategoryID": {
             "type": "integer",
             "format": "int32"
+          },
+          "IsPresent": {
+            "type": "boolean",
+            "nullable": true
+          },
+          "SourceControlBMPNote": {
+            "type": "string",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "SourceControlBMPUpsertDto": {
+        "type": "object",
+        "properties": {
+          "SourceControlBMPID": {
+            "type": "integer",
+            "format": "int32",
+            "nullable": true
+          },
+          "SourceControlBMPAttributeCategoryName": {
+            "type": "string",
+            "nullable": true
+          },
+          "SourceControlBMPAttributeCategoryID": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "SourceControlBMPAttributeID": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "SourceControlBMPAttributeName": {
+            "type": "string",
+            "nullable": true
           },
           "IsPresent": {
             "type": "boolean",

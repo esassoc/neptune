@@ -204,7 +204,11 @@
             </div>
             <div class="card-body">
                 <!-- Modeling Approach -->
-                <h4>Modeling Approach</h4>
+                <h4>Modeling Approach
+                    @if (currentPersonCanEdit) {
+                        <a (click)="openEditModelingApproachModal(wqmp)" style="cursor: pointer"><icon class="icon-button" icon="CirclePencil"></icon></a>
+                    }
+                </h4>
                 @for (approach of modelingApproaches; track approach.Value) {
                     <div class="modeling-approach-row" [class.modeling-approach-selected]="approach.Value === wqmp.WaterQualityManagementPlanModelingApproachID"
                         [class.modeling-approach-unselected]="approach.Value !== wqmp.WaterQualityManagementPlanModelingApproachID">
@@ -221,7 +225,11 @@
                 }
 
                 <!-- Inventoried Structural BMPs -->
-                <h4 class="mt-4">Inventoried Structural BMPs</h4>
+                <h4 class="mt-4">Inventoried Structural BMPs
+                    @if (currentPersonCanEdit) {
+                        <a (click)="openEditTreatmentBMPsModal(wqmp)" style="cursor: pointer"><icon class="icon-button" icon="CirclePencil"></icon></a>
+                    }
+                </h4>
                 @if (!isAnonymousOrUnassigned && wqmp.WaterQualityManagementPlanModelingApproachID === WaterQualityManagementPlanModelingApproachEnum.Simplified) {
                     <div class="alert alert-info">
                         This WQMP is modeled using the simplified approach; any explicitly inventoried BMPs entered here are not considered in modeling.
@@ -239,7 +247,11 @@
                 }
 
                 <!-- Simplified Structural BMPs (Quick BMPs) -->
-                <h4 class="mt-4">Simplified Structural BMPs</h4>
+                <h4 class="mt-4">Simplified Structural BMPs
+                    @if (currentPersonCanEdit) {
+                        <a (click)="navigateToEditQuickBMPs()" style="cursor: pointer"><icon class="icon-button" icon="CirclePencil"></icon></a>
+                    }
+                </h4>
                 @if (!isAnonymousOrUnassigned && wqmp.WaterQualityManagementPlanModelingApproachID === WaterQualityManagementPlanModelingApproachEnum.Detailed) {
                     <div class="alert alert-info">
                         This WQMP is modeled by explicitly inventorying associated structural BMPs; any simplified BMPs entered here are informational only.
@@ -250,6 +262,7 @@
                         <neptune-grid
                             [rowData]="quickBMPs"
                             [columnDefs]="quickBMPColumnDefs"
+                            [pinnedBottomRowData]="quickBMPTotalRow"
                             [pagination]="true"
                             [height]="'300px'"
                             [downloadFileName]="'SimplifiedBMPs'"></neptune-grid>
@@ -261,7 +274,11 @@
                 }
 
                 <!-- Source Control BMPs -->
-                <h4 class="mt-4">Source Control BMPs</h4>
+                <h4 class="mt-4">Source Control BMPs
+                    @if (currentPersonCanEdit) {
+                        <a (click)="navigateToEditSourceControlBMPs()" style="cursor: pointer"><icon class="icon-button" icon="CirclePencil"></icon></a>
+                    }
+                </h4>
                 @if (sourceControlBMPs$ | async; as sourceControlBMPs) {
                     @if (sourceControlBMPs.length) {
                         <table class="table table-condensed source-control-table">
@@ -317,7 +334,7 @@
                                     <div class="document-entry">
                                         @if (doc.FileResource?.FileResourceGUID) {
                                             <a [href]="'/FileResource/' + doc.FileResource.FileResourceGUID" target="_blank">
-                                                {{ doc.DisplayName }} <i class="bi bi-download"></i>
+                                                {{ doc.DisplayName }} <i class="fa fa-download"></i>
                                             </a>
                                         } @else {
                                             <span>{{ doc.DisplayName }}</span>

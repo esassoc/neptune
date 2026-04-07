@@ -439,6 +439,20 @@ export const routes: Routes = [
                 loadComponent: () => import("./pages/wqmps/wqmp-detail/wqmp-detail.component").then((m) => m.WqmpDetailComponent),
             },
             {
+                path: `water-quality-management-plans/:${routeParams.waterQualityManagementPlanID}/edit-source-control-bmps`,
+                title: "Edit Source Control BMPs",
+                loadComponent: () =>
+                    import("./pages/wqmps/wqmp-detail/edit-source-control-bmps/edit-source-control-bmps.component").then((m) => m.EditSourceControlBMPsComponent),
+                canActivate: [authGuardFn],
+            },
+            {
+                path: `water-quality-management-plans/:${routeParams.waterQualityManagementPlanID}/edit-quick-bmps`,
+                title: "Edit Simplified Structural BMPs",
+                loadComponent: () =>
+                    import("./pages/wqmps/wqmp-detail/edit-quick-bmps/edit-quick-bmps.component").then((m) => m.EditQuickBMPsComponent),
+                canActivate: [authGuardFn],
+            },
+            {
                 path: "wqmp-annual-report",
                 title: "WQMP Annual Report",
                 loadComponent: () => import("./pages/wqmp-annual-report/wqmp-annual-report.component").then((m) => m.WqmpAnnualReportComponent),

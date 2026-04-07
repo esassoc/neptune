@@ -14,6 +14,11 @@
     }
 }
 
+.card-body h4 {
+    color: $primary;
+    font-size: $type-size-400;
+}
+
 .modeling-approach-row {
     display: flex;
     gap: 1rem;
@@ -38,25 +43,54 @@
 
 .source-control-table {
     width: 100%;
+    border: none;
+    border-collapse: collapse;
+    border-radius: 0;
 
-    th,
-    td {
+    thead th {
+        background: none;
+        color: $black;
         padding: 0.5rem;
+        font-weight: bold;
+        border-bottom: 1px solid rgba($black, 0.1);
+        border-radius: 0;
+    }
+
+    tbody {
+        tr:nth-of-type(even) {
+            background: none;
+        }
+
+        td {
+            padding: 0.5rem;
+            border-top: 1px solid rgba($black, 0.1);
+        }
+
+        tr > td:first-of-type {
+            font-weight: normal;
+        }
     }
 
     .category-header-cell {
-        border-top: none;
-        border-bottom: none;
+        background: none;
+        border: none;
+        padding-top: 1.5rem;
+        padding-bottom: 0.25rem;
 
         h5 {
-            margin-top: 1rem;
             margin-bottom: 0;
+            color: $primary;
+            font-size: $type-size-300;
         }
     }
 }
 
 .document-entry {
     margin-bottom: 1rem;
+}
+
+::ng-deep .ag-row-pinned-bottom {
+    font-weight: bold;
 }
 
 .document-details {

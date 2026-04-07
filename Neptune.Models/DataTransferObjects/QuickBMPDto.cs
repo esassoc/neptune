@@ -4,6 +4,7 @@ public class QuickBMPDto
 {
     public int QuickBMPID { get; set; }
     public string? QuickBMPName { get; set; }
+    public int TreatmentBMPTypeID { get; set; }
     public string? TreatmentBMPTypeName { get; set; }
     public string? QuickBMPNote { get; set; }
     public int NumberOfIndividualBMPs { get; set; }

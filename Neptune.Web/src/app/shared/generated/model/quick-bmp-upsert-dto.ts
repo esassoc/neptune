@@ -10,43 +10,40 @@
 
 
 import { FormControl, FormControlOptions, FormControlState, Validators } from "@angular/forms";
-export class QuickBMPDto { 
-    QuickBMPID?: number;
-    QuickBMPName?: string | null;
-    TreatmentBMPTypeID?: number;
-    TreatmentBMPTypeName?: string | null;
+export class QuickBMPUpsertDto { 
+    TreatmentBMPTypeID: number;
+    QuickBMPName: string;
     QuickBMPNote?: string | null;
-    NumberOfIndividualBMPs?: number;
     PercentOfSiteTreated?: number | null;
     PercentCaptured?: number | null;
     PercentRetained?: number | null;
     DryWeatherFlowOverrideID?: number | null;
+    NumberOfIndividualBMPs: number;
     constructor(obj?: any) {
         Object.assign(this, obj);
     }
 }
 
-export interface QuickBMPDtoForm { 
-    QuickBMPID?: FormControl<number>;
-    QuickBMPName?: FormControl<string>;
-    TreatmentBMPTypeID?: FormControl<number>;
-    TreatmentBMPTypeName?: FormControl<string>;
+export interface QuickBMPUpsertDtoForm { 
+    TreatmentBMPTypeID: FormControl<number>;
+    QuickBMPName: FormControl<string>;
     QuickBMPNote?: FormControl<string>;
-    NumberOfIndividualBMPs?: FormControl<number>;
     PercentOfSiteTreated?: FormControl<number>;
     PercentCaptured?: FormControl<number>;
     PercentRetained?: FormControl<number>;
     DryWeatherFlowOverrideID?: FormControl<number>;
+    NumberOfIndividualBMPs: FormControl<number>;
 }
 
-export class QuickBMPDtoFormControls { 
-    public static QuickBMPID = (value: FormControlState<number> | number = undefined, formControlOptions?: FormControlOptions | null) => new FormControl<number>(
+export class QuickBMPUpsertDtoFormControls { 
+    public static TreatmentBMPTypeID = (value: FormControlState<number> | number = undefined, formControlOptions?: FormControlOptions | null) => new FormControl<number>(
         value,
         formControlOptions ?? 
         {
-            nonNullable: false,
+            nonNullable: true,
             validators: 
             [
+                Validators.required,
             ],
         }
     );
@@ -54,43 +51,15 @@ export class QuickBMPDtoFormControls {
         value,
         formControlOptions ?? 
         {
-            nonNullable: false,
+            nonNullable: true,
             validators: 
             [
-            ],
-        }
-    );
-    public static TreatmentBMPTypeID = (value: FormControlState<number> | number = undefined, formControlOptions?: FormControlOptions | null) => new FormControl<number>(
-        value,
-        formControlOptions ?? 
-        {
-            nonNullable: false,
-            validators: 
-            [
-            ],
-        }
-    );
-    public static TreatmentBMPTypeName = (value: FormControlState<string> | string = undefined, formControlOptions?: FormControlOptions | null) => new FormControl<string>(
-        value,
-        formControlOptions ?? 
-        {
-            nonNullable: false,
-            validators: 
-            [
+                Validators.required,
+                Validators.minLength(1),
             ],
         }
     );
     public static QuickBMPNote = (value: FormControlState<string> | string = undefined, formControlOptions?: FormControlOptions | null) => new FormControl<string>(
-        value,
-        formControlOptions ?? 
-        {
-            nonNullable: false,
-            validators: 
-            [
-            ],
-        }
-    );
-    public static NumberOfIndividualBMPs = (value: FormControlState<number> | number = undefined, formControlOptions?: FormControlOptions | null) => new FormControl<number>(
         value,
         formControlOptions ?? 
         {
@@ -137,6 +106,17 @@ export class QuickBMPDtoFormControls {
             nonNullable: false,
             validators: 
             [
+            ],
+        }
+    );
+    public static NumberOfIndividualBMPs = (value: FormControlState<number> | number = undefined, formControlOptions?: FormControlOptions | null) => new FormControl<number>(
+        value,
+        formControlOptions ?? 
+        {
+            nonNullable: true,
+            validators: 
+            [
+                Validators.required,
             ],
         }
     );

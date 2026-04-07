@@ -1,4 +1,5 @@
 ﻿using Microsoft.EntityFrameworkCore;
+using Neptune.Common;
 using Neptune.Common.DesignByContract;
 using Neptune.Models.DataTransferObjects;
 
@@ -74,5 +75,28 @@ public static class SourceControlBMPs
         }
 
         return dtos;
+    }
+
+    public static async Task MergeAsync(NeptuneDbContext dbContext, int waterQualityManagementPlanID, List<SourceControlBMPUpsertDto> dtos)
+    {
+        var existingSourceControlBMPs = ListByWaterQualityManagementPlanIDWithChangeTracking(dbContext, waterQualityManagementPlanID);
+        var sourceControlBMPsInDatabase = dbContext.SourceControlBMPs;
+        var sourceControlBMPsToUpdate = (dtos ?? new List<SourceControlBMPUpsertDto>()).Select(x => new SourceControlBMP
+        {
+            WaterQualityManagementPlanID = waterQualityManagementPlanID,
+            SourceControlBMPAttributeID = x.SourceControlBMPAttributeID,
+            IsPresent = x.IsPresent,
+            SourceControlBMPNote = x.SourceControlBMPNote
+        }).ToList();
+
+        existingSourceControlBMPs.Merge(sourceControlBMPsToUpdate, sourceControlBMPsInDatabase,
+            (x, y) => x.WaterQualityManagementPlanID == y.WaterQualityManagementPlanID && x.SourceControlBMPAttributeID == y.SourceControlBMPAttributeID,
+            (x, y) =>
+            {
+                x.IsPresent = y.IsPresent;
+                x.SourceControlBMPNote = y.SourceControlBMPNote;
+            });
+
+        await dbContext.SaveChangesAsync();
     }
 }

@@ -128,10 +128,12 @@ model/project-upsert-dto.ts
 model/project-workflow-progress-dto-steps.ts
 model/project-workflow-progress-dto.ts
 model/quick-bmp-dto.ts
+model/quick-bmp-upsert-dto.ts
 model/regional-subbasin-dto.ts
 model/regional-subbasin-revision-request-dto.ts
 model/sizing-basis-type-dto.ts
 model/source-control-bmp-dto.ts
+model/source-control-bmp-upsert-dto.ts
 model/stormwater-jurisdiction-display-dto.ts
 model/stormwater-jurisdiction-grid-dto.ts
 model/system-info-dto.ts

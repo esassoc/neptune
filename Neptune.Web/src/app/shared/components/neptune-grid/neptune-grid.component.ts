@@ -50,6 +50,7 @@ export class NeptuneGridComponent implements OnInit, OnChanges {
     @Input() pagination: boolean = false;
     @Input() paginationPageSize: number = 100;
     @Input() getRowId: GetRowIdFunc;
+    @Input() pinnedBottomRowData: any[];
 
     // our stuff
     @Input() width: string = "100%";
@@ -96,6 +97,10 @@ export class NeptuneGridComponent implements OnInit, OnChanges {
         if (changes.columnDefs) {
             this.gridApi?.updateGridOptions({ columnDefs: this.columnDefs });
             this.gridApi?.hideOverlay();
+        }
+
+        if (changes.pinnedBottomRowData) {
+            this.gridApi?.updateGridOptions({ pinnedBottomRowData: this.pinnedBottomRowData });
         }
     }
 

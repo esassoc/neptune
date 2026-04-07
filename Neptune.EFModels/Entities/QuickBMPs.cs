@@ -1,4 +1,5 @@
 ﻿using Microsoft.EntityFrameworkCore;
+using Neptune.Common;
 using Neptune.Common.DesignByContract;
 using Neptune.Models.DataTransferObjects;
 
@@ -76,5 +77,41 @@ public static class QuickBMPs
             .Select(QuickBMPProjections.AsDto)
             .OrderBy(x => x.QuickBMPName)
             .ToListAsync();
+    }
+
+    public static async Task MergeAsync(NeptuneDbContext dbContext, int waterQualityManagementPlanID, List<QuickBMPUpsertDto> dtos)
+    {
+        var existingQuickBMPs = ListByWaterQualityManagementPlanIDWithChangeTracking(dbContext, waterQualityManagementPlanID);
+        var quickBMPsInDatabase = dbContext.QuickBMPs;
+        var quickBMPsToUpdate = dtos != null
+            ? dtos.Select(x => new QuickBMP
+            {
+                WaterQualityManagementPlanID = waterQualityManagementPlanID,
+                QuickBMPName = x.QuickBMPName,
+                TreatmentBMPTypeID = x.TreatmentBMPTypeID.Value,
+                QuickBMPNote = x.QuickBMPNote,
+                DryWeatherFlowOverrideID = x.DryWeatherFlowOverrideID,
+                PercentOfSiteTreated = x.PercentOfSiteTreated,
+                PercentCaptured = x.PercentCaptured,
+                PercentRetained = x.PercentRetained,
+                NumberOfIndividualBMPs = x.NumberOfIndividualBMPs.Value
+            }).ToList()
+            : new List<QuickBMP>();
+
+        existingQuickBMPs.Merge(quickBMPsToUpdate, quickBMPsInDatabase,
+            (x, y) => x.WaterQualityManagementPlanID == y.WaterQualityManagementPlanID &&
+                      x.QuickBMPName == y.QuickBMPName, (x, y) =>
+            {
+                x.QuickBMPName = y.QuickBMPName;
+                x.QuickBMPNote = y.QuickBMPNote;
+                x.DryWeatherFlowOverrideID = y.DryWeatherFlowOverrideID;
+                x.TreatmentBMPTypeID = y.TreatmentBMPTypeID;
+                x.PercentOfSiteTreated = y.PercentOfSiteTreated;
+                x.PercentCaptured = y.PercentCaptured;
+                x.PercentRetained = y.PercentRetained;
+                x.NumberOfIndividualBMPs = y.NumberOfIndividualBMPs;
+            });
+
+        await dbContext.SaveChangesAsync();
     }
 }
