@@ -14901,6 +14901,9 @@
           },
           "HasBoundary": {
             "type": "boolean"
+          },
+          "IsDraft": {
+            "type": "boolean"
           }
         },
         "additionalProperties": false

@@ -41,6 +41,7 @@ export class WaterQualityManagementPlanGridDto {
     TrashCaptureStatusTypeDisplayName?: string | null;
     TrashCaptureEffectiveness?: number | null;
     HasBoundary?: boolean;
+    IsDraft?: boolean;
     constructor(obj?: any) {
         Object.assign(this, obj);
     }
@@ -77,6 +78,7 @@ export interface WaterQualityManagementPlanGridDtoForm {
     TrashCaptureStatusTypeDisplayName?: FormControl<string>;
     TrashCaptureEffectiveness?: FormControl<number>;
     HasBoundary?: FormControl<boolean>;
+    IsDraft?: FormControl<boolean>;
 }
 
 export class WaterQualityManagementPlanGridDtoFormControls { 
@@ -371,6 +373,16 @@ export class WaterQualityManagementPlanGridDtoFormControls {
         }
     );
     public static HasBoundary = (value: FormControlState<boolean> | boolean = undefined, formControlOptions?: FormControlOptions | null) => new FormControl<boolean>(
+        value,
+        formControlOptions ?? 
+        {
+            nonNullable: false,
+            validators: 
+            [
+            ],
+        }
+    );
+    public static IsDraft = (value: FormControlState<boolean> | boolean = undefined, formControlOptions?: FormControlOptions | null) => new FormControl<boolean>(
         value,
         formControlOptions ?? 
         {

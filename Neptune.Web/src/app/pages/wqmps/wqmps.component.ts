@@ -58,6 +58,14 @@ export class WqmpsComponent {
     ngOnInit(): void {
         this.currentPersonCanEdit$ = this.authenticationService.getCurrentUser().pipe(
             map(() => this.authenticationService.doesCurrentUserHaveJurisdictionEditPermission()),
+            tap((canEdit) => {
+                if (canEdit && !this.columnDefs.some((c) => c.field === "IsDraft")) {
+                    this.columnDefs = [...this.columnDefs, this.utilityFunctionsService.createBasicColumnDef("Is Draft", "IsDraft", {
+                        ValueGetter: (params) => params.data?.IsDraft ? "Yes" : "No",
+                        UseCustomDropdownFilter: true,
+                    })];
+                }
+            }),
             shareReplay(1)
         );
 

@@ -32,4 +32,5 @@ public class WaterQualityManagementPlanGridDto
     public string? TrashCaptureStatusTypeDisplayName { get; set; }
     public int? TrashCaptureEffectiveness { get; set; }
     public bool HasBoundary { get; set; }
+    public bool IsDraft { get; set; }
 }

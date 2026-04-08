@@ -45,7 +45,8 @@ namespace Neptune.EFModels.Entities
                 VerificationDate = entity.VerificationDate,
                 TrashCaptureStatusTypeDisplayName = entity.TrashCaptureStatusTypeDisplayName,
                 TrashCaptureEffectiveness = entity.TrashCaptureEffectiveness,
-                HasBoundary = entity.HasBoundary
+                HasBoundary = entity.HasBoundary,
+                IsDraft = entity.WaterQualityManagementPlanStatusID == (int)WaterQualityManagementPlanStatusEnum.Draft
             };
         }
     }
