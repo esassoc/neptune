@@ -21,6 +21,7 @@ Source code is available upon request via <support@sitkatech.com>.
 
 using Microsoft.EntityFrameworkCore;
 using Neptune.Common.DesignByContract;
+using Neptune.Models.DataTransferObjects;
 
 namespace Neptune.EFModels.Entities
 {
@@ -67,6 +68,20 @@ namespace Neptune.EFModels.Entities
             var parcel = GetImpl(dbContext).FirstOrDefault(x => x.ParcelNumber == parcelNumber);
             Check.RequireNotNull(parcel, $"Parcel with number {parcelNumber} not found!");
             return parcel;
+        }
+
+        public static List<ParcelDisplayDto> Search(NeptuneDbContext dbContext, string term)
+        {
+            var searchString = term.Trim();
+            return dbContext.Parcels
+                .AsNoTracking()
+                .Where(x => x.ParcelNumber.Contains(searchString) ||
+                             x.ParcelAddress.Contains(searchString))
+                .OrderBy(x => x.ParcelAddress)
+                .ThenBy(x => x.ParcelNumber)
+                .Take(20)
+                .Select(ParcelProjections.AsDisplayDto)
+                .ToList();
         }
     }
 }

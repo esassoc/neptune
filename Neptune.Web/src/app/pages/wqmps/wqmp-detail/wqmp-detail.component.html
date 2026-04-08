@@ -142,6 +142,13 @@
                     <span class="card-title">Locations</span>
                 </div>
                 <div class="card-body">
+                    @if (currentPersonCanEdit) {
+                        <div class="mb-3">
+                            <a class="btn btn-primary-outline" [routerLink]="['/water-quality-management-plans', waterQualityManagementPlanID, 'edit-parcels']">Add Parcels</a>
+                            <a class="btn btn-primary-outline" [class.disabled]="!wqmp.WaterQualityManagementPlanBoundaryBBox"
+                                [routerLink]="wqmp.WaterQualityManagementPlanBoundaryBBox ? ['/water-quality-management-plans', waterQualityManagementPlanID, 'edit-boundary'] : null">Refine Area</a>
+                        </div>
+                    }
                     <neptune-map [mapHeight]="'500px'" [showLegend]="false" [boundingBox]="boundingBox" (onMapLoad)="handleMapReady($event)">
                         @if (mapIsReady) {
                             <wqmps-layer

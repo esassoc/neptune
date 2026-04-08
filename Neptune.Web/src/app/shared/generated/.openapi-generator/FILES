@@ -18,6 +18,7 @@ api/onland-visual-trash-assessment-observation.service.ts
 api/onland-visual-trash-assessment.service.ts
 api/organization-type.service.ts
 api/organization.service.ts
+api/parcel.service.ts
 api/project-document.service.ts
 api/project.service.ts
 api/regional-subbasin.service.ts
@@ -165,6 +166,8 @@ model/treatment-bmp-upstream-bmp-update-dto.ts
 model/treatment-bmp-upstreamest-errors-dto.ts
 model/treatment-bmphru-characteristics-summary-simple-dto.ts
 model/v-treatment-bmp-modeling-attribute-dto.ts
+model/water-quality-management-plan-boundary-response-dto.ts
+model/water-quality-management-plan-boundary-upsert-dto.ts
 model/water-quality-management-plan-display-dto.ts
 model/water-quality-management-plan-document-dto.ts
 model/water-quality-management-plan-document-extraction-result-dto.ts

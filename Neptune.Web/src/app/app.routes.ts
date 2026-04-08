@@ -453,6 +453,20 @@ export const routes: Routes = [
                 canActivate: [authGuardFn],
             },
             {
+                path: `water-quality-management-plans/:${routeParams.waterQualityManagementPlanID}/edit-boundary`,
+                title: "Refine WQMP Boundary Area",
+                loadComponent: () =>
+                    import("./pages/wqmps/wqmp-detail/edit-boundary/edit-boundary.component").then((m) => m.EditBoundaryComponent),
+                canActivate: [authGuardFn],
+            },
+            {
+                path: `water-quality-management-plans/:${routeParams.waterQualityManagementPlanID}/edit-parcels`,
+                title: "Add or Remove Parcels",
+                loadComponent: () =>
+                    import("./pages/wqmps/wqmp-detail/edit-parcels/edit-parcels.component").then((m) => m.EditParcelsComponent),
+                canActivate: [authGuardFn],
+            },
+            {
                 path: "wqmp-annual-report",
                 title: "WQMP Annual Report",
                 loadComponent: () => import("./pages/wqmp-annual-report/wqmp-annual-report.component").then((m) => m.WqmpAnnualReportComponent),

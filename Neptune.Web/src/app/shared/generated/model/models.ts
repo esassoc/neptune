@@ -125,6 +125,8 @@ export * from './treatment-bmp-upsert-dto';
 export * from './treatment-bmp-upstream-bmp-update-dto';
 export * from './treatment-bmp-upstreamest-errors-dto';
 export * from './v-treatment-bmp-modeling-attribute-dto';
+export * from './water-quality-management-plan-boundary-response-dto';
+export * from './water-quality-management-plan-boundary-upsert-dto';
 export * from './water-quality-management-plan-display-dto';
 export * from './water-quality-management-plan-document-dto';
 export * from './water-quality-management-plan-document-extraction-result-dto';

@@ -1,0 +1,15 @@
+@use "/src/scss/abstracts" as *;
+
+.parcel-list {
+    max-height: 300px;
+    overflow-y: auto;
+
+    &__item {
+        padding: 0.4rem 0;
+        font-size: $type-size-200;
+
+        & + & {
+            border-top: 1px solid $gray-100;
+        }
+    }
+}
