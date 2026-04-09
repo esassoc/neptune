@@ -401,7 +401,7 @@ namespace Neptune.API.Controllers
             }
 
             var extension = Path.GetExtension(file.FileName)?.ToLowerInvariant();
-            if (extension != ".pdf" || file.ContentType != "application/pdf")
+            if (extension != ".pdf")
             {
                 return BadRequest("Only PDF files are accepted.");
             }

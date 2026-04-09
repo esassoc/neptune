@@ -304,9 +304,9 @@ public class WqmpExtractionService
             description = "ExtractedValue schema. Attribute with evidence.",
             properties = new
             {
-                Value = new { type = "string", description = "Raw extracted value or null." },
-                ExtractionEvidence = new { type = "string", description = "Snippet: preceding, target, following sentence OR nearby table text." },
-                DocumentSource = new { type = "string", description = "Page reference (e.g. 'Page 12')." }
+                Value = new { type = new[] { "string", "null" }, description = "Raw extracted value or null." },
+                ExtractionEvidence = new { type = new[] { "string", "null" }, description = "Snippet: preceding, target, following sentence OR nearby table text." },
+                DocumentSource = new { type = new[] { "string", "null" }, description = "Page reference (e.g. 'Page 12')." }
             },
             required = new[] { "Value", "ExtractionEvidence", "DocumentSource" },
             additionalProperties = false

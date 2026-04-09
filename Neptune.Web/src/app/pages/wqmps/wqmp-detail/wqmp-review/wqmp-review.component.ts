@@ -2,7 +2,7 @@ import { Component, inject, Input, OnInit, signal, ViewChild } from "@angular/co
 import { Router, RouterLink } from "@angular/router";
 import { AsyncPipe } from "@angular/common";
 import { HttpClient } from "@angular/common/http";
-import { Observable, switchMap, tap, shareReplay } from "rxjs";
+import { EMPTY, Observable, switchMap, tap, shareReplay, catchError } from "rxjs";
 import { PdfJsViewerModule, PdfJsViewerComponent } from "ng2-pdfjs-viewer";
 import { AlertDisplayComponent } from "src/app/shared/components/alert-display/alert-display.component";
 import { AlertService } from "src/app/shared/services/alert.service";
@@ -106,6 +106,10 @@ export class WqmpReviewComponent implements OnInit {
                         switchMap(() => [result])
                     )
                 ),
+                catchError(() => {
+                    this.alertService.pushAlert(new Alert("Failed to load extraction results or PDF document.", AlertContext.Danger));
+                    return EMPTY;
+                }),
                 shareReplay(1)
             );
     }
@@ -335,7 +339,7 @@ export class WqmpReviewComponent implements OnInit {
                     // name-to-ID resolution before they can be mapped.
                 };
                 for (const field of this.fields()) {
-                    if ((field.state === "accepted" || field.state === "edited") && textFields[field.key]) {
+                    if ((field.state === "accepted" || field.state === "edited") && textFields[field.key] && field.acceptedValue != null) {
                         dto[textFields[field.key]] = field.acceptedValue;
                     }
                 }
