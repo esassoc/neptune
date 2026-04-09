@@ -60,25 +60,23 @@ export class WqmpUploadModalComponent implements OnInit {
                 this.ref.close({ wqmpID: result.WaterQualityManagementPlanID });
             },
             error: (err: HttpErrorResponse) => {
-                if (err.status === 409) {
-                    const conflict = err.error;
-                    if (conflict.CanOverwrite) {
-                        this.isUploading.set(false);
-                        this.confirmService.confirm({
-                            title: "WQMP Already Exists",
-                            message: conflict.Message,
-                            buttonTextYes: "Overwrite",
-                            buttonTextNo: "Cancel",
-                            buttonClassYes: "btn-danger",
-                        }, this.viewContainerRef).then((confirmed) => {
-                            if (confirmed) {
-                                this.upload(true);
-                            }
-                        });
-                        return;
-                    }
-                    this.alertService.pushAlert(new Alert(conflict.Message, AlertContext.Danger));
+                if (err.status === 409 && err.error?.CanOverwrite) {
+                    this.isUploading.set(false);
+                    this.confirmService.confirm({
+                        title: "WQMP Already Exists",
+                        message: err.error.Message,
+                        buttonTextYes: "Overwrite",
+                        buttonTextNo: "Cancel",
+                        buttonClassYes: "btn-danger",
+                    }, this.viewContainerRef).then((confirmed) => {
+                        if (confirmed) {
+                            this.upload(true);
+                        }
+                    });
+                    return;
                 }
+                const message = err.status === 409 ? err.error?.Message : err.error?.message || err.error?.title || "An unexpected error occurred during upload.";
+                this.alertService.pushAlert(new Alert(message, AlertContext.Danger));
                 this.isUploading.set(false);
             },
         });
