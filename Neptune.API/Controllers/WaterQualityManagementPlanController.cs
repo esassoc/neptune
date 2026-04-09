@@ -1,7 +1,10 @@
+using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
@@ -11,6 +14,7 @@ using Neptune.API.Services;
 using Neptune.API.Services.Attributes;
 using Neptune.API.Services.Authorization;
 using Neptune.EFModels.Entities;
+using Neptune.API.Services.AI;
 using Neptune.EFModels.Nereid;
 using Neptune.Models.DataTransferObjects;
 
@@ -21,7 +25,9 @@ namespace Neptune.API.Controllers
     public class WaterQualityManagementPlanController(
         NeptuneDbContext dbContext,
         ILogger<WaterQualityManagementPlanController> logger,
-        IOptions<NeptuneConfiguration> neptuneConfiguration)
+        IOptions<NeptuneConfiguration> neptuneConfiguration,
+        AzureBlobStorageService azureBlobStorageService,
+        WqmpExtractionService wqmpExtractionService)
         : SitkaController<WaterQualityManagementPlanController>(dbContext, logger,
             neptuneConfiguration)
     {
@@ -379,6 +385,137 @@ namespace Neptune.API.Controllers
                 BoundingBox = newBoundary?.Geometry4326 != null ? new BoundingBoxDto(newBoundary.Geometry4326) : new BoundingBoxDto()
             };
             return Ok(response);
+        }
+
+        [HttpPost("upload-and-extract")]
+        [AdminFeature]
+        [Consumes("multipart/form-data")]
+        [RequestSizeLimit(200 * 1024 * 1024)]
+        [RequestFormLimits(MultipartBodyLengthLimit = 200 * 1024 * 1024)]
+        public async Task<ActionResult<WaterQualityManagementPlanExtractionResultDto>> UploadAndExtract(
+            IFormFile file, [FromForm] int stormwaterJurisdictionID, [FromForm] bool overwrite = false)
+        {
+            if (file == null || file.Length == 0)
+            {
+                return BadRequest("No file provided.");
+            }
+
+            var extension = Path.GetExtension(file.FileName)?.ToLowerInvariant();
+            if (extension != ".pdf")
+            {
+                return BadRequest("Only PDF files are accepted.");
+            }
+
+            var wqmpName = Path.GetFileNameWithoutExtension(file.FileName);
+
+            // Check for existing WQMP with the same name in this jurisdiction
+            var existing = await WaterQualityManagementPlans.GetByNameAndJurisdiction(DbContext, wqmpName, stormwaterJurisdictionID);
+            if (existing != null)
+            {
+                var isActive = existing.WaterQualityManagementPlanStatusID == (int)WaterQualityManagementPlanStatusEnum.Active;
+                if (isActive)
+                {
+                    return Conflict(new WaterQualityManagementPlanConflictDto
+                    {
+                        ExistingWaterQualityManagementPlanID = existing.WaterQualityManagementPlanID,
+                        ExistingStatus = "Active",
+                        CanOverwrite = false,
+                        Message = $"An active WQMP named \"{wqmpName}\" already exists in this jurisdiction. It must be deactivated before re-uploading."
+                    });
+                }
+
+                if (!overwrite)
+                {
+                    var statusName = existing.WaterQualityManagementPlanStatusID == (int)WaterQualityManagementPlanStatusEnum.Draft ? "Draft" : "Inactive";
+                    return Conflict(new WaterQualityManagementPlanConflictDto
+                    {
+                        ExistingWaterQualityManagementPlanID = existing.WaterQualityManagementPlanID,
+                        ExistingStatus = statusName,
+                        CanOverwrite = true,
+                        Message = $"A WQMP named \"{wqmpName}\" already exists in this jurisdiction (Status: {statusName}). Would you like to overwrite it?"
+                    });
+                }
+
+                // User confirmed overwrite — delete the existing WQMP
+                await WaterQualityManagementPlans.DeleteAsync(DbContext, existing.WaterQualityManagementPlanID);
+            }
+
+            // Create Draft WQMP
+            var dto = new WaterQualityManagementPlanUpsertDto
+            {
+                WaterQualityManagementPlanName = wqmpName,
+                StormwaterJurisdictionID = stormwaterJurisdictionID,
+                WaterQualityManagementPlanStatusID = (int)WaterQualityManagementPlanStatusEnum.Draft,
+                WaterQualityManagementPlanModelingApproachID = (int)WaterQualityManagementPlanModelingApproachEnum.Detailed,
+                TrashCaptureStatusTypeID = (int)TrashCaptureStatusTypeEnum.NotProvided,
+            };
+            var wqmpDto = await WaterQualityManagementPlans.CreateAsync(DbContext, dto);
+
+            try
+            {
+                // Upload file to Azure Blob Storage and create document record
+                var fileResource = await HttpUtilities.MakeFileResourceFromFormFileAsync(DbContext, HttpContext, azureBlobStorageService, file);
+                var document = await WaterQualityManagementPlanDocuments.CreateFromFileResourceAsync(
+                    DbContext, wqmpDto.WaterQualityManagementPlanID, fileResource.FileResourceID,
+                    file.FileName, (int)WaterQualityManagementPlanDocumentTypeEnum.FinalWQMP);
+
+                // Run AI extraction
+                var extractionResult = await wqmpExtractionService.ExtractFromDocument(
+                    document.WaterQualityManagementPlanDocumentID, CallingUser.PersonID, HttpContext.RequestAborted);
+
+                // Store extraction result
+                var storedResult = new WaterQualityManagementPlanExtractionResult
+                {
+                    WaterQualityManagementPlanID = wqmpDto.WaterQualityManagementPlanID,
+                    WaterQualityManagementPlanDocumentID = document.WaterQualityManagementPlanDocumentID,
+                    ExtractionResultJson = extractionResult.FinalOutput,
+                    ExtractedAt = DateTime.UtcNow,
+                };
+                DbContext.WaterQualityManagementPlanExtractionResults.Add(storedResult);
+                await DbContext.SaveChangesAsync();
+
+                return Ok(new WaterQualityManagementPlanExtractionResultDto
+                {
+                    WaterQualityManagementPlanID = wqmpDto.WaterQualityManagementPlanID,
+                    WaterQualityManagementPlanDocumentID = document.WaterQualityManagementPlanDocumentID,
+                    ExtractionResultJson = extractionResult.FinalOutput,
+                    ExtractedAt = storedResult.ExtractedAt,
+                    FileResourceGuid = fileResource.FileResourceGUID.ToString(),
+                });
+            }
+            catch
+            {
+                // Clean up the orphaned Draft WQMP if extraction fails
+                await WaterQualityManagementPlans.DeleteAsync(DbContext, wqmpDto.WaterQualityManagementPlanID);
+                throw;
+            }
+        }
+
+        [HttpGet("{waterQualityManagementPlanID}/extraction-result")]
+        [AdminFeature]
+        [EntityNotFound(typeof(WaterQualityManagementPlan), "waterQualityManagementPlanID")]
+        public async Task<ActionResult<WaterQualityManagementPlanExtractionResultDto>> GetExtractionResult(
+            [FromRoute] int waterQualityManagementPlanID)
+        {
+            var storedResult = await DbContext.WaterQualityManagementPlanExtractionResults
+                .Include(x => x.WaterQualityManagementPlanDocument)
+                    .ThenInclude(x => x.FileResource)
+                .Where(x => x.WaterQualityManagementPlanID == waterQualityManagementPlanID)
+                .FirstOrDefaultAsync();
+
+            if (storedResult == null)
+            {
+                return NotFound("No extraction result found for this WQMP.");
+            }
+
+            return Ok(new WaterQualityManagementPlanExtractionResultDto
+            {
+                WaterQualityManagementPlanID = waterQualityManagementPlanID,
+                WaterQualityManagementPlanDocumentID = storedResult.WaterQualityManagementPlanDocumentID,
+                ExtractionResultJson = storedResult.ExtractionResultJson,
+                ExtractedAt = storedResult.ExtractedAt,
+                FileResourceGuid = storedResult.WaterQualityManagementPlanDocument.FileResource.FileResourceGUID.ToString(),
+            });
         }
     }
 }

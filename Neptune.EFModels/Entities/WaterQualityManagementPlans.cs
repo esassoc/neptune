@@ -134,6 +134,11 @@ public static class WaterQualityManagementPlans
         return dto;
     }
 
+    public static async Task<WaterQualityManagementPlan?> GetByNameAndJurisdiction(NeptuneDbContext dbContext, string name, int stormwaterJurisdictionID)
+    {
+        return await dbContext.WaterQualityManagementPlans.AsNoTracking().FirstOrDefaultAsync(x => x.WaterQualityManagementPlanName == name && x.StormwaterJurisdictionID == stormwaterJurisdictionID);
+    }
+
     public static async Task<WaterQualityManagementPlanDto> CreateAsync(NeptuneDbContext dbContext, WaterQualityManagementPlanUpsertDto dto)
     {
         var entity = dto.AsEntity();

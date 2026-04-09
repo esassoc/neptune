@@ -1,0 +1,92 @@
+@if (extractionResult$ | async; as extractionResult) {
+    <div class="review-layout">
+        <!-- Sidebar -->
+        <aside class="review-sidebar">
+            <div class="review-sidebar__steps">
+                <div class="review-sidebar__label">Review Steps</div>
+                <ul class="step-nav">
+                    @for (step of steps; track step.number) {
+                        <li class="step-nav__item"
+                            [class.step-nav__item--current]="currentStep() === step.number"
+                            [class.step-nav__item--disabled]="step.disabled"
+                            (click)="goToStep(step.number)">
+                            <span class="step-nav__number">{{ step.number }}</span>
+                            <div class="step-nav__text">
+                                <span class="step-nav__title">{{ step.title }}</span>
+                                <span class="step-nav__desc">{{ step.desc }}</span>
+                            </div>
+                        </li>
+                        @if (step.number < steps.length) {
+                            <li class="step-nav__connector"></li>
+                        }
+                    }
+                </ul>
+            </div>
+            <div class="review-sidebar__progress">
+                <div class="progress-bar">
+                    <div class="progress-bar__fill" [style.width.%]="totalFieldCount > 0 ? (confirmedCount / totalFieldCount * 100) : 0"></div>
+                </div>
+                <span class="progress-bar__label">{{ confirmedCount }} of {{ totalFieldCount }} fields confirmed</span>
+            </div>
+        </aside>
+
+        <!-- PDF Panel -->
+        <div class="pdf-panel">
+            @if (isNavigating()) {
+                <div class="pdf-panel__loading">
+                    <i class="fa fa-spinner fa-spin"></i> Finding in document...
+                </div>
+            }
+            @if (pdfBlob) {
+                <ng2-pdfjs-viewer
+                    #pdfViewer
+                    [pdfSrc]="pdfBlob"
+                    [zoom]="'page-width'"
+                    [showViewBookmark]="false"
+                    [showOpenFile]="false"
+                    [showDownload]="false"
+                    [showPrint]="false"
+                    [showAnnotations]="false"
+                    [showSpinner]="false"
+                    style="width: 100%; height: 100%;">
+                </ng2-pdfjs-viewer>
+            }
+        </div>
+
+        <!-- Review Panel -->
+        <div class="review-panel">
+            <div class="review-panel__header">
+                <a [routerLink]="['/water-quality-management-plans', waterQualityManagementPlanID]" class="review-panel__back">
+                    <i class="fa fa-arrow-left"></i> Back to WQMP
+                </a>
+                <h2>{{ steps[currentStep() - 1].title }}</h2>
+                <p class="review-panel__desc">Review and confirm the AI-extracted values below.</p>
+            </div>
+
+            <app-alert-display></app-alert-display>
+
+            <div class="review-panel__fields">
+                @for (field of fieldsForCurrentStep; track field.key) {
+                    <field-card
+                        [fieldLabel]="field.label"
+                        [extractedValue]="field.value"
+                        [extractionEvidence]="field.evidence"
+                        [documentSource]="field.source"
+                        [confidence]="field.confidence"
+                        (valueAccepted)="onFieldAccepted(field, $event)"
+                        (valueEdited)="onFieldEdited(field, $event)"
+                        (valueRejected)="onFieldRejected(field)"
+                        (navigateToSource)="navigateToSource($event)">
+                    </field-card>
+                }
+            </div>
+
+            <div class="review-panel__footer">
+                <button class="btn btn-primary" (click)="applyToWqmp()" [disabled]="isApplying || confirmedCount === 0">
+                    Apply to WQMP
+                </button>
+                <button class="btn btn-secondary-outline" (click)="cancel()">Cancel</button>
+            </div>
+        </div>
+    </div>
+}

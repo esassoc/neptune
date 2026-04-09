@@ -1,0 +1,60 @@
+<div class="field-card" [class.field-card--accepted]="state() === 'accepted'" [class.field-card--edited]="state() === 'edited'" [class.field-card--rejected]="state() === 'rejected'">
+    <div class="field-card__header">
+        <span class="field-card__label">
+            {{ fieldLabel }}
+            @if (confidence !== "none") {
+                <span class="field-card__confidence"
+                    [class.field-card__confidence--high]="confidence === 'high'"
+                    [class.field-card__confidence--medium]="confidence === 'medium'"
+                    [class.field-card__confidence--low]="confidence === 'low'"
+                    [title]="confidence + ' confidence'">
+                    <i class="fa fa-circle"></i>
+                </span>
+            }
+        </span>
+        <div class="field-card__actions">
+            @if (!isEditing()) {
+                <button class="field-card__btn field-card__btn--accept" title="Accept" (click)="accept()">
+                    <i class="fa fa-check"></i>
+                </button>
+                <button class="field-card__btn field-card__btn--edit" title="Edit" (click)="startEdit()">
+                    <i class="fa fa-pencil"></i>
+                </button>
+                <button class="field-card__btn field-card__btn--reject" title="Reject" (click)="reject()">
+                    <i class="fa fa-times"></i>
+                </button>
+            }
+        </div>
+    </div>
+
+    <div class="field-card__value">
+        @if (isEditing()) {
+            <div class="field-card__edit">
+                <form-field [type]="fieldType" [formControl]="editControl" [formInputOptions]="selectOptions"></form-field>
+                <div class="field-card__edit-actions">
+                    <button class="btn btn-primary btn-sm" (click)="saveEdit()">Save</button>
+                    <button class="btn btn-secondary-outline btn-sm" (click)="cancelEdit()">Cancel</button>
+                </div>
+            </div>
+        } @else {
+            <span [class.field-card__value--empty]="!currentValue" [class.field-card__value--clickable]="!!documentSource" (click)="goToSource()">{{ currentValue ?? "Not extracted" }}</span>
+        }
+    </div>
+
+    @if (extractionEvidence || documentSource) {
+        <button class="field-card__evidence-toggle" (click)="toggleEvidence()">
+            <i class="fa" [class.fa-chevron-down]="!showEvidence()" [class.fa-chevron-up]="showEvidence()"></i>
+            Evidence
+        </button>
+        @if (showEvidence()) {
+            <div class="field-card__evidence">
+                @if (documentSource) {
+                    <span class="field-card__source field-card__source--clickable" (click)="goToSource()"><i class="fa fa-file-pdf-o"></i> {{ documentSource }}</span>
+                }
+                @if (extractionEvidence) {
+                    <p class="field-card__snippet">{{ extractionEvidence }}</p>
+                }
+            </div>
+        }
+    }
+</div>
