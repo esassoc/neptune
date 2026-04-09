@@ -1,3 +1,4 @@
+@use "sass:color";
 @use "/src/scss/abstracts" as *;
 
 .field-card {
@@ -36,6 +37,25 @@
         color: $gray-500;
         text-transform: uppercase;
         letter-spacing: 0.03em;
+        display: flex;
+        align-items: center;
+        gap: 0.35rem;
+    }
+
+    &__confidence {
+        font-size: 0.5rem;
+
+        &--high {
+            color: #22c55e;
+        }
+
+        &--medium {
+            color: #f59e0b;
+        }
+
+        &--low {
+            color: $danger;
+        }
     }
 
     &__actions {
@@ -75,6 +95,14 @@
         &--empty {
             color: $gray-400;
             font-style: italic;
+        }
+
+        &--clickable {
+            cursor: pointer;
+
+            &:hover {
+                color: $primary;
+            }
         }
     }
 
@@ -123,6 +151,19 @@
         color: $primary;
         display: block;
         margin-bottom: 0.25rem;
+
+        &--clickable {
+            cursor: pointer;
+            text-decoration: underline;
+
+            &:hover {
+                color: color.adjust($primary, $lightness: -10%);
+            }
+
+            i {
+                margin-right: 0.25rem;
+            }
+        }
     }
 
     &__snippet {

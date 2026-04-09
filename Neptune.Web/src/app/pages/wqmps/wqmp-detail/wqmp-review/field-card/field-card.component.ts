@@ -1,14 +1,18 @@
 import { Component, EventEmitter, Input, Output, signal } from "@angular/core";
 import { FormControl, ReactiveFormsModule } from "@angular/forms";
 import { FormFieldComponent, FormFieldType, FormInputOption } from "src/app/shared/components/forms/form-field/form-field.component";
-import { IconComponent } from "src/app/shared/components/icon/icon.component";
 
 export type FieldState = "pending" | "accepted" | "edited" | "rejected";
+
+export interface SourceNavigation {
+    evidence: string | null;
+    documentSource: string | null;
+}
 
 @Component({
     selector: "field-card",
     standalone: true,
-    imports: [FormFieldComponent, IconComponent, ReactiveFormsModule],
+    imports: [FormFieldComponent, ReactiveFormsModule],
     templateUrl: "./field-card.component.html",
     styleUrl: "./field-card.component.scss",
 })
@@ -17,12 +21,14 @@ export class FieldCardComponent {
     @Input() extractedValue: string | null = null;
     @Input() extractionEvidence: string | null = null;
     @Input() documentSource: string | null = null;
+    @Input() confidence: "high" | "medium" | "low" | "none" = "none";
     @Input() fieldType: FormFieldType = FormFieldType.Text;
     @Input() selectOptions: FormInputOption[] = [];
 
     @Output() valueAccepted = new EventEmitter<string | null>();
     @Output() valueEdited = new EventEmitter<string>();
     @Output() valueRejected = new EventEmitter<void>();
+    @Output() navigateToSource = new EventEmitter<SourceNavigation>();
 
     public FormFieldType = FormFieldType;
     public state = signal<FieldState>("pending");
@@ -60,5 +66,11 @@ export class FieldCardComponent {
 
     toggleEvidence(): void {
         this.showEvidence.update((v) => !v);
+    }
+
+    goToSource(): void {
+        if (this.extractionEvidence || this.documentSource) {
+            this.navigateToSource.emit({ evidence: this.extractionEvidence, documentSource: this.documentSource });
+        }
     }
 }

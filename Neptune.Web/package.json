@@ -58,6 +58,7 @@
         "leaflet-gesture-handling": "^1.2.2",
         "leaflet.fullscreen": "^5.0.0",
         "leaflet.markercluster": "^1.5.3",
+        "ng2-pdfjs-viewer": "^25.0.18",
         "ngx-mask": "^20.0.3",
         "rxjs": "^7.0.0",
         "sse.js": "^2.7.2",
