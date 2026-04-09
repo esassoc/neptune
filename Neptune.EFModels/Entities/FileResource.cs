@@ -43,7 +43,7 @@ namespace Neptune.EFModels.Entities
 
         public string GetOriginalCompleteFileName()
         {
-            return $"{OriginalBaseFilename}{OriginalFileExtension}";
+            return $"{OriginalBaseFilename}.{OriginalFileExtension}";
         }
 
         /// <summary>

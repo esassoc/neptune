@@ -44,13 +44,13 @@ public class FileResourceController(NeptuneDbContext dbContext, ILogger<FileReso
         var contentDisposition = new System.Net.Mime.ContentDisposition
         {
             FileName = fileResource.GetOriginalCompleteFileName(),
-            Inline = false
+            Inline = true
         };
         Response.Headers.Add("Content-Disposition", contentDisposition.ToString());
 
         var blobDownloadResult =
             await azureBlobStorageService.DownloadFileResourceFromBlobStorage(fileResource);
 
-        return File(blobDownloadResult.Content.ToArray(), blobDownloadResult.Details.ContentType, contentDisposition.FileName);
+        return File(blobDownloadResult.Content.ToArray(), blobDownloadResult.Details.ContentType);
     }
 }
