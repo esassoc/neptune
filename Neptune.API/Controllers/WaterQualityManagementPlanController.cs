@@ -451,35 +451,44 @@ namespace Neptune.API.Controllers
             };
             var wqmpDto = await WaterQualityManagementPlans.CreateAsync(DbContext, dto);
 
-            // Upload file to Azure Blob Storage and create document record
-            var fileResource = await HttpUtilities.MakeFileResourceFromFormFileAsync(DbContext, HttpContext, azureBlobStorageService, file);
-            var document = await WaterQualityManagementPlanDocuments.CreateFromFileResourceAsync(
-                DbContext, wqmpDto.WaterQualityManagementPlanID, fileResource.FileResourceID,
-                file.FileName, (int)WaterQualityManagementPlanDocumentTypeEnum.FinalWQMP);
-
-            // Run AI extraction
-            var extractionResult = await wqmpExtractionService.ExtractFromDocument(
-                document.WaterQualityManagementPlanDocumentID, CallingUser.PersonID, HttpContext.RequestAborted);
-
-            // Store extraction result
-            var storedResult = new WaterQualityManagementPlanExtractionResult
+            try
             {
-                WaterQualityManagementPlanID = wqmpDto.WaterQualityManagementPlanID,
-                WaterQualityManagementPlanDocumentID = document.WaterQualityManagementPlanDocumentID,
-                ExtractionResultJson = extractionResult.FinalOutput,
-                ExtractedAt = DateTime.UtcNow,
-            };
-            DbContext.WaterQualityManagementPlanExtractionResults.Add(storedResult);
-            await DbContext.SaveChangesAsync();
+                // Upload file to Azure Blob Storage and create document record
+                var fileResource = await HttpUtilities.MakeFileResourceFromFormFileAsync(DbContext, HttpContext, azureBlobStorageService, file);
+                var document = await WaterQualityManagementPlanDocuments.CreateFromFileResourceAsync(
+                    DbContext, wqmpDto.WaterQualityManagementPlanID, fileResource.FileResourceID,
+                    file.FileName, (int)WaterQualityManagementPlanDocumentTypeEnum.FinalWQMP);
 
-            return Ok(new WaterQualityManagementPlanExtractionResultDto
+                // Run AI extraction
+                var extractionResult = await wqmpExtractionService.ExtractFromDocument(
+                    document.WaterQualityManagementPlanDocumentID, CallingUser.PersonID, HttpContext.RequestAborted);
+
+                // Store extraction result
+                var storedResult = new WaterQualityManagementPlanExtractionResult
+                {
+                    WaterQualityManagementPlanID = wqmpDto.WaterQualityManagementPlanID,
+                    WaterQualityManagementPlanDocumentID = document.WaterQualityManagementPlanDocumentID,
+                    ExtractionResultJson = extractionResult.FinalOutput,
+                    ExtractedAt = DateTime.UtcNow,
+                };
+                DbContext.WaterQualityManagementPlanExtractionResults.Add(storedResult);
+                await DbContext.SaveChangesAsync();
+
+                return Ok(new WaterQualityManagementPlanExtractionResultDto
+                {
+                    WaterQualityManagementPlanID = wqmpDto.WaterQualityManagementPlanID,
+                    WaterQualityManagementPlanDocumentID = document.WaterQualityManagementPlanDocumentID,
+                    ExtractionResultJson = extractionResult.FinalOutput,
+                    ExtractedAt = storedResult.ExtractedAt,
+                    FileResourceGuid = fileResource.FileResourceGUID.ToString(),
+                });
+            }
+            catch
             {
-                WaterQualityManagementPlanID = wqmpDto.WaterQualityManagementPlanID,
-                WaterQualityManagementPlanDocumentID = document.WaterQualityManagementPlanDocumentID,
-                ExtractionResultJson = extractionResult.FinalOutput,
-                ExtractedAt = storedResult.ExtractedAt,
-                FileResourceGuid = fileResource.FileResourceGUID.ToString(),
-            });
+                // Clean up the orphaned Draft WQMP if extraction fails
+                await WaterQualityManagementPlans.DeleteAsync(DbContext, wqmpDto.WaterQualityManagementPlanID);
+                throw;
+            }
         }
 
         [HttpGet("{waterQualityManagementPlanID}/extraction-result")]

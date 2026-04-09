@@ -41,16 +41,22 @@ public class FileResourceController(NeptuneDbContext dbContext, ILogger<FileReso
 
     private async Task<IActionResult> DisplayFileResource(FileResource fileResource)
     {
-        var contentDisposition = new System.Net.Mime.ContentDisposition
-        {
-            FileName = fileResource.GetOriginalCompleteFileName(),
-            Inline = true
-        };
-        Response.Headers.Add("Content-Disposition", contentDisposition.ToString());
-
         var blobDownloadResult =
             await azureBlobStorageService.DownloadFileResourceFromBlobStorage(fileResource);
 
-        return File(blobDownloadResult.Content.ToArray(), blobDownloadResult.Details.ContentType);
+        var fileName = fileResource.GetOriginalCompleteFileName();
+        var isInlineable = blobDownloadResult.Details.ContentType == "application/pdf"
+            || blobDownloadResult.Details.ContentType?.StartsWith("image/") == true;
+
+        var contentDisposition = new System.Net.Mime.ContentDisposition
+        {
+            FileName = fileName,
+            Inline = isInlineable
+        };
+        Response.Headers.Add("Content-Disposition", contentDisposition.ToString());
+
+        if (isInlineable)
+            return File(blobDownloadResult.Content.ToArray(), blobDownloadResult.Details.ContentType);
+        return File(blobDownloadResult.Content.ToArray(), blobDownloadResult.Details.ContentType, fileName);
     }
 }

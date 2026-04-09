@@ -77,7 +77,7 @@ public class WqmpExtractionService
         var responseClient = CreateResponseClient();
         var fileSearchTool = CreateFileSearchTool(vectorStoreId);
 
-        async Task<string> ExtractCategoryAsync(string key, PromptTemplate template, string schema, bool expectArray)
+        async Task<(string output, OpenAIResponse response)> ExtractCategoryAsync(string key, PromptTemplate template, string schema, bool expectArray)
         {
             var templateModel = new
             {
@@ -98,7 +98,6 @@ public class WqmpExtractionService
                 TextOptions = textOptions,
             };
             var response = await responseClient.CreateResponseAsync(prompt, options, cancellationToken);
-            await LogTokenUsage(personID, response.Value, $"WQMP Extraction - {key}");
 
             var output = ExtractMessageText(response.Value.OutputItems);
             if (!IsValidJson(output))
@@ -106,14 +105,18 @@ public class WqmpExtractionService
                 _logger.LogError("Structured output returned invalid JSON for {Category}. Using empty fallback.", key);
                 output = expectArray ? "[]" : "{}";
             }
-            return output;
+            return (output, response.Value);
         }
 
         var tasks = prompts.Select(kvp => ExtractCategoryAsync(kvp.Key, kvp.Value.template, kvp.Value.schema, kvp.Value.expectArray)).ToList();
         var results = await Task.WhenAll(tasks);
         var keys = prompts.Keys.ToList();
         var map = new Dictionary<string, string>();
-        for (var i = 0; i < keys.Count; i++) map[keys[i]] = results[i];
+        for (var i = 0; i < keys.Count; i++)
+        {
+            map[keys[i]] = results[i].output;
+            await LogTokenUsage(personID, results[i].response, $"WQMP Extraction - {keys[i]}");
+        }
 
         var finalOutput = $"{{ \"SchemaVersion\": \"{SchemaVersion}\", \"WQMP\": {map["WQMP"]}, \"Parcels\": {map["Parcels"]}, \"TreatmentBMPs\": {map["TreatmentBMPs"]}, \"SourceControlBMPs\": {map["SourceControlBMPs"]} }}";
 
@@ -152,7 +155,7 @@ public class WqmpExtractionService
         }
         catch (Exception ex)
         {
-            _logger.LogInformation(ex, "Failed to log token usage for {Context}", context);
+            _logger.LogWarning(ex, "Failed to log token usage for {Context}", context);
         }
     }
 
@@ -175,9 +178,12 @@ public class WqmpExtractionService
         var vectorStoreId = vectorStoreCreateResult.Value.Id;
         var fileId = fileUploadResult.Value.Id;
 
-        // Poll until vector store is ready
+        // Poll until vector store is ready (max 5 minutes)
+        var maxAttempts = 1500; // 5 min at 200ms intervals
+        var attempts = 0;
         while (vectorStoreCreateResult.Value.Status != OpenAI.VectorStores.VectorStoreStatus.Completed)
         {
+            if (++attempts > maxAttempts) throw new Exception($"OpenAI vector store polling timed out for vectorStoreId={vectorStoreId}");
             vectorStoreCreateResult = await vectorStoreClient.GetVectorStoreAsync(vectorStoreId);
             if (vectorStoreCreateResult?.Value == null) throw new Exception($"OpenAI vector store status check failed for vectorStoreId={vectorStoreId}");
             if (vectorStoreCreateResult.Value.Status == OpenAI.VectorStores.VectorStoreStatus.Expired)
@@ -185,10 +191,12 @@ public class WqmpExtractionService
             await Task.Delay(200);
         }
 
-        // Poll until the file within the vector store is fully indexed
+        // Poll until the file within the vector store is fully indexed (max 5 minutes)
+        attempts = 0;
         OpenAI.VectorStores.VectorStoreFile vectorStoreFile = null;
         do
         {
+            if (++attempts > maxAttempts) throw new Exception($"OpenAI file indexing polling timed out for fileId={fileId}");
             try
             {
                 var fileResult = await vectorStoreClient.GetVectorStoreFileAsync(vectorStoreId, fileId);
@@ -258,39 +266,6 @@ public class WqmpExtractionService
     {
         if (string.IsNullOrWhiteSpace(candidate)) return false;
         try { using var _ = JsonDocument.Parse(candidate); return true; } catch { return false; }
-    }
-
-    private static bool MatchesExtractionSchema(string json, bool expectArray)
-    {
-        try
-        {
-            using var doc = JsonDocument.Parse(json);
-            var root = doc.RootElement;
-            if (expectArray)
-            {
-                if (root.ValueKind != JsonValueKind.Array) return false;
-                foreach (var item in root.EnumerateArray())
-                    if (item.ValueKind != JsonValueKind.Object || !AllChildPropertiesMatchTripleSchema(item)) return false;
-            }
-            else
-            {
-                if (root.ValueKind != JsonValueKind.Object || !AllChildPropertiesMatchTripleSchema(root)) return false;
-            }
-            return true;
-        }
-        catch { return false; }
-    }
-
-    private static bool AllChildPropertiesMatchTripleSchema(JsonElement obj)
-    {
-        foreach (var prop in obj.EnumerateObject())
-        {
-            var v = prop.Value;
-            if (v.ValueKind == JsonValueKind.Null) continue;
-            if (v.ValueKind != JsonValueKind.Object) return false;
-            if (!(v.TryGetProperty("Value", out _) && v.TryGetProperty("ExtractionEvidence", out _) && v.TryGetProperty("DocumentSource", out _))) return false;
-        }
-        return true;
     }
 
     private static object ExtractedValueProp(string description) => new

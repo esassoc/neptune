@@ -11,7 +11,6 @@ import { AlertContext } from "src/app/shared/models/enums/alert-context.enum";
 import { AlertService } from "src/app/shared/services/alert.service";
 import { ConfirmService } from "src/app/shared/services/confirm/confirm.service";
 import { StormwaterJurisdictionService } from "src/app/shared/generated/api/stormwater-jurisdiction.service";
-import { WaterQualityManagementPlanService } from "src/app/shared/generated/api/water-quality-management-plan.service";
 import { environment } from "src/environments/environment";
 
 @Component({
@@ -34,7 +33,6 @@ export class WqmpUploadModalComponent implements OnInit {
         private confirmService: ConfirmService,
         private http: HttpClient,
         private viewContainerRef: ViewContainerRef,
-        private wqmpService: WaterQualityManagementPlanService,
         private stormwaterJurisdictionService: StormwaterJurisdictionService
     ) {}
 

@@ -2,7 +2,7 @@ import { Component, inject, Input, OnInit, signal, ViewChild } from "@angular/co
 import { Router, RouterLink } from "@angular/router";
 import { AsyncPipe } from "@angular/common";
 import { HttpClient } from "@angular/common/http";
-import { Observable, tap, shareReplay, switchMap } from "rxjs";
+import { Observable, switchMap, tap, shareReplay } from "rxjs";
 import { PdfJsViewerModule, PdfJsViewerComponent } from "ng2-pdfjs-viewer";
 import { AlertDisplayComponent } from "src/app/shared/components/alert-display/alert-display.component";
 import { AlertService } from "src/app/shared/services/alert.service";
@@ -10,7 +10,6 @@ import { Alert } from "src/app/shared/models/alert";
 import { AlertContext } from "src/app/shared/models/enums/alert-context.enum";
 import { WaterQualityManagementPlanService } from "src/app/shared/generated/api/water-quality-management-plan.service";
 import { WaterQualityManagementPlanExtractionResultDto } from "src/app/shared/generated/model/water-quality-management-plan-extraction-result-dto";
-import { WaterQualityManagementPlanUpsertDto } from "src/app/shared/generated/model/water-quality-management-plan-upsert-dto";
 import { FieldCardComponent, SourceNavigation } from "src/app/pages/wqmps/wqmp-detail/wqmp-review/field-card/field-card.component";
 import { environment } from "src/environments/environment";
 
@@ -299,32 +298,58 @@ export class WqmpReviewComponent implements OnInit {
         this.isApplying = true;
         this.alertService.clearAlerts();
 
-        // Build UpsertDto from accepted/edited fields
-        // Map extraction field keys to UpsertDto property names
-        const fieldToDto: Record<string, string> = {
-            WaterQualityManagementPlanName: "WaterQualityManagementPlanName",
-            RecordNumber: "RecordNumber",
-            RecordedWQMPAreaInAcres: "RecordedWQMPAreaInAcres",
-            MaintenanceContactName: "MaintenanceContactName",
-            MaintenanceContactOrganization: "MaintenanceContactOrganization",
-            MaintenanceContactPhone: "MaintenanceContactPhone",
-            MaintenanceContactAddress1: "MaintenanceContactAddress1",
-            MaintenanceContactAddress2: "MaintenanceContactAddress2",
-            MaintenanceContactCity: "MaintenanceContactCity",
-            MaintenanceContactState: "MaintenanceContactState",
-            MaintenanceContactZip: "MaintenanceContactZip",
-            // TODO: Lookup fields (Jurisdiction, HydrologicSubarea, Priority, etc.) need
-            // name-to-ID resolution before they can be mapped to the UpsertDto.
-            // For now, only direct text fields are mapped.
-        };
-        const dto: any = {};
-        for (const field of this.fields()) {
-            if ((field.state === "accepted" || field.state === "edited") && fieldToDto[field.key]) {
-                dto[fieldToDto[field.key]] = field.acceptedValue;
-            }
-        }
+        // Fetch the existing WQMP first to preserve required fields, then merge accepted text fields
+        this.wqmpService.getWaterQualityManagementPlan(this.waterQualityManagementPlanID).pipe(
+            switchMap((existing) => {
+                const dto: any = {
+                    WaterQualityManagementPlanName: existing.WaterQualityManagementPlanName,
+                    StormwaterJurisdictionID: existing.StormwaterJurisdictionID,
+                    WaterQualityManagementPlanStatusID: existing.WaterQualityManagementPlanStatusID,
+                    WaterQualityManagementPlanModelingApproachID: existing.WaterQualityManagementPlanModelingApproachID,
+                    TrashCaptureStatusTypeID: existing.TrashCaptureStatusTypeID,
+                    RecordNumber: existing.RecordNumber,
+                    RecordedWQMPAreaInAcres: existing.RecordedWQMPAreaInAcres,
+                    MaintenanceContactName: existing.MaintenanceContactName,
+                    MaintenanceContactOrganization: existing.MaintenanceContactOrganization,
+                    MaintenanceContactPhone: existing.MaintenanceContactPhone,
+                    MaintenanceContactAddress1: existing.MaintenanceContactAddress1,
+                    MaintenanceContactAddress2: existing.MaintenanceContactAddress2,
+                    MaintenanceContactCity: existing.MaintenanceContactCity,
+                    MaintenanceContactState: existing.MaintenanceContactState,
+                    MaintenanceContactZip: existing.MaintenanceContactZip,
+                };
 
-        this.wqmpService.updateWaterQualityManagementPlan(this.waterQualityManagementPlanID, dto).subscribe({
+                // Overlay accepted/edited text fields
+                const textFields: Record<string, string> = {
+                    WaterQualityManagementPlanName: "WaterQualityManagementPlanName",
+                    RecordNumber: "RecordNumber",
+                    MaintenanceContactName: "MaintenanceContactName",
+                    MaintenanceContactOrganization: "MaintenanceContactOrganization",
+                    MaintenanceContactPhone: "MaintenanceContactPhone",
+                    MaintenanceContactAddress1: "MaintenanceContactAddress1",
+                    MaintenanceContactAddress2: "MaintenanceContactAddress2",
+                    MaintenanceContactCity: "MaintenanceContactCity",
+                    MaintenanceContactState: "MaintenanceContactState",
+                    MaintenanceContactZip: "MaintenanceContactZip",
+                    // TODO: Lookup fields (Jurisdiction, HydrologicSubarea, Priority, etc.) need
+                    // name-to-ID resolution before they can be mapped.
+                };
+                for (const field of this.fields()) {
+                    if ((field.state === "accepted" || field.state === "edited") && textFields[field.key]) {
+                        dto[textFields[field.key]] = field.acceptedValue;
+                    }
+                }
+
+                // Handle numeric fields separately
+                const acresField = this.fields().find((f) => f.key === "RecordedWQMPAreaInAcres");
+                if (acresField && (acresField.state === "accepted" || acresField.state === "edited") && acresField.acceptedValue) {
+                    const parsed = parseFloat(acresField.acceptedValue);
+                    if (!isNaN(parsed)) dto.RecordedWQMPAreaInAcres = parsed;
+                }
+
+                return this.wqmpService.updateWaterQualityManagementPlan(this.waterQualityManagementPlanID, dto);
+            })
+        ).subscribe({
             next: () => {
                 this.isApplying = false;
                 this.alertService.pushAlert(new Alert("WQMP updated with extracted data.", AlertContext.Success));
