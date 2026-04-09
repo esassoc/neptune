@@ -35,22 +35,27 @@ export class FieldCardComponent {
     public isEditing = signal(false);
     public showEvidence = signal(false);
     public editControl = new FormControl("");
+    public displayValue = signal<string | null>(null);
+
+    get currentValue(): string | null {
+        return this.displayValue() ?? this.extractedValue;
+    }
 
     accept(): void {
         this.state.set("accepted");
         this.isEditing.set(false);
-        this.valueAccepted.emit(this.extractedValue);
+        this.valueAccepted.emit(this.currentValue);
     }
 
     startEdit(): void {
-        this.editControl.setValue(this.extractedValue ?? "");
+        this.editControl.setValue(this.currentValue ?? "");
         this.isEditing.set(true);
     }
 
     saveEdit(): void {
         this.state.set("edited");
         this.isEditing.set(false);
-        this.extractedValue = this.editControl.value;
+        this.displayValue.set(this.editControl.value);
         this.valueEdited.emit(this.editControl.value);
     }
 
