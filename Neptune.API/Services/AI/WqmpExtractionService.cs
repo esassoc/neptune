@@ -118,7 +118,19 @@ public class WqmpExtractionService
             await LogTokenUsage(personID, results[i].response, $"WQMP Extraction - {keys[i]}");
         }
 
-        var finalOutput = $"{{ \"SchemaVersion\": \"{SchemaVersion}\", \"WQMP\": {map["WQMP"]}, \"Parcels\": {map["Parcels"]}, \"TreatmentBMPs\": {map["TreatmentBMPs"]}, \"SourceControlBMPs\": {map["SourceControlBMPs"]} }}";
+        // Array categories return { "items": [...] } — unwrap to just the array
+        string UnwrapItems(string json)
+        {
+            try
+            {
+                using var doc = JsonDocument.Parse(json);
+                if (doc.RootElement.TryGetProperty("items", out var items)) return items.GetRawText();
+            }
+            catch { /* fall through */ }
+            return json;
+        }
+
+        var finalOutput = $"{{ \"SchemaVersion\": \"{SchemaVersion}\", \"WQMP\": {map["WQMP"]}, \"Parcels\": {UnwrapItems(map["Parcels"])}, \"TreatmentBMPs\": {UnwrapItems(map["TreatmentBMPs"])}, \"SourceControlBMPs\": {UnwrapItems(map["SourceControlBMPs"])} }}";
 
         if (!IsValidJson(finalOutput))
         {
@@ -339,23 +351,41 @@ public class WqmpExtractionService
         return JsonSerializer.Serialize(schema);
     }
 
-    private static string BuildParcelSchemaJson()
+    private static string WrapAsArraySchema(string description, object itemSchema)
     {
         var schema = new
         {
             type = "object",
-            description = "Parcel schema (ExtractedValue objects).",
+            description,
             properties = new Dictionary<string, object>
             {
-                ["ParcelNumber"] = ExtractedValueProp("APN (e.g. XXX-XX-XXX or XXX-XXX-XX)")
+                ["items"] = new { type = "array", items = itemSchema }
             },
-            required = new[] { "ParcelNumber" },
+            required = new[] { "items" },
             additionalProperties = false
         };
         return JsonSerializer.Serialize(schema);
     }
 
-    private static string BuildTreatmentBmpSchemaJson()
+    private static object BuildParcelItemSchema()
+    {
+        var properties = new Dictionary<string, object>
+        {
+            ["ParcelNumber"] = ExtractedValueProp("APN (e.g. XXX-XX-XXX or XXX-XXX-XX)")
+        };
+        return new
+        {
+            type = "object",
+            properties,
+            required = properties.Keys.ToArray(),
+            additionalProperties = false
+        };
+    }
+
+    private static string BuildParcelSchemaJson() =>
+        WrapAsArraySchema("Array of parcels (ExtractedValue objects).", BuildParcelItemSchema());
+
+    private static object BuildTreatmentBmpItemSchema()
     {
         var properties = new Dictionary<string, object>
         {
@@ -376,18 +406,19 @@ public class WqmpExtractionService
             ["SizingBasisType"] = ExtractedValueProp("Sizing basis."),
             ["TrashCaptureEffectiveness"] = ExtractedValueProp("Trash capture effectiveness.")
         };
-        var schema = new
+        return new
         {
             type = "object",
-            description = "Treatment BMP schema (ExtractedValue objects).",
             properties,
             required = properties.Keys.ToArray(),
             additionalProperties = false
         };
-        return JsonSerializer.Serialize(schema);
     }
 
-    private static string BuildSourceControlBmpSchemaJson()
+    private static string BuildTreatmentBmpSchemaJson() =>
+        WrapAsArraySchema("Array of treatment BMPs (ExtractedValue objects).", BuildTreatmentBmpItemSchema());
+
+    private static object BuildSourceControlBmpItemSchema()
     {
         var properties = new Dictionary<string, object>
         {
@@ -395,14 +426,15 @@ public class WqmpExtractionService
             ["IsPresent"] = ExtractedValueProp("Indicates presence (Yes/No)."),
             ["SourceControlBMPNote"] = ExtractedValueProp("Attribute notes.")
         };
-        var schema = new
+        return new
         {
             type = "object",
-            description = "Source Control BMP schema (ExtractedValue objects).",
             properties,
             required = properties.Keys.ToArray(),
             additionalProperties = false
         };
-        return JsonSerializer.Serialize(schema);
     }
+
+    private static string BuildSourceControlBmpSchemaJson() =>
+        WrapAsArraySchema("Array of source control BMPs (ExtractedValue objects).", BuildSourceControlBmpItemSchema());
 }
