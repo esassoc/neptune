@@ -1,3 +1,4 @@
+<div class="modal">
 <div class="modal-header">
     <h3 class="section-title">Edit Inventoried Structural BMPs</h3>
 </div>
@@ -8,19 +9,20 @@
 
     @if (availableBMPs$ | async; as availableBMPs) {
         <div style="display: flex; gap: 0.5rem; align-items: flex-end; margin-bottom: 1rem">
-            <div style="flex: 1 1 0">
+            <div style="flex: 1 1 0; min-width: 0; overflow: hidden">
                 <ng-select
                     [items]="availableBMPs"
                     bindValue="TreatmentBMPID"
                     [(ngModel)]="pickerBMPID"
                     [searchable]="true"
                     [clearable]="true"
+                    appendTo="body"
                     placeholder="Search for a BMP...">
                     <ng-template ng-option-tmp let-item="item">
                         {{ item.TreatmentBMPName }} ({{ item.TreatmentBMPTypeName }})
                     </ng-template>
                     <ng-template ng-label-tmp let-item="item">
-                        {{ item.TreatmentBMPName }} ({{ item.TreatmentBMPTypeName }})
+                        <span style="overflow: hidden; text-overflow: ellipsis; white-space: nowrap; display: block">{{ item.TreatmentBMPName }} ({{ item.TreatmentBMPTypeName }})</span>
                     </ng-template>
                 </ng-select>
             </div>
@@ -66,4 +68,5 @@
 <div class="modal-footer">
     <button class="btn btn-primary" (click)="save()">Save</button>
     <button class="btn btn-primary-outline" (click)="cancel()">Cancel</button>
+</div>
 </div>
