@@ -41,6 +41,7 @@ export class NeptuneGridComponent implements OnInit, OnChanges {
         sortable: true,
         filter: true,
         resizable: true,
+        minWidth: 50,
         tooltipComponent: TooltipComponent,
         tooltipValueGetter: (params) => params.value,
     };

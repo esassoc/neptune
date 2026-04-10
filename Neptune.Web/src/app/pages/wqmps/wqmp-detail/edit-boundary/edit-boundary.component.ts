@@ -47,7 +47,7 @@ export class EditBoundaryComponent implements OnInit {
     private leafletHelperService = inject(LeafletHelperService);
 
     public OverlayMode = OverlayMode;
-    public mapHeight = "600px";
+    public mapHeight = "500px";
     public map: L.Map;
     public layerControl: L.Control.Layers;
     public mapIsReady = false;
@@ -85,12 +85,23 @@ export class EditBoundaryComponent implements OnInit {
 
         if (this.layer.getLayers().length > 0) {
             this.map.fitBounds(this.layer.getBounds());
+            this.map.pm.toggleGlobalEditMode();
         }
+
+        this.layer.on("click", () => {
+            if (!this.map.pm.globalEditModeEnabled()) {
+                this.map.pm.toggleGlobalEditMode();
+            }
+        });
     }
 
     public save(): void {
         this.isLoadingSubmit = true;
         this.alertService.clearAlerts();
+
+        if (this.map.pm.globalEditModeEnabled()) {
+            this.map.pm.toggleGlobalEditMode();
+        }
 
         const dto: WaterQualityManagementPlanBoundaryUpsertDto = {};
         this.layer.eachLayer((layer: L.Path & { toGeoJSON: () => GeoJSON.Feature }) => {
@@ -98,10 +109,8 @@ export class EditBoundaryComponent implements OnInit {
         });
 
         this.wqmpService.updateBoundaryWaterQualityManagementPlan(this.waterQualityManagementPlanID, dto).subscribe({
-            next: (response) => {
+            next: () => {
                 this.isLoadingSubmit = false;
-                this.parcels = response.Parcels ?? [];
-                this.calculatedAcreage = response.CalculatedWQMPAcreage ?? null;
                 this.alertService.pushAlert(new Alert("Successfully updated WQMP boundary.", AlertContext.Success));
                 this.router.navigate(["/water-quality-management-plans", this.waterQualityManagementPlanID]);
             },

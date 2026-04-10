@@ -6,7 +6,12 @@
     th,
     td {
         vertical-align: middle;
-        text-align: center;
+    }
+    th:not(.left) {
+        text-align: right;
+    }
+    td:not(.left) {
+        text-align: right;
     }
     thead tr {
         background: #f8f9fa;

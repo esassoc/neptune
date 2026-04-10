@@ -9,6 +9,15 @@
 
     <app-alert-display></app-alert-display>
 
+    @if (currentPersonCanEdit && wqmp.WaterQualityManagementPlanStatusID === WaterQualityManagementPlanStatusEnum.Draft) {
+        <div class="draft-banner mb-3">
+            <span>This WQMP is in <strong>Draft</strong> status.</span>
+            <a [routerLink]="['/water-quality-management-plans', waterQualityManagementPlanID, 'review']" class="btn btn-primary-outline btn-sm">
+                Review AI Extraction
+            </a>
+        </div>
+    }
+
     <div class="grid-12">
         <!-- Left Column -->
         <div class="g-col-6">
@@ -16,7 +25,7 @@
             <div class="card">
                 <div class="card-header">
                     <span class="card-title">Basics</span>
-                    @if (currentPersonCanManage) {
+                    @if (currentPersonCanEdit) {
                         <a (click)="openEditModal(wqmp)" style="cursor: pointer"><icon class="icon-button" icon="CirclePencil"></icon></a>
                     }
                 </div>
@@ -340,7 +349,7 @@
                                 @for (doc of docGroup.documents; track doc.WaterQualityManagementPlanDocumentID) {
                                     <div class="document-entry">
                                         @if (doc.FileResource?.FileResourceGUID) {
-                                            <a [href]="'/FileResource/' + doc.FileResource.FileResourceGUID" target="_blank">
+                                            <a [href]="apiBaseUrl + '/file-resources/' + doc.FileResource.FileResourceGUID" target="_blank">
                                                 {{ doc.DisplayName }} <i class="fa fa-download"></i>
                                             </a>
                                         } @else {

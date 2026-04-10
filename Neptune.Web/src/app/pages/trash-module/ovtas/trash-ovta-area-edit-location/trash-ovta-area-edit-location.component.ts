@@ -77,6 +77,10 @@ export class TrashOvtaAreaEditLocationComponent {
 
         this.layer.addTo(this.map);
         this.mapIsReady = true;
+
+        if (this.layer.getLayers().length > 0) {
+            this.map.pm.toggleGlobalEditMode();
+        }
     }
 
     public handleLegendControlReady(legendControl: L.Control) {
@@ -171,7 +175,9 @@ export class TrashOvtaAreaEditLocationComponent {
                     featureGroup.addLayer(layer);
                 }
                 layer.on("click", (e) => {
-                    this.selectFeatureImpl();
+                    if (!this.map.pm.globalEditModeEnabled()) {
+                        this.map.pm.toggleGlobalEditMode();
+                    }
                 });
             },
         });
@@ -191,6 +197,9 @@ export class TrashOvtaAreaEditLocationComponent {
         this.canPickParcels = !this.canPickParcels;
         this.layer.clearLayers();
         if (this.canPickParcels) {
+            if (this.map.pm.globalEditModeEnabled()) {
+                this.map.pm.disableGlobalEditMode();
+            }
             this.map.pm.removeControls();
             this.addOVTAAreaToLayer(ovtaAreaID);
             this.addParcelsToLayer(boundingBox);

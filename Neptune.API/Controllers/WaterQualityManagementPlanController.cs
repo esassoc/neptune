@@ -69,7 +69,7 @@ namespace Neptune.API.Controllers
         }
 
         [HttpPost]
-        [AdminFeature]
+        [JurisdictionEditFeature]
         public async Task<ActionResult<WaterQualityManagementPlanDto>> Create([FromBody] WaterQualityManagementPlanUpsertDto dto)
         {
             var created = await WaterQualityManagementPlans.CreateAsync(DbContext, dto);
@@ -77,7 +77,7 @@ namespace Neptune.API.Controllers
         }
 
         [HttpPut("{waterQualityManagementPlanID}")]
-        [AdminFeature]
+        [JurisdictionEditFeature]
         [EntityNotFound(typeof(WaterQualityManagementPlan), "waterQualityManagementPlanID")]
         public async Task<ActionResult<WaterQualityManagementPlanDto>> Update([FromRoute] int waterQualityManagementPlanID, [FromBody] WaterQualityManagementPlanUpsertDto dto)
         {
@@ -162,7 +162,7 @@ namespace Neptune.API.Controllers
         }
 
         [HttpGet("hydrologic-subareas")]
-        [AdminFeature]
+        [UserViewFeature]
         public async Task<ActionResult<List<HydrologicSubareaSimpleDto>>> ListHydrologicSubareas()
         {
             var subareas = await DbContext.HydrologicSubareas
