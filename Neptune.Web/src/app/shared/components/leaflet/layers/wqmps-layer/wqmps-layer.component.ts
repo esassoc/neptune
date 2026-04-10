@@ -15,7 +15,7 @@ export class WqmpsLayerComponent {
     readonly OVERLAY_LABEL = "WQMPs";
     readonly WMS_STYLE = "";
     readonly DEFAULT_SELECTED_STYLE: L.PathOptions = {
-        color: "#fcfc12",
+        color: "#ff6ba9",
         weight: 2,
         opacity: 0.65,
         fillOpacity: 0.1,

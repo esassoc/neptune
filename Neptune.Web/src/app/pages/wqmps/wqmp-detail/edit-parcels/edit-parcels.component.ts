@@ -55,6 +55,8 @@ export class EditParcelsComponent implements OnInit {
     public selectedParcelIDs: number[] = [];
     public selectedParcelsLayer: L.GeoJSON<any>;
     public boundingBox: BoundingBoxDto;
+    private dataLoaded = false;
+    private initialLoad = true;
 
     // Search
     public searchControl = new FormControl("");
@@ -79,6 +81,10 @@ export class EditParcelsComponent implements OnInit {
                 this.selectedParcelIDs = parcelIDs ?? [];
                 this.selectedParcelRows.set(boundaryData.Parcels ?? []);
                 this.boundingBox = boundaryData.BoundingBox;
+                this.dataLoaded = true;
+                if (this.mapIsReady) {
+                    this.addSelectedParcelsToMap();
+                }
             }),
             map(() => true),
             shareReplay(1)
@@ -99,14 +105,14 @@ export class EditParcelsComponent implements OnInit {
         });
     }
 
-    private initialLoad = true;
-
     public handleMapReady(event: NeptuneMapInitEvent): void {
         this.map = event.map;
         this.layerControl = event.layerControl;
         this.mapIsReady = true;
-        this.addSelectedParcelsToMap();
         this.enableParcelClickEvent();
+        if (this.dataLoaded) {
+            this.addSelectedParcelsToMap();
+        }
     }
 
     public selectSearchResult(parcel: ParcelDisplayDto): void {

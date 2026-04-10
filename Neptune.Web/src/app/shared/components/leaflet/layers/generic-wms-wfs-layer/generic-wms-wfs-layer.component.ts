@@ -25,7 +25,7 @@ export class GenericWmsWfsLayerComponent extends MapLayerBase implements OnChang
     @Input() identifierProperty: string;
     @Input() overlayLabel: string;
     @Input() selectedStyle: L.PathOptions = {
-        color: "#fcfc12",
+        color: "#ff6ba9",
         weight: 2,
         opacity: 0.65,
         fillOpacity: 0.1,
