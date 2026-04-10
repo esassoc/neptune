@@ -155,7 +155,15 @@ export class WqmpsComponent {
             tap((wqmps) => {
                 this.wqmps = wqmps;
                 if (this.shouldFilterMapByJurisdiction) {
-                    this.wqmpJurisdictionIDs = [...new Set(wqmps.map((w) => w.StormwaterJurisdictionID))];
+                    this.wqmpJurisdictionIDs = [
+                        ...new Set(
+                            wqmps
+                                .map((w) => w.StormwaterJurisdictionID)
+                                .filter((id): id is number => typeof id === "number" && Number.isFinite(id))
+                        ),
+                    ];
+                } else {
+                    this.wqmpJurisdictionIDs = undefined;
                 }
                 this.isLoading = false;
             })

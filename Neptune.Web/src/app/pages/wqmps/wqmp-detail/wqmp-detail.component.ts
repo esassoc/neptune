@@ -161,6 +161,7 @@ export class WqmpDetailComponent implements OnInit, OnChanges {
     }
 
     private loadData(): void {
+        this.boundingBox = undefined;
         this.wqmp$ = this.wqmpService.getWaterQualityManagementPlan(this.waterQualityManagementPlanID).pipe(
             tap((wqmp) => {
                 if (wqmp?.WaterQualityManagementPlanBoundaryBBox) {
