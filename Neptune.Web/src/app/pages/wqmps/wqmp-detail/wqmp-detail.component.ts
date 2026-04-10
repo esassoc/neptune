@@ -34,6 +34,7 @@ import { TreatmentBMPHRUCharacteristicsSummarySimpleDto } from "src/app/shared/g
 import { PersonDto } from "src/app/shared/generated/model/person-dto";
 import { BoundingBoxDto } from "src/app/shared/generated/model/bounding-box-dto";
 import { TrashCaptureStatusTypeEnum } from "src/app/shared/generated/enum/trash-capture-status-type-enum";
+import { WaterQualityManagementPlanStatusEnum } from "src/app/shared/generated/enum/water-quality-management-plan-status-enum";
 import {
     WaterQualityManagementPlanModelingApproachEnum,
     WaterQualityManagementPlanModelingApproaches,
@@ -79,7 +80,9 @@ export class WqmpDetailComponent implements OnInit, OnChanges {
     public OverlayMode = OverlayMode;
     public TrashCaptureStatusTypeEnum = TrashCaptureStatusTypeEnum;
     public WaterQualityManagementPlanModelingApproachEnum = WaterQualityManagementPlanModelingApproachEnum;
+    public WaterQualityManagementPlanStatusEnum = WaterQualityManagementPlanStatusEnum;
     public aboutModelingBMPPerformanceUrl = `${environment.ocStormwaterToolsBaseUrl}/Home/AboutModelingBMPPerformance`;
+    public apiBaseUrl = environment.mainAppApiUrl;
 
     wqmp$: Observable<WaterQualityManagementPlanDto>;
     quickBMPs$: Observable<QuickBMPDto[]>;
@@ -276,6 +279,11 @@ export class WqmpDetailComponent implements OnInit, OnChanges {
             }
             this.treatmentBMPsLayer.addTo(this.map);
             this.layerControl.addOverlay(this.treatmentBMPsLayer, "Treatment BMPs");
+
+            // If no WQMP boundary, zoom to fit the BMP markers
+            if (!this.boundingBox && this.treatmentBMPsLayer.getBounds()?.isValid()) {
+                this.map.fitBounds(this.treatmentBMPsLayer.getBounds());
+            }
         }
     }
 
@@ -289,7 +297,7 @@ export class WqmpDetailComponent implements OnInit, OnChanges {
                 InRouterLink: "/treatment-bmps/",
             }),
             this.utilityFunctionsService.createBasicColumnDef("Type", "TreatmentBMPTypeName"),
-            this.utilityFunctionsService.createBasicColumnDef("Notes", "Notes"),
+            this.utilityFunctionsService.createBasicColumnDef("Notes", "Notes", { MaxWidth: 200 }),
             this.utilityFunctionsService.createBasicColumnDef("Delineation Status", "DelineationStatus"),
             this.utilityFunctionsService.createDecimalColumnDef("Delineation Area (ac)", "Area", { DecimalPlacesToDisplay: 2 }),
         ];
@@ -298,7 +306,7 @@ export class WqmpDetailComponent implements OnInit, OnChanges {
         this.quickBMPColumnDefs = [
             this.utilityFunctionsService.createBasicColumnDef("Name", "QuickBMPName"),
             this.utilityFunctionsService.createBasicColumnDef("Type", "TreatmentBMPTypeName"),
-            this.utilityFunctionsService.createBasicColumnDef("Notes", "QuickBMPNote"),
+            this.utilityFunctionsService.createBasicColumnDef("Notes", "QuickBMPNote", { MaxWidth: 200 }),
             this.utilityFunctionsService.createBasicColumnDef("# Individual BMPs", "NumberOfIndividualBMPs"),
             { headerName: "% Site Treated", field: "PercentOfSiteTreated", valueFormatter: percentFormatter, cellStyle: { "justify-content": "flex-end" } },
             { headerName: "% Captured", field: "PercentCaptured", valueFormatter: percentFormatter, cellStyle: { "justify-content": "flex-end" } },
@@ -319,10 +327,11 @@ export class WqmpDetailComponent implements OnInit, OnChanges {
             this.utilityFunctionsService.createDateColumnDef("Verification Date", "VerificationDate", "MM/dd/yyyy"),
             this.utilityFunctionsService.createDateColumnDef("Last Edited", "LastEditedDate", "MM/dd/yyyy"),
             this.utilityFunctionsService.createBasicColumnDef("Edited By", "LastEditedByPersonFullName"),
-            this.utilityFunctionsService.createBasicColumnDef("Type", "WaterQualityManagementPlanVerifyTypeDisplayName"),
-            this.utilityFunctionsService.createBasicColumnDef("Visit Status", "WaterQualityManagementPlanVisitStatusDisplayName"),
-            this.utilityFunctionsService.createBasicColumnDef("Verify Status", "WaterQualityManagementPlanVerifyStatusDisplayName"),
+            this.utilityFunctionsService.createBasicColumnDef("Type", "WaterQualityManagementPlanVerifyTypeDisplayName", { UseCustomDropdownFilter: true }),
+            this.utilityFunctionsService.createBasicColumnDef("Visit Status", "WaterQualityManagementPlanVisitStatusDisplayName", { UseCustomDropdownFilter: true }),
+            this.utilityFunctionsService.createBasicColumnDef("Verify Status", "WaterQualityManagementPlanVerifyStatusDisplayName", { UseCustomDropdownFilter: true }),
             this.utilityFunctionsService.createBasicColumnDef("Draft/Finalized", "IsDraft", {
+                UseCustomDropdownFilter: true,
                 ValueGetter: (params) => (params.data?.IsDraft ? "Draft" : "Finalized"),
             }),
         ];

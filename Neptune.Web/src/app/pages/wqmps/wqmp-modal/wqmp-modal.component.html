@@ -1,3 +1,4 @@
+<div class="modal">
 <div class="modal-header">
     <h3>{{ mode === "edit" ? "Edit" : "Add" }} Water Quality Management Plan</h3>
 </div>
@@ -6,10 +7,10 @@
     <form [formGroup]="formGroup">
         <h4 class="section-title underline">Plan Details</h4>
         <div class="grid-12">
-            <form-field class="g-col-6" [formControl]="formGroup.controls.WaterQualityManagementPlanName" fieldLabel="Name" [type]="FormFieldType.Text" [required]="true"
+            <form-field class="g-col-6" [formControl]="formGroup.controls.WaterQualityManagementPlanName" fieldLabel="Name" fieldDefinitionName="WaterQualityManagementPlan" [type]="FormFieldType.Text" [required]="true"
                 placeholder="Plan Name">
             </form-field>
-            <form-field class="g-col-6" [formControl]="formGroup.controls.StormwaterJurisdictionID" fieldLabel="Jurisdiction" [type]="FormFieldType.Select" [required]="true"
+            <form-field class="g-col-6" [formControl]="formGroup.controls.StormwaterJurisdictionID" fieldLabel="Jurisdiction" fieldDefinitionName="Jurisdiction" [type]="FormFieldType.Select" [required]="true"
                 placeholder="Select Jurisdiction" [formInputOptions]="jurisdictionOptions$ | async">
             </form-field>
             <form-field class="g-col-6" [formControl]="formGroup.controls.WaterQualityManagementPlanPriorityID" fieldLabel="Priority" [type]="FormFieldType.Select"
@@ -28,7 +29,7 @@
             </form-field>
             <form-field class="g-col-6" [formControl]="formGroup.controls.DateOfConstruction" fieldLabel="Date of Construction" [type]="FormFieldType.Date">
             </form-field>
-            <form-field class="g-col-6" [formControl]="formGroup.controls.HydromodificationAppliesTypeID" fieldLabel="Hydromodification Applies" [type]="FormFieldType.Select"
+            <form-field class="g-col-6" [formControl]="formGroup.controls.HydromodificationAppliesTypeID" fieldLabel="Hydromodification Applies" fieldDefinitionName="HydromodificationApplies" [type]="FormFieldType.Select"
                 placeholder="Select Option" [formInputOptions]="hydromodificationOptions">
             </form-field>
             <form-field class="g-col-6" [formControl]="formGroup.controls.HydrologicSubareaID" fieldLabel="Hydrologic Subarea" [type]="FormFieldType.Select"
@@ -45,7 +46,7 @@
             <form-field class="g-col-6" [formControl]="formGroup.controls.RecordedWQMPAreaInAcres" fieldLabel="Recorded WQMP Area (Acres)" [type]="FormFieldType.Number"
                 placeholder="Area in Acres">
             </form-field>
-            <form-field class="g-col-6" [formControl]="formGroup.controls.TrashCaptureStatusTypeID" fieldLabel="Trash Capture Status" [type]="FormFieldType.Select"
+            <form-field class="g-col-6" [formControl]="formGroup.controls.TrashCaptureStatusTypeID" fieldLabel="Trash Capture Status" fieldDefinitionName="TrashCaptureStatus" [type]="FormFieldType.Select"
                 [required]="true" placeholder="Select Trash Capture Status" [formInputOptions]="trashCaptureStatusOptions">
             </form-field>
             @if (showTrashCaptureEffectiveness$ | async) {
@@ -82,4 +83,5 @@
 <div class="modal-footer">
     <button class="btn btn-primary" (click)="save()" [disabled]="formGroup.invalid">Save</button>
     <button class="btn btn-secondary" (click)="cancel()">Cancel</button>
+</div>
 </div>

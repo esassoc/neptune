@@ -98,12 +98,16 @@ export class WqmpModalComponent implements OnInit {
         this.alertService.clearAlerts();
         this.mode = this.ref.data.mode;
 
-        this.jurisdictionOptions$ = this.stormwaterJurisdictionService.listStormwaterJurisdiction().pipe(
-            map((jurisdictions) =>
-                jurisdictions.map(
+        this.jurisdictionOptions$ = this.stormwaterJurisdictionService.listViewableStormwaterJurisdiction().pipe(
+            map((jurisdictions) => {
+                const options = jurisdictions.map(
                     (j) => ({ Label: j.StormwaterJurisdictionName, Value: j.StormwaterJurisdictionID, disabled: false }) as SelectDropdownOption
-                )
-            )
+                );
+                if (options.length === 1 && this.mode === "add") {
+                    this.formGroup.controls.StormwaterJurisdictionID.setValue(options[0].Value);
+                }
+                return options;
+            })
         );
 
         this.hydrologicSubareaOptions$ = this.wqmpService.listHydrologicSubareasWaterQualityManagementPlan().pipe(
@@ -117,6 +121,7 @@ export class WqmpModalComponent implements OnInit {
         );
 
         if (this.mode === "edit" && this.ref.data.wqmp) {
+            this.formGroup.controls.StormwaterJurisdictionID.disable();
             const wqmp = this.ref.data.wqmp;
             this.formGroup.patchValue({
                 WaterQualityManagementPlanName: wqmp.WaterQualityManagementPlanName,
@@ -149,7 +154,7 @@ export class WqmpModalComponent implements OnInit {
 
     save(): void {
         if (this.formGroup.invalid) return;
-        const dto = new WaterQualityManagementPlanUpsertDto(this.formGroup.value);
+        const dto = new WaterQualityManagementPlanUpsertDto(this.formGroup.getRawValue());
 
         if (this.mode === "edit") {
             const wqmpID = this.ref.data.wqmp?.WaterQualityManagementPlanID;

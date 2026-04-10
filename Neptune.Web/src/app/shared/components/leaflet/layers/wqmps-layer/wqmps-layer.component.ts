@@ -27,6 +27,8 @@ export class WqmpsLayerComponent {
     @Input() sortOrder: number = 1;
     @Input() selectedID: number;
     @Input() displayOnLoad: boolean = false;
+    @Input() fitBoundsOnSelect: boolean = true;
+    @Input() filterToJurisdictionIDs: number[];
     @Output() selected = new EventEmitter<number>();
 
     wfsFeatureType: string = this.WFS_FEATURE_TYPE;
@@ -62,7 +64,9 @@ export class WqmpsLayerComponent {
                 this.interactive = true;
                 this.addToLayerControl = true;
                 this.wmsLayerName = this.WMS_LAYER_NAME;
-                this.cqlFilter = "1=1";
+                this.cqlFilter = this.filterToJurisdictionIDs?.length
+                    ? `StormwaterJurisdictionID IN (${this.filterToJurisdictionIDs.join(",")})`
+                    : "1=1";
                 break;
         }
     }

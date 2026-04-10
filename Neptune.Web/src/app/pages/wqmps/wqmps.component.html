@@ -8,7 +8,10 @@
             <a class="dropdown-item" [href]="siteUrl + '/WaterQualityManagementPlan/UploadWqmps'">Bulk Upload WQMPs</a>
             <a class="dropdown-item" [href]="siteUrl + '/WaterQualityManagementPlan/UploadSimplifiedBMPs'">Bulk Upload Simplified BMPs</a>
             <a class="dropdown-item" [href]="siteUrl + '/WaterQualityManagementPlan/UploadWqmpBoundaryFromAPNs'">Bulk Upload WQMP Boundaries From APNs</a>
+            <div class="dropdown-divider"></div>
+            <a href="javascript:void(0);" class="dropdown-item" (click)="pdfFileInput.click()">Upload WQMP PDF (AI Extract)</a>
         </div>
+        <input #pdfFileInput type="file" accept=".pdf" style="display:none" (change)="onPdfSelected($event)" />
     }
 </ng-template>
 <page-header pageTitle="Water Quality Management Plans" [templateRight]="addButton"></page-header>
@@ -30,6 +33,8 @@
                 [layerControl]="layerControl"
                 [mode]="OverlayMode.ReferenceWithInteractivity"
                 [selectedID]="selectedWaterQualityManagementPlanID"
+                [fitBoundsOnSelect]="zoomOnNextSelection"
+                [filterToJurisdictionIDs]="wqmpJurisdictionIDs"
                 (selected)="onSelectedWaterQualityManagementPlanIDChanged($event, true)">
             </wqmps-layer>
             @if (mapIsReady) {

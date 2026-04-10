@@ -55,6 +55,10 @@
     // neptune-map's :host { display: block } overrides display: flex set
     // from outside, so we use height: 100% to cascade the height down
     // instead, then flex only inside .map-wrapper.
+    // In map-only mode the grid is hidden so nothing drives height; use min-height.
+    &:has(> .tab-nav-container__panel.hidden) > &__map-panel {
+        min-height: 500px;
+    }
     &__map-panel {
         neptune-map {
             height: 100%;

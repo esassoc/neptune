@@ -1,5 +1,6 @@
 import { AsyncPipe } from "@angular/common";
 import { Component } from "@angular/core";
+import { Router } from "@angular/router";
 import { ColDef } from "ag-grid-community";
 import { map, Observable, shareReplay, tap } from "rxjs";
 import { DialogService } from "@ngneat/dialog";
@@ -24,6 +25,7 @@ import { OverlayMode } from "src/app/shared/components/leaflet/layers/generic-wm
 import { DropdownToggleDirective } from "src/app/shared/directives/dropdown-toggle.directive";
 import { environment } from "src/environments/environment";
 import { WqmpModalComponent } from "./wqmp-modal/wqmp-modal.component";
+import { WqmpUploadModalComponent } from "./wqmp-upload-modal/wqmp-upload-modal.component";
 
 @Component({
     selector: "wqmps",
@@ -40,7 +42,10 @@ export class WqmpsComponent {
     public layerControl: L.Control.Layers;
     public boundingBox$: Observable<BoundingBoxDto>;
     public selectedWaterQualityManagementPlanID: number;
+    public zoomOnNextSelection = true;
     public mapIsReady = false;
+    public wqmpJurisdictionIDs: number[];
+    private shouldFilterMapByJurisdiction = false;
     public siteUrl = environment.ocStormwaterToolsBaseUrl;
     public currentPersonCanEdit$: Observable<boolean>;
     private wqmps: WaterQualityManagementPlanGridDto[] = [];
@@ -52,12 +57,22 @@ export class WqmpsComponent {
         private authenticationService: AuthenticationService,
         private utilityFunctionsService: UtilityFunctionsService,
         private alertService: AlertService,
-        private dialogService: DialogService
+        private dialogService: DialogService,
+        private router: Router
     ) {}
+
+    private maintenanceContactFields = ["MaintenanceContactOrganization", "MaintenanceContactName", "MaintenanceContactAddress", "MaintenanceContactPhone"];
 
     ngOnInit(): void {
         this.currentPersonCanEdit$ = this.authenticationService.getCurrentUser().pipe(
-            map(() => this.authenticationService.doesCurrentUserHaveJurisdictionEditPermission()),
+            map((user) => {
+                const isAnonymousOrUnassigned = !user || this.authenticationService.isUserUnassigned(user);
+                if (isAnonymousOrUnassigned) {
+                    this.columnDefs = this.columnDefs.filter((c) => !this.maintenanceContactFields.includes(c.field));
+                }
+                this.shouldFilterMapByJurisdiction = !isAnonymousOrUnassigned && !this.authenticationService.isCurrentUserAnAdministrator();
+                return this.authenticationService.doesCurrentUserHaveJurisdictionEditPermission();
+            }),
             tap((canEdit) => {
                 if (canEdit && !this.columnDefs.some((c) => c.field === "IsDraft")) {
                     this.columnDefs = [...this.columnDefs, this.utilityFunctionsService.createBasicColumnDef("Is Draft", "IsDraft", {
@@ -107,14 +122,15 @@ export class WqmpsComponent {
             this.utilityFunctionsService.createBasicColumnDef("Maintenance Contact Name", "MaintenanceContactName"),
             this.utilityFunctionsService.createBasicColumnDef("Maintenance Contact Address", "MaintenanceContactAddress"),
             this.utilityFunctionsService.createBasicColumnDef("Maintenance Contact Phone", "MaintenanceContactPhone"),
-            this.utilityFunctionsService.createBasicColumnDef("# of Inventoried BMPs", "TreatmentBMPCount"),
-            this.utilityFunctionsService.createBasicColumnDef("# of Simplified BMPs", "QuickBMPCount"),
+            this.utilityFunctionsService.createDecimalColumnDef("# of Inventoried BMPs", "TreatmentBMPCount", { DecimalPlacesToDisplay: 0 }),
+            this.utilityFunctionsService.createDecimalColumnDef("# of Simplified BMPs", "QuickBMPCount", { DecimalPlacesToDisplay: 0 }),
             this.utilityFunctionsService.createBasicColumnDef("Modeling Approach", "WaterQualityManagementPlanModelingApproachDisplayName", {
                 UseCustomDropdownFilter: true,
             }),
-            this.utilityFunctionsService.createBasicColumnDef("# of Documents", "DocumentCount"),
+            this.utilityFunctionsService.createDecimalColumnDef("# of Documents", "DocumentCount", { DecimalPlacesToDisplay: 0 }),
             this.utilityFunctionsService.createBasicColumnDef("Has Required Documents", "HasRequiredDocuments", {
                 FieldDefinitionType: "HasAllRequiredDocuments",
+                UseCustomDropdownFilter: true,
                 ValueGetter: (params) => {
                     const value = params.data?.HasRequiredDocuments;
                     if (value == null) return "";
@@ -122,7 +138,7 @@ export class WqmpsComponent {
                 },
             }),
             this.utilityFunctionsService.createBasicColumnDef("Record Number", "RecordNumber"),
-            this.utilityFunctionsService.createBasicColumnDef("Recorded Parcel Acreage", "RecordedWQMPAreaInAcres"),
+            this.utilityFunctionsService.createDecimalColumnDef("Recorded Parcel Acreage", "RecordedWQMPAreaInAcres", { DecimalPlacesToDisplay: 2 }),
             this.utilityFunctionsService.createDecimalColumnDef("Calculated Boundary Acreage", "CalculatedWQMPAcreage", {
                 DecimalPlacesToDisplay: 1,
             }),
@@ -132,12 +148,15 @@ export class WqmpsComponent {
                 UseCustomDropdownFilter: true,
                 FieldDefinitionType: "TrashCaptureStatus",
             }),
-            this.utilityFunctionsService.createBasicColumnDef("Trash Capture Effectiveness (%)", "TrashCaptureEffectiveness"),
+            this.utilityFunctionsService.createDecimalColumnDef("Trash Capture Effectiveness (%)", "TrashCaptureEffectiveness", { DecimalPlacesToDisplay: 0 }),
         ];
 
         this.wqmps$ = this.waterQualityManagementPlanService.listAsGridDtoWaterQualityManagementPlan().pipe(
             tap((wqmps) => {
                 this.wqmps = wqmps;
+                if (this.shouldFilterMapByJurisdiction) {
+                    this.wqmpJurisdictionIDs = [...new Set(wqmps.map((w) => w.StormwaterJurisdictionID))];
+                }
                 this.isLoading = false;
             })
         );
@@ -158,6 +177,7 @@ export class WqmpsComponent {
 
     public onSelectedWaterQualityManagementPlanIDChanged(selectedID: number, fromMap: boolean = false) {
         if (this.selectedWaterQualityManagementPlanID == selectedID) return;
+        this.zoomOnNextSelection = !fromMap;
         this.selectedWaterQualityManagementPlanID = selectedID;
 
         this.alertService.removeAlertByUniqueCode(WqmpsComponent.NO_BOUNDARY_ALERT);
@@ -185,6 +205,28 @@ export class WqmpsComponent {
                         this.wqmps = wqmps;
                     })
                 );
+            }
+        });
+    }
+
+    public onPdfSelected(event: Event): void {
+        const input = event.target as HTMLInputElement;
+        if (!input.files?.length) return;
+        const file = input.files[0];
+        input.value = "";
+
+        if (!file.name.toLowerCase().endsWith(".pdf")) {
+            this.alertService.pushAlert(new Alert("Only PDF files are accepted.", AlertContext.Danger));
+            return;
+        }
+
+        const dialogRef = this.dialogService.open(WqmpUploadModalComponent, {
+            data: { file },
+            width: "600px",
+        });
+        dialogRef.afterClosed$.subscribe((result) => {
+            if (result?.wqmpID) {
+                this.router.navigate(["/water-quality-management-plans", result.wqmpID, "review"]);
             }
         });
     }
