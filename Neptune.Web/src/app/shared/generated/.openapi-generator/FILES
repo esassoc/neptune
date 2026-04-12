@@ -166,6 +166,10 @@ model/treatment-bmp-upstream-bmp-update-dto.ts
 model/treatment-bmp-upstreamest-errors-dto.ts
 model/treatment-bmphru-characteristics-summary-simple-dto.ts
 model/v-treatment-bmp-modeling-attribute-dto.ts
+model/verify-quick-bmp-upsert-dto.ts
+model/verify-source-control-bmp-detail-dto.ts
+model/verify-source-control-bmp-upsert-dto.ts
+model/verify-treatment-bmp-upsert-dto.ts
 model/water-quality-management-plan-boundary-response-dto.ts
 model/water-quality-management-plan-boundary-upsert-dto.ts
 model/water-quality-management-plan-display-dto.ts
@@ -177,7 +181,11 @@ model/water-quality-management-plan-extraction-result-dto.ts
 model/water-quality-management-plan-grid-dto.ts
 model/water-quality-management-plan-simple-dto.ts
 model/water-quality-management-plan-upsert-dto.ts
+model/water-quality-management-plan-verify-detail-dto.ts
 model/water-quality-management-plan-verify-grid-dto.ts
+model/water-quality-management-plan-verify-quick-bmp-dto.ts
+model/water-quality-management-plan-verify-treatment-bmp-simple-dto.ts
+model/water-quality-management-plan-verify-upsert-dto.ts
 model/watershed-dto.ts
 model/workflow-step-status.ts
 param.ts

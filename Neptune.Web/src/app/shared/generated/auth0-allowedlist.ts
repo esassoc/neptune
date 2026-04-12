@@ -96,6 +96,7 @@ const SECURED_REGEX: RegexMap = {
     new RegExp("^/users/[^/]+$"),
     new RegExp("^/water-quality-management-plan-documents/[^/]+$"),
     new RegExp("^/water-quality-management-plans/[^/]+$"),
+    new RegExp("^/water-quality-management-plans/[^/]+/verifications/[^/]+$"),
   ],
   'GET': [
     new RegExp("^/funding-sources/[^/]+$"),
@@ -146,6 +147,7 @@ const SECURED_REGEX: RegexMap = {
     new RegExp("^/water-quality-management-plans/[^/]+/boundary$"),
     new RegExp("^/water-quality-management-plans/[^/]+/extraction-result$"),
     new RegExp("^/water-quality-management-plans/[^/]+/parcel-ids$"),
+    new RegExp("^/water-quality-management-plans/[^/]+/verifications/[^/]+$"),
   ],
   'POST': [
     new RegExp("^/ai/water-quality-management-plan-documents/[^/]+/ask$"),
@@ -165,6 +167,7 @@ const SECURED_REGEX: RegexMap = {
     new RegExp("^/treatment-bmps/[^/]+/funding-events$"),
     new RegExp("^/treatment-bmps/[^/]+/treatment-bmp-documents$"),
     new RegExp("^/treatment-bmps/[^/]+/treatment-bmp-images$"),
+    new RegExp("^/water-quality-management-plans/[^/]+/verifications$"),
   ],
   'PUT': [
     new RegExp("^/custom-rich-texts/[^/]+$"),
@@ -196,6 +199,7 @@ const SECURED_REGEX: RegexMap = {
     new RegExp("^/water-quality-management-plans/[^/]+/quick-bmps$"),
     new RegExp("^/water-quality-management-plans/[^/]+/source-control-bmps$"),
     new RegExp("^/water-quality-management-plans/[^/]+/treatment-bmps$"),
+    new RegExp("^/water-quality-management-plans/[^/]+/verifications/[^/]+$"),
   ],
 };
 
