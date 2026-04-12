@@ -406,4 +406,12 @@ export class WqmpDetailComponent implements OnInit, OnChanges {
     navigateToEditSourceControlBMPs(): void {
         this.router.navigate(["/water-quality-management-plans", this.waterQualityManagementPlanID, "edit-source-control-bmps"]);
     }
+
+    onVerificationRowClicked(event: any): void {
+        const selectedRows = event.api.getSelectedRows();
+        if (selectedRows?.length) {
+            const verifyID = selectedRows[0].WaterQualityManagementPlanVerifyID;
+            this.router.navigate(["/water-quality-management-plans", this.waterQualityManagementPlanID, "verifications", verifyID]);
+        }
+    }
 }

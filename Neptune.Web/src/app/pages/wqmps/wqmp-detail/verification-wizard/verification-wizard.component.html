@@ -1,0 +1,96 @@
+<page-header [pageTitle]="mode === 'create' ? 'New O&M Verification' : mode === 'edit' ? 'Edit O&M Verification' : 'View O&M Verification'" [templateAbove]="templateAbove">
+    <ng-template #templateAbove>
+        <div class="back">
+            <a [routerLink]="['/water-quality-management-plans', waterQualityManagementPlanID]" class="back__link">Back to WQMP Detail</a>
+        </div>
+    </ng-template>
+</page-header>
+
+<app-alert-display></app-alert-display>
+
+@if (loaded$ | async) {
+    <div class="wizard-layout">
+        <!-- Step sidebar -->
+        <aside class="wizard-sidebar">
+            @for (step of steps; track step.number) {
+                <button class="wizard-sidebar__step"
+                    [class.wizard-sidebar__step--active]="currentStep() === step.number"
+                    (click)="goToStep(step.number)">
+                    <span class="wizard-sidebar__number">{{ step.number }}</span>
+                    <span class="wizard-sidebar__title">{{ step.title }}</span>
+                </button>
+            }
+        </aside>
+
+        <!-- Step content -->
+        <div class="wizard-content">
+            @switch (currentStep()) {
+                @case (1) {
+                    <verification-basics-step
+                        [form]="basicsForm"
+                        [verifyTypeOptions]="verifyTypeOptions"
+                        [visitStatusOptions]="visitStatusOptions"
+                        [verifyStatusOptions]="verifyStatusOptions"
+                        [readonly]="mode === 'view'">
+                    </verification-basics-step>
+                }
+                @case (2) {
+                    <structural-bmps-step
+                        [rows]="treatmentBMPRows()"
+                        [readonly]="mode === 'view'"
+                        (rowsChange)="treatmentBMPRows.set($event)">
+                    </structural-bmps-step>
+                }
+                @case (3) {
+                    <simplified-bmps-step
+                        [rows]="quickBMPRows()"
+                        [readonly]="mode === 'view'"
+                        (rowsChange)="quickBMPRows.set($event)">
+                    </simplified-bmps-step>
+                }
+                @case (4) {
+                    <source-control-step
+                        [rows]="sourceControlRows()"
+                        [readonly]="mode === 'view'"
+                        (rowsChange)="sourceControlRows.set($event)">
+                    </source-control-step>
+                }
+                @case (5) {
+                    <review-step
+                        [basicsForm]="basicsForm"
+                        [verifyTypeOptions]="verifyTypeOptions"
+                        [visitStatusOptions]="visitStatusOptions"
+                        [verifyStatusOptions]="verifyStatusOptions"
+                        [treatmentBMPRows]="treatmentBMPRows()"
+                        [quickBMPRows]="quickBMPRows()"
+                        [sourceControlRows]="sourceControlRows()">
+                    </review-step>
+                }
+            }
+
+            <!-- Navigation buttons -->
+            <div class="wizard-nav">
+                <div>
+                    @if (currentStep() > 1) {
+                        <button class="btn btn-secondary-outline" (click)="prevStep()">Previous</button>
+                    }
+                </div>
+                <div class="wizard-nav__right">
+                    @if (mode !== "view") {
+                        <button class="btn btn-secondary-outline" (click)="saveDraft()" [disabled]="isSaving">Save Draft</button>
+                    }
+                    @if (currentStep() < steps.length) {
+                        <button class="btn btn-primary" (click)="nextStep()">Next</button>
+                    }
+                    @if (currentStep() === steps.length && mode !== "view") {
+                        <button class="btn btn-primary" (click)="finalize()" [disabled]="isSaving">Finalize</button>
+                    }
+                    @if (mode === "edit") {
+                        <button class="btn btn-danger-outline" (click)="deleteVerification()">Delete</button>
+                    }
+                    <button class="btn btn-secondary-outline" (click)="cancel()">Cancel</button>
+                </div>
+            </div>
+        </div>
+    </div>
+}

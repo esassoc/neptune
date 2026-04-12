@@ -17,6 +17,7 @@ export const routeParams = {
     regionalSubbasinID: "regionalSubbasinID",
     customAttributePurposeID: "customAttributePurposeID",
     waterQualityManagementPlanID: "waterQualityManagementPlanID",
+    waterQualityManagementPlanVerifyID: "waterQualityManagementPlanVerifyID",
 };
 
 export const routes: Routes = [
@@ -457,6 +458,20 @@ export const routes: Routes = [
                 title: "Refine WQMP Boundary Area",
                 loadComponent: () =>
                     import("./pages/wqmps/wqmp-detail/edit-boundary/edit-boundary.component").then((m) => m.EditBoundaryComponent),
+                canActivate: [authGuardFn],
+            },
+            {
+                path: `water-quality-management-plans/:${routeParams.waterQualityManagementPlanID}/verifications/new`,
+                title: "New O&M Verification",
+                loadComponent: () =>
+                    import("./pages/wqmps/wqmp-detail/verification-wizard/verification-wizard.component").then((m) => m.VerificationWizardComponent),
+                canActivate: [authGuardFn],
+            },
+            {
+                path: `water-quality-management-plans/:${routeParams.waterQualityManagementPlanID}/verifications/:${routeParams.waterQualityManagementPlanVerifyID}`,
+                title: "O&M Verification",
+                loadComponent: () =>
+                    import("./pages/wqmps/wqmp-detail/verification-wizard/verification-wizard.component").then((m) => m.VerificationWizardComponent),
                 canActivate: [authGuardFn],
             },
             {

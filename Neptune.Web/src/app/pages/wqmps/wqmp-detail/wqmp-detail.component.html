@@ -380,6 +380,9 @@
         <div class="card g-col-12 mt-3">
             <div class="card-header">
                 <span class="card-title">WQMP O&amp;M Verification</span>
+                @if (currentPersonCanEdit) {
+                    <a class="btn btn-primary-outline btn-sm" [routerLink]="['/water-quality-management-plans', waterQualityManagementPlanID, 'verifications', 'new']">Begin New Verification</a>
+                }
             </div>
             <div class="card-body">
                 @if (verifications$ | async; as verifications) {
@@ -389,7 +392,8 @@
                             [columnDefs]="verificationColumnDefs"
                             [pagination]="true"
                             [height]="'300px'"
-                            [downloadFileName]="'OMVerifications'"></neptune-grid>
+                            [downloadFileName]="'OMVerifications'"
+                            (selectionChanged)="onVerificationRowClicked($event)"></neptune-grid>
                     } @else {
                         <p class="system-text">No Verifications have been provided</p>
                     }
