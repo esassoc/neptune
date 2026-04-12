@@ -140,6 +140,51 @@ namespace Neptune.API.Controllers
             return Ok(verifications);
         }
 
+        [HttpGet("{waterQualityManagementPlanID}/verifications/{waterQualityManagementPlanVerifyID}")]
+        [JurisdictionEditFeature]
+        [EntityNotFound(typeof(WaterQualityManagementPlan), "waterQualityManagementPlanID")]
+        [EntityNotFound(typeof(WaterQualityManagementPlanVerify), "waterQualityManagementPlanVerifyID")]
+        public async Task<ActionResult<WaterQualityManagementPlanVerifyDetailDto>> GetVerification(
+            [FromRoute] int waterQualityManagementPlanID, [FromRoute] int waterQualityManagementPlanVerifyID)
+        {
+            var dto = await WaterQualityManagementPlanVerifies.GetByIDAsDtoAsync(DbContext, waterQualityManagementPlanVerifyID);
+            if (dto == null) return NotFound();
+            return Ok(dto);
+        }
+
+        [HttpPost("{waterQualityManagementPlanID}/verifications")]
+        [JurisdictionEditFeature]
+        [EntityNotFound(typeof(WaterQualityManagementPlan), "waterQualityManagementPlanID")]
+        public async Task<ActionResult<WaterQualityManagementPlanVerifyDetailDto>> CreateVerification(
+            [FromRoute] int waterQualityManagementPlanID, [FromBody] WaterQualityManagementPlanVerifyUpsertDto dto)
+        {
+            var result = await WaterQualityManagementPlanVerifies.CreateAsync(DbContext, waterQualityManagementPlanID, dto, CallingUser.PersonID);
+            return Ok(result);
+        }
+
+        [HttpPut("{waterQualityManagementPlanID}/verifications/{waterQualityManagementPlanVerifyID}")]
+        [JurisdictionEditFeature]
+        [EntityNotFound(typeof(WaterQualityManagementPlan), "waterQualityManagementPlanID")]
+        [EntityNotFound(typeof(WaterQualityManagementPlanVerify), "waterQualityManagementPlanVerifyID")]
+        public async Task<ActionResult<WaterQualityManagementPlanVerifyDetailDto>> UpdateVerification(
+            [FromRoute] int waterQualityManagementPlanID, [FromRoute] int waterQualityManagementPlanVerifyID,
+            [FromBody] WaterQualityManagementPlanVerifyUpsertDto dto)
+        {
+            var result = await WaterQualityManagementPlanVerifies.UpdateAsync(DbContext, waterQualityManagementPlanVerifyID, dto, CallingUser.PersonID);
+            return Ok(result);
+        }
+
+        [HttpDelete("{waterQualityManagementPlanID}/verifications/{waterQualityManagementPlanVerifyID}")]
+        [JurisdictionEditFeature]
+        [EntityNotFound(typeof(WaterQualityManagementPlan), "waterQualityManagementPlanID")]
+        [EntityNotFound(typeof(WaterQualityManagementPlanVerify), "waterQualityManagementPlanVerifyID")]
+        public async Task<IActionResult> DeleteVerification(
+            [FromRoute] int waterQualityManagementPlanID, [FromRoute] int waterQualityManagementPlanVerifyID)
+        {
+            await WaterQualityManagementPlanVerifies.DeleteAsync(DbContext, waterQualityManagementPlanVerifyID);
+            return NoContent();
+        }
+
         [HttpGet("{waterQualityManagementPlanID}/modeled-performance")]
         [AllowAnonymous]
         [OptionalAuth]
