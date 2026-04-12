@@ -40,4 +40,7 @@ public partial class WaterQualityManagementPlanDocument
 
     [InverseProperty("WaterQualityManagementPlanDocument")]
     public virtual WaterQualityManagementPlanDocumentVectorStore? WaterQualityManagementPlanDocumentVectorStore { get; set; }
+
+    [InverseProperty("WaterQualityManagementPlanDocument")]
+    public virtual ICollection<WaterQualityManagementPlanExtractionResult> WaterQualityManagementPlanExtractionResults { get; set; } = new List<WaterQualityManagementPlanExtractionResult>();
 }

@@ -8679,6 +8679,111 @@
         }
       }
     },
+    "/water-quality-management-plans/upload-and-extract": {
+      "post": {
+        "tags": [
+          "WaterQualityManagementPlan"
+        ],
+        "operationId": "UploadAndExtract_WaterQualityManagementPlan",
+        "requestBody": {
+          "content": {
+            "multipart/form-data": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "file": {
+                    "type": "string",
+                    "format": "binary"
+                  },
+                  "stormwaterJurisdictionID": {
+                    "type": "integer",
+                    "format": "int32"
+                  },
+                  "overwrite": {
+                    "type": "boolean",
+                    "default": false
+                  }
+                }
+              },
+              "encoding": {
+                "file": {
+                  "style": "form"
+                },
+                "stormwaterJurisdictionID": {
+                  "style": "form"
+                },
+                "overwrite": {
+                  "style": "form"
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/WaterQualityManagementPlanExtractionResultDto"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WaterQualityManagementPlanExtractionResultDto"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WaterQualityManagementPlanExtractionResultDto"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/water-quality-management-plans/{waterQualityManagementPlanID}/extraction-result": {
+      "get": {
+        "tags": [
+          "WaterQualityManagementPlan"
+        ],
+        "operationId": "GetExtractionResult_WaterQualityManagementPlan",
+        "parameters": [
+          {
+            "name": "waterQualityManagementPlanID",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/WaterQualityManagementPlanExtractionResultDto"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WaterQualityManagementPlanExtractionResultDto"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WaterQualityManagementPlanExtractionResultDto"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/water-quality-management-plan-documents": {
       "get": {
         "tags": [
@@ -14769,6 +14874,32 @@
             "items": {
               "$ref": "#/components/schemas/TreatmentBMPMinimalDto"
             },
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "WaterQualityManagementPlanExtractionResultDto": {
+        "type": "object",
+        "properties": {
+          "WaterQualityManagementPlanID": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "WaterQualityManagementPlanDocumentID": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "ExtractionResultJson": {
+            "type": "string",
+            "nullable": true
+          },
+          "ExtractedAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "FileResourceGuid": {
+            "type": "string",
             "nullable": true
           }
         },

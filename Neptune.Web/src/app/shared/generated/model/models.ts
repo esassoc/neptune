@@ -132,6 +132,7 @@ export * from './water-quality-management-plan-document-dto';
 export * from './water-quality-management-plan-document-extraction-result-dto';
 export * from './water-quality-management-plan-document-upsert-dto';
 export * from './water-quality-management-plan-dto';
+export * from './water-quality-management-plan-extraction-result-dto';
 export * from './water-quality-management-plan-grid-dto';
 export * from './water-quality-management-plan-simple-dto';
 export * from './water-quality-management-plan-upsert-dto';

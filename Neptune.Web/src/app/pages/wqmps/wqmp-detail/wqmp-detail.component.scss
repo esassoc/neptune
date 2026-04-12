@@ -108,3 +108,13 @@
         margin-left: 130px;
     }
 }
+
+.draft-banner {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0.75rem 1rem;
+    background: rgba(0, 153, 171, 0.06);
+    border: 1px solid $primary;
+    border-radius: $border-radius-200;
+}

@@ -11,6 +11,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using Neptune.API.Services;
+using Neptune.API.Services.AI;
 using Neptune.API.Services.Authorization;
 using Neptune.EFModels.Entities;
 using Neptune.Models.DataTransferObjects;
@@ -27,25 +28,13 @@ public class AIController(
     ILogger<AIController> logger,
     IOptions<NeptuneConfiguration> appConfiguration,
     AzureBlobStorageService azureBlobStorageService,
-    OpenAIClient openAIClient)
+    OpenAIClient openAIClient,
+    WqmpExtractionService wqmpExtractionService)
     : SitkaController<AIController>(dbContext, logger, appConfiguration)
 {
 #pragma warning disable OPENAI001 // Suppress experimental OpenAI SDK warnings for evaluation usage
 
-    private const string ExtractorInstructions =
-        "You are part of an automated workflow and must return only JSON. No narrative, no follow-up suggestions. " +
-        "You are helping a stormwater technician extract data from a Water Quality Management Plan (WQMP) used in Orange County California. " +
-        "If an attribute is not found output null for all of its child fields. Do not hallucinate.\n";
-
-    private const string SchemaVersion = "v1.0"; // retained only for overall extraction context
-
     private static readonly FileUploadPurpose VectorStoreFileUploadPurpose = FileUploadPurpose.UserData;
-
-    private static readonly Lazy<string> ExtractedValueSchema = new(BuildExtractedValueJsonSchema);
-    private static readonly Lazy<string> WqmpSchema = new(BuildWqmpSchemaJson);
-    private static readonly Lazy<string> ParcelSchema = new(BuildParcelSchemaJson);
-    private static readonly Lazy<string> TreatmentBmpSchema = new(BuildTreatmentBmpSchemaJson);
-    private static readonly Lazy<string> SourceControlBmpSchema = new(BuildSourceControlBmpSchemaJson);
 
     [HttpPost("water-quality-management-plan-documents/{waterQualityManagementPlanDocumentID}/extract-all")]
     [AdminFeature]
@@ -55,217 +44,12 @@ public class AIController(
         var docDto = await WaterQualityManagementPlanDocuments.GetByIDAsDtoAsync(DbContext, waterQualityManagementPlanDocumentID);
         if (docDto == null) return NotFound();
 
-        var cancellationToken = HttpContext.RequestAborted;
-        var vectorStoreId = await EnsureVectorStoreWithFileAsync(waterQualityManagementPlanDocumentID, docDto);
-        var domainContext = await BuildSchemaAndDomainContext();
-
-        var extractionEvidenceInstructions =
-            $"SchemaVersion: {SchemaVersion}. Use ONLY the provided WQMP PDF. Each attribute object MUST match ExtractedValueSchema. " +
-            "Value = raw extracted string or null; ExtractionEvidence = source snippet (preceding sentence, target sentence, following sentence OR nearby table text); DocumentSource = page reference (e.g. 'Page 12'). " +
-            "If not found set Value, ExtractionEvidence, DocumentSource to null. Do not add or rename properties.\n" +
-            $"ExtractedValueSchema: {ExtractedValueSchema.Value}";
-
-        var categoryPrompts = new Dictionary<string, string>
-        {
-            ["WQMP"] = $"{ExtractorInstructions}{extractionEvidenceInstructions} Extract root WQMP attributes. WqmpSchema: {WqmpSchema.Value} Return a single JSON object.",
-            ["Parcels"] = $"{ExtractorInstructions}{extractionEvidenceInstructions} Extract all Parcels. ParcelSchema: {ParcelSchema.Value} Return a JSON array (empty array if none).",
-            ["TreatmentBMPs"] = $"{ExtractorInstructions}{extractionEvidenceInstructions} Extract all Treatment BMPs. TreatmentBmpSchema: {TreatmentBmpSchema.Value} Return a JSON array (empty array if none).",
-            ["SourceControlBMPs"] = $"{ExtractorInstructions}{extractionEvidenceInstructions} Extract all Source Control BMPs. SourceControlBmpSchema: {SourceControlBmpSchema.Value} Return a JSON array (empty array if none)."
-        };
-
-        var responseClient = CreateResponseClient();
-        var fileSearchTool = CreateFileSearchTool(vectorStoreId);
-
-        async Task<string> ExtractCategoryAsync(string key, string prompt, bool expectArray)
-        {
-            var fullPrompt = domainContext + "\n\n" + prompt;
-            var response = await responseClient.CreateResponseAsync(fullPrompt, new ResponseCreationOptions { Tools = { fileSearchTool } }, cancellationToken);
-            var output = ExtractMessageText(response.Value.OutputItems);
-            if (!IsValidJson(output) || !MatchesExtractionSchema(output, expectArray))
-            {
-                logger.LogWarning("Initial JSON invalid or schema mismatch for {Category}. Retrying.", key);
-                var retryPrompt = fullPrompt + "\n\nPrevious output invalid. Re-output ONLY valid JSON per schema. No narrative.";
-                var retryResp = await responseClient.CreateResponseAsync(retryPrompt, new ResponseCreationOptions { Tools = { fileSearchTool } }, cancellationToken);
-                output = ExtractMessageText(retryResp.Value.OutputItems);
-                if (!IsValidJson(output) || !MatchesExtractionSchema(output, expectArray))
-                {
-                    logger.LogError("Retry still invalid for {Category}. Using empty fallback.", key);
-                    output = expectArray ? "[]" : "{}";
-                }
-            }
-            return output;
-        }
-
-        var tasks = new List<Task<string>>
-        {
-            ExtractCategoryAsync("WQMP", categoryPrompts["WQMP"], false),
-            ExtractCategoryAsync("Parcels", categoryPrompts["Parcels"], true),
-            ExtractCategoryAsync("TreatmentBMPs", categoryPrompts["TreatmentBMPs"], true),
-            ExtractCategoryAsync("SourceControlBMPs", categoryPrompts["SourceControlBMPs"], true)
-        };
-        var results = await Task.WhenAll(tasks);
-        var map = new Dictionary<string,string>{{"WQMP",results[0]},{"Parcels",results[1]},{"TreatmentBMPs",results[2]},{"SourceControlBMPs",results[3]}};
-
-        var consolidationPrompt =
-            $"Consolidate into single JSON: {{ 'SchemaVersion': '{SchemaVersion}', 'WQMP': {map["WQMP"]}, 'Parcels': {map["Parcels"]}, 'TreatmentBMPs': {map["TreatmentBMPs"]}, 'SourceControlBMPs': {map["SourceControlBMPs"]} }}. Preserve values exactly.";
-        var consolidationFullPrompt = domainContext + "\n\n" + consolidationPrompt;
-        var consolidationResponse = await responseClient.CreateResponseAsync(consolidationFullPrompt, new ResponseCreationOptions { Tools = { fileSearchTool } }, cancellationToken);
-        var finalOutput = ExtractMessageText(consolidationResponse.Value.OutputItems);
-        if (!IsValidJson(finalOutput) || !MatchesConsolidatedSchema(finalOutput))
-        {
-            logger.LogWarning("Consolidation invalid. Retrying.");
-            var retryPrompt = consolidationFullPrompt + "\n\nPrevious output invalid. Return only valid consolidated JSON.";
-            var retryResp = await responseClient.CreateResponseAsync(retryPrompt, new ResponseCreationOptions { Tools = { fileSearchTool } }, cancellationToken);
-            finalOutput = ExtractMessageText(retryResp.Value.OutputItems);
-            if (!IsValidJson(finalOutput) || !MatchesConsolidatedSchema(finalOutput))
-            {
-                logger.LogError("Still invalid. Using fallback consolidated object.");
-                finalOutput = $"{{ \"SchemaVersion\": \"{SchemaVersion}\", \"WQMP\": {map["WQMP"]}, \"Parcels\": {map["Parcels"]}, \"TreatmentBMPs\": {map["TreatmentBMPs"]}, \"SourceControlBMPs\": {map["SourceControlBMPs"]} }}";
-            }
-        }
-
-        var rawBuilder = new System.Text.StringBuilder();
-        foreach (var kvp in map) rawBuilder.AppendLine($"{kvp.Key}: {kvp.Value}");
-        var extractionResult = new WaterQualityManagementPlanDocumentExtractionResultDto { FinalOutput = finalOutput, RawResults = rawBuilder.ToString(), ExtractedAt = DateTime.UtcNow };
+        var extractionResult = await wqmpExtractionService.ExtractFromDocument(
+            waterQualityManagementPlanDocumentID, CallingUser.PersonID, HttpContext.RequestAborted);
         return Ok(extractionResult);
     }
 
-    private static string BuildExtractedValueJsonSchema()
-    {
-        var schema = new
-        {
-            type = "object",
-            description = "ExtractedValue schema (SchemaVersion " + SchemaVersion + "). Attribute with evidence.",
-            properties = new
-            {
-                Value = new { type = "string", description = "Raw extracted value or null." },
-                ExtractionEvidence = new { type = "string", description = "Snippet: preceding, target, following sentence OR nearby table text." },
-                DocumentSource = new { type = "string", description = "Page reference (e.g. 'Page 12')." }
-            },
-            required = new[] { "Value", "ExtractionEvidence", "DocumentSource" },
-            additionalProperties = false
-        };
-        return JsonSerializer.Serialize(schema);
-    }
-
-    private static string BuildWqmpSchemaJson()
-    {
-        var required = new[]
-        {
-            "WaterQualityManagementPlanName","Jurisdiction","MaintenanceContactName","MaintenanceContactOrganization","MaintenanceContactPhone","MaintenanceContactAddress1","MaintenanceContactAddress2","MaintenanceContactCity","MaintenanceContactState","MaintenanceContactZip","WaterQualityManagementPlanPermitTerm","HydrologicSubarea","RecordNumber","RecordedWQMPAreaInAcres","TrashCaptureStatusType"
-        };
-        var schema = new
-        {
-            type = "object",
-            description = "WQMP root schema (uses ExtractedValue objects). Nullable fields may be null.",
-            properties = new Dictionary<string, object>
-            {
-                ["WaterQualityManagementPlanName"] = Prop("Title of the WQMP."),
-                ["Jurisdiction"] = Prop("Jurisdiction responsible."),
-                ["WaterQualityManagementPlanLandUse"] = PropNullable("Land use classification."),
-                ["WaterQualityManagementPlanPriority"] = PropNullable("Priority category."),
-                ["WaterQualityManagementPlanStatus"] = PropNullable("Current status."),
-                ["WaterQualityManagementPlanDevelopmentType"] = PropNullable("Development type."),
-                ["ApprovalDate"] = PropNullable("Approval date."),
-                ["MaintenanceContactName"] = Prop("Maintenance contact or owner name. "),
-                ["MaintenanceContactOrganization"] = Prop("Maintenance contact or owner organization."),
-                ["MaintenanceContactPhone"] = Prop("Maintenance contact phone."),
-                ["MaintenanceContactAddress1"] = Prop("Address line 1."),
-                ["MaintenanceContactAddress2"] = Prop("Address line 2."),
-                ["MaintenanceContactCity"] = Prop("Address city."),
-                ["MaintenanceContactState"] = Prop("Address state."),
-                ["MaintenanceContactZip"] = Prop("Address ZIP."),
-                ["WaterQualityManagementPlanPermitTerm"] = Prop("Permit term."),
-                ["DateOfConstruction"] = PropNullable("Construction completion date."),
-                ["HydrologicSubarea"] = Prop("Hydrologic subarea."),
-                ["RecordNumber"] = Prop("Agency record number."),
-                ["RecordedWQMPAreaInAcres"] = Prop("Area in acres."),
-                ["TrashCaptureStatusType"] = Prop("Trash capture status.")
-            },
-            required,
-            additionalProperties = false
-        };
-        return JsonSerializer.Serialize(schema);
-
-        object Prop(string description) => new { type = "object", description };
-        object PropNullable(string description) => new { type = "object", description, nullable = true };
-    }
-
-    private static string BuildParcelSchemaJson()
-    {
-        var schema = new
-        {
-            type = "object",
-            description = "Parcel schema (ExtractedValue objects).",
-            properties = new Dictionary<string, object>
-            {
-                ["ParcelNumber"] = new { type = "object", description = "APN (e.g. XXX-XX-XXX or XXX-XXX-XX)" }
-            },
-            required = new[] { "ParcelNumber" },
-            additionalProperties = false
-        };
-        return JsonSerializer.Serialize(schema);
-    }
-
-    private static string BuildTreatmentBmpSchemaJson()
-    {
-        var required = new[]
-        {
-            "TreatmentBMPName","TreatmentBMPType","LocationPointAsWellKnownText","Jurisdiction","Notes","SystemOfRecordID","OwnerOrganization","TreatmentBMPLifespanType","TrashCaptureStatusType","SizingBasisType"
-        };
-        var schema = new
-        {
-            type = "object",
-            description = "Treatment BMP schema (ExtractedValue objects). Nullable fields may be null.",
-            properties = new Dictionary<string, object>
-            {
-                ["TreatmentBMPName"] = Prop("BMP name."),
-                ["TreatmentBMPType"] = Prop("BMP type/classification."),
-                ["Area"] = PropNullable("Area in acres."),
-                ["LocationPointAsWellKnownText"] = Prop("Location WKT point."),
-                ["Jurisdiction"] = Prop("Responsible jurisdiction."),
-                ["Notes"] = Prop("Notes/comments."),
-                ["SystemOfRecordID"] = Prop("External identifier."),
-                ["YearBuilt"] = PropNullable("Year built."),
-                ["OwnerOrganization"] = Prop("Owning organization."),
-                ["TreatmentBMPLifespanType"] = Prop("Lifespan category."),
-                ["TreatmentBMPLifespanEndDate"] = PropNullable("Lifespan end date."),
-                ["RequiredFieldVisitsPerYear"] = PropNullable("Routine visits/year."),
-                ["RequiredPostStormFieldVisitsPerYear"] = PropNullable("Post-storm visits/year."),
-                ["TrashCaptureStatusType"] = Prop("Trash capture status."),
-                ["SizingBasisType"] = Prop("Sizing basis."),
-                ["TrashCaptureEffectiveness"] = PropNullable("Trash capture effectiveness.")
-            },
-            required,
-            additionalProperties = false
-        };
-        return JsonSerializer.Serialize(schema);
-
-        object Prop(string description) => new { type = "object", description };
-        object PropNullable(string description) => new { type = "object", description, nullable = true };
-    }
-
-    private static string BuildSourceControlBmpSchemaJson()
-    {
-        var required = new[] { "SourceControlBMPAttribute", "SourceControlBMPNote" }; // IsPresent nullable
-        var schema = new
-        {
-            type = "object",
-            description = "Source Control BMP schema (ExtractedValue objects).",
-            properties = new Dictionary<string, object>
-            {
-                ["SourceControlBMPAttribute"] = Prop("Source control attribute name."),
-                ["IsPresent"] = PropNullable("Indicates presence (Yes/No)."),
-                ["SourceControlBMPNote"] = Prop("Attribute notes.")
-            },
-            required,
-            additionalProperties = false
-        };
-        return JsonSerializer.Serialize(schema);
-
-        object Prop(string description) => new { type = "object", description };
-        object PropNullable(string description) => new { type = "object", description, nullable = true };
-    }
+    private const string SchemaVersion = "v1.0";
 
     private async Task<string> EnsureVectorStoreWithFileAsync(int documentId, WaterQualityManagementPlanDocumentDto docDto)
     {
@@ -327,63 +111,6 @@ public class AIController(
             }
         }
         return sb.ToString();
-    }
-
-    private static bool IsValidJson(string candidate)
-    {
-        if (string.IsNullOrWhiteSpace(candidate)) return false;
-        try { using var _ = JsonDocument.Parse(candidate); return true; } catch { return false; }
-    }
-
-    private static bool MatchesExtractionSchema(string json, bool expectArray)
-    {
-        try
-        {
-            using var doc = JsonDocument.Parse(json);
-            var root = doc.RootElement;
-            if (expectArray)
-            {
-                if (root.ValueKind != JsonValueKind.Array) return false;
-                foreach (var item in root.EnumerateArray()) if (item.ValueKind != JsonValueKind.Object || !AllChildPropertiesMatchTripleSchema(item)) return false;
-            }
-            else
-            {
-                if (root.ValueKind != JsonValueKind.Object || !AllChildPropertiesMatchTripleSchema(root)) return false;
-            }
-            return true;
-        }
-        catch { return false; }
-    }
-
-    private static bool AllChildPropertiesMatchTripleSchema(JsonElement obj)
-    {
-        foreach (var prop in obj.EnumerateObject())
-        {
-            var v = prop.Value;
-            if (v.ValueKind == JsonValueKind.Null) continue;
-            if (v.ValueKind != JsonValueKind.Object) return false;
-            if (!(v.TryGetProperty("Value", out _) && v.TryGetProperty("ExtractionEvidence", out _) && v.TryGetProperty("DocumentSource", out _))) return false;
-        }
-        return true;
-    }
-
-    private static bool MatchesConsolidatedSchema(string json)
-    {
-        try
-        {
-            using var doc = JsonDocument.Parse(json);
-            var root = doc.RootElement;
-            if (root.ValueKind != JsonValueKind.Object) return false;
-            if (!root.TryGetProperty("WQMP", out var wqmp) || !root.TryGetProperty("Parcels", out var parcels) || !root.TryGetProperty("TreatmentBMPs", out var tbmps) || !root.TryGetProperty("SourceControlBMPs", out var scbmps)) return false;
-            if (wqmp.ValueKind != JsonValueKind.Object || !AllChildPropertiesMatchTripleSchema(wqmp)) return false;
-            foreach (var arr in new[] { parcels, tbmps, scbmps })
-            {
-                if (arr.ValueKind != JsonValueKind.Array) return false;
-                foreach (var item in arr.EnumerateArray()) if (item.ValueKind != JsonValueKind.Object || !AllChildPropertiesMatchTripleSchema(item)) return false;
-            }
-            return true;
-        }
-        catch { return false; }
     }
 
     [HttpPost("water-quality-management-plan-documents/{waterQualityManagementPlanDocumentID}/ask")]

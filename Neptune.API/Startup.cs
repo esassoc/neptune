@@ -9,6 +9,7 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Neptune.API.Services;
+using Neptune.API.Services.AI;
 using Neptune.API.Services.Filter;
 using Neptune.API.Services.Middleware;
 using Neptune.Common.Email;
@@ -105,6 +106,8 @@ namespace Neptune.API
             AddExternalHttpClientServices(services, configuration);
 
             services.AddScoped<AzureBlobStorageService>();
+            services.AddSingleton<IPromptTemplateService, PromptTemplateService>();
+            services.AddScoped<WqmpExtractionService>();
 
             services.AddSingleton<IHttpContextAccessor, HttpContextAccessor>();
             services.AddScoped(s => s.GetService<IHttpContextAccessor>().HttpContext);

@@ -467,6 +467,13 @@ export const routes: Routes = [
                 canActivate: [authGuardFn],
             },
             {
+                path: `water-quality-management-plans/:${routeParams.waterQualityManagementPlanID}/review`,
+                title: "WQMP AI Review",
+                loadComponent: () =>
+                    import("./pages/wqmps/wqmp-detail/wqmp-review/wqmp-review.component").then((m) => m.WqmpReviewComponent),
+                canActivate: [authGuardFn],
+            },
+            {
                 path: "wqmp-annual-report",
                 title: "WQMP Annual Report",
                 loadComponent: () => import("./pages/wqmp-annual-report/wqmp-annual-report.component").then((m) => m.WqmpAnnualReportComponent),

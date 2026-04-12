@@ -55,6 +55,9 @@ public partial class Person
     [Unicode(false)]
     public string? GlobalID { get; set; }
 
+    [InverseProperty("Person")]
+    public virtual ICollection<AITokenUsage> AITokenUsages { get; set; } = new List<AITokenUsage>();
+
     [InverseProperty("UploadedByPerson")]
     public virtual ICollection<DelineationStaging> DelineationStagings { get; set; } = new List<DelineationStaging>();
 

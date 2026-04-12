@@ -29,6 +29,12 @@
     <ProjectReference Include="..\Neptune.Models\Neptune.Models.csproj" />
   </ItemGroup>
 
+  <ItemGroup>
+    <Content Include="Services\AI\Prompts\**\*.md">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+  </ItemGroup>
+
   <Target Name="PostBuild" AfterTargets="PostBuildEvent" Condition=" '$(Configuration)' == 'Debug' ">
     <!-- 
       This PostBuild target is used to generate the static swagger.json file that is meant to be 

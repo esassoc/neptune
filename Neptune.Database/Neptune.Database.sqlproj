@@ -435,6 +435,8 @@
     <Build Include="dbo\Views\dbo.vTreatmentBMPModelingAttribute.sql" />
     <None Include="Scripts\ReleaseScripts\019 - Add Dry Weather Flow Override custom attribute for all Modeled Treatment BMPs without it.sql" />
     <Build Include="dbo\Tables\dbo.WaterQualityManagementPlanDocumentVectorStore.sql" />
+    <Build Include="dbo\Tables\dbo.WaterQualityManagementPlanExtractionResult.sql" />
+    <Build Include="dbo\Tables\dbo.AITokenUsage.sql" />
   </ItemGroup>
   <ItemGroup>
     <RefactorLog Include="Neptune.Database.refactorlog" />
