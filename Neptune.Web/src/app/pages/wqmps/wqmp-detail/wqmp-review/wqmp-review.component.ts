@@ -2,15 +2,23 @@ import { Component, inject, Input, OnInit, signal, ViewChild } from "@angular/co
 import { Router, RouterLink } from "@angular/router";
 import { AsyncPipe } from "@angular/common";
 import { HttpClient } from "@angular/common/http";
-import { EMPTY, Observable, switchMap, tap, shareReplay, catchError } from "rxjs";
+import { EMPTY, forkJoin, map, Observable, switchMap, tap, shareReplay, catchError, of } from "rxjs";
 import { PdfJsViewerModule, PdfJsViewerComponent } from "ng2-pdfjs-viewer";
 import { AlertDisplayComponent } from "src/app/shared/components/alert-display/alert-display.component";
+import { FormFieldType, SelectDropdownOption } from "src/app/shared/components/forms/form-field/form-field.component";
 import { AlertService } from "src/app/shared/services/alert.service";
 import { Alert } from "src/app/shared/models/alert";
 import { AlertContext } from "src/app/shared/models/enums/alert-context.enum";
 import { WaterQualityManagementPlanService } from "src/app/shared/generated/api/water-quality-management-plan.service";
+import { StormwaterJurisdictionService } from "src/app/shared/generated/api/stormwater-jurisdiction.service";
 import { WaterQualityManagementPlanExtractionResultDto } from "src/app/shared/generated/model/water-quality-management-plan-extraction-result-dto";
 import { FieldCardComponent, SourceNavigation } from "src/app/pages/wqmps/wqmp-detail/wqmp-review/field-card/field-card.component";
+import { WaterQualityManagementPlanPrioritiesAsSelectDropdownOptions } from "src/app/shared/generated/enum/water-quality-management-plan-priority-enum";
+import { WaterQualityManagementPlanDevelopmentTypesAsSelectDropdownOptions } from "src/app/shared/generated/enum/water-quality-management-plan-development-type-enum";
+import { WaterQualityManagementPlanLandUsesAsSelectDropdownOptions } from "src/app/shared/generated/enum/water-quality-management-plan-land-use-enum";
+import { WaterQualityManagementPlanPermitTermsAsSelectDropdownOptions } from "src/app/shared/generated/enum/water-quality-management-plan-permit-term-enum";
+import { HydromodificationAppliesTypesAsSelectDropdownOptions } from "src/app/shared/generated/enum/hydromodification-applies-type-enum";
+import { TrashCaptureStatusTypesAsSelectDropdownOptions } from "src/app/shared/generated/enum/trash-capture-status-type-enum";
 import { environment } from "src/environments/environment";
 
 export type ConfidenceLevel = "high" | "medium" | "low" | "none";
@@ -25,6 +33,8 @@ export interface ExtractedField {
     step: number;
     acceptedValue?: string | null;
     state: "pending" | "accepted" | "edited" | "rejected";
+    fieldType?: FormFieldType;
+    selectOptions?: SelectDropdownOption[];
 }
 
 @Component({
@@ -42,9 +52,14 @@ export class WqmpReviewComponent implements OnInit {
     private router = inject(Router);
     private http = inject(HttpClient);
     private wqmpService = inject(WaterQualityManagementPlanService);
+    private jurisdictionService = inject(StormwaterJurisdictionService);
     private alertService = inject(AlertService);
 
+    public FormFieldType = FormFieldType;
     public extractionResult$: Observable<WaterQualityManagementPlanExtractionResultDto>;
+
+    // Lookup field configuration: maps extraction key → dropdown options + DTO field name
+    private lookupFieldConfig: Record<string, { options: SelectDropdownOption[]; dtoField: string }> = {};
     public currentStep = signal(1);
     public fields = signal<ExtractedField[]>([]);
     public pdfBlob: Blob | null = null;
@@ -63,7 +78,7 @@ export class WqmpReviewComponent implements OnInit {
     private basicsFields = [
         "WaterQualityManagementPlanName", "WaterQualityManagementPlanPriority", "WaterQualityManagementPlanDevelopmentType",
         "WaterQualityManagementPlanLandUse", "WaterQualityManagementPlanPermitTerm", "ApprovalDate", "DateOfConstruction",
-        "RecordNumber", "TrashCaptureStatusType",
+        "HydromodificationAppliesType", "RecordNumber", "TrashCaptureStatusType",
         "MaintenanceContactName", "MaintenanceContactOrganization", "MaintenanceContactPhone",
         "MaintenanceContactAddress1", "MaintenanceContactAddress2", "MaintenanceContactCity", "MaintenanceContactState", "MaintenanceContactZip",
     ];
@@ -79,6 +94,7 @@ export class WqmpReviewComponent implements OnInit {
         WaterQualityManagementPlanPermitTerm: "Permit Term",
         ApprovalDate: "Approval Date",
         DateOfConstruction: "Date of Construction",
+        HydromodificationAppliesType: "Hydromodification Applies",
         RecordNumber: "Record Number",
         TrashCaptureStatusType: "Trash Capture Status",
         MaintenanceContactName: "Maintenance Contact Name",
@@ -92,26 +108,47 @@ export class WqmpReviewComponent implements OnInit {
     };
 
     ngOnInit(): void {
-        this.extractionResult$ = this.wqmpService
-            .getExtractionResultWaterQualityManagementPlan(this.waterQualityManagementPlanID)
-            .pipe(
-                tap((result) => {
-                    this.parseExtractionResult(result.ExtractionResultJson);
-                }),
-                switchMap((result) =>
-                    this.http.get(`${environment.mainAppApiUrl}/file-resources/${result.FileResourceGuid}`, { responseType: "blob" }).pipe(
-                        tap((blob) => {
-                            this.pdfBlob = blob;
-                        }),
-                        switchMap(() => [result])
-                    )
-                ),
-                catchError(() => {
-                    this.alertService.pushAlert(new Alert("Failed to load extraction results or PDF document.", AlertContext.Danger));
-                    return EMPTY;
-                }),
-                shareReplay(1)
-            );
+        // Load lookup options first, then parse extraction results
+        const jurisdictions$ = this.jurisdictionService.listViewableStormwaterJurisdiction().pipe(
+            map((j) => j.map((x) => ({ Label: x.StormwaterJurisdictionName, Value: x.StormwaterJurisdictionID }) as SelectDropdownOption)),
+            catchError(() => of([] as SelectDropdownOption[]))
+        );
+        const hydrologicSubareas$ = this.wqmpService.listHydrologicSubareasWaterQualityManagementPlan().pipe(
+            map((s) => s.map((x) => ({ Label: x.HydrologicSubareaName, Value: x.HydrologicSubareaID }) as SelectDropdownOption)),
+            catchError(() => of([] as SelectDropdownOption[]))
+        );
+
+        this.extractionResult$ = forkJoin([jurisdictions$, hydrologicSubareas$]).pipe(
+            tap(([jurisdictions, hydrologicSubareas]) => {
+                this.lookupFieldConfig = {
+                    Jurisdiction: { options: jurisdictions, dtoField: "StormwaterJurisdictionID" },
+                    HydrologicSubarea: { options: hydrologicSubareas, dtoField: "HydrologicSubareaID" },
+                    WaterQualityManagementPlanPriority: { options: WaterQualityManagementPlanPrioritiesAsSelectDropdownOptions, dtoField: "WaterQualityManagementPlanPriorityID" },
+                    WaterQualityManagementPlanDevelopmentType: { options: WaterQualityManagementPlanDevelopmentTypesAsSelectDropdownOptions, dtoField: "WaterQualityManagementPlanDevelopmentTypeID" },
+                    WaterQualityManagementPlanLandUse: { options: WaterQualityManagementPlanLandUsesAsSelectDropdownOptions, dtoField: "WaterQualityManagementPlanLandUseID" },
+                    WaterQualityManagementPlanPermitTerm: { options: WaterQualityManagementPlanPermitTermsAsSelectDropdownOptions, dtoField: "WaterQualityManagementPlanPermitTermID" },
+                    HydromodificationAppliesType: { options: HydromodificationAppliesTypesAsSelectDropdownOptions, dtoField: "HydromodificationAppliesTypeID" },
+                    TrashCaptureStatusType: { options: TrashCaptureStatusTypesAsSelectDropdownOptions, dtoField: "TrashCaptureStatusTypeID" },
+                };
+            }),
+            switchMap(() => this.wqmpService.getExtractionResultWaterQualityManagementPlan(this.waterQualityManagementPlanID)),
+            tap((result) => {
+                this.parseExtractionResult(result.ExtractionResultJson);
+            }),
+            switchMap((result) =>
+                this.http.get(`${environment.mainAppApiUrl}/file-resources/${result.FileResourceGuid}`, { responseType: "blob" }).pipe(
+                    tap((blob) => {
+                        this.pdfBlob = blob;
+                    }),
+                    switchMap(() => [result])
+                )
+            ),
+            catchError(() => {
+                this.alertService.pushAlert(new Alert("Failed to load extraction results or PDF document.", AlertContext.Danger));
+                return EMPTY;
+            }),
+            shareReplay(1)
+        );
     }
 
     goToStep(step: number): void {
@@ -335,20 +372,38 @@ export class WqmpReviewComponent implements OnInit {
                     MaintenanceContactCity: "MaintenanceContactCity",
                     MaintenanceContactState: "MaintenanceContactState",
                     MaintenanceContactZip: "MaintenanceContactZip",
-                    // TODO: Lookup fields (Jurisdiction, HydrologicSubarea, Priority, etc.) need
-                    // name-to-ID resolution before they can be mapped.
                 };
                 for (const field of this.fields()) {
-                    if ((field.state === "accepted" || field.state === "edited") && textFields[field.key] && field.acceptedValue != null) {
+                    if (field.state !== "accepted" && field.state !== "edited") continue;
+                    if (field.acceptedValue == null) continue;
+
+                    // Text fields
+                    if (textFields[field.key]) {
                         dto[textFields[field.key]] = field.acceptedValue;
+                        continue;
+                    }
+
+                    // Lookup fields (value is already an ID from the dropdown)
+                    const lookupConfig = this.lookupFieldConfig[field.key];
+                    if (lookupConfig) {
+                        dto[lookupConfig.dtoField] = Number(field.acceptedValue);
+                        continue;
                     }
                 }
 
-                // Handle numeric fields separately
+                // Handle numeric fields
                 const acresField = this.fields().find((f) => f.key === "RecordedWQMPAreaInAcres");
                 if (acresField && (acresField.state === "accepted" || acresField.state === "edited") && acresField.acceptedValue) {
                     const parsed = parseFloat(acresField.acceptedValue);
                     if (!isNaN(parsed)) dto.RecordedWQMPAreaInAcres = parsed;
+                }
+
+                // Handle date fields
+                for (const dateKey of ["ApprovalDate", "DateOfConstruction"]) {
+                    const dateField = this.fields().find((f) => f.key === dateKey);
+                    if (dateField && (dateField.state === "accepted" || dateField.state === "edited") && dateField.acceptedValue) {
+                        dto[dateKey] = dateField.acceptedValue;
+                    }
                 }
 
                 return this.wqmpService.updateWaterQualityManagementPlan(this.waterQualityManagementPlanID, dto);
@@ -390,18 +445,36 @@ export class WqmpReviewComponent implements OnInit {
     }
 
     private makeField(key: string, extracted: any, step: number): ExtractedField {
-        const value = extracted?.Value ?? null;
+        const rawValue = extracted?.Value ?? null;
         const evidence = extracted?.ExtractionEvidence ?? null;
         const source = extracted?.DocumentSource ?? null;
+        const lookupConfig = this.lookupFieldConfig[key];
+
+        let value = rawValue;
+        let fieldType: FormFieldType | undefined;
+        let selectOptions: SelectDropdownOption[] | undefined;
+
+        if (lookupConfig) {
+            fieldType = FormFieldType.Select;
+            selectOptions = lookupConfig.options;
+            // Resolve extracted text name to the matching option's ID
+            if (rawValue) {
+                const match = lookupConfig.options.find((o) => o.Label.toLowerCase() === rawValue.toLowerCase());
+                value = match ? String(match.Value) : null;
+            }
+        }
+
         return {
             key,
             label: this.fieldLabels[key] || key,
             value,
             evidence,
             source,
-            confidence: this.inferConfidence(value, evidence, source),
+            confidence: this.inferConfidence(rawValue, evidence, source),
             step,
             state: "pending",
+            fieldType,
+            selectOptions,
         };
     }
 

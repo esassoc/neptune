@@ -37,7 +37,7 @@
                 </div>
             </div>
         } @else {
-            <span [class.field-card__value--empty]="!currentValue" [class.field-card__value--clickable]="!!documentSource" (click)="goToSource()">{{ currentValue ?? "Not extracted" }}</span>
+            <span [class.field-card__value--empty]="!currentValue" [class.field-card__value--clickable]="!!documentSource" (click)="goToSource()">{{ fieldType === FormFieldType.Select && currentValue ? getOptionLabel(currentValue) : (currentValue ?? "Not extracted") }}</span>
         }
     </div>
 

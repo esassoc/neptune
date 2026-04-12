@@ -73,6 +73,10 @@ export class FieldCardComponent {
         this.showEvidence.update((v) => !v);
     }
 
+    getOptionLabel(value: string): string {
+        return this.selectOptions?.find((o) => String(o.Value) === value)?.Label ?? value;
+    }
+
     goToSource(): void {
         if (this.extractionEvidence || this.documentSource) {
             this.navigateToSource.emit({ evidence: this.extractionEvidence, documentSource: this.documentSource });

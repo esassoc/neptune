@@ -73,6 +73,8 @@
                         [extractionEvidence]="field.evidence"
                         [documentSource]="field.source"
                         [confidence]="field.confidence"
+                        [fieldType]="field.fieldType ?? FormFieldType.Text"
+                        [selectOptions]="field.selectOptions ?? []"
                         (valueAccepted)="onFieldAccepted(field, $event)"
                         (valueEdited)="onFieldEdited(field, $event)"
                         (valueRejected)="onFieldRejected(field)"
