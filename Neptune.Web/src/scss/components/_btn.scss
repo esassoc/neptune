@@ -273,8 +273,9 @@
     }
 
     &-white-outline {
+        background: transparent;
         color: $white;
-        border-color: $white;
+        border: 1px solid $white;
 
         &:hover {
             background: $white;
