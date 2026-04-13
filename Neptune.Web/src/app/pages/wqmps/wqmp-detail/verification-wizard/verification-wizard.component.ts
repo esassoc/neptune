@@ -78,6 +78,11 @@ export class VerificationWizardComponent implements OnInit {
         { number: 5, title: "Review & Finalize" },
     ];
 
+    isStepDisabled(stepNumber: number): boolean {
+        // Steps beyond Basics require a saved verification record (ID) to attach child records to
+        return stepNumber > 1 && !this.waterQualityManagementPlanVerifyID;
+    }
+
     ngOnInit(): void {
         this.mode = this.waterQualityManagementPlanVerifyID ? "edit" : "create";
 
@@ -160,7 +165,7 @@ export class VerificationWizardComponent implements OnInit {
     }
 
     goToStep(step: number): void {
-        if (step >= 1 && step <= this.steps.length) {
+        if (step >= 1 && step <= this.steps.length && !this.isStepDisabled(step)) {
             this.currentStep.set(step);
         }
     }
@@ -201,7 +206,7 @@ export class VerificationWizardComponent implements OnInit {
     }
 
     saveDraft(): void {
-        this.save(true);
+        this.save(true, /* navigateAfterSave */ false);
     }
 
     finalize(): void {
@@ -217,10 +222,10 @@ export class VerificationWizardComponent implements OnInit {
                 return;
             }
         }
-        this.save(false);
+        this.save(false, /* navigateAfterSave */ true);
     }
 
-    private save(isDraft: boolean): void {
+    private save(isDraft: boolean, navigateAfterSave: boolean): void {
         if (this.basicsForm.invalid) {
             this.alertService.pushAlert(new Alert("Please complete all required fields in the Basics step.", AlertContext.Danger));
             this.currentStep.set(1);
@@ -230,17 +235,28 @@ export class VerificationWizardComponent implements OnInit {
         this.isSaving = true;
         this.alertService.clearAlerts();
         const dto = this.buildUpsertDto(isDraft);
+        const isCreate = this.mode === "create";
 
-        const save$ = this.mode === "edit"
-            ? this.wqmpService.updateVerificationWaterQualityManagementPlan(this.waterQualityManagementPlanID, this.waterQualityManagementPlanVerifyID, dto)
-            : this.wqmpService.createVerificationWaterQualityManagementPlan(this.waterQualityManagementPlanID, dto);
+        const save$ = isCreate
+            ? this.wqmpService.createVerificationWaterQualityManagementPlan(this.waterQualityManagementPlanID, dto)
+            : this.wqmpService.updateVerificationWaterQualityManagementPlan(this.waterQualityManagementPlanID, this.waterQualityManagementPlanVerifyID, dto);
 
         save$.subscribe({
-            next: () => {
+            next: (saved) => {
                 this.isSaving = false;
                 const msg = isDraft ? "Verification saved as draft." : "Verification finalized.";
                 this.alertService.pushAlert(new Alert(msg, AlertContext.Success));
-                this.router.navigate(["/water-quality-management-plans", this.waterQualityManagementPlanID]);
+
+                if (navigateAfterSave) {
+                    // Finalize → return to detail page (alert persists via AlertService singleton)
+                    this.router.navigate(["/water-quality-management-plans", this.waterQualityManagementPlanID]);
+                } else if (isCreate && saved?.WaterQualityManagementPlanVerifyID) {
+                    // First save in create mode → switch to edit URL so subsequent saves are updates
+                    this.router.navigate(
+                        ["/water-quality-management-plans", this.waterQualityManagementPlanID, "verifications", saved.WaterQualityManagementPlanVerifyID],
+                        { replaceUrl: true }
+                    );
+                }
             },
             error: () => {
                 this.isSaving = false;

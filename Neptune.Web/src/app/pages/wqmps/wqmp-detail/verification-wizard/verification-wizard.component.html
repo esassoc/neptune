@@ -15,6 +15,8 @@
             @for (step of steps; track step.number) {
                 <button class="wizard-sidebar__step"
                     [class.wizard-sidebar__step--active]="currentStep() === step.number"
+                    [class.wizard-sidebar__step--disabled]="isStepDisabled(step.number)"
+                    [disabled]="isStepDisabled(step.number)"
                     (click)="goToStep(step.number)">
                     <span class="wizard-sidebar__number">{{ step.number }}</span>
                     <span class="wizard-sidebar__title">{{ step.title }}</span>
@@ -79,7 +81,7 @@
                     @if (mode !== "view") {
                         <button class="btn btn-secondary-outline" (click)="saveDraft()" [disabled]="isSaving">Save Draft</button>
                     }
-                    @if (currentStep() < steps.length) {
+                    @if (currentStep() < steps.length && !isStepDisabled(currentStep() + 1)) {
                         <button class="btn btn-primary" (click)="nextStep()">Next</button>
                     }
                     @if (currentStep() === steps.length && mode !== "view") {
