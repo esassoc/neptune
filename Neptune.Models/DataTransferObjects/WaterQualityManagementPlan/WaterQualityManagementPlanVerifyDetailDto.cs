@@ -27,6 +27,7 @@ public class VerifySourceControlBMPDetailDto
 {
     public int WaterQualityManagementPlanVerifySourceControlBMPID { get; set; }
     public int SourceControlBMPID { get; set; }
+    public int SourceControlBMPAttributeCategoryID { get; set; }
     public string SourceControlBMPAttributeName { get; set; }
     public string SourceControlBMPAttributeCategoryName { get; set; }
     public string WaterQualityManagementPlanSourceControlCondition { get; set; }

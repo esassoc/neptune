@@ -71,96 +71,72 @@ public static class WaterQualityManagementPlanVerifies
     public static async Task<List<WaterQualityManagementPlanVerifyGridDto>> ListByWaterQualityManagementPlanIDAsDtoAsync(
         NeptuneDbContext dbContext, int waterQualityManagementPlanID)
     {
-        var rawData = await dbContext.WaterQualityManagementPlanVerifies
+        var dtos = await dbContext.WaterQualityManagementPlanVerifies
             .AsNoTracking()
             .Where(x => x.WaterQualityManagementPlanID == waterQualityManagementPlanID)
-            .Select(x => new
-            {
-                x.WaterQualityManagementPlanVerifyID,
-                x.VerificationDate,
-                x.LastEditedDate,
-                LastEditedByPersonFullName = x.LastEditedByPerson.FirstName + " " + x.LastEditedByPerson.LastName,
-                x.WaterQualityManagementPlanVerifyTypeID,
-                x.WaterQualityManagementPlanVisitStatusID,
-                x.WaterQualityManagementPlanVerifyStatusID,
-                x.IsDraft,
-            })
             .OrderByDescending(x => x.VerificationDate)
+            .Select(WaterQualityManagementPlanVerifyProjections.AsGridDto)
             .ToListAsync();
 
-        return rawData.Select(x => new WaterQualityManagementPlanVerifyGridDto
+        // Resolve lookup display names from static binding dictionaries (not available in LINQ-to-SQL)
+        foreach (var dto in dtos)
         {
-            WaterQualityManagementPlanVerifyID = x.WaterQualityManagementPlanVerifyID,
-            VerificationDate = x.VerificationDate,
-            LastEditedDate = x.LastEditedDate,
-            LastEditedByPersonFullName = x.LastEditedByPersonFullName,
-            WaterQualityManagementPlanVerifyTypeDisplayName = WaterQualityManagementPlanVerifyType.AllLookupDictionary.TryGetValue(x.WaterQualityManagementPlanVerifyTypeID, out var verifyType) ? verifyType.WaterQualityManagementPlanVerifyTypeDisplayName : null,
-            WaterQualityManagementPlanVisitStatusDisplayName = WaterQualityManagementPlanVisitStatus.AllLookupDictionary.TryGetValue(x.WaterQualityManagementPlanVisitStatusID, out var visitStatus) ? visitStatus.WaterQualityManagementPlanVisitStatusDisplayName : null,
-            WaterQualityManagementPlanVerifyStatusDisplayName = x.WaterQualityManagementPlanVerifyStatusID.HasValue && WaterQualityManagementPlanVerifyStatus.AllLookupDictionary.TryGetValue(x.WaterQualityManagementPlanVerifyStatusID.Value, out var verifyStatus) ? verifyStatus.WaterQualityManagementPlanVerifyStatusDisplayName : null,
-            IsDraft = x.IsDraft,
-        }).ToList();
+            if (WaterQualityManagementPlanVerifyType.AllLookupDictionary.TryGetValue(dto.WaterQualityManagementPlanVerifyTypeID, out var verifyType))
+            {
+                dto.WaterQualityManagementPlanVerifyTypeDisplayName = verifyType.WaterQualityManagementPlanVerifyTypeDisplayName;
+            }
+            if (WaterQualityManagementPlanVisitStatus.AllLookupDictionary.TryGetValue(dto.WaterQualityManagementPlanVisitStatusID, out var visitStatus))
+            {
+                dto.WaterQualityManagementPlanVisitStatusDisplayName = visitStatus.WaterQualityManagementPlanVisitStatusDisplayName;
+            }
+            if (dto.WaterQualityManagementPlanVerifyStatusID.HasValue
+                && WaterQualityManagementPlanVerifyStatus.AllLookupDictionary.TryGetValue(dto.WaterQualityManagementPlanVerifyStatusID.Value, out var verifyStatus))
+            {
+                dto.WaterQualityManagementPlanVerifyStatusDisplayName = verifyStatus.WaterQualityManagementPlanVerifyStatusDisplayName;
+            }
+        }
+
+        return dtos;
     }
 
     public static async Task<WaterQualityManagementPlanVerifyDetailDto> GetByIDAsDtoAsync(
         NeptuneDbContext dbContext, int waterQualityManagementPlanVerifyID)
     {
-        var verify = await dbContext.WaterQualityManagementPlanVerifies
+        var dto = await dbContext.WaterQualityManagementPlanVerifies
             .AsNoTracking()
-            .Include(x => x.LastEditedByPerson)
-            .Include(x => x.FileResource)
-            .Include(x => x.WaterQualityManagementPlanVerifyTreatmentBMPs).ThenInclude(x => x.TreatmentBMP)
-            .Include(x => x.WaterQualityManagementPlanVerifyQuickBMPs).ThenInclude(x => x.QuickBMP).ThenInclude(x => x.TreatmentBMPType)
-            .Include(x => x.WaterQualityManagementPlanVerifySourceControlBMPs).ThenInclude(x => x.SourceControlBMP).ThenInclude(x => x.SourceControlBMPAttribute).ThenInclude(x => x.SourceControlBMPAttributeCategory)
-            .SingleOrDefaultAsync(x => x.WaterQualityManagementPlanVerifyID == waterQualityManagementPlanVerifyID);
+            .Where(x => x.WaterQualityManagementPlanVerifyID == waterQualityManagementPlanVerifyID)
+            .Select(WaterQualityManagementPlanVerifyProjections.AsDetailDto)
+            .SingleOrDefaultAsync();
 
-        if (verify == null) return null;
+        if (dto == null) return null;
 
-        return new WaterQualityManagementPlanVerifyDetailDto
+        ResolveLookupDisplayNames(dto);
+        return dto;
+    }
+
+    // Resolves lookup display names from static binding dictionaries (not available in LINQ-to-SQL projections)
+    private static void ResolveLookupDisplayNames(WaterQualityManagementPlanVerifyDetailDto dto)
+    {
+        if (WaterQualityManagementPlanVerifyType.AllLookupDictionary.TryGetValue(dto.WaterQualityManagementPlanVerifyTypeID, out var verifyType))
         {
-            WaterQualityManagementPlanVerifyID = verify.WaterQualityManagementPlanVerifyID,
-            WaterQualityManagementPlanID = verify.WaterQualityManagementPlanID,
-            WaterQualityManagementPlanVerifyTypeID = verify.WaterQualityManagementPlanVerifyTypeID,
-            WaterQualityManagementPlanVerifyTypeDisplayName = WaterQualityManagementPlanVerifyType.AllLookupDictionary.TryGetValue(verify.WaterQualityManagementPlanVerifyTypeID, out var vt) ? vt.WaterQualityManagementPlanVerifyTypeDisplayName : null,
-            WaterQualityManagementPlanVisitStatusID = verify.WaterQualityManagementPlanVisitStatusID,
-            WaterQualityManagementPlanVisitStatusDisplayName = WaterQualityManagementPlanVisitStatus.AllLookupDictionary.TryGetValue(verify.WaterQualityManagementPlanVisitStatusID, out var vs) ? vs.WaterQualityManagementPlanVisitStatusDisplayName : null,
-            WaterQualityManagementPlanVerifyStatusID = verify.WaterQualityManagementPlanVerifyStatusID,
-            WaterQualityManagementPlanVerifyStatusDisplayName = verify.WaterQualityManagementPlanVerifyStatusID.HasValue && WaterQualityManagementPlanVerifyStatus.AllLookupDictionary.TryGetValue(verify.WaterQualityManagementPlanVerifyStatusID.Value, out var vrs) ? vrs.WaterQualityManagementPlanVerifyStatusDisplayName : null,
-            VerificationDate = verify.VerificationDate,
-            LastEditedDate = verify.LastEditedDate,
-            LastEditedByPersonFullName = verify.LastEditedByPerson != null ? $"{verify.LastEditedByPerson.FirstName} {verify.LastEditedByPerson.LastName}" : null,
-            SourceControlCondition = verify.SourceControlCondition,
-            EnforcementOrFollowupActions = verify.EnforcementOrFollowupActions,
-            IsDraft = verify.IsDraft,
-            FileResourceGUID = verify.FileResource?.FileResourceGUID.ToString(),
-            TreatmentBMPs = verify.WaterQualityManagementPlanVerifyTreatmentBMPs.Select(x => new WaterQualityManagementPlanVerifyTreatmentBMPSimpleDto
+            dto.WaterQualityManagementPlanVerifyTypeDisplayName = verifyType.WaterQualityManagementPlanVerifyTypeDisplayName;
+        }
+        if (WaterQualityManagementPlanVisitStatus.AllLookupDictionary.TryGetValue(dto.WaterQualityManagementPlanVisitStatusID, out var visitStatus))
+        {
+            dto.WaterQualityManagementPlanVisitStatusDisplayName = visitStatus.WaterQualityManagementPlanVisitStatusDisplayName;
+        }
+        if (dto.WaterQualityManagementPlanVerifyStatusID.HasValue
+            && WaterQualityManagementPlanVerifyStatus.AllLookupDictionary.TryGetValue(dto.WaterQualityManagementPlanVerifyStatusID.Value, out var verifyStatus))
+        {
+            dto.WaterQualityManagementPlanVerifyStatusDisplayName = verifyStatus.WaterQualityManagementPlanVerifyStatusDisplayName;
+        }
+        foreach (var sc in dto.SourceControlBMPs)
+        {
+            if (SourceControlBMPAttributeCategory.AllLookupDictionary.TryGetValue(sc.SourceControlBMPAttributeCategoryID, out var category))
             {
-                WaterQualityManagementPlanVerifyTreatmentBMPID = x.WaterQualityManagementPlanVerifyTreatmentBMPID,
-                WaterQualityManagementPlanVerifyID = x.WaterQualityManagementPlanVerifyID,
-                TreatmentBMPID = x.TreatmentBMPID,
-                IsAdequate = x.IsAdequate,
-                WaterQualityManagementPlanVerifyTreatmentBMPNote = x.WaterQualityManagementPlanVerifyTreatmentBMPNote,
-                TreatmentBMPName = x.TreatmentBMP?.TreatmentBMPName,
-                TreatmentBMPType = x.TreatmentBMP?.TreatmentBMPType?.TreatmentBMPTypeName,
-            }).ToList(),
-            QuickBMPs = verify.WaterQualityManagementPlanVerifyQuickBMPs.Select(x => new WaterQualityManagementPlanVerifyQuickBMPDto
-            {
-                WaterQualityManagementPlanVerifyQuickBMPID = x.WaterQualityManagementPlanVerifyQuickBMPID,
-                WaterQualityManagementPlanVerifyID = x.WaterQualityManagementPlanVerifyID,
-                QuickBMPID = x.QuickBMPID,
-                IsAdequate = x.IsAdequate,
-                WaterQualityManagementPlanVerifyQuickBMPNote = x.WaterQualityManagementPlanVerifyQuickBMPNote,
-                QuickBMPName = x.QuickBMP?.QuickBMPName,
-                TreatmentBMPType = x.QuickBMP?.TreatmentBMPType?.TreatmentBMPTypeName,
-            }).ToList(),
-            SourceControlBMPs = verify.WaterQualityManagementPlanVerifySourceControlBMPs.Select(x => new VerifySourceControlBMPDetailDto
-            {
-                WaterQualityManagementPlanVerifySourceControlBMPID = x.WaterQualityManagementPlanVerifySourceControlBMPID,
-                SourceControlBMPID = x.SourceControlBMPID,
-                SourceControlBMPAttributeName = x.SourceControlBMP?.SourceControlBMPAttribute?.SourceControlBMPAttributeName,
-                SourceControlBMPAttributeCategoryName = x.SourceControlBMP?.SourceControlBMPAttribute?.SourceControlBMPAttributeCategory?.SourceControlBMPAttributeCategoryName,
-                WaterQualityManagementPlanSourceControlCondition = x.WaterQualityManagementPlanSourceControlCondition,
-            }).ToList(),
-        };
+                sc.SourceControlBMPAttributeCategoryName = category.SourceControlBMPAttributeCategoryName;
+            }
+        }
     }
 
     public static async Task<WaterQualityManagementPlanVerifyDetailDto> CreateAsync(

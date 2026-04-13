@@ -15,8 +15,11 @@ export class WaterQualityManagementPlanVerifyGridDto {
     VerificationDate?: string;
     LastEditedDate?: string;
     LastEditedByPersonFullName?: string | null;
+    WaterQualityManagementPlanVerifyTypeID?: number;
     WaterQualityManagementPlanVerifyTypeDisplayName?: string | null;
+    WaterQualityManagementPlanVisitStatusID?: number;
     WaterQualityManagementPlanVisitStatusDisplayName?: string | null;
+    WaterQualityManagementPlanVerifyStatusID?: number | null;
     WaterQualityManagementPlanVerifyStatusDisplayName?: string | null;
     IsDraft?: boolean;
     constructor(obj?: any) {
@@ -29,8 +32,11 @@ export interface WaterQualityManagementPlanVerifyGridDtoForm {
     VerificationDate?: FormControl<string>;
     LastEditedDate?: FormControl<string>;
     LastEditedByPersonFullName?: FormControl<string>;
+    WaterQualityManagementPlanVerifyTypeID?: FormControl<number>;
     WaterQualityManagementPlanVerifyTypeDisplayName?: FormControl<string>;
+    WaterQualityManagementPlanVisitStatusID?: FormControl<number>;
     WaterQualityManagementPlanVisitStatusDisplayName?: FormControl<string>;
+    WaterQualityManagementPlanVerifyStatusID?: FormControl<number>;
     WaterQualityManagementPlanVerifyStatusDisplayName?: FormControl<string>;
     IsDraft?: FormControl<boolean>;
 }
@@ -76,6 +82,16 @@ export class WaterQualityManagementPlanVerifyGridDtoFormControls {
             ],
         }
     );
+    public static WaterQualityManagementPlanVerifyTypeID = (value: FormControlState<number> | number = undefined, formControlOptions?: FormControlOptions | null) => new FormControl<number>(
+        value,
+        formControlOptions ?? 
+        {
+            nonNullable: false,
+            validators: 
+            [
+            ],
+        }
+    );
     public static WaterQualityManagementPlanVerifyTypeDisplayName = (value: FormControlState<string> | string = undefined, formControlOptions?: FormControlOptions | null) => new FormControl<string>(
         value,
         formControlOptions ?? 
@@ -86,7 +102,27 @@ export class WaterQualityManagementPlanVerifyGridDtoFormControls {
             ],
         }
     );
+    public static WaterQualityManagementPlanVisitStatusID = (value: FormControlState<number> | number = undefined, formControlOptions?: FormControlOptions | null) => new FormControl<number>(
+        value,
+        formControlOptions ?? 
+        {
+            nonNullable: false,
+            validators: 
+            [
+            ],
+        }
+    );
     public static WaterQualityManagementPlanVisitStatusDisplayName = (value: FormControlState<string> | string = undefined, formControlOptions?: FormControlOptions | null) => new FormControl<string>(
+        value,
+        formControlOptions ?? 
+        {
+            nonNullable: false,
+            validators: 
+            [
+            ],
+        }
+    );
+    public static WaterQualityManagementPlanVerifyStatusID = (value: FormControlState<number> | number = undefined, formControlOptions?: FormControlOptions | null) => new FormControl<number>(
         value,
         formControlOptions ?? 
         {

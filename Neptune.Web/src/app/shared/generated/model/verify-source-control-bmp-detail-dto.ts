@@ -13,6 +13,7 @@ import { FormControl, FormControlOptions, FormControlState, Validators } from "@
 export class VerifySourceControlBMPDetailDto { 
     WaterQualityManagementPlanVerifySourceControlBMPID?: number;
     SourceControlBMPID?: number;
+    SourceControlBMPAttributeCategoryID?: number;
     SourceControlBMPAttributeName?: string | null;
     SourceControlBMPAttributeCategoryName?: string | null;
     WaterQualityManagementPlanSourceControlCondition?: string | null;
@@ -24,6 +25,7 @@ export class VerifySourceControlBMPDetailDto {
 export interface VerifySourceControlBMPDetailDtoForm { 
     WaterQualityManagementPlanVerifySourceControlBMPID?: FormControl<number>;
     SourceControlBMPID?: FormControl<number>;
+    SourceControlBMPAttributeCategoryID?: FormControl<number>;
     SourceControlBMPAttributeName?: FormControl<string>;
     SourceControlBMPAttributeCategoryName?: FormControl<string>;
     WaterQualityManagementPlanSourceControlCondition?: FormControl<string>;
@@ -41,6 +43,16 @@ export class VerifySourceControlBMPDetailDtoFormControls {
         }
     );
     public static SourceControlBMPID = (value: FormControlState<number> | number = undefined, formControlOptions?: FormControlOptions | null) => new FormControl<number>(
+        value,
+        formControlOptions ?? 
+        {
+            nonNullable: false,
+            validators: 
+            [
+            ],
+        }
+    );
+    public static SourceControlBMPAttributeCategoryID = (value: FormControlState<number> | number = undefined, formControlOptions?: FormControlOptions | null) => new FormControl<number>(
         value,
         formControlOptions ?? 
         {

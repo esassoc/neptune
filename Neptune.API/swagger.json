@@ -14801,6 +14801,10 @@
             "type": "integer",
             "format": "int32"
           },
+          "SourceControlBMPAttributeCategoryID": {
+            "type": "integer",
+            "format": "int32"
+          },
           "SourceControlBMPAttributeName": {
             "type": "string",
             "nullable": true
@@ -15637,12 +15641,25 @@
             "type": "string",
             "nullable": true
           },
+          "WaterQualityManagementPlanVerifyTypeID": {
+            "type": "integer",
+            "format": "int32"
+          },
           "WaterQualityManagementPlanVerifyTypeDisplayName": {
             "type": "string",
             "nullable": true
           },
+          "WaterQualityManagementPlanVisitStatusID": {
+            "type": "integer",
+            "format": "int32"
+          },
           "WaterQualityManagementPlanVisitStatusDisplayName": {
             "type": "string",
+            "nullable": true
+          },
+          "WaterQualityManagementPlanVerifyStatusID": {
+            "type": "integer",
+            "format": "int32",
             "nullable": true
           },
           "WaterQualityManagementPlanVerifyStatusDisplayName": {
