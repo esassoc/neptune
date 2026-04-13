@@ -9,7 +9,7 @@
         cursor: pointer;
     }
 
-    a {
+    a:not(.btn) {
         color: white;
     }
 }

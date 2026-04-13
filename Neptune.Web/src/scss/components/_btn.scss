@@ -277,7 +277,9 @@
         color: $white;
         border: 1px solid $white;
 
-        &:hover {
+        &:hover,
+        &:focus,
+        &:active {
             background: $white;
             color: $primary;
         }
