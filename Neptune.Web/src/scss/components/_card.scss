@@ -23,6 +23,11 @@
         border-bottom: 1px solid rgba(0, 0, 0, 0.125);
         color: $white;
         font-weight: 700;
+
+        // Plain link anchors inherit the white header color; buttons opt out via .btn so they can use their own colors
+        a:not(.btn) {
+            color: $white;
+        }
     }
 
     &-actions {
