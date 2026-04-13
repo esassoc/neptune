@@ -10,8 +10,40 @@
 
 @if (loaded$ | async) {
     <div class="wizard-layout">
-        <!-- Step sidebar -->
+        <!-- Step sidebar with header on top -->
         <aside class="wizard-sidebar">
+            <div class="wizard-header">
+                <dl>
+                    <dt>WQMP</dt>
+                    <dd>
+                        <a [routerLink]="['/water-quality-management-plans', waterQualityManagementPlanID]">{{ wqmpName() }}</a>
+                    </dd>
+                </dl>
+                <dl>
+                    <dt>Status</dt>
+                    <dd>
+                        @if (!waterQualityManagementPlanVerifyID) {
+                            <span class="badge badge--draft">New</span>
+                        } @else if (isFinalized()) {
+                            <span class="badge badge--finalized">Finalized</span>
+                        } @else {
+                            <span class="badge badge--draft">Draft</span>
+                        }
+                    </dd>
+                </dl>
+                @if (verificationDate()) {
+                    <dl>
+                        <dt>Verification Date</dt>
+                        <dd>{{ verificationDate() | date: "MM/dd/yyyy" }}</dd>
+                    </dl>
+                }
+                @if (waterQualityManagementPlanVerifyID && !isFinalized()) {
+                    <button class="btn btn-danger-outline btn-sm wizard-header__delete" (click)="deleteVerification()">
+                        <i class="fa fa-trash"></i> Delete
+                    </button>
+                }
+            </div>
+
             @for (step of steps; track step.number) {
                 <button class="wizard-sidebar__step"
                     [class.wizard-sidebar__step--active]="currentStep() === step.number"
@@ -72,25 +104,16 @@
 
             <!-- Navigation buttons -->
             <div class="wizard-nav">
-                <div>
-                    @if (currentStep() > 1) {
-                        <button class="btn btn-secondary-outline" (click)="prevStep()">Previous</button>
-                    }
-                </div>
+                <button class="btn btn-secondary-outline" (click)="cancel()">Cancel</button>
                 <div class="wizard-nav__right">
                     @if (mode !== "view") {
-                        <button class="btn btn-secondary-outline" (click)="saveDraft()" [disabled]="isSaving">Save Draft</button>
+                        <button class="btn btn-secondary-outline" (click)="save()" [disabled]="isSaving">Save</button>
+                        @if (currentStep() < steps.length) {
+                            <button class="btn btn-primary" (click)="saveAndContinue()" [disabled]="isSaving">Save and Continue</button>
+                        } @else {
+                            <button class="btn btn-primary" (click)="finalize()" [disabled]="isSaving">Finalize</button>
+                        }
                     }
-                    @if (currentStep() < steps.length && !isStepDisabled(currentStep() + 1)) {
-                        <button class="btn btn-primary" (click)="nextStep()">Next</button>
-                    }
-                    @if (currentStep() === steps.length && mode !== "view") {
-                        <button class="btn btn-primary" (click)="finalize()" [disabled]="isSaving">Finalize</button>
-                    }
-                    @if (mode === "edit") {
-                        <button class="btn btn-danger-outline" (click)="deleteVerification()">Delete</button>
-                    }
-                    <button class="btn btn-secondary-outline" (click)="cancel()">Cancel</button>
                 </div>
             </div>
         </div>

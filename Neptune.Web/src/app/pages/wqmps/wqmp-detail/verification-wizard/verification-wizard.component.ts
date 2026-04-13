@@ -1,6 +1,6 @@
 import { Component, inject, Input, OnInit, signal } from "@angular/core";
-import { Router, RouterLink } from "@angular/router";
-import { AsyncPipe } from "@angular/common";
+import { ActivatedRoute, Router, RouterLink } from "@angular/router";
+import { AsyncPipe, DatePipe } from "@angular/common";
 import { FormControl, FormGroup, ReactiveFormsModule, Validators } from "@angular/forms";
 import { forkJoin, map, Observable, of, shareReplay, tap } from "rxjs";
 import { PageHeaderComponent } from "src/app/shared/components/page-header/page-header.component";
@@ -29,7 +29,7 @@ import { ReviewStepComponent } from "src/app/pages/wqmps/wqmp-detail/verificatio
         PageHeaderComponent, AlertDisplayComponent,
         VerificationBasicsStepComponent, StructuralBmpsStepComponent,
         SimplifiedBmpsStepComponent, SourceControlStepComponent, ReviewStepComponent,
-        RouterLink, AsyncPipe,
+        RouterLink, AsyncPipe, DatePipe,
     ],
     templateUrl: "./verification-wizard.component.html",
     styleUrl: "./verification-wizard.component.scss",
@@ -39,6 +39,7 @@ export class VerificationWizardComponent implements OnInit {
     @Input() waterQualityManagementPlanVerifyID: number;
 
     private router = inject(Router);
+    private route = inject(ActivatedRoute);
     private wqmpService = inject(WaterQualityManagementPlanService);
     private alertService = inject(AlertService);
 
@@ -47,6 +48,9 @@ export class VerificationWizardComponent implements OnInit {
     public mode: "create" | "edit" | "view" = "create";
     public currentStep = signal(1);
     public isSaving = false;
+    public wqmpName = signal<string>("");
+    public verificationDate = signal<Date | null>(null);
+    public isFinalized = signal<boolean>(false);
 
     // Step 1 - Basics form
     public basicsForm = new FormGroup<VerificationBasicsForm>({
@@ -86,6 +90,12 @@ export class VerificationWizardComponent implements OnInit {
     ngOnInit(): void {
         this.mode = this.waterQualityManagementPlanVerifyID ? "edit" : "create";
 
+        // Honor optional ?step=N query param (used after a Save and Continue navigation)
+        const stepParam = Number(this.route.snapshot.queryParamMap.get("step"));
+        if (stepParam >= 1 && stepParam <= this.steps.length) {
+            this.currentStep.set(stepParam);
+        }
+
         const wqmpDetail$ = this.wqmpService.getWaterQualityManagementPlan(this.waterQualityManagementPlanID);
         const quickBMPs$ = this.wqmpService.listQuickBMPsWaterQualityManagementPlan(this.waterQualityManagementPlanID);
         const sourceControlBMPs$ = this.wqmpService.listSourceControlBMPsWaterQualityManagementPlan(this.waterQualityManagementPlanID);
@@ -102,8 +112,14 @@ export class VerificationWizardComponent implements OnInit {
         }).pipe(
             tap(({ wqmp, quickBMPs, sourceControlBMPs, verify: existingVerify }) => {
 
+                this.wqmpName.set(wqmp.WaterQualityManagementPlanName ?? "");
+
                 if (existingVerify && !existingVerify.IsDraft) {
                     this.mode = "view";
+                }
+                if (existingVerify) {
+                    this.verificationDate.set(existingVerify.VerificationDate ? new Date(existingVerify.VerificationDate) : null);
+                    this.isFinalized.set(!existingVerify.IsDraft);
                 }
 
                 // Build Treatment BMP rows from WQMP's associated BMPs
@@ -170,14 +186,6 @@ export class VerificationWizardComponent implements OnInit {
         }
     }
 
-    nextStep(): void {
-        this.goToStep(this.currentStep() + 1);
-    }
-
-    prevStep(): void {
-        this.goToStep(this.currentStep() - 1);
-    }
-
     private buildUpsertDto(isDraft: boolean): WaterQualityManagementPlanVerifyUpsertDto {
         const form = this.basicsForm.getRawValue();
         return {
@@ -205,8 +213,12 @@ export class VerificationWizardComponent implements OnInit {
         };
     }
 
-    saveDraft(): void {
-        this.save(true, /* navigateAfterSave */ false);
+    save(): void {
+        this.persistVerification(/* isDraft */ true, /* advanceStep */ false, /* returnToDetail */ false);
+    }
+
+    saveAndContinue(): void {
+        this.persistVerification(/* isDraft */ true, /* advanceStep */ true, /* returnToDetail */ false);
     }
 
     finalize(): void {
@@ -222,10 +234,10 @@ export class VerificationWizardComponent implements OnInit {
                 return;
             }
         }
-        this.save(false, /* navigateAfterSave */ true);
+        this.persistVerification(/* isDraft */ false, /* advanceStep */ false, /* returnToDetail */ true);
     }
 
-    private save(isDraft: boolean, navigateAfterSave: boolean): void {
+    private persistVerification(isDraft: boolean, advanceStep: boolean, returnToDetail: boolean): void {
         if (this.basicsForm.invalid) {
             this.alertService.pushAlert(new Alert("Please complete all required fields in the Basics step.", AlertContext.Danger));
             this.currentStep.set(1);
@@ -235,7 +247,7 @@ export class VerificationWizardComponent implements OnInit {
         this.isSaving = true;
         this.alertService.clearAlerts();
         const dto = this.buildUpsertDto(isDraft);
-        const isCreate = this.mode === "create";
+        const isCreate = !this.waterQualityManagementPlanVerifyID;
 
         const save$ = isCreate
             ? this.wqmpService.createVerificationWaterQualityManagementPlan(this.waterQualityManagementPlanID, dto)
@@ -244,18 +256,31 @@ export class VerificationWizardComponent implements OnInit {
         save$.subscribe({
             next: (saved) => {
                 this.isSaving = false;
-                const msg = isDraft ? "Verification saved as draft." : "Verification finalized.";
+                const msg = isDraft ? "Verification saved." : "Verification finalized.";
                 this.alertService.pushAlert(new Alert(msg, AlertContext.Success));
 
-                if (navigateAfterSave) {
+                // Refresh header signals from the saved DTO so changes are reflected without a full reload
+                if (saved?.VerificationDate) {
+                    this.verificationDate.set(new Date(saved.VerificationDate));
+                }
+                this.isFinalized.set(!saved?.IsDraft);
+
+                if (returnToDetail) {
                     // Finalize → return to detail page (alert persists via AlertService singleton)
                     this.router.navigate(["/water-quality-management-plans", this.waterQualityManagementPlanID]);
-                } else if (isCreate && saved?.WaterQualityManagementPlanVerifyID) {
-                    // First save in create mode → switch to edit URL so subsequent saves are updates
+                    return;
+                }
+
+                if (isCreate && saved?.WaterQualityManagementPlanVerifyID) {
+                    // First save in create mode → switch to edit URL so subsequent saves are updates.
+                    // The wizard re-instantiates after navigation; pass the target step via query param.
+                    const targetStep = advanceStep ? this.currentStep() + 1 : this.currentStep();
                     this.router.navigate(
                         ["/water-quality-management-plans", this.waterQualityManagementPlanID, "verifications", saved.WaterQualityManagementPlanVerifyID],
-                        { replaceUrl: true }
+                        { replaceUrl: true, queryParams: { step: targetStep } }
                     );
+                } else if (advanceStep) {
+                    this.currentStep.set(this.currentStep() + 1);
                 }
             },
             error: () => {
