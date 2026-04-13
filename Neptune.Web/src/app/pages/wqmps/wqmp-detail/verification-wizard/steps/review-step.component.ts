@@ -1,6 +1,7 @@
 import { Component, Input } from "@angular/core";
 import { FormGroup } from "@angular/forms";
 import { SelectDropdownOption } from "src/app/shared/components/forms/form-field/form-field.component";
+import { VerificationBasicsForm } from "src/app/pages/wqmps/wqmp-detail/verification-wizard/steps/verification-basics-step.component";
 import { BMPChecklistRow } from "src/app/pages/wqmps/wqmp-detail/verification-wizard/steps/structural-bmps-step.component";
 import { SourceControlRow } from "src/app/pages/wqmps/wqmp-detail/verification-wizard/steps/source-control-step.component";
 
@@ -15,13 +16,13 @@ import { SourceControlRow } from "src/app/pages/wqmps/wqmp-detail/verification-w
             <h4>Basics</h4>
             <dl class="grid-12">
                 <dt class="g-col-4">Verification Type</dt>
-                <dd class="g-col-8">{{ getOptionLabel(verifyTypeOptions, basicsForm.controls['WaterQualityManagementPlanVerifyTypeID'].value) }}</dd>
+                <dd class="g-col-8">{{ getOptionLabel(verifyTypeOptions, basicsForm.controls.WaterQualityManagementPlanVerifyTypeID.value) }}</dd>
                 <dt class="g-col-4">Visit Status</dt>
-                <dd class="g-col-8">{{ getOptionLabel(visitStatusOptions, basicsForm.controls['WaterQualityManagementPlanVisitStatusID'].value) }}</dd>
+                <dd class="g-col-8">{{ getOptionLabel(visitStatusOptions, basicsForm.controls.WaterQualityManagementPlanVisitStatusID.value) }}</dd>
                 <dt class="g-col-4">Verification Date</dt>
-                <dd class="g-col-8">{{ basicsForm.controls['VerificationDate'].value }}</dd>
+                <dd class="g-col-8">{{ basicsForm.controls.VerificationDate.value }}</dd>
                 <dt class="g-col-4">Verify Status</dt>
-                <dd class="g-col-8">{{ getOptionLabel(verifyStatusOptions, basicsForm.controls['WaterQualityManagementPlanVerifyStatusID'].value) || "Not set" }}</dd>
+                <dd class="g-col-8">{{ getOptionLabel(verifyStatusOptions, basicsForm.controls.WaterQualityManagementPlanVerifyStatusID.value) || "Not set" }}</dd>
             </dl>
         </div>
 
@@ -81,7 +82,7 @@ import { SourceControlRow } from "src/app/pages/wqmps/wqmp-detail/verification-w
     `],
 })
 export class ReviewStepComponent {
-    @Input() basicsForm: FormGroup;
+    @Input() basicsForm: FormGroup<VerificationBasicsForm>;
     @Input() verifyTypeOptions: SelectDropdownOption[];
     @Input() visitStatusOptions: SelectDropdownOption[];
     @Input() verifyStatusOptions: SelectDropdownOption[];

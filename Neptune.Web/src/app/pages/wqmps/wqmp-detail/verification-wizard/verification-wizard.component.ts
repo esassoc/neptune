@@ -5,7 +5,7 @@ import { FormControl, FormGroup, ReactiveFormsModule, Validators } from "@angula
 import { forkJoin, map, Observable, of, shareReplay, tap } from "rxjs";
 import { PageHeaderComponent } from "src/app/shared/components/page-header/page-header.component";
 import { AlertDisplayComponent } from "src/app/shared/components/alert-display/alert-display.component";
-import { FormFieldComponent, FormFieldType, SelectDropdownOption } from "src/app/shared/components/forms/form-field/form-field.component";
+import { FormFieldType, SelectDropdownOption } from "src/app/shared/components/forms/form-field/form-field.component";
 import { AlertService } from "src/app/shared/services/alert.service";
 import { Alert } from "src/app/shared/models/alert";
 import { AlertContext } from "src/app/shared/models/enums/alert-context.enum";
@@ -16,7 +16,7 @@ import { WaterQualityManagementPlanVerifyTypesAsSelectDropdownOptions } from "sr
 import { WaterQualityManagementPlanVisitStatusesAsSelectDropdownOptions } from "src/app/shared/generated/enum/water-quality-management-plan-visit-status-enum";
 import { WaterQualityManagementPlanVerifyStatusesAsSelectDropdownOptions } from "src/app/shared/generated/enum/water-quality-management-plan-verify-status-enum";
 import { WaterQualityManagementPlanVerifyStatusEnum } from "src/app/shared/generated/enum/water-quality-management-plan-verify-status-enum";
-import { VerificationBasicsStepComponent } from "src/app/pages/wqmps/wqmp-detail/verification-wizard/steps/verification-basics-step.component";
+import { VerificationBasicsStepComponent, VerificationBasicsForm } from "src/app/pages/wqmps/wqmp-detail/verification-wizard/steps/verification-basics-step.component";
 import { StructuralBmpsStepComponent, BMPChecklistRow } from "src/app/pages/wqmps/wqmp-detail/verification-wizard/steps/structural-bmps-step.component";
 import { SimplifiedBmpsStepComponent } from "src/app/pages/wqmps/wqmp-detail/verification-wizard/steps/simplified-bmps-step.component";
 import { SourceControlStepComponent, SourceControlRow } from "src/app/pages/wqmps/wqmp-detail/verification-wizard/steps/source-control-step.component";
@@ -26,10 +26,10 @@ import { ReviewStepComponent } from "src/app/pages/wqmps/wqmp-detail/verificatio
     selector: "verification-wizard",
     standalone: true,
     imports: [
-        PageHeaderComponent, AlertDisplayComponent, FormFieldComponent,
+        PageHeaderComponent, AlertDisplayComponent,
         VerificationBasicsStepComponent, StructuralBmpsStepComponent,
         SimplifiedBmpsStepComponent, SourceControlStepComponent, ReviewStepComponent,
-        RouterLink, AsyncPipe, ReactiveFormsModule,
+        RouterLink, AsyncPipe,
     ],
     templateUrl: "./verification-wizard.component.html",
     styleUrl: "./verification-wizard.component.scss",
@@ -49,7 +49,7 @@ export class VerificationWizardComponent implements OnInit {
     public isSaving = false;
 
     // Step 1 - Basics form
-    public basicsForm = new FormGroup({
+    public basicsForm = new FormGroup<VerificationBasicsForm>({
         WaterQualityManagementPlanVerifyTypeID: new FormControl<number>(undefined, { validators: [Validators.required], nonNullable: true }),
         WaterQualityManagementPlanVisitStatusID: new FormControl<number>(undefined, { validators: [Validators.required], nonNullable: true }),
         VerificationDate: new FormControl<string>(undefined, { validators: [Validators.required], nonNullable: true }),

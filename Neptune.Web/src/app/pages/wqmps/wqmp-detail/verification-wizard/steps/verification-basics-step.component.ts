@@ -1,6 +1,15 @@
 import { Component, Input } from "@angular/core";
-import { FormGroup, ReactiveFormsModule } from "@angular/forms";
+import { FormControl, FormGroup, ReactiveFormsModule } from "@angular/forms";
 import { FormFieldComponent, FormFieldType, SelectDropdownOption } from "src/app/shared/components/forms/form-field/form-field.component";
+
+export interface VerificationBasicsForm {
+    WaterQualityManagementPlanVerifyTypeID: FormControl<number>;
+    WaterQualityManagementPlanVisitStatusID: FormControl<number>;
+    VerificationDate: FormControl<string>;
+    WaterQualityManagementPlanVerifyStatusID: FormControl<number>;
+    EnforcementOrFollowupActions: FormControl<string>;
+    SourceControlCondition: FormControl<string>;
+}
 
 @Component({
     selector: "verification-basics-step",
@@ -35,13 +44,12 @@ import { FormFieldComponent, FormFieldType, SelectDropdownOption } from "src/app
         </div>
     `,
     styles: [`
-        @use "/src/scss/abstracts" as *;
         :host { display: block; }
         form-field { display: block; }
     `],
 })
 export class VerificationBasicsStepComponent {
-    @Input() form: FormGroup;
+    @Input() form: FormGroup<VerificationBasicsForm>;
     @Input() verifyTypeOptions: SelectDropdownOption[];
     @Input() visitStatusOptions: SelectDropdownOption[];
     @Input() verifyStatusOptions: SelectDropdownOption[];
