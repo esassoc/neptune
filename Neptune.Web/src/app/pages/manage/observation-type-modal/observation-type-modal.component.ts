@@ -1,18 +1,33 @@
 import { Component, inject, OnInit, signal } from "@angular/core";
 import { FormControl, FormGroup, ReactiveFormsModule, Validators } from "@angular/forms";
 import { DialogRef } from "@ngneat/dialog";
-import { FormFieldComponent, FormFieldType, SelectDropdownOption } from "src/app/shared/components/forms/form-field/form-field.component";
+import { FormFieldComponent, FormFieldType } from "src/app/shared/components/forms/form-field/form-field.component";
 import { AlertDisplayComponent } from "src/app/shared/components/alert-display/alert-display.component";
 import { AlertService } from "src/app/shared/services/alert.service";
+import { Alert } from "src/app/shared/models/alert";
+import { AlertContext } from "src/app/shared/models/enums/alert-context.enum";
 import { TreatmentBMPAssessmentObservationTypeService } from "src/app/shared/generated/api/treatment-bmp-assessment-observation-type.service";
 import { TreatmentBMPAssessmentObservationTypeDetailDto } from "src/app/shared/generated/model/treatment-bmp-assessment-observation-type-detail-dto";
 import { TreatmentBMPAssessmentObservationTypeUpsertDto } from "src/app/shared/generated/model/treatment-bmp-assessment-observation-type-upsert-dto";
 import { ObservationTypeSpecificationsAsSelectDropdownOptions } from "src/app/shared/generated/enum/observation-type-specification-enum";
+import {
+    CollectionMethodType, getCollectionMethod,
+    DiscreteValueSchema, PassFailSchema, PercentageSchema,
+    emptyDiscreteValueSchema, emptyPassFailSchema, emptyPercentageSchema,
+} from "./schema-types";
+import { PassFailSchemaBuilderComponent } from "./schema-builders/pass-fail-schema-builder.component";
+import { DiscreteSchemaBuilderComponent } from "./schema-builders/discrete-schema-builder.component";
+import { PercentageSchemaBuilderComponent } from "./schema-builders/percentage-schema-builder.component";
+import { SchemaPreviewComponent } from "./schema-preview.component";
 
 @Component({
     selector: "observation-type-modal",
     standalone: true,
-    imports: [ReactiveFormsModule, FormFieldComponent, AlertDisplayComponent],
+    imports: [
+        ReactiveFormsModule, FormFieldComponent, AlertDisplayComponent,
+        PassFailSchemaBuilderComponent, DiscreteSchemaBuilderComponent,
+        PercentageSchemaBuilderComponent, SchemaPreviewComponent,
+    ],
     templateUrl: "./observation-type-modal.component.html",
 })
 export class ObservationTypeModalComponent implements OnInit {
@@ -24,19 +39,37 @@ export class ObservationTypeModalComponent implements OnInit {
     public mode: "add" | "edit";
     public isEdit = false;
     public isLoading = signal(false);
+    public showPreview = signal(false);
 
     public formGroup = new FormGroup({
         TreatmentBMPAssessmentObservationTypeName: new FormControl<string>("", { validators: [Validators.required, Validators.maxLength(100)], nonNullable: true }),
         ObservationTypeSpecificationID: new FormControl<number>(undefined, { validators: [Validators.required], nonNullable: true }),
-        TreatmentBMPAssessmentObservationTypeSchema: new FormControl<string>("", { nonNullable: true }),
     });
 
     public specificationOptions = ObservationTypeSpecificationsAsSelectDropdownOptions;
+    public collectionMethod = signal<CollectionMethodType | null>(null);
+
+    // Schema state per collection method
+    public passFailSchema = signal<PassFailSchema>(emptyPassFailSchema());
+    public discreteSchema = signal<DiscreteValueSchema>(emptyDiscreteValueSchema());
+    public percentageSchema = signal<PercentageSchema>(emptyPercentageSchema());
 
     ngOnInit(): void {
         this.alertService.clearAlerts();
         this.mode = this.ref.data.mode;
         this.isEdit = this.mode === "edit";
+
+        // Watch for specification changes to update the collection method
+        this.formGroup.controls.ObservationTypeSpecificationID.valueChanges.subscribe((specID) => {
+            const cm = getCollectionMethod(specID);
+            if (cm !== this.collectionMethod()) {
+                this.collectionMethod.set(cm);
+                // Reset schemas when switching collection method
+                this.passFailSchema.set(emptyPassFailSchema());
+                this.discreteSchema.set(emptyDiscreteValueSchema());
+                this.percentageSchema.set(emptyPercentageSchema());
+            }
+        });
 
         if (this.isEdit && this.ref.data.observationTypeID) {
             this.isLoading.set(true);
@@ -45,9 +78,19 @@ export class ObservationTypeModalComponent implements OnInit {
                     this.formGroup.patchValue({
                         TreatmentBMPAssessmentObservationTypeName: detail.TreatmentBMPAssessmentObservationTypeName,
                         ObservationTypeSpecificationID: detail.ObservationTypeSpecificationID,
-                        TreatmentBMPAssessmentObservationTypeSchema: detail.TreatmentBMPAssessmentObservationTypeSchema
-                            ? this.formatJson(detail.TreatmentBMPAssessmentObservationTypeSchema) : "",
                     });
+
+                    // Parse existing schema into the correct builder
+                    const cm = getCollectionMethod(detail.ObservationTypeSpecificationID);
+                    this.collectionMethod.set(cm);
+                    if (detail.TreatmentBMPAssessmentObservationTypeSchema) {
+                        try {
+                            const parsed = JSON.parse(detail.TreatmentBMPAssessmentObservationTypeSchema);
+                            if (cm === "PassFail") this.passFailSchema.set(parsed);
+                            else if (cm === "DiscreteValue") this.discreteSchema.set(parsed);
+                            else if (cm === "Percentage") this.percentageSchema.set(parsed);
+                        } catch { /* invalid JSON — keep defaults */ }
+                    }
                     this.isLoading.set(false);
                 },
                 error: () => this.isLoading.set(false),
@@ -55,24 +98,23 @@ export class ObservationTypeModalComponent implements OnInit {
         }
     }
 
+    private serializeSchema(): string | undefined {
+        const cm = this.collectionMethod();
+        if (cm === "PassFail") return JSON.stringify(this.passFailSchema());
+        if (cm === "DiscreteValue") return JSON.stringify(this.discreteSchema());
+        if (cm === "Percentage") return JSON.stringify(this.percentageSchema());
+        return undefined;
+    }
+
     save(): void {
         if (this.formGroup.invalid) return;
         const raw = this.formGroup.getRawValue();
-
-        // Validate JSON if provided
-        if (raw.TreatmentBMPAssessmentObservationTypeSchema?.trim()) {
-            try {
-                JSON.parse(raw.TreatmentBMPAssessmentObservationTypeSchema);
-            } catch {
-                this.alertService.pushAlert({ Message: "Schema is not valid JSON.", AlertContext: 3 } as any);
-                return;
-            }
-        }
+        const schema = this.serializeSchema();
 
         const dto: TreatmentBMPAssessmentObservationTypeUpsertDto = {
             TreatmentBMPAssessmentObservationTypeName: raw.TreatmentBMPAssessmentObservationTypeName,
             ObservationTypeSpecificationID: raw.ObservationTypeSpecificationID,
-            TreatmentBMPAssessmentObservationTypeSchema: raw.TreatmentBMPAssessmentObservationTypeSchema?.trim() || undefined,
+            TreatmentBMPAssessmentObservationTypeSchema: schema,
         };
 
         const save$ = this.isEdit
@@ -87,13 +129,5 @@ export class ObservationTypeModalComponent implements OnInit {
 
     cancel(): void {
         this.ref.close(null);
-    }
-
-    private formatJson(json: string): string {
-        try {
-            return JSON.stringify(JSON.parse(json), null, 2);
-        } catch {
-            return json;
-        }
     }
 }
