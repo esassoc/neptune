@@ -8,6 +8,7 @@ export * from './coordinate-sequence';
 export * from './coordinate-sequence-factory';
 export * from './custom-attribute-dto';
 export * from './custom-attribute-type-dto';
+export * from './custom-attribute-type-upsert-dto';
 export * from './custom-attribute-type-with-treatment-bmp-type-ids-dto';
 export * from './custom-attribute-upsert-dto';
 export * from './delineation-dto';

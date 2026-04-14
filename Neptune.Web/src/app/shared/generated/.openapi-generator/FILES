@@ -48,6 +48,7 @@ model/coordinate-sequence.ts
 model/coordinate.ts
 model/custom-attribute-dto.ts
 model/custom-attribute-type-dto.ts
+model/custom-attribute-type-upsert-dto.ts
 model/custom-attribute-type-with-treatment-bmp-type-ids-dto.ts
 model/custom-attribute-upsert-dto.ts
 model/delineation-dto.ts

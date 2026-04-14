@@ -173,6 +173,53 @@
           }
         },
         "x-anonymous": true
+      },
+      "post": {
+        "tags": [
+          "CustomAttributeType"
+        ],
+        "operationId": "Create_CustomAttributeType",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CustomAttributeTypeUpsertDto"
+              }
+            },
+            "text/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CustomAttributeTypeUpsertDto"
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "$ref": "#/components/schemas/CustomAttributeTypeUpsertDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/CustomAttributeTypeDto"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CustomAttributeTypeDto"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CustomAttributeTypeDto"
+                }
+              }
+            }
+          }
+        }
       }
     },
     "/custom-attribute-types/{customAttributeTypeID}": {
@@ -215,6 +262,86 @@
           }
         },
         "x-anonymous": true
+      },
+      "put": {
+        "tags": [
+          "CustomAttributeType"
+        ],
+        "operationId": "Update_CustomAttributeType",
+        "parameters": [
+          {
+            "name": "customAttributeTypeID",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CustomAttributeTypeUpsertDto"
+              }
+            },
+            "text/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CustomAttributeTypeUpsertDto"
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "$ref": "#/components/schemas/CustomAttributeTypeUpsertDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/CustomAttributeTypeDto"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CustomAttributeTypeDto"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CustomAttributeTypeDto"
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "CustomAttributeType"
+        ],
+        "operationId": "Delete_CustomAttributeType",
+        "parameters": [
+          {
+            "name": "customAttributeTypeID",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
       }
     },
     "/purpose/{customAttributeTypePurposeID}": {
@@ -9503,6 +9630,53 @@
             "nullable": true
           },
           "CustomAttributeTypeDefaultValue": {
+            "type": "string",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "CustomAttributeTypeUpsertDto": {
+        "required": [
+          "CustomAttributeDataTypeID",
+          "CustomAttributeTypeName",
+          "CustomAttributeTypePurposeID",
+          "IsRequired"
+        ],
+        "type": "object",
+        "properties": {
+          "CustomAttributeTypeName": {
+            "maxLength": 100,
+            "minLength": 1,
+            "type": "string"
+          },
+          "CustomAttributeDataTypeID": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "MeasurementUnitTypeID": {
+            "type": "integer",
+            "format": "int32",
+            "nullable": true
+          },
+          "IsRequired": {
+            "type": "boolean"
+          },
+          "CustomAttributeTypePurposeID": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "CustomAttributeTypeDescription": {
+            "maxLength": 500,
+            "type": "string",
+            "nullable": true
+          },
+          "CustomAttributeTypeOptionsSchema": {
+            "type": "string",
+            "nullable": true
+          },
+          "CustomAttributeTypeDefaultValue": {
+            "maxLength": 1000,
             "type": "string",
             "nullable": true
           }
