@@ -18,6 +18,7 @@ export const routeParams = {
     customAttributePurposeID: "customAttributePurposeID",
     waterQualityManagementPlanID: "waterQualityManagementPlanID",
     waterQualityManagementPlanVerifyID: "waterQualityManagementPlanVerifyID",
+    treatmentBMPTypeID: "treatmentBMPTypeID",
 };
 
 export const routes: Routes = [
@@ -548,6 +549,21 @@ export const routes: Routes = [
                 path: "manage/observation-types",
                 title: "Observation Types",
                 loadComponent: () => import("./pages/manage/observation-types-manage.component").then((m) => m.ObservationTypesManageComponent),
+            },
+            {
+                path: "manage/treatment-bmp-types",
+                title: "Treatment BMP Types",
+                loadComponent: () => import("./pages/manage/treatment-bmp-types-manage.component").then((m) => m.TreatmentBmpTypesManageComponent),
+            },
+            {
+                path: "manage/treatment-bmp-types/new",
+                title: "New Treatment BMP Type",
+                loadComponent: () => import("./pages/manage/treatment-bmp-type-edit/treatment-bmp-type-edit.component").then((m) => m.TreatmentBmpTypeEditComponent),
+            },
+            {
+                path: `manage/treatment-bmp-types/:${routeParams.treatmentBMPTypeID}/edit`,
+                title: "Edit Treatment BMP Type",
+                loadComponent: () => import("./pages/manage/treatment-bmp-type-edit/treatment-bmp-type-edit.component").then((m) => m.TreatmentBmpTypeEditComponent),
             },
             {
                 path: "load-generating-units",
