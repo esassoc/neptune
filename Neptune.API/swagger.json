@@ -6361,6 +6361,215 @@
         }
       }
     },
+    "/observation-types": {
+      "get": {
+        "tags": [
+          "TreatmentBMPAssessmentObservationType"
+        ],
+        "operationId": "List_TreatmentBMPAssessmentObservationType",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/TreatmentBMPAssessmentObservationTypeGridDto"
+                  }
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/TreatmentBMPAssessmentObservationTypeGridDto"
+                  }
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/TreatmentBMPAssessmentObservationTypeGridDto"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "x-anonymous": true
+      },
+      "post": {
+        "tags": [
+          "TreatmentBMPAssessmentObservationType"
+        ],
+        "operationId": "Create_TreatmentBMPAssessmentObservationType",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/TreatmentBMPAssessmentObservationTypeUpsertDto"
+              }
+            },
+            "text/json": {
+              "schema": {
+                "$ref": "#/components/schemas/TreatmentBMPAssessmentObservationTypeUpsertDto"
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "$ref": "#/components/schemas/TreatmentBMPAssessmentObservationTypeUpsertDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/TreatmentBMPAssessmentObservationTypeDetailDto"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TreatmentBMPAssessmentObservationTypeDetailDto"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TreatmentBMPAssessmentObservationTypeDetailDto"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/observation-types/{observationTypeID}": {
+      "get": {
+        "tags": [
+          "TreatmentBMPAssessmentObservationType"
+        ],
+        "operationId": "Get_TreatmentBMPAssessmentObservationType",
+        "parameters": [
+          {
+            "name": "observationTypeID",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/TreatmentBMPAssessmentObservationTypeDetailDto"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TreatmentBMPAssessmentObservationTypeDetailDto"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TreatmentBMPAssessmentObservationTypeDetailDto"
+                }
+              }
+            }
+          }
+        },
+        "x-anonymous": true
+      },
+      "put": {
+        "tags": [
+          "TreatmentBMPAssessmentObservationType"
+        ],
+        "operationId": "Update_TreatmentBMPAssessmentObservationType",
+        "parameters": [
+          {
+            "name": "observationTypeID",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/TreatmentBMPAssessmentObservationTypeUpsertDto"
+              }
+            },
+            "text/json": {
+              "schema": {
+                "$ref": "#/components/schemas/TreatmentBMPAssessmentObservationTypeUpsertDto"
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "$ref": "#/components/schemas/TreatmentBMPAssessmentObservationTypeUpsertDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/TreatmentBMPAssessmentObservationTypeDetailDto"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TreatmentBMPAssessmentObservationTypeDetailDto"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TreatmentBMPAssessmentObservationTypeDetailDto"
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "TreatmentBMPAssessmentObservationType"
+        ],
+        "operationId": "Delete_TreatmentBMPAssessmentObservationType",
+        "parameters": [
+          {
+            "name": "observationTypeID",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
     "/treatment-bmps/{treatmentBMPID}/benchmarks-and-thresholds": {
       "get": {
         "tags": [
@@ -13714,6 +13923,104 @@
         },
         "additionalProperties": false
       },
+      "TreatmentBMPAssessmentObservationTypeDetailDto": {
+        "type": "object",
+        "properties": {
+          "TreatmentBMPAssessmentObservationTypeID": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "TreatmentBMPAssessmentObservationTypeName": {
+            "type": "string",
+            "nullable": true
+          },
+          "ObservationTypeSpecificationID": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "ObservationTypeCollectionMethodDisplayName": {
+            "type": "string",
+            "nullable": true
+          },
+          "ObservationTargetTypeDisplayName": {
+            "type": "string",
+            "nullable": true
+          },
+          "ObservationThresholdTypeDisplayName": {
+            "type": "string",
+            "nullable": true
+          },
+          "TreatmentBMPAssessmentObservationTypeSchema": {
+            "type": "string",
+            "nullable": true
+          },
+          "TreatmentBMPTypeNames": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "TreatmentBMPAssessmentObservationTypeGridDto": {
+        "type": "object",
+        "properties": {
+          "TreatmentBMPAssessmentObservationTypeID": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "TreatmentBMPAssessmentObservationTypeName": {
+            "type": "string",
+            "nullable": true
+          },
+          "ObservationTypeSpecificationID": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "ObservationTypeCollectionMethodDisplayName": {
+            "type": "string",
+            "nullable": true
+          },
+          "ObservationTargetTypeDisplayName": {
+            "type": "string",
+            "nullable": true
+          },
+          "ObservationThresholdTypeDisplayName": {
+            "type": "string",
+            "nullable": true
+          },
+          "TreatmentBMPTypeCount": {
+            "type": "integer",
+            "format": "int32"
+          }
+        },
+        "additionalProperties": false
+      },
+      "TreatmentBMPAssessmentObservationTypeUpsertDto": {
+        "required": [
+          "ObservationTypeSpecificationID",
+          "TreatmentBMPAssessmentObservationTypeName"
+        ],
+        "type": "object",
+        "properties": {
+          "TreatmentBMPAssessmentObservationTypeName": {
+            "maxLength": 100,
+            "minLength": 1,
+            "type": "string"
+          },
+          "ObservationTypeSpecificationID": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "TreatmentBMPAssessmentObservationTypeSchema": {
+            "type": "string",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
       "TreatmentBMPBasicInfoUpdateDto": {
         "required": [
           "SizingBasisTypeID",
@@ -16244,6 +16551,9 @@
     },
     {
       "name": "TreatmentBMP"
+    },
+    {
+      "name": "TreatmentBMPAssessmentObservationType"
     },
     {
       "name": "TreatmentBMPBenchmarkAndThreshold"

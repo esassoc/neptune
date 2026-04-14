@@ -21,7 +21,7 @@ function stripBase(apiBaseUrl: string, uri: string): string | null {
 
 const ANON_EXACT: ExactMap = {
   'DELETE': [],
-  'GET': ["/","/custom-attribute-types","/field-definitions","/jurisdictions/bounding-box","/jurisdictions/user-viewable","/land-use-blocks","/trash-generating-units/last-update-date","/treatment-bmp-type-custom-attribute-types","/treatment-bmp-types","/treatment-bmps","/treatment-bmps/modeling-attributes","/treatment-bmps/verified/feature-collection","/water-quality-management-plans/grid"],
+  'GET': ["/","/custom-attribute-types","/field-definitions","/jurisdictions/bounding-box","/jurisdictions/user-viewable","/land-use-blocks","/observation-types","/trash-generating-units/last-update-date","/treatment-bmp-type-custom-attribute-types","/treatment-bmp-types","/treatment-bmps","/treatment-bmps/modeling-attributes","/treatment-bmps/verified/feature-collection","/water-quality-management-plans/grid"],
   'POST': [],
   'PUT': [],
 };
@@ -29,7 +29,7 @@ const ANON_EXACT: ExactMap = {
 const SECURED_EXACT: ExactMap = {
   'DELETE': [],
   'GET': ["/ai/vector-stores","/delineations","/funding-sources","/hru-characteristics","/jurisdictions","/load-generating-units","/nereid/config","/nereid/delta-solve","/nereid/delta-solve-test","/nereid/health","/nereid/land-surface-loading","/nereid/land-surface-loading-baseline","/nereid/land-surface-table","/nereid/no-treatment-facility-validate","/nereid/solution-sequence","/nereid/solution-test-case","/nereid/subgraph","/nereid/total-network-graph","/nereid/treatment-facilities","/nereid/treatment-facility-validate","/nereid/treatment-sites","/nereid/validate","/onland-visual-trash-assessment-areas","/onland-visual-trash-assessments","/organization-types","/organizations","/parcels/search","/projects","/projects/OCTAM2Tier2GrantProgram","/projects/OCTAM2Tier2GrantProgram/download","/projects/OCTAM2Tier2GrantProgram/treatmentBMPs/download","/projects/delineations","/projects/download","/projects/treatmentBMPs/download","/regional-subbasins","/trash-generating-units","/treatment-bmps/octa-m2-tier2-grant-program","/treatment-bmps/planned-projects","/users","/water-quality-management-plan-documents","/water-quality-management-plans","/water-quality-management-plans/display-dtos","/water-quality-management-plans/hydrologic-subareas","/water-quality-management-plans/source-control-bmp-attributes","/water-quality-management-plans/with-final-document"],
-  'POST': ["/ai/clean-up","/custom-attribute-types","/funding-sources","/graph-trace-as-feature-collection-from-point","/onland-visual-trash-assessments","/organizations","/projects","/treatment-bmps","/user-claims","/users","/water-quality-management-plan-documents","/water-quality-management-plans","/water-quality-management-plans/upload-and-extract"],
+  'POST': ["/ai/clean-up","/custom-attribute-types","/funding-sources","/graph-trace-as-feature-collection-from-point","/observation-types","/onland-visual-trash-assessments","/organizations","/projects","/treatment-bmps","/user-claims","/users","/water-quality-management-plan-documents","/water-quality-management-plans","/water-quality-management-plans/upload-and-extract"],
   'PUT': ["/land-use-blocks"],
 };
 
@@ -43,6 +43,7 @@ const ANON_REGEX: RegexMap = {
     new RegExp("^/field-definitions/[^/]+$"),
     new RegExp("^/file-resources/[^/]+$"),
     new RegExp("^/jurisdictions/[^/]+/bounding-box$"),
+    new RegExp("^/observation-types/[^/]+$"),
     new RegExp("^/onland-visual-trash-assessment-areas/jurisdictions/[^/]+$"),
     new RegExp("^/purpose/[^/]+$"),
     new RegExp("^/trash-generating-units/[^/]+$"),
@@ -84,6 +85,7 @@ const SECURED_REGEX: RegexMap = {
   'DELETE': [
     new RegExp("^/custom-attribute-types/[^/]+$"),
     new RegExp("^/funding-sources/[^/]+$"),
+    new RegExp("^/observation-types/[^/]+$"),
     new RegExp("^/onland-visual-trash-assessments/[^/]+$"),
     new RegExp("^/onland-visual-trash-assessments/[^/]+/observations/observation-photos/[^/]+$"),
     new RegExp("^/organizations/[^/]+$"),
@@ -175,6 +177,7 @@ const SECURED_REGEX: RegexMap = {
     new RegExp("^/custom-rich-texts/[^/]+$"),
     new RegExp("^/field-definitions/[^/]+$"),
     new RegExp("^/funding-sources/[^/]+$"),
+    new RegExp("^/observation-types/[^/]+$"),
     new RegExp("^/onland-visual-trash-assessment-areas/[^/]+$"),
     new RegExp("^/organizations/[^/]+$"),
     new RegExp("^/project-documents/[^/]+$"),

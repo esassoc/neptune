@@ -26,6 +26,7 @@ api/stormwater-jurisdiction.service.ts
 api/system-info.service.ts
 api/trash-generating-unit-by-stormwater-jurisdiction.service.ts
 api/trash-generating-unit.service.ts
+api/treatment-bmp-assessment-observation-type.service.ts
 api/treatment-bmp-benchmark-and-threshold.service.ts
 api/treatment-bmp-document-by-treatment-bmp.service.ts
 api/treatment-bmp-image-by-treatment-bmp.service.ts
@@ -142,6 +143,9 @@ model/system-info-dto.ts
 model/trash-capture-status-type-dto.ts
 model/trash-generating-unit-dto.ts
 model/trash-generating-unit-grid-dto.ts
+model/treatment-bmp-assessment-observation-type-detail-dto.ts
+model/treatment-bmp-assessment-observation-type-grid-dto.ts
+model/treatment-bmp-assessment-observation-type-upsert-dto.ts
 model/treatment-bmp-basic-info-update-dto.ts
 model/treatment-bmp-benchmark-and-threshold-dto.ts
 model/treatment-bmp-benchmark-and-threshold-upsert-dto.ts
