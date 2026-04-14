@@ -115,5 +115,57 @@ namespace Neptune.EFModels.Entities
                 .Select(x => x.AsDtoWithTreatmentBmpTypeIDs())
                 .ToList();
         }
+
+        public static async Task<CustomAttributeTypeDto> CreateAsync(NeptuneDbContext dbContext, CustomAttributeTypeUpsertDto dto)
+        {
+            var entity = new CustomAttributeType
+            {
+                CustomAttributeTypeName = dto.CustomAttributeTypeName,
+                CustomAttributeDataTypeID = dto.CustomAttributeDataTypeID,
+                MeasurementUnitTypeID = dto.MeasurementUnitTypeID,
+                IsRequired = dto.IsRequired,
+                CustomAttributeTypePurposeID = dto.CustomAttributeTypePurposeID,
+                CustomAttributeTypeDescription = dto.CustomAttributeTypeDescription,
+                CustomAttributeTypeOptionsSchema = dto.CustomAttributeTypeOptionsSchema,
+                CustomAttributeTypeDefaultValue = dto.CustomAttributeTypeDefaultValue,
+            };
+            dbContext.CustomAttributeTypes.Add(entity);
+            await dbContext.SaveChangesAsync();
+            return GetByIDAsDto(dbContext, entity.CustomAttributeTypeID);
+        }
+
+        public static async Task<CustomAttributeTypeDto> UpdateAsync(NeptuneDbContext dbContext, int customAttributeTypeID, CustomAttributeTypeUpsertDto dto)
+        {
+            var entity = GetByIDWithChangeTracking(dbContext, customAttributeTypeID);
+            entity.CustomAttributeTypeName = dto.CustomAttributeTypeName;
+            entity.MeasurementUnitTypeID = dto.MeasurementUnitTypeID;
+            entity.IsRequired = dto.IsRequired;
+            entity.CustomAttributeTypePurposeID = dto.CustomAttributeTypePurposeID;
+            entity.CustomAttributeTypeDescription = dto.CustomAttributeTypeDescription;
+            entity.CustomAttributeTypeOptionsSchema = dto.CustomAttributeTypeOptionsSchema;
+            entity.CustomAttributeTypeDefaultValue = dto.CustomAttributeTypeDefaultValue;
+            // Data type can only change from String to PickFromList/MultiSelect (or vice versa)
+            if (entity.CustomAttributeDataTypeID != dto.CustomAttributeDataTypeID)
+            {
+                var stringTypeID = (int)CustomAttributeDataTypeEnum.String;
+                var pickFromListTypeID = (int)CustomAttributeDataTypeEnum.PickFromList;
+                var multiSelectTypeID = (int)CustomAttributeDataTypeEnum.MultiSelect;
+                var allowedFromString = new[] { stringTypeID, pickFromListTypeID, multiSelectTypeID };
+                if (allowedFromString.Contains(entity.CustomAttributeDataTypeID) && allowedFromString.Contains(dto.CustomAttributeDataTypeID))
+                {
+                    entity.CustomAttributeDataTypeID = dto.CustomAttributeDataTypeID;
+                }
+                // Otherwise silently ignore the type change
+            }
+            await dbContext.SaveChangesAsync();
+            return GetByIDAsDto(dbContext, customAttributeTypeID);
+        }
+
+        public static async Task DeleteAsync(NeptuneDbContext dbContext, int customAttributeTypeID)
+        {
+            var entity = GetByIDWithChangeTracking(dbContext, customAttributeTypeID);
+            entity.DeleteFull(dbContext);
+            await dbContext.SaveChangesAsync();
+        }
     }
 }
