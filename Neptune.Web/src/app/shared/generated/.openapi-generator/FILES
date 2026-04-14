@@ -163,8 +163,15 @@ model/treatment-bmp-location-update-dto.ts
 model/treatment-bmp-minimal-dto.ts
 model/treatment-bmp-modeling-attributes-dto.ts
 model/treatment-bmp-parameterization-errors-dto.ts
+model/treatment-bmp-type-custom-attribute-type-detail-dto.ts
 model/treatment-bmp-type-custom-attribute-type-dto.ts
+model/treatment-bmp-type-custom-attribute-type-upsert-dto.ts
+model/treatment-bmp-type-detail-dto.ts
+model/treatment-bmp-type-grid-dto.ts
+model/treatment-bmp-type-observation-type-detail-dto.ts
+model/treatment-bmp-type-observation-type-upsert-dto.ts
 model/treatment-bmp-type-update-dto.ts
+model/treatment-bmp-type-upsert-dto.ts
 model/treatment-bmp-type-with-modeling-attributes-dto.ts
 model/treatment-bmp-upsert-dto.ts
 model/treatment-bmp-upstream-bmp-update-dto.ts

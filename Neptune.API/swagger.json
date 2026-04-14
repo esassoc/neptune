@@ -7368,6 +7368,53 @@
           }
         },
         "x-anonymous": true
+      },
+      "post": {
+        "tags": [
+          "TreatmentBMPType"
+        ],
+        "operationId": "Create_TreatmentBMPType",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/TreatmentBMPTypeUpsertDto"
+              }
+            },
+            "text/json": {
+              "schema": {
+                "$ref": "#/components/schemas/TreatmentBMPTypeUpsertDto"
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "$ref": "#/components/schemas/TreatmentBMPTypeUpsertDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/TreatmentBMPTypeDetailDto"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TreatmentBMPTypeDetailDto"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TreatmentBMPTypeDetailDto"
+                }
+              }
+            }
+          }
+        }
       }
     },
     "/treatment-bmp-types/{treatmentBMPTypeID}/custom-attribute-types": {
@@ -7419,6 +7466,169 @@
           }
         },
         "x-anonymous": true
+      }
+    },
+    "/treatment-bmp-types/grid": {
+      "get": {
+        "tags": [
+          "TreatmentBMPType"
+        ],
+        "operationId": "ListAsGridDto_TreatmentBMPType",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/TreatmentBMPTypeGridDto"
+                  }
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/TreatmentBMPTypeGridDto"
+                  }
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/TreatmentBMPTypeGridDto"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/treatment-bmp-types/{treatmentBMPTypeID}/detail": {
+      "get": {
+        "tags": [
+          "TreatmentBMPType"
+        ],
+        "operationId": "GetDetail_TreatmentBMPType",
+        "parameters": [
+          {
+            "name": "treatmentBMPTypeID",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/TreatmentBMPTypeDetailDto"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TreatmentBMPTypeDetailDto"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TreatmentBMPTypeDetailDto"
+                }
+              }
+            }
+          }
+        },
+        "x-anonymous": true
+      }
+    },
+    "/treatment-bmp-types/{treatmentBMPTypeID}": {
+      "put": {
+        "tags": [
+          "TreatmentBMPType"
+        ],
+        "operationId": "Update_TreatmentBMPType",
+        "parameters": [
+          {
+            "name": "treatmentBMPTypeID",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/TreatmentBMPTypeUpsertDto"
+              }
+            },
+            "text/json": {
+              "schema": {
+                "$ref": "#/components/schemas/TreatmentBMPTypeUpsertDto"
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "$ref": "#/components/schemas/TreatmentBMPTypeUpsertDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/TreatmentBMPTypeDetailDto"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TreatmentBMPTypeDetailDto"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TreatmentBMPTypeDetailDto"
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "TreatmentBMPType"
+        ],
+        "operationId": "Delete_TreatmentBMPType",
+        "parameters": [
+          {
+            "name": "treatmentBMPTypeID",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
       }
     },
     "/treatment-bmp-type-custom-attribute-types": {
@@ -15096,6 +15306,37 @@
         },
         "additionalProperties": false
       },
+      "TreatmentBMPTypeCustomAttributeTypeDetailDto": {
+        "type": "object",
+        "properties": {
+          "TreatmentBMPTypeCustomAttributeTypeID": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "CustomAttributeTypeID": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "CustomAttributeTypeName": {
+            "type": "string",
+            "nullable": true
+          },
+          "CustomAttributeTypePurposeDisplayName": {
+            "type": "string",
+            "nullable": true
+          },
+          "CustomAttributeTypePurposeID": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "SortOrder": {
+            "type": "integer",
+            "format": "int32",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
       "TreatmentBMPTypeCustomAttributeTypeDto": {
         "type": "object",
         "properties": {
@@ -15122,6 +15363,176 @@
         },
         "additionalProperties": false
       },
+      "TreatmentBMPTypeCustomAttributeTypeUpsertDto": {
+        "type": "object",
+        "properties": {
+          "CustomAttributeTypeID": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "SortOrder": {
+            "type": "integer",
+            "format": "int32",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "TreatmentBMPTypeDetailDto": {
+        "type": "object",
+        "properties": {
+          "TreatmentBMPTypeID": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "TreatmentBMPTypeName": {
+            "type": "string",
+            "nullable": true
+          },
+          "TreatmentBMPTypeDescription": {
+            "type": "string",
+            "nullable": true
+          },
+          "IsAnalyzedInModelingModule": {
+            "type": "boolean"
+          },
+          "TreatmentBMPModelingTypeID": {
+            "type": "integer",
+            "format": "int32",
+            "nullable": true
+          },
+          "ObservationTypes": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/TreatmentBMPTypeObservationTypeDetailDto"
+            },
+            "nullable": true
+          },
+          "CustomAttributeTypes": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/TreatmentBMPTypeCustomAttributeTypeDetailDto"
+            },
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "TreatmentBMPTypeGridDto": {
+        "type": "object",
+        "properties": {
+          "TreatmentBMPTypeID": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "TreatmentBMPTypeName": {
+            "type": "string",
+            "nullable": true
+          },
+          "TreatmentBMPTypeDescription": {
+            "type": "string",
+            "nullable": true
+          },
+          "IsAnalyzedInModelingModule": {
+            "type": "boolean"
+          },
+          "ObservationTypeCount": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "CustomAttributeTypeCount": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "TreatmentBMPCount": {
+            "type": "integer",
+            "format": "int32"
+          }
+        },
+        "additionalProperties": false
+      },
+      "TreatmentBMPTypeObservationTypeDetailDto": {
+        "type": "object",
+        "properties": {
+          "TreatmentBMPTypeAssessmentObservationTypeID": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "TreatmentBMPAssessmentObservationTypeID": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "TreatmentBMPAssessmentObservationTypeName": {
+            "type": "string",
+            "nullable": true
+          },
+          "AssessmentScoreWeight": {
+            "type": "number",
+            "format": "double",
+            "nullable": true
+          },
+          "DefaultThresholdValue": {
+            "type": "number",
+            "format": "double",
+            "nullable": true
+          },
+          "DefaultBenchmarkValue": {
+            "type": "number",
+            "format": "double",
+            "nullable": true
+          },
+          "OverrideAssessmentScoreIfFailing": {
+            "type": "boolean"
+          },
+          "SortOrder": {
+            "type": "integer",
+            "format": "int32",
+            "nullable": true
+          },
+          "ObservationTypeCollectionMethodDisplayName": {
+            "type": "string",
+            "nullable": true
+          },
+          "ObservationTypeSpecificationID": {
+            "type": "integer",
+            "format": "int32"
+          }
+        },
+        "additionalProperties": false
+      },
+      "TreatmentBMPTypeObservationTypeUpsertDto": {
+        "type": "object",
+        "properties": {
+          "TreatmentBMPAssessmentObservationTypeID": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "AssessmentScoreWeight": {
+            "type": "number",
+            "format": "double",
+            "nullable": true
+          },
+          "DefaultThresholdValue": {
+            "type": "number",
+            "format": "double",
+            "nullable": true
+          },
+          "DefaultBenchmarkValue": {
+            "type": "number",
+            "format": "double",
+            "nullable": true
+          },
+          "OverrideAssessmentScoreIfFailing": {
+            "type": "boolean"
+          },
+          "SortOrder": {
+            "type": "integer",
+            "format": "int32",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
       "TreatmentBMPTypeUpdateDto": {
         "required": [
           "TreatmentBMPTypeID"
@@ -15131,6 +15542,39 @@
           "TreatmentBMPTypeID": {
             "type": "integer",
             "format": "int32"
+          }
+        },
+        "additionalProperties": false
+      },
+      "TreatmentBMPTypeUpsertDto": {
+        "required": [
+          "TreatmentBMPTypeName"
+        ],
+        "type": "object",
+        "properties": {
+          "TreatmentBMPTypeName": {
+            "maxLength": 100,
+            "minLength": 1,
+            "type": "string"
+          },
+          "TreatmentBMPTypeDescription": {
+            "maxLength": 1000,
+            "type": "string",
+            "nullable": true
+          },
+          "ObservationTypes": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/TreatmentBMPTypeObservationTypeUpsertDto"
+            },
+            "nullable": true
+          },
+          "CustomAttributeTypes": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/TreatmentBMPTypeCustomAttributeTypeUpsertDto"
+            },
+            "nullable": true
           }
         },
         "additionalProperties": false
