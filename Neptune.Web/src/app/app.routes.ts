@@ -545,6 +545,11 @@ export const routes: Routes = [
                 loadComponent: () => import("./pages/manage/custom-attributes.component").then((m) => m.CustomAttributesComponent),
             },
             {
+                path: "manage/observation-types",
+                title: "Observation Types",
+                loadComponent: () => import("./pages/manage/observation-types-manage.component").then((m) => m.ObservationTypesManageComponent),
+            },
+            {
                 path: "load-generating-units",
                 title: "Load Generating Units",
                 loadComponent: () => import("./pages/load-generating-units/load-generating-units.component").then((m) => m.LoadGeneratingUnitsComponent),

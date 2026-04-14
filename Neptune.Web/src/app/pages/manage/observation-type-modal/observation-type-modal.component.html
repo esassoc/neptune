@@ -1,0 +1,33 @@
+<div class="modal">
+<div class="modal-header">
+    <h3>{{ isEdit ? "Edit" : "Add" }} Observation Type</h3>
+</div>
+<div class="modal-body">
+    <app-alert-display></app-alert-display>
+    @if (!isLoading()) {
+        <form [formGroup]="formGroup">
+            <div class="grid-12">
+                <form-field class="g-col-12" [formControl]="formGroup.controls.TreatmentBMPAssessmentObservationTypeName"
+                    fieldLabel="Name" [type]="FormFieldType.Text" [required]="true" placeholder="Observation Type Name">
+                </form-field>
+                <form-field class="g-col-12" [formControl]="formGroup.controls.ObservationTypeSpecificationID"
+                    fieldLabel="Specification" [type]="FormFieldType.Select" [required]="true"
+                    placeholder="Select Specification (Collection Method + Target + Threshold)" [formInputOptions]="specificationOptions">
+                </form-field>
+            </div>
+
+            <h4 class="mt-3">Schema (JSON)</h4>
+            <p class="system-text">Define the observation schema as JSON. The schema format depends on the selected specification.</p>
+            <form-field [formControl]="formGroup.controls.TreatmentBMPAssessmentObservationTypeSchema"
+                [type]="FormFieldType.Textarea" placeholder='{"PropertiesToObserve": [...], ...}'>
+            </form-field>
+        </form>
+    } @else {
+        <p>Loading...</p>
+    }
+</div>
+<div class="modal-footer">
+    <button class="btn btn-primary" (click)="save()" [disabled]="formGroup.invalid">Save</button>
+    <button class="btn btn-secondary-outline" (click)="cancel()">Cancel</button>
+</div>
+</div>
