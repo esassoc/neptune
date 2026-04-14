@@ -14,3 +14,17 @@
 form-field {
     display: block;
 }
+
+.weight-summary {
+    margin-top: 0.5rem;
+    font-weight: 600;
+    font-size: $type-size-200;
+
+    &--error {
+        color: $red-default;
+    }
+
+    &__message {
+        font-weight: 400;
+    }
+}

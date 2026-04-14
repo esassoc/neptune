@@ -74,6 +74,12 @@
                             }
                         </tbody>
                     </table>
+                    <div class="weight-summary" [class.weight-summary--error]="hasWeightError">
+                        Weight Total: {{ weightTotal | number: '1.2-2' }}%
+                        @if (hasWeightError) {
+                            <span class="weight-summary__message">(must equal 100%)</span>
+                        }
+                    </div>
                 } @else {
                     <p class="system-text">No observation types assigned. Use the picker above to add.</p>
                 }
@@ -137,8 +143,13 @@
 
         <!-- Actions -->
         <div class="page-footer">
-            <button class="btn btn-primary" (click)="save()" [disabled]="isSaving || nameControl.invalid">Save</button>
+            <button class="btn btn-primary" (click)="save()" [disabled]="isSaving || nameControl.invalid || hasWeightError">Save</button>
             <button class="btn btn-secondary-outline" (click)="cancel()">Cancel</button>
+            @if (!isCreate) {
+                <button class="btn btn-danger-outline" (click)="deleteBMPType()" style="margin-left: auto">
+                    <i class="fa fa-trash"></i> Delete
+                </button>
+            }
         </div>
     </div>
 }

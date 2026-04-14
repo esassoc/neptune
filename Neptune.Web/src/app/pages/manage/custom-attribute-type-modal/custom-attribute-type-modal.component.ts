@@ -11,7 +11,7 @@ import {
     CustomAttributeDataTypeEnum,
     CustomAttributeDataTypesAsSelectDropdownOptions,
 } from "src/app/shared/generated/enum/custom-attribute-data-type-enum";
-import { CustomAttributeTypePurposesAsSelectDropdownOptions } from "src/app/shared/generated/enum/custom-attribute-type-purpose-enum";
+import { CustomAttributeTypePurposeEnum, CustomAttributeTypePurposesAsSelectDropdownOptions } from "src/app/shared/generated/enum/custom-attribute-type-purpose-enum";
 import { MeasurementUnitTypesAsSelectDropdownOptions } from "src/app/shared/generated/enum/measurement-unit-type-enum";
 
 @Component({
@@ -28,6 +28,7 @@ export class CustomAttributeTypeModalComponent implements OnInit {
     public FormFieldType = FormFieldType;
     public mode: "add" | "edit";
     public isEdit = false;
+    public isModelingAttribute = false;
 
     public formGroup = new FormGroup({
         CustomAttributeTypeName: new FormControl<string>("", { validators: [Validators.required, Validators.maxLength(100)], nonNullable: true }),
@@ -84,6 +85,17 @@ export class CustomAttributeTypeModalComponent implements OnInit {
                 this.dataTypeOptions = CustomAttributeDataTypesAsSelectDropdownOptions.filter((o) =>
                     allowedTypes.includes(o.Value as number)
                 );
+            }
+
+            // Modeling attributes: restrict to description-only editing
+            if (cat.CustomAttributeTypePurposeID === CustomAttributeTypePurposeEnum.Modeling) {
+                this.isModelingAttribute = true;
+                this.formGroup.controls.CustomAttributeTypeName.disable();
+                this.formGroup.controls.CustomAttributeDataTypeID.disable();
+                this.formGroup.controls.CustomAttributeTypePurposeID.disable();
+                this.formGroup.controls.MeasurementUnitTypeID.disable();
+                this.formGroup.controls.IsRequired.disable();
+                this.formGroup.controls.CustomAttributeTypeDefaultValue.disable();
             }
         }
     }

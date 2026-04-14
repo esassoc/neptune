@@ -1,6 +1,6 @@
 import { Component, inject, Input, OnInit, signal } from "@angular/core";
 import { Router, RouterLink } from "@angular/router";
-import { AsyncPipe } from "@angular/common";
+import { AsyncPipe, DecimalPipe } from "@angular/common";
 import { FormControl, FormGroup, ReactiveFormsModule, Validators, FormsModule } from "@angular/forms";
 import { forkJoin, map, Observable, of, shareReplay, tap } from "rxjs";
 import { NgSelectModule } from "@ng-select/ng-select";
@@ -42,7 +42,7 @@ interface CustomAttributeRow {
 @Component({
     selector: "treatment-bmp-type-edit",
     standalone: true,
-    imports: [PageHeaderComponent, AlertDisplayComponent, FormFieldComponent, RouterLink, AsyncPipe, ReactiveFormsModule, FormsModule, NgSelectModule],
+    imports: [PageHeaderComponent, AlertDisplayComponent, FormFieldComponent, RouterLink, AsyncPipe, DecimalPipe, ReactiveFormsModule, FormsModule, NgSelectModule],
     templateUrl: "./treatment-bmp-type-edit.component.html",
     styleUrl: "./treatment-bmp-type-edit.component.scss",
 })
@@ -174,8 +174,24 @@ export class TreatmentBmpTypeEditComponent implements OnInit {
         this.customAttributeRows.update((rows) => rows.filter((r) => r.CustomAttributeTypeID !== id));
     }
 
+    get weightTotal(): number {
+        return this.observationTypeRows()
+            .filter((r) => r.AssessmentScoreWeight != null)
+            .reduce((sum, r) => sum + Number(r.AssessmentScoreWeight), 0);
+    }
+
+    get hasWeightError(): boolean {
+        const rows = this.observationTypeRows();
+        const rowsWithWeight = rows.filter((r) => r.AssessmentScoreWeight != null);
+        return rowsWithWeight.length > 0 && Math.abs(this.weightTotal - 100) > 0.01;
+    }
+
     save(): void {
         if (this.nameControl.invalid) return;
+        if (this.hasWeightError) {
+            this.alertService.pushAlert(new Alert("Observation type weights must sum to 100%. Currently: " + this.weightTotal.toFixed(2) + "%.", AlertContext.Danger));
+            return;
+        }
         this.isSaving = true;
         this.alertService.clearAlerts();
 
@@ -215,5 +231,22 @@ export class TreatmentBmpTypeEditComponent implements OnInit {
 
     cancel(): void {
         this.router.navigate(["/manage/treatment-bmp-types"]);
+    }
+
+    deleteBMPType(): void {
+        const bmpCount = this.observationTypeRows().length;
+        const catCount = this.customAttributeRows().length;
+        const msg = `Are you sure you want to delete this Treatment BMP Type? This will also delete all associated BMPs, maintenance records, and observations. (${bmpCount} observation types, ${catCount} custom attributes currently assigned)`;
+        if (!confirm(msg)) return;
+
+        this.bmpTypeService.deleteTreatmentBMPType(this.treatmentBMPTypeID).subscribe({
+            next: () => {
+                this.alertService.pushAlert(new Alert("Treatment BMP Type deleted.", AlertContext.Success));
+                this.router.navigate(["/manage/treatment-bmp-types"]);
+            },
+            error: () => {
+                this.alertService.pushAlert(new Alert("An error occurred while deleting.", AlertContext.Danger));
+            },
+        });
     }
 }
