@@ -72,7 +72,12 @@ namespace Neptune.EFModels.Entities
 
         public static CustomAttributeTypeDto GetByIDAsDto(NeptuneDbContext dbContext, int customAttributeTypeID)
         {
-            return GetByID(dbContext, customAttributeTypeID).AsDto();
+            var dto = dbContext.CustomAttributeTypes.AsNoTracking()
+                .Where(x => x.CustomAttributeTypeID == customAttributeTypeID)
+                .Select(CustomAttributeTypeProjections.AsDto)
+                .SingleOrDefault();
+            if (dto != null) ResolveLookupDisplayNames(dto);
+            return dto;
         }
 
         public static List<CustomAttributeType> List(NeptuneDbContext dbContext)
@@ -82,7 +87,29 @@ namespace Neptune.EFModels.Entities
 
         public static List<CustomAttributeTypeDto> ListAsDto(NeptuneDbContext dbContext)
         {
-            return List(dbContext).Select(x => x.AsDto()).ToList();
+            var dtos = dbContext.CustomAttributeTypes.AsNoTracking()
+                .OrderBy(x => x.CustomAttributeTypeName)
+                .Select(CustomAttributeTypeProjections.AsDto)
+                .ToList();
+            foreach (var dto in dtos) ResolveLookupDisplayNames(dto);
+            return dtos;
+        }
+
+        private static void ResolveLookupDisplayNames(CustomAttributeTypeDto dto)
+        {
+            if (CustomAttributeDataType.AllLookupDictionary.TryGetValue(dto.CustomAttributeDataTypeID, out var dataType))
+            {
+                dto.DataTypeName = dataType.CustomAttributeDataTypeName;
+                dto.DataTypeDisplayName = dataType.CustomAttributeDataTypeDisplayName;
+            }
+            if (CustomAttributeTypePurpose.AllLookupDictionary.TryGetValue(dto.CustomAttributeTypePurposeID, out var purpose))
+            {
+                dto.Purpose = purpose.CustomAttributeTypePurposeDisplayName;
+            }
+            if (dto.MeasurementUnitTypeID.HasValue && MeasurementUnitType.AllLookupDictionary.TryGetValue(dto.MeasurementUnitTypeID.Value, out var unit))
+            {
+                dto.MeasurementUnitDisplayName = unit.MeasurementUnitTypeDisplayName;
+            }
         }
 
         public static List<CustomAttributeType> GetCustomAttributeTypes(NeptuneDbContext dbContext, List<CustomAttributeUpsertDto> customAttributes)

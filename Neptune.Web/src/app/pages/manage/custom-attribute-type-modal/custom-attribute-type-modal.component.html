@@ -60,6 +60,15 @@
                 </div>
             </div>
         }
+
+        @if (isEdit && bmpTypeNames().length) {
+            <h4 class="mt-3">Used by Treatment BMP Types</h4>
+            <ul>
+                @for (name of bmpTypeNames(); track $index) {
+                    <li>{{ name }}</li>
+                }
+            </ul>
+        }
     </form>
 </div>
 <div class="modal-footer">

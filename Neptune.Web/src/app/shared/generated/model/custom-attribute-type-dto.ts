@@ -25,6 +25,7 @@ export class CustomAttributeTypeDto {
     Purpose?: string | null;
     CustomAttributeTypeSortOrder?: number | null;
     CustomAttributeTypeDefaultValue?: string | null;
+    TreatmentBMPTypeNames?: Array<string> | null;
     constructor(obj?: any) {
         Object.assign(this, obj);
     }
@@ -45,6 +46,7 @@ export interface CustomAttributeTypeDtoForm {
     Purpose?: FormControl<string>;
     CustomAttributeTypeSortOrder?: FormControl<number>;
     CustomAttributeTypeDefaultValue?: FormControl<string>;
+    TreatmentBMPTypeNames?: FormControl<Array<string>>;
 }
 
 export class CustomAttributeTypeDtoFormControls { 
@@ -179,6 +181,16 @@ export class CustomAttributeTypeDtoFormControls {
         }
     );
     public static CustomAttributeTypeDefaultValue = (value: FormControlState<string> | string = undefined, formControlOptions?: FormControlOptions | null) => new FormControl<string>(
+        value,
+        formControlOptions ?? 
+        {
+            nonNullable: false,
+            validators: 
+            [
+            ],
+        }
+    );
+    public static TreatmentBMPTypeNames = (value: FormControlState<Array<string>> | Array<string> = undefined, formControlOptions?: FormControlOptions | null) => new FormControl<Array<string>>(
         value,
         formControlOptions ?? 
         {

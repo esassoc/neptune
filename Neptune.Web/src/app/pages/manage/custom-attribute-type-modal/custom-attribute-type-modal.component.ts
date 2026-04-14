@@ -50,6 +50,7 @@ export class CustomAttributeTypeModalComponent implements OnInit {
 
     public optionsList = signal<string[]>([]);
     public newOptionText = signal("");
+    public bmpTypeNames = signal<string[]>([]);
 
     ngOnInit(): void {
         this.alertService.clearAlerts();
@@ -67,6 +68,11 @@ export class CustomAttributeTypeModalComponent implements OnInit {
                 CustomAttributeTypeDescription: cat.CustomAttributeTypeDescription,
                 CustomAttributeTypeDefaultValue: cat.CustomAttributeTypeDefaultValue,
             });
+
+            // Show related BMP types
+            if (cat.TreatmentBMPTypeNames?.length) {
+                this.bmpTypeNames.set(cat.TreatmentBMPTypeNames);
+            }
 
             // Parse existing options schema
             if (cat.CustomAttributeTypeOptionsSchema) {
