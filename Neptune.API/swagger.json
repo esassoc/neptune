@@ -16090,6 +16090,18 @@
             "format": "double",
             "nullable": true
           },
+          "AllDetailedBMPsNotFullyParameterized": {
+            "type": "boolean"
+          },
+          "AnyDetailedBMPsNotFullyParameterized": {
+            "type": "boolean"
+          },
+          "AllSimpleBMPsNotFullyParameterized": {
+            "type": "boolean"
+          },
+          "AnySimpleBMPsNotFullyParameterized": {
+            "type": "boolean"
+          },
           "Parcels": {
             "type": "array",
             "items": {

@@ -92,6 +92,14 @@ export class GenericWmsWfsLayerComponent extends MapLayerBase implements OnChang
 
     ngOnChanges(changes: any): void {
         this.createWmsLayerIfNeeded();
+        // If the layer was already created on an earlier change cycle with a stale cqlFilter
+        // (e.g. "1=1" before the caller's async filter resolved), push the new cql_filter into
+        // the existing WMS layer. Without this, callers like <wqmps-layer> that dynamically
+        // supply [filterToJurisdictionIDs] would be stuck with the initial filter forever,
+        // because createWmsLayerIfNeeded short-circuits when this.layer is already set.
+        if (this.layer && changes?.cqlFilter && !changes.cqlFilter.firstChange) {
+            (this.layer as L.TileLayer.WMS).setParams({ cql_filter: this.cqlFilter } as any);
+        }
         // Only add to map if displayOnLoad is true and WMS layer exists
         if (this.layer && this.map && this.displayOnLoad && !this.map.hasLayer(this.layer)) {
             this.layer.addTo(this.map);

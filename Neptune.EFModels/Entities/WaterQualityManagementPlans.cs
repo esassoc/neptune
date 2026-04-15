@@ -130,6 +130,7 @@ public static class WaterQualityManagementPlans
         if (dto != null)
         {
             await PopulateBoundaryBBox(dbContext, dto);
+            await PopulateBMPParameterizationFlags(dbContext, dto);
         }
         return dto;
     }
@@ -192,6 +193,65 @@ public static class WaterQualityManagementPlans
         {
             var env = geometry4326.EnvelopeInternal;
             dto.WaterQualityManagementPlanBoundaryBBox = $"{env.MinX}, {env.MinY}, {env.MaxX}, {env.MaxY}";
+        }
+    }
+
+    // Computes the 4 BMP parameterization flags used by the Modeled Performance card's
+    // contextual guidance messaging. Only the pair matching the modeling approach is meaningful;
+    // the other pair stays false. Mirrors Neptune.WebMvc.Views.WaterQualityManagementPlan.DetailViewData:209-224.
+    private static async Task PopulateBMPParameterizationFlags(NeptuneDbContext dbContext, WaterQualityManagementPlanDto dto)
+    {
+        var isDetailed = dto.WaterQualityManagementPlanModelingApproachID ==
+                         (int)WaterQualityManagementPlanModelingApproachEnum.Detailed;
+
+        if (isDetailed)
+        {
+            var treatmentBMPs = await dbContext.TreatmentBMPs
+                .AsNoTracking()
+                .Include(x => x.TreatmentBMPType)
+                .Where(x => x.WaterQualityManagementPlanID == dto.WaterQualityManagementPlanID)
+                .ToListAsync();
+
+            if (!treatmentBMPs.Any()) return;
+
+            var treatmentBMPIDs = treatmentBMPs.Select(x => x.TreatmentBMPID).ToList();
+
+            // IsFullyParameterized expects the delineation of the upstream-most BMP (not the BMP's
+            // own direct delineation), so downstream BMPs can inherit an upstream's verified
+            // delineation. Mirrors the legacy MVC pattern at WaterQualityManagementPlanController:232.
+            var delineationsDict = vTreatmentBMPUpstreams.ListWithDelineationAsDictionaryForTreatmentBMPIDList(dbContext, treatmentBMPIDs);
+            var modelingAttrsByID = await dbContext.vTreatmentBMPModelingAttributes
+                .AsNoTracking()
+                .Where(x => treatmentBMPIDs.Contains(x.TreatmentBMPID))
+                .ToDictionaryAsync(x => x.TreatmentBMPID);
+
+            bool IsParameterized(TreatmentBMP bmp) =>
+                bmp.IsFullyParameterized(
+                    delineationsDict.TryGetValue(bmp.TreatmentBMPID, out var del) ? del : null,
+                    modelingAttrsByID.TryGetValue(bmp.TreatmentBMPID, out var attr) ? attr : null);
+
+            dto.AnyDetailedBMPsNotFullyParameterized = treatmentBMPs.Any(b => !IsParameterized(b));
+            dto.AllDetailedBMPsNotFullyParameterized = treatmentBMPs.All(b => !IsParameterized(b));
+        }
+        else
+        {
+            var quickBMPs = await dbContext.QuickBMPs
+                .AsNoTracking()
+                .Include(x => x.TreatmentBMPType)
+                .Where(x => x.WaterQualityManagementPlanID == dto.WaterQualityManagementPlanID)
+                .ToListAsync();
+
+            if (!quickBMPs.Any()) return;
+
+            // Mirrors Neptune.WebMvc.Models.QuickBMPModelExtensions.IsFullyParameterized — kept inline to
+            // avoid a cross-project reference; if this logic gets reused elsewhere in the SPA stack,
+            // lift it into a shared QuickBMPExtensionMethods.cs entry per the static-helpers convention.
+            bool IsParameterized(QuickBMP bmp) =>
+                bmp is { PercentOfSiteTreated: not null, PercentCaptured: not null, PercentRetained: not null }
+                && bmp.TreatmentBMPType.IsAnalyzedInModelingModule;
+
+            dto.AnySimpleBMPsNotFullyParameterized = quickBMPs.Any(b => !IsParameterized(b));
+            dto.AllSimpleBMPsNotFullyParameterized = quickBMPs.All(b => !IsParameterized(b));
         }
     }
 

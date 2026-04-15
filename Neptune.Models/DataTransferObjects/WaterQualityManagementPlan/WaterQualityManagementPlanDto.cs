@@ -41,6 +41,14 @@ public class WaterQualityManagementPlanDto
     public string? WaterQualityManagementPlanBoundaryBBox { get; set; }
     public double? CalculatedWQMPAcreage { get; set; }
 
+    // BMP parameterization flags driving the Modeled Performance card's contextual guidance.
+    // Only one pair (Detailed or Simple) is meaningful — determined by WaterQualityManagementPlanModelingApproachID.
+    // Populated post-materialize in WaterQualityManagementPlans.GetByIDAsDtoAsync.
+    public bool AllDetailedBMPsNotFullyParameterized { get; set; }
+    public bool AnyDetailedBMPsNotFullyParameterized { get; set; }
+    public bool AllSimpleBMPsNotFullyParameterized { get; set; }
+    public bool AnySimpleBMPsNotFullyParameterized { get; set; }
+
     public List<ParcelDisplayDto> Parcels { get; set; }
     public List<TreatmentBMPMinimalDto> TreatmentBMPs { get; set; }
 }

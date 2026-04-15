@@ -2,7 +2,7 @@ import { AsyncPipe } from "@angular/common";
 import { Component } from "@angular/core";
 import { Router } from "@angular/router";
 import { ColDef } from "ag-grid-community";
-import { map, Observable, shareReplay, tap } from "rxjs";
+import { map, Observable, shareReplay, switchMap, tap } from "rxjs";
 import { DialogService } from "@ngneat/dialog";
 import { AuthenticationService } from "src/app/services/authentication.service";
 import { UtilityFunctionsService } from "src/app/services/utility-functions.service";
@@ -36,7 +36,7 @@ import { WqmpUploadModalComponent } from "./wqmp-upload-modal/wqmp-upload-modal.
 export class WqmpsComponent {
     public OverlayMode = OverlayMode;
     public wqmps$: Observable<WaterQualityManagementPlanGridDto[]>;
-    public columnDefs: ColDef[];
+    public columnDefs$: Observable<ColDef[]>;
     public isLoading = true;
     public map: L.Map;
     public layerControl: L.Control.Layers;
@@ -45,7 +45,6 @@ export class WqmpsComponent {
     public zoomOnNextSelection = true;
     public mapIsReady = false;
     public wqmpJurisdictionIDs: number[];
-    private shouldFilterMapByJurisdiction = false;
     public siteUrl = environment.ocStormwaterToolsBaseUrl;
     public currentPersonCanEdit$: Observable<boolean>;
     private wqmps: WaterQualityManagementPlanGridDto[] = [];
@@ -64,27 +63,60 @@ export class WqmpsComponent {
     private maintenanceContactFields = ["MaintenanceContactOrganization", "MaintenanceContactName", "MaintenanceContactAddress", "MaintenanceContactPhone"];
 
     ngOnInit(): void {
-        this.currentPersonCanEdit$ = this.authenticationService.getCurrentUser().pipe(
+        // Derive columnDefs from the current user so the grid never renders with sensitive
+        // Maintenance Contact columns for anonymous users. Sharing a single getCurrentUser()
+        // emission avoids multiple independent auth lookups and, via switchMap below, keeps
+        // wqmps$ self-contained so the template subscription order no longer matters.
+        const currentUser$ = this.authenticationService.getCurrentUser().pipe(shareReplay(1));
+
+        this.columnDefs$ = currentUser$.pipe(
             map((user) => {
                 const isAnonymousOrUnassigned = !user || this.authenticationService.isUserUnassigned(user);
-                if (isAnonymousOrUnassigned) {
-                    this.columnDefs = this.columnDefs.filter((c) => !this.maintenanceContactFields.includes(c.field));
-                }
-                this.shouldFilterMapByJurisdiction = !isAnonymousOrUnassigned && !this.authenticationService.isCurrentUserAnAdministrator();
-                return this.authenticationService.doesCurrentUserHaveJurisdictionEditPermission();
-            }),
-            tap((canEdit) => {
-                if (canEdit && !this.columnDefs.some((c) => c.field === "IsDraft")) {
-                    this.columnDefs = [...this.columnDefs, this.utilityFunctionsService.createBasicColumnDef("Is Draft", "IsDraft", {
-                        ValueGetter: (params) => params.data?.IsDraft ? "Yes" : "No",
-                        UseCustomDropdownFilter: true,
-                    })];
-                }
+                const canEdit = this.authenticationService.doesCurrentUserHaveJurisdictionEditPermission();
+                return this.buildColumnDefs(isAnonymousOrUnassigned, canEdit);
             }),
             shareReplay(1)
         );
 
-        this.columnDefs = [
+        this.currentPersonCanEdit$ = currentUser$.pipe(
+            map(() => this.authenticationService.doesCurrentUserHaveJurisdictionEditPermission())
+        );
+
+        this.wqmps$ = this.loadWqmps$();
+        this.boundingBox$ = this.stormwaterJurisdictionService.getBoundingBoxStormwaterJurisdiction();
+    }
+
+    // Loads the WQMP grid data AND derives wqmpJurisdictionIDs for the map's CQL filter from
+    // the same data. Keyed on the current user so the "should we filter" decision and the
+    // list fetch are atomic — no class-field side-effect reliance, and works for both the
+    // initial load and the post-add refresh in openAddModal().
+    private loadWqmps$(): Observable<WaterQualityManagementPlanGridDto[]> {
+        return this.authenticationService.getCurrentUser().pipe(
+            switchMap((user) => {
+                const isAnonymousOrUnassigned = !user || this.authenticationService.isUserUnassigned(user);
+                const shouldFilterMapByJurisdiction =
+                    !isAnonymousOrUnassigned && !this.authenticationService.isCurrentUserAnAdministrator();
+                return this.waterQualityManagementPlanService.listAsGridDtoWaterQualityManagementPlan().pipe(
+                    tap((wqmps) => {
+                        this.wqmps = wqmps;
+                        this.wqmpJurisdictionIDs = shouldFilterMapByJurisdiction
+                            ? [
+                                  ...new Set(
+                                      wqmps
+                                          .map((w) => w.StormwaterJurisdictionID)
+                                          .filter((id): id is number => typeof id === "number" && Number.isFinite(id))
+                                  ),
+                              ]
+                            : undefined;
+                        this.isLoading = false;
+                    })
+                );
+            })
+        );
+    }
+
+    private buildColumnDefs(isAnonymousOrUnassigned: boolean, canEdit: boolean): ColDef[] {
+        const defs: ColDef[] = [
             this.utilityFunctionsService.createLinkColumnDef("Name", "WaterQualityManagementPlanName", "WaterQualityManagementPlanID", {
                 InRouterLink: "/water-quality-management-plans/",
                 FieldDefinitionType: "WaterQualityManagementPlan",
@@ -151,24 +183,20 @@ export class WqmpsComponent {
             this.utilityFunctionsService.createDecimalColumnDef("Trash Capture Effectiveness (%)", "TrashCaptureEffectiveness", { DecimalPlacesToDisplay: 0 }),
         ];
 
-        this.wqmps$ = this.waterQualityManagementPlanService.listAsGridDtoWaterQualityManagementPlan().pipe(
-            tap((wqmps) => {
-                this.wqmps = wqmps;
-                if (this.shouldFilterMapByJurisdiction) {
-                    this.wqmpJurisdictionIDs = [
-                        ...new Set(
-                            wqmps
-                                .map((w) => w.StormwaterJurisdictionID)
-                                .filter((id): id is number => typeof id === "number" && Number.isFinite(id))
-                        ),
-                    ];
-                } else {
-                    this.wqmpJurisdictionIDs = undefined;
-                }
-                this.isLoading = false;
-            })
-        );
-        this.boundingBox$ = this.stormwaterJurisdictionService.getBoundingBoxStormwaterJurisdiction();
+        const filtered = isAnonymousOrUnassigned
+            ? defs.filter((c) => !this.maintenanceContactFields.includes(c.field))
+            : defs;
+
+        if (canEdit) {
+            filtered.push(
+                this.utilityFunctionsService.createBasicColumnDef("Is Draft", "IsDraft", {
+                    ValueGetter: (params) => (params.data?.IsDraft ? "Yes" : "No"),
+                    UseCustomDropdownFilter: true,
+                })
+            );
+        }
+
+        return filtered;
     }
 
     public handleMapReady(event: NeptuneMapInitEvent, boundingBox?: BoundingBoxDto) {
@@ -208,11 +236,9 @@ export class WqmpsComponent {
             if (result) {
                 this.alertService.clearAlerts();
                 this.alertService.pushAlert(new Alert("Water Quality Management Plan created successfully.", AlertContext.Success));
-                this.wqmps$ = this.waterQualityManagementPlanService.listAsGridDtoWaterQualityManagementPlan().pipe(
-                    tap((wqmps) => {
-                        this.wqmps = wqmps;
-                    })
-                );
+                // Re-use loadWqmps$ so the map's wqmpJurisdictionIDs is recomputed after add —
+                // otherwise adding a WQMP in a new jurisdiction wouldn't show up on the filtered map.
+                this.wqmps$ = this.loadWqmps$();
             }
         });
     }

@@ -298,7 +298,7 @@ export class WqmpDetailComponent implements OnInit, OnChanges {
                 InRouterLink: "/treatment-bmps/",
             }),
             this.utilityFunctionsService.createBasicColumnDef("Type", "TreatmentBMPTypeName"),
-            this.utilityFunctionsService.createBasicColumnDef("Notes", "Notes", { MaxWidth: 200 }),
+            this.utilityFunctionsService.createBasicColumnDef("Notes", "Notes", { Width: 200 }),
             this.utilityFunctionsService.createBasicColumnDef("Delineation Status", "DelineationStatus"),
             this.utilityFunctionsService.createDecimalColumnDef("Delineation Area (ac)", "Area", { DecimalPlacesToDisplay: 2 }),
         ];
@@ -307,7 +307,7 @@ export class WqmpDetailComponent implements OnInit, OnChanges {
         this.quickBMPColumnDefs = [
             this.utilityFunctionsService.createBasicColumnDef("Name", "QuickBMPName"),
             this.utilityFunctionsService.createBasicColumnDef("Type", "TreatmentBMPTypeName"),
-            this.utilityFunctionsService.createBasicColumnDef("Notes", "QuickBMPNote", { MaxWidth: 200 }),
+            this.utilityFunctionsService.createBasicColumnDef("Notes", "QuickBMPNote", { Width: 200 }),
             this.utilityFunctionsService.createBasicColumnDef("# Individual BMPs", "NumberOfIndividualBMPs"),
             { headerName: "% Site Treated", field: "PercentOfSiteTreated", valueFormatter: percentFormatter, cellStyle: { "justify-content": "flex-end" } },
             { headerName: "% Captured", field: "PercentCaptured", valueFormatter: percentFormatter, cellStyle: { "justify-content": "flex-end" } },

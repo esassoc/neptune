@@ -127,12 +127,21 @@
                     } @else if (quickBMPs$ | async; as quickBMPsForPerf) {
                         @if (wqmp.WaterQualityManagementPlanModelingApproachID === WaterQualityManagementPlanModelingApproachEnum.Simplified && !quickBMPsForPerf.length) {
                             <p class="system-text">This WQMP is modeled using the simplified approach, but no simplified structural BMPs have been inventoried, so no results are available.</p>
+                        } @else if (wqmp.WaterQualityManagementPlanModelingApproachID === WaterQualityManagementPlanModelingApproachEnum.Simplified && wqmp.AllSimpleBMPsNotFullyParameterized) {
+                            <p class="system-text">This WQMP is modeled using the simplified approach, but none of its simplified structural BMPs are fully parameterized, so no results are available.</p>
+                        } @else if (wqmp.WaterQualityManagementPlanModelingApproachID === WaterQualityManagementPlanModelingApproachEnum.Detailed && wqmp.AllDetailedBMPsNotFullyParameterized) {
+                            <p class="system-text">This WQMP is modeled using the detailed approach, but all of its structural BMPs are either missing required modeling parameters or missing verified delineations, so no results are available.</p>
                         } @else if (modeledPerformance$ | async; as modeledPerformance) {
                             <modeled-bmp-performance [loadReducingResult]="modeledPerformance"></modeled-bmp-performance>
                             @if (modeledPerformance.LastCalculatedDate) {
                                 <p class="system-text mt-2"><em>Results last calculated at {{ modeledPerformance.LastCalculatedDate | date: "MM/dd/yyyy h:mm a" }}</em></p>
                             }
                             <a [href]="aboutModelingBMPPerformanceUrl">About Modeling BMP Performance</a>
+                            @if (wqmp.WaterQualityManagementPlanModelingApproachID === WaterQualityManagementPlanModelingApproachEnum.Detailed && wqmp.AnyDetailedBMPsNotFullyParameterized) {
+                                <p class="system-text mt-2">Some of this WQMP's structural BMPs are not fully parameterized for modeling, or have missing or unverified delineations, so these results may be incomplete or inaccurate.</p>
+                            } @else if (wqmp.WaterQualityManagementPlanModelingApproachID === WaterQualityManagementPlanModelingApproachEnum.Simplified && wqmp.AnySimpleBMPsNotFullyParameterized) {
+                                <p class="system-text mt-2">Some of this WQMP's simplified BMPs are not fully parameterized for modeling, so these results may be incomplete or inaccurate.</p>
+                            }
                         } @else {
                             <p class="system-text">No model results are available for this WQMP.</p>
                         }
@@ -195,23 +204,23 @@
                     }
                 </div>
             </div>
+
+            <!-- Associated Parcels Card (right column, under Land Use Statistics) -->
+            <div class="card mt-3">
+                <div class="card-header">
+                    <span class="card-title">Associated Parcels</span>
+                </div>
+                <div class="card-body">
+                    @if (wqmp.Parcels?.length) {
+                        <neptune-grid [rowData]="wqmp.Parcels" [columnDefs]="parcelColumnDefs" [pagination]="true" [height]="'300px'" [downloadFileName]="'Parcels'"></neptune-grid>
+                    } @else {
+                        <p class="system-text">No parcels are associated with this WQMP.</p>
+                    }
+                </div>
+            </div>
         </div>
 
         <!-- Full-width sections -->
-
-        <!-- Associated Parcels -->
-        <div class="card g-col-12 mt-3">
-            <div class="card-header">
-                <span class="card-title">Associated Parcels</span>
-            </div>
-            <div class="card-body">
-                @if (wqmp.Parcels?.length) {
-                    <neptune-grid [rowData]="wqmp.Parcels" [columnDefs]="parcelColumnDefs" [pagination]="true" [height]="'300px'" [downloadFileName]="'Parcels'"></neptune-grid>
-                } @else {
-                    <p class="system-text">No parcels are associated with this WQMP.</p>
-                }
-            </div>
-        </div>
 
         <!-- BMPs Section -->
         <div class="card g-col-12 mt-3">

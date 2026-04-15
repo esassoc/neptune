@@ -46,9 +46,13 @@
         z-index: 2;
         font-size: $type-size-150;
         border: 1px solid $gray-200;
+        // Reset color at the .popover root so the header/body don't inherit white text
+        // from ancestors like .card-header when a <field-definition> lives inside a card header.
+        color: $gray-900;
 
         &-header {
             background: $gray-100;
+            color: $gray-900;
             border-bottom: 1px solid rgba(0, 0, 0, 0.15);
             padding: 0.5rem 1rem;
             border-top-left-radius: 0.5rem;
@@ -63,6 +67,7 @@
             padding: 1rem;
             font-weight: normal;
             background: white;
+            color: $gray-900;
             border-bottom-left-radius: 0.5rem;
             border-bottom-right-radius: 0.5rem;
             text-align: left;
