@@ -54,11 +54,17 @@ public class WqmpExtractionService
     public async Task<WaterQualityManagementPlanDocumentExtractionResultDto> ExtractFromDocument(
         int waterQualityManagementPlanDocumentID, int personID, CancellationToken cancellationToken)
     {
+        var totalSw = System.Diagnostics.Stopwatch.StartNew();
+        _logger.LogInformation("Starting WQMP extraction for documentID={DocumentID}, personID={PersonID}",
+            waterQualityManagementPlanDocumentID, personID);
+
         var docDto = await WaterQualityManagementPlanDocuments.GetByIDAsDtoAsync(_dbContext, waterQualityManagementPlanDocumentID);
         if (docDto == null) throw new InvalidOperationException($"Document {waterQualityManagementPlanDocumentID} not found.");
 
         var vectorStoreId = await EnsureVectorStoreWithFileAsync(waterQualityManagementPlanDocumentID, docDto);
         var domainContext = await BuildDomainContext();
+        _logger.LogInformation("Vector store and domain context ready (elapsed {ElapsedMs}ms); invoking 4 parallel category extractions...",
+            totalSw.ElapsedMilliseconds);
 
         var evidenceInstructions =
             $"SchemaVersion: {SchemaVersion}. Use ONLY the provided WQMP PDF. Each attribute object MUST match ExtractedValueSchema. " +
@@ -79,6 +85,9 @@ public class WqmpExtractionService
 
         async Task<(string output, OpenAIResponse response)> ExtractCategoryAsync(string key, PromptTemplate template, string schema, bool expectArray)
         {
+            var catSw = System.Diagnostics.Stopwatch.StartNew();
+            _logger.LogInformation("Starting extraction category: {Category}", key);
+
             var templateModel = new
             {
                 EvidenceInstructions = evidenceInstructions,
@@ -97,15 +106,35 @@ public class WqmpExtractionService
                 Tools = { fileSearchTool },
                 TextOptions = textOptions,
             };
-            var response = await responseClient.CreateResponseAsync(prompt, options, cancellationToken);
 
-            var output = ExtractMessageText(response.Value.OutputItems);
-            if (!IsValidJson(output))
+            // Per-category timeout so a single hung OpenAI call can't wedge the whole extraction silently
+            using var cts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
+            cts.CancelAfter(TimeSpan.FromMinutes(4));
+
+            try
             {
-                _logger.LogError("Structured output returned invalid JSON for {Category}. Using empty fallback.", key);
-                output = expectArray ? "[]" : "{}";
+                var response = await responseClient.CreateResponseAsync(prompt, options, cts.Token);
+
+                var output = ExtractMessageText(response.Value.OutputItems);
+                if (!IsValidJson(output))
+                {
+                    _logger.LogError("Structured output returned invalid JSON for {Category} after {ElapsedMs}ms. Using empty fallback.",
+                        key, catSw.ElapsedMilliseconds);
+                    output = expectArray ? "[]" : "{}";
+                }
+                else
+                {
+                    _logger.LogInformation("Finished extraction category: {Category} in {ElapsedMs}ms ({OutputChars} chars)",
+                        key, catSw.ElapsedMilliseconds, output.Length);
+                }
+                return (output, response.Value);
             }
-            return (output, response.Value);
+            catch (OperationCanceledException) when (cts.IsCancellationRequested && !cancellationToken.IsCancellationRequested)
+            {
+                _logger.LogError("Extraction category {Category} timed out after {ElapsedMs}ms (4-minute per-category limit)",
+                    key, catSw.ElapsedMilliseconds);
+                throw new TimeoutException($"Extraction category '{key}' exceeded 4-minute OpenAI response timeout.");
+            }
         }
 
         var tasks = prompts.Select(kvp => ExtractCategoryAsync(kvp.Key, kvp.Value.template, kvp.Value.schema, kvp.Value.expectArray)).ToList();
@@ -136,6 +165,9 @@ public class WqmpExtractionService
         {
             _logger.LogError("Final consolidated JSON is invalid. Using raw parts.");
         }
+
+        _logger.LogInformation("Completed WQMP extraction for documentID={DocumentID} in {ElapsedMs}ms",
+            waterQualityManagementPlanDocumentID, totalSw.ElapsedMilliseconds);
 
         return new WaterQualityManagementPlanDocumentExtractionResultDto
         {
@@ -174,13 +206,20 @@ public class WqmpExtractionService
     private async Task<string> EnsureVectorStoreWithFileAsync(int documentId, WaterQualityManagementPlanDocumentDto docDto)
     {
         var existingVectorStoreId = await WaterQualityManagementPlanDocumentVectorStores.GetByWaterQualityManagementPlanDocumentIDAsDtoAsync(_dbContext, documentId);
-        if (!string.IsNullOrWhiteSpace(existingVectorStoreId)) return existingVectorStoreId;
+        if (!string.IsNullOrWhiteSpace(existingVectorStoreId))
+        {
+            _logger.LogInformation("Reusing existing vector store {VectorStoreId} for documentID={DocumentID}", existingVectorStoreId, documentId);
+            return existingVectorStoreId;
+        }
 
         var vectorStoreClient = _openAIClient.GetVectorStoreClient();
         var fileClient = _openAIClient.GetOpenAIFileClient();
+
+        _logger.LogInformation("No existing vector store for documentID={DocumentID}; downloading blob and uploading to OpenAI", documentId);
         var fileStream = await _blobService.DownloadBlobFromBlobStorageAsStream(docDto.FileResource.FileResourceGUID.ToString());
         var fileUploadResult = await fileClient.UploadFileAsync(fileStream.Content, docDto.FileResource.OriginalFilename, OpenAI.Files.FileUploadPurpose.Assistants);
         if (fileUploadResult?.Value == null) throw new Exception($"OpenAI file upload failed for documentId={documentId}");
+        _logger.LogInformation("File uploaded to OpenAI: fileId={FileId}, name={Name}", fileUploadResult.Value.Id, docDto.FileResource.OriginalFilename);
 
         var options = new OpenAI.VectorStores.VectorStoreCreationOptions { Name = $"WQMP_{documentId}" };
         options.FileIds.Add(fileUploadResult.Value.Id);
@@ -189,6 +228,7 @@ public class WqmpExtractionService
 
         var vectorStoreId = vectorStoreCreateResult.Value.Id;
         var fileId = fileUploadResult.Value.Id;
+        _logger.LogInformation("Vector store created: {VectorStoreId}. Polling until status=Completed...", vectorStoreId);
 
         // Poll until vector store is ready (max 5 minutes)
         var maxAttempts = 1500; // 5 min at 200ms intervals
@@ -200,8 +240,14 @@ public class WqmpExtractionService
             if (vectorStoreCreateResult?.Value == null) throw new Exception($"OpenAI vector store status check failed for vectorStoreId={vectorStoreId}");
             if (vectorStoreCreateResult.Value.Status == OpenAI.VectorStores.VectorStoreStatus.Expired)
                 throw new Exception($"OpenAI vector store expired for vectorStoreId={vectorStoreId}");
+            if (attempts % 25 == 0) // progress checkpoint every 25 polls
+            {
+                _logger.LogInformation("Vector store {VectorStoreId} status={Status}, attempt {Attempts}/{MaxAttempts}",
+                    vectorStoreId, vectorStoreCreateResult.Value.Status, attempts, maxAttempts);
+            }
             await Task.Delay(200);
         }
+        _logger.LogInformation("Vector store {VectorStoreId} reached Completed after {Attempts} polls. Polling file indexing...", vectorStoreId, attempts);
 
         // Poll until the file within the vector store is fully indexed (max 5 minutes)
         attempts = 0;
@@ -227,10 +273,15 @@ public class WqmpExtractionService
             {
                 // File not ready yet, continue polling
             }
+            if (attempts % 25 == 0 && vectorStoreFile != null) // every ~5s
+            {
+                _logger.LogInformation("File indexing status={Status} for fileId={FileId}, attempt {Attempts}/{MaxAttempts}",
+                    vectorStoreFile.Status, fileId, attempts, maxAttempts);
+            }
             await Task.Delay(200);
         } while (vectorStoreFile == null || vectorStoreFile.Status != OpenAI.VectorStores.VectorStoreFileStatus.Completed);
 
-        _logger.LogInformation("Vector store {VectorStoreId} ready with file {FileId} indexed.", vectorStoreId, fileId);
+        _logger.LogInformation("Vector store {VectorStoreId} ready with file {FileId} indexed after {Attempts} polls.", vectorStoreId, fileId, attempts);
         await WaterQualityManagementPlanDocumentVectorStores.UpsertAsync(_dbContext, documentId, vectorStoreId);
         return vectorStoreId;
     }
