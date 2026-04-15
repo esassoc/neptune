@@ -99,10 +99,6 @@ export class EditBoundaryComponent implements OnInit {
         this.isLoadingSubmit = true;
         this.alertService.clearAlerts();
 
-        if (this.map.pm.globalEditModeEnabled()) {
-            this.map.pm.toggleGlobalEditMode();
-        }
-
         const dto: WaterQualityManagementPlanBoundaryUpsertDto = {};
         this.layer.eachLayer((layer: L.Path & { toGeoJSON: () => GeoJSON.Feature }) => {
             dto.GeometryAsGeoJson = JSON.stringify(layer.toGeoJSON());
@@ -111,8 +107,12 @@ export class EditBoundaryComponent implements OnInit {
         this.wqmpService.updateBoundaryWaterQualityManagementPlan(this.waterQualityManagementPlanID, dto).subscribe({
             next: () => {
                 this.isLoadingSubmit = false;
-                this.alertService.pushAlert(new Alert("Successfully updated WQMP boundary.", AlertContext.Success));
-                this.router.navigate(["/water-quality-management-plans", this.waterQualityManagementPlanID]);
+                // Navigate first — the edit-boundary's <app-alert-display> clears alerts on destroy
+                // (alert-display.component.ts:31), so we push the success alert only after the
+                // new detail page's alert-display has mounted.
+                this.router.navigate(["/water-quality-management-plans", this.waterQualityManagementPlanID]).then(() => {
+                    this.alertService.pushAlert(new Alert("Successfully updated WQMP boundary.", AlertContext.Success));
+                });
             },
             error: () => {
                 this.isLoadingSubmit = false;

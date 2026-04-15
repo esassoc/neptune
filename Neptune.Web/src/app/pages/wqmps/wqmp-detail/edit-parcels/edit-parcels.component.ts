@@ -139,8 +139,12 @@ export class EditParcelsComponent implements OnInit {
         this.wqmpService.updateParcelsWaterQualityManagementPlan(this.waterQualityManagementPlanID, this.selectedParcelIDs).subscribe({
             next: () => {
                 this.isLoadingSubmit = false;
-                this.alertService.pushAlert(new Alert("Successfully updated WQMP parcels.", AlertContext.Success));
-                this.router.navigate(["/water-quality-management-plans", this.waterQualityManagementPlanID]);
+                // Navigate first — the edit-parcels' <app-alert-display> clears alerts on destroy
+                // (alert-display.component.ts:31), so we push the success alert only after the
+                // new detail page's alert-display has mounted.
+                this.router.navigate(["/water-quality-management-plans", this.waterQualityManagementPlanID]).then(() => {
+                    this.alertService.pushAlert(new Alert("Successfully updated WQMP parcels.", AlertContext.Success));
+                });
             },
             error: () => {
                 this.isLoadingSubmit = false;
