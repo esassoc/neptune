@@ -215,6 +215,44 @@
         padding: 1rem;
         border-top: 1px solid $gray-200;
         display: flex;
+        flex-wrap: wrap;
         gap: 0.5rem;
+    }
+
+    &__banner {
+        margin: 0.75rem 1rem 0;
+        padding: 0.6rem 0.75rem;
+        border-radius: $border-radius-200;
+        font-size: $type-size-200;
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+
+        i {
+            flex-shrink: 0;
+        }
+
+        &--approved {
+            background: rgba(34, 197, 94, 0.12);
+            color: #15803d;
+            border: 1px solid rgba(34, 197, 94, 0.35);
+        }
+
+        &--draft {
+            background: rgba(0, 153, 171, 0.08);
+            color: $primary;
+            border: 1px solid rgba(0, 153, 171, 0.3);
+        }
+
+        &--dirty {
+            background: rgba(245, 158, 11, 0.12);
+            color: #b45309;
+            border: 1px solid rgba(245, 158, 11, 0.35);
+        }
+    }
+
+    &__banner-note {
+        margin-left: auto;
+        font-weight: 600;
     }
 }

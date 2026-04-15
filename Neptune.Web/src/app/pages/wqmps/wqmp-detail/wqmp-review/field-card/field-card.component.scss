@@ -24,6 +24,15 @@
         opacity: 0.6;
     }
 
+    &--read-only {
+        background-color: $gray-100;
+    }
+
+    &__origin {
+        margin-top: 0.25rem;
+        margin-bottom: 0.25rem;
+    }
+
     &__header {
         display: flex;
         justify-content: space-between;
@@ -169,5 +178,35 @@
     &__snippet {
         color: $gray-500;
         line-height: 1.4;
+    }
+}
+
+.origin-pill {
+    display: inline-block;
+    font-size: 0.7rem;
+    padding: 0.1rem 0.5rem;
+    border-radius: 999px;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    font-weight: 600;
+
+    &--ai {
+        background: rgba(0, 153, 171, 0.12);
+        color: $primary;
+    }
+
+    &--blank {
+        background: $gray-100;
+        color: $gray-500;
+    }
+
+    &--edited {
+        background: rgba(245, 158, 11, 0.14);
+        color: #b45309;
+    }
+
+    &--rejected {
+        background: rgba(220, 53, 69, 0.12);
+        color: $danger;
     }
 }

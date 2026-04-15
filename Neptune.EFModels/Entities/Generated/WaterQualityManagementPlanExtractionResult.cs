@@ -22,6 +22,26 @@ public partial class WaterQualityManagementPlanExtractionResult
     [Column(TypeName = "datetime")]
     public DateTime ExtractedAt { get; set; }
 
+    public string? DraftOverlayJson { get; set; }
+
+    public int? DraftUpdatedByPersonID { get; set; }
+
+    [Column(TypeName = "datetime")]
+    public DateTime? DraftUpdatedDate { get; set; }
+
+    public int? ApprovedByPersonID { get; set; }
+
+    [Column(TypeName = "datetime")]
+    public DateTime? ApprovedDate { get; set; }
+
+    [ForeignKey("ApprovedByPersonID")]
+    [InverseProperty("WaterQualityManagementPlanExtractionResultApprovedByPeople")]
+    public virtual Person? ApprovedByPerson { get; set; }
+
+    [ForeignKey("DraftUpdatedByPersonID")]
+    [InverseProperty("WaterQualityManagementPlanExtractionResultDraftUpdatedByPeople")]
+    public virtual Person? DraftUpdatedByPerson { get; set; }
+
     [ForeignKey("WaterQualityManagementPlanID")]
     [InverseProperty("WaterQualityManagementPlanExtractionResult")]
     public virtual WaterQualityManagementPlan WaterQualityManagementPlan { get; set; } = null!;

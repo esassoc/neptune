@@ -65,6 +65,26 @@
 
             <app-alert-display></app-alert-display>
 
+            @if (isApproved()) {
+                <div class="review-panel__banner review-panel__banner--approved">
+                    <i class="fa fa-check-circle"></i>
+                    Approved by {{ currentResult()?.ApprovedByFullName }} on {{ currentResult()?.ApprovedDate | date: "medium" }}. This review is read-only.
+                </div>
+            } @else if (currentResult()?.DraftUpdatedDate) {
+                <div class="review-panel__banner review-panel__banner--draft">
+                    <i class="fa fa-save"></i>
+                    Draft saved by {{ currentResult()?.DraftUpdatedByFullName }} on {{ currentResult()?.DraftUpdatedDate | date: "medium" }}.
+                    @if (hasUnsavedChanges()) {
+                        <span class="review-panel__banner-note">You have unsaved changes.</span>
+                    }
+                </div>
+            } @else if (hasUnsavedChanges()) {
+                <div class="review-panel__banner review-panel__banner--dirty">
+                    <i class="fa fa-exclamation-circle"></i>
+                    You have unsaved changes.
+                </div>
+            }
+
             <div class="review-panel__fields">
                 @for (field of fieldsForCurrentStep; track field.key) {
                     <field-card
@@ -75,6 +95,10 @@
                         [confidence]="field.confidence"
                         [fieldType]="field.fieldType ?? FormFieldType.Text"
                         [selectOptions]="field.selectOptions ?? []"
+                        [origin]="getFieldOrigin(field)"
+                        [readOnly]="isApproved()"
+                        [initialState]="field.state"
+                        [initialValue]="field.acceptedValue ?? field.value"
                         (valueAccepted)="onFieldAccepted(field, $event)"
                         (valueEdited)="onFieldEdited(field, $event)"
                         (valueRejected)="onFieldRejected(field)"
@@ -84,10 +108,20 @@
             </div>
 
             <div class="review-panel__footer">
-                <button class="btn btn-primary" (click)="applyToWqmp()" [disabled]="isApplying || confirmedCount === 0">
-                    Apply to WQMP
+                @if (!isApproved()) {
+                    <button class="btn btn-primary" (click)="saveDraft()" [disabled]="isSavingDraft || !hasUnsavedChanges()">
+                        @if (isSavingDraft) { <i class="fa fa-spinner fa-spin"></i> } Save Draft
+                    </button>
+                    <button class="btn btn-secondary-outline" (click)="discardDraft()" [disabled]="isSavingDraft || (!currentResult()?.DraftUpdatedDate && !hasUnsavedChanges())">
+                        Discard Draft
+                    </button>
+                    <button class="btn btn-primary" (click)="approveAndApply()" [disabled]="isApplying || confirmedCount === 0">
+                        @if (isApplying) { <i class="fa fa-spinner fa-spin"></i> } Approve &amp; Apply
+                    </button>
+                }
+                <button class="btn btn-secondary-outline" (click)="cancel()">
+                    @if (isApproved()) { Back } @else { Cancel }
                 </button>
-                <button class="btn btn-secondary-outline" (click)="cancel()">Cancel</button>
             </div>
         </div>
     </div>

@@ -488,6 +488,7 @@ export const routes: Routes = [
                 loadComponent: () =>
                     import("./pages/wqmps/wqmp-detail/wqmp-review/wqmp-review.component").then((m) => m.WqmpReviewComponent),
                 canActivate: [authGuardFn],
+                canDeactivate: [UnsavedChangesGuard],
             },
             {
                 path: "wqmp-annual-report",

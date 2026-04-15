@@ -9536,6 +9536,131 @@
         }
       }
     },
+    "/water-quality-management-plans/{waterQualityManagementPlanID}/extraction-result/draft": {
+      "put": {
+        "tags": [
+          "WaterQualityManagementPlan"
+        ],
+        "operationId": "SaveExtractionResultDraft_WaterQualityManagementPlan",
+        "parameters": [
+          {
+            "name": "waterQualityManagementPlanID",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/WaterQualityManagementPlanExtractionDraftUpsertDto"
+              }
+            },
+            "text/json": {
+              "schema": {
+                "$ref": "#/components/schemas/WaterQualityManagementPlanExtractionDraftUpsertDto"
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "$ref": "#/components/schemas/WaterQualityManagementPlanExtractionDraftUpsertDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "WaterQualityManagementPlan"
+        ],
+        "operationId": "ClearExtractionResultDraft_WaterQualityManagementPlan",
+        "parameters": [
+          {
+            "name": "waterQualityManagementPlanID",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/water-quality-management-plans/{waterQualityManagementPlanID}/extraction-result/approve": {
+      "post": {
+        "tags": [
+          "WaterQualityManagementPlan"
+        ],
+        "operationId": "ApproveExtractionResult_WaterQualityManagementPlan",
+        "parameters": [
+          {
+            "name": "waterQualityManagementPlanID",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/WaterQualityManagementPlanUpsertDto"
+              }
+            },
+            "text/json": {
+              "schema": {
+                "$ref": "#/components/schemas/WaterQualityManagementPlanUpsertDto"
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "$ref": "#/components/schemas/WaterQualityManagementPlanUpsertDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/WaterQualityManagementPlanDto"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WaterQualityManagementPlanDto"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WaterQualityManagementPlanDto"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/water-quality-management-plan-documents": {
       "get": {
         "tags": [
@@ -16119,6 +16244,16 @@
         },
         "additionalProperties": false
       },
+      "WaterQualityManagementPlanExtractionDraftUpsertDto": {
+        "type": "object",
+        "properties": {
+          "DraftOverlayJson": {
+            "type": "string",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
       "WaterQualityManagementPlanExtractionResultDto": {
         "type": "object",
         "properties": {
@@ -16139,6 +16274,28 @@
             "format": "date-time"
           },
           "FileResourceGuid": {
+            "type": "string",
+            "nullable": true
+          },
+          "DraftOverlayJson": {
+            "type": "string",
+            "nullable": true
+          },
+          "DraftUpdatedDate": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          },
+          "DraftUpdatedByFullName": {
+            "type": "string",
+            "nullable": true
+          },
+          "ApprovedDate": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          },
+          "ApprovedByFullName": {
             "type": "string",
             "nullable": true
           }

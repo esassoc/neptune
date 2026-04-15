@@ -101,6 +101,7 @@ const SECURED_REGEX: RegexMap = {
     new RegExp("^/users/[^/]+$"),
     new RegExp("^/water-quality-management-plan-documents/[^/]+$"),
     new RegExp("^/water-quality-management-plans/[^/]+$"),
+    new RegExp("^/water-quality-management-plans/[^/]+/extraction-result/draft$"),
     new RegExp("^/water-quality-management-plans/[^/]+/verifications/[^/]+$"),
   ],
   'GET': [
@@ -172,6 +173,7 @@ const SECURED_REGEX: RegexMap = {
     new RegExp("^/treatment-bmps/[^/]+/funding-events$"),
     new RegExp("^/treatment-bmps/[^/]+/treatment-bmp-documents$"),
     new RegExp("^/treatment-bmps/[^/]+/treatment-bmp-images$"),
+    new RegExp("^/water-quality-management-plans/[^/]+/extraction-result/approve$"),
     new RegExp("^/water-quality-management-plans/[^/]+/verifications$"),
   ],
   'PUT': [
@@ -202,6 +204,7 @@ const SECURED_REGEX: RegexMap = {
     new RegExp("^/water-quality-management-plan-documents/[^/]+$"),
     new RegExp("^/water-quality-management-plans/[^/]+$"),
     new RegExp("^/water-quality-management-plans/[^/]+/boundary$"),
+    new RegExp("^/water-quality-management-plans/[^/]+/extraction-result/draft$"),
     new RegExp("^/water-quality-management-plans/[^/]+/modeling-approach$"),
     new RegExp("^/water-quality-management-plans/[^/]+/parcels$"),
     new RegExp("^/water-quality-management-plans/[^/]+/quick-bmps$"),

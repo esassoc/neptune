@@ -1,8 +1,9 @@
-import { Component, EventEmitter, Input, Output, signal } from "@angular/core";
+import { Component, EventEmitter, Input, OnChanges, Output, signal, SimpleChanges } from "@angular/core";
 import { FormControl, ReactiveFormsModule } from "@angular/forms";
 import { FormFieldComponent, FormFieldType, FormInputOption } from "src/app/shared/components/forms/form-field/form-field.component";
 
 export type FieldState = "pending" | "accepted" | "edited" | "rejected";
+export type FieldOrigin = "ai" | "blank";
 
 export interface SourceNavigation {
     evidence: string | null;
@@ -16,7 +17,7 @@ export interface SourceNavigation {
     templateUrl: "./field-card.component.html",
     styleUrl: "./field-card.component.scss",
 })
-export class FieldCardComponent {
+export class FieldCardComponent implements OnChanges {
     @Input() fieldLabel = "";
     @Input() extractedValue: string | null = null;
     @Input() extractionEvidence: string | null = null;
@@ -24,6 +25,10 @@ export class FieldCardComponent {
     @Input() confidence: "high" | "medium" | "low" | "none" = "none";
     @Input() fieldType: FormFieldType = FormFieldType.Text;
     @Input() selectOptions: FormInputOption[] = [];
+    @Input() origin: FieldOrigin = "ai";
+    @Input() readOnly = false;
+    @Input() initialState: FieldState = "pending";
+    @Input() initialValue: string | null = null;
 
     @Output() valueAccepted = new EventEmitter<string | null>();
     @Output() valueEdited = new EventEmitter<string>();
@@ -34,29 +39,50 @@ export class FieldCardComponent {
     public state = signal<FieldState>("pending");
     public isEditing = signal(false);
     public showEvidence = signal(false);
-    public editControl = new FormControl("");
+    public editControl: FormControl = new FormControl("");
     public displayValue = signal<string | null>(null);
+
+    ngOnChanges(changes: SimpleChanges): void {
+        if (changes["initialState"]) {
+            this.state.set(this.initialState);
+        }
+        if (changes["initialValue"]) {
+            this.displayValue.set(this.initialValue);
+        }
+    }
 
     get currentValue(): string | null {
         return this.displayValue() ?? this.extractedValue;
     }
 
     accept(): void {
+        if (this.readOnly) return;
         this.state.set("accepted");
         this.isEditing.set(false);
         this.valueAccepted.emit(this.currentValue);
     }
 
     startEdit(): void {
-        this.editControl.setValue(this.currentValue ?? "");
+        if (this.readOnly) return;
+        // ng-select uses strict equality against option.Value (number), so coerce numeric-string
+        // Select values back to numbers so the dropdown pre-selects the current value.
+        const current = this.currentValue ?? "";
+        const editValue: string | number =
+            this.fieldType === FormFieldType.Select && current !== "" && !isNaN(Number(current))
+                ? Number(current)
+                : current;
+        this.editControl.setValue(editValue);
         this.isEditing.set(true);
     }
 
     saveEdit(): void {
+        if (this.readOnly) return;
         this.state.set("edited");
         this.isEditing.set(false);
-        this.displayValue.set(this.editControl.value);
-        this.valueEdited.emit(this.editControl.value);
+        const raw = this.editControl.value;
+        const asString = raw == null || raw === "" ? "" : String(raw);
+        this.displayValue.set(asString === "" ? null : asString);
+        this.valueEdited.emit(asString);
     }
 
     cancelEdit(): void {
@@ -64,6 +90,7 @@ export class FieldCardComponent {
     }
 
     reject(): void {
+        if (this.readOnly) return;
         this.state.set("rejected");
         this.isEditing.set(false);
         this.valueRejected.emit();

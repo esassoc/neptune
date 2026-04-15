@@ -122,6 +122,12 @@ public partial class Person
     [InverseProperty("InventoryVerifiedByPerson")]
     public virtual ICollection<TreatmentBMP> TreatmentBMPs { get; set; } = new List<TreatmentBMP>();
 
+    [InverseProperty("ApprovedByPerson")]
+    public virtual ICollection<WaterQualityManagementPlanExtractionResult> WaterQualityManagementPlanExtractionResultApprovedByPeople { get; set; } = new List<WaterQualityManagementPlanExtractionResult>();
+
+    [InverseProperty("DraftUpdatedByPerson")]
+    public virtual ICollection<WaterQualityManagementPlanExtractionResult> WaterQualityManagementPlanExtractionResultDraftUpdatedByPeople { get; set; } = new List<WaterQualityManagementPlanExtractionResult>();
+
     [InverseProperty("LastEditedByPerson")]
     public virtual ICollection<WaterQualityManagementPlanVerify> WaterQualityManagementPlanVerifies { get; set; } = new List<WaterQualityManagementPlanVerify>();
 }

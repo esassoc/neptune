@@ -1057,6 +1057,10 @@ public partial class NeptuneDbContext : DbContext
         {
             entity.HasKey(e => e.WaterQualityManagementPlanExtractionResultID).HasName("PK_WaterQualityManagementPlanExtractionResult_WaterQualityManagementPlanExtractionResultID");
 
+            entity.HasOne(d => d.ApprovedByPerson).WithMany(p => p.WaterQualityManagementPlanExtractionResultApprovedByPeople).HasConstraintName("FK_WaterQualityManagementPlanExtractionResult_Person_ApprovedByPersonID_PersonID");
+
+            entity.HasOne(d => d.DraftUpdatedByPerson).WithMany(p => p.WaterQualityManagementPlanExtractionResultDraftUpdatedByPeople).HasConstraintName("FK_WaterQualityManagementPlanExtractionResult_Person_DraftUpdatedByPersonID_PersonID");
+
             entity.HasOne(d => d.WaterQualityManagementPlanDocument).WithMany(p => p.WaterQualityManagementPlanExtractionResults).OnDelete(DeleteBehavior.ClientSetNull);
 
             entity.HasOne(d => d.WaterQualityManagementPlan).WithOne(p => p.WaterQualityManagementPlanExtractionResult).OnDelete(DeleteBehavior.ClientSetNull);

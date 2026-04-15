@@ -7,4 +7,9 @@ public class WaterQualityManagementPlanExtractionResultDto
     public string ExtractionResultJson { get; set; }
     public DateTime ExtractedAt { get; set; }
     public string FileResourceGuid { get; set; }
+    public string? DraftOverlayJson { get; set; }
+    public DateTime? DraftUpdatedDate { get; set; }
+    public string? DraftUpdatedByFullName { get; set; }
+    public DateTime? ApprovedDate { get; set; }
+    public string? ApprovedByFullName { get; set; }
 }

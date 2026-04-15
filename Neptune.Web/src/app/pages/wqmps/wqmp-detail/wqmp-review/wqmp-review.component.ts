@@ -1,8 +1,9 @@
-import { Component, inject, Input, OnInit, signal, ViewChild } from "@angular/core";
+import { Component, computed, inject, Input, OnInit, signal, ViewChild } from "@angular/core";
+import { DatePipe } from "@angular/common";
 import { Router, RouterLink } from "@angular/router";
 import { AsyncPipe } from "@angular/common";
 import { HttpClient } from "@angular/common/http";
-import { EMPTY, forkJoin, map, Observable, switchMap, tap, shareReplay, catchError, of } from "rxjs";
+import { BehaviorSubject, EMPTY, forkJoin, map, Observable, switchMap, tap, shareReplay, catchError, of } from "rxjs";
 import { PdfJsViewerModule, PdfJsViewerComponent } from "ng2-pdfjs-viewer";
 import { AlertDisplayComponent } from "src/app/shared/components/alert-display/alert-display.component";
 import { FormFieldType, SelectDropdownOption } from "src/app/shared/components/forms/form-field/form-field.component";
@@ -13,6 +14,7 @@ import { WaterQualityManagementPlanService } from "src/app/shared/generated/api/
 import { StormwaterJurisdictionService } from "src/app/shared/generated/api/stormwater-jurisdiction.service";
 import { WaterQualityManagementPlanExtractionResultDto } from "src/app/shared/generated/model/water-quality-management-plan-extraction-result-dto";
 import { FieldCardComponent, SourceNavigation } from "src/app/pages/wqmps/wqmp-detail/wqmp-review/field-card/field-card.component";
+import { IDeactivateComponent } from "src/app/shared/guards/unsaved-changes.guard";
 import { WaterQualityManagementPlanPrioritiesAsSelectDropdownOptions } from "src/app/shared/generated/enum/water-quality-management-plan-priority-enum";
 import { WaterQualityManagementPlanDevelopmentTypesAsSelectDropdownOptions } from "src/app/shared/generated/enum/water-quality-management-plan-development-type-enum";
 import { WaterQualityManagementPlanLandUsesAsSelectDropdownOptions } from "src/app/shared/generated/enum/water-quality-management-plan-land-use-enum";
@@ -22,6 +24,7 @@ import { TrashCaptureStatusTypesAsSelectDropdownOptions } from "src/app/shared/g
 import { environment } from "src/environments/environment";
 
 export type ConfidenceLevel = "high" | "medium" | "low" | "none";
+export type FieldOrigin = "ai" | "blank";
 
 export interface ExtractedField {
     key: string;
@@ -37,14 +40,19 @@ export interface ExtractedField {
     selectOptions?: SelectDropdownOption[];
 }
 
+interface DraftOverlayEntry {
+    state: "accepted" | "edited" | "rejected";
+    value?: string | null;
+}
+
 @Component({
     selector: "wqmp-review",
     standalone: true,
-    imports: [AlertDisplayComponent, FieldCardComponent, PdfJsViewerModule, RouterLink, AsyncPipe],
+    imports: [AlertDisplayComponent, FieldCardComponent, PdfJsViewerModule, RouterLink, AsyncPipe, DatePipe],
     templateUrl: "./wqmp-review.component.html",
     styleUrl: "./wqmp-review.component.scss",
 })
-export class WqmpReviewComponent implements OnInit {
+export class WqmpReviewComponent implements OnInit, IDeactivateComponent {
     @Input() waterQualityManagementPlanID!: number;
 
     @ViewChild("pdfViewer") pdfViewer: PdfJsViewerComponent;
@@ -57,6 +65,8 @@ export class WqmpReviewComponent implements OnInit {
 
     public FormFieldType = FormFieldType;
     public extractionResult$: Observable<WaterQualityManagementPlanExtractionResultDto>;
+    public currentResult = signal<WaterQualityManagementPlanExtractionResultDto | null>(null);
+    private reload$ = new BehaviorSubject<void>(undefined);
 
     // Lookup field configuration: maps extraction key → dropdown options + DTO field name
     private lookupFieldConfig: Record<string, { options: SelectDropdownOption[]; dtoField: string }> = {};
@@ -64,7 +74,11 @@ export class WqmpReviewComponent implements OnInit {
     public fields = signal<ExtractedField[]>([]);
     public pdfBlob: Blob | null = null;
     public isApplying = false;
+    public isSavingDraft = false;
+    public hasUnsavedChanges = signal(false);
+    public isApproved = computed(() => !!this.currentResult()?.ApprovedDate);
     public isNavigating = signal(false);
+
 
     public steps = [
         { number: 1, title: "Location", desc: "Jurisdiction & parcels" },
@@ -131,24 +145,35 @@ export class WqmpReviewComponent implements OnInit {
                     TrashCaptureStatusType: { options: TrashCaptureStatusTypesAsSelectDropdownOptions, dtoField: "TrashCaptureStatusTypeID" },
                 };
             }),
+            switchMap(() => this.reload$),
             switchMap(() => this.wqmpService.getExtractionResultWaterQualityManagementPlan(this.waterQualityManagementPlanID)),
             tap((result) => {
+                this.currentResult.set(result);
                 this.parseExtractionResult(result.ExtractionResultJson);
+                this.applyDraftOverlay(result.DraftOverlayJson ?? null);
+                this.hasUnsavedChanges.set(false);
             }),
-            switchMap((result) =>
-                this.http.get(`${environment.mainAppApiUrl}/file-resources/${result.FileResourceGuid}`, { responseType: "blob" }).pipe(
+            switchMap((result) => {
+                if (this.pdfBlob) return of(result);
+                return this.http.get(`${environment.mainAppApiUrl}/file-resources/${result.FileResourceGuid}`, { responseType: "blob" }).pipe(
                     tap((blob) => {
                         this.pdfBlob = blob;
                     }),
-                    switchMap(() => [result])
-                )
-            ),
+                    map(() => result)
+                );
+            }),
             catchError(() => {
                 this.alertService.pushAlert(new Alert("Failed to load extraction results or PDF document.", AlertContext.Danger));
                 return EMPTY;
             }),
             shareReplay(1)
         );
+    }
+
+    // IDeactivateComponent — returns true when it's safe to leave (no unsaved changes),
+    // false to have the UnsavedChangesGuard show the confirm dialog.
+    canExit(): boolean {
+        return !this.hasUnsavedChanges();
     }
 
     goToStep(step: number): void {
@@ -321,21 +346,72 @@ export class WqmpReviewComponent implements OnInit {
         field.state = "accepted";
         field.acceptedValue = value;
         this.fields.update((f) => [...f]);
+        this.hasUnsavedChanges.set(true);
     }
 
     onFieldEdited(field: ExtractedField, value: string): void {
         field.state = "edited";
         field.acceptedValue = value;
         this.fields.update((f) => [...f]);
+        this.hasUnsavedChanges.set(true);
     }
 
     onFieldRejected(field: ExtractedField): void {
         field.state = "rejected";
         field.acceptedValue = null;
         this.fields.update((f) => [...f]);
+        this.hasUnsavedChanges.set(true);
     }
 
-    applyToWqmp(): void {
+    // origin reflects the source of the field's *value*, not any reviewer action.
+    // The template checks field state first for "edited"/"rejected" pills, then falls back
+    // to origin. When a reviewer "accepts" an AI value, origin stays "ai" — they're
+    // confirming the source, not editing the value.
+    getFieldOrigin(field: ExtractedField): FieldOrigin {
+        return field.value ? "ai" : "blank";
+    }
+
+    saveDraft(): void {
+        if (this.isApproved()) return;
+        this.isSavingDraft = true;
+        this.alertService.clearAlerts();
+        const overlayJson = this.buildDraftOverlayJson();
+        this.wqmpService
+            .saveExtractionResultDraftWaterQualityManagementPlan(this.waterQualityManagementPlanID, { DraftOverlayJson: overlayJson })
+            .subscribe({
+                next: () => {
+                    this.isSavingDraft = false;
+                    this.hasUnsavedChanges.set(false);
+                    this.alertService.pushAlert(new Alert("Draft saved.", AlertContext.Success));
+                    this.reload$.next();
+                },
+                error: () => {
+                    this.isSavingDraft = false;
+                    this.alertService.pushAlert(new Alert("Failed to save draft.", AlertContext.Danger));
+                },
+            });
+    }
+
+    discardDraft(): void {
+        if (this.isApproved()) return;
+        if (!confirm("Discard all reviewer edits and revert to AI-extracted values?")) return;
+        this.alertService.clearAlerts();
+        this.wqmpService
+            .clearExtractionResultDraftWaterQualityManagementPlan(this.waterQualityManagementPlanID)
+            .subscribe({
+                next: () => {
+                    this.hasUnsavedChanges.set(false);
+                    this.alertService.pushAlert(new Alert("Draft discarded.", AlertContext.Success));
+                    this.reload$.next();
+                },
+                error: () => {
+                    this.alertService.pushAlert(new Alert("Failed to discard draft.", AlertContext.Danger));
+                },
+            });
+    }
+
+    approveAndApply(): void {
+        if (this.isApproved()) return;
         this.isApplying = true;
         this.alertService.clearAlerts();
 
@@ -406,12 +482,13 @@ export class WqmpReviewComponent implements OnInit {
                     }
                 }
 
-                return this.wqmpService.updateWaterQualityManagementPlan(this.waterQualityManagementPlanID, dto);
+                return this.wqmpService.approveExtractionResultWaterQualityManagementPlan(this.waterQualityManagementPlanID, dto);
             })
         ).subscribe({
             next: () => {
                 this.isApplying = false;
-                this.alertService.pushAlert(new Alert("WQMP updated with extracted data.", AlertContext.Success));
+                this.hasUnsavedChanges.set(false);
+                this.alertService.pushAlert(new Alert("Review approved and applied to WQMP.", AlertContext.Success));
                 this.router.navigate(["/water-quality-management-plans", this.waterQualityManagementPlanID]);
             },
             error: () => {
@@ -423,6 +500,38 @@ export class WqmpReviewComponent implements OnInit {
 
     cancel(): void {
         this.router.navigate(["/water-quality-management-plans", this.waterQualityManagementPlanID]);
+    }
+
+    private buildDraftOverlayJson(): string {
+        const overlay: Record<string, DraftOverlayEntry> = {};
+        for (const field of this.fields()) {
+            if (field.state === "pending") continue;
+            if (field.state === "rejected") {
+                overlay[field.key] = { state: "rejected" };
+            } else {
+                overlay[field.key] = { state: field.state, value: field.acceptedValue ?? null };
+            }
+        }
+        return JSON.stringify(overlay);
+    }
+
+    private applyDraftOverlay(overlayJson: string | null): void {
+        if (!overlayJson) return;
+        try {
+            const overlay = JSON.parse(overlayJson) as Record<string, DraftOverlayEntry>;
+            const updated = this.fields().map((field) => {
+                const entry = overlay[field.key];
+                if (!entry) return field;
+                return {
+                    ...field,
+                    state: entry.state,
+                    acceptedValue: entry.state === "rejected" ? null : entry.value ?? null,
+                };
+            });
+            this.fields.set(updated);
+        } catch {
+            // Ignore malformed overlay — fall back to AI-extracted values
+        }
     }
 
     private parseExtractionResult(json: string): void {
@@ -462,6 +571,17 @@ export class WqmpReviewComponent implements OnInit {
                 const match = lookupConfig.options.find((o) => o.Label.toLowerCase() === rawValue.toLowerCase());
                 value = match ? String(match.Value) : null;
             }
+        } else if (key === "ApprovalDate" || key === "DateOfConstruction") {
+            fieldType = FormFieldType.Date;
+            // Normalize extracted dates to yyyy-mm-dd for the date input
+            if (rawValue) {
+                const parsed = new Date(rawValue);
+                if (!isNaN(parsed.getTime())) {
+                    value = parsed.toISOString().slice(0, 10);
+                }
+            }
+        } else if (key === "RecordedWQMPAreaInAcres") {
+            fieldType = FormFieldType.Number;
         }
 
         return {

@@ -542,25 +542,94 @@ namespace Neptune.API.Controllers
         public async Task<ActionResult<WaterQualityManagementPlanExtractionResultDto>> GetExtractionResult(
             [FromRoute] int waterQualityManagementPlanID)
         {
-            var storedResult = await DbContext.WaterQualityManagementPlanExtractionResults
-                .Include(x => x.WaterQualityManagementPlanDocument)
-                    .ThenInclude(x => x.FileResource)
-                .Where(x => x.WaterQualityManagementPlanID == waterQualityManagementPlanID)
-                .FirstOrDefaultAsync();
-
-            if (storedResult == null)
+            var dto = await WaterQualityManagementPlanExtractionResults.GetByWqmpIDAsDtoAsync(DbContext, waterQualityManagementPlanID);
+            if (dto == null)
             {
                 return NotFound("No extraction result found for this WQMP.");
             }
+            return Ok(dto);
+        }
 
-            return Ok(new WaterQualityManagementPlanExtractionResultDto
+        [HttpPut("{waterQualityManagementPlanID}/extraction-result/draft")]
+        [AdminFeature]
+        [EntityNotFound(typeof(WaterQualityManagementPlan), "waterQualityManagementPlanID")]
+        public async Task<ActionResult> SaveExtractionResultDraft(
+            [FromRoute] int waterQualityManagementPlanID,
+            [FromBody] WaterQualityManagementPlanExtractionDraftUpsertDto dto)
+        {
+            // Validate JSON shape so a malformed payload fails here with a clear error
+            // rather than silently storing garbage that breaks draft restoration on reload.
+            if (!TryParseJson(dto.DraftOverlayJson))
             {
-                WaterQualityManagementPlanID = waterQualityManagementPlanID,
-                WaterQualityManagementPlanDocumentID = storedResult.WaterQualityManagementPlanDocumentID,
-                ExtractionResultJson = storedResult.ExtractionResultJson,
-                ExtractedAt = storedResult.ExtractedAt,
-                FileResourceGuid = storedResult.WaterQualityManagementPlanDocument.FileResource.FileResourceGUID.ToString(),
-            });
+                return BadRequest("DraftOverlayJson must be valid JSON.");
+            }
+
+            try
+            {
+                await WaterQualityManagementPlanExtractionResults.SaveDraftAsync(
+                    DbContext, waterQualityManagementPlanID, dto.DraftOverlayJson, CallingUser.PersonID);
+            }
+            catch (InvalidOperationException ex)
+            {
+                return BadRequest(ex.Message);
+            }
+            return NoContent();
+        }
+
+        [HttpDelete("{waterQualityManagementPlanID}/extraction-result/draft")]
+        [AdminFeature]
+        [EntityNotFound(typeof(WaterQualityManagementPlan), "waterQualityManagementPlanID")]
+        public async Task<ActionResult> ClearExtractionResultDraft(
+            [FromRoute] int waterQualityManagementPlanID)
+        {
+            await WaterQualityManagementPlanExtractionResults.ClearDraftAsync(DbContext, waterQualityManagementPlanID);
+            return NoContent();
+        }
+
+        [HttpPost("{waterQualityManagementPlanID}/extraction-result/approve")]
+        [JurisdictionEditFeature]
+        [EntityNotFound(typeof(WaterQualityManagementPlan), "waterQualityManagementPlanID")]
+        public async Task<ActionResult<WaterQualityManagementPlanDto>> ApproveExtractionResult(
+            [FromRoute] int waterQualityManagementPlanID,
+            [FromBody] WaterQualityManagementPlanUpsertDto dto)
+        {
+            // Pre-check the extraction result exists and is not already approved BEFORE touching
+            // the live WQMP, so we fail fast with no partial writes.
+            var existing = await WaterQualityManagementPlanExtractionResults.GetByWqmpIDAsync(DbContext, waterQualityManagementPlanID);
+            if (existing == null) return NotFound("No extraction result found for this WQMP.");
+            if (existing.ApprovedDate.HasValue) return BadRequest("Extraction result has already been approved.");
+
+            // Wrap the live-WQMP update and the approval stamp in a single transaction so a partial
+            // failure can't leave the WQMP modified without the approval being recorded.
+            await using var transaction = await DbContext.Database.BeginTransactionAsync();
+            try
+            {
+                var updated = await WaterQualityManagementPlans.UpdateAsync(DbContext, waterQualityManagementPlanID, dto);
+                if (updated == null) return NotFound();
+
+                await WaterQualityManagementPlanExtractionResults.MarkApprovedAsync(DbContext, waterQualityManagementPlanID, CallingUser.PersonID);
+                await transaction.CommitAsync();
+                return Ok(updated);
+            }
+            catch (InvalidOperationException ex)
+            {
+                await transaction.RollbackAsync();
+                return BadRequest(ex.Message);
+            }
+        }
+
+        private static bool TryParseJson(string json)
+        {
+            if (string.IsNullOrWhiteSpace(json)) return false;
+            try
+            {
+                using var doc = System.Text.Json.JsonDocument.Parse(json);
+                return true;
+            }
+            catch (System.Text.Json.JsonException)
+            {
+                return false;
+            }
         }
     }
 }

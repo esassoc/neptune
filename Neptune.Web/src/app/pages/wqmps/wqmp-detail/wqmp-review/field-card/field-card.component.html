@@ -1,4 +1,8 @@
-<div class="field-card" [class.field-card--accepted]="state() === 'accepted'" [class.field-card--edited]="state() === 'edited'" [class.field-card--rejected]="state() === 'rejected'">
+<div class="field-card"
+     [class.field-card--accepted]="state() === 'accepted'"
+     [class.field-card--edited]="state() === 'edited'"
+     [class.field-card--rejected]="state() === 'rejected'"
+     [class.field-card--read-only]="readOnly">
     <div class="field-card__header">
         <span class="field-card__label">
             {{ fieldLabel }}
@@ -13,7 +17,7 @@
             }
         </span>
         <div class="field-card__actions">
-            @if (!isEditing()) {
+            @if (!isEditing() && !readOnly) {
                 <button class="field-card__btn field-card__btn--accept" title="Accept" (click)="accept()">
                     <i class="fa fa-check"></i>
                 </button>
@@ -25,6 +29,18 @@
                 </button>
             }
         </div>
+    </div>
+
+    <div class="field-card__origin">
+        @if (state() === "rejected") {
+            <span class="origin-pill origin-pill--rejected">Rejected by reviewer</span>
+        } @else if (state() === "edited") {
+            <span class="origin-pill origin-pill--edited">Edited by reviewer</span>
+        } @else if (origin === "blank") {
+            <span class="origin-pill origin-pill--blank">Blank in source document</span>
+        } @else {
+            <span class="origin-pill origin-pill--ai">AI-extracted</span>
+        }
     </div>
 
     <div class="field-card__value">
