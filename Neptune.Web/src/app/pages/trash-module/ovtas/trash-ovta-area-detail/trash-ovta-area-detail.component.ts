@@ -77,7 +77,7 @@ export class TrashOvtaAreaDetailComponent {
     ngOnInit(): void {
         this.ovtaColumnDefs = [
             this.utilityFunctionsService.createActionsColumnDef((params: any) => {
-                return [
+                const actions = [
                     { ActionName: "View", ActionHandler: () => this.router.navigate(["trash", "onland-visual-trash-assessments", params.data.OnlandVisualTrashAssessmentID]) },
                     {
                         ActionName: params.data.OnlandVisualTrashAssessmentStatusID == OnlandVisualTrashAssessmentStatusEnum.Complete ? "Return to Edit" : "Edit",
@@ -87,12 +87,15 @@ export class TrashOvtaAreaDetailComponent {
                                 ? this.confirmEditOVTA(params.data.OnlandVisualTrashAssessmentID, params.data.CompletedDate)
                                 : this.router.navigateByUrl(`/trash/onland-visual-trash-assessments/edit/${params.data.OnlandVisualTrashAssessmentID}/record-observations`),
                     },
-                    {
+                ];
+                if (params.data.OnlandVisualTrashAssessmentStatusID != OnlandVisualTrashAssessmentStatusEnum.Complete) {
+                    actions.push({
                         ActionName: "Delete",
                         ActionIcon: "fas fa-trash text-danger",
                         ActionHandler: () => this.deleteOVTA(params.data.OnlandVisualTrashAssessmentID, params.data.CreatedDate),
-                    },
-                ];
+                    });
+                }
+                return actions;
             }),
             this.utilityFunctionsService.createLinkColumnDef("Assessment ID", "OnlandVisualTrashAssessmentID", "OnlandVisualTrashAssessmentID", {
                 InRouterLink: "../../onland-visual-trash-assessments/",

@@ -8,8 +8,8 @@
       To move an observation, click the pencil icon and then either drag the marker or click a new location on the map.
     </p>
     <div class="mb-3">
-      <button class="btn btn-primary mr-2" [disabled]="isLoadingSubmit || isAddingObservation || isEditingLocation" (click)="goToCurrentLocation()">Record Observation at Current Location</button>
-      <button class="btn btn-primary mr-2" [disabled]="isLoadingSubmit || isAddingObservation || isEditingLocation" (click)="addObservationMarker()">
+      <button class="btn btn-primary mr-2" [disabled]="!mapIsReady || isLoadingSubmit || isAddingObservation || isEditingLocation" (click)="goToCurrentLocation()">Record Observation at Current Location</button>
+      <button class="btn btn-primary mr-2" [disabled]="!mapIsReady || isLoadingSubmit || isAddingObservation || isEditingLocation" (click)="addObservationMarker()">
         {{ isAddingObservation ? "Click the map to place observation..." : "Add an Observation by clicking the map" }}
       </button>
     </div>
@@ -47,10 +47,10 @@
               <div class="card-header d-flex justify-content-between align-items-center">
                 Selected Observation
                 <div>
-                  <button class="btn btn-sm btn-link" title="Edit Observation Location" [disabled]="isEditingLocation" (click)="editObservationLocation(i)">
+                  <button type="button" class="btn btn-sm btn-link" title="Edit Observation Location" aria-label="Edit Observation Location" [disabled]="isEditingLocation" (click)="editObservationLocation(i)">
                     <i class="fas fa-pencil-alt"></i>
                   </button>
-                  <button class="btn btn-sm btn-link text-danger" title="Delete Observation" (click)="deleteObservation(i)">
+                  <button type="button" class="btn btn-sm btn-link text-danger" title="Delete Observation" aria-label="Delete Observation" (click)="deleteObservation(i)">
                     <i class="fas fa-trash"></i>
                   </button>
                 </div>

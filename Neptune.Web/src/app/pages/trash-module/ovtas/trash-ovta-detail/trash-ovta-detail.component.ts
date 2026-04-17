@@ -27,6 +27,7 @@ export class TrashOvtaDetailComponent {
     public onlandVisualTrashAssessment$: Observable<OnlandVisualTrashAssessmentDetailDto>;
     public onlandVisualTrashAssessmentObservations$: Observable<OnlandVisualTrashAssessmentObservationWithPhotoDto[]>;
     public PreliminarySourceIdentificationCategories = PreliminarySourceIdentificationCategories;
+    public OnlandVisualTrashAssessmentStatusEnum = OnlandVisualTrashAssessmentStatusEnum;
 
     @Input() onlandVisualTrashAssessmentID!: number;
     constructor(

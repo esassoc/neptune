@@ -17,15 +17,17 @@
               )
           "
           >Edit</a>
-        <button
-          class="btn btn-danger ml-2"
-          (click)="
-              deleteOVTA(
-                  onlandVisualTrashAssessment.OnlandVisualTrashAssessmentID,
-                  onlandVisualTrashAssessment.CreatedDate
-              )
-          "
-          >Delete</button>
+        @if (onlandVisualTrashAssessment.OnlandVisualTrashAssessmentStatusID != OnlandVisualTrashAssessmentStatusEnum.Complete) {
+          <button
+            class="btn btn-danger ml-2"
+            (click)="
+                deleteOVTA(
+                    onlandVisualTrashAssessment.OnlandVisualTrashAssessmentID,
+                    onlandVisualTrashAssessment.CreatedDate
+                )
+            "
+            >Delete</button>
+        }
       </div>
     </ng-template>
     </page-header>
