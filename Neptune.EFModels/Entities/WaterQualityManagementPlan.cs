@@ -91,8 +91,6 @@ namespace Neptune.EFModels.Entities
                 .Select(x => x.WaterQualityManagementPlanDocumentID).ToListAsync();
             if (documentIDs.Any())
             {
-                await dbContext.WaterQualityManagementPlanDocumentVectorStores
-                    .Where(x => documentIDs.Contains(x.WaterQualityManagementPlanDocumentID)).ExecuteDeleteAsync();
                 await dbContext.WaterQualityManagementPlanExtractionResults
                     .Where(x => documentIDs.Contains(x.WaterQualityManagementPlanDocumentID)).ExecuteDeleteAsync();
             }

@@ -1,26 +1,24 @@
 using System;
 using System.Collections.Generic;
-using System.Diagnostics.CodeAnalysis;
+using System.Diagnostics;
+using System.IO;
 using System.Linq;
 using System.Text.Json;
-using System.Text.RegularExpressions;
 using System.Threading;
 using System.Threading.Tasks;
+using Anthropic;
+using Anthropic.Models.Messages;
+using AnthropicRole = Anthropic.Models.Messages.Role;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using Neptune.EFModels.Entities;
 using Neptune.Models.DataTransferObjects;
-using OpenAI;
-using OpenAI.Responses;
 
 namespace Neptune.API.Services.AI;
 
-#pragma warning disable OPENAI001
-
 public class WqmpExtractionService
 {
-    private const string ModelId = "gpt-5.2";
     private const string SchemaVersion = "v1.0";
     private static readonly Lazy<string> ExtractedValueSchema = new(BuildExtractedValueJsonSchema);
     private static readonly Lazy<string> WqmpSchema = new(BuildWqmpSchemaJson);
@@ -28,43 +26,59 @@ public class WqmpExtractionService
     private static readonly Lazy<string> TreatmentBmpSchema = new(BuildTreatmentBmpSchemaJson);
     private static readonly Lazy<string> SourceControlBmpSchema = new(BuildSourceControlBmpSchemaJson);
 
-    private readonly OpenAIClient _openAIClient;
+    private readonly AnthropicClient _anthropic;
     private readonly AzureBlobStorageService _blobService;
     private readonly NeptuneDbContext _dbContext;
     private readonly IPromptTemplateService _promptTemplateService;
     private readonly ILogger<WqmpExtractionService> _logger;
-    private readonly string _apiKey;
+    private readonly NeptuneConfiguration _configuration;
 
     public WqmpExtractionService(
-        OpenAIClient openAIClient,
+        AnthropicClient anthropic,
         AzureBlobStorageService blobService,
         NeptuneDbContext dbContext,
         IPromptTemplateService promptTemplateService,
         ILogger<WqmpExtractionService> logger,
         IOptions<NeptuneConfiguration> configuration)
     {
-        _openAIClient = openAIClient;
+        _anthropic = anthropic;
         _blobService = blobService;
         _dbContext = dbContext;
         _promptTemplateService = promptTemplateService;
         _logger = logger;
-        _apiKey = configuration.Value.OpenAIApiKey;
+        _configuration = configuration.Value;
     }
 
     public async Task<WaterQualityManagementPlanDocumentExtractionResultDto> ExtractFromDocument(
         int waterQualityManagementPlanDocumentID, int personID, CancellationToken cancellationToken)
     {
-        var totalSw = System.Diagnostics.Stopwatch.StartNew();
-        _logger.LogInformation("Starting WQMP extraction for documentID={DocumentID}, personID={PersonID}",
-            waterQualityManagementPlanDocumentID, personID);
+        var totalSw = Stopwatch.StartNew();
+        _logger.LogInformation("Starting WQMP extraction for documentID={DocumentID}, personID={PersonID}, model={Model}",
+            waterQualityManagementPlanDocumentID, personID, _configuration.ClaudeModelId);
 
         var docDto = await WaterQualityManagementPlanDocuments.GetByIDAsDtoAsync(_dbContext, waterQualityManagementPlanDocumentID);
         if (docDto == null) throw new InvalidOperationException($"Document {waterQualityManagementPlanDocumentID} not found.");
 
-        var vectorStoreId = await EnsureVectorStoreWithFileAsync(waterQualityManagementPlanDocumentID, docDto);
+        // Download PDF bytes and base64-encode for inline document blocks.
+        // Claude's Messages API accepts PDFs directly as document content blocks.
+        var blobStream = await _blobService.DownloadBlobFromBlobStorageAsStream(docDto.FileResource.FileResourceGUID.ToString());
+        using var ms = new MemoryStream();
+        await blobStream.Content.CopyToAsync(ms, cancellationToken);
+        var pdfBytes = ms.ToArray();
+        var pdfSizeMB = pdfBytes.Length / (1024.0 * 1024.0);
+        _logger.LogInformation("PDF downloaded ({SizeMB:F1} MB). Building domain context...", pdfSizeMB);
+
+        const int maxPdfSizeBytes = 25 * 1024 * 1024; // ~33 MB base64 ≈ safe request body
+        if (pdfBytes.Length > maxPdfSizeBytes)
+        {
+            throw new InvalidOperationException(
+                $"PDF is {pdfSizeMB:F1} MB, which exceeds the 25 MB limit for AI extraction. " +
+                "Consider re-exporting the document at a lower scan resolution.");
+        }
+
+        var pdfBase64 = Convert.ToBase64String(pdfBytes);
+
         var domainContext = await BuildDomainContext();
-        _logger.LogInformation("Vector store and domain context ready (elapsed {ElapsedMs}ms); invoking 4 parallel category extractions...",
-            totalSw.ElapsedMilliseconds);
 
         var evidenceInstructions =
             $"SchemaVersion: {SchemaVersion}. Use ONLY the provided WQMP PDF. Each attribute object MUST match ExtractedValueSchema. " +
@@ -72,7 +86,8 @@ public class WqmpExtractionService
             "If not found set Value, ExtractionEvidence, DocumentSource to null. Do not add or rename properties.\n" +
             $"ExtractedValueSchema: {ExtractedValueSchema.Value}";
 
-        var prompts = new Dictionary<string, (PromptTemplate template, string schema, bool expectArray)>
+        // Build all 4 tools upfront — identical across all parallel calls so the tools-level cache is shared.
+        var categoryConfigs = new Dictionary<string, (PromptTemplate template, string schema, bool expectArray)>
         {
             ["WQMP"] = (PromptTemplate.ExtractWqmpFields, WqmpSchema.Value, false),
             ["Parcels"] = (PromptTemplate.ExtractParcels, ParcelSchema.Value, true),
@@ -80,12 +95,15 @@ public class WqmpExtractionService
             ["SourceControlBMPs"] = (PromptTemplate.ExtractSourceControlBMPs, SourceControlBmpSchema.Value, true),
         };
 
-        var responseClient = CreateResponseClient();
-        var fileSearchTool = CreateFileSearchTool(vectorStoreId);
+        var allTools = categoryConfigs.Select(kvp => BuildToolForCategory(kvp.Key, kvp.Value.schema)).ToList();
 
-        async Task<(string output, OpenAIResponse response)> ExtractCategoryAsync(string key, PromptTemplate template, string schema, bool expectArray)
+        _logger.LogInformation("Domain context ready (elapsed {ElapsedMs}ms); invoking 4 parallel category extractions via Claude...",
+            totalSw.ElapsedMilliseconds);
+
+        // Per-category extraction — forces the category-specific tool via ToolChoice
+        async Task<(string output, long inputTokens, long outputTokens, long cachedTokens)> ExtractCategoryAsync(string key, PromptTemplate template, string schema, bool expectArray)
         {
-            var catSw = System.Diagnostics.Stopwatch.StartNew();
+            var catSw = Stopwatch.StartNew();
             _logger.LogInformation("Starting extraction category: {Category}", key);
 
             var templateModel = new
@@ -96,55 +114,94 @@ public class WqmpExtractionService
                 Schema = schema,
             };
             var prompt = _promptTemplateService.Render(template, templateModel);
+            var toolName = $"emit_{key.ToLower()}_extraction";
 
-            // Use structured output for guaranteed valid JSON
-            var textOptions = new ResponseTextOptions();
-            textOptions.TextFormat = ResponseTextFormat.CreateJsonSchemaFormat($"extraction_{key}", BinaryData.FromString(schema));
-
-            var options = new ResponseCreationOptions
+            // System prompt: evidence instructions (cached — stable across all 4 calls)
+            var systemBlocks = new List<TextBlockParam>
             {
-                Tools = { fileSearchTool },
-                TextOptions = textOptions,
+                new() { Text = evidenceInstructions, CacheControl = new CacheControlEphemeral() },
             };
 
-            // Per-category timeout so a single hung OpenAI call can't wedge the whole extraction silently
-            using var cts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
-            cts.CancelAfter(TimeSpan.FromMinutes(4));
-
-            try
+            // User message: PDF document (cached) + domain context (cached) + per-category prompt (varies)
+            var messageContent = new List<ContentBlockParam>
             {
-                var response = await responseClient.CreateResponseAsync(prompt, options, cts.Token);
+                new DocumentBlockParam { Source = new Base64PdfSource { Data = pdfBase64 } },
+                new TextBlockParam { Text = $"DomainContext:\n{domainContext}", CacheControl = new CacheControlEphemeral() },
+                new TextBlockParam { Text = prompt },
+            };
 
-                var output = ExtractMessageText(response.Value.OutputItems);
-                if (!IsValidJson(output))
+            var parameters = new MessageCreateParams
+            {
+                Model = _configuration.ClaudeModelId,
+                MaxTokens = 8192,
+                System = systemBlocks,
+                Messages = [new() { Role = AnthropicRole.User, Content = messageContent }],
+                Tools = allTools.Select(t => (ToolUnion)t).ToList(),
+                ToolChoice = new ToolChoiceTool { Name = toolName },
+            };
+
+            // Stream the response — keeps the HTTP connection alive via SSE so there's no
+            // HttpClient.Timeout to worry about, even for large PDFs on a cold cache.
+            var toolInputJson = new System.Text.StringBuilder();
+            long cachedTokens = 0;
+            long inputTokens = 0;
+            long outputTokens = 0;
+
+            await foreach (var evt in _anthropic.Messages.CreateStreaming(parameters))
+            {
+                if (evt.TryPickContentBlockDelta(out var delta))
                 {
-                    _logger.LogError("Structured output returned invalid JSON for {Category} after {ElapsedMs}ms. Using empty fallback.",
-                        key, catSw.ElapsedMilliseconds);
-                    output = expectArray ? "[]" : "{}";
+                    // Tool-use input arrives as input_json_delta chunks
+                    if (delta.Delta.TryPickInputJson(out var jsonDelta))
+                    {
+                        toolInputJson.Append(jsonDelta.PartialJson);
+                    }
                 }
-                else
+                else if (evt.TryPickDelta(out var msgDelta))
                 {
-                    _logger.LogInformation("Finished extraction category: {Category} in {ElapsedMs}ms ({OutputChars} chars)",
-                        key, catSw.ElapsedMilliseconds, output.Length);
+                    // message_delta carries usage info
+                    if (msgDelta.Usage != null)
+                    {
+                        outputTokens = msgDelta.Usage.OutputTokens;
+                    }
                 }
-                return (output, response.Value);
+                else if (evt.TryPickStart(out var msgStart))
+                {
+                    if (msgStart.Message?.Usage != null)
+                    {
+                        inputTokens = msgStart.Message.Usage.InputTokens;
+                        cachedTokens = msgStart.Message.Usage.CacheReadInputTokens ?? 0;
+                    }
+                }
             }
-            catch (OperationCanceledException) when (cts.IsCancellationRequested && !cancellationToken.IsCancellationRequested)
+
+            var output = toolInputJson.Length > 0 ? toolInputJson.ToString() : (expectArray ? "[]" : "{}");
+
+            if (!IsValidJson(output))
             {
-                _logger.LogError("Extraction category {Category} timed out after {ElapsedMs}ms (4-minute per-category limit)",
+                _logger.LogError("Streamed tool output returned invalid JSON for {Category} after {ElapsedMs}ms. Using empty fallback.",
                     key, catSw.ElapsedMilliseconds);
-                throw new TimeoutException($"Extraction category '{key}' exceeded 4-minute OpenAI response timeout.");
+                output = expectArray ? "[]" : "{}";
             }
+            else
+            {
+                _logger.LogInformation("Finished extraction category: {Category} in {ElapsedMs}ms ({OutputChars} chars, cached={CachedTokens})",
+                    key, catSw.ElapsedMilliseconds, output.Length, cachedTokens);
+            }
+
+            return (output, inputTokens, outputTokens, cachedTokens);
         }
 
-        var tasks = prompts.Select(kvp => ExtractCategoryAsync(kvp.Key, kvp.Value.template, kvp.Value.schema, kvp.Value.expectArray)).ToList();
+        var tasks = categoryConfigs.Select(kvp =>
+            ExtractCategoryAsync(kvp.Key, kvp.Value.template, kvp.Value.schema, kvp.Value.expectArray)).ToList();
         var results = await Task.WhenAll(tasks);
-        var keys = prompts.Keys.ToList();
+        var keys = categoryConfigs.Keys.ToList();
         var map = new Dictionary<string, string>();
         for (var i = 0; i < keys.Count; i++)
         {
             map[keys[i]] = results[i].output;
-            await LogTokenUsage(personID, results[i].response, $"WQMP Extraction - {keys[i]}");
+            await LogTokenUsage(personID, results[i].inputTokens, results[i].outputTokens,
+                results[i].cachedTokens, $"WQMP Extraction - {keys[i]}");
         }
 
         // Array categories return { "items": [...] } — unwrap to just the array
@@ -177,25 +234,21 @@ public class WqmpExtractionService
         };
     }
 
-    private async Task LogTokenUsage(int personID, OpenAIResponse response, string context)
+    private async Task LogTokenUsage(int personID, long inputTokens, long outputTokens, long cachedTokens, string context)
     {
         try
         {
-            var usage = response.Usage;
-            if (usage != null)
+            _dbContext.AITokenUsages.Add(new AITokenUsage
             {
-                _dbContext.AITokenUsages.Add(new AITokenUsage
-                {
-                    PersonID = personID,
-                    Model = ModelId,
-                    InputTokens = usage.InputTokenCount,
-                    CachedInputTokens = 0,
-                    OutputTokens = usage.OutputTokenCount,
-                    RequestDate = DateTime.UtcNow,
-                    RequestContext = context
-                });
-                await _dbContext.SaveChangesAsync();
-            }
+                PersonID = personID,
+                Model = _configuration.ClaudeModelId,
+                InputTokens = (int)inputTokens,
+                CachedInputTokens = (int)cachedTokens,
+                OutputTokens = (int)outputTokens,
+                RequestDate = DateTime.UtcNow,
+                RequestContext = context
+            });
+            await _dbContext.SaveChangesAsync();
         }
         catch (Exception ex)
         {
@@ -203,90 +256,27 @@ public class WqmpExtractionService
         }
     }
 
-    private async Task<string> EnsureVectorStoreWithFileAsync(int documentId, WaterQualityManagementPlanDocumentDto docDto)
+    private static Tool BuildToolForCategory(string categoryKey, string jsonSchema)
     {
-        var existingVectorStoreId = await WaterQualityManagementPlanDocumentVectorStores.GetByWaterQualityManagementPlanDocumentIDAsDtoAsync(_dbContext, documentId);
-        if (!string.IsNullOrWhiteSpace(existingVectorStoreId))
+        var parsed = JsonSerializer.Deserialize<Dictionary<string, JsonElement>>(jsonSchema);
+        return new Tool
         {
-            _logger.LogInformation("Reusing existing vector store {VectorStoreId} for documentID={DocumentID}", existingVectorStoreId, documentId);
-            return existingVectorStoreId;
-        }
-
-        var vectorStoreClient = _openAIClient.GetVectorStoreClient();
-        var fileClient = _openAIClient.GetOpenAIFileClient();
-
-        _logger.LogInformation("No existing vector store for documentID={DocumentID}; downloading blob and uploading to OpenAI", documentId);
-        var fileStream = await _blobService.DownloadBlobFromBlobStorageAsStream(docDto.FileResource.FileResourceGUID.ToString());
-        var fileUploadResult = await fileClient.UploadFileAsync(fileStream.Content, docDto.FileResource.OriginalFilename, OpenAI.Files.FileUploadPurpose.Assistants);
-        if (fileUploadResult?.Value == null) throw new Exception($"OpenAI file upload failed for documentId={documentId}");
-        _logger.LogInformation("File uploaded to OpenAI: fileId={FileId}, name={Name}", fileUploadResult.Value.Id, docDto.FileResource.OriginalFilename);
-
-        var options = new OpenAI.VectorStores.VectorStoreCreationOptions { Name = $"WQMP_{documentId}" };
-        options.FileIds.Add(fileUploadResult.Value.Id);
-        var vectorStoreCreateResult = await vectorStoreClient.CreateVectorStoreAsync(options);
-        if (vectorStoreCreateResult?.Value == null) throw new Exception($"OpenAI vector store creation failed for documentId={documentId}");
-
-        var vectorStoreId = vectorStoreCreateResult.Value.Id;
-        var fileId = fileUploadResult.Value.Id;
-        _logger.LogInformation("Vector store created: {VectorStoreId}. Polling until status=Completed...", vectorStoreId);
-
-        // Poll until vector store is ready (max 5 minutes)
-        var maxAttempts = 1500; // 5 min at 200ms intervals
-        var attempts = 0;
-        while (vectorStoreCreateResult.Value.Status != OpenAI.VectorStores.VectorStoreStatus.Completed)
-        {
-            if (++attempts > maxAttempts) throw new Exception($"OpenAI vector store polling timed out for vectorStoreId={vectorStoreId}");
-            vectorStoreCreateResult = await vectorStoreClient.GetVectorStoreAsync(vectorStoreId);
-            if (vectorStoreCreateResult?.Value == null) throw new Exception($"OpenAI vector store status check failed for vectorStoreId={vectorStoreId}");
-            if (vectorStoreCreateResult.Value.Status == OpenAI.VectorStores.VectorStoreStatus.Expired)
-                throw new Exception($"OpenAI vector store expired for vectorStoreId={vectorStoreId}");
-            if (attempts % 25 == 0) // progress checkpoint every 25 polls
+            Name = $"emit_{categoryKey.ToLower()}_extraction",
+            Description = $"Emit the extracted {categoryKey} fields as structured JSON matching the required schema.",
+            InputSchema = new()
             {
-                _logger.LogInformation("Vector store {VectorStoreId} status={Status}, attempt {Attempts}/{MaxAttempts}",
-                    vectorStoreId, vectorStoreCreateResult.Value.Status, attempts, maxAttempts);
-            }
-            await Task.Delay(200);
-        }
-        _logger.LogInformation("Vector store {VectorStoreId} reached Completed after {Attempts} polls. Polling file indexing...", vectorStoreId, attempts);
-
-        // Poll until the file within the vector store is fully indexed (max 5 minutes)
-        attempts = 0;
-        OpenAI.VectorStores.VectorStoreFile vectorStoreFile = null;
-        do
-        {
-            if (++attempts > maxAttempts) throw new Exception($"OpenAI file indexing polling timed out for fileId={fileId}");
-            try
-            {
-                var fileResult = await vectorStoreClient.GetVectorStoreFileAsync(vectorStoreId, fileId);
-                vectorStoreFile = fileResult?.Value;
-                if (vectorStoreFile == null) throw new Exception($"OpenAI file status check failed for fileId={fileId}");
-                if (vectorStoreFile.Status == OpenAI.VectorStores.VectorStoreFileStatus.Completed) break;
-                if (vectorStoreFile.Status == OpenAI.VectorStores.VectorStoreFileStatus.Failed)
-                {
-                    var lastError = vectorStoreFile.LastError;
-                    var errorDetail = lastError != null ? $"Code={lastError.Code}, Message={lastError.Message}" : "no details";
-                    _logger.LogError("OpenAI file indexing failed for fileId={FileId}: {Error}", fileId, errorDetail);
-                    throw new Exception($"OpenAI file indexing failed for fileId={fileId}: {errorDetail}");
-                }
-            }
-            catch (System.ClientModel.ClientResultException)
-            {
-                // File not ready yet, continue polling
-            }
-            if (attempts % 25 == 0 && vectorStoreFile != null) // every ~5s
-            {
-                _logger.LogInformation("File indexing status={Status} for fileId={FileId}, attempt {Attempts}/{MaxAttempts}",
-                    vectorStoreFile.Status, fileId, attempts, maxAttempts);
-            }
-            await Task.Delay(200);
-        } while (vectorStoreFile == null || vectorStoreFile.Status != OpenAI.VectorStores.VectorStoreFileStatus.Completed);
-
-        _logger.LogInformation("Vector store {VectorStoreId} ready with file {FileId} indexed after {Attempts} polls.", vectorStoreId, fileId, attempts);
-        await WaterQualityManagementPlanDocumentVectorStores.UpsertAsync(_dbContext, documentId, vectorStoreId);
-        return vectorStoreId;
+                Properties = parsed?.Where(kvp => kvp.Key == "properties")
+                    .SelectMany(kvp => kvp.Value.EnumerateObject())
+                    .ToDictionary(prop => prop.Name, prop => JsonSerializer.SerializeToElement(JsonSerializer.Deserialize<object>(prop.Value.GetRawText())))
+                    ?? new Dictionary<string, JsonElement>(),
+                Required = parsed != null && parsed.TryGetValue("required", out var req)
+                    ? JsonSerializer.Deserialize<List<string>>(req.GetRawText()) ?? []
+                    : [],
+            },
+        };
     }
 
-    private async Task<string> BuildDomainContext()
+    public async Task<string> BuildDomainContext()
     {
         var domainTables = new
         {
@@ -302,27 +292,6 @@ public class WqmpExtractionService
             SourceControlBMPAttributes = await _dbContext.SourceControlBMPAttributes.AsNoTracking().Select(x => x.SourceControlBMPAttributeName).ToListAsync(),
         };
         return $"SCHEMA_VERSION: {SchemaVersion}\nDOMAIN TABLES: {JsonSerializer.Serialize(domainTables)}\n";
-    }
-
-    [Experimental("OPENAI001")]
-    private OpenAIResponseClient CreateResponseClient() => new(ModelId, apiKey: _apiKey);
-
-    [Experimental("OPENAI001")]
-    private static ResponseTool CreateFileSearchTool(string fileId) => ResponseTool.CreateFileSearchTool([fileId]);
-
-    [Experimental("OPENAI001")]
-    private static string ExtractMessageText(IEnumerable<ResponseItem> items)
-    {
-        var sb = new System.Text.StringBuilder();
-        foreach (var outputItem in items)
-        {
-            if (outputItem is MessageResponseItem m)
-            {
-                var text = m.Content?.FirstOrDefault()?.Text;
-                if (!string.IsNullOrEmpty(text)) sb.Append(Regex.Replace(text, "【.*?】", string.Empty));
-            }
-        }
-        return sb.ToString();
     }
 
     private static bool IsValidJson(string candidate)
@@ -345,7 +314,7 @@ public class WqmpExtractionService
         additionalProperties = false
     };
 
-    // Schema builders
+    // Schema builders — unchanged from OpenAI implementation (same JSON shape)
 
     private static string BuildExtractedValueJsonSchema()
     {
@@ -389,7 +358,8 @@ public class WqmpExtractionService
             ["HydrologicSubarea"] = ExtractedValueProp("Hydrologic subarea."),
             ["RecordNumber"] = ExtractedValueProp("Agency record number."),
             ["RecordedWQMPAreaInAcres"] = ExtractedValueProp("Area in acres."),
-            ["TrashCaptureStatusType"] = ExtractedValueProp("Trash capture status.")
+            ["TrashCaptureStatusType"] = ExtractedValueProp("Trash capture status."),
+            ["HydromodificationAppliesType"] = ExtractedValueProp("Hydromodification applies status.")
         };
         var schema = new
         {

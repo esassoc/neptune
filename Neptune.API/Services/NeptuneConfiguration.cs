@@ -13,9 +13,8 @@ public class NeptuneConfiguration : NeptuneJobConfiguration
     public string QGISAPIBaseUrl { get; set; }
     public string OCGISBaseUrl { get; set; }
 
-    public string OpenAIApiKey { get; set; }
-    public string OpenAIOrganizationID { get; set; }
-    public string OpenAIProjectID { get; set; }
+    public string AnthropicApiKey { get; set; }
+    public string ClaudeModelId { get; set; } = "claude-sonnet-4-6";
     public string Auth0Domain { get; set; }
     public string Auth0ClientID { get; set; }
 }

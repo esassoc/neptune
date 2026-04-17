@@ -22,11 +22,10 @@ using Neptune.Jobs.Hangfire;
 using Neptune.Jobs.Services;
 using NetTopologySuite.Geometries;
 using NetTopologySuite.IO.Converters;
-using OpenAI;
+using Anthropic;
 using SendGrid;
 using Serilog;
 using System;
-using System.ClientModel;
 using System.Net.Http;
 using System.Text.Json;
 using System.Text.Json.Serialization;
@@ -113,19 +112,12 @@ namespace Neptune.API
             services.AddScoped(s => s.GetService<IHttpContextAccessor>().HttpContext);
             services.AddScoped(s => UserContext.GetUserAsDtoFromHttpContext(s.GetService<NeptuneDbContext>(), s.GetService<IHttpContextAccessor>().HttpContext));
 
-            #region OpenAI
-            services.AddSingleton(_ =>
+            #region Anthropic
+            services.AddSingleton(_ => new AnthropicClient(new Anthropic.Core.ClientOptions
             {
-                ApiKeyCredential nonAzureOpenAIApiKey = new(configuration.OpenAIApiKey);
-                OpenAIClient client = new(nonAzureOpenAIApiKey,
-                    new OpenAIClientOptions
-                    {
-                        OrganizationId = configuration.OpenAIOrganizationID,
-                        ProjectId = configuration.OpenAIProjectID
-                    });
-
-                return client;
-            });
+                ApiKey = configuration.AnthropicApiKey,
+                Timeout = TimeSpan.FromMinutes(5),
+            }));
             #endregion
 
             #region Sendgrid

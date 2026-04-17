@@ -89,52 +89,6 @@
         }
       }
     },
-    "/ai/clean-up": {
-      "post": {
-        "tags": [
-          "AI"
-        ],
-        "operationId": "PostChatCompletions_AI",
-        "responses": {
-          "200": {
-            "description": "OK"
-          }
-        }
-      }
-    },
-    "/ai/vector-stores": {
-      "get": {
-        "tags": [
-          "AI"
-        ],
-        "operationId": "GetVectorStores_AI",
-        "responses": {
-          "200": {
-            "description": "OK",
-            "content": {
-              "text/plain": {
-                "schema": {
-                  "type": "array",
-                  "items": { }
-                }
-              },
-              "application/json": {
-                "schema": {
-                  "type": "array",
-                  "items": { }
-                }
-              },
-              "text/json": {
-                "schema": {
-                  "type": "array",
-                  "items": { }
-                }
-              }
-            }
-          }
-        }
-      }
-    },
     "/custom-attribute-types": {
       "get": {
         "tags": [
