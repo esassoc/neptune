@@ -445,6 +445,13 @@ namespace Neptune.API.Controllers
                 return BadRequest("No file provided.");
             }
 
+            const long maxPdfSizeBytes = 50L * 1024 * 1024;
+            if (file.Length > maxPdfSizeBytes)
+            {
+                var sizeMB = file.Length / (1024.0 * 1024.0);
+                return BadRequest(new { message = $"PDF is {sizeMB:F0} MB, which exceeds the limit for AI extraction. Please re-export or re-scan the document at a lower resolution (recommended: 150 DPI for scanned pages)." });
+            }
+
             var extension = Path.GetExtension(file.FileName)?.ToLowerInvariant();
             if (extension != ".pdf")
             {
@@ -528,10 +535,36 @@ namespace Neptune.API.Controllers
                     FileResourceGuid = fileResource.FileResourceGUID.ToString(),
                 });
             }
-            catch
+            catch (Exception ex)
             {
-                // Clean up the orphaned Draft WQMP if extraction fails
+                // Clean up the orphaned Draft WQMP, then surface the error.
                 await WaterQualityManagementPlans.DeleteAsync(DbContext, wqmpDto.WaterQualityManagementPlanID);
+
+                // Surface actionable errors to the frontend as a 400 instead of a generic 500.
+                // InvalidOperationException = our validation (e.g., PDF too large).
+                // Anthropic4xxException = Claude rejected the request (e.g., file exceeds processing limit).
+                if (ex is InvalidOperationException
+                    || ex.GetType().Name.Contains("Anthropic4xx")
+                    || ex.GetType().Name.Contains("AnthropicBadRequest"))
+                {
+                    var errorMessage = ex.Message;
+                    // Anthropic errors embed JSON in the message — extract the human-readable part
+                    if (errorMessage.Contains("\"message\""))
+                    {
+                        try
+                        {
+                            var jsonStart = errorMessage.IndexOf('{');
+                            if (jsonStart >= 0)
+                            {
+                                var json = System.Text.Json.JsonDocument.Parse(errorMessage[jsonStart..]);
+                                errorMessage = json.RootElement.GetProperty("error").GetProperty("message").GetString() ?? errorMessage;
+                            }
+                        }
+                        catch { /* use original message */ }
+                    }
+                    return BadRequest(new { message = errorMessage });
+                }
+
                 throw;
             }
         }

@@ -60,8 +60,9 @@ export class WqmpUploadModalComponent implements OnInit {
                 this.ref.close({ wqmpID: result.WaterQualityManagementPlanID });
             },
             error: (err: HttpErrorResponse) => {
+                this.isUploading.set(false);
+
                 if (err.status === 409 && err.error?.CanOverwrite) {
-                    this.isUploading.set(false);
                     this.confirmService.confirm({
                         title: "WQMP Already Exists",
                         message: err.error.Message,
@@ -75,9 +76,18 @@ export class WqmpUploadModalComponent implements OnInit {
                     });
                     return;
                 }
-                const message = err.status === 409 ? err.error?.Message : err.error?.message || err.error?.title || "An unexpected error occurred during upload.";
-                this.alertService.pushAlert(new Alert(message, AlertContext.Danger));
-                this.isUploading.set(false);
+
+                if (err.status === 409) {
+                    // 409 isn't handled by HttpErrorInterceptor — surface the DTO's Message here
+                    this.alertService.pushAlert(new Alert(err.error?.Message ?? "A conflict occurred.", AlertContext.Danger));
+                    return;
+                }
+
+                // 400/401/403/404 are handled by HttpErrorInterceptor. Only push a fallback for
+                // statuses the interceptor doesn't cover (e.g., 500).
+                if (err.status < 400 || err.status >= 500) {
+                    this.alertService.pushAlert(new Alert("An unexpected error occurred during upload.", AlertContext.Danger));
+                }
             },
         });
     }

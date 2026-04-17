@@ -66,23 +66,6 @@ public class WqmpExtractionService
         var pdfSasUrl = _blobService.GenerateBlobSasUrl(blobGuid, TimeSpan.FromMinutes(10));
         _logger.LogInformation("Generated SAS URL for PDF blob {BlobGuid}. Building domain context...", blobGuid);
 
-        // Claude has a server-side document processing limit (~32 MB). Warn early for very
-        // large files so the error message is actionable. The extraction still attempts —
-        // Claude may accept files slightly over this threshold depending on content.
-        var blobStream = await _blobService.DownloadBlobFromBlobStorageAsStream(blobGuid);
-        var contentLength = blobStream.Details?.ContentLength ?? 0;
-        if (contentLength > 0)
-        {
-            var sizeMB = contentLength / (1024.0 * 1024.0);
-            _logger.LogInformation("PDF size: {SizeMB:F1} MB", sizeMB);
-            if (contentLength > 50 * 1024 * 1024)
-            {
-                throw new InvalidOperationException(
-                    $"PDF is {sizeMB:F0} MB, which exceeds Claude's document processing limit. " +
-                    "Please re-export or re-scan the document at a lower resolution (recommended: 150 DPI for scanned pages).");
-            }
-        }
-
         var domainContext = await BuildDomainContext();
 
         var evidenceInstructions =
