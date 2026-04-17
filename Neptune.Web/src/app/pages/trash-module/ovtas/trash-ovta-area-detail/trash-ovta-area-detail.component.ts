@@ -52,6 +52,9 @@ export class TrashOvtaAreaDetailComponent {
     public refreshOVTAAreasTrigger: BehaviorSubject<void> = new BehaviorSubject(null);
     public refreshOVTAAreasTrigger$: Observable<void> = this.refreshOVTAAreasTrigger.asObservable();
 
+    public refreshOVTAGridTrigger: BehaviorSubject<void> = new BehaviorSubject(null);
+    public refreshOVTAGridTrigger$: Observable<void> = this.refreshOVTAGridTrigger.asObservable();
+
     public map: L.Map;
     public mapIsReady: boolean = false;
     public layerControl: L.Control.Layers;
@@ -84,7 +87,11 @@ export class TrashOvtaAreaDetailComponent {
                                 ? this.confirmEditOVTA(params.data.OnlandVisualTrashAssessmentID, params.data.CompletedDate)
                                 : this.router.navigateByUrl(`/trash/onland-visual-trash-assessments/edit/${params.data.OnlandVisualTrashAssessmentID}/record-observations`),
                     },
-                    //{ ActionName: "Delete", ActionIcon: "fa fa-trash text-danger", ActionHandler: () => this.deleteModal(params) },
+                    {
+                        ActionName: "Delete",
+                        ActionIcon: "fas fa-trash text-danger",
+                        ActionHandler: () => this.deleteOVTA(params.data.OnlandVisualTrashAssessmentID, params.data.CreatedDate),
+                    },
                 ];
             }),
             this.utilityFunctionsService.createLinkColumnDef("Assessment ID", "OnlandVisualTrashAssessmentID", "OnlandVisualTrashAssessmentID", {
@@ -113,9 +120,11 @@ export class TrashOvtaAreaDetailComponent {
             })
         );
 
-        this.onlandVisualTrashAssessments$ = this.onlandVisualTrashAssessmentAreaService
-            .listAssessmentsByOVTAIDOnlandVisualTrashAssessmentArea(this.onlandVisualTrashAssessmentAreaID)
-            .pipe(tap(() => (this.isLoadingGrid = false)));
+        this.onlandVisualTrashAssessments$ = this.refreshOVTAGridTrigger$.pipe(
+            tap(() => (this.isLoadingGrid = true)),
+            switchMap(() => this.onlandVisualTrashAssessmentAreaService.listAssessmentsByOVTAIDOnlandVisualTrashAssessmentArea(this.onlandVisualTrashAssessmentAreaID)),
+            tap(() => (this.isLoadingGrid = false))
+        );
     }
 
     public handleMapReady(event: NeptuneMapInitEvent): void {
@@ -168,10 +177,11 @@ export class TrashOvtaAreaDetailComponent {
             .confirm({ buttonClassYes: "btn-primary", buttonTextYes: "Delete", buttonTextNo: "Cancel", title: "Delete OVTA", message: modalContents })
             .then((confirmed) => {
                 if (confirmed) {
-                    this.onlandVisualTrashAssessmentService.deleteOnlandVisualTrashAssessment(onlandVisualTrashAssessmentID).subscribe((response) => {
+                    this.onlandVisualTrashAssessmentService.deleteOnlandVisualTrashAssessment(onlandVisualTrashAssessmentID).subscribe(() => {
                         this.alertService.clearAlerts();
                         this.alertService.pushAlert(new Alert("Your OVTA was successfully deleted.", AlertContext.Success));
-                        this.router.navigate([`/trash/onland-visual-trash-assessments`]);
+                        this.refreshOVTAGridTrigger.next();
+                        this.refreshOVTAAreasTrigger.next();
                     });
                 }
             });

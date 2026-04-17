@@ -9,17 +9,25 @@
       <div class="flex-between mb-3">
         <a
           class="btn btn-primary"
-                    (click)="
-                        confirmEditOVTA(
-                            onlandVisualTrashAssessment.OnlandVisualTrashAssessmentID,
-                            onlandVisualTrashAssessment.OnlandVisualTrashAssessmentStatusID,
-                            onlandVisualTrashAssessment.CompletedDate
-                        )
-                    "
-          >Edit</a
-          >
-        </div>
-      </ng-template>
+          (click)="
+              confirmEditOVTA(
+                  onlandVisualTrashAssessment.OnlandVisualTrashAssessmentID,
+                  onlandVisualTrashAssessment.OnlandVisualTrashAssessmentStatusID,
+                  onlandVisualTrashAssessment.CompletedDate
+              )
+          "
+          >Edit</a>
+        <button
+          class="btn btn-danger ml-2"
+          (click)="
+              deleteOVTA(
+                  onlandVisualTrashAssessment.OnlandVisualTrashAssessmentID,
+                  onlandVisualTrashAssessment.CreatedDate
+              )
+          "
+          >Delete</button>
+      </div>
+    </ng-template>
     </page-header>
     <app-alert-display></app-alert-display>
     <div class="grid-12 mt-2 mb-3">

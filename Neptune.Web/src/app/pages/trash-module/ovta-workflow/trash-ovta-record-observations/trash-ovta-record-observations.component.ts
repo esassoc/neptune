@@ -1,4 +1,4 @@
-import { Component } from "@angular/core";
+import { ApplicationRef, Component } from "@angular/core";
 import * as L from "leaflet";
 import { PageHeaderComponent } from "../../../../shared/components/page-header/page-header.component";
 import { NeptuneMapComponent, NeptuneMapInitEvent } from "../../../../shared/components/leaflet/neptune-map/neptune-map.component";
@@ -9,7 +9,6 @@ import { Input } from "@angular/core";
 import { OnlandVisualTrashAssessmentDetailDto } from "src/app/shared/generated/model/onland-visual-trash-assessment-detail-dto";
 import { OnlandVisualTrashAssessmentService } from "src/app/shared/generated/api/onland-visual-trash-assessment.service";
 import { MarkerHelper } from "src/app/shared/helpers/marker-helper";
-import { DropdownToggleDirective } from "src/app/shared/directives/dropdown-toggle.directive";
 import { FormArray, FormBuilder, FormControl, FormGroup, FormsModule, ReactiveFormsModule } from "@angular/forms";
 import { FormFieldComponent, FormFieldType } from "src/app/shared/components/forms/form-field/form-field.component";
 import { AlertDisplayComponent } from "../../../../shared/components/alert-display/alert-display.component";
@@ -35,7 +34,6 @@ import { TransectLineLayerComponent } from "src/app/shared/components/leaflet/la
     imports: [
         PageHeaderComponent,
         NeptuneMapComponent,
-        DropdownToggleDirective,
         AsyncPipe,
         FormFieldComponent,
         ReactiveFormsModule,
@@ -64,6 +62,8 @@ export class TrashOvtaRecordObservationsComponent {
 
     public selectedOnlandVisualTrashAssessmentObservationID: number;
     public newObservationIDIndex: number = -1;
+    public isAddingObservation = false;
+    public isEditingLocation = false;
 
     public onlandVisualTrashAssessmentObservations$: Observable<OnlandVisualTrashAssessmentObservationWithPhotoDto[]>;
 
@@ -78,7 +78,8 @@ export class TrashOvtaRecordObservationsComponent {
         private ovtaWorkflowProgressService: OvtaWorkflowProgressService,
         private router: Router,
         private wfsService: WfsService,
-        private formBuilder: FormBuilder
+        private formBuilder: FormBuilder,
+        private appRef: ApplicationRef
     ) {}
 
     ngOnInit() {
@@ -135,12 +136,20 @@ export class TrashOvtaRecordObservationsComponent {
                     this.map.fitBounds(L.geoJson(response as any).getBounds());
                 });
         }
+
+        // Ensure the view updates immediately in zoneless mode.
+        // (Output emissions and Leaflet callbacks don't always schedule a render on their own.)
+        Promise.resolve().then(() => this.appRef.tick());
     }
 
     public addObservationMarker() {
+        this.isAddingObservation = true;
+        this.map.getContainer().style.cursor = "crosshair";
         this.map.on("click", (e: L.LeafletMouseEvent) => {
             this.addObservation(e.latlng);
             this.map.off("click");
+            this.isAddingObservation = false;
+            this.map.getContainer().style.cursor = "grab";
         });
     }
 
@@ -242,6 +251,8 @@ export class TrashOvtaRecordObservationsComponent {
     }
 
     public editObservationLocation(index: number) {
+        this.isEditingLocation = true;
+        this.map.getContainer().style.cursor = "crosshair";
         this.map.on("click", (e: L.LeafletMouseEvent) => {
             const observation = this.formGroup.controls.Observations.controls[index].value;
             observation.Latitude = e.latlng.lat;
@@ -249,6 +260,8 @@ export class TrashOvtaRecordObservationsComponent {
             this.formGroup.controls.Observations.controls[index].patchValue(observation);
             this.addObservationPointsLayersToMap();
             this.map.off("click");
+            this.isEditingLocation = false;
+            this.map.getContainer().style.cursor = "grab";
         });
     }
 
