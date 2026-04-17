@@ -5,6 +5,7 @@
     <p class="mb-3">
       Use the buttons below to add observations along your transect. Click "Record Observation at Current Location" to use your device's GPS,
       or "Add an Observation by clicking the map" to place a marker manually. Click a marker on the map to select it, then use the card below to add photos and notes.
+      To move an observation, click the pencil icon and then either drag the marker or click a new location on the map.
     </p>
     <div class="mb-3">
       <button class="btn btn-primary mr-2" [disabled]="isLoadingSubmit || isAddingObservation || isEditingLocation" (click)="goToCurrentLocation()">Record Observation at Current Location</button>

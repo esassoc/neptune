@@ -253,16 +253,56 @@ export class TrashOvtaRecordObservationsComponent {
     public editObservationLocation(index: number) {
         this.isEditingLocation = true;
         this.map.getContainer().style.cursor = "crosshair";
-        this.map.on("click", (e: L.LeafletMouseEvent) => {
-            const observation = this.formGroup.controls.Observations.controls[index].value;
-            observation.Latitude = e.latlng.lat;
-            observation.Longitude = e.latlng.lng;
-            this.formGroup.controls.Observations.controls[index].patchValue(observation);
-            this.addObservationPointsLayersToMap();
-            this.map.off("click");
+
+        // Find the selected marker and enable dragging
+        const selectedMarker = this.getSelectedMarker();
+        if (selectedMarker) {
+            selectedMarker.dragging.enable();
+        }
+
+        const exitEditMode = () => {
+            this.map.off("click", onMapClick);
+            if (selectedMarker) {
+                selectedMarker.off("dragend", onDragEnd);
+                selectedMarker.dragging.disable();
+            }
             this.isEditingLocation = false;
             this.map.getContainer().style.cursor = "grab";
-        });
+        };
+
+        const updateObservation = (latlng: L.LatLng) => {
+            const observation = this.formGroup.controls.Observations.controls[index].value;
+            observation.Latitude = latlng.lat;
+            observation.Longitude = latlng.lng;
+            this.formGroup.controls.Observations.controls[index].patchValue(observation);
+            this.addObservationPointsLayersToMap();
+            exitEditMode();
+        };
+
+        const onMapClick = (e: L.LeafletMouseEvent) => {
+            updateObservation(e.latlng);
+        };
+
+        const onDragEnd = (e: L.DragEndEvent) => {
+            updateObservation((e.target as L.Marker).getLatLng());
+        };
+
+        this.map.on("click", onMapClick);
+        if (selectedMarker) {
+            selectedMarker.on("dragend", onDragEnd);
+        }
+    }
+
+    private getSelectedMarker(): L.Marker | null {
+        let selectedMarker: L.Marker = null;
+        if (this.ovtaObservationLayer) {
+            this.ovtaObservationLayer.eachLayer((layer: L.Marker) => {
+                if (layer.feature?.properties?.OnlandVisualTrashAssessmentObservationID === this.selectedOnlandVisualTrashAssessmentObservationID) {
+                    selectedMarker = layer;
+                }
+            });
+        }
+        return selectedMarker;
     }
 
     public deleteObservation(index: number) {
