@@ -59,24 +59,29 @@ public class WqmpExtractionService
         var docDto = await WaterQualityManagementPlanDocuments.GetByIDAsDtoAsync(_dbContext, waterQualityManagementPlanDocumentID);
         if (docDto == null) throw new InvalidOperationException($"Document {waterQualityManagementPlanDocumentID} not found.");
 
-        // Download PDF bytes and base64-encode for inline document blocks.
-        // Claude's Messages API accepts PDFs directly as document content blocks.
-        var blobStream = await _blobService.DownloadBlobFromBlobStorageAsStream(docDto.FileResource.FileResourceGUID.ToString());
-        using var ms = new MemoryStream();
-        await blobStream.Content.CopyToAsync(ms, cancellationToken);
-        var pdfBytes = ms.ToArray();
-        var pdfSizeMB = pdfBytes.Length / (1024.0 * 1024.0);
-        _logger.LogInformation("PDF downloaded ({SizeMB:F1} MB). Building domain context...", pdfSizeMB);
+        // Generate a temporary SAS URL for the PDF in Azure Blob Storage.
+        // Claude fetches the PDF directly from Azure — no base64 encoding, no request-body
+        // size limit. The SAS URL expires after 10 minutes.
+        var blobGuid = docDto.FileResource.FileResourceGUID.ToString();
+        var pdfSasUrl = _blobService.GenerateBlobSasUrl(blobGuid, TimeSpan.FromMinutes(10));
+        _logger.LogInformation("Generated SAS URL for PDF blob {BlobGuid}. Building domain context...", blobGuid);
 
-        const int maxPdfSizeBytes = 25 * 1024 * 1024; // ~33 MB base64 ≈ safe request body
-        if (pdfBytes.Length > maxPdfSizeBytes)
+        // Claude has a server-side document processing limit (~32 MB). Warn early for very
+        // large files so the error message is actionable. The extraction still attempts —
+        // Claude may accept files slightly over this threshold depending on content.
+        var blobStream = await _blobService.DownloadBlobFromBlobStorageAsStream(blobGuid);
+        var contentLength = blobStream.Details?.ContentLength ?? 0;
+        if (contentLength > 0)
         {
-            throw new InvalidOperationException(
-                $"PDF is {pdfSizeMB:F1} MB, which exceeds the 25 MB limit for AI extraction. " +
-                "Consider re-exporting the document at a lower scan resolution.");
+            var sizeMB = contentLength / (1024.0 * 1024.0);
+            _logger.LogInformation("PDF size: {SizeMB:F1} MB", sizeMB);
+            if (contentLength > 50 * 1024 * 1024)
+            {
+                throw new InvalidOperationException(
+                    $"PDF is {sizeMB:F0} MB, which exceeds Claude's document processing limit. " +
+                    "Please re-export or re-scan the document at a lower resolution (recommended: 150 DPI for scanned pages).");
+            }
         }
-
-        var pdfBase64 = Convert.ToBase64String(pdfBytes);
 
         var domainContext = await BuildDomainContext();
 
@@ -125,7 +130,7 @@ public class WqmpExtractionService
             // User message: PDF document (cached) + domain context (cached) + per-category prompt (varies)
             var messageContent = new List<ContentBlockParam>
             {
-                new DocumentBlockParam { Source = new Base64PdfSource { Data = pdfBase64 } },
+                new DocumentBlockParam { Source = new UrlPdfSource { Url = pdfSasUrl.ToString() } },
                 new TextBlockParam { Text = $"DomainContext:\n{domainContext}", CacheControl = new CacheControlEphemeral() },
                 new TextBlockParam { Text = prompt },
             };
