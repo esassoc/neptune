@@ -12,6 +12,13 @@
         <strong>File:</strong> {{ file.name }}
     </div>
 
+    <form-field
+        fieldLabel="WQMP Name"
+        [type]="FormFieldType.Text"
+        [formControl]="wqmpNameControl"
+        placeholder="Enter a name for this WQMP">
+    </form-field>
+
     @if (jurisdictionOptions$ | async; as opts) {
         <form-field
             fieldLabel="Jurisdiction"
@@ -29,6 +36,6 @@
     }
 </div>
 <div class="modal-footer">
-    <button class="btn btn-primary" (click)="upload()" [disabled]="jurisdictionControl.invalid || isUploading()">Upload & Extract</button>
+    <button class="btn btn-primary" (click)="upload()" [disabled]="jurisdictionControl.invalid || wqmpNameControl.invalid || isUploading()">Upload & Extract</button>
     <button class="btn btn-secondary-outline" (click)="cancel()" [disabled]="isUploading()">Cancel</button>
 </div>

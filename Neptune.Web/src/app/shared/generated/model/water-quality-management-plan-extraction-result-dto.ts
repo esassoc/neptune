@@ -13,6 +13,7 @@ import { FormControl, FormControlOptions, FormControlState, Validators } from "@
 export class WaterQualityManagementPlanExtractionResultDto { 
     WaterQualityManagementPlanID?: number;
     WaterQualityManagementPlanDocumentID?: number;
+    StormwaterJurisdictionID?: number;
     ExtractionResultJson?: string | null;
     ExtractedAt?: string;
     FileResourceGuid?: string | null;
@@ -29,6 +30,7 @@ export class WaterQualityManagementPlanExtractionResultDto {
 export interface WaterQualityManagementPlanExtractionResultDtoForm { 
     WaterQualityManagementPlanID?: FormControl<number>;
     WaterQualityManagementPlanDocumentID?: FormControl<number>;
+    StormwaterJurisdictionID?: FormControl<number>;
     ExtractionResultJson?: FormControl<string>;
     ExtractedAt?: FormControl<string>;
     FileResourceGuid?: FormControl<string>;
@@ -51,6 +53,16 @@ export class WaterQualityManagementPlanExtractionResultDtoFormControls {
         }
     );
     public static WaterQualityManagementPlanDocumentID = (value: FormControlState<number> | number = undefined, formControlOptions?: FormControlOptions | null) => new FormControl<number>(
+        value,
+        formControlOptions ?? 
+        {
+            nonNullable: false,
+            validators: 
+            [
+            ],
+        }
+    );
+    public static StormwaterJurisdictionID = (value: FormControlState<number> | number = undefined, formControlOptions?: FormControlOptions | null) => new FormControl<number>(
         value,
         formControlOptions ?? 
         {
