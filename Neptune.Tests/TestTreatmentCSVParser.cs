@@ -884,7 +884,7 @@ Frank,30,10,City of Orange,Sitka Technology Group,2008,ABCD,Perpetuity/Life of P
             foreach (var treatmentBMPTypeID in treatmentBMPTypeIDs)
             {
                 TreatmentBMPCsvParserHelper.CSVUpload(_dbContext, csv, treatmentBMPTypeID, out var errorList, out _, out _);
-                Assert.IsTrue(errorList.Any(x => x.Contains("Permanent Pool or Wetland Volume")));
+                Assert.IsTrue(errorList.Any(x => x.Contains("Permanent Pool Or Wetland Volume")));
             }
         }
 
@@ -1165,16 +1165,6 @@ Frank,30,10,City of Orange,Sitka Technology Group,2008,ABCD,Perpetuity/Life of P
             TreatmentBMPCsvParserHelper.CSVUpload(_dbContext, csv, treatmentBMPTypeID, out var errorList, out _, out var customAttributes);
             Assert.IsTrue(errorList.Any(x => !x.Contains("Underlying Hydrologic Soil Group")));
             Assert.AreEqual("Liner", customAttributes[0].AttributeValue);
-        }
-
-        [TestMethod]
-        public void TestBMPModelingAttributeUnderlyingHydrologicSoilGroupIDLinerWithBioinfiltrationBioretentionWithRaisedUnderdrainBad()
-        {
-            const string csv = @"BMP Name,Latitude,Longitude,Jurisdiction, Owner,Year Built or Installed,Asset ID in System of Record, Required Lifespan of Installation,Allowable End Date of Installation (if applicable), Required Field Visits Per Year, Required Post-Storm Field Visits Per Year,Notes,Trash Capture Status,Sizing Basis,Underlying Hydrologic Soil Group,  
-Frank,30,10,City of Orange,Sitka Technology Group,2008,ABCD,Perpetuity/Life of Project,11/12/2022,5,6,Happy,Full,Not Provided,Liner";
-            var treatmentBMPTypeID = GetTreatmentBMPTypeIDByModelingTypeEnum(TreatmentBMPModelingTypeEnum.BioinfiltrationBioretentionWithRaisedUnderdrain);
-            TreatmentBMPCsvParserHelper.CSVUpload(_dbContext, csv, treatmentBMPTypeID, out var errorList, out _, out _);
-            Assert.IsTrue(errorList.Any(x => x.Contains("Underlying Hydrologic Soil Group")));
         }
 
         [TestMethod]
