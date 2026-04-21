@@ -46,4 +46,6 @@ GO
 GO
 :r ".\019 - Add Dry Weather Flow Override custom attribute for all Modeled Treatment BMPs without it.sql"
 GO
+:r ".\020 - Drop WaterQualityManagementPlanDocumentVectorStore table.sql"
+GO
 

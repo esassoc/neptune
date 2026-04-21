@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Threading.Tasks;
+using Anthropic.Exceptions;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
@@ -445,6 +446,13 @@ namespace Neptune.API.Controllers
                 return BadRequest("No file provided.");
             }
 
+            const long maxPdfSizeBytes = 50L * 1024 * 1024;
+            if (file.Length > maxPdfSizeBytes)
+            {
+                var sizeMB = file.Length / (1024.0 * 1024.0);
+                return BadRequest(new { message = $"PDF is {sizeMB:F0} MB, which exceeds the limit for AI extraction. Please re-export or re-scan the document at a lower resolution (recommended: 150 DPI for scanned pages)." });
+            }
+
             var extension = Path.GetExtension(file.FileName)?.ToLowerInvariant();
             if (extension != ".pdf")
             {
@@ -528,12 +536,39 @@ namespace Neptune.API.Controllers
                     FileResourceGuid = fileResource.FileResourceGUID.ToString(),
                 });
             }
+            catch (Exception ex) when (ex is InvalidOperationException or Anthropic4xxException)
+            {
+                // Clean up the orphaned Draft WQMP, then surface the error as a 400 instead of a
+                // generic 500. InvalidOperationException = our own validation (e.g., PDF too large);
+                // Anthropic4xxException = Claude rejected the request (e.g., file exceeds processing limit).
+                await WaterQualityManagementPlans.DeleteAsync(DbContext, wqmpDto.WaterQualityManagementPlanID);
+                return BadRequest(new { message = ExtractReadableErrorMessage(ex.Message) });
+            }
+        }
+
+        // Anthropic SDK errors embed the API response JSON in Message — pull the human-readable
+        // `error.message` out so the frontend alert shows "PDF exceeds 32 MB" instead of a wall of JSON.
+        private static string ExtractReadableErrorMessage(string rawMessage)
+        {
+            if (string.IsNullOrEmpty(rawMessage) || !rawMessage.Contains("\"message\""))
+            {
+                return rawMessage;
+            }
+
+            try
+            {
+                var jsonStart = rawMessage.IndexOf('{');
+                if (jsonStart >= 0)
+                {
+                    using var json = System.Text.Json.JsonDocument.Parse(rawMessage[jsonStart..]);
+                    return json.RootElement.GetProperty("error").GetProperty("message").GetString() ?? rawMessage;
+                }
+            }
             catch
             {
-                // Clean up the orphaned Draft WQMP if extraction fails
-                await WaterQualityManagementPlans.DeleteAsync(DbContext, wqmpDto.WaterQualityManagementPlanID);
-                throw;
+                // Fall through — return the original on any parse failure.
             }
+            return rawMessage;
         }
 
         [HttpGet("{waterQualityManagementPlanID}/extraction-result")]
