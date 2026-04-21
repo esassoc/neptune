@@ -5,12 +5,7 @@
             <h5 class="sidebar-title">
                 <div>
                     <p class="ovta-label">
-                        Onland Visual Trash Assessment @if (progressDto?.OnlandVisualTrashAssessmentStatus?.OnlandVisualTrashAssessmentStatusID !=
-                        OnlandVisualTrashAssessmentStatus.Complete) {
-                        <a class="ml-2 delete" title="Delete OVTA" (click)="deleteOVTA(progressDto.OnlandVisualTrashAssessmentID, progressDto.CreatedDate)">
-                            <icon icon="Delete"></icon>
-                        </a>
-                        }
+                        Onland Visual Trash Assessment
                     </p>
                     @if (progressDto?.OnlandVisualTrashAssessmentAreaID) {
                     <p>
