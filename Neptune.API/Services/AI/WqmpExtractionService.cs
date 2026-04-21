@@ -88,11 +88,15 @@ public class WqmpExtractionService
         _logger.LogInformation("Domain context ready (elapsed {ElapsedMs}ms); invoking 4 parallel category extractions via Claude...",
             totalSw.ElapsedMilliseconds);
 
-        // Per-category extraction — forces the category-specific tool via ToolChoice
+        // Per-category extraction — forces the category-specific tool via ToolChoice.
+        // A 4-minute per-category timeout prevents a single stalled call from hanging the whole extraction.
         async Task<(string output, long inputTokens, long outputTokens, long cachedTokens)> ExtractCategoryAsync(string key, PromptTemplate template, string schema, bool expectArray)
         {
             var catSw = Stopwatch.StartNew();
             _logger.LogInformation("Starting extraction category: {Category}", key);
+
+            using var categoryCts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
+            categoryCts.CancelAfter(TimeSpan.FromMinutes(4));
 
             var templateModel = new
             {
@@ -135,7 +139,7 @@ public class WqmpExtractionService
             long inputTokens = 0;
             long outputTokens = 0;
 
-            await foreach (var evt in _anthropic.Messages.CreateStreaming(parameters))
+            await foreach (var evt in _anthropic.Messages.CreateStreaming(parameters, categoryCts.Token))
             {
                 if (evt.TryPickContentBlockDelta(out var delta))
                 {

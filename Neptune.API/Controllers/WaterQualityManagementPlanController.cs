@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Threading.Tasks;
+using Anthropic.Exceptions;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
@@ -535,38 +536,39 @@ namespace Neptune.API.Controllers
                     FileResourceGuid = fileResource.FileResourceGUID.ToString(),
                 });
             }
-            catch (Exception ex)
+            catch (Exception ex) when (ex is InvalidOperationException or Anthropic4xxException)
             {
-                // Clean up the orphaned Draft WQMP, then surface the error.
-                await WaterQualityManagementPlans.DeleteAsync(DbContext, wqmpDto.WaterQualityManagementPlanID);
-
-                // Surface actionable errors to the frontend as a 400 instead of a generic 500.
-                // InvalidOperationException = our validation (e.g., PDF too large).
+                // Clean up the orphaned Draft WQMP, then surface the error as a 400 instead of a
+                // generic 500. InvalidOperationException = our own validation (e.g., PDF too large);
                 // Anthropic4xxException = Claude rejected the request (e.g., file exceeds processing limit).
-                if (ex is InvalidOperationException
-                    || ex.GetType().Name.Contains("Anthropic4xx")
-                    || ex.GetType().Name.Contains("AnthropicBadRequest"))
-                {
-                    var errorMessage = ex.Message;
-                    // Anthropic errors embed JSON in the message — extract the human-readable part
-                    if (errorMessage.Contains("\"message\""))
-                    {
-                        try
-                        {
-                            var jsonStart = errorMessage.IndexOf('{');
-                            if (jsonStart >= 0)
-                            {
-                                var json = System.Text.Json.JsonDocument.Parse(errorMessage[jsonStart..]);
-                                errorMessage = json.RootElement.GetProperty("error").GetProperty("message").GetString() ?? errorMessage;
-                            }
-                        }
-                        catch { /* use original message */ }
-                    }
-                    return BadRequest(new { message = errorMessage });
-                }
-
-                throw;
+                await WaterQualityManagementPlans.DeleteAsync(DbContext, wqmpDto.WaterQualityManagementPlanID);
+                return BadRequest(new { message = ExtractReadableErrorMessage(ex.Message) });
             }
+        }
+
+        // Anthropic SDK errors embed the API response JSON in Message — pull the human-readable
+        // `error.message` out so the frontend alert shows "PDF exceeds 32 MB" instead of a wall of JSON.
+        private static string ExtractReadableErrorMessage(string rawMessage)
+        {
+            if (string.IsNullOrEmpty(rawMessage) || !rawMessage.Contains("\"message\""))
+            {
+                return rawMessage;
+            }
+
+            try
+            {
+                var jsonStart = rawMessage.IndexOf('{');
+                if (jsonStart >= 0)
+                {
+                    using var json = System.Text.Json.JsonDocument.Parse(rawMessage[jsonStart..]);
+                    return json.RootElement.GetProperty("error").GetProperty("message").GetString() ?? rawMessage;
+                }
+            }
+            catch
+            {
+                // Fall through — return the original on any parse failure.
+            }
+            return rawMessage;
         }
 
         [HttpGet("{waterQualityManagementPlanID}/extraction-result")]

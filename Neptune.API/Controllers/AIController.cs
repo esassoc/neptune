@@ -1,7 +1,5 @@
 using System;
 using System.Collections.Generic;
-using System.IO;
-using System.Linq;
 using System.Threading.Tasks;
 using Anthropic;
 using Anthropic.Models.Messages;
@@ -48,11 +46,10 @@ public class AIController(
         var docDto = await WaterQualityManagementPlanDocuments.GetByIDAsDtoAsync(DbContext, waterQualityManagementPlanDocumentID);
         if (docDto == null) { Response.StatusCode = 404; return; }
 
-        // Download PDF for Claude document block — no vector store needed
-        var blobStream = await azureBlobStorageService.DownloadBlobFromBlobStorageAsStream(docDto.FileResource.FileResourceGUID.ToString());
-        using var ms = new MemoryStream();
-        await blobStream.Content.CopyToAsync(ms, HttpContext.RequestAborted);
-        var pdfBase64 = Convert.ToBase64String(ms.ToArray());
+        // Claude fetches the PDF directly from Azure via a short-lived SAS URL —
+        // no base64 bloat, no server-side memory pressure for large PDFs.
+        var pdfSasUrl = azureBlobStorageService.GenerateBlobSasUrl(
+            docDto.FileResource.FileResourceGUID.ToString(), TimeSpan.FromMinutes(10));
 
         var domainContext = await wqmpExtractionService.BuildDomainContext();
 
@@ -77,7 +74,7 @@ public class AIController(
                         Role = AnthropicRole.User,
                         Content = new List<ContentBlockParam>
                         {
-                            new DocumentBlockParam { Source = new Base64PdfSource { Data = pdfBase64 } },
+                            new DocumentBlockParam { Source = new UrlPdfSource { Url = pdfSasUrl.ToString() } },
                             new TextBlockParam { Text = domainContext, CacheControl = new CacheControlEphemeral() },
                             new TextBlockParam { Text = msg.Content },
                         },
@@ -97,8 +94,9 @@ public class AIController(
             Messages = messages,
         };
 
-        // Stream the response via SSE — same format the frontend expects
-        await foreach (var streamEvent in anthropicClient.Messages.CreateStreaming(parameters))
+        // Stream the response via SSE — same format the frontend expects.
+        // Observing RequestAborted lets Claude streaming stop as soon as the client disconnects.
+        await foreach (var streamEvent in anthropicClient.Messages.CreateStreaming(parameters, HttpContext.RequestAborted))
         {
             if (streamEvent.TryPickContentBlockDelta(out var delta) &&
                 delta.Delta.TryPickText(out var text))
