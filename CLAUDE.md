@@ -139,7 +139,7 @@ Configured with SQL Server storage, 1 worker, 0 auto-retries. Dashboard at `/han
 | QGIS API | Spatial analysis | `QGISAPIBaseUrl` |
 | Azure Blob Storage | File/photo storage | `AzureBlobStorageConnectionString` |
 | SendGrid | Email notifications | `SendGridApiKey` |
-| OpenAI | AI chat module | `OpenAIApiKey` |
+| Anthropic Claude | AI chat + WQMP document extraction | `AnthropicApiKey`, `ClaudeModelId` |
 
 ### Configuration & Secrets
 

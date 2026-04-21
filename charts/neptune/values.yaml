@@ -25,9 +25,8 @@ global:
     hangfirePassword: "passwordhere"
     recaptchaV3SiteKey: "recaptchaV3SiteKeyHere"
     recaptchaV3SecretKey: "recaptchaV3SecretKeyHere"
-    openAIApiKey: "openAIApiKeyHere"
-    openAIOrganizationID: "openAIOrganizationID"
-    openAIProjectID: "openAIProjectID"
+    anthropicApiKey: "anthropicApiKeyHere"
+    claudeModelId: "claude-sonnet-4-6"
 
 api:
   replicaCount: 1
