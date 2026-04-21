@@ -439,11 +439,22 @@ namespace Neptune.API.Controllers
         [RequestSizeLimit(200 * 1024 * 1024)]
         [RequestFormLimits(MultipartBodyLengthLimit = 200 * 1024 * 1024)]
         public async Task<ActionResult<WaterQualityManagementPlanExtractionResultDto>> UploadAndExtract(
-            IFormFile file, [FromForm] int stormwaterJurisdictionID, [FromForm] bool overwrite = false)
+            IFormFile file, [FromForm] int stormwaterJurisdictionID, [FromForm] string wqmpName, [FromForm] bool overwrite = false)
         {
             if (file == null || file.Length == 0)
             {
                 return BadRequest("No file provided.");
+            }
+
+            if (string.IsNullOrWhiteSpace(wqmpName))
+            {
+                return BadRequest("WQMP name is required.");
+            }
+
+            wqmpName = wqmpName.Trim();
+            if (wqmpName.Length > 100)
+            {
+                return BadRequest("WQMP name must be 100 characters or fewer.");
             }
 
             const long maxPdfSizeBytes = 50L * 1024 * 1024;
@@ -458,8 +469,6 @@ namespace Neptune.API.Controllers
             {
                 return BadRequest("Only PDF files are accepted.");
             }
-
-            var wqmpName = Path.GetFileNameWithoutExtension(file.FileName);
 
             // Check for existing WQMP with the same name in this jurisdiction
             var existing = await WaterQualityManagementPlans.GetByNameAndJurisdiction(DbContext, wqmpName, stormwaterJurisdictionID);
@@ -531,6 +540,7 @@ namespace Neptune.API.Controllers
                 {
                     WaterQualityManagementPlanID = wqmpDto.WaterQualityManagementPlanID,
                     WaterQualityManagementPlanDocumentID = document.WaterQualityManagementPlanDocumentID,
+                    StormwaterJurisdictionID = stormwaterJurisdictionID,
                     ExtractionResultJson = extractionResult.FinalOutput,
                     ExtractedAt = storedResult.ExtractedAt,
                     FileResourceGuid = fileResource.FileResourceGUID.ToString(),

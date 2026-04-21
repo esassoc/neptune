@@ -9405,6 +9405,9 @@
                     "type": "integer",
                     "format": "int32"
                   },
+                  "wqmpName": {
+                    "type": "string"
+                  },
                   "overwrite": {
                     "type": "boolean",
                     "default": false
@@ -9416,6 +9419,9 @@
                   "style": "form"
                 },
                 "stormwaterJurisdictionID": {
+                  "style": "form"
+                },
+                "wqmpName": {
                   "style": "form"
                 },
                 "overwrite": {
@@ -16216,6 +16222,10 @@
             "format": "int32"
           },
           "WaterQualityManagementPlanDocumentID": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "StormwaterJurisdictionID": {
             "type": "integer",
             "format": "int32"
           },

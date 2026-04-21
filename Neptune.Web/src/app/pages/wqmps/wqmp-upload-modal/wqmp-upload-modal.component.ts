@@ -23,6 +23,10 @@ import { environment } from "src/environments/environment";
 export class WqmpUploadModalComponent implements OnInit {
     public ref: DialogRef<{ file: File }, { wqmpID: number }> = inject(DialogRef);
     public FormFieldType = FormFieldType;
+    public wqmpNameControl = new FormControl<string>("", {
+        nonNullable: true,
+        validators: [Validators.required, Validators.maxLength(100)],
+    });
     public jurisdictionControl = new FormControl<number | null>(null, { validators: [Validators.required] });
     public jurisdictionOptions$: Observable<FormInputOption[]>;
     public isUploading = signal(false);
@@ -50,7 +54,7 @@ export class WqmpUploadModalComponent implements OnInit {
     }
 
     upload(overwrite = false): void {
-        if (this.jurisdictionControl.invalid) return;
+        if (this.jurisdictionControl.invalid || this.wqmpNameControl.invalid) return;
         this.isUploading.set(true);
         this.alertService.clearAlerts();
 
@@ -96,6 +100,7 @@ export class WqmpUploadModalComponent implements OnInit {
         const formData = new FormData();
         formData.append("file", this.file);
         formData.append("stormwaterJurisdictionID", this.jurisdictionControl.value.toString());
+        formData.append("wqmpName", this.wqmpNameControl.value.trim());
         if (overwrite) {
             formData.append("overwrite", "true");
         }

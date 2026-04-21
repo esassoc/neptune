@@ -547,6 +547,21 @@ export class WqmpReviewComponent implements OnInit, IDeactivateComponent {
                 allFields.push(this.makeField(key, wqmp[key], 2));
             }
 
+            // The Jurisdiction the user picked in the upload modal is authoritative —
+            // override any AI-extracted value and mark as accepted so the user doesn't
+            // need to re-confirm a selection they already made.
+            const confirmedJurisdictionID = this.currentResult()?.StormwaterJurisdictionID;
+            if (confirmedJurisdictionID) {
+                const jurisdictionField = allFields.find((f) => f.key === "Jurisdiction");
+                if (jurisdictionField) {
+                    const confirmedValue = String(confirmedJurisdictionID);
+                    jurisdictionField.value = confirmedValue;
+                    jurisdictionField.acceptedValue = confirmedValue;
+                    jurisdictionField.state = "accepted";
+                    jurisdictionField.confidence = "high";
+                }
+            }
+
             this.fields.set(allFields);
         } catch {
             this.fields.set([]);
