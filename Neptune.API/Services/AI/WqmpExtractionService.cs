@@ -71,9 +71,9 @@ public class WqmpExtractionService
         var evidenceInstructions =
             $"SchemaVersion: {SchemaVersion}. Use ONLY the provided WQMP PDF. Each attribute object MUST match ExtractedValueSchema. " +
             "Value = raw extracted string or null; ExtractionEvidence = source snippet (preceding sentence, target sentence, following sentence OR nearby table text); DocumentSource = page reference (e.g. 'Page 12'). " +
-            "BoundingBox = optional {PageNumber, X, Y, Width, Height} locating the evidence on the page. X/Y/Width/Height are 0-1 fractions of page size (X,Y = top-left corner). " +
-            "Emit BoundingBox ONLY when the page is rasterized (scanned PDF) and you can visually locate the text — estimate the rectangle covering the evidence snippet. " +
-            "If the page is a native text layer (you're reading its text stream rather than looking at an image), set BoundingBox to null. " +
+            "BoundingBox = {PageNumber, X, Y, Width, Height} locating the evidence on the page. X/Y/Width/Height are 0-1 fractions of page size where (0,0) is top-left and (1,1) is bottom-right. " +
+            "ALWAYS emit BoundingBox whenever Value is not null — estimate the rectangle that tightly covers the ExtractionEvidence text on its page. For scanned/rasterized pages use your visual reading of the page image. For native-text pages estimate from the layout you inferred. A rough rectangle (off by a line or two) is far more useful than null. " +
+            "Only set BoundingBox to null if Value is also null (field not found in the document). " +
             "If not found, set Value, ExtractionEvidence, DocumentSource, BoundingBox to null. Do not add or rename properties.\n" +
             $"ExtractedValueSchema: {ExtractedValueSchema.Value}";
 
@@ -310,15 +310,14 @@ public class WqmpExtractionService
         additionalProperties = false
     };
 
-    // Optional spatial hint for the evidence region on the page. Normalized 0-1 fractions
-    // (relative to the page's own width/height). Claude should emit these only when it can
-    // see the page as an image (scanned PDFs / rendered page images) and is reasonably
-    // confident about the location. For text-stream reads it should emit null — we fall
-    // back to PDF.js text-layer searching in that case.
+    // Spatial hint for the evidence region on the page. Normalized 0-1 fractions relative
+    // to the page's own width/height, top-left origin. Claude should emit this whenever
+    // Value is non-null — a rough estimate is more useful than null. Only null when the
+    // field wasn't found in the document.
     private static object BoundingBoxProp() => new
     {
         type = new[] { "object", "null" },
-        description = "Optional {PageNumber, X, Y, Width, Height} locating the evidence on its page. X/Y/Width/Height are 0-1 fractions of page size. Null when the source was read via text stream, not vision.",
+        description = "Required {PageNumber, X, Y, Width, Height} locating the evidence on its page. X/Y/Width/Height are 0-1 fractions of page size (top-left origin). Null only when Value is null.",
         properties = new
         {
             PageNumber = new { type = "integer", description = "1-based page index." },
