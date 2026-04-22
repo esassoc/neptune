@@ -275,10 +275,12 @@ export class WqmpReviewComponent implements OnInit, IDeactivateComponent {
         // Defer until the PDF.js iframe is ready — the user can click an evidence snippet
         // before `onDocumentLoad` fires on large PDFs or cold caches.
         if (!this.pdfLoaded) {
+            console.debug("[WqmpReview] navigate: PDF not loaded yet, queuing", nav);
             this.pendingNavigation = nav;
             return;
         }
         this.isNavigating.set(true);
+        console.debug("[WqmpReview] navigate: evidence click", nav);
 
         try {
             this.clearHighlights();
@@ -287,6 +289,7 @@ export class WqmpReviewComponent implements OnInit, IDeactivateComponent {
             if (nav.evidence) {
                 const searchPhrase = this.extractSearchPhrase(this.normalizeText(nav.evidence));
                 const foundPage = searchPhrase ? await this.searchPdfForText(searchPhrase, nav.documentSource) : 0;
+                console.debug(`[WqmpReview] navigate: searchPhrase="${searchPhrase}" foundPage=${foundPage}`);
                 if (foundPage > 0 && searchPhrase) {
                     // Navigate, then queue the highlight. The actual box draw happens in
                     // onPdfPageRendered once PDF.js finishes rendering the page (which may be
@@ -375,25 +378,69 @@ export class WqmpReviewComponent implements OnInit, IDeactivateComponent {
         try {
             const iframe = this.pdfViewer?.iframe?.nativeElement as HTMLIFrameElement;
             const iframeDoc = iframe?.contentDocument || iframe?.contentWindow?.document;
-            if (!iframeDoc) return false;
+            if (!iframeDoc) {
+                console.debug("[WqmpReview] highlight: no iframe doc yet");
+                return false;
+            }
 
             const pageEl = iframeDoc.querySelector(`.page[data-page-number="${pageNum}"]`) as HTMLElement | null;
-            if (!pageEl) return false;
+            if (!pageEl) {
+                console.debug(`[WqmpReview] highlight: .page[data-page-number="${pageNum}"] not rendered yet`);
+                return false;
+            }
             const textLayer = pageEl.querySelector(".textLayer");
-            if (!textLayer) return false;
+            if (!textLayer) {
+                console.debug(`[WqmpReview] highlight: .textLayer missing on page ${pageNum}`);
+                return false;
+            }
 
-            // Find spans whose normalized text is contained in (or contains) our search phrase.
-            // Single-span matches happen for short phrases; multi-span for longer snippets.
+            // Walk spans in DOM order. Find the first one whose normalized text appears in the
+            // search phrase, then keep collecting consecutive spans as long as their text is
+            // contained in what remains of the phrase. Short spans (<2 chars after normalize)
+            // are skipped to avoid matching stray whitespace / single letters in many places.
             const spans = Array.from(textLayer.querySelectorAll("span"));
             const matchingRects: DOMRect[] = [];
+            let remaining = searchPhrase;
+            let started = false;
+
             for (const span of spans) {
                 const spanText = this.normalizeText(span.textContent || "");
-                if (!spanText) continue;
-                if (searchPhrase.includes(spanText) || spanText.includes(searchPhrase)) {
+                if (!started) {
+                    // Look for a long-enough span that starts the phrase.
+                    if (spanText.length < 3 || !searchPhrase.includes(spanText)) continue;
+                    const idx = searchPhrase.indexOf(spanText);
+                    if (idx < 0) continue;
+                    started = true;
+                    remaining = searchPhrase.slice(idx + spanText.length).trim();
                     matchingRects.push(span.getBoundingClientRect());
+                } else {
+                    if (!spanText) continue;
+                    if (remaining.startsWith(spanText) || spanText.startsWith(remaining.split(" ")[0] || "")) {
+                        matchingRects.push(span.getBoundingClientRect());
+                        remaining = remaining.slice(spanText.length).trim();
+                        if (!remaining) break;
+                    } else if (spanText.length >= 3 && remaining.includes(spanText)) {
+                        // Skip-over tolerance: if the next span's text appears further along in
+                        // the remaining phrase (due to a missed word / unicode gap), keep going.
+                        matchingRects.push(span.getBoundingClientRect());
+                        remaining = remaining.slice(remaining.indexOf(spanText) + spanText.length).trim();
+                        if (!remaining) break;
+                    } else {
+                        break;
+                    }
                 }
             }
-            if (matchingRects.length === 0) return false;
+
+            if (matchingRects.length === 0) {
+                // Debug: show first ~100 chars of concatenated text-layer so mismatches are visible.
+                const joinedSample = spans.slice(0, 20).map((s) => s.textContent).join(" ").slice(0, 120);
+                console.debug(`[WqmpReview] highlight: no span match on page ${pageNum}.`, {
+                    searchPhrase,
+                    spanCount: spans.length,
+                    firstSpansSample: joinedSample,
+                });
+                return false;
+            }
 
             const pageRect = pageEl.getBoundingClientRect();
             const minTop = Math.min(...matchingRects.map((r) => r.top)) - pageRect.top;
@@ -416,8 +463,10 @@ export class WqmpReviewComponent implements OnInit, IDeactivateComponent {
             });
             pageEl.appendChild(box);
             box.scrollIntoView({ behavior: "smooth", block: "center" });
+            console.debug(`[WqmpReview] highlight drawn on page ${pageNum}`, { rectsUsed: matchingRects.length });
             return true;
-        } catch {
+        } catch (err) {
+            console.debug("[WqmpReview] highlight: error", err);
             return false;
         }
     }
