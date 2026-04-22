@@ -1,5 +1,9 @@
 @use "/src/scss/abstracts" as *;
 
+::ng-deep .leaflet-marker-draggable {
+    cursor: grab;
+}
+
 .dropdown-toggle {
     .nav-link__label {
         display: inline-flex;

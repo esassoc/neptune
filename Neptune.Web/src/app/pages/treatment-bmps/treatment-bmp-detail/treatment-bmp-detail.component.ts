@@ -76,6 +76,10 @@ import { AuthenticationService } from "src/app/services/authentication.service";
 import { RoleEnum } from "src/app/shared/generated/enum/role-enum";
 import { TreatmentBMPBenchmarkAndThresholdService } from "src/app/shared/generated/api/treatment-bmp-benchmark-and-threshold.service";
 import { TreatmentBMPBenchmarkAndThresholdDto } from "src/app/shared/generated/model/treatment-bmp-benchmark-and-threshold-dto";
+import {
+    TreatmentBmpBenchmarkThresholdModalComponent,
+    TreatmentBmpBenchmarkThresholdModalContext,
+} from "src/app/pages/treatment-bmps/treatment-bmp-detail/treatment-bmp-benchmark-threshold-modal/treatment-bmp-benchmark-threshold-modal.component";
 
 @Component({
     selector: "treatment-bmp-detail",
@@ -162,11 +166,12 @@ export class TreatmentBmpDetailComponent implements OnInit, OnChanges {
     isAnonymousOrUnassigned = false;
     openRevisionRequest: RegionalSubbasinRevisionRequestDto = null;
     openRevisionRequestDetailUrl = "";
-    currentPersonCanManage = true;
+    currentPersonCanManage = false;
     canEditStormwaterJurisdiction = false;
     isAnalyzedInModelingModule = true;
-    isSitkaAdmin = true;
+    isSitkaAdmin = false;
     hasModelingAttributes = false;
+    upstreamSectionExpanded = false;
 
     hruCharacteristicsSummaries: TreatmentBMPHRUCharacteristicsSummarySimpleDto[] = [];
 
@@ -244,7 +249,9 @@ export class TreatmentBmpDetailComponent implements OnInit, OnChanges {
         );
         // Wire up field visits grid as observable
         this.fieldVisits$ = this.treatmentBMPService.fieldVisitGridJsonDataTreatmentBMP(this.treatmentBMPID);
-        this.benchmarkAndThresholds$ = this.benchmarkAndThresholdService.listTreatmentBMPBenchmarkAndThreshold(this.treatmentBMPID);
+        this.benchmarkAndThresholds$ = this.benchmarkAndThresholdService.listTreatmentBMPBenchmarkAndThreshold(this.treatmentBMPID).pipe(
+            tap((benchmarks) => (this.currentBenchmarks = benchmarks))
+        );
 
         this.treatmentBMP$ = this.treatmentBMPService.getByIDTreatmentBMP(this.treatmentBMPID).pipe(
             tap((bmp) => {
@@ -399,15 +406,18 @@ export class TreatmentBmpDetailComponent implements OnInit, OnChanges {
 
     canEditBenchmarkAndThresholds = false;
     hasSettableBenchmarkAndThresholdValues = false;
+    currentBenchmarks: TreatmentBMPBenchmarkAndThresholdDto[] = [];
 
     // NOTE: TreatmentBMPTypeIsAnalyzedInModelingModule is expected on treatmentBMP DTO. If missing, add to DTO or adjust template logic.
+
+    private delineationLayer: L.GeoJSON | null = null;
 
     // Handler for Neptune map load event
     handleMapReady(event: any): void {
         this.map = event.map;
         this.layerControl = event.layerControl;
         this.mapIsReady = true;
-        // Add marker for BMP location
+        // Add marker for BMP location and delineation polygon
         this.treatmentBMP$.subscribe((bmp) => {
             if (bmp && bmp.Latitude && bmp.Longitude && this.map) {
                 const marker = L.marker([bmp.Latitude, bmp.Longitude], {
@@ -415,6 +425,45 @@ export class TreatmentBmpDetailComponent implements OnInit, OnChanges {
                 });
                 marker.addTo(this.map);
                 marker.bindPopup(bmp.TreatmentBMPName || "BMP Location");
+
+                // Add delineation polygon (use upstream BMP's delineation if this BMP has one)
+                const delineationGeometry = bmp.UpstreamBMP?.Delineation?.Geometry || bmp.Delineation?.Geometry;
+                if (delineationGeometry) {
+                    try {
+                        const geoJson = JSON.parse(delineationGeometry);
+                        if (this.delineationLayer) {
+                            this.map.removeLayer(this.delineationLayer);
+                        }
+                        this.delineationLayer = L.geoJSON(geoJson, {
+                            style: {
+                                color: "#4488CC",
+                                weight: 2,
+                                fillOpacity: 0.15,
+                            },
+                        });
+                        this.delineationLayer.addTo(this.map);
+                        this.layerControl.addOverlay(this.delineationLayer, "Delineation Area");
+                        // Fit bounds to include both marker and delineation
+                        const bounds = this.delineationLayer.getBounds().extend([bmp.Latitude, bmp.Longitude]);
+                        this.map.fitBounds(bounds, { padding: [20, 20] });
+                    } catch {
+                        // If geometry parsing fails, just center on the marker
+                    }
+                }
+            }
+        });
+    }
+
+    openEditBenchmarkAndThresholdsModal(benchmarks: TreatmentBMPBenchmarkAndThresholdDto[]): void {
+        const dialogRef = this.dialogService.open(TreatmentBmpBenchmarkThresholdModalComponent, {
+            data: {
+                treatmentBMPID: this.treatmentBMPID,
+                benchmarks: benchmarks,
+            } as TreatmentBmpBenchmarkThresholdModalContext,
+        });
+        dialogRef.afterClosed$.subscribe((result) => {
+            if (result) {
+                this.loadData();
             }
         });
     }

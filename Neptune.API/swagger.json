@@ -1176,6 +1176,19 @@
         }
       }
     },
+    "/hru-characteristics/enqueue-refresh": {
+      "post": {
+        "tags": [
+          "HRUCharacteristic"
+        ],
+        "operationId": "EnqueueRefresh_HRUCharacteristic",
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
     "/land-use-blocks": {
       "get": {
         "tags": [
@@ -4524,6 +4537,19 @@
                 }
               }
             }
+          }
+        }
+      }
+    },
+    "/regional-subbasins/enqueue-refresh": {
+      "post": {
+        "tags": [
+          "RegionalSubbasin"
+        ],
+        "operationId": "EnqueueRefresh_RegionalSubbasin",
+        "responses": {
+          "200": {
+            "description": "OK"
           }
         }
       }

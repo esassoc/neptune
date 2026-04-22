@@ -1,4 +1,4 @@
-import { Component, inject, Input, OnChanges, SimpleChanges } from "@angular/core";
+import { Component, inject, Input, OnChanges, SimpleChanges, signal } from "@angular/core";
 import { FileResourceService } from "src/app/shared/generated/api/file-resource.service";
 
 import { environment } from "src/environments/environment";
@@ -17,7 +17,7 @@ export class ImageCarouselComponent implements OnChanges {
     @Input() images: ImageCarouselItem[] = [];
     @Input() noImagesMessage: string = "No images available.";
     public currentImageIndex = 0;
-    public imagePreviewUrls: { [guid: string]: string } = {};
+    public imagePreviewUrls = signal<{ [guid: string]: string }>({});
 
     ngOnChanges(changes: SimpleChanges): void {
         if (changes.images && this.images && this.images.length > 0) {
@@ -35,13 +35,13 @@ export class ImageCarouselComponent implements OnChanges {
     // Call this to load the image preview for a file resource
     public loadImagePreview(image: ImageCarouselItem): void {
         const guid = image?.FileResourceGUID;
-        if (!guid || this.imagePreviewUrls[guid]) {
+        if (!guid || this.imagePreviewUrls()[guid]) {
             return;
         }
 
-        this.fileResourceService.displayResourceFileResource(guid).subscribe((blob: Blob) => {
+        this.fileResourceService.displayResourceFileResource(guid, "body", false, { httpHeaderAccept: undefined }).subscribe((blob: Blob) => {
             const url = URL.createObjectURL(blob);
-            this.imagePreviewUrls[guid] = url;
+            this.imagePreviewUrls.update((urls) => ({ ...urls, [guid]: url }));
         });
     }
 }

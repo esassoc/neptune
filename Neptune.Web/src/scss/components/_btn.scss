@@ -1,7 +1,10 @@
 @use "sass:color";
 @use "/src/scss/abstracts" as *;
 .btn {
-    display: inline-block;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.375rem;
     text-align: center;
     text-decoration: none;
     white-space: nowrap;
@@ -12,7 +15,7 @@
     border: none;
     font-family: $lato;
     font-size: $type-size-200;
-    font-weight: 700;
+    font-weight: 400;
     letter-spacing: 0.045em;
     line-height: 1;
     padding: 0.875rem 1.25rem 0.675rem;
@@ -27,12 +30,10 @@
         outline: 0;
     }
 
+    cursor: pointer;
+
     &-icon {
         padding: $spacing-200 $spacing-300 $spacing-200;
-    }
-
-    &:hover {
-        cursor: pointer;
     }
 
     @include btn-disabled;
@@ -255,6 +256,18 @@
         font-size: 0.875rem;
         padding: 0.6125rem 0.875rem 0.4125rem;
         line-height: 1;
+        display: inline-flex;
+        align-items: center;
+        gap: 0.35rem;
+
+        icon {
+            display: inline-flex;
+
+            svg {
+                width: 14px;
+                height: 14px;
+            }
+        }
     }
 
     &-rounded {
@@ -287,7 +300,7 @@
 }
 
 button.btn:not(.btn-sm) {
-    padding-bottom: 1rem;
+    padding-bottom: 0.75rem;
 }
 
 .filter-btn-group {

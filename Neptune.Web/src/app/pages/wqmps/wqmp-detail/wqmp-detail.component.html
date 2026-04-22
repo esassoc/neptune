@@ -161,7 +161,7 @@
                 </div>
                 <div class="card-body">
                     @if (currentPersonCanEdit) {
-                        <div class="mb-3">
+                        <div class="mb-3" style="display: flex; justify-content: flex-end; gap: 0.5rem">
                             <a class="btn btn-primary-outline" [routerLink]="['/water-quality-management-plans', waterQualityManagementPlanID, 'edit-parcels']">Add Parcels</a>
                             <a class="btn btn-primary-outline" [class.disabled]="!wqmp.WaterQualityManagementPlanBoundaryBBox"
                                 [routerLink]="wqmp.WaterQualityManagementPlanBoundaryBBox ? ['/water-quality-management-plans', waterQualityManagementPlanID, 'edit-boundary'] : null">Refine Area</a>

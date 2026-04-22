@@ -48,4 +48,8 @@ GO
 GO
 :r ".\020 - Drop WaterQualityManagementPlanDocumentVectorStore table.sql"
 GO
+:r ".\021 - Make Other Design Attributes Optional.sql"
+GO
+:r ".\022 - Make All Custom Attributes Optional.sql"
+GO
 

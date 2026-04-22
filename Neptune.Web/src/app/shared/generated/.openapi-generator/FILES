@@ -202,4 +202,6 @@ model/water-quality-management-plan-verify-upsert-dto.ts
 model/watershed-dto.ts
 model/workflow-step-status.ts
 param.ts
+provide-api.ts
+query.params.ts
 variables.ts

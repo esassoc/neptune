@@ -6,7 +6,7 @@ import { PageHeaderComponent } from "src/app/shared/components/page-header/page-
 import { AsyncPipe } from "@angular/common";
 import { AlertDisplayComponent } from "src/app/shared/components/alert-display/alert-display.component";
 import { Router, RouterModule } from "@angular/router";
-import { Observable, switchMap, tap } from "rxjs";
+import { Observable, shareReplay, switchMap, tap } from "rxjs";
 import { TreatmentBMPService } from "src/app/shared/generated/api/treatment-bmp.service";
 import { TreatmentBMPTypeCustomAttributeTypeDto } from "src/app/shared/generated/model/treatment-bmp-type-custom-attribute-type-dto";
 import { TreatmentBMPTypeService } from "src/app/shared/generated/api/treatment-bmp-type.service";
@@ -45,7 +45,7 @@ export class TreatmentBmpUpdateCustomAttributesComponent implements OnInit, IDea
 
     ngOnInit(): void {
         this.customAttributePurposeName = CustomAttributeTypePurposes.find((x) => x.Value == this.customAttributePurposeID!)?.DisplayName;
-        this.treatmentBMP$ = this.treatmentBMPService.getByIDTreatmentBMP(this.treatmentBMPID!);
+        this.treatmentBMP$ = this.treatmentBMPService.getByIDTreatmentBMP(this.treatmentBMPID!).pipe(shareReplay(1));
 
         this.treatmentBMPTypeCustomAttributeTypes$ = this.treatmentBMP$.pipe(
             switchMap((bmp) =>

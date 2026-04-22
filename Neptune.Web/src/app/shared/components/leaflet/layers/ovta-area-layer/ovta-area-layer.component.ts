@@ -23,13 +23,17 @@ export class OvtaAreaLayerComponent extends MapLayerBase implements OnChanges {
 
     @Input() ovtaID: number;
     @Input() ovtaAreaID: number;
+    @Input() interactive: boolean = true;
     public layer;
 
-    private ovtaAreaStyle = {
-        color: "blue",
-        fillOpacity: 0.2,
-        opacity: 0,
-    };
+    private get ovtaAreaStyle() {
+        return {
+            color: "blue",
+            fillOpacity: 0.2,
+            opacity: 0,
+            interactive: this.interactive,
+        };
+    }
 
     public featureCollection$: Observable<IFeature[]>;
 

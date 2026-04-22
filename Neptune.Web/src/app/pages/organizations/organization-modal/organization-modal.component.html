@@ -1,42 +1,40 @@
-<div class="modal-header">
-    <h3>{{ mode === "add" ? "Add Organization" : "Edit Organization" }}</h3>
-</div>
-<div class="modal-body">
-    <app-alert-display></app-alert-display>
-    <form [formGroup]="formGroup">
-        <form-field
-            [formControl]="formGroup.controls.OrganizationName"
-            fieldLabel="Organization Name"
-            [type]="FormFieldType.Text"
-            [required]="true"
-            placeholder="Name"></form-field>
-        <form-field [formControl]="formGroup.controls.OrganizationShortName" fieldLabel="Short Name" [type]="FormFieldType.Text" placeholder="Short Name"></form-field>
-        <form-field [formControl]="formGroup.controls.OrganizationUrl" fieldLabel="Organization URL" [type]="FormFieldType.Text" placeholder="https://example.com"></form-field>
-        <form-field
-            [formControl]="formGroup.controls.OrganizationTypeID"
-            fieldLabel="Organization Type"
-            [type]="FormFieldType.Select"
-            placeholder="Select type"
-            [formInputOptions]="organizationTypeOptions$ | async">
-        </form-field>
-        <form-field
-            [formControl]="formGroup.controls.PrimaryContactPersonID"
-            fieldLabel="Primary Contact"
-            [type]="FormFieldType.Select"
-            placeholder="Select contact"
-            [formInputOptions]="peopleOptions$ | async">
-        </form-field>
-        <form-field
-            [formControl]="formGroup.controls.LogoFileResourceID"
-            fieldLabel="Logo File"
-            [type]="FormFieldType.File"
-            uploadFileAccepts="image/*"
-            placeholder="Choose logo image">
-        </form-field>
-        <form-field [formControl]="formGroup.controls.IsActive" fieldLabel="Active?" [type]="FormFieldType.Check" checkLabel="Active"></form-field>
-    </form>
-</div>
-<div class="modal-footer">
-    <button class="btn btn-primary" (click)="save()" [disabled]="formGroup.invalid">Save</button>
-    <button class="btn btn-secondary" (click)="cancel()">Cancel</button>
+<div class="modal">
+    <div class="modal-header">
+        <h3>{{ mode === "add" ? "Add Organization" : "Edit Organization" }}</h3>
+    </div>
+    <div class="modal-body">
+        <app-alert-display></app-alert-display>
+        <form [formGroup]="formGroup" class="grid-12">
+            <form-field
+                class="g-col-12"
+                [formControl]="formGroup.controls.OrganizationName"
+                fieldLabel="Organization Name"
+                [type]="FormFieldType.Text"
+                [required]="true"
+                placeholder="Name"></form-field>
+            <form-field class="g-col-12" [formControl]="formGroup.controls.OrganizationShortName" fieldLabel="Short Name" [type]="FormFieldType.Text" placeholder="Short Name"></form-field>
+            <form-field class="g-col-12" [formControl]="formGroup.controls.OrganizationUrl" fieldLabel="Organization URL" [type]="FormFieldType.Text" placeholder="https://example.com"></form-field>
+            <form-field
+                class="g-col-12"
+                [formControl]="formGroup.controls.OrganizationTypeID"
+                fieldLabel="Organization Type"
+                [type]="FormFieldType.Select"
+                placeholder="Select type"
+                [formInputOptions]="organizationTypeOptions$ | async">
+            </form-field>
+            <form-field
+                class="g-col-12"
+                [formControl]="formGroup.controls.PrimaryContactPersonID"
+                fieldLabel="Primary Contact"
+                [type]="FormFieldType.Select"
+                placeholder="Select contact"
+                [formInputOptions]="peopleOptions$ | async">
+            </form-field>
+            <form-field class="g-col-12" [formControl]="formGroup.controls.IsActive" fieldLabel="Active?" [type]="FormFieldType.Radio" name="isActive" [formInputOptions]="[{ Label: 'Yes', Value: true, disabled: false }, { Label: 'No', Value: false, disabled: false }]"></form-field>
+        </form>
+    </div>
+    <div class="modal-footer">
+        <button class="btn btn-primary" (click)="save()" [disabled]="formGroup.invalid">Save</button>
+        <button class="btn btn-secondary" (click)="cancel()">Cancel</button>
+    </div>
 </div>

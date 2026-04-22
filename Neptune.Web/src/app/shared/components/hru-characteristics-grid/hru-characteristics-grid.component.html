@@ -1,2 +1,3 @@
 <neptune-grid [rowData]="rowData" [columnDefs]="columnDefs" [pagination]="true" [height]="height" [rowSelection]="rowSelection" [downloadFileName]="downloadFileName">
+    <ng-content select="[customGridActionsRight]" ngProjectAs="[customGridActionsRight]"></ng-content>
 </neptune-grid>
