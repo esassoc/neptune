@@ -177,13 +177,14 @@
 
 // PDF Panel
 .pdf-panel {
-    // Pin height to the layout so aspect-ratio can derive the panel's width from it.
-    // Result: panel is exactly one letter-page tall, width auto-computed — one full page
-    // visible with zero trailing gray. Continuous scroll still reveals pages 2+.
-    flex: 0 0 auto;
-    height: 100%;
+    // Lock the panel to roughly the aspect of a letter-size page so one page at page-fit
+    // zoom fills the panel with no trailing gray. Scrolling still reveals page 2, 3, etc.
+    // flex-grow disabled so the panel doesn't stretch wide and create side padding; any
+    // extra horizontal space in the layout flows past the panel instead of into it.
+    flex: 0 1 auto;
+    min-width: 500px;
     aspect-ratio: 8.5 / 11;
-    min-width: 400px;
+    max-height: 100%;
     background: #2e2e2e;
     position: relative;
 
