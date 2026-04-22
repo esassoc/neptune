@@ -64,6 +64,7 @@ export class TrashOvtaRecordObservationsComponent {
     public newObservationIDIndex: number = -1;
     public isAddingObservation = false;
     public isEditingLocation = false;
+    public editingObservationIndex: number = null;
 
     public onlandVisualTrashAssessmentObservations$: Observable<OnlandVisualTrashAssessmentObservationWithPhotoDto[]>;
 
@@ -115,7 +116,7 @@ export class TrashOvtaRecordObservationsComponent {
         if (this.formGroup.controls.Observations.length > 0) {
             this.addObservationPointsLayersToMap();
             this.map.fitBounds(this.ovtaObservationLayer.getBounds());
-        } else if (onlandVisualTrashAssessment.OnlandVisualTrashAssessmentAreaID !== null) {
+        } else if (onlandVisualTrashAssessment.OnlandVisualTrashAssessmentAreaID) {
             this.wfsService
                 .getGeoserverWFSLayerWithCQLFilter(
                     "OCStormwater:OnlandVisualTrashAssessmentAreas",
@@ -140,6 +141,18 @@ export class TrashOvtaRecordObservationsComponent {
         // Ensure the view updates immediately in zoneless mode.
         // (Output emissions and Leaflet callbacks don't always schedule a render on their own.)
         Promise.resolve().then(() => this.appRef.tick());
+    }
+
+    public cancelEditMode() {
+        this.map.off("click");
+        this.isAddingObservation = false;
+        this.isEditingLocation = false;
+        this.map.getContainer().style.cursor = "grab";
+        const selectedMarker = this.getSelectedMarker();
+        if (selectedMarker) {
+            selectedMarker.off("dragend");
+            selectedMarker.dragging.disable();
+        }
     }
 
     public addObservationMarker() {
@@ -251,6 +264,7 @@ export class TrashOvtaRecordObservationsComponent {
     }
 
     public editObservationLocation(index: number) {
+        this.editingObservationIndex = index;
         this.isEditingLocation = true;
         this.map.getContainer().style.cursor = "crosshair";
 
@@ -260,23 +274,18 @@ export class TrashOvtaRecordObservationsComponent {
             selectedMarker.dragging.enable();
         }
 
-        const exitEditMode = () => {
-            this.map.off("click", onMapClick);
-            if (selectedMarker) {
-                selectedMarker.off("dragend", onDragEnd);
-                selectedMarker.dragging.disable();
-            }
-            this.isEditingLocation = false;
-            this.map.getContainer().style.cursor = "grab";
-        };
-
         const updateObservation = (latlng: L.LatLng) => {
-            const observation = this.formGroup.controls.Observations.controls[index].value;
+            const observation = this.formGroup.controls.Observations.controls[this.editingObservationIndex].value;
             observation.Latitude = latlng.lat;
             observation.Longitude = latlng.lng;
-            this.formGroup.controls.Observations.controls[index].patchValue(observation);
+            this.formGroup.controls.Observations.controls[this.editingObservationIndex].patchValue(observation);
             this.addObservationPointsLayersToMap();
-            exitEditMode();
+            // Re-enable dragging on the new marker after layer rebuild
+            const newMarker = this.getSelectedMarker();
+            if (newMarker) {
+                newMarker.dragging.enable();
+                newMarker.on("dragend", onDragEnd);
+            }
         };
 
         const onMapClick = (e: L.LeafletMouseEvent) => {

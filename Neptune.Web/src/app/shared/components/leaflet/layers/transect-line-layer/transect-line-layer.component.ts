@@ -23,12 +23,16 @@ export class TransectLineLayerComponent extends MapLayerBase implements OnChange
 
     @Input() ovtaID: number;
     @Input() ovtaAreaID: number;
+    @Input() interactive: boolean = true;
     public layer;
 
-    private transectLineStyle = {
-        color: "#ff42ff",
-        weight: 2,
-    };
+    private get transectLineStyle() {
+        return {
+            color: "#ff42ff",
+            weight: 2,
+            interactive: this.interactive,
+        };
+    }
 
     public featureCollection$: Observable<IFeature[]>;
 
