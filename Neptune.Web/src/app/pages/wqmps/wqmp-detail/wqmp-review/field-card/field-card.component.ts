@@ -14,6 +14,7 @@ export interface EvidenceBoundingBox {
 }
 
 export interface SourceNavigation {
+    value: string | null;
     evidence: string | null;
     documentSource: string | null;
     boundingBox: EvidenceBoundingBox | null;
@@ -117,6 +118,7 @@ export class FieldCardComponent implements OnChanges {
     goToSource(): void {
         if (this.extractionEvidence || this.documentSource || this.boundingBox) {
             this.navigateToSource.emit({
+                value: this.extractedValue,
                 evidence: this.extractionEvidence,
                 documentSource: this.documentSource,
                 boundingBox: this.boundingBox,

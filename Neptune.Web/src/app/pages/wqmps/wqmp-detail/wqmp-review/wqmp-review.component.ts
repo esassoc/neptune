@@ -289,12 +289,32 @@ export class WqmpReviewComponent implements OnInit, IDeactivateComponent {
 
             // Best: text-layer span match (pixel accurate when the PDF has a usable text
             // layer). Runs first because it beats Claude's vision-estimated coords on any
-            // PDF where the text layer is readable.
+            // PDF where the text layer is readable. Try multiple phrases so short/idiosyncratic
+            // evidence snippets still find a hit before we give up to the vision box.
+            const searchCandidates: string[] = [];
             if (nav.evidence) {
-                const searchPhrase = this.extractSearchPhrase(this.normalizeText(nav.evidence));
-                const foundPage = searchPhrase ? await this.searchPdfForText(searchPhrase, nav.documentSource) : 0;
-                if (foundPage > 0 && searchPhrase) {
-                    this.pendingHighlight = { pageNumber: foundPage, box: null, searchPhrase };
+                const normalizedEvidence = this.normalizeText(nav.evidence);
+                const middleSlice = this.extractSearchPhrase(normalizedEvidence);
+                if (middleSlice) searchCandidates.push(middleSlice);
+                // Full normalized evidence — for cases where the 12-word middle slice falls on a
+                // page break or spans text-layer column boundaries but the whole snippet appears once.
+                if (normalizedEvidence && !searchCandidates.includes(normalizedEvidence)) {
+                    searchCandidates.push(normalizedEvidence);
+                }
+            }
+            if (nav.value) {
+                // Raw value ("14.6", "Michael Gagnet") — most distinctive when the phrase fails
+                // because the evidence uses a paraphrase or omits the actual value.
+                const normalizedValue = this.normalizeText(nav.value);
+                if (normalizedValue.length >= 3 && !searchCandidates.includes(normalizedValue)) {
+                    searchCandidates.push(normalizedValue);
+                }
+            }
+
+            for (const phrase of searchCandidates) {
+                const foundPage = await this.searchPdfForText(phrase, nav.documentSource);
+                if (foundPage > 0) {
+                    this.pendingHighlight = { pageNumber: foundPage, box: null, searchPhrase: phrase };
                     this.pdfViewer.page = foundPage;
                     this.tryDrawPendingHighlight();
                     return;
@@ -482,43 +502,33 @@ export class WqmpReviewComponent implements OnInit, IDeactivateComponent {
             const textLayer = pageEl.querySelector(".textLayer");
             if (!textLayer) return false;
 
-            // Walk spans in DOM order. Find the first one whose normalized text appears in the
-            // search phrase, then keep collecting consecutive spans as long as their text is
-            // contained in what remains of the phrase. Short spans (<2 chars after normalize)
-            // are skipped to avoid matching stray whitespace / single letters in many places.
+            // Build a single concatenated text-layer string and find where our phrase appears,
+            // then collect the rects of spans whose text falls within that matched range. This
+            // is more robust than a span-by-span walk because PDF.js often splits text into
+            // single-character or short-fragment spans that wouldn't individually match a long
+            // phrase.
             const spans = Array.from(textLayer.querySelectorAll("span"));
-            const matchingRects: DOMRect[] = [];
-            let remaining = searchPhrase;
-            let started = false;
-
+            const entries: { text: string; rect: DOMRect; start: number; end: number }[] = [];
+            let cursor = 0;
+            let joined = "";
             for (const span of spans) {
-                const spanText = this.normalizeText(span.textContent || "");
-                if (!started) {
-                    // Look for a long-enough span that starts the phrase.
-                    if (spanText.length < 3 || !searchPhrase.includes(spanText)) continue;
-                    const idx = searchPhrase.indexOf(spanText);
-                    if (idx < 0) continue;
-                    started = true;
-                    remaining = searchPhrase.slice(idx + spanText.length).trim();
-                    matchingRects.push(span.getBoundingClientRect());
-                } else {
-                    if (!spanText) continue;
-                    if (remaining.startsWith(spanText) || spanText.startsWith(remaining.split(" ")[0] || "")) {
-                        matchingRects.push(span.getBoundingClientRect());
-                        remaining = remaining.slice(spanText.length).trim();
-                        if (!remaining) break;
-                    } else if (spanText.length >= 3 && remaining.includes(spanText)) {
-                        // Skip-over tolerance: if the next span's text appears further along in
-                        // the remaining phrase (due to a missed word / unicode gap), keep going.
-                        matchingRects.push(span.getBoundingClientRect());
-                        remaining = remaining.slice(remaining.indexOf(spanText) + spanText.length).trim();
-                        if (!remaining) break;
-                    } else {
-                        break;
-                    }
-                }
+                const text = this.normalizeText(span.textContent || "");
+                if (!text) continue;
+                const separator = joined.length > 0 && !joined.endsWith(" ") ? " " : "";
+                joined += separator + text;
+                const start = cursor + separator.length;
+                const end = start + text.length;
+                entries.push({ text, rect: span.getBoundingClientRect(), start, end });
+                cursor = end;
             }
 
+            const idx = joined.indexOf(searchPhrase);
+            if (idx < 0) return false;
+            const endIdx = idx + searchPhrase.length;
+
+            const matchingRects: DOMRect[] = entries
+                .filter((e) => e.end > idx && e.start < endIdx)
+                .map((e) => e.rect);
             if (matchingRects.length === 0) return false;
 
             const pageRect = pageEl.getBoundingClientRect();
