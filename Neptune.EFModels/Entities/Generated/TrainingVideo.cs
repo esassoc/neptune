@@ -23,4 +23,6 @@ public partial class TrainingVideo
     [StringLength(100)]
     [Unicode(false)]
     public string? VideoURL { get; set; }
+
+    public int? NeptuneAreaID { get; set; }
 }

@@ -12,6 +12,10 @@ namespace Neptune.EFModels.Entities
                 VideoName = entity.VideoName,
                 VideoDescription = entity.VideoDescription,
                 VideoURL = entity.VideoURL,
+                NeptuneAreaID = entity.NeptuneAreaID,
+                NeptuneAreaDisplayName = entity.NeptuneAreaID.HasValue
+                    ? NeptuneArea.AllLookupDictionary[entity.NeptuneAreaID.Value].NeptuneAreaDisplayName
+                    : null,
             };
         }
     }

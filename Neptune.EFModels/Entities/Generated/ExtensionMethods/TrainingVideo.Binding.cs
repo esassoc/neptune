@@ -7,7 +7,7 @@ namespace Neptune.EFModels.Entities
     public partial class TrainingVideo : IHavePrimaryKey
     {
         public int PrimaryKey => TrainingVideoID;
-
+        public NeptuneArea? NeptuneArea => NeptuneAreaID.HasValue ? NeptuneArea.AllLookupDictionary[NeptuneAreaID.Value] : null;
 
         public static class FieldLengths
         {

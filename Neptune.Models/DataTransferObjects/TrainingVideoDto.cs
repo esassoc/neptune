@@ -6,5 +6,7 @@ namespace Neptune.Models.DataTransferObjects
         public string? VideoName { get; set; }
         public string? VideoDescription { get; set; }
         public string? VideoURL { get; set; }
+        public int? NeptuneAreaID { get; set; }
+        public string? NeptuneAreaDisplayName { get; set; }
     }
 }

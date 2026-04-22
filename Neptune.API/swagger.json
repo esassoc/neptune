@@ -4944,6 +4944,16 @@
           "TrainingVideo"
         ],
         "operationId": "List_TrainingVideo",
+        "parameters": [
+          {
+            "name": "neptuneAreaID",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          }
+        ],
         "responses": {
           "200": {
             "description": "OK",
@@ -14037,6 +14047,15 @@
             "nullable": true
           },
           "VideoURL": {
+            "type": "string",
+            "nullable": true
+          },
+          "NeptuneAreaID": {
+            "type": "integer",
+            "format": "int32",
+            "nullable": true
+          },
+          "NeptuneAreaDisplayName": {
             "type": "string",
             "nullable": true
           }

@@ -52,4 +52,6 @@ GO
 GO
 :r ".\022 - Make All Custom Attributes Optional.sql"
 GO
+:r ".\023 - Associate TrainingVideos with NeptuneArea modules.sql"
+GO
 

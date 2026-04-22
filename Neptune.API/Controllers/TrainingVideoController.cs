@@ -20,9 +20,9 @@ namespace Neptune.API.Controllers
     {
         [HttpGet]
         [AllowAnonymous]
-        public async Task<ActionResult<List<TrainingVideoDto>>> List()
+        public async Task<ActionResult<List<TrainingVideoDto>>> List([FromQuery] int? neptuneAreaID = null)
         {
-            var videos = await TrainingVideos.ListAsDtoAsync(DbContext);
+            var videos = await TrainingVideos.ListAsDtoAsync(DbContext, neptuneAreaID);
             return Ok(videos);
         }
     }

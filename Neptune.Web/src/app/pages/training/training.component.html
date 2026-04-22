@@ -1,8 +1,23 @@
 <page-header [customRichTextTypeID]="customRichTextTypeID" pageTitle="Training"></page-header>
 
-<div class="page-body" [loadingSpinner]="{ isLoading, loadingHeight: 100 }">
+<div class="page-body" [loadingSpinner]="{ isLoading: isLoading(), loadingHeight: 100 }">
+    <div class="filter-bar">
+        <label>Filter by Module:</label>
+        <ng-select
+            class="custom"
+            [items]="filterOptions()"
+            [ngModel]="selectedModuleID()"
+            (ngModelChange)="onModuleFilterChange($event)"
+            bindLabel="Label"
+            bindValue="Value"
+            [clearable]="false"
+            [searchable]="false"
+            appendTo="body">
+        </ng-select>
+    </div>
+
     <div class="video-grid">
-        @for (video of videos; track video.TrainingVideoID) {
+        @for (video of filteredVideos(); track video.TrainingVideoID) {
             <div class="video-card">
                 <div class="video-header">
                     <strong>{{ video.VideoName }}</strong>

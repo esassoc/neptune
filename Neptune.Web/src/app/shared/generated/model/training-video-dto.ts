@@ -15,6 +15,8 @@ export class TrainingVideoDto {
     VideoName?: string | null;
     VideoDescription?: string | null;
     VideoURL?: string | null;
+    NeptuneAreaID?: number | null;
+    NeptuneAreaDisplayName?: string | null;
     constructor(obj?: any) {
         Object.assign(this, obj);
     }
@@ -25,6 +27,8 @@ export interface TrainingVideoDtoForm {
     VideoName?: FormControl<string>;
     VideoDescription?: FormControl<string>;
     VideoURL?: FormControl<string>;
+    NeptuneAreaID?: FormControl<number>;
+    NeptuneAreaDisplayName?: FormControl<string>;
 }
 
 export class TrainingVideoDtoFormControls { 
@@ -59,6 +63,26 @@ export class TrainingVideoDtoFormControls {
         }
     );
     public static VideoURL = (value: FormControlState<string> | string = undefined, formControlOptions?: FormControlOptions | null) => new FormControl<string>(
+        value,
+        formControlOptions ?? 
+        {
+            nonNullable: false,
+            validators: 
+            [
+            ],
+        }
+    );
+    public static NeptuneAreaID = (value: FormControlState<number> | number = undefined, formControlOptions?: FormControlOptions | null) => new FormControl<number>(
+        value,
+        formControlOptions ?? 
+        {
+            nonNullable: false,
+            validators: 
+            [
+            ],
+        }
+    );
+    public static NeptuneAreaDisplayName = (value: FormControlState<string> | string = undefined, formControlOptions?: FormControlOptions | null) => new FormControl<string>(
         value,
         formControlOptions ?? 
         {
