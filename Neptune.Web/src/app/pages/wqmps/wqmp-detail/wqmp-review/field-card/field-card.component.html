@@ -68,7 +68,7 @@
                     <span class="field-card__source field-card__source--clickable" (click)="goToSource()"><i class="fa fa-file-pdf-o"></i> {{ documentSource }}</span>
                 }
                 @if (extractionEvidence) {
-                    <p class="field-card__snippet">{{ extractionEvidence }}</p>
+                    <p class="field-card__snippet field-card__snippet--clickable" (click)="goToSource()" title="Jump to this passage in the PDF">{{ extractionEvidence }}</p>
                 }
             </div>
         }

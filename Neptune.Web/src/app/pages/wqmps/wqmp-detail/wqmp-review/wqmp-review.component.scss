@@ -211,6 +211,38 @@
         padding: 1rem;
     }
 
+    &__extract-cta {
+        flex: 1;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        padding: 2rem 1.5rem;
+        text-align: center;
+        color: $gray-700;
+
+        h3 {
+            margin: 0.75rem 0 0.5rem;
+            font-size: $type-size-400;
+        }
+
+        p {
+            font-size: $type-size-200;
+            color: $gray-600;
+            max-width: 28rem;
+            margin: 0 0 1.25rem;
+        }
+
+        .btn i {
+            margin-right: 0.35rem;
+        }
+    }
+
+    &__extract-cta-icon {
+        font-size: 2rem;
+        color: $primary;
+    }
+
     &__footer {
         padding: 1rem;
         border-top: 1px solid $gray-200;

@@ -21,7 +21,7 @@ import { environment } from "src/environments/environment";
     styleUrl: "./wqmp-upload-modal.component.scss",
 })
 export class WqmpUploadModalComponent implements OnInit {
-    public ref: DialogRef<{ file: File }, { wqmpID: number }> = inject(DialogRef);
+    public ref: DialogRef<{ file: File }, { wqmpID: number; documentID: number }> = inject(DialogRef);
     public FormFieldType = FormFieldType;
     public wqmpNameControl = new FormControl<string>("", {
         nonNullable: true,
@@ -58,10 +58,13 @@ export class WqmpUploadModalComponent implements OnInit {
         this.isUploading.set(true);
         this.alertService.clearAlerts();
 
-        this.postUploadAndExtract(overwrite).subscribe({
+        this.postUpload(overwrite).subscribe({
             next: (result) => {
                 this.isUploading.set(false);
-                this.ref.close({ wqmpID: result.WaterQualityManagementPlanID });
+                this.ref.close({
+                    wqmpID: result.WaterQualityManagementPlanID,
+                    documentID: result.WaterQualityManagementPlanDocumentID,
+                });
             },
             error: (err: HttpErrorResponse) => {
                 this.isUploading.set(false);
@@ -96,7 +99,7 @@ export class WqmpUploadModalComponent implements OnInit {
         });
     }
 
-    private postUploadAndExtract(overwrite: boolean): Observable<any> {
+    private postUpload(overwrite: boolean): Observable<any> {
         const formData = new FormData();
         formData.append("file", this.file);
         formData.append("stormwaterJurisdictionID", this.jurisdictionControl.value.toString());
@@ -104,7 +107,9 @@ export class WqmpUploadModalComponent implements OnInit {
         if (overwrite) {
             formData.append("overwrite", "true");
         }
-        return this.http.post<any>(`${environment.mainAppApiUrl}/water-quality-management-plans/upload-and-extract`, formData);
+        // Upload only — AI extraction is now a second, explicit step triggered from the
+        // review page so users can confirm the PDF before spending tokens.
+        return this.http.post<any>(`${environment.mainAppApiUrl}/water-quality-management-plans/upload`, formData);
     }
 
     cancel(): void {

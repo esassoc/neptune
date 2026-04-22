@@ -9411,12 +9411,12 @@
         }
       }
     },
-    "/water-quality-management-plans/upload-and-extract": {
+    "/water-quality-management-plans/upload": {
       "post": {
         "tags": [
           "WaterQualityManagementPlan"
         ],
-        "operationId": "UploadAndExtract_WaterQualityManagementPlan",
+        "operationId": "UploadDocument_WaterQualityManagementPlan",
         "requestBody": {
           "content": {
             "multipart/form-data": {
@@ -9457,6 +9457,47 @@
             }
           }
         },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/WqmpUploadResultDto"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WqmpUploadResultDto"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WqmpUploadResultDto"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/water-quality-management-plans/{waterQualityManagementPlanID}/extract": {
+      "post": {
+        "tags": [
+          "WaterQualityManagementPlan"
+        ],
+        "operationId": "RunExtraction_WaterQualityManagementPlan",
+        "parameters": [
+          {
+            "name": "waterQualityManagementPlanID",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          }
+        ],
         "responses": {
           "200": {
             "description": "OK",
@@ -16934,6 +16975,20 @@
           },
           "Disabled": {
             "type": "boolean"
+          }
+        },
+        "additionalProperties": false
+      },
+      "WqmpUploadResultDto": {
+        "type": "object",
+        "properties": {
+          "WaterQualityManagementPlanID": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "WaterQualityManagementPlanDocumentID": {
+            "type": "integer",
+            "format": "int32"
           }
         },
         "additionalProperties": false

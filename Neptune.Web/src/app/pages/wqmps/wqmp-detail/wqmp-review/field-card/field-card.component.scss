@@ -178,6 +178,15 @@
     &__snippet {
         color: $gray-500;
         line-height: 1.4;
+
+        &--clickable {
+            cursor: pointer;
+
+            &:hover {
+                background: rgba(0, 153, 171, 0.06);
+                color: $gray-700;
+            }
+        }
     }
 }
 

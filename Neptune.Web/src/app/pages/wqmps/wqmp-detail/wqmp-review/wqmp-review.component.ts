@@ -1,9 +1,10 @@
-import { Component, computed, inject, Input, OnInit, signal, ViewChild } from "@angular/core";
+import { Component, computed, inject, Input, OnInit, signal, ViewChild, ViewContainerRef } from "@angular/core";
 import { DatePipe } from "@angular/common";
 import { Router, RouterLink } from "@angular/router";
 import { AsyncPipe } from "@angular/common";
-import { HttpClient } from "@angular/common/http";
-import { BehaviorSubject, EMPTY, forkJoin, map, Observable, switchMap, tap, shareReplay, catchError, of } from "rxjs";
+import { HttpClient, HttpErrorResponse } from "@angular/common/http";
+import { BehaviorSubject, EMPTY, finalize, forkJoin, map, Observable, switchMap, tap, shareReplay, catchError, of } from "rxjs";
+import { ConfirmService } from "src/app/shared/services/confirm/confirm.service";
 import { PdfJsViewerModule, PdfJsViewerComponent } from "ng2-pdfjs-viewer";
 import { AlertDisplayComponent } from "src/app/shared/components/alert-display/alert-display.component";
 import { FormFieldType, SelectDropdownOption } from "src/app/shared/components/forms/form-field/form-field.component";
@@ -62,10 +63,16 @@ export class WqmpReviewComponent implements OnInit, IDeactivateComponent {
     private wqmpService = inject(WaterQualityManagementPlanService);
     private jurisdictionService = inject(StormwaterJurisdictionService);
     private alertService = inject(AlertService);
+    private confirmService = inject(ConfirmService);
+    private viewContainerRef = inject(ViewContainerRef);
 
     public FormFieldType = FormFieldType;
-    public extractionResult$: Observable<WaterQualityManagementPlanExtractionResultDto>;
+    // pageData$ emits on every reload and is the outer gate for the template. It completes
+    // even when no extraction result exists yet, so the pre-extraction "Extract with AI"
+    // state can render while still showing the uploaded PDF.
+    public pageData$: Observable<{ hasResult: boolean }>;
     public currentResult = signal<WaterQualityManagementPlanExtractionResultDto | null>(null);
+    public isExtracting = signal(false);
     private reload$ = new BehaviorSubject<void>(undefined);
 
     // Lookup field configuration: maps extraction key → dropdown options + DTO field name
@@ -78,6 +85,11 @@ export class WqmpReviewComponent implements OnInit, IDeactivateComponent {
     public hasUnsavedChanges = signal(false);
     public isApproved = computed(() => !!this.currentResult()?.ApprovedDate);
     public isNavigating = signal(false);
+    // Tracks whether the PDF.js iframe has fully loaded — until then, evidence clicks can't
+    // reach PDFViewerApplication.pdfDocument. If the user clicks early, queue the request here
+    // and replay once onDocumentLoad fires.
+    private pdfLoaded = false;
+    private pendingNavigation: SourceNavigation | null = null;
 
 
     public steps = [
@@ -132,7 +144,7 @@ export class WqmpReviewComponent implements OnInit, IDeactivateComponent {
             catchError(() => of([] as SelectDropdownOption[]))
         );
 
-        this.extractionResult$ = forkJoin([jurisdictions$, hydrologicSubareas$]).pipe(
+        this.pageData$ = forkJoin([jurisdictions$, hydrologicSubareas$]).pipe(
             tap(([jurisdictions, hydrologicSubareas]) => {
                 this.lookupFieldConfig = {
                     Jurisdiction: { options: jurisdictions, dtoField: "StormwaterJurisdictionID" },
@@ -146,28 +158,77 @@ export class WqmpReviewComponent implements OnInit, IDeactivateComponent {
                 };
             }),
             switchMap(() => this.reload$),
-            switchMap(() => this.wqmpService.getExtractionResultWaterQualityManagementPlan(this.waterQualityManagementPlanID)),
-            tap((result) => {
-                this.currentResult.set(result);
-                this.parseExtractionResult(result.ExtractionResultJson);
-                this.applyDraftOverlay(result.DraftOverlayJson ?? null);
+            // Extraction may not exist yet (upload is now a separate step). 404 → null.
+            switchMap(() => forkJoin({
+                extractionResult: this.wqmpService.getExtractionResultWaterQualityManagementPlan(this.waterQualityManagementPlanID).pipe(
+                    catchError((err: HttpErrorResponse) => err.status === 404 ? of(null) : of(null))
+                ),
+                // Always fetch the uploaded document metadata — we need the FileResourceGUID for the
+                // PDF blob regardless of extraction state.
+                documents: this.wqmpService.listDocumentsWaterQualityManagementPlan(this.waterQualityManagementPlanID).pipe(
+                    catchError(() => of([]))
+                ),
+            })),
+            tap(({ extractionResult }) => {
+                this.currentResult.set(extractionResult);
+                if (extractionResult) {
+                    this.parseExtractionResult(extractionResult.ExtractionResultJson);
+                    this.applyDraftOverlay(extractionResult.DraftOverlayJson ?? null);
+                } else {
+                    this.fields.set([]);
+                }
                 this.hasUnsavedChanges.set(false);
             }),
-            switchMap((result) => {
-                if (this.pdfBlob) return of(result);
-                return this.http.get(`${environment.mainAppApiUrl}/file-resources/${result.FileResourceGuid}`, { responseType: "blob" }).pipe(
-                    tap((blob) => {
-                        this.pdfBlob = blob;
-                    }),
-                    map(() => result)
+            switchMap(({ extractionResult, documents }) => {
+                // Prefer the extraction result's cached GUID; fall back to the first (primary)
+                // document. Either source works — both ultimately point at the same blob.
+                const guid = extractionResult?.FileResourceGuid ?? documents[0]?.FileResource?.FileResourceGUID;
+                if (!guid || this.pdfBlob) return of({ hasResult: !!extractionResult });
+                return this.http.get(`${environment.mainAppApiUrl}/file-resources/${guid}`, { responseType: "blob" }).pipe(
+                    tap((blob) => { this.pdfBlob = blob; }),
+                    map(() => ({ hasResult: !!extractionResult })),
+                    catchError(() => of({ hasResult: !!extractionResult }))
                 );
             }),
             catchError(() => {
-                this.alertService.pushAlert(new Alert("Failed to load extraction results or PDF document.", AlertContext.Danger));
+                this.alertService.pushAlert(new Alert("Failed to load WQMP document.", AlertContext.Danger));
                 return EMPTY;
             }),
             shareReplay(1)
         );
+    }
+
+    runExtraction(): void {
+        // Caller (template) gates this on isAdmin + confirm-dialog when a result already exists.
+        this.isExtracting.set(true);
+        this.alertService.clearAlerts();
+        this.wqmpService.runExtractionWaterQualityManagementPlan(this.waterQualityManagementPlanID)
+            .pipe(finalize(() => this.isExtracting.set(false)))
+            .subscribe({
+                next: () => this.reload$.next(),
+                error: (err: HttpErrorResponse) => {
+                    // 400s carry our friendly { message } payload (PDF too large / Claude 4xx);
+                    // anything else falls through to the generic HttpErrorInterceptor alert.
+                    const msg = err.status === 400
+                        ? (err.error?.message ?? "Extraction failed.")
+                        : "Extraction failed. Please try again.";
+                    if (err.status === 400) {
+                        this.alertService.pushAlert(new Alert(msg, AlertContext.Danger));
+                    }
+                },
+            });
+    }
+
+    async confirmReExtract(): Promise<void> {
+        if (this.currentResult()?.ApprovedDate) return;
+        const confirmed = await this.confirmService.confirm({
+            title: "Re-run extraction?",
+            message: "This will replace the existing extraction result and discard any unsaved draft edits.",
+            buttonTextYes: "Re-run",
+            buttonTextNo: "Cancel",
+            buttonClassYes: "btn-danger",
+        }, this.viewContainerRef);
+        if (confirmed) this.runExtraction();
     }
 
     // IDeactivateComponent — returns true when it's safe to leave (no unsaved changes),
@@ -193,8 +254,24 @@ export class WqmpReviewComponent implements OnInit, IDeactivateComponent {
         return this.fields().length;
     }
 
+    onPdfLoaded(): void {
+        this.pdfLoaded = true;
+        // Replay any click that arrived before the iframe finished initializing.
+        if (this.pendingNavigation) {
+            const nav = this.pendingNavigation;
+            this.pendingNavigation = null;
+            this.navigateToSource(nav);
+        }
+    }
+
     async navigateToSource(nav: SourceNavigation): Promise<void> {
         if (!this.pdfViewer) return;
+        // Defer until the PDF.js iframe is ready — the user can click an evidence snippet
+        // before `onDocumentLoad` fires on large PDFs or cold caches.
+        if (!this.pdfLoaded) {
+            this.pendingNavigation = nav;
+            return;
+        }
         this.isNavigating.set(true);
 
         try {
@@ -265,7 +342,22 @@ export class WqmpReviewComponent implements OnInit, IDeactivateComponent {
     }
 
     private normalizeText(text: string): string {
-        return text.toLowerCase().replace(/\s+/g, " ").trim();
+        // Claude's ExtractionEvidence often doesn't round-trip cleanly through PDF.js text
+        // extraction — curly quotes, non-breaking spaces, ligatures, and combining diacritics
+        // can all cause string-equality misses. Canonicalize both sides before comparing:
+        //   1. NFKD Unicode normalization (decomposes ligatures + diacritics)
+        //   2. Strip the decomposed combining marks
+        //   3. Unify quote/dash variants to ASCII
+        //   4. Collapse any whitespace (including NBSP) to single spaces
+        return text
+            .normalize("NFKD")
+            .replace(/[̀-ͯ]/g, "")
+            .replace(/[‘’‛′]/g, "'")
+            .replace(/[“”‟″]/g, '"')
+            .replace(/[–—−]/g, "-")
+            .replace(/\s+/g, " ")
+            .toLowerCase()
+            .trim();
     }
 
     private clearHighlights(): void {
