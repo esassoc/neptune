@@ -14,7 +14,7 @@ import { AlertContext } from "src/app/shared/models/enums/alert-context.enum";
 import { WaterQualityManagementPlanService } from "src/app/shared/generated/api/water-quality-management-plan.service";
 import { StormwaterJurisdictionService } from "src/app/shared/generated/api/stormwater-jurisdiction.service";
 import { WaterQualityManagementPlanExtractionResultDto } from "src/app/shared/generated/model/water-quality-management-plan-extraction-result-dto";
-import { FieldCardComponent, SourceNavigation } from "src/app/pages/wqmps/wqmp-detail/wqmp-review/field-card/field-card.component";
+import { EvidenceBoundingBox, FieldCardComponent, SourceNavigation } from "src/app/pages/wqmps/wqmp-detail/wqmp-review/field-card/field-card.component";
 import { IDeactivateComponent } from "src/app/shared/guards/unsaved-changes.guard";
 import { WaterQualityManagementPlanPrioritiesAsSelectDropdownOptions } from "src/app/shared/generated/enum/water-quality-management-plan-priority-enum";
 import { WaterQualityManagementPlanDevelopmentTypesAsSelectDropdownOptions } from "src/app/shared/generated/enum/water-quality-management-plan-development-type-enum";
@@ -33,6 +33,7 @@ export interface ExtractedField {
     value: string | null;
     evidence: string | null;
     source: string | null;
+    boundingBox: EvidenceBoundingBox | null;
     confidence: ConfidenceLevel;
     step: number;
     acceptedValue?: string | null;
@@ -90,15 +91,15 @@ export class WqmpReviewComponent implements OnInit, IDeactivateComponent {
     // and replay once onDocumentLoad fires.
     private pdfLoaded = false;
     private pendingNavigation: SourceNavigation | null = null;
-    // After `navigateToSource` picks a target page, this holds the page number + search phrase
-    // until PDF.js actually finishes rendering that page. `onPdfPageRendered` fires on every
-    // page render; we inspect the DOM at that point to find the matching spans and draw the
-    // highlight box. Doing it on the render event rather than a blind setTimeout means we
-    // succeed even when the target page is far off-screen and renders seconds later.
+    // After `navigateToSource` picks a target page, this holds the details of the box we
+    // want to draw there. `onPdfPageRendered` fires every time PDF.js finishes rendering a
+    // page; we reinspect the DOM at that point and draw. Keying off the render event means
+    // we succeed even when the target page is far off-screen and renders async.
     //
-    // `searchPhrase` may be null when the source is a scanned PDF with no usable text layer —
-    // in that case the highlight is a page-level outline rather than a span-level box.
-    private pendingHighlight: { pageNumber: number; searchPhrase: string | null } | null = null;
+    // `box` (from Claude when it read the page as an image), when present, short-circuits
+    // to a precise draw. Otherwise `searchPhrase` drives a text-layer span match, and a null
+    // searchPhrase falls back to a page-level outline.
+    private pendingHighlight: { pageNumber: number; box: EvidenceBoundingBox | null; searchPhrase: string | null } | null = null;
 
 
     public steps = [
@@ -286,29 +287,34 @@ export class WqmpReviewComponent implements OnInit, IDeactivateComponent {
         try {
             this.clearHighlights();
 
-            // Text-search the evidence snippet across all pages to find the most likely match.
+            // Most precise path: Claude gave us a bounding box (typically because it read
+            // the page as an image, i.e. scanned PDFs). Trust the coords, skip text search.
+            if (nav.boundingBox) {
+                this.pendingHighlight = { pageNumber: nav.boundingBox.PageNumber, box: nav.boundingBox, searchPhrase: null };
+                this.pdfViewer.page = nav.boundingBox.PageNumber;
+                this.tryDrawPendingHighlight();
+                return;
+            }
+
+            // Next: text-search the evidence snippet across all pages. Works for native-text PDFs.
             if (nav.evidence) {
                 const searchPhrase = this.extractSearchPhrase(this.normalizeText(nav.evidence));
                 const foundPage = searchPhrase ? await this.searchPdfForText(searchPhrase, nav.documentSource) : 0;
                 if (foundPage > 0 && searchPhrase) {
-                    // Queue the span-level highlight. Actual draw happens in onPdfPageRendered
-                    // once PDF.js finishes rendering the page — works even when the target
-                    // page is far off-screen and renders asynchronously.
-                    this.pendingHighlight = { pageNumber: foundPage, searchPhrase };
+                    this.pendingHighlight = { pageNumber: foundPage, box: null, searchPhrase };
                     this.pdfViewer.page = foundPage;
                     this.tryDrawPendingHighlight();
                     return;
                 }
             }
 
-            // Fall back to the page number in DocumentSource. Common for scanned PDFs whose
-            // text layer is empty or garbled so searchPdfForText can't find the evidence. The
-            // page-level outline is a softer visual cue that the evidence is on this page.
+            // Last resort: DocumentSource page number with a whole-page outline. Used when
+            // Claude didn't emit a box AND the text layer is empty/garbled (scanned PDFs).
             if (nav.documentSource) {
                 const match = nav.documentSource.match(/page\s*(\d+)/i);
                 if (match) {
                     const pageNumber = parseInt(match[1], 10);
-                    this.pendingHighlight = { pageNumber, searchPhrase: null };
+                    this.pendingHighlight = { pageNumber, box: null, searchPhrase: null };
                     this.pdfViewer.page = pageNumber;
                     this.tryDrawPendingHighlight();
                 }
@@ -327,10 +333,51 @@ export class WqmpReviewComponent implements OnInit, IDeactivateComponent {
     private tryDrawPendingHighlight(): void {
         const pending = this.pendingHighlight;
         if (!pending) return;
-        const drew = pending.searchPhrase
-            ? this.highlightTextOnPage(pending.pageNumber, pending.searchPhrase)
-            : this.highlightWholePage(pending.pageNumber);
+        let drew = false;
+        if (pending.box) {
+            drew = this.highlightBoundingBox(pending.pageNumber, pending.box);
+        } else if (pending.searchPhrase) {
+            drew = this.highlightTextOnPage(pending.pageNumber, pending.searchPhrase);
+        } else {
+            drew = this.highlightWholePage(pending.pageNumber);
+        }
         if (drew) this.pendingHighlight = null;
+    }
+
+    // Draw a precise rectangle from Claude's vision-derived coords (normalized 0-1 fractions
+    // relative to the page). Same style as Beacon's source-pdf-viewer overlay boxes.
+    private highlightBoundingBox(pageNum: number, bbox: EvidenceBoundingBox): boolean {
+        try {
+            const iframe = this.pdfViewer?.iframe?.nativeElement as HTMLIFrameElement;
+            const iframeDoc = iframe?.contentDocument || iframe?.contentWindow?.document;
+            if (!iframeDoc) return false;
+            const pageEl = iframeDoc.querySelector(`.page[data-page-number="${pageNum}"]`) as HTMLElement | null;
+            if (!pageEl) return false;
+
+            const pageWidth = pageEl.offsetWidth;
+            const pageHeight = pageEl.offsetHeight;
+
+            const box = iframeDoc.createElement("div");
+            box.className = "wqmp-highlight wqmp-highlight--bbox";
+            Object.assign(box.style, {
+                position: "absolute",
+                left: `${bbox.X * pageWidth}px`,
+                top: `${bbox.Y * pageHeight}px`,
+                width: `${bbox.Width * pageWidth}px`,
+                height: `${bbox.Height * pageHeight}px`,
+                border: "2px solid #f59e0b",
+                backgroundColor: "rgba(255, 235, 59, 0.22)",
+                pointerEvents: "none",
+                zIndex: "10",
+                borderRadius: "3px",
+                boxSizing: "border-box",
+            });
+            pageEl.appendChild(box);
+            box.scrollIntoView({ behavior: "smooth", block: "center" });
+            return true;
+        } catch {
+            return false;
+        }
     }
 
     // Scanned PDFs (e.g. copier-generated) often have no usable text layer, so we can't
@@ -744,6 +791,7 @@ export class WqmpReviewComponent implements OnInit, IDeactivateComponent {
         const rawValue = extracted?.Value ?? null;
         const evidence = extracted?.ExtractionEvidence ?? null;
         const source = extracted?.DocumentSource ?? null;
+        const boundingBox = this.parseBoundingBox(extracted?.BoundingBox);
         const lookupConfig = this.lookupFieldConfig[key];
 
         let value = rawValue;
@@ -777,12 +825,25 @@ export class WqmpReviewComponent implements OnInit, IDeactivateComponent {
             value,
             evidence,
             source,
+            boundingBox,
             confidence: this.inferConfidence(rawValue, evidence, source),
             step,
             state: "pending",
             fieldType,
             selectOptions,
         };
+    }
+
+    private parseBoundingBox(box: any): EvidenceBoundingBox | null {
+        if (!box || typeof box !== "object") return null;
+        const { PageNumber, X, Y, Width, Height } = box;
+        // All five fields must be finite numbers, normalized coords within [0, 1], and
+        // PageNumber must be a positive integer. Reject anything partial so we don't draw
+        // a garbage box from a half-populated result.
+        if ([PageNumber, X, Y, Width, Height].some((n) => typeof n !== "number" || !isFinite(n))) return null;
+        if (PageNumber < 1 || !Number.isInteger(PageNumber)) return null;
+        if (X < 0 || X > 1 || Y < 0 || Y > 1 || Width <= 0 || Width > 1 || Height <= 0 || Height > 1) return null;
+        return { PageNumber, X, Y, Width, Height };
     }
 
     private inferConfidence(value: string | null, evidence: string | null, source: string | null): ConfidenceLevel {

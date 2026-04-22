@@ -5,9 +5,18 @@ import { FormFieldComponent, FormFieldType, FormInputOption } from "src/app/shar
 export type FieldState = "pending" | "accepted" | "edited" | "rejected";
 export type FieldOrigin = "ai" | "blank";
 
+export interface EvidenceBoundingBox {
+    PageNumber: number;
+    X: number;
+    Y: number;
+    Width: number;
+    Height: number;
+}
+
 export interface SourceNavigation {
     evidence: string | null;
     documentSource: string | null;
+    boundingBox: EvidenceBoundingBox | null;
 }
 
 @Component({
@@ -22,6 +31,7 @@ export class FieldCardComponent implements OnChanges {
     @Input() extractedValue: string | null = null;
     @Input() extractionEvidence: string | null = null;
     @Input() documentSource: string | null = null;
+    @Input() boundingBox: EvidenceBoundingBox | null = null;
     @Input() confidence: "high" | "medium" | "low" | "none" = "none";
     @Input() fieldType: FormFieldType = FormFieldType.Text;
     @Input() selectOptions: FormInputOption[] = [];
@@ -105,8 +115,12 @@ export class FieldCardComponent implements OnChanges {
     }
 
     goToSource(): void {
-        if (this.extractionEvidence || this.documentSource) {
-            this.navigateToSource.emit({ evidence: this.extractionEvidence, documentSource: this.documentSource });
+        if (this.extractionEvidence || this.documentSource || this.boundingBox) {
+            this.navigateToSource.emit({
+                evidence: this.extractionEvidence,
+                documentSource: this.documentSource,
+                boundingBox: this.boundingBox,
+            });
         }
     }
 }
