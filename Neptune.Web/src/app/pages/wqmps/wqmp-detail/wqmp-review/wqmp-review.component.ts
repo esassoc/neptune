@@ -278,12 +278,10 @@ export class WqmpReviewComponent implements OnInit, IDeactivateComponent {
         // Defer until the PDF.js iframe is ready — the user can click an evidence snippet
         // before `onDocumentLoad` fires on large PDFs or cold caches.
         if (!this.pdfLoaded) {
-            console.debug("[WqmpReview] navigate: PDF not loaded yet, queuing", nav);
             this.pendingNavigation = nav;
             return;
         }
         this.isNavigating.set(true);
-        console.debug("[WqmpReview] navigate: evidence click", nav);
 
         try {
             this.clearHighlights();
@@ -292,11 +290,10 @@ export class WqmpReviewComponent implements OnInit, IDeactivateComponent {
             if (nav.evidence) {
                 const searchPhrase = this.extractSearchPhrase(this.normalizeText(nav.evidence));
                 const foundPage = searchPhrase ? await this.searchPdfForText(searchPhrase, nav.documentSource) : 0;
-                console.debug(`[WqmpReview] navigate: searchPhrase="${searchPhrase}" foundPage=${foundPage}`);
                 if (foundPage > 0 && searchPhrase) {
-                    // Navigate, then queue the span-level highlight. Actual draw happens in
-                    // onPdfPageRendered once PDF.js finishes rendering the page (which may be
-                    // async — unlike a blind setTimeout, this works for far-off pages).
+                    // Queue the span-level highlight. Actual draw happens in onPdfPageRendered
+                    // once PDF.js finishes rendering the page — works even when the target
+                    // page is far off-screen and renders asynchronously.
                     this.pendingHighlight = { pageNumber: foundPage, searchPhrase };
                     this.pdfViewer.page = foundPage;
                     this.tryDrawPendingHighlight();
@@ -305,14 +302,12 @@ export class WqmpReviewComponent implements OnInit, IDeactivateComponent {
             }
 
             // Fall back to the page number in DocumentSource. Common for scanned PDFs whose
-            // text layer is empty or garbled so searchPdfForText can't find the evidence. We
-            // still queue a page-level highlight (searchPhrase = null) so the user gets a
-            // visual cue on the landing page rather than just a silent page jump.
+            // text layer is empty or garbled so searchPdfForText can't find the evidence. The
+            // page-level outline is a softer visual cue that the evidence is on this page.
             if (nav.documentSource) {
                 const match = nav.documentSource.match(/page\s*(\d+)/i);
                 if (match) {
                     const pageNumber = parseInt(match[1], 10);
-                    console.debug(`[WqmpReview] navigate: text-search miss, falling back to page-level highlight on page ${pageNumber}`);
                     this.pendingHighlight = { pageNumber, searchPhrase: null };
                     this.pdfViewer.page = pageNumber;
                     this.tryDrawPendingHighlight();
@@ -366,10 +361,8 @@ export class WqmpReviewComponent implements OnInit, IDeactivateComponent {
             });
             pageEl.appendChild(box);
             box.scrollIntoView({ behavior: "smooth", block: "start" });
-            console.debug(`[WqmpReview] highlight: page-level box drawn on page ${pageNum}`);
             return true;
-        } catch (err) {
-            console.debug("[WqmpReview] highlight (page-level): error", err);
+        } catch {
             return false;
         }
     }
@@ -383,19 +376,14 @@ export class WqmpReviewComponent implements OnInit, IDeactivateComponent {
             const pdfDoc = pdfApp.pdfDocument;
             const totalPages: number = pdfDoc.numPages;
             const matches: number[] = [];
-            let totalTextChars = 0;
             for (let i = 1; i <= totalPages; i++) {
                 const page = await pdfDoc.getPage(i);
                 const textContent = await page.getTextContent();
                 const pageText = this.normalizeText(textContent.items.map((item: any) => item.str).join(" "));
-                totalTextChars += pageText.length;
                 if (pageText.includes(searchPhrase)) matches.push(i);
             }
 
-            if (matches.length === 0) {
-                console.debug(`[WqmpReview] searchPdfForText: no match for "${searchPhrase}" across ${totalPages} pages (${totalTextChars} text chars total — scanned PDFs are often 0)`);
-                return 0;
-            }
+            if (matches.length === 0) return 0;
             if (matches.length === 1) return matches[0];
 
             // Multiple hits — prefer the one nearest to Claude's documentSource hint.
@@ -407,8 +395,7 @@ export class WqmpReviewComponent implements OnInit, IDeactivateComponent {
                 }
             }
             return matches[0];
-        } catch (err) {
-            console.debug("[WqmpReview] searchPdfForText: error", err);
+        } catch {
             return 0;
         }
     }
@@ -429,21 +416,12 @@ export class WqmpReviewComponent implements OnInit, IDeactivateComponent {
         try {
             const iframe = this.pdfViewer?.iframe?.nativeElement as HTMLIFrameElement;
             const iframeDoc = iframe?.contentDocument || iframe?.contentWindow?.document;
-            if (!iframeDoc) {
-                console.debug("[WqmpReview] highlight: no iframe doc yet");
-                return false;
-            }
+            if (!iframeDoc) return false;
 
             const pageEl = iframeDoc.querySelector(`.page[data-page-number="${pageNum}"]`) as HTMLElement | null;
-            if (!pageEl) {
-                console.debug(`[WqmpReview] highlight: .page[data-page-number="${pageNum}"] not rendered yet`);
-                return false;
-            }
+            if (!pageEl) return false;
             const textLayer = pageEl.querySelector(".textLayer");
-            if (!textLayer) {
-                console.debug(`[WqmpReview] highlight: .textLayer missing on page ${pageNum}`);
-                return false;
-            }
+            if (!textLayer) return false;
 
             // Walk spans in DOM order. Find the first one whose normalized text appears in the
             // search phrase, then keep collecting consecutive spans as long as their text is
@@ -482,16 +460,7 @@ export class WqmpReviewComponent implements OnInit, IDeactivateComponent {
                 }
             }
 
-            if (matchingRects.length === 0) {
-                // Debug: show first ~100 chars of concatenated text-layer so mismatches are visible.
-                const joinedSample = spans.slice(0, 20).map((s) => s.textContent).join(" ").slice(0, 120);
-                console.debug(`[WqmpReview] highlight: no span match on page ${pageNum}.`, {
-                    searchPhrase,
-                    spanCount: spans.length,
-                    firstSpansSample: joinedSample,
-                });
-                return false;
-            }
+            if (matchingRects.length === 0) return false;
 
             const pageRect = pageEl.getBoundingClientRect();
             const minTop = Math.min(...matchingRects.map((r) => r.top)) - pageRect.top;
@@ -514,10 +483,8 @@ export class WqmpReviewComponent implements OnInit, IDeactivateComponent {
             });
             pageEl.appendChild(box);
             box.scrollIntoView({ behavior: "smooth", block: "center" });
-            console.debug(`[WqmpReview] highlight drawn on page ${pageNum}`, { rectsUsed: matchingRects.length });
             return true;
-        } catch (err) {
-            console.debug("[WqmpReview] highlight: error", err);
+        } catch {
             return false;
         }
     }
