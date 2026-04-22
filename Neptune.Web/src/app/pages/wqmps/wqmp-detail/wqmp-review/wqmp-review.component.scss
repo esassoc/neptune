@@ -9,6 +9,10 @@
     height: calc(100dvh - 180px);
     min-height: 640px;
     overflow: hidden;
+    // On wide screens the PDF panel takes less than flex-1 width (we cap its aspect to
+    // letter portrait). Centering keeps both the sidebar + pdf group and the review panel
+    // balanced on screen rather than leaving dead space only to the right.
+    justify-content: center;
 }
 
 // Sidebar
@@ -173,11 +177,14 @@
 
 // PDF Panel
 .pdf-panel {
-    flex: 1;
-    min-width: 0;
-    // Anchors the review-layout's min-height; ensures a full letter-size page renders
-    // at readable scale even when the browser window is shorter than typical.
-    min-height: 600px;
+    // Lock the panel to roughly the aspect of a letter-size page so one page at page-fit
+    // zoom fills the panel with no trailing gray. Scrolling still reveals page 2, 3, etc.
+    // flex-grow disabled so the panel doesn't stretch wide and create side padding; any
+    // extra horizontal space in the layout flows past the panel instead of into it.
+    flex: 0 1 auto;
+    min-width: 500px;
+    aspect-ratio: 8.5 / 11;
+    max-height: 100%;
     background: #2e2e2e;
     position: relative;
 
