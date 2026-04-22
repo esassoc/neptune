@@ -50,6 +50,7 @@
                     [showAnnotations]="false"
                     [showSpinner]="false"
                     (onDocumentLoad)="onPdfLoaded()"
+                    (onPageRendered)="onPdfPageRendered()"
                     style="width: 100%; height: 100%;">
                 </ng2-pdfjs-viewer>
             }

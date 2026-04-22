@@ -90,6 +90,12 @@ export class WqmpReviewComponent implements OnInit, IDeactivateComponent {
     // and replay once onDocumentLoad fires.
     private pdfLoaded = false;
     private pendingNavigation: SourceNavigation | null = null;
+    // After `navigateToSource` picks a target page, this holds the page number + search phrase
+    // until PDF.js actually finishes rendering that page. `onPdfPageRendered` fires on every
+    // page render; we inspect the DOM at that point to find the matching spans and draw the
+    // highlight box. Doing it on the render event rather than a blind setTimeout means we
+    // succeed even when the target page is far off-screen and renders seconds later.
+    private pendingHighlight: { pageNumber: number; searchPhrase: string } | null = null;
 
 
     public steps = [
@@ -275,18 +281,27 @@ export class WqmpReviewComponent implements OnInit, IDeactivateComponent {
         this.isNavigating.set(true);
 
         try {
-            // Prefer PDF.js's native findController: it knows how to wait for lazy-rendered pages,
-            // draws highlights using the same styling as the built-in Find toolbar, and its match
-            // positions come straight from the text layer (no manual DOMRect math).
+            this.clearHighlights();
+
+            // Text-search the evidence snippet across all pages to find the most likely match.
             if (nav.evidence) {
                 const searchPhrase = this.extractSearchPhrase(this.normalizeText(nav.evidence));
-                if (searchPhrase && this.dispatchPdfFind(searchPhrase)) {
+                const foundPage = searchPhrase ? await this.searchPdfForText(searchPhrase, nav.documentSource) : 0;
+                if (foundPage > 0 && searchPhrase) {
+                    // Navigate, then queue the highlight. The actual box draw happens in
+                    // onPdfPageRendered once PDF.js finishes rendering the page (which may be
+                    // async — unlike a simple setTimeout, this works even for far-off pages).
+                    this.pendingHighlight = { pageNumber: foundPage, searchPhrase };
+                    this.pdfViewer.page = foundPage;
+                    // If the page is already rendered (e.g. user re-clicks the same evidence),
+                    // onPageRendered won't fire — try once synchronously.
+                    this.tryDrawPendingHighlight();
                     return;
                 }
             }
 
-            // Fall back to the page number from DocumentSource when the find API isn't available
-            // or the evidence text simply isn't present in the PDF's text layer.
+            // Fall back to the page number in DocumentSource when the evidence text isn't found
+            // (e.g. PDF is scanned and the text layer is sparse).
             if (nav.documentSource) {
                 const match = nav.documentSource.match(/page\s*(\d+)/i);
                 if (match) {
@@ -298,23 +313,109 @@ export class WqmpReviewComponent implements OnInit, IDeactivateComponent {
         }
     }
 
-    private dispatchPdfFind(query: string): boolean {
+    onPdfPageRendered(): void {
+        // PDF.js lazy-renders pages; whenever any page finishes rendering, check whether it's
+        // the one we're waiting on for a highlight and draw the box if so.
+        this.tryDrawPendingHighlight();
+    }
+
+    private tryDrawPendingHighlight(): void {
+        const pending = this.pendingHighlight;
+        if (!pending) return;
+        const drew = this.highlightTextOnPage(pending.pageNumber, pending.searchPhrase);
+        if (drew) this.pendingHighlight = null;
+    }
+
+    private async searchPdfForText(searchPhrase: string, documentSource: string | null): Promise<number> {
         try {
             const iframe = this.pdfViewer.iframe?.nativeElement as HTMLIFrameElement;
             const pdfApp = (iframe?.contentWindow as any)?.PDFViewerApplication;
-            const eventBus = pdfApp?.eventBus;
-            if (!eventBus) return false;
-            // First dispatch clears any prior find state; second triggers the actual search.
-            eventBus.dispatch("find", {
-                source: this,
-                type: "",
-                query,
-                caseSensitive: false,
-                entireWord: false,
-                highlightAll: true,
-                findPrevious: false,
-                phraseSearch: true,
+            if (!pdfApp?.pdfDocument) return 0;
+
+            const pdfDoc = pdfApp.pdfDocument;
+            const totalPages: number = pdfDoc.numPages;
+            const matches: number[] = [];
+            for (let i = 1; i <= totalPages; i++) {
+                const page = await pdfDoc.getPage(i);
+                const textContent = await page.getTextContent();
+                const pageText = this.normalizeText(textContent.items.map((item: any) => item.str).join(" "));
+                if (pageText.includes(searchPhrase)) matches.push(i);
+            }
+
+            if (matches.length === 0) return 0;
+            if (matches.length === 1) return matches[0];
+
+            // Multiple hits — prefer the one nearest to Claude's documentSource hint.
+            if (documentSource) {
+                const hintMatch = documentSource.match(/page\s*(\d+)/i);
+                if (hintMatch) {
+                    const hintPage = parseInt(hintMatch[1], 10);
+                    matches.sort((a, b) => Math.abs(a - hintPage) - Math.abs(b - hintPage));
+                }
+            }
+            return matches[0];
+        } catch {
+            return 0;
+        }
+    }
+
+    private clearHighlights(): void {
+        try {
+            const iframe = this.pdfViewer?.iframe?.nativeElement as HTMLIFrameElement;
+            const iframeDoc = iframe?.contentDocument || iframe?.contentWindow?.document;
+            if (!iframeDoc) return;
+            iframeDoc.querySelectorAll(".wqmp-highlight").forEach((el) => el.remove());
+        } catch { /* ignore */ }
+    }
+
+    private highlightTextOnPage(pageNum: number, searchPhrase: string): boolean {
+        // Returns true when the highlight was successfully drawn, false when the target page
+        // isn't rendered yet (caller leaves `pendingHighlight` set so a later onPageRendered
+        // gets another chance).
+        try {
+            const iframe = this.pdfViewer?.iframe?.nativeElement as HTMLIFrameElement;
+            const iframeDoc = iframe?.contentDocument || iframe?.contentWindow?.document;
+            if (!iframeDoc) return false;
+
+            const pageEl = iframeDoc.querySelector(`.page[data-page-number="${pageNum}"]`) as HTMLElement | null;
+            if (!pageEl) return false;
+            const textLayer = pageEl.querySelector(".textLayer");
+            if (!textLayer) return false;
+
+            // Find spans whose normalized text is contained in (or contains) our search phrase.
+            // Single-span matches happen for short phrases; multi-span for longer snippets.
+            const spans = Array.from(textLayer.querySelectorAll("span"));
+            const matchingRects: DOMRect[] = [];
+            for (const span of spans) {
+                const spanText = this.normalizeText(span.textContent || "");
+                if (!spanText) continue;
+                if (searchPhrase.includes(spanText) || spanText.includes(searchPhrase)) {
+                    matchingRects.push(span.getBoundingClientRect());
+                }
+            }
+            if (matchingRects.length === 0) return false;
+
+            const pageRect = pageEl.getBoundingClientRect();
+            const minTop = Math.min(...matchingRects.map((r) => r.top)) - pageRect.top;
+            const maxBottom = Math.max(...matchingRects.map((r) => r.bottom)) - pageRect.top;
+            const padding = 4;
+
+            const box = iframeDoc.createElement("div");
+            box.className = "wqmp-highlight";
+            Object.assign(box.style, {
+                position: "absolute",
+                left: "0px",
+                top: `${minTop - padding}px`,
+                width: `${pageEl.offsetWidth}px`,
+                height: `${maxBottom - minTop + padding * 2}px`,
+                border: "2px solid #f59e0b",
+                backgroundColor: "rgba(255, 235, 59, 0.18)",
+                pointerEvents: "none",
+                zIndex: "10",
+                borderRadius: "4px",
             });
+            pageEl.appendChild(box);
+            box.scrollIntoView({ behavior: "smooth", block: "center" });
             return true;
         } catch {
             return false;
