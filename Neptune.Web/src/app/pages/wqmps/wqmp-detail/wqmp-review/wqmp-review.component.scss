@@ -30,11 +30,11 @@
         i { margin-right: 0.35rem; }
     }
 
+    // Natural-height stack so the Progress bar and Action buttons sit just below the last
+    // step rather than pushed to the bottom of the sidebar. Steps stay top-aligned and the
+    // button group's on-screen position is stable regardless of viewport height.
     &__steps {
-        flex: 1;
-        padding: 1.25rem;
-        overflow-y: auto;
-        min-height: 0;
+        padding: 1.25rem 1.25rem 0.75rem;
     }
 
     &__label {
@@ -45,13 +45,11 @@
     }
 
     &__progress {
-        padding: 1.25rem;
-        border-top: 1px solid $gray-200;
+        padding: 0.75rem 1.25rem;
     }
 
     &__actions {
-        padding: 1rem 1.25rem 1.25rem;
-        border-top: 1px solid $gray-200;
+        padding: 0.75rem 1.25rem 1.25rem;
         display: flex;
         flex-direction: column;
         gap: 0.5rem;
@@ -126,9 +124,9 @@
     }
 
     &__title {
-        font-size: $type-size-300;
+        font-size: $type-size-200;
         font-weight: 500;
-        line-height: 1.3;
+        line-height: 1.25;
     }
 
     &__item--current &__title {
@@ -136,15 +134,15 @@
     }
 
     &__desc {
-        font-size: $type-size-200;
+        font-size: $type-size-100;
         color: $gray-600;
-        line-height: 1.3;
-        margin-top: 2px;
+        line-height: 1.25;
+        margin-top: 1px;
     }
 
     &__connector {
         width: 2px;
-        height: 12px;
+        height: 10px;
         background: $gray-200;
         margin-left: 23px;
         border-radius: 1px;
