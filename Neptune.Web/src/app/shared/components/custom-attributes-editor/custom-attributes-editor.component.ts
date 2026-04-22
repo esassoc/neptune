@@ -4,8 +4,6 @@ import { CustomAttributeTypePurposeEnum, CustomAttributeTypePurposes } from "src
 import { CustomAttributeDto, TreatmentBMPTypeCustomAttributeTypeDto } from "../../generated/model/models";
 import { FormControl, FormGroup, ReactiveFormsModule, Validators } from "@angular/forms";
 import { FormFieldComponent, FormFieldType, SelectDropdownOption } from "../forms/form-field/form-field.component";
-import { JsonpClientBackend } from "@angular/common/http";
-import { JsonPipe } from "@angular/common";
 
 @Component({
     selector: "custom-attributes-editor",

@@ -321,9 +321,9 @@
                         }
                         @if (!upstreamestBMPErrors.UpstreamestBMP && !isAnonymousOrUnassigned) {
                             <div class="mt-3">
-                                <a style="cursor: pointer" id="upstreamBMPDropdown" (click)="upstreamSectionExpanded = !upstreamSectionExpanded"
-                                    ><i class="fa" [class.fa-chevron-down]="!upstreamSectionExpanded" [class.fa-chevron-up]="upstreamSectionExpanded"></i>&nbsp;&nbsp;What if this BMP shares a delineation with an upstream BMP?</a
-                                >
+                                <a style="cursor: pointer" id="upstreamBMPDropdown" (click)="upstreamSectionExpanded = !upstreamSectionExpanded">
+                                    <i class="fa" [class.fa-chevron-down]="!upstreamSectionExpanded" [class.fa-chevron-up]="upstreamSectionExpanded"></i>&nbsp;&nbsp;What if this BMP shares a delineation with an upstream BMP?
+                                </a>
                             </div>
                         }
                         @if (upstreamSectionExpanded || upstreamestBMPErrors.UpstreamestBMP) {

@@ -32,7 +32,7 @@ public class HRUCharacteristicController(
     [SitkaAdminFeature]
     public IActionResult EnqueueRefresh()
     {
-        BackgroundJob.Enqueue<LoadGeneratingUnitRefreshJob>(x => x.RunJob(null));
-        return Ok("HRU Characteristic refresh has been queued.");
+        BackgroundJob.Enqueue<HRURefreshJob>(x => x.RunJob(null));
+        return Ok("HRU refresh has been queued.");
     }
 }
