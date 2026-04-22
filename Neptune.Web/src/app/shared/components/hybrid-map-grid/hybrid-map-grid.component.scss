@@ -3,6 +3,9 @@
 .button-group {
     padding: 0;
     overflow: hidden;
+    margin-bottom: 0;
+    border: 1px solid $gray-200;
+    border-radius: 4px;
 
     &__item {
         border: none;

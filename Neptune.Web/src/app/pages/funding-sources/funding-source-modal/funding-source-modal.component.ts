@@ -1,16 +1,20 @@
 import { Component, inject, OnInit } from "@angular/core";
 import { FormGroup, ReactiveFormsModule, Validators } from "@angular/forms";
+import { AsyncPipe } from "@angular/common";
+import { Observable } from "rxjs";
+import { map } from "rxjs/operators";
 import { FormFieldComponent, FormFieldType } from "src/app/shared/components/forms/form-field/form-field.component";
 import { AlertDisplayComponent } from "src/app/shared/components/alert-display/alert-display.component";
 import { AlertService } from "src/app/shared/services/alert.service";
 import { FundingSourceService } from "src/app/shared/generated/api/funding-source.service";
+import { OrganizationService } from "src/app/shared/generated/api/organization.service";
 import { FundingSourceUpsertDto, FundingSourceUpsertDtoForm, FundingSourceUpsertDtoFormControls } from "src/app/shared/generated/model/funding-source-upsert-dto";
 import { DialogRef } from "@ngneat/dialog";
 
 @Component({
     selector: "funding-source-modal",
     standalone: true,
-    imports: [ReactiveFormsModule, FormFieldComponent, AlertDisplayComponent],
+    imports: [ReactiveFormsModule, FormFieldComponent, AlertDisplayComponent, AsyncPipe],
     templateUrl: "./funding-source-modal.component.html",
     styleUrl: "./funding-source-modal.component.scss",
 })
@@ -24,8 +28,9 @@ export class FundingSourceModalComponent implements OnInit {
         FundingSourceDescription: FundingSourceUpsertDtoFormControls.FundingSourceDescription(),
     });
     public mode: "add" | "edit";
+    public organizationOptions$: Observable<any[]>;
 
-    constructor(private alertService: AlertService, private fundingSourceService: FundingSourceService) {}
+    constructor(private alertService: AlertService, private fundingSourceService: FundingSourceService, private organizationService: OrganizationService) {}
 
     ngOnInit(): void {
         this.alertService.clearAlerts();
@@ -38,6 +43,9 @@ export class FundingSourceModalComponent implements OnInit {
                 FundingSourceDescription: this.ref.data.fundingSource.FundingSourceDescription,
             });
         }
+        this.organizationOptions$ = this.organizationService.listOrganization().pipe(
+            map((orgs) => orgs.map((org) => ({ Label: org.OrganizationName, Value: org.OrganizationID })))
+        );
     }
 
     save(): void {

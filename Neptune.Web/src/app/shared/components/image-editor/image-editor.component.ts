@@ -1,5 +1,5 @@
 
-import { Component, EventEmitter, Input, OnChanges, OnDestroy, OnInit, Output, SimpleChanges, inject } from "@angular/core";
+import { Component, EventEmitter, Input, OnChanges, OnDestroy, OnInit, Output, SimpleChanges, inject, signal } from "@angular/core";
 import { ReactiveFormsModule, FormBuilder, FormGroup, FormArray, FormControl } from "@angular/forms";
 import { FileResourceService } from "src/app/shared/generated/api/file-resource.service";
 import { FormFieldComponent, FormFieldType } from "src/app/shared/components/forms/form-field/form-field.component";
@@ -36,7 +36,7 @@ export class ImageEditorComponent implements OnInit, OnChanges, OnDestroy {
     public captionControls: { [guid: string]: FormControl<string> } = {};
 
     public newPhotoPreviewUrl: string | null = null;
-    public imagePreviewUrls: { [guid: string]: string } = {};
+    public imagePreviewUrls = signal<{ [guid: string]: string }>({});
 
     ngOnInit(): void {
         this.newPhotoFormGroup.get("newPhoto")?.valueChanges.subscribe((file: File | null) => {
@@ -46,7 +46,7 @@ export class ImageEditorComponent implements OnInit, OnChanges, OnDestroy {
 
     ngOnChanges(changes: SimpleChanges): void {
         if (changes.images && changes.images.currentValue !== changes.images.previousValue) {
-            this.imagePreviewUrls = {};
+            this.imagePreviewUrls.set({});
             this.captionControls = {};
             this.captionControlForm.controls = {};
 
@@ -124,13 +124,13 @@ export class ImageEditorComponent implements OnInit, OnChanges, OnDestroy {
     // load/ cache an image preview for an existing image item
     public loadImagePreview(image: ImageEditorItem | undefined): void {
         const guid = image?.FileResourceGUID;
-        if (!guid || this.imagePreviewUrls[guid]) {
+        if (!guid || this.imagePreviewUrls()[guid]) {
             return;
         }
 
-        this.fileResourceService.displayResourceFileResource(guid).subscribe((blob: Blob) => {
+        this.fileResourceService.displayResourceFileResource(guid, "body", false, { httpHeaderAccept: undefined }).subscribe((blob: Blob) => {
             const url = URL.createObjectURL(blob);
-            this.imagePreviewUrls[guid] = url;
+            this.imagePreviewUrls.update((urls) => ({ ...urls, [guid]: url }));
         });
     }
 
@@ -139,9 +139,9 @@ export class ImageEditorComponent implements OnInit, OnChanges, OnDestroy {
         if (this.newPhotoPreviewUrl) {
             URL.revokeObjectURL(this.newPhotoPreviewUrl);
         }
-        for (const k of Object.keys(this.imagePreviewUrls)) {
+        for (const k of Object.keys(this.imagePreviewUrls())) {
             try {
-                URL.revokeObjectURL(this.imagePreviewUrls[k]);
+                URL.revokeObjectURL(this.imagePreviewUrls()[k]);
             } catch {
                 /* ignore */
             }

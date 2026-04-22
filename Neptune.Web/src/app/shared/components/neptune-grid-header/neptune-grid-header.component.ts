@@ -16,7 +16,7 @@ export class NeptuneGridHeaderComponent implements OnInit, OnDestroy {
     @Input() rowDataCount: number;
     @Input() hideGlobalFilter: boolean = false;
     @Input() multiSelectEnabled: boolean = false;
-    @Input() leftAlignClearFiltersButton: boolean = false;
+    @Input() leftAlignClearFiltersButton: boolean = true;
     @Input() disableGlobalFilter: boolean = false;
 
     public quickFilterText: string;
