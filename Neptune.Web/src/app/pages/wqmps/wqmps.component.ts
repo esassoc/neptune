@@ -60,7 +60,16 @@ export class WqmpsComponent {
         private router: Router
     ) {}
 
-    private maintenanceContactFields = ["MaintenanceContactOrganization", "MaintenanceContactName", "MaintenanceContactAddress", "MaintenanceContactPhone"];
+    // Match against headerName (not `field`) because utilityFunctionsService.createBasicColumnDef
+    // doesn't populate ColDef.field — it uses a valueGetter against fieldName instead. A filter
+    // keyed on c.field was a silent no-op (every c.field undefined → nothing removed) which is
+    // why the maintenance-contact columns stayed visible to the public despite the earlier fix.
+    private maintenanceContactHeaders = new Set([
+        "Maintenance Contact Organization",
+        "Maintenance Contact Name",
+        "Maintenance Contact Address",
+        "Maintenance Contact Phone",
+    ]);
 
     ngOnInit(): void {
         // Derive columnDefs from the current user so the grid never renders with sensitive
@@ -72,8 +81,7 @@ export class WqmpsComponent {
         this.columnDefs$ = currentUser$.pipe(
             map((user) => {
                 const isAnonymousOrUnassigned = !user || this.authenticationService.isUserUnassigned(user);
-                const canEdit = this.authenticationService.doesCurrentUserHaveJurisdictionEditPermission();
-                return this.buildColumnDefs(isAnonymousOrUnassigned, canEdit);
+                return this.buildColumnDefs(isAnonymousOrUnassigned);
             }),
             shareReplay(1)
         );
@@ -115,7 +123,7 @@ export class WqmpsComponent {
         );
     }
 
-    private buildColumnDefs(isAnonymousOrUnassigned: boolean, canEdit: boolean): ColDef[] {
+    private buildColumnDefs(isAnonymousOrUnassigned: boolean): ColDef[] {
         const defs: ColDef[] = [
             this.utilityFunctionsService.createLinkColumnDef("Name", "WaterQualityManagementPlanName", "WaterQualityManagementPlanID", {
                 InRouterLink: "/water-quality-management-plans/",
@@ -183,20 +191,9 @@ export class WqmpsComponent {
             this.utilityFunctionsService.createDecimalColumnDef("Trash Capture Effectiveness (%)", "TrashCaptureEffectiveness", { DecimalPlacesToDisplay: 0 }),
         ];
 
-        const filtered = isAnonymousOrUnassigned
-            ? defs.filter((c) => !this.maintenanceContactFields.includes(c.field))
+        return isAnonymousOrUnassigned
+            ? defs.filter((c) => !this.maintenanceContactHeaders.has(c.headerName as string))
             : defs;
-
-        if (canEdit) {
-            filtered.push(
-                this.utilityFunctionsService.createBasicColumnDef("Is Draft", "IsDraft", {
-                    ValueGetter: (params) => (params.data?.IsDraft ? "Yes" : "No"),
-                    UseCustomDropdownFilter: true,
-                })
-            );
-        }
-
-        return filtered;
     }
 
     public handleMapReady(event: NeptuneMapInitEvent, boundingBox?: BoundingBoxDto) {
