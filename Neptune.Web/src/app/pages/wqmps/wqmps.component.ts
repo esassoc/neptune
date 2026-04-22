@@ -81,8 +81,7 @@ export class WqmpsComponent {
         this.columnDefs$ = currentUser$.pipe(
             map((user) => {
                 const isAnonymousOrUnassigned = !user || this.authenticationService.isUserUnassigned(user);
-                const canEdit = this.authenticationService.doesCurrentUserHaveJurisdictionEditPermission();
-                return this.buildColumnDefs(isAnonymousOrUnassigned, canEdit);
+                return this.buildColumnDefs(isAnonymousOrUnassigned);
             }),
             shareReplay(1)
         );
@@ -124,7 +123,7 @@ export class WqmpsComponent {
         );
     }
 
-    private buildColumnDefs(isAnonymousOrUnassigned: boolean, canEdit: boolean): ColDef[] {
+    private buildColumnDefs(isAnonymousOrUnassigned: boolean): ColDef[] {
         const defs: ColDef[] = [
             this.utilityFunctionsService.createLinkColumnDef("Name", "WaterQualityManagementPlanName", "WaterQualityManagementPlanID", {
                 InRouterLink: "/water-quality-management-plans/",
@@ -192,20 +191,9 @@ export class WqmpsComponent {
             this.utilityFunctionsService.createDecimalColumnDef("Trash Capture Effectiveness (%)", "TrashCaptureEffectiveness", { DecimalPlacesToDisplay: 0 }),
         ];
 
-        const filtered = isAnonymousOrUnassigned
+        return isAnonymousOrUnassigned
             ? defs.filter((c) => !this.maintenanceContactHeaders.has(c.headerName as string))
             : defs;
-
-        if (canEdit) {
-            filtered.push(
-                this.utilityFunctionsService.createBasicColumnDef("Is Draft", "IsDraft", {
-                    ValueGetter: (params) => (params.data?.IsDraft ? "Yes" : "No"),
-                    UseCustomDropdownFilter: true,
-                })
-            );
-        }
-
-        return filtered;
     }
 
     public handleMapReady(event: NeptuneMapInitEvent, boundingBox?: BoundingBoxDto) {
