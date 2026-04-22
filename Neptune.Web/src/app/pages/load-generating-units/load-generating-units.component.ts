@@ -12,7 +12,6 @@ import { Map } from "leaflet";
 import { NeptuneMapInitEvent } from "src/app/shared/components/leaflet/neptune-map/neptune-map.component";
 import { LoadGeneratingUnitsLayerComponent } from "src/app/shared/components/leaflet/layers/load-generating-units-layer/load-generating-units-layer.component";
 import { RegionalSubbasinsLayerComponent } from "src/app/shared/components/leaflet/layers/regional-subbasins-layer/regional-subbasins-layer.component";
-import { StormwaterNetworkLayerComponent } from "src/app/shared/components/leaflet/layers/stormwater-network-layer/stormwater-network-layer.component";
 import { JurisdictionsLayerComponent } from "src/app/shared/components/leaflet/layers/jurisdictions-layer/jurisdictions-layer.component";
 import { WqmpsLayerComponent } from "src/app/shared/components/leaflet/layers/wqmps-layer/wqmps-layer.component";
 import { DelineationsLayerComponent } from "src/app/shared/components/leaflet/layers/delineations-layer/delineations-layer.component";
@@ -22,7 +21,7 @@ import { OverlayMode } from "src/app/shared/components/leaflet/layers/generic-wm
 
 @Component({
     selector: "load-generating-units",
-    imports: [PageHeaderComponent, AlertDisplayComponent, HybridMapGridComponent, AsyncPipe, LoadGeneratingUnitsLayerComponent, RegionalSubbasinsLayerComponent, StormwaterNetworkLayerComponent, JurisdictionsLayerComponent, WqmpsLayerComponent, DelineationsLayerComponent],
+    imports: [PageHeaderComponent, AlertDisplayComponent, HybridMapGridComponent, AsyncPipe, LoadGeneratingUnitsLayerComponent, RegionalSubbasinsLayerComponent, JurisdictionsLayerComponent, WqmpsLayerComponent, DelineationsLayerComponent],
     templateUrl: "./load-generating-units.component.html",
     styleUrl: "./load-generating-units.component.scss",
 })
