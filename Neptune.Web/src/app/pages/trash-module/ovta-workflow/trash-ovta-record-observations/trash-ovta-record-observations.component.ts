@@ -1,4 +1,4 @@
-import { ApplicationRef, Component } from "@angular/core";
+import { Component, signal } from "@angular/core";
 import * as L from "leaflet";
 import { PageHeaderComponent } from "../../../../shared/components/page-header/page-header.component";
 import { NeptuneMapComponent, NeptuneMapInitEvent } from "../../../../shared/components/leaflet/neptune-map/neptune-map.component";
@@ -52,7 +52,7 @@ export class TrashOvtaRecordObservationsComponent {
     public FormFieldType = FormFieldType;
     public map: L.Map;
     public layerControl: L.Control.Layers;
-    public mapIsReady = false;
+    public mapIsReady = signal(false);
     public isLoadingSubmit = false;
     public ovtaObservationLayer: L.GeoJSON<any>;
     public uploadFormField: FormControl<Blob> = new FormControl<Blob>(null);
@@ -79,8 +79,7 @@ export class TrashOvtaRecordObservationsComponent {
         private ovtaWorkflowProgressService: OvtaWorkflowProgressService,
         private router: Router,
         private wfsService: WfsService,
-        private formBuilder: FormBuilder,
-        private appRef: ApplicationRef
+        private formBuilder: FormBuilder
     ) {}
 
     ngOnInit() {
@@ -112,7 +111,7 @@ export class TrashOvtaRecordObservationsComponent {
     public handleMapReady(event: NeptuneMapInitEvent, onlandVisualTrashAssessment: OnlandVisualTrashAssessmentDetailDto): void {
         this.map = event.map;
         this.layerControl = event.layerControl;
-        this.mapIsReady = true;
+        this.mapIsReady.set(true);
         if (this.formGroup.controls.Observations.length > 0) {
             this.addObservationPointsLayersToMap();
             this.map.fitBounds(this.ovtaObservationLayer.getBounds());
@@ -137,10 +136,6 @@ export class TrashOvtaRecordObservationsComponent {
                     this.map.fitBounds(L.geoJson(response as any).getBounds());
                 });
         }
-
-        // Ensure the view updates immediately in zoneless mode.
-        // (Output emissions and Leaflet callbacks don't always schedule a render on their own.)
-        Promise.resolve().then(() => this.appRef.tick());
     }
 
     public cancelEditMode() {
