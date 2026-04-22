@@ -60,7 +60,16 @@ export class WqmpsComponent {
         private router: Router
     ) {}
 
-    private maintenanceContactFields = ["MaintenanceContactOrganization", "MaintenanceContactName", "MaintenanceContactAddress", "MaintenanceContactPhone"];
+    // Match against headerName (not `field`) because utilityFunctionsService.createBasicColumnDef
+    // doesn't populate ColDef.field — it uses a valueGetter against fieldName instead. A filter
+    // keyed on c.field was a silent no-op (every c.field undefined → nothing removed) which is
+    // why the maintenance-contact columns stayed visible to the public despite the earlier fix.
+    private maintenanceContactHeaders = new Set([
+        "Maintenance Contact Organization",
+        "Maintenance Contact Name",
+        "Maintenance Contact Address",
+        "Maintenance Contact Phone",
+    ]);
 
     ngOnInit(): void {
         // Derive columnDefs from the current user so the grid never renders with sensitive
@@ -184,7 +193,7 @@ export class WqmpsComponent {
         ];
 
         const filtered = isAnonymousOrUnassigned
-            ? defs.filter((c) => !this.maintenanceContactFields.includes(c.field))
+            ? defs.filter((c) => !this.maintenanceContactHeaders.has(c.headerName as string))
             : defs;
 
         if (canEdit) {
