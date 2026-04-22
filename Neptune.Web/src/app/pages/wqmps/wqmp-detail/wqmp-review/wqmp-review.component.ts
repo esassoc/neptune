@@ -2,7 +2,8 @@ import { Component, computed, inject, Input, OnInit, signal, ViewChild, ViewCont
 import { DatePipe } from "@angular/common";
 import { Router, RouterLink } from "@angular/router";
 import { AsyncPipe } from "@angular/common";
-import { HttpClient, HttpErrorResponse } from "@angular/common/http";
+import { HttpClient, HttpContext, HttpErrorResponse } from "@angular/common/http";
+import { SKIP_404_REDIRECT } from "src/app/shared/interceptors/httpErrorInterceptor";
 import { BehaviorSubject, EMPTY, finalize, forkJoin, map, Observable, switchMap, tap, shareReplay, catchError, of } from "rxjs";
 import { ConfirmService } from "src/app/shared/services/confirm/confirm.service";
 import { PdfJsViewerModule, PdfJsViewerComponent } from "ng2-pdfjs-viewer";
@@ -159,8 +160,15 @@ export class WqmpReviewComponent implements OnInit, IDeactivateComponent {
             }),
             switchMap(() => this.reload$),
             // Extraction may not exist yet (upload is now a separate step). 404 → null.
+            // The extra HttpContext flag tells HttpErrorInterceptor not to redirect the page
+            // to /not-found on 404 — the caller (this pipeline) handles that state gracefully.
             switchMap(() => forkJoin({
-                extractionResult: this.wqmpService.getExtractionResultWaterQualityManagementPlan(this.waterQualityManagementPlanID).pipe(
+                extractionResult: this.wqmpService.getExtractionResultWaterQualityManagementPlan(
+                    this.waterQualityManagementPlanID,
+                    "body",
+                    false,
+                    { context: new HttpContext().set(SKIP_404_REDIRECT, true) }
+                ).pipe(
                     catchError((err: HttpErrorResponse) => err.status === 404 ? of(null) : of(null))
                 ),
                 // Always fetch the uploaded document metadata — we need the FileResourceGUID for the
