@@ -72,7 +72,8 @@ public class WqmpExtractionService
             $"SchemaVersion: {SchemaVersion}. Use ONLY the provided WQMP PDF. Each attribute object MUST match ExtractedValueSchema. " +
             "Value = raw extracted string or null; ExtractionEvidence = source snippet (preceding sentence, target sentence, following sentence OR nearby table text); DocumentSource = page reference (e.g. 'Page 12'). " +
             "BoundingBox = {PageNumber, X, Y, Width, Height} locating the evidence on the page. X/Y/Width/Height are 0-1 fractions of page size where (0,0) is top-left and (1,1) is bottom-right. " +
-            "ALWAYS emit BoundingBox whenever Value is not null — estimate the rectangle that tightly covers the ExtractionEvidence text on its page. For scanned/rasterized pages use your visual reading of the page image. For native-text pages estimate from the layout you inferred. A rough rectangle (off by a line or two) is far more useful than null. " +
+            "ALWAYS emit BoundingBox whenever Value is not null. The rectangle should tightly cover the ACTUAL TEXT of ExtractionEvidence — measure from the top of the character baselines to the bottom, and from the first character to the last. Do NOT center the box on surrounding whitespace, adjacent paragraphs, or 'the general area'; point directly at the text characters themselves. " +
+            "For scanned/rasterized pages, look at the page image and estimate from the ink positions. Use a typical line height of ~0.02–0.04 (2–4% of page height) for a single-line field value; taller for multi-line evidence. " +
             "Only set BoundingBox to null if Value is also null (field not found in the document). " +
             "If not found, set Value, ExtractionEvidence, DocumentSource, BoundingBox to null. Do not add or rename properties.\n" +
             $"ExtractedValueSchema: {ExtractedValueSchema.Value}";

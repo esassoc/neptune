@@ -287,16 +287,9 @@ export class WqmpReviewComponent implements OnInit, IDeactivateComponent {
         try {
             this.clearHighlights();
 
-            // Most precise path: Claude gave us a bounding box (typically because it read
-            // the page as an image, i.e. scanned PDFs). Trust the coords, skip text search.
-            if (nav.boundingBox) {
-                this.pendingHighlight = { pageNumber: nav.boundingBox.PageNumber, box: nav.boundingBox, searchPhrase: null };
-                this.pdfViewer.page = nav.boundingBox.PageNumber;
-                this.tryDrawPendingHighlight();
-                return;
-            }
-
-            // Next: text-search the evidence snippet across all pages. Works for native-text PDFs.
+            // Best: text-layer span match (pixel accurate when the PDF has a usable text
+            // layer). Runs first because it beats Claude's vision-estimated coords on any
+            // PDF where the text layer is readable.
             if (nav.evidence) {
                 const searchPhrase = this.extractSearchPhrase(this.normalizeText(nav.evidence));
                 const foundPage = searchPhrase ? await this.searchPdfForText(searchPhrase, nav.documentSource) : 0;
@@ -308,8 +301,18 @@ export class WqmpReviewComponent implements OnInit, IDeactivateComponent {
                 }
             }
 
-            // Last resort: DocumentSource page number with a whole-page outline. Used when
-            // Claude didn't emit a box AND the text layer is empty/garbled (scanned PDFs).
+            // Next: Claude's vision-estimated coords. Imprecise (LLM-vision coords are
+            // typically off by a line or two), so we draw with a dashed border + padding to
+            // visually signal "approximate region" rather than claiming pixel precision.
+            if (nav.boundingBox) {
+                this.pendingHighlight = { pageNumber: nav.boundingBox.PageNumber, box: nav.boundingBox, searchPhrase: null };
+                this.pdfViewer.page = nav.boundingBox.PageNumber;
+                this.tryDrawPendingHighlight();
+                return;
+            }
+
+            // Last: DocumentSource page number with a whole-page outline. Used when Claude
+            // didn't emit a box AND the text layer is empty/garbled (pure scanned PDFs).
             if (nav.documentSource) {
                 const match = nav.documentSource.match(/page\s*(\d+)/i);
                 if (match) {
@@ -344,8 +347,10 @@ export class WqmpReviewComponent implements OnInit, IDeactivateComponent {
         if (drew) this.pendingHighlight = null;
     }
 
-    // Draw a precise rectangle from Claude's vision-derived coords (normalized 0-1 fractions
-    // relative to the page). Same style as Beacon's source-pdf-viewer overlay boxes.
+    // Draw an approximate rectangle from Claude's vision-derived coords (normalized 0-1
+    // fractions relative to the page). LLM-vision coords are commonly off by a line or two,
+    // so we dashed-border the box and pad it generously vertically (where offsets are most
+    // common) so the actual target is usually inside the rendered region.
     private highlightBoundingBox(pageNum: number, bbox: EvidenceBoundingBox): boolean {
         try {
             const iframe = this.pdfViewer?.iframe?.nativeElement as HTMLIFrameElement;
@@ -356,17 +361,24 @@ export class WqmpReviewComponent implements OnInit, IDeactivateComponent {
 
             const pageWidth = pageEl.offsetWidth;
             const pageHeight = pageEl.offsetHeight;
+            const verticalPadFraction = 0.04;  // 4% of page height ≈ 35 px on a letter-size page
+            const horizontalPadFraction = 0.01;
+
+            const left = Math.max(0, (bbox.X - horizontalPadFraction) * pageWidth);
+            const top = Math.max(0, (bbox.Y - verticalPadFraction) * pageHeight);
+            const right = Math.min(1, bbox.X + bbox.Width + horizontalPadFraction) * pageWidth;
+            const bottom = Math.min(1, bbox.Y + bbox.Height + verticalPadFraction) * pageHeight;
 
             const box = iframeDoc.createElement("div");
-            box.className = "wqmp-highlight wqmp-highlight--bbox";
+            box.className = "wqmp-highlight wqmp-highlight--approx";
             Object.assign(box.style, {
                 position: "absolute",
-                left: `${bbox.X * pageWidth}px`,
-                top: `${bbox.Y * pageHeight}px`,
-                width: `${bbox.Width * pageWidth}px`,
-                height: `${bbox.Height * pageHeight}px`,
-                border: "2px solid #f59e0b",
-                backgroundColor: "rgba(255, 235, 59, 0.22)",
+                left: `${left}px`,
+                top: `${top}px`,
+                width: `${right - left}px`,
+                height: `${bottom - top}px`,
+                border: "2px dashed #f59e0b",
+                backgroundColor: "rgba(255, 235, 59, 0.10)",
                 pointerEvents: "none",
                 zIndex: "10",
                 borderRadius: "3px",
