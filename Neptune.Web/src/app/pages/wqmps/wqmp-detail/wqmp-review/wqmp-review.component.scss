@@ -2,10 +2,12 @@
 
 .review-layout {
     display: flex;
-    // Fill the available height handed to us by .site-wrapper (see _layout.scss). Avoids a
-    // hardcoded viewport offset that drifts out of sync with the actual header heights.
-    height: 100%;
-    min-height: 0;
+    // Pin to viewport height minus the site header stack so the three panels always fit on
+    // one screen. min-height keeps the PDF panel large enough to render a readable page on
+    // short viewports; any overflow is absorbed by the field-list's internal scroll rather
+    // than by scrolling the whole review page.
+    height: calc(100dvh - 180px);
+    min-height: 640px;
     overflow: hidden;
 }
 
@@ -173,6 +175,9 @@
 .pdf-panel {
     flex: 1;
     min-width: 0;
+    // Anchors the review-layout's min-height; ensures a full letter-size page renders
+    // at readable scale even when the browser window is shorter than typical.
+    min-height: 600px;
     background: #2e2e2e;
     position: relative;
 
