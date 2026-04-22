@@ -95,7 +95,10 @@ export class WqmpReviewComponent implements OnInit, IDeactivateComponent {
     // page render; we inspect the DOM at that point to find the matching spans and draw the
     // highlight box. Doing it on the render event rather than a blind setTimeout means we
     // succeed even when the target page is far off-screen and renders seconds later.
-    private pendingHighlight: { pageNumber: number; searchPhrase: string } | null = null;
+    //
+    // `searchPhrase` may be null when the source is a scanned PDF with no usable text layer —
+    // in that case the highlight is a page-level outline rather than a span-level box.
+    private pendingHighlight: { pageNumber: number; searchPhrase: string | null } | null = null;
 
 
     public steps = [
@@ -291,24 +294,28 @@ export class WqmpReviewComponent implements OnInit, IDeactivateComponent {
                 const foundPage = searchPhrase ? await this.searchPdfForText(searchPhrase, nav.documentSource) : 0;
                 console.debug(`[WqmpReview] navigate: searchPhrase="${searchPhrase}" foundPage=${foundPage}`);
                 if (foundPage > 0 && searchPhrase) {
-                    // Navigate, then queue the highlight. The actual box draw happens in
+                    // Navigate, then queue the span-level highlight. Actual draw happens in
                     // onPdfPageRendered once PDF.js finishes rendering the page (which may be
-                    // async — unlike a simple setTimeout, this works even for far-off pages).
+                    // async — unlike a blind setTimeout, this works for far-off pages).
                     this.pendingHighlight = { pageNumber: foundPage, searchPhrase };
                     this.pdfViewer.page = foundPage;
-                    // If the page is already rendered (e.g. user re-clicks the same evidence),
-                    // onPageRendered won't fire — try once synchronously.
                     this.tryDrawPendingHighlight();
                     return;
                 }
             }
 
-            // Fall back to the page number in DocumentSource when the evidence text isn't found
-            // (e.g. PDF is scanned and the text layer is sparse).
+            // Fall back to the page number in DocumentSource. Common for scanned PDFs whose
+            // text layer is empty or garbled so searchPdfForText can't find the evidence. We
+            // still queue a page-level highlight (searchPhrase = null) so the user gets a
+            // visual cue on the landing page rather than just a silent page jump.
             if (nav.documentSource) {
                 const match = nav.documentSource.match(/page\s*(\d+)/i);
                 if (match) {
-                    this.pdfViewer.page = parseInt(match[1], 10);
+                    const pageNumber = parseInt(match[1], 10);
+                    console.debug(`[WqmpReview] navigate: text-search miss, falling back to page-level highlight on page ${pageNumber}`);
+                    this.pendingHighlight = { pageNumber, searchPhrase: null };
+                    this.pdfViewer.page = pageNumber;
+                    this.tryDrawPendingHighlight();
                 }
             }
         } finally {
@@ -325,8 +332,46 @@ export class WqmpReviewComponent implements OnInit, IDeactivateComponent {
     private tryDrawPendingHighlight(): void {
         const pending = this.pendingHighlight;
         if (!pending) return;
-        const drew = this.highlightTextOnPage(pending.pageNumber, pending.searchPhrase);
+        const drew = pending.searchPhrase
+            ? this.highlightTextOnPage(pending.pageNumber, pending.searchPhrase)
+            : this.highlightWholePage(pending.pageNumber);
         if (drew) this.pendingHighlight = null;
+    }
+
+    // Scanned PDFs (e.g. copier-generated) often have no usable text layer, so we can't
+    // pinpoint where the evidence lives. Outline the whole page as a softer visual cue that
+    // "the evidence is somewhere here" instead of silently landing the user on the page.
+    private highlightWholePage(pageNum: number): boolean {
+        try {
+            const iframe = this.pdfViewer?.iframe?.nativeElement as HTMLIFrameElement;
+            const iframeDoc = iframe?.contentDocument || iframe?.contentWindow?.document;
+            if (!iframeDoc) return false;
+            const pageEl = iframeDoc.querySelector(`.page[data-page-number="${pageNum}"]`) as HTMLElement | null;
+            if (!pageEl) return false;
+
+            const box = iframeDoc.createElement("div");
+            box.className = "wqmp-highlight wqmp-highlight--page";
+            Object.assign(box.style, {
+                position: "absolute",
+                left: "0px",
+                top: "0px",
+                width: `${pageEl.offsetWidth}px`,
+                height: `${pageEl.offsetHeight}px`,
+                border: "3px dashed #f59e0b",
+                backgroundColor: "rgba(255, 235, 59, 0.06)",
+                pointerEvents: "none",
+                zIndex: "10",
+                borderRadius: "4px",
+                boxSizing: "border-box",
+            });
+            pageEl.appendChild(box);
+            box.scrollIntoView({ behavior: "smooth", block: "start" });
+            console.debug(`[WqmpReview] highlight: page-level box drawn on page ${pageNum}`);
+            return true;
+        } catch (err) {
+            console.debug("[WqmpReview] highlight (page-level): error", err);
+            return false;
+        }
     }
 
     private async searchPdfForText(searchPhrase: string, documentSource: string | null): Promise<number> {
@@ -338,14 +383,19 @@ export class WqmpReviewComponent implements OnInit, IDeactivateComponent {
             const pdfDoc = pdfApp.pdfDocument;
             const totalPages: number = pdfDoc.numPages;
             const matches: number[] = [];
+            let totalTextChars = 0;
             for (let i = 1; i <= totalPages; i++) {
                 const page = await pdfDoc.getPage(i);
                 const textContent = await page.getTextContent();
                 const pageText = this.normalizeText(textContent.items.map((item: any) => item.str).join(" "));
+                totalTextChars += pageText.length;
                 if (pageText.includes(searchPhrase)) matches.push(i);
             }
 
-            if (matches.length === 0) return 0;
+            if (matches.length === 0) {
+                console.debug(`[WqmpReview] searchPdfForText: no match for "${searchPhrase}" across ${totalPages} pages (${totalTextChars} text chars total — scanned PDFs are often 0)`);
+                return 0;
+            }
             if (matches.length === 1) return matches[0];
 
             // Multiple hits — prefer the one nearest to Claude's documentSource hint.
@@ -357,7 +407,8 @@ export class WqmpReviewComponent implements OnInit, IDeactivateComponent {
                 }
             }
             return matches[0];
-        } catch {
+        } catch (err) {
+            console.debug("[WqmpReview] searchPdfForText: error", err);
             return 0;
         }
     }
