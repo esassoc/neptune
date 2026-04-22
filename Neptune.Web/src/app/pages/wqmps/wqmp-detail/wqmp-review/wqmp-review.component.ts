@@ -2,8 +2,7 @@ import { Component, computed, inject, Input, OnInit, signal, ViewChild, ViewCont
 import { DatePipe } from "@angular/common";
 import { Router, RouterLink } from "@angular/router";
 import { AsyncPipe } from "@angular/common";
-import { HttpClient, HttpContext, HttpErrorResponse } from "@angular/common/http";
-import { SKIP_404_REDIRECT } from "src/app/shared/interceptors/httpErrorInterceptor";
+import { HttpClient, HttpErrorResponse } from "@angular/common/http";
 import { BehaviorSubject, EMPTY, finalize, forkJoin, map, Observable, switchMap, tap, shareReplay, catchError, of } from "rxjs";
 import { ConfirmService } from "src/app/shared/services/confirm/confirm.service";
 import { PdfJsViewerModule, PdfJsViewerComponent } from "ng2-pdfjs-viewer";
@@ -159,23 +158,13 @@ export class WqmpReviewComponent implements OnInit, IDeactivateComponent {
                 };
             }),
             switchMap(() => this.reload$),
-            // Extraction may not exist yet (upload is now a separate step). 404 → null.
-            // The extra HttpContext flag tells HttpErrorInterceptor not to redirect the page
-            // to /not-found on 404 — the caller (this pipeline) handles that state gracefully.
+            // Extraction may not exist yet (upload is now a separate step) — endpoint returns
+            // null in that case, not a 404, so no exception handling is needed.
             switchMap(() => forkJoin({
-                extractionResult: this.wqmpService.getExtractionResultWaterQualityManagementPlan(
-                    this.waterQualityManagementPlanID,
-                    "body",
-                    false,
-                    { context: new HttpContext().set(SKIP_404_REDIRECT, true) }
-                ).pipe(
-                    catchError((err: HttpErrorResponse) => err.status === 404 ? of(null) : of(null))
-                ),
+                extractionResult: this.wqmpService.getExtractionResultWaterQualityManagementPlan(this.waterQualityManagementPlanID),
                 // Always fetch the uploaded document metadata — we need the FileResourceGUID for the
                 // PDF blob regardless of extraction state.
-                documents: this.wqmpService.listDocumentsWaterQualityManagementPlan(this.waterQualityManagementPlanID).pipe(
-                    catchError(() => of([]))
-                ),
+                documents: this.wqmpService.listDocumentsWaterQualityManagementPlan(this.waterQualityManagementPlanID),
             })),
             tap(({ extractionResult }) => {
                 this.currentResult.set(extractionResult);

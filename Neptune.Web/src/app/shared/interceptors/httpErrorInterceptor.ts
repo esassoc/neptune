@@ -1,5 +1,5 @@
 import { Injectable } from "@angular/core";
-import { HttpContextToken, HttpInterceptor, HttpRequest, HttpErrorResponse, HttpHandler, HttpEvent, HttpResponse } from "@angular/common/http";
+import { HttpInterceptor, HttpRequest, HttpErrorResponse, HttpHandler, HttpEvent, HttpResponse } from "@angular/common/http";
 
 import { Observable, EMPTY, throwError, of } from "rxjs";
 import { catchError } from "rxjs/operators";
@@ -7,11 +7,6 @@ import { Router } from "@angular/router";
 import { AlertService } from "../services/alert.service";
 import { AlertContext } from "../models/enums/alert-context.enum";
 import { Alert } from "../models/alert";
-
-// Callers that treat 404 as a valid state (e.g. "extraction not yet run for this WQMP")
-// can set `new HttpContext().set(SKIP_404_REDIRECT, true)` on their request options so the
-// interceptor doesn't navigate them to /not-found before their own catchError can fire.
-export const SKIP_404_REDIRECT = new HttpContextToken<boolean>(() => false);
 
 @Injectable()
 export class HttpErrorInterceptor implements HttpInterceptor {
@@ -83,9 +78,6 @@ export class HttpErrorInterceptor implements HttpInterceptor {
                             if (error.error.includes("User with GUID ")) {
                                 // we want the login-callback to create the user to trigger so we just let it pass through and have authentication-service handle it
                                 return throwError(error);
-                            } else if (request.context.get(SKIP_404_REDIRECT)) {
-                                // Caller is handling 404 locally (e.g. "no extraction result yet" on review page).
-                                return throwError(() => error);
                             } else {
                                 this.router.navigateByUrl("/not-found", { replaceUrl: false }).then((x) => {
                                     if (typeof error.error === "string") {

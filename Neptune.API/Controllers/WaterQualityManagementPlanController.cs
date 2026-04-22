@@ -606,11 +606,9 @@ namespace Neptune.API.Controllers
         public async Task<ActionResult<WaterQualityManagementPlanExtractionResultDto>> GetExtractionResult(
             [FromRoute] int waterQualityManagementPlanID)
         {
+            // A null result is a valid state (document uploaded but extraction not run yet) —
+            // return 200 with a null body so the frontend doesn't need exception-driven flow.
             var dto = await WaterQualityManagementPlanExtractionResults.GetByWqmpIDAsDtoAsync(DbContext, waterQualityManagementPlanID);
-            if (dto == null)
-            {
-                return NotFound("No extraction result found for this WQMP.");
-            }
             return Ok(dto);
         }
 
