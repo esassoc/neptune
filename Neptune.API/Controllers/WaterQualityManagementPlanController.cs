@@ -32,6 +32,11 @@ namespace Neptune.API.Controllers
         : SitkaController<WaterQualityManagementPlanController>(dbContext, logger,
             neptuneConfiguration)
     {
+        // Claude's Messages API rejects document blocks over 32 MB. We enforce this at upload
+        // (so users don't park unusable PDFs) and again at extract-time as a safety net in case
+        // a file reaches the service through a different path.
+        private const long MaxExtractablePdfSizeBytes = 32L * 1024 * 1024;
+
         [HttpGet]
         [AdminFeature]
         public async Task<ActionResult<IEnumerable<WaterQualityManagementPlanDto>>> List()
@@ -457,14 +462,12 @@ namespace Neptune.API.Controllers
                 return BadRequest("WQMP name must be 100 characters or fewer.");
             }
 
-            // Size limit applies to upload itself so Claude doesn't reject it later — kept here
-            // even though extraction is a separate step, since a 50 MB+ PDF is also unlikely to
-            // render well in the browser PDF viewer during review.
-            const long maxPdfSizeBytes = 50L * 1024 * 1024;
-            if (file.Length > maxPdfSizeBytes)
+            // Reject oversize PDFs up front rather than letting the user upload a file Claude
+            // will later refuse during extraction.
+            if (file.Length > MaxExtractablePdfSizeBytes)
             {
                 var sizeMB = file.Length / (1024.0 * 1024.0);
-                return BadRequest(new { message = $"PDF is {sizeMB:F0} MB, which exceeds the supported limit. Please re-export or re-scan the document at a lower resolution (recommended: 150 DPI for scanned pages)." });
+                return BadRequest(new { message = $"PDF is {sizeMB:F0} MB. AI extraction supports PDFs up to 32 MB — please re-export or re-scan the document at a lower resolution (recommended: 150 DPI for scanned pages)." });
             }
 
             var extension = Path.GetExtension(file.FileName)?.ToLowerInvariant();
@@ -542,6 +545,14 @@ namespace Neptune.API.Controllers
             if (document == null)
             {
                 return BadRequest(new { message = "No uploaded document found for this WQMP. Upload a PDF before running extraction." });
+            }
+
+            // Proactive size check — Claude rejects document blocks over 32 MB, and the error it
+            // returns ("file exceeds maximum allowed size") is less useful than a tailored message.
+            if (document.FileResource.ContentLength > MaxExtractablePdfSizeBytes)
+            {
+                var sizeMB = document.FileResource.ContentLength / (1024.0 * 1024.0);
+                return BadRequest(new { message = $"This PDF is {sizeMB:F0} MB. AI extraction supports PDFs up to 32 MB — please re-upload a smaller version (re-export or re-scan at a lower resolution, recommended: 150 DPI for scanned pages)." });
             }
 
             // If a previous extraction (plus any draft overlay) exists, drop it cleanly — the
