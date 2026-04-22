@@ -311,10 +311,8 @@ export class WqmpReviewComponent implements OnInit, IDeactivateComponent {
                 }
             }
 
-            console.log("[WqmpReview] navigate click", { value: nav.value, evidence: nav.evidence, documentSource: nav.documentSource, bbox: nav.boundingBox, searchCandidates });
             for (const phrase of searchCandidates) {
                 const foundPage = await this.searchPdfForText(phrase, nav.documentSource);
-                console.log(`[WqmpReview] searchPdfForText("${phrase}") → page ${foundPage}`);
                 if (foundPage > 0) {
                     this.pendingHighlight = { pageNumber: foundPage, box: null, searchPhrase: phrase };
                     this.pdfViewer.page = foundPage;
@@ -383,8 +381,13 @@ export class WqmpReviewComponent implements OnInit, IDeactivateComponent {
 
             const pageWidth = pageEl.offsetWidth;
             const pageHeight = pageEl.offsetHeight;
-            const verticalPadFraction = 0.04;  // 4% of page height ≈ 35 px on a letter-size page
-            const horizontalPadFraction = 0.01;
+            // Claude's vision coords for scans are typically off by a line or two — a paragraph
+            // at worst. Generous padding (10% vertical, 3% horizontal) grows the rendered box
+            // enough to still capture the evidence when the raw coords drift, at the cost of a
+            // less precise-looking rectangle. The dashed border already tells the user the box
+            // is approximate.
+            const verticalPadFraction = 0.10;
+            const horizontalPadFraction = 0.03;
 
             const left = Math.max(0, (bbox.X - horizontalPadFraction) * pageWidth);
             const top = Math.max(0, (bbox.Y - verticalPadFraction) * pageHeight);
@@ -457,19 +460,11 @@ export class WqmpReviewComponent implements OnInit, IDeactivateComponent {
             const pdfDoc = pdfApp.pdfDocument;
             const totalPages: number = pdfDoc.numPages;
             const matches: number[] = [];
-            let totalChars = 0;
-            let sampleHintPageText = "";
-            const hintPage = documentSource ? (documentSource.match(/page\s*(\d+)/i)?.[1] ? parseInt(documentSource.match(/page\s*(\d+)/i)![1], 10) : null) : null;
             for (let i = 1; i <= totalPages; i++) {
                 const page = await pdfDoc.getPage(i);
                 const textContent = await page.getTextContent();
                 const pageText = this.normalizeText(textContent.items.map((item: any) => item.str).join(" "));
-                totalChars += pageText.length;
-                if (hintPage === i) sampleHintPageText = pageText.slice(0, 200);
                 if (pageText.includes(searchPhrase)) matches.push(i);
-            }
-            if (matches.length === 0) {
-                console.log(`[WqmpReview] searchPdfForText: "${searchPhrase}" not found. Doc text-layer chars: ${totalChars} across ${totalPages} pages. Hint page ${hintPage ?? "(none)"} sample:`, sampleHintPageText || "(empty / no text layer)");
             }
 
             if (matches.length === 0) return 0;
@@ -814,16 +809,6 @@ export class WqmpReviewComponent implements OnInit, IDeactivateComponent {
             }
 
             this.fields.set(allFields);
-
-            // Diagnostic: how many fields came back with a usable BoundingBox?
-            const total = allFields.length;
-            const withBox = allFields.filter((f) => !!f.boundingBox).length;
-            const withEvidence = allFields.filter((f) => !!f.evidence).length;
-            console.log(`[WqmpReview] parsed extraction: ${total} fields, ${withEvidence} with evidence text, ${withBox} with BoundingBox`);
-            if (withBox === 0 && withEvidence > 0) {
-                const firstField = allFields.find((f) => f.evidence);
-                console.log("[WqmpReview] first field with evidence but no box (sample of what Claude returned):", firstField);
-            }
         } catch {
             this.fields.set([]);
         }
@@ -877,27 +862,14 @@ export class WqmpReviewComponent implements OnInit, IDeactivateComponent {
     }
 
     private parseBoundingBox(box: any): EvidenceBoundingBox | null {
-        if (box === null || box === undefined) return null;
-        if (typeof box !== "object") {
-            console.log("[WqmpReview] parseBoundingBox: rejected, not an object", box);
-            return null;
-        }
+        if (box === null || box === undefined || typeof box !== "object") return null;
         const { PageNumber, X, Y, Width, Height } = box;
         // All five fields must be finite numbers, normalized coords within [0, 1], and
         // PageNumber must be a positive integer. Reject anything partial so we don't draw
         // a garbage box from a half-populated result.
-        if ([PageNumber, X, Y, Width, Height].some((n) => typeof n !== "number" || !isFinite(n))) {
-            console.log("[WqmpReview] parseBoundingBox: rejected, non-finite field", box);
-            return null;
-        }
-        if (PageNumber < 1 || !Number.isInteger(PageNumber)) {
-            console.log("[WqmpReview] parseBoundingBox: rejected, bad PageNumber", box);
-            return null;
-        }
-        if (X < 0 || X > 1 || Y < 0 || Y > 1 || Width <= 0 || Width > 1 || Height <= 0 || Height > 1) {
-            console.log("[WqmpReview] parseBoundingBox: rejected, coords out of [0,1]", box);
-            return null;
-        }
+        if ([PageNumber, X, Y, Width, Height].some((n) => typeof n !== "number" || !isFinite(n))) return null;
+        if (PageNumber < 1 || !Number.isInteger(PageNumber)) return null;
+        if (X < 0 || X > 1 || Y < 0 || Y > 1 || Width <= 0 || Width > 1 || Height <= 0 || Height > 1) return null;
         return { PageNumber, X, Y, Width, Height };
     }
 
