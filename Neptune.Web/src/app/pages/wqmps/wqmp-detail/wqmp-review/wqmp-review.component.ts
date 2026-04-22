@@ -202,7 +202,10 @@ export class WqmpReviewComponent implements OnInit, IDeactivateComponent {
         this.wqmpService.runExtractionWaterQualityManagementPlan(this.waterQualityManagementPlanID)
             .pipe(finalize(() => this.isExtracting.set(false)))
             .subscribe({
-                next: () => this.reload$.next(),
+                next: () => {
+                    this.alertService.pushAlert(new Alert("Extraction completed. Review the extracted fields below.", AlertContext.Success));
+                    this.reload$.next();
+                },
                 error: (err: HttpErrorResponse) => {
                     // 400s carry our friendly { message } payload (PDF too large / Claude 4xx);
                     // anything else falls through to the generic HttpErrorInterceptor alert.
@@ -272,20 +275,18 @@ export class WqmpReviewComponent implements OnInit, IDeactivateComponent {
         this.isNavigating.set(true);
 
         try {
-            this.clearHighlights();
-
-            // Try text search first using the evidence snippet
+            // Prefer PDF.js's native findController: it knows how to wait for lazy-rendered pages,
+            // draws highlights using the same styling as the built-in Find toolbar, and its match
+            // positions come straight from the text layer (no manual DOMRect math).
             if (nav.evidence) {
-                const foundPage = await this.searchPdfForText(nav.evidence, nav.documentSource);
-                if (foundPage > 0) {
-                    this.pdfViewer.page = foundPage;
-                    // Wait for page render then highlight
-                    setTimeout(() => this.highlightTextOnPage(foundPage, nav.evidence), 500);
+                const searchPhrase = this.extractSearchPhrase(this.normalizeText(nav.evidence));
+                if (searchPhrase && this.dispatchPdfFind(searchPhrase)) {
                     return;
                 }
             }
 
-            // Fall back to the page number from DocumentSource
+            // Fall back to the page number from DocumentSource when the find API isn't available
+            // or the evidence text simply isn't present in the PDF's text layer.
             if (nav.documentSource) {
                 const match = nav.documentSource.match(/page\s*(\d+)/i);
                 if (match) {
@@ -297,55 +298,34 @@ export class WqmpReviewComponent implements OnInit, IDeactivateComponent {
         }
     }
 
-    private async searchPdfForText(evidence: string, documentSource: string | null): Promise<number> {
+    private dispatchPdfFind(query: string): boolean {
         try {
             const iframe = this.pdfViewer.iframe?.nativeElement as HTMLIFrameElement;
             const pdfApp = (iframe?.contentWindow as any)?.PDFViewerApplication;
-            if (!pdfApp?.pdfDocument) return 0;
-
-            const pdfDoc = pdfApp.pdfDocument;
-            const totalPages = pdfDoc.numPages;
-            const normalizedEvidence = this.normalizeText(evidence);
-
-            // Extract a meaningful search phrase from the evidence (use the middle portion for best specificity)
-            const searchPhrase = this.extractSearchPhrase(normalizedEvidence);
-            if (!searchPhrase) return 0;
-
-            const matches: number[] = [];
-            for (let i = 1; i <= totalPages; i++) {
-                const page = await pdfDoc.getPage(i);
-                const textContent = await page.getTextContent();
-                const pageText = this.normalizeText(textContent.items.map((item: any) => item.str).join(" "));
-                if (pageText.includes(searchPhrase)) {
-                    matches.push(i);
-                }
-            }
-
-            if (matches.length === 0) return 0;
-            if (matches.length === 1) return matches[0];
-
-            // Multiple matches — pick the one closest to the DocumentSource page hint
-            if (documentSource) {
-                const hintMatch = documentSource.match(/page\s*(\d+)/i);
-                if (hintMatch) {
-                    const hintPage = parseInt(hintMatch[1], 10);
-                    matches.sort((a, b) => Math.abs(a - hintPage) - Math.abs(b - hintPage));
-                }
-            }
-            return matches[0];
+            const eventBus = pdfApp?.eventBus;
+            if (!eventBus) return false;
+            // First dispatch clears any prior find state; second triggers the actual search.
+            eventBus.dispatch("find", {
+                source: this,
+                type: "",
+                query,
+                caseSensitive: false,
+                entireWord: false,
+                highlightAll: true,
+                findPrevious: false,
+                phraseSearch: true,
+            });
+            return true;
         } catch {
-            return 0;
+            return false;
         }
     }
 
     private normalizeText(text: string): string {
-        // Claude's ExtractionEvidence often doesn't round-trip cleanly through PDF.js text
-        // extraction — curly quotes, non-breaking spaces, ligatures, and combining diacritics
-        // can all cause string-equality misses. Canonicalize both sides before comparing:
-        //   1. NFKD Unicode normalization (decomposes ligatures + diacritics)
-        //   2. Strip the decomposed combining marks
-        //   3. Unify quote/dash variants to ASCII
-        //   4. Collapse any whitespace (including NBSP) to single spaces
+        // Claude's ExtractionEvidence doesn't always round-trip cleanly through PDF.js text
+        // extraction — curly quotes, non-breaking spaces, and ligatures can produce mismatches.
+        // Canonicalize: NFKD decompose → strip combining marks → unify quote/dash variants
+        // → collapse whitespace. Used on both sides before comparison.
         return text
             .normalize("NFKD")
             .replace(/[̀-ͯ]/g, "")
@@ -355,71 +335,6 @@ export class WqmpReviewComponent implements OnInit, IDeactivateComponent {
             .replace(/\s+/g, " ")
             .toLowerCase()
             .trim();
-    }
-
-    private clearHighlights(): void {
-        try {
-            const iframe = this.pdfViewer?.iframe?.nativeElement as HTMLIFrameElement;
-            const iframeDoc = iframe?.contentDocument || iframe?.contentWindow?.document;
-            if (!iframeDoc) return;
-            iframeDoc.querySelectorAll(".wqmp-highlight").forEach((el) => el.remove());
-        } catch { /* ignore */ }
-    }
-
-    private highlightTextOnPage(pageNum: number, evidence: string): void {
-        try {
-            const iframe = this.pdfViewer?.iframe?.nativeElement as HTMLIFrameElement;
-            const iframeDoc = iframe?.contentDocument || iframe?.contentWindow?.document;
-            if (!iframeDoc) return;
-
-            const pageEl = iframeDoc.querySelector(`.page[data-page-number="${pageNum}"]`) as HTMLElement;
-            if (!pageEl) return;
-
-            const textLayer = pageEl.querySelector(".textLayer");
-            if (!textLayer) return;
-
-            const searchPhrase = this.extractSearchPhrase(this.normalizeText(evidence));
-            if (!searchPhrase) return;
-
-            // Find all matching spans and compute a bounding box around them
-            const spans = textLayer.querySelectorAll("span");
-            const matchingRects: DOMRect[] = [];
-            const pageRect = pageEl.getBoundingClientRect();
-
-            for (const span of Array.from(spans)) {
-                const spanText = this.normalizeText(span.textContent || "");
-                if (spanText && (searchPhrase.includes(spanText) || spanText.includes(searchPhrase))) {
-                    matchingRects.push(span.getBoundingClientRect());
-                }
-            }
-
-            if (matchingRects.length === 0) return;
-
-            // Compute a single bounding box around all matched spans
-            const minLeft = Math.min(...matchingRects.map((r) => r.left)) - pageRect.left;
-            const minTop = Math.min(...matchingRects.map((r) => r.top)) - pageRect.top;
-            const maxRight = Math.max(...matchingRects.map((r) => r.right)) - pageRect.left;
-            const maxBottom = Math.max(...matchingRects.map((r) => r.bottom)) - pageRect.top;
-
-            const padding = 4;
-            const pageWidth = pageEl.offsetWidth;
-            const box = iframeDoc.createElement("div");
-            box.className = "wqmp-highlight";
-            Object.assign(box.style, {
-                position: "absolute",
-                left: "0px",
-                top: `${minTop - padding}px`,
-                width: `${pageWidth}px`,
-                height: `${maxBottom - minTop + padding * 2}px`,
-                border: "2px solid #f59e0b",
-                backgroundColor: "rgba(255, 235, 59, 0.12)",
-                pointerEvents: "none",
-                zIndex: "10",
-                borderRadius: "4px",
-            });
-            pageEl.appendChild(box);
-            box.scrollIntoView({ behavior: "smooth", block: "center" });
-        } catch { /* ignore */ }
     }
 
     private extractSearchPhrase(text: string): string {
