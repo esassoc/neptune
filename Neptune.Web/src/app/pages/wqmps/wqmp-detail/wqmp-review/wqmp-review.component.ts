@@ -311,8 +311,10 @@ export class WqmpReviewComponent implements OnInit, IDeactivateComponent {
                 }
             }
 
+            console.debug("[WqmpReview] navigate click", { value: nav.value, evidence: nav.evidence, documentSource: nav.documentSource, bbox: nav.boundingBox, searchCandidates });
             for (const phrase of searchCandidates) {
                 const foundPage = await this.searchPdfForText(phrase, nav.documentSource);
+                console.debug(`[WqmpReview] searchPdfForText("${phrase}") → page ${foundPage}`);
                 if (foundPage > 0) {
                     this.pendingHighlight = { pageNumber: foundPage, box: null, searchPhrase: phrase };
                     this.pdfViewer.page = foundPage;
@@ -455,11 +457,19 @@ export class WqmpReviewComponent implements OnInit, IDeactivateComponent {
             const pdfDoc = pdfApp.pdfDocument;
             const totalPages: number = pdfDoc.numPages;
             const matches: number[] = [];
+            let totalChars = 0;
+            let sampleHintPageText = "";
+            const hintPage = documentSource ? (documentSource.match(/page\s*(\d+)/i)?.[1] ? parseInt(documentSource.match(/page\s*(\d+)/i)![1], 10) : null) : null;
             for (let i = 1; i <= totalPages; i++) {
                 const page = await pdfDoc.getPage(i);
                 const textContent = await page.getTextContent();
                 const pageText = this.normalizeText(textContent.items.map((item: any) => item.str).join(" "));
+                totalChars += pageText.length;
+                if (hintPage === i) sampleHintPageText = pageText.slice(0, 200);
                 if (pageText.includes(searchPhrase)) matches.push(i);
+            }
+            if (matches.length === 0) {
+                console.debug(`[WqmpReview] searchPdfForText: "${searchPhrase}" not found. Doc text-layer chars: ${totalChars} across ${totalPages} pages. Hint page ${hintPage ?? "(none)"} sample:`, sampleHintPageText || "(empty / no text layer)");
             }
 
             if (matches.length === 0) return 0;
