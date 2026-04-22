@@ -8,8 +8,8 @@
       To move an observation, click the pencil icon and then either drag the marker or click a new location on the map.
     </p>
     <div class="mb-3" style="display: flex; align-items: center">
-      <button class="btn btn-primary btn-sm mr-2" [disabled]="!mapIsReady || isLoadingSubmit || isAddingObservation || isEditingLocation" (click)="goToCurrentLocation()">Record Observation at Current Location</button>
-      <button class="btn btn-primary btn-sm mr-2" [disabled]="!mapIsReady || isLoadingSubmit || isAddingObservation || isEditingLocation" (click)="addObservationMarker()">
+      <button class="btn btn-primary btn-sm mr-2" [disabled]="!mapIsReady() || isLoadingSubmit || isAddingObservation || isEditingLocation" (click)="goToCurrentLocation()">Record Observation at Current Location</button>
+      <button class="btn btn-primary btn-sm mr-2" [disabled]="!mapIsReady() || isLoadingSubmit || isAddingObservation || isEditingLocation" (click)="addObservationMarker()">
         {{ isAddingObservation ? "Click the map to place observation..." : "Add an Observation by clicking the map" }}
       </button>
       @if (isAddingObservation || isEditingLocation) {
@@ -18,10 +18,10 @@
     </div>
     @if (onlandVisualTrashAssessmentObservations$ | async) {
       <neptune-map (onMapLoad)="handleMapReady($event, onlandVisualTrashAssessment)" mapHeight="600px" [showLegend]="true">
-        @if (mapIsReady) {
+        @if (mapIsReady()) {
           <land-use-block-layer [displayOnLoad]="true" [map]="map" [layerControl]="layerControl" [sortOrder]="10"></land-use-block-layer>
         }
-        @if (mapIsReady) {
+        @if (mapIsReady()) {
           <parcel-layer [displayOnLoad]="false" [map]="map" [layerControl]="layerControl" [sortOrder]="15" styles="parcel_alt"></parcel-layer>
         }
         @if (mapIsReady && onlandVisualTrashAssessment.OnlandVisualTrashAssessmentAreaID) {
@@ -33,7 +33,7 @@
             [interactive]="false"
           [ovtaID]="onlandVisualTrashAssessment.OnlandVisualTrashAssessmentID"></ovta-area-layer>
         }
-        @if (mapIsReady) {
+        @if (mapIsReady()) {
           <transect-line-layer
             [displayOnLoad]="true"
             [map]="map"
