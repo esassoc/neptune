@@ -38,6 +38,15 @@ public static class WaterQualityManagementPlanExtractionResults
         await dbContext.SaveChangesAsync();
     }
 
+    // Used when a reviewer re-runs the AI extraction — the draft overlay lives on the existing
+    // result row, so deleting the row clears the draft too. Caller confirms data loss in the UI.
+    public static async Task DeleteByWqmpIDAsync(NeptuneDbContext dbContext, int waterQualityManagementPlanID)
+    {
+        await dbContext.WaterQualityManagementPlanExtractionResults
+            .Where(x => x.WaterQualityManagementPlanID == waterQualityManagementPlanID)
+            .ExecuteDeleteAsync();
+    }
+
     public static async Task MarkApprovedAsync(NeptuneDbContext dbContext, int waterQualityManagementPlanID, int personID)
     {
         var entity = await GetByWqmpIDAsync(dbContext, waterQualityManagementPlanID)

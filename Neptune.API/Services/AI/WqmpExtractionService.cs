@@ -71,7 +71,11 @@ public class WqmpExtractionService
         var evidenceInstructions =
             $"SchemaVersion: {SchemaVersion}. Use ONLY the provided WQMP PDF. Each attribute object MUST match ExtractedValueSchema. " +
             "Value = raw extracted string or null; ExtractionEvidence = source snippet (preceding sentence, target sentence, following sentence OR nearby table text); DocumentSource = page reference (e.g. 'Page 12'). " +
-            "If not found set Value, ExtractionEvidence, DocumentSource to null. Do not add or rename properties.\n" +
+            "BoundingBox = {PageNumber, X, Y, Width, Height} locating the evidence on the page. X/Y/Width/Height are 0-1 fractions of page size where (0,0) is top-left and (1,1) is bottom-right. " +
+            "ALWAYS emit BoundingBox whenever Value is not null. The rectangle should tightly cover the ACTUAL TEXT of ExtractionEvidence — measure from the top of the character baselines to the bottom, and from the first character to the last. Do NOT center the box on surrounding whitespace, adjacent paragraphs, or 'the general area'; point directly at the text characters themselves. " +
+            "For scanned/rasterized pages, look at the page image and estimate from the ink positions. Use a typical line height of ~0.02–0.04 (2–4% of page height) for a single-line field value; taller for multi-line evidence. " +
+            "Only set BoundingBox to null if Value is also null (field not found in the document). " +
+            "If not found, set Value, ExtractionEvidence, DocumentSource, BoundingBox to null. Do not add or rename properties.\n" +
             $"ExtractedValueSchema: {ExtractedValueSchema.Value}";
 
         // Build all 4 tools upfront — identical across all parallel calls so the tools-level cache is shared.
@@ -300,9 +304,30 @@ public class WqmpExtractionService
         {
             Value = new { type = new[] { "string", "null" }, description = "Raw extracted value or null." },
             ExtractionEvidence = new { type = new[] { "string", "null" }, description = "Source snippet or null." },
-            DocumentSource = new { type = new[] { "string", "null" }, description = "Page reference or null." }
+            DocumentSource = new { type = new[] { "string", "null" }, description = "Page reference or null." },
+            BoundingBox = BoundingBoxProp()
         },
-        required = new[] { "Value", "ExtractionEvidence", "DocumentSource" },
+        required = new[] { "Value", "ExtractionEvidence", "DocumentSource", "BoundingBox" },
+        additionalProperties = false
+    };
+
+    // Spatial hint for the evidence region on the page. Normalized 0-1 fractions relative
+    // to the page's own width/height, top-left origin. Claude should emit this whenever
+    // Value is non-null — a rough estimate is more useful than null. Only null when the
+    // field wasn't found in the document.
+    private static object BoundingBoxProp() => new
+    {
+        type = new[] { "object", "null" },
+        description = "Required {PageNumber, X, Y, Width, Height} locating the evidence on its page. X/Y/Width/Height are 0-1 fractions of page size (top-left origin). Null only when Value is null.",
+        properties = new
+        {
+            PageNumber = new { type = "integer", description = "1-based page index." },
+            X = new { type = "number", description = "Left edge, fraction of page width." },
+            Y = new { type = "number", description = "Top edge, fraction of page height." },
+            Width = new { type = "number", description = "Width, fraction of page width." },
+            Height = new { type = "number", description = "Height, fraction of page height." }
+        },
+        required = new[] { "PageNumber", "X", "Y", "Width", "Height" },
         additionalProperties = false
     };
 
@@ -318,9 +343,10 @@ public class WqmpExtractionService
             {
                 Value = new { type = new[] { "string", "null" }, description = "Raw extracted value or null." },
                 ExtractionEvidence = new { type = new[] { "string", "null" }, description = "Snippet: preceding, target, following sentence OR nearby table text." },
-                DocumentSource = new { type = new[] { "string", "null" }, description = "Page reference (e.g. 'Page 12')." }
+                DocumentSource = new { type = new[] { "string", "null" }, description = "Page reference (e.g. 'Page 12')." },
+                BoundingBox = BoundingBoxProp()
             },
-            required = new[] { "Value", "ExtractionEvidence", "DocumentSource" },
+            required = new[] { "Value", "ExtractionEvidence", "DocumentSource", "BoundingBox" },
             additionalProperties = false
         };
         return JsonSerializer.Serialize(schema);

@@ -32,6 +32,11 @@ namespace Neptune.API.Controllers
         : SitkaController<WaterQualityManagementPlanController>(dbContext, logger,
             neptuneConfiguration)
     {
+        // Claude's Messages API rejects document blocks over 32 MB. We enforce this at upload
+        // (so users don't park unusable PDFs) and again at extract-time as a safety net in case
+        // a file reaches the service through a different path.
+        private const long MaxExtractablePdfSizeBytes = 32L * 1024 * 1024;
+
         [HttpGet]
         [AdminFeature]
         public async Task<ActionResult<IEnumerable<WaterQualityManagementPlanDto>>> List()
@@ -433,12 +438,12 @@ namespace Neptune.API.Controllers
             return Ok(response);
         }
 
-        [HttpPost("upload-and-extract")]
+        [HttpPost("upload")]
         [AdminFeature]
         [Consumes("multipart/form-data")]
         [RequestSizeLimit(200 * 1024 * 1024)]
         [RequestFormLimits(MultipartBodyLengthLimit = 200 * 1024 * 1024)]
-        public async Task<ActionResult<WaterQualityManagementPlanExtractionResultDto>> UploadAndExtract(
+        public async Task<ActionResult<WqmpUploadResultDto>> UploadDocument(
             IFormFile file, [FromForm] int stormwaterJurisdictionID, [FromForm] string wqmpName, [FromForm] bool overwrite = false)
         {
             if (file == null || file.Length == 0)
@@ -457,11 +462,12 @@ namespace Neptune.API.Controllers
                 return BadRequest("WQMP name must be 100 characters or fewer.");
             }
 
-            const long maxPdfSizeBytes = 50L * 1024 * 1024;
-            if (file.Length > maxPdfSizeBytes)
+            // Reject oversize PDFs up front rather than letting the user upload a file Claude
+            // will later refuse during extraction.
+            if (file.Length > MaxExtractablePdfSizeBytes)
             {
                 var sizeMB = file.Length / (1024.0 * 1024.0);
-                return BadRequest(new { message = $"PDF is {sizeMB:F0} MB, which exceeds the limit for AI extraction. Please re-export or re-scan the document at a lower resolution (recommended: 150 DPI for scanned pages)." });
+                return BadRequest(new { message = $"PDF is {sizeMB:F0} MB. AI extraction supports PDFs up to 32 MB — please re-export or re-scan the document at a lower resolution (recommended: 150 DPI for scanned pages)." });
             }
 
             var extension = Path.GetExtension(file.FileName)?.ToLowerInvariant();
@@ -513,22 +519,54 @@ namespace Neptune.API.Controllers
             };
             var wqmpDto = await WaterQualityManagementPlans.CreateAsync(DbContext, dto);
 
+            // Upload file to Azure Blob Storage and create document record.
+            // No AI call — extraction is now a second, explicit step triggered from the review page.
+            var fileResource = await HttpUtilities.MakeFileResourceFromFormFileAsync(DbContext, HttpContext, azureBlobStorageService, file);
+            var document = await WaterQualityManagementPlanDocuments.CreateFromFileResourceAsync(
+                DbContext, wqmpDto.WaterQualityManagementPlanID, fileResource.FileResourceID,
+                file.FileName, (int)WaterQualityManagementPlanDocumentTypeEnum.FinalWQMP);
+
+            return Ok(new WqmpUploadResultDto
+            {
+                WaterQualityManagementPlanID = wqmpDto.WaterQualityManagementPlanID,
+                WaterQualityManagementPlanDocumentID = document.WaterQualityManagementPlanDocumentID,
+            });
+        }
+
+        [HttpPost("{waterQualityManagementPlanID}/extract")]
+        [AdminFeature]
+        [EntityNotFound(typeof(WaterQualityManagementPlan), "waterQualityManagementPlanID")]
+        public async Task<ActionResult<WaterQualityManagementPlanExtractionResultDto>> RunExtraction(
+            [FromRoute] int waterQualityManagementPlanID)
+        {
+            // Primary document for the WQMP — uploaded in Step 1 (UploadDocument).
+            var document = WaterQualityManagementPlanDocuments.ListByWaterQualityManagementPlanID(DbContext, waterQualityManagementPlanID)
+                .FirstOrDefault();
+            if (document == null)
+            {
+                return BadRequest(new { message = "No uploaded document found for this WQMP. Upload a PDF before running extraction." });
+            }
+
+            // Proactive size check — Claude rejects document blocks over 32 MB, and the error it
+            // returns ("file exceeds maximum allowed size") is less useful than a tailored message.
+            if (document.FileResource.ContentLength > MaxExtractablePdfSizeBytes)
+            {
+                var sizeMB = document.FileResource.ContentLength / (1024.0 * 1024.0);
+                return BadRequest(new { message = $"This PDF is {sizeMB:F0} MB. AI extraction supports PDFs up to 32 MB — please re-upload a smaller version (re-export or re-scan at a lower resolution, recommended: 150 DPI for scanned pages)." });
+            }
+
+            // If a previous extraction (plus any draft overlay) exists, drop it cleanly — the
+            // frontend already surfaced a confirm dialog warning that draft edits will be lost.
+            await WaterQualityManagementPlanExtractionResults.DeleteByWqmpIDAsync(DbContext, waterQualityManagementPlanID);
+
             try
             {
-                // Upload file to Azure Blob Storage and create document record
-                var fileResource = await HttpUtilities.MakeFileResourceFromFormFileAsync(DbContext, HttpContext, azureBlobStorageService, file);
-                var document = await WaterQualityManagementPlanDocuments.CreateFromFileResourceAsync(
-                    DbContext, wqmpDto.WaterQualityManagementPlanID, fileResource.FileResourceID,
-                    file.FileName, (int)WaterQualityManagementPlanDocumentTypeEnum.FinalWQMP);
-
-                // Run AI extraction
                 var extractionResult = await wqmpExtractionService.ExtractFromDocument(
                     document.WaterQualityManagementPlanDocumentID, CallingUser.PersonID, HttpContext.RequestAborted);
 
-                // Store extraction result
                 var storedResult = new WaterQualityManagementPlanExtractionResult
                 {
-                    WaterQualityManagementPlanID = wqmpDto.WaterQualityManagementPlanID,
+                    WaterQualityManagementPlanID = waterQualityManagementPlanID,
                     WaterQualityManagementPlanDocumentID = document.WaterQualityManagementPlanDocumentID,
                     ExtractionResultJson = extractionResult.FinalOutput,
                     ExtractedAt = DateTime.UtcNow,
@@ -536,22 +574,14 @@ namespace Neptune.API.Controllers
                 DbContext.WaterQualityManagementPlanExtractionResults.Add(storedResult);
                 await DbContext.SaveChangesAsync();
 
-                return Ok(new WaterQualityManagementPlanExtractionResultDto
-                {
-                    WaterQualityManagementPlanID = wqmpDto.WaterQualityManagementPlanID,
-                    WaterQualityManagementPlanDocumentID = document.WaterQualityManagementPlanDocumentID,
-                    StormwaterJurisdictionID = stormwaterJurisdictionID,
-                    ExtractionResultJson = extractionResult.FinalOutput,
-                    ExtractedAt = storedResult.ExtractedAt,
-                    FileResourceGuid = fileResource.FileResourceGUID.ToString(),
-                });
+                var dto = await WaterQualityManagementPlanExtractionResults.GetByWqmpIDAsDtoAsync(DbContext, waterQualityManagementPlanID);
+                return Ok(dto);
             }
             catch (Exception ex) when (ex is InvalidOperationException or Anthropic4xxException)
             {
-                // Clean up the orphaned Draft WQMP, then surface the error as a 400 instead of a
-                // generic 500. InvalidOperationException = our own validation (e.g., PDF too large);
-                // Anthropic4xxException = Claude rejected the request (e.g., file exceeds processing limit).
-                await WaterQualityManagementPlans.DeleteAsync(DbContext, wqmpDto.WaterQualityManagementPlanID);
+                // Surface actionable Claude / validation errors as 400s. The WQMP + document
+                // stay intact so the reviewer can retry once the underlying issue is addressed
+                // (smaller re-scan, different file, etc.).
                 return BadRequest(new { message = ExtractReadableErrorMessage(ex.Message) });
             }
         }
@@ -587,11 +617,9 @@ namespace Neptune.API.Controllers
         public async Task<ActionResult<WaterQualityManagementPlanExtractionResultDto>> GetExtractionResult(
             [FromRoute] int waterQualityManagementPlanID)
         {
+            // A null result is a valid state (document uploaded but extraction not run yet) —
+            // return 200 with a null body so the frontend doesn't need exception-driven flow.
             var dto = await WaterQualityManagementPlanExtractionResults.GetByWqmpIDAsDtoAsync(DbContext, waterQualityManagementPlanID);
-            if (dto == null)
-            {
-                return NotFound("No extraction result found for this WQMP.");
-            }
             return Ok(dto);
         }
 

@@ -1,9 +1,10 @@
-import { Component, computed, inject, Input, OnInit, signal, ViewChild } from "@angular/core";
+import { Component, computed, inject, Input, OnInit, signal, ViewChild, ViewContainerRef } from "@angular/core";
 import { DatePipe } from "@angular/common";
 import { Router, RouterLink } from "@angular/router";
 import { AsyncPipe } from "@angular/common";
-import { HttpClient } from "@angular/common/http";
-import { BehaviorSubject, EMPTY, forkJoin, map, Observable, switchMap, tap, shareReplay, catchError, of } from "rxjs";
+import { HttpClient, HttpErrorResponse } from "@angular/common/http";
+import { BehaviorSubject, EMPTY, finalize, forkJoin, map, Observable, switchMap, tap, shareReplay, catchError, of } from "rxjs";
+import { ConfirmService } from "src/app/shared/services/confirm/confirm.service";
 import { PdfJsViewerModule, PdfJsViewerComponent } from "ng2-pdfjs-viewer";
 import { AlertDisplayComponent } from "src/app/shared/components/alert-display/alert-display.component";
 import { FormFieldType, SelectDropdownOption } from "src/app/shared/components/forms/form-field/form-field.component";
@@ -13,7 +14,7 @@ import { AlertContext } from "src/app/shared/models/enums/alert-context.enum";
 import { WaterQualityManagementPlanService } from "src/app/shared/generated/api/water-quality-management-plan.service";
 import { StormwaterJurisdictionService } from "src/app/shared/generated/api/stormwater-jurisdiction.service";
 import { WaterQualityManagementPlanExtractionResultDto } from "src/app/shared/generated/model/water-quality-management-plan-extraction-result-dto";
-import { FieldCardComponent, SourceNavigation } from "src/app/pages/wqmps/wqmp-detail/wqmp-review/field-card/field-card.component";
+import { EvidenceBoundingBox, FieldCardComponent, SourceNavigation } from "src/app/pages/wqmps/wqmp-detail/wqmp-review/field-card/field-card.component";
 import { IDeactivateComponent } from "src/app/shared/guards/unsaved-changes.guard";
 import { WaterQualityManagementPlanPrioritiesAsSelectDropdownOptions } from "src/app/shared/generated/enum/water-quality-management-plan-priority-enum";
 import { WaterQualityManagementPlanDevelopmentTypesAsSelectDropdownOptions } from "src/app/shared/generated/enum/water-quality-management-plan-development-type-enum";
@@ -32,6 +33,7 @@ export interface ExtractedField {
     value: string | null;
     evidence: string | null;
     source: string | null;
+    boundingBox: EvidenceBoundingBox | null;
     confidence: ConfidenceLevel;
     step: number;
     acceptedValue?: string | null;
@@ -62,10 +64,16 @@ export class WqmpReviewComponent implements OnInit, IDeactivateComponent {
     private wqmpService = inject(WaterQualityManagementPlanService);
     private jurisdictionService = inject(StormwaterJurisdictionService);
     private alertService = inject(AlertService);
+    private confirmService = inject(ConfirmService);
+    private viewContainerRef = inject(ViewContainerRef);
 
     public FormFieldType = FormFieldType;
-    public extractionResult$: Observable<WaterQualityManagementPlanExtractionResultDto>;
+    // pageData$ emits on every reload and is the outer gate for the template. It completes
+    // even when no extraction result exists yet, so the pre-extraction "Extract with AI"
+    // state can render while still showing the uploaded PDF.
+    public pageData$: Observable<{ hasResult: boolean }>;
     public currentResult = signal<WaterQualityManagementPlanExtractionResultDto | null>(null);
+    public isExtracting = signal(false);
     private reload$ = new BehaviorSubject<void>(undefined);
 
     // Lookup field configuration: maps extraction key → dropdown options + DTO field name
@@ -78,6 +86,20 @@ export class WqmpReviewComponent implements OnInit, IDeactivateComponent {
     public hasUnsavedChanges = signal(false);
     public isApproved = computed(() => !!this.currentResult()?.ApprovedDate);
     public isNavigating = signal(false);
+    // Tracks whether the PDF.js iframe has fully loaded — until then, evidence clicks can't
+    // reach PDFViewerApplication.pdfDocument. If the user clicks early, queue the request here
+    // and replay once onDocumentLoad fires.
+    private pdfLoaded = false;
+    private pendingNavigation: SourceNavigation | null = null;
+    // After `navigateToSource` picks a target page, this holds the details of the box we
+    // want to draw there. `onPdfPageRendered` fires every time PDF.js finishes rendering a
+    // page; we reinspect the DOM at that point and draw. Keying off the render event means
+    // we succeed even when the target page is far off-screen and renders async.
+    //
+    // `box` (from Claude when it read the page as an image), when present, short-circuits
+    // to a precise draw. Otherwise `searchPhrase` drives a text-layer span match, and a null
+    // searchPhrase falls back to a page-level outline.
+    private pendingHighlight: { pageNumber: number; box: EvidenceBoundingBox | null; searchPhrase: string | null } | null = null;
 
 
     public steps = [
@@ -132,7 +154,7 @@ export class WqmpReviewComponent implements OnInit, IDeactivateComponent {
             catchError(() => of([] as SelectDropdownOption[]))
         );
 
-        this.extractionResult$ = forkJoin([jurisdictions$, hydrologicSubareas$]).pipe(
+        this.pageData$ = forkJoin([jurisdictions$, hydrologicSubareas$]).pipe(
             tap(([jurisdictions, hydrologicSubareas]) => {
                 this.lookupFieldConfig = {
                     Jurisdiction: { options: jurisdictions, dtoField: "StormwaterJurisdictionID" },
@@ -146,28 +168,77 @@ export class WqmpReviewComponent implements OnInit, IDeactivateComponent {
                 };
             }),
             switchMap(() => this.reload$),
-            switchMap(() => this.wqmpService.getExtractionResultWaterQualityManagementPlan(this.waterQualityManagementPlanID)),
-            tap((result) => {
-                this.currentResult.set(result);
-                this.parseExtractionResult(result.ExtractionResultJson);
-                this.applyDraftOverlay(result.DraftOverlayJson ?? null);
+            // Extraction may not exist yet (upload is now a separate step) — endpoint returns
+            // null in that case, not a 404, so no exception handling is needed.
+            switchMap(() => forkJoin({
+                extractionResult: this.wqmpService.getExtractionResultWaterQualityManagementPlan(this.waterQualityManagementPlanID),
+                // Always fetch the uploaded document metadata — we need the FileResourceGUID for the
+                // PDF blob regardless of extraction state.
+                documents: this.wqmpService.listDocumentsWaterQualityManagementPlan(this.waterQualityManagementPlanID),
+            })),
+            tap(({ extractionResult }) => {
+                this.currentResult.set(extractionResult);
+                if (extractionResult) {
+                    this.parseExtractionResult(extractionResult.ExtractionResultJson);
+                    this.applyDraftOverlay(extractionResult.DraftOverlayJson ?? null);
+                } else {
+                    this.fields.set([]);
+                }
                 this.hasUnsavedChanges.set(false);
             }),
-            switchMap((result) => {
-                if (this.pdfBlob) return of(result);
-                return this.http.get(`${environment.mainAppApiUrl}/file-resources/${result.FileResourceGuid}`, { responseType: "blob" }).pipe(
-                    tap((blob) => {
-                        this.pdfBlob = blob;
-                    }),
-                    map(() => result)
+            switchMap(({ extractionResult, documents }) => {
+                // Prefer the extraction result's cached GUID; fall back to the first (primary)
+                // document. Either source works — both ultimately point at the same blob.
+                const guid = extractionResult?.FileResourceGuid ?? documents[0]?.FileResource?.FileResourceGUID;
+                if (!guid || this.pdfBlob) return of({ hasResult: !!extractionResult });
+                return this.http.get(`${environment.mainAppApiUrl}/file-resources/${guid}`, { responseType: "blob" }).pipe(
+                    tap((blob) => { this.pdfBlob = blob; }),
+                    map(() => ({ hasResult: !!extractionResult })),
+                    catchError(() => of({ hasResult: !!extractionResult }))
                 );
             }),
             catchError(() => {
-                this.alertService.pushAlert(new Alert("Failed to load extraction results or PDF document.", AlertContext.Danger));
+                this.alertService.pushAlert(new Alert("Failed to load WQMP document.", AlertContext.Danger));
                 return EMPTY;
             }),
             shareReplay(1)
         );
+    }
+
+    runExtraction(): void {
+        // Caller (template) gates this on isAdmin + confirm-dialog when a result already exists.
+        this.isExtracting.set(true);
+        this.alertService.clearAlerts();
+        this.wqmpService.runExtractionWaterQualityManagementPlan(this.waterQualityManagementPlanID)
+            .pipe(finalize(() => this.isExtracting.set(false)))
+            .subscribe({
+                next: () => {
+                    this.alertService.pushAlert(new Alert("Extraction completed. Review the extracted fields below.", AlertContext.Success));
+                    this.reload$.next();
+                },
+                error: (err: HttpErrorResponse) => {
+                    // 400s carry our friendly { message } payload (PDF too large / Claude 4xx);
+                    // anything else falls through to the generic HttpErrorInterceptor alert.
+                    const msg = err.status === 400
+                        ? (err.error?.message ?? "Extraction failed.")
+                        : "Extraction failed. Please try again.";
+                    if (err.status === 400) {
+                        this.alertService.pushAlert(new Alert(msg, AlertContext.Danger));
+                    }
+                },
+            });
+    }
+
+    async confirmReExtract(): Promise<void> {
+        if (this.currentResult()?.ApprovedDate) return;
+        const confirmed = await this.confirmService.confirm({
+            title: "Re-run extraction?",
+            message: "This will replace the existing extraction result and discard any unsaved draft edits.",
+            buttonTextYes: "Re-run",
+            buttonTextNo: "Cancel",
+            buttonClassYes: "btn-danger",
+        }, this.viewContainerRef);
+        if (confirmed) this.runExtraction();
     }
 
     // IDeactivateComponent — returns true when it's safe to leave (no unsaved changes),
@@ -193,29 +264,82 @@ export class WqmpReviewComponent implements OnInit, IDeactivateComponent {
         return this.fields().length;
     }
 
+    onPdfLoaded(): void {
+        this.pdfLoaded = true;
+        // Replay any click that arrived before the iframe finished initializing.
+        if (this.pendingNavigation) {
+            const nav = this.pendingNavigation;
+            this.pendingNavigation = null;
+            this.navigateToSource(nav);
+        }
+    }
+
     async navigateToSource(nav: SourceNavigation): Promise<void> {
         if (!this.pdfViewer) return;
+        // Defer until the PDF.js iframe is ready — the user can click an evidence snippet
+        // before `onDocumentLoad` fires on large PDFs or cold caches.
+        if (!this.pdfLoaded) {
+            this.pendingNavigation = nav;
+            return;
+        }
         this.isNavigating.set(true);
 
         try {
             this.clearHighlights();
 
-            // Try text search first using the evidence snippet
+            // Best: text-layer span match (pixel accurate when the PDF has a usable text
+            // layer). Runs first because it beats Claude's vision-estimated coords on any
+            // PDF where the text layer is readable. Try multiple phrases so short/idiosyncratic
+            // evidence snippets still find a hit before we give up to the vision box.
+            const searchCandidates: string[] = [];
             if (nav.evidence) {
-                const foundPage = await this.searchPdfForText(nav.evidence, nav.documentSource);
+                const normalizedEvidence = this.normalizeText(nav.evidence);
+                const middleSlice = this.extractSearchPhrase(normalizedEvidence);
+                if (middleSlice) searchCandidates.push(middleSlice);
+                // Full normalized evidence — for cases where the 12-word middle slice falls on a
+                // page break or spans text-layer column boundaries but the whole snippet appears once.
+                if (normalizedEvidence && !searchCandidates.includes(normalizedEvidence)) {
+                    searchCandidates.push(normalizedEvidence);
+                }
+            }
+            if (nav.value) {
+                // Raw value ("14.6", "Michael Gagnet") — most distinctive when the phrase fails
+                // because the evidence uses a paraphrase or omits the actual value.
+                const normalizedValue = this.normalizeText(nav.value);
+                if (normalizedValue.length >= 3 && !searchCandidates.includes(normalizedValue)) {
+                    searchCandidates.push(normalizedValue);
+                }
+            }
+
+            for (const phrase of searchCandidates) {
+                const foundPage = await this.searchPdfForText(phrase, nav.documentSource);
                 if (foundPage > 0) {
+                    this.pendingHighlight = { pageNumber: foundPage, box: null, searchPhrase: phrase };
                     this.pdfViewer.page = foundPage;
-                    // Wait for page render then highlight
-                    setTimeout(() => this.highlightTextOnPage(foundPage, nav.evidence), 500);
+                    this.tryDrawPendingHighlight();
                     return;
                 }
             }
 
-            // Fall back to the page number from DocumentSource
+            // Next: Claude's vision-estimated coords. Imprecise (LLM-vision coords are
+            // typically off by a line or two), so we draw with a dashed border + padding to
+            // visually signal "approximate region" rather than claiming pixel precision.
+            if (nav.boundingBox) {
+                this.pendingHighlight = { pageNumber: nav.boundingBox.PageNumber, box: nav.boundingBox, searchPhrase: null };
+                this.pdfViewer.page = nav.boundingBox.PageNumber;
+                this.tryDrawPendingHighlight();
+                return;
+            }
+
+            // Last: DocumentSource page number with a whole-page outline. Used when Claude
+            // didn't emit a box AND the text layer is empty/garbled (pure scanned PDFs).
             if (nav.documentSource) {
                 const match = nav.documentSource.match(/page\s*(\d+)/i);
                 if (match) {
-                    this.pdfViewer.page = parseInt(match[1], 10);
+                    const pageNumber = parseInt(match[1], 10);
+                    this.pendingHighlight = { pageNumber, box: null, searchPhrase: null };
+                    this.pdfViewer.page = pageNumber;
+                    this.tryDrawPendingHighlight();
                 }
             }
         } finally {
@@ -223,34 +347,130 @@ export class WqmpReviewComponent implements OnInit, IDeactivateComponent {
         }
     }
 
-    private async searchPdfForText(evidence: string, documentSource: string | null): Promise<number> {
+    onPdfPageRendered(): void {
+        // PDF.js lazy-renders pages; whenever any page finishes rendering, check whether it's
+        // the one we're waiting on for a highlight and draw the box if so.
+        this.tryDrawPendingHighlight();
+    }
+
+    private tryDrawPendingHighlight(): void {
+        const pending = this.pendingHighlight;
+        if (!pending) return;
+        let drew = false;
+        if (pending.box) {
+            drew = this.highlightBoundingBox(pending.pageNumber, pending.box);
+        } else if (pending.searchPhrase) {
+            drew = this.highlightTextOnPage(pending.pageNumber, pending.searchPhrase);
+        } else {
+            drew = this.highlightWholePage(pending.pageNumber);
+        }
+        if (drew) this.pendingHighlight = null;
+    }
+
+    // Draw an approximate rectangle from Claude's vision-derived coords (normalized 0-1
+    // fractions relative to the page). LLM-vision coords are commonly off by a line or two,
+    // so we dashed-border the box and pad it generously vertically (where offsets are most
+    // common) so the actual target is usually inside the rendered region.
+    private highlightBoundingBox(pageNum: number, bbox: EvidenceBoundingBox): boolean {
+        try {
+            const iframe = this.pdfViewer?.iframe?.nativeElement as HTMLIFrameElement;
+            const iframeDoc = iframe?.contentDocument || iframe?.contentWindow?.document;
+            if (!iframeDoc) return false;
+            const pageEl = iframeDoc.querySelector(`.page[data-page-number="${pageNum}"]`) as HTMLElement | null;
+            if (!pageEl) return false;
+
+            const pageWidth = pageEl.offsetWidth;
+            const pageHeight = pageEl.offsetHeight;
+            // Claude's vision coords for scans are typically off by a line or two — a paragraph
+            // at worst. Generous padding (10% vertical, 3% horizontal) grows the rendered box
+            // enough to still capture the evidence when the raw coords drift, at the cost of a
+            // less precise-looking rectangle. The dashed border already tells the user the box
+            // is approximate.
+            const verticalPadFraction = 0.10;
+            const horizontalPadFraction = 0.03;
+
+            const left = Math.max(0, (bbox.X - horizontalPadFraction) * pageWidth);
+            const top = Math.max(0, (bbox.Y - verticalPadFraction) * pageHeight);
+            const right = Math.min(1, bbox.X + bbox.Width + horizontalPadFraction) * pageWidth;
+            const bottom = Math.min(1, bbox.Y + bbox.Height + verticalPadFraction) * pageHeight;
+
+            const box = iframeDoc.createElement("div");
+            box.className = "wqmp-highlight wqmp-highlight--approx";
+            Object.assign(box.style, {
+                position: "absolute",
+                left: `${left}px`,
+                top: `${top}px`,
+                width: `${right - left}px`,
+                height: `${bottom - top}px`,
+                border: "2px dashed #f59e0b",
+                backgroundColor: "rgba(255, 235, 59, 0.10)",
+                pointerEvents: "none",
+                zIndex: "10",
+                borderRadius: "3px",
+                boxSizing: "border-box",
+            });
+            pageEl.appendChild(box);
+            box.scrollIntoView({ behavior: "smooth", block: "center" });
+            return true;
+        } catch {
+            return false;
+        }
+    }
+
+    // Scanned PDFs (e.g. copier-generated) often have no usable text layer, so we can't
+    // pinpoint where the evidence lives. Outline the whole page as a softer visual cue that
+    // "the evidence is somewhere here" instead of silently landing the user on the page.
+    private highlightWholePage(pageNum: number): boolean {
+        try {
+            const iframe = this.pdfViewer?.iframe?.nativeElement as HTMLIFrameElement;
+            const iframeDoc = iframe?.contentDocument || iframe?.contentWindow?.document;
+            if (!iframeDoc) return false;
+            const pageEl = iframeDoc.querySelector(`.page[data-page-number="${pageNum}"]`) as HTMLElement | null;
+            if (!pageEl) return false;
+
+            const box = iframeDoc.createElement("div");
+            box.className = "wqmp-highlight wqmp-highlight--page";
+            Object.assign(box.style, {
+                position: "absolute",
+                left: "0px",
+                top: "0px",
+                width: `${pageEl.offsetWidth}px`,
+                height: `${pageEl.offsetHeight}px`,
+                border: "3px dashed #f59e0b",
+                backgroundColor: "rgba(255, 235, 59, 0.06)",
+                pointerEvents: "none",
+                zIndex: "10",
+                borderRadius: "4px",
+                boxSizing: "border-box",
+            });
+            pageEl.appendChild(box);
+            box.scrollIntoView({ behavior: "smooth", block: "start" });
+            return true;
+        } catch {
+            return false;
+        }
+    }
+
+    private async searchPdfForText(searchPhrase: string, documentSource: string | null): Promise<number> {
         try {
             const iframe = this.pdfViewer.iframe?.nativeElement as HTMLIFrameElement;
             const pdfApp = (iframe?.contentWindow as any)?.PDFViewerApplication;
             if (!pdfApp?.pdfDocument) return 0;
 
             const pdfDoc = pdfApp.pdfDocument;
-            const totalPages = pdfDoc.numPages;
-            const normalizedEvidence = this.normalizeText(evidence);
-
-            // Extract a meaningful search phrase from the evidence (use the middle portion for best specificity)
-            const searchPhrase = this.extractSearchPhrase(normalizedEvidence);
-            if (!searchPhrase) return 0;
-
+            const totalPages: number = pdfDoc.numPages;
             const matches: number[] = [];
             for (let i = 1; i <= totalPages; i++) {
                 const page = await pdfDoc.getPage(i);
                 const textContent = await page.getTextContent();
                 const pageText = this.normalizeText(textContent.items.map((item: any) => item.str).join(" "));
-                if (pageText.includes(searchPhrase)) {
-                    matches.push(i);
-                }
+                if (pageText.includes(searchPhrase)) matches.push(i);
             }
 
             if (matches.length === 0) return 0;
             if (matches.length === 1) return matches[0];
 
-            // Multiple matches — pick the one closest to the DocumentSource page hint
+            // Multiple hits — prefer the one nearest to Claude's documentSource hint.
             if (documentSource) {
                 const hintMatch = documentSource.match(/page\s*(\d+)/i);
                 if (hintMatch) {
@@ -264,10 +484,6 @@ export class WqmpReviewComponent implements OnInit, IDeactivateComponent {
         }
     }
 
-    private normalizeText(text: string): string {
-        return text.toLowerCase().replace(/\s+/g, " ").trim();
-    }
-
     private clearHighlights(): void {
         try {
             const iframe = this.pdfViewer?.iframe?.nativeElement as HTMLIFrameElement;
@@ -277,60 +493,90 @@ export class WqmpReviewComponent implements OnInit, IDeactivateComponent {
         } catch { /* ignore */ }
     }
 
-    private highlightTextOnPage(pageNum: number, evidence: string): void {
+    private highlightTextOnPage(pageNum: number, searchPhrase: string): boolean {
+        // Returns true when the highlight was successfully drawn, false when the target page
+        // isn't rendered yet (caller leaves `pendingHighlight` set so a later onPageRendered
+        // gets another chance).
         try {
             const iframe = this.pdfViewer?.iframe?.nativeElement as HTMLIFrameElement;
             const iframeDoc = iframe?.contentDocument || iframe?.contentWindow?.document;
-            if (!iframeDoc) return;
+            if (!iframeDoc) return false;
 
-            const pageEl = iframeDoc.querySelector(`.page[data-page-number="${pageNum}"]`) as HTMLElement;
-            if (!pageEl) return;
-
+            const pageEl = iframeDoc.querySelector(`.page[data-page-number="${pageNum}"]`) as HTMLElement | null;
+            if (!pageEl) return false;
             const textLayer = pageEl.querySelector(".textLayer");
-            if (!textLayer) return;
+            if (!textLayer) return false;
 
-            const searchPhrase = this.extractSearchPhrase(this.normalizeText(evidence));
-            if (!searchPhrase) return;
-
-            // Find all matching spans and compute a bounding box around them
-            const spans = textLayer.querySelectorAll("span");
-            const matchingRects: DOMRect[] = [];
-            const pageRect = pageEl.getBoundingClientRect();
-
-            for (const span of Array.from(spans)) {
-                const spanText = this.normalizeText(span.textContent || "");
-                if (spanText && (searchPhrase.includes(spanText) || spanText.includes(searchPhrase))) {
-                    matchingRects.push(span.getBoundingClientRect());
-                }
+            // Build a single concatenated text-layer string and find where our phrase appears,
+            // then collect the rects of spans whose text falls within that matched range. This
+            // is more robust than a span-by-span walk because PDF.js often splits text into
+            // single-character or short-fragment spans that wouldn't individually match a long
+            // phrase.
+            const spans = Array.from(textLayer.querySelectorAll("span"));
+            const entries: { text: string; rect: DOMRect; start: number; end: number }[] = [];
+            let cursor = 0;
+            let joined = "";
+            for (const span of spans) {
+                const text = this.normalizeText(span.textContent || "");
+                if (!text) continue;
+                const separator = joined.length > 0 && !joined.endsWith(" ") ? " " : "";
+                joined += separator + text;
+                const start = cursor + separator.length;
+                const end = start + text.length;
+                entries.push({ text, rect: span.getBoundingClientRect(), start, end });
+                cursor = end;
             }
 
-            if (matchingRects.length === 0) return;
+            const idx = joined.indexOf(searchPhrase);
+            if (idx < 0) return false;
+            const endIdx = idx + searchPhrase.length;
 
-            // Compute a single bounding box around all matched spans
-            const minLeft = Math.min(...matchingRects.map((r) => r.left)) - pageRect.left;
+            const matchingRects: DOMRect[] = entries
+                .filter((e) => e.end > idx && e.start < endIdx)
+                .map((e) => e.rect);
+            if (matchingRects.length === 0) return false;
+
+            const pageRect = pageEl.getBoundingClientRect();
             const minTop = Math.min(...matchingRects.map((r) => r.top)) - pageRect.top;
-            const maxRight = Math.max(...matchingRects.map((r) => r.right)) - pageRect.left;
             const maxBottom = Math.max(...matchingRects.map((r) => r.bottom)) - pageRect.top;
-
             const padding = 4;
-            const pageWidth = pageEl.offsetWidth;
+
             const box = iframeDoc.createElement("div");
             box.className = "wqmp-highlight";
             Object.assign(box.style, {
                 position: "absolute",
                 left: "0px",
                 top: `${minTop - padding}px`,
-                width: `${pageWidth}px`,
+                width: `${pageEl.offsetWidth}px`,
                 height: `${maxBottom - minTop + padding * 2}px`,
                 border: "2px solid #f59e0b",
-                backgroundColor: "rgba(255, 235, 59, 0.12)",
+                backgroundColor: "rgba(255, 235, 59, 0.18)",
                 pointerEvents: "none",
                 zIndex: "10",
                 borderRadius: "4px",
             });
             pageEl.appendChild(box);
             box.scrollIntoView({ behavior: "smooth", block: "center" });
-        } catch { /* ignore */ }
+            return true;
+        } catch {
+            return false;
+        }
+    }
+
+    private normalizeText(text: string): string {
+        // Claude's ExtractionEvidence doesn't always round-trip cleanly through PDF.js text
+        // extraction — curly quotes, non-breaking spaces, and ligatures can produce mismatches.
+        // Canonicalize: NFKD decompose → strip combining marks → unify quote/dash variants
+        // → collapse whitespace. Used on both sides before comparison.
+        return text
+            .normalize("NFKD")
+            .replace(/[̀-ͯ]/g, "")
+            .replace(/[‘’‛′]/g, "'")
+            .replace(/[“”‟″]/g, '"')
+            .replace(/[–—−]/g, "-")
+            .replace(/\s+/g, " ")
+            .toLowerCase()
+            .trim();
     }
 
     private extractSearchPhrase(text: string): string {
@@ -572,6 +818,7 @@ export class WqmpReviewComponent implements OnInit, IDeactivateComponent {
         const rawValue = extracted?.Value ?? null;
         const evidence = extracted?.ExtractionEvidence ?? null;
         const source = extracted?.DocumentSource ?? null;
+        const boundingBox = this.parseBoundingBox(extracted?.BoundingBox);
         const lookupConfig = this.lookupFieldConfig[key];
 
         let value = rawValue;
@@ -605,12 +852,25 @@ export class WqmpReviewComponent implements OnInit, IDeactivateComponent {
             value,
             evidence,
             source,
+            boundingBox,
             confidence: this.inferConfidence(rawValue, evidence, source),
             step,
             state: "pending",
             fieldType,
             selectOptions,
         };
+    }
+
+    private parseBoundingBox(box: any): EvidenceBoundingBox | null {
+        if (box === null || box === undefined || typeof box !== "object") return null;
+        const { PageNumber, X, Y, Width, Height } = box;
+        // All five fields must be finite numbers, normalized coords within [0, 1], and
+        // PageNumber must be a positive integer. Reject anything partial so we don't draw
+        // a garbage box from a half-populated result.
+        if ([PageNumber, X, Y, Width, Height].some((n) => typeof n !== "number" || !isFinite(n))) return null;
+        if (PageNumber < 1 || !Number.isInteger(PageNumber)) return null;
+        if (X < 0 || X > 1 || Y < 0 || Y > 1 || Width <= 0 || Width > 1 || Height <= 0 || Height > 1) return null;
+        return { PageNumber, X, Y, Width, Height };
     }
 
     private inferConfidence(value: string | null, evidence: string | null, source: string | null): ConfidenceLevel {

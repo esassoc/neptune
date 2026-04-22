@@ -1,7 +1,10 @@
-@if (extractionResult$ | async; as extractionResult) {
+@if (pageData$ | async; as pageData) {
     <div class="review-layout">
         <!-- Sidebar -->
         <aside class="review-sidebar">
+            <a [routerLink]="['/water-quality-management-plans', waterQualityManagementPlanID]" class="review-sidebar__back">
+                <i class="fa fa-arrow-left"></i> Back to WQMP
+            </a>
             <div class="review-sidebar__steps">
                 <div class="review-sidebar__label">Review Steps</div>
                 <ul class="step-nav">
@@ -28,6 +31,27 @@
                 </div>
                 <span class="progress-bar__label">{{ confirmedCount }} of {{ totalFieldCount }} fields confirmed</span>
             </div>
+            @if (pageData.hasResult) {
+                <div class="review-sidebar__actions">
+                    @if (!isApproved()) {
+                        <button class="btn btn-primary btn-block" (click)="saveDraft()" [disabled]="isSavingDraft || isExtracting() || !hasUnsavedChanges()">
+                            @if (isSavingDraft) { <i class="fa fa-spinner fa-spin"></i> } Save Draft
+                        </button>
+                        <button class="btn btn-primary btn-block" (click)="approveAndApply()" [disabled]="isApplying || isExtracting() || confirmedCount === 0">
+                            @if (isApplying) { <i class="fa fa-spinner fa-spin"></i> } Approve &amp; Apply
+                        </button>
+                        <button class="btn btn-secondary-outline btn-block" (click)="discardDraft()" [disabled]="isSavingDraft || isExtracting() || (!currentResult()?.DraftUpdatedDate && !hasUnsavedChanges())">
+                            Discard Draft
+                        </button>
+                        <button class="btn btn-secondary-outline btn-block" (click)="confirmReExtract()" [disabled]="isExtracting()" title="Replace the existing extraction and clear draft edits">
+                            @if (isExtracting()) { <i class="fa fa-spinner fa-spin"></i> Extracting... } @else { <i class="fa fa-magic"></i> Re-run extraction }
+                        </button>
+                    }
+                    <button class="btn btn-secondary-outline btn-block" (click)="cancel()" [disabled]="isExtracting()">
+                        @if (isApproved()) { Back } @else { Cancel }
+                    </button>
+                </div>
+            }
         </aside>
 
         <!-- PDF Panel -->
@@ -41,7 +65,7 @@
                 <ng2-pdfjs-viewer
                     #pdfViewer
                     [pdfSrc]="pdfBlob"
-                    [zoom]="'page-width'"
+                    [zoom]="'page-fit'"
                     [showFind]="true"
                     [showViewBookmark]="false"
                     [showOpenFile]="false"
@@ -49,6 +73,8 @@
                     [showPrint]="false"
                     [showAnnotations]="false"
                     [showSpinner]="false"
+                    (onDocumentLoad)="onPdfLoaded()"
+                    (onPageRendered)="onPdfPageRendered()"
                     style="width: 100%; height: 100%;">
                 </ng2-pdfjs-viewer>
             }
@@ -57,16 +83,26 @@
         <!-- Review Panel -->
         <div class="review-panel">
             <div class="review-panel__header">
-                <a [routerLink]="['/water-quality-management-plans', waterQualityManagementPlanID]" class="review-panel__back">
-                    <i class="fa fa-arrow-left"></i> Back to WQMP
-                </a>
                 <h2>{{ steps[currentStep() - 1].title }}</h2>
-                <p class="review-panel__desc">Review and confirm the AI-extracted values below.</p>
+                @if (pageData.hasResult) {
+                    <p class="review-panel__desc">Review and confirm the AI-extracted values below.</p>
+                }
             </div>
 
             <app-alert-display></app-alert-display>
 
-            @if (isApproved()) {
+            @if (!pageData.hasResult) {
+                <div class="review-panel__extract-cta">
+                    <i class="fa fa-magic review-panel__extract-cta-icon"></i>
+                    <h3>Not yet extracted</h3>
+                    <p>Review the uploaded PDF on the right, then click below to run AI extraction against the document.</p>
+                    <button class="btn btn-primary" (click)="runExtraction()" [disabled]="isExtracting()">
+                        @if (isExtracting()) { <i class="fa fa-spinner fa-spin"></i> Extracting... } @else { <i class="fa fa-magic"></i> Extract with AI }
+                    </button>
+                </div>
+            }
+
+            @if (pageData.hasResult && isApproved()) {
                 <div class="review-panel__banner review-panel__banner--approved">
                     <i class="fa fa-check-circle"></i>
                     Approved by {{ currentResult()?.ApprovedByFullName }} on {{ currentResult()?.ApprovedDate | date: "medium" }}. This review is read-only.
@@ -86,44 +122,30 @@
                 </div>
             }
 
-            <div class="review-panel__fields">
-                @for (field of fieldsForCurrentStep; track field.key) {
-                    <field-card
-                        [fieldLabel]="field.label"
-                        [extractedValue]="field.value"
-                        [extractionEvidence]="field.evidence"
-                        [documentSource]="field.source"
-                        [confidence]="field.confidence"
-                        [fieldType]="field.fieldType ?? FormFieldType.Text"
-                        [selectOptions]="field.selectOptions ?? []"
-                        [origin]="getFieldOrigin(field)"
-                        [readOnly]="isApproved()"
-                        [initialState]="field.state"
-                        [initialValue]="field.acceptedValue ?? field.value"
-                        (valueAccepted)="onFieldAccepted(field, $event)"
-                        (valueEdited)="onFieldEdited(field, $event)"
-                        (valueRejected)="onFieldRejected(field)"
-                        (navigateToSource)="navigateToSource($event)">
-                    </field-card>
-                }
-            </div>
-
-            <div class="review-panel__footer">
-                @if (!isApproved()) {
-                    <button class="btn btn-primary" (click)="saveDraft()" [disabled]="isSavingDraft || !hasUnsavedChanges()">
-                        @if (isSavingDraft) { <i class="fa fa-spinner fa-spin"></i> } Save Draft
-                    </button>
-                    <button class="btn btn-secondary-outline" (click)="discardDraft()" [disabled]="isSavingDraft || (!currentResult()?.DraftUpdatedDate && !hasUnsavedChanges())">
-                        Discard Draft
-                    </button>
-                    <button class="btn btn-primary" (click)="approveAndApply()" [disabled]="isApplying || confirmedCount === 0">
-                        @if (isApplying) { <i class="fa fa-spinner fa-spin"></i> } Approve &amp; Apply
-                    </button>
-                }
-                <button class="btn btn-secondary-outline" (click)="cancel()">
-                    @if (isApproved()) { Back } @else { Cancel }
-                </button>
-            </div>
+            @if (pageData.hasResult) {
+                <div class="review-panel__fields">
+                    @for (field of fieldsForCurrentStep; track field.key) {
+                        <field-card
+                            [fieldLabel]="field.label"
+                            [extractedValue]="field.value"
+                            [extractionEvidence]="field.evidence"
+                            [documentSource]="field.source"
+                            [boundingBox]="field.boundingBox"
+                            [confidence]="field.confidence"
+                            [fieldType]="field.fieldType ?? FormFieldType.Text"
+                            [selectOptions]="field.selectOptions ?? []"
+                            [origin]="getFieldOrigin(field)"
+                            [readOnly]="isApproved()"
+                            [initialState]="field.state"
+                            [initialValue]="field.acceptedValue ?? field.value"
+                            (valueAccepted)="onFieldAccepted(field, $event)"
+                            (valueEdited)="onFieldEdited(field, $event)"
+                            (valueRejected)="onFieldRejected(field)"
+                            (navigateToSource)="navigateToSource($event)">
+                        </field-card>
+                    }
+                </div>
+            }
         </div>
     </div>
 }

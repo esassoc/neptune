@@ -160,3 +160,4 @@ export * from './water-quality-management-plan-verify-treatment-bmp-simple-dto';
 export * from './water-quality-management-plan-verify-upsert-dto';
 export * from './watershed-dto';
 export * from './workflow-step-status';
+export * from './wqmp-upload-result-dto';
