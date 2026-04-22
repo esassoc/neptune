@@ -2,7 +2,10 @@
 
 .review-layout {
     display: flex;
-    height: calc(100vh - 60px);
+    // Fill the available height handed to us by .site-wrapper (see _layout.scss). Avoids a
+    // hardcoded viewport offset that drifts out of sync with the actual header heights.
+    height: 100%;
+    min-height: 0;
     overflow: hidden;
 }
 
