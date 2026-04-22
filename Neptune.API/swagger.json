@@ -4938,6 +4938,46 @@
         "x-anonymous": true
       }
     },
+    "/training-videos": {
+      "get": {
+        "tags": [
+          "TrainingVideo"
+        ],
+        "operationId": "List_TrainingVideo",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/TrainingVideoDto"
+                  }
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/TrainingVideoDto"
+                  }
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/TrainingVideoDto"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "x-anonymous": true
+      }
+    },
     "/trash-generating-units": {
       "get": {
         "tags": [
@@ -13981,6 +14021,28 @@
         },
         "additionalProperties": false
       },
+      "TrainingVideoDto": {
+        "type": "object",
+        "properties": {
+          "TrainingVideoID": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "VideoName": {
+            "type": "string",
+            "nullable": true
+          },
+          "VideoDescription": {
+            "type": "string",
+            "nullable": true
+          },
+          "VideoURL": {
+            "type": "string",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
       "TrashCaptureStatusTypeDto": {
         "type": "object",
         "properties": {
@@ -17159,6 +17221,9 @@
     },
     {
       "name": "SystemInfo"
+    },
+    {
+      "name": "TrainingVideo"
     },
     {
       "name": "TrashGeneratingUnit"

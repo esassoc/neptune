@@ -24,6 +24,7 @@ api/project.service.ts
 api/regional-subbasin.service.ts
 api/stormwater-jurisdiction.service.ts
 api/system-info.service.ts
+api/training-video.service.ts
 api/trash-generating-unit-by-stormwater-jurisdiction.service.ts
 api/trash-generating-unit.service.ts
 api/treatment-bmp-assessment-observation-type.service.ts
@@ -140,6 +141,7 @@ model/source-control-bmp-upsert-dto.ts
 model/stormwater-jurisdiction-display-dto.ts
 model/stormwater-jurisdiction-grid-dto.ts
 model/system-info-dto.ts
+model/training-video-dto.ts
 model/trash-capture-status-type-dto.ts
 model/trash-generating-unit-dto.ts
 model/trash-generating-unit-grid-dto.ts

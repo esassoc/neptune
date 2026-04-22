@@ -1,0 +1,17 @@
+<page-header [customRichTextTypeID]="customRichTextTypeID" pageTitle="Training"></page-header>
+
+<div class="page-body" [loadingSpinner]="{ isLoading, loadingHeight: 100 }">
+    <div class="video-grid">
+        @for (video of videos; track video.TrainingVideoID) {
+            <div class="video-card">
+                <div class="video-header">
+                    <strong>{{ video.VideoName }}</strong>
+                </div>
+                <div class="video-body">
+                    <iframe [src]="video.VideoURL | safeResourceUrl" allowfullscreen width="100%" height="344" frameborder="0"></iframe>
+                    <p>{{ video.VideoDescription }}</p>
+                </div>
+            </div>
+        }
+    </div>
+</div>

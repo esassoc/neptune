@@ -330,6 +330,11 @@ export const routes: Routes = [
         children: [
             { path: "", loadComponent: () => import("./pages/home/home-index/home-index.component").then((m) => m.HomeIndexComponent) },
             { path: "about", loadComponent: () => import("./pages/about/about.component").then((m) => m.AboutComponent) },
+            {
+                path: "training",
+                title: "Training",
+                loadComponent: () => import("./pages/training/training.component").then((m) => m.TrainingComponent),
+            },
             { path: "modeling", loadComponent: () => import("./pages/modeling-about/modeling-about.component").then((m) => m.ModelingAboutComponent) },
             {
                 path: `labels-and-definitions/:${routeParams.definitionID}`,
