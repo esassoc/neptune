@@ -2,6 +2,9 @@
     <div class="review-layout">
         <!-- Sidebar -->
         <aside class="review-sidebar">
+            <a [routerLink]="['/water-quality-management-plans', waterQualityManagementPlanID]" class="review-sidebar__back">
+                <i class="fa fa-arrow-left"></i> Back to WQMP
+            </a>
             <div class="review-sidebar__steps">
                 <div class="review-sidebar__label">Review Steps</div>
                 <ul class="step-nav">
@@ -80,9 +83,6 @@
         <!-- Review Panel -->
         <div class="review-panel">
             <div class="review-panel__header">
-                <a [routerLink]="['/water-quality-management-plans', waterQualityManagementPlanID]" class="review-panel__back">
-                    <i class="fa fa-arrow-left"></i> Back to WQMP
-                </a>
                 <h2>{{ steps[currentStep() - 1].title }}</h2>
                 @if (pageData.hasResult) {
                     <p class="review-panel__desc">Review and confirm the AI-extracted values below.</p>

@@ -4,9 +4,10 @@
 .field-card {
     border: 1px solid $gray-200;
     border-radius: $border-radius-200;
-    padding: 0.75rem;
-    margin-bottom: 0.5rem;
+    padding: 0.5rem 0.6rem;
+    margin-bottom: 0;
     transition: border-color 0.15s;
+    font-size: $type-size-200;
 
     &--accepted {
         border-color: #22c55e;
@@ -29,20 +30,20 @@
     }
 
     &__origin {
-        margin-top: 0.25rem;
-        margin-bottom: 0.25rem;
+        margin-top: 0;
+        margin-bottom: 0.15rem;
     }
 
     &__header {
         display: flex;
         justify-content: space-between;
         align-items: center;
-        margin-bottom: 0.25rem;
+        margin-bottom: 0.1rem;
     }
 
     &__label {
         font-weight: 600;
-        font-size: $type-size-200;
+        font-size: $type-size-100;
         color: $gray-500;
         text-transform: uppercase;
         letter-spacing: 0.03em;
@@ -99,7 +100,8 @@
     }
 
     &__value {
-        font-size: $type-size-300;
+        font-size: $type-size-200;
+        line-height: 1.3;
 
         &--empty {
             color: $gray-400;
@@ -133,9 +135,9 @@
         border: none;
         background: none;
         color: $gray-400;
-        font-size: $type-size-200;
+        font-size: $type-size-100;
         cursor: pointer;
-        margin-top: 0.5rem;
+        margin-top: 0.25rem;
         padding: 0;
 
         &:hover {
@@ -143,16 +145,16 @@
         }
 
         i {
-            margin-right: 0.25rem;
+            margin-right: 0.2rem;
         }
     }
 
     &__evidence {
-        margin-top: 0.5rem;
-        padding: 0.5rem;
+        margin-top: 0.35rem;
+        padding: 0.4rem 0.5rem;
         background: $gray-100;
         border-radius: $border-radius-200;
-        font-size: $type-size-200;
+        font-size: $type-size-100;
     }
 
     &__source {
@@ -177,7 +179,8 @@
 
     &__snippet {
         color: $gray-500;
-        line-height: 1.4;
+        line-height: 1.35;
+        margin: 0;
 
         &--clickable {
             cursor: pointer;
