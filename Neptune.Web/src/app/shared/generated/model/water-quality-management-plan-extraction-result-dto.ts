@@ -14,6 +14,7 @@ export class WaterQualityManagementPlanExtractionResultDto {
     WaterQualityManagementPlanID?: number;
     WaterQualityManagementPlanDocumentID?: number;
     StormwaterJurisdictionID?: number;
+    WaterQualityManagementPlanName?: string | null;
     ExtractionResultJson?: string | null;
     ExtractedAt?: string;
     FileResourceGuid?: string | null;
@@ -31,6 +32,7 @@ export interface WaterQualityManagementPlanExtractionResultDtoForm {
     WaterQualityManagementPlanID?: FormControl<number>;
     WaterQualityManagementPlanDocumentID?: FormControl<number>;
     StormwaterJurisdictionID?: FormControl<number>;
+    WaterQualityManagementPlanName?: FormControl<string>;
     ExtractionResultJson?: FormControl<string>;
     ExtractedAt?: FormControl<string>;
     FileResourceGuid?: FormControl<string>;
@@ -63,6 +65,16 @@ export class WaterQualityManagementPlanExtractionResultDtoFormControls {
         }
     );
     public static StormwaterJurisdictionID = (value: FormControlState<number> | number = undefined, formControlOptions?: FormControlOptions | null) => new FormControl<number>(
+        value,
+        formControlOptions ?? 
+        {
+            nonNullable: false,
+            validators: 
+            [
+            ],
+        }
+    );
+    public static WaterQualityManagementPlanName = (value: FormControlState<string> | string = undefined, formControlOptions?: FormControlOptions | null) => new FormControl<string>(
         value,
         formControlOptions ?? 
         {

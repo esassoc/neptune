@@ -70,6 +70,34 @@ namespace Neptune.EFModels.Entities
             return parcel;
         }
 
+        // Bulk lookup used by the WQMP AI-extraction review flow to resolve the accepted
+        // list of APN strings into Parcel IDs before writing them to the WQMP. Returns every
+        // requested parcel number, with ParcelID = null when not found so the caller can
+        // surface missing ones to the user.
+        public static List<ParcelLookupResultDto> LookupByParcelNumbers(NeptuneDbContext dbContext, List<string> parcelNumbers)
+        {
+            var normalized = parcelNumbers
+                .Where(x => !string.IsNullOrWhiteSpace(x))
+                .Select(x => x.Trim())
+                .Distinct()
+                .ToList();
+
+            var matches = dbContext.Parcels
+                .AsNoTracking()
+                .Where(x => normalized.Contains(x.ParcelNumber))
+                .Select(x => new { x.ParcelNumber, x.ParcelID })
+                .ToList()
+                .ToDictionary(x => x.ParcelNumber, x => (int?)x.ParcelID);
+
+            return normalized
+                .Select(pn => new ParcelLookupResultDto
+                {
+                    ParcelNumber = pn,
+                    ParcelID = matches.TryGetValue(pn, out var id) ? id : null,
+                })
+                .ToList();
+        }
+
         public static List<ParcelDisplayDto> Search(NeptuneDbContext dbContext, string term)
         {
             var searchString = term.Trim();

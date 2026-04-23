@@ -12,6 +12,7 @@ import { AlertService } from "src/app/shared/services/alert.service";
 import { Alert } from "src/app/shared/models/alert";
 import { AlertContext } from "src/app/shared/models/enums/alert-context.enum";
 import { WaterQualityManagementPlanService } from "src/app/shared/generated/api/water-quality-management-plan.service";
+import { ParcelService } from "src/app/shared/generated/api/parcel.service";
 import { StormwaterJurisdictionService } from "src/app/shared/generated/api/stormwater-jurisdiction.service";
 import { WaterQualityManagementPlanExtractionResultDto } from "src/app/shared/generated/model/water-quality-management-plan-extraction-result-dto";
 import { EvidenceBoundingBox, FieldCardComponent, SourceNavigation } from "src/app/pages/wqmps/wqmp-detail/wqmp-review/field-card/field-card.component";
@@ -22,10 +23,11 @@ import { WaterQualityManagementPlanLandUsesAsSelectDropdownOptions } from "src/a
 import { WaterQualityManagementPlanPermitTermsAsSelectDropdownOptions } from "src/app/shared/generated/enum/water-quality-management-plan-permit-term-enum";
 import { HydromodificationAppliesTypesAsSelectDropdownOptions } from "src/app/shared/generated/enum/hydromodification-applies-type-enum";
 import { TrashCaptureStatusTypesAsSelectDropdownOptions } from "src/app/shared/generated/enum/trash-capture-status-type-enum";
+import { US_STATES } from "src/app/shared/constants/us-states";
 import { environment } from "src/environments/environment";
 
 export type ConfidenceLevel = "high" | "medium" | "low" | "none";
-export type FieldOrigin = "ai" | "blank";
+export type FieldOrigin = "ai" | "blank" | "user";
 
 export interface ExtractedField {
     key: string;
@@ -40,6 +42,11 @@ export interface ExtractedField {
     state: "pending" | "accepted" | "edited" | "rejected";
     fieldType?: FormFieldType;
     selectOptions?: SelectDropdownOption[];
+    // ngx-mask pattern to apply in the form-field (e.g. "(000) 000-0000"). Optional.
+    mask?: string;
+    // True when the value came from the user (upload modal), not the AI. Drives the
+    // "User-entered" origin pill and suppresses AI evidence styling.
+    isUserEntered?: boolean;
 }
 
 interface DraftOverlayEntry {
@@ -62,10 +69,17 @@ export class WqmpReviewComponent implements OnInit, IDeactivateComponent {
     private router = inject(Router);
     private http = inject(HttpClient);
     private wqmpService = inject(WaterQualityManagementPlanService);
+    private parcelService = inject(ParcelService);
     private jurisdictionService = inject(StormwaterJurisdictionService);
     private alertService = inject(AlertService);
     private confirmService = inject(ConfirmService);
     private viewContainerRef = inject(ViewContainerRef);
+
+    // Prefix used on ExtractedField.key for parcel rows. Reusing the field-card machinery
+    // (accept/edit/reject/navigate) keeps the UX consistent and lets draft-overlay keep
+    // working unchanged. Filter by this prefix to distinguish parcels from single-value fields.
+    public readonly PARCEL_KEY_PREFIX = "__Parcel__-";
+    private userParcelCounter = 0;
 
     public FormFieldType = FormFieldType;
     // pageData$ emits on every reload and is the outer gate for the template. It completes
@@ -609,11 +623,36 @@ export class WqmpReviewComponent implements OnInit, IDeactivateComponent {
         this.hasUnsavedChanges.set(true);
     }
 
+    // Add a blank user-entered parcel row to the Location step. The reviewer edits the APN
+    // in the new row's edit form and hits the row's check mark to accept it; the approve-
+    // and-apply flow resolves the APN to a ParcelID via POST /parcels/lookup-by-numbers.
+    addParcel(): void {
+        if (this.isApproved()) return;
+        const existingParcelCount = this.fields().filter((f) => f.key.startsWith(this.PARCEL_KEY_PREFIX)).length;
+        const key = `${this.PARCEL_KEY_PREFIX}user-${this.userParcelCounter++}`;
+        const newField: ExtractedField = {
+            key,
+            label: `Parcel ${existingParcelCount + 1} (APN)`,
+            value: null,
+            evidence: null,
+            source: null,
+            boundingBox: null,
+            confidence: "none",
+            step: 1,
+            state: "pending",
+            acceptedValue: null,
+            isUserEntered: true,
+        };
+        this.fields.update((f) => [...f, newField]);
+        this.hasUnsavedChanges.set(true);
+    }
+
     // origin reflects the source of the field's *value*, not any reviewer action.
     // The template checks field state first for "edited"/"rejected" pills, then falls back
     // to origin. When a reviewer "accepts" an AI value, origin stays "ai" — they're
     // confirming the source, not editing the value.
     getFieldOrigin(field: ExtractedField): FieldOrigin {
+        if (field.isUserEntered) return "user";
         return field.value ? "ai" : "blank";
     }
 
@@ -696,6 +735,9 @@ export class WqmpReviewComponent implements OnInit, IDeactivateComponent {
                     MaintenanceContactZip: "MaintenanceContactZip",
                 };
                 for (const field of this.fields()) {
+                    // Parcels are persisted via a separate endpoint after the main approve
+                    // succeeds — skip them here.
+                    if (field.key.startsWith(this.PARCEL_KEY_PREFIX)) continue;
                     if (field.state !== "accepted" && field.state !== "edited") continue;
                     if (field.acceptedValue == null) continue;
 
@@ -728,7 +770,9 @@ export class WqmpReviewComponent implements OnInit, IDeactivateComponent {
                     }
                 }
 
-                return this.wqmpService.approveExtractionResultWaterQualityManagementPlan(this.waterQualityManagementPlanID, dto);
+                return this.wqmpService.approveExtractionResultWaterQualityManagementPlan(this.waterQualityManagementPlanID, dto).pipe(
+                    switchMap(() => this.syncAcceptedParcels())
+                );
             })
         ).subscribe({
             next: () => {
@@ -742,6 +786,40 @@ export class WqmpReviewComponent implements OnInit, IDeactivateComponent {
                 this.alertService.pushAlert(new Alert("An error occurred while applying changes.", AlertContext.Danger));
             },
         });
+    }
+
+    // After the main approve/apply lands, collect the accepted parcel APN strings, resolve
+    // them to ParcelIDs, and PUT the list to the WQMP. Returns an Observable that completes
+    // whether or not there are parcels to sync. Missing APNs surface as a warning alert.
+    private syncAcceptedParcels(): Observable<unknown> {
+        const apns = this.fields()
+            .filter((f) => f.key.startsWith(this.PARCEL_KEY_PREFIX))
+            .filter((f) => f.state === "accepted" || f.state === "edited")
+            .map((f) => (f.acceptedValue ?? f.value ?? "").trim())
+            .filter((apn) => apn.length > 0);
+
+        if (apns.length === 0) {
+            // User rejected / blanked all parcels — clear them on the WQMP too.
+            return this.wqmpService.updateParcelsWaterQualityManagementPlan(this.waterQualityManagementPlanID, []);
+        }
+
+        return this.parcelService.lookupByNumbersParcel(apns).pipe(
+            switchMap((results) => {
+                const ids = results
+                    .filter((r) => r.ParcelID != null)
+                    .map((r) => r.ParcelID!);
+                const missing = results.filter((r) => r.ParcelID == null).map((r) => r.ParcelNumber);
+                if (missing.length > 0) {
+                    this.alertService.pushAlert(
+                        new Alert(
+                            `The following APNs were not found in the parcel database and were skipped: ${missing.join(", ")}.`,
+                            AlertContext.Warning
+                        )
+                    );
+                }
+                return this.wqmpService.updateParcelsWaterQualityManagementPlan(this.waterQualityManagementPlanID, ids);
+            })
+        );
     }
 
     cancel(): void {
@@ -793,10 +871,26 @@ export class WqmpReviewComponent implements OnInit, IDeactivateComponent {
                 allFields.push(this.makeField(key, wqmp[key], 2));
             }
 
-            // The Jurisdiction the user picked in the upload modal is authoritative —
-            // override any AI-extracted value and mark as accepted so the user doesn't
-            // need to re-confirm a selection they already made.
-            const confirmedJurisdictionID = this.currentResult()?.StormwaterJurisdictionID;
+            // Parcels: each entry is { ParcelNumber: { Value, Evidence, ... } }. Render one
+            // field card per extracted APN on the Location step. User-added rows get
+            // appended at click-time with a different key suffix so they don't collide.
+            const parcelArr = parsed.Parcels;
+            if (Array.isArray(parcelArr)) {
+                parcelArr.forEach((parcel: any, i: number) => {
+                    const extracted = parcel?.ParcelNumber;
+                    if (!extracted) return;
+                    const field = this.makeField(`${this.PARCEL_KEY_PREFIX}${i}`, extracted, 1);
+                    field.label = `Parcel ${i + 1} (APN)`;
+                    allFields.push(field);
+                });
+            }
+
+            // Jurisdiction + WQMP Name are user-entered in the upload modal — they are
+            // authoritative and don't need review. Override the AI-extracted values, mark
+            // the fields accepted, stamp them as user-origin so the review page renders
+            // "User-entered" rather than "AI-extracted" pills and skips the evidence chrome.
+            const current = this.currentResult();
+            const confirmedJurisdictionID = current?.StormwaterJurisdictionID;
             if (confirmedJurisdictionID) {
                 const jurisdictionField = allFields.find((f) => f.key === "Jurisdiction");
                 if (jurisdictionField) {
@@ -805,6 +899,24 @@ export class WqmpReviewComponent implements OnInit, IDeactivateComponent {
                     jurisdictionField.acceptedValue = confirmedValue;
                     jurisdictionField.state = "accepted";
                     jurisdictionField.confidence = "high";
+                    jurisdictionField.isUserEntered = true;
+                    jurisdictionField.evidence = null;
+                    jurisdictionField.source = null;
+                    jurisdictionField.boundingBox = null;
+                }
+            }
+            const confirmedName = current?.WaterQualityManagementPlanName;
+            if (confirmedName) {
+                const nameField = allFields.find((f) => f.key === "WaterQualityManagementPlanName");
+                if (nameField) {
+                    nameField.value = confirmedName;
+                    nameField.acceptedValue = confirmedName;
+                    nameField.state = "accepted";
+                    nameField.confidence = "high";
+                    nameField.isUserEntered = true;
+                    nameField.evidence = null;
+                    nameField.source = null;
+                    nameField.boundingBox = null;
                 }
             }
 
@@ -824,6 +936,7 @@ export class WqmpReviewComponent implements OnInit, IDeactivateComponent {
         let value = rawValue;
         let fieldType: FormFieldType | undefined;
         let selectOptions: SelectDropdownOption[] | undefined;
+        let mask: string | undefined;
 
         if (lookupConfig) {
             fieldType = FormFieldType.Select;
@@ -831,6 +944,18 @@ export class WqmpReviewComponent implements OnInit, IDeactivateComponent {
             // Resolve extracted text name to the matching option's ID
             if (rawValue) {
                 const match = lookupConfig.options.find((o) => o.Label.toLowerCase() === rawValue.toLowerCase());
+                value = match ? String(match.Value) : null;
+            }
+        } else if (key === "MaintenanceContactState") {
+            // Canonical US states picklist — AI may return a full name or abbreviation;
+            // coerce to the 2-letter value for storage.
+            fieldType = FormFieldType.Select;
+            selectOptions = US_STATES;
+            if (rawValue) {
+                const trimmed = rawValue.trim();
+                const match = US_STATES.find(
+                    (s) => s.Value === trimmed.toUpperCase() || s.Label.toLowerCase() === trimmed.toLowerCase()
+                );
                 value = match ? String(match.Value) : null;
             }
         } else if (key === "ApprovalDate" || key === "DateOfConstruction") {
@@ -844,6 +969,19 @@ export class WqmpReviewComponent implements OnInit, IDeactivateComponent {
             }
         } else if (key === "RecordedWQMPAreaInAcres") {
             fieldType = FormFieldType.Number;
+        } else if (key === "MaintenanceContactPhone") {
+            // Format any raw 10-digit AI capture as (NNN) NNN-NNNN for display; mask enforces
+            // it on user edits too.
+            mask = "(000) 000-0000";
+            if (rawValue) {
+                const digits = rawValue.replace(/\D/g, "");
+                if (digits.length === 10) {
+                    value = `(${digits.slice(0, 3)}) ${digits.slice(3, 6)}-${digits.slice(6)}`;
+                }
+            }
+        } else if (key === "MaintenanceContactZip") {
+            // Accept either 5-digit or ZIP+4. The separator pattern makes both shapes work.
+            mask = "00000||00000-0000";
         }
 
         return {
@@ -858,6 +996,7 @@ export class WqmpReviewComponent implements OnInit, IDeactivateComponent {
             state: "pending",
             fieldType,
             selectOptions,
+            mask,
         };
     }
 

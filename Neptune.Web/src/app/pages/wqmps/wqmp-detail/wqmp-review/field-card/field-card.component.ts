@@ -3,7 +3,7 @@ import { FormControl, ReactiveFormsModule } from "@angular/forms";
 import { FormFieldComponent, FormFieldType, FormInputOption } from "src/app/shared/components/forms/form-field/form-field.component";
 
 export type FieldState = "pending" | "accepted" | "edited" | "rejected";
-export type FieldOrigin = "ai" | "blank";
+export type FieldOrigin = "ai" | "blank" | "user";
 
 export interface EvidenceBoundingBox {
     PageNumber: number;
@@ -36,6 +36,9 @@ export class FieldCardComponent implements OnChanges {
     @Input() confidence: "high" | "medium" | "low" | "none" = "none";
     @Input() fieldType: FormFieldType = FormFieldType.Text;
     @Input() selectOptions: FormInputOption[] = [];
+    // Optional ngx-mask pattern passed through to the form-field (e.g. "(000) 000-0000" for
+    // phone, "00000" / "00000-0000" for ZIP). Ignored for non-text / non-number field types.
+    @Input() mask: string | null = null;
     @Input() origin: FieldOrigin = "ai";
     @Input() readOnly = false;
     @Input() initialState: FieldState = "pending";

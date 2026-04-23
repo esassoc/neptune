@@ -73,9 +73,9 @@
             </form-field>
             <form-field class="g-col-4" [formControl]="formGroup.controls.MaintenanceContactCity" fieldLabel="City" [type]="FormFieldType.Text" placeholder="City">
             </form-field>
-            <form-field class="g-col-4" [formControl]="formGroup.controls.MaintenanceContactState" fieldLabel="State" [type]="FormFieldType.Text" placeholder="State">
+            <form-field class="g-col-4" [formControl]="formGroup.controls.MaintenanceContactState" fieldLabel="State" [type]="FormFieldType.Select" [formInputOptions]="US_STATES" placeholder="State">
             </form-field>
-            <form-field class="g-col-4" [formControl]="formGroup.controls.MaintenanceContactZip" fieldLabel="Zip" [type]="FormFieldType.Text" placeholder="Zip Code">
+            <form-field class="g-col-4" [formControl]="formGroup.controls.MaintenanceContactZip" fieldLabel="Zip" [type]="FormFieldType.Text" [mask]="'00000||00000-0000'" placeholder="Zip Code">
             </form-field>
         </div>
     </form>

@@ -9,10 +9,6 @@
     height: calc(100dvh - 180px);
     min-height: 640px;
     overflow: hidden;
-    // On wide screens the PDF panel takes less than flex-1 width (we cap its aspect to
-    // letter portrait). Centering keeps both the sidebar + pdf group and the review panel
-    // balanced on screen rather than leaving dead space only to the right.
-    justify-content: center;
 }
 
 // Sidebar
@@ -67,6 +63,25 @@
 
             i {
                 margin-right: 0.35rem;
+            }
+        }
+
+        // Boost outline button contrast vs. the default light-gray-on-white btn-secondary-
+        // outline styling (fails WCAG AA here). Scoped to this action group so we don't
+        // shift the look of btn-secondary-outline elsewhere in the app.
+        .btn-secondary-outline {
+            color: $gray-700;
+            border-color: $gray-500;
+
+            &:hover {
+                background: $gray-100;
+                color: $gray-800;
+                border-color: $gray-700;
+            }
+
+            &:disabled {
+                color: $gray-400;
+                border-color: $gray-300;
             }
         }
     }
@@ -177,14 +192,8 @@
 
 // PDF Panel
 .pdf-panel {
-    // Lock the panel to roughly the aspect of a letter-size page so one page at page-fit
-    // zoom fills the panel with no trailing gray. Scrolling still reveals page 2, 3, etc.
-    // flex-grow disabled so the panel doesn't stretch wide and create side padding; any
-    // extra horizontal space in the layout flows past the panel instead of into it.
-    flex: 0 1 auto;
-    min-width: 500px;
-    aspect-ratio: 8.5 / 11;
-    max-height: 100%;
+    flex: 1;
+    min-width: 0;
     background: #2e2e2e;
     position: relative;
 
@@ -239,6 +248,27 @@
         line-height: 1.3;
     }
 
+    // Persistent help hint above the field cards. Non-dismissible — per user choice — and
+    // uses a muted teal background that reads as informational without shouting.
+    &__tips {
+        display: flex;
+        gap: 0.5rem;
+        margin: 0.6rem 1rem 0;
+        padding: 0.5rem 0.7rem;
+        background: rgba(0, 153, 171, 0.08);
+        border: 1px solid rgba(0, 153, 171, 0.22);
+        border-radius: $border-radius-200;
+        font-size: $type-size-100;
+        color: $gray-700;
+        line-height: 1.4;
+
+        i {
+            flex-shrink: 0;
+            margin-top: 2px;
+            color: $primary;
+        }
+    }
+
     // Flex-child scroll pattern: flex: 1 claims available vertical space, min-height: 0
     // lets overflow-y actually clip + scroll instead of expanding the flex parent.
     &__fields {
@@ -249,6 +279,15 @@
         display: flex;
         flex-direction: column;
         gap: 0.5rem;
+    }
+
+    &__add-parcel {
+        align-self: flex-start;
+        margin-top: 0.25rem;
+
+        i {
+            margin-right: 0.25rem;
+        }
     }
 
     &__extract-cta {

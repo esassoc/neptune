@@ -73,6 +73,7 @@
                     [showPrint]="false"
                     [showAnnotations]="false"
                     [showSpinner]="false"
+                    [showSecondaryToolbarToggle]="false"
                     (onDocumentLoad)="onPdfLoaded()"
                     (onPageRendered)="onPdfPageRendered()"
                     style="width: 100%; height: 100%;">
@@ -90,6 +91,18 @@
             </div>
 
             <app-alert-display></app-alert-display>
+
+            @if (pageData.hasResult && !isApproved()) {
+                <div class="review-panel__tips">
+                    <i class="fa fa-lightbulb-o"></i>
+                    <div>
+                        <strong>Tips:</strong>
+                        Click a field's value or evidence to jump to the source on the PDF.
+                        Use <strong>&#10003;&nbsp;Accept</strong>, <strong>&#9998;&nbsp;Edit</strong>, or <strong>&#10007;&nbsp;Reject</strong> (clears the value) on each field.
+                        <strong>Save Draft</strong> preserves progress; <strong>Approve&nbsp;&amp;&nbsp;Apply</strong> commits values to the live WQMP.
+                    </div>
+                </div>
+            }
 
             @if (!pageData.hasResult) {
                 <div class="review-panel__extract-cta">
@@ -134,6 +147,7 @@
                             [confidence]="field.confidence"
                             [fieldType]="field.fieldType ?? FormFieldType.Text"
                             [selectOptions]="field.selectOptions ?? []"
+                            [mask]="field.mask ?? null"
                             [origin]="getFieldOrigin(field)"
                             [readOnly]="isApproved()"
                             [initialState]="field.state"
@@ -143,6 +157,11 @@
                             (valueRejected)="onFieldRejected(field)"
                             (navigateToSource)="navigateToSource($event)">
                         </field-card>
+                    }
+                    @if (currentStep() === 1 && !isApproved()) {
+                        <button class="btn btn-primary-outline btn-sm review-panel__add-parcel" (click)="addParcel()">
+                            <i class="fa fa-plus"></i> Add Parcel
+                        </button>
                     }
                 </div>
             }
