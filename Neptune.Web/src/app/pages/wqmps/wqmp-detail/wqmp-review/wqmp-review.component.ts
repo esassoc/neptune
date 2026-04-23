@@ -789,37 +789,66 @@ export class WqmpReviewComponent implements OnInit, IDeactivateComponent {
     }
 
     // After the main approve/apply lands, collect the accepted parcel APN strings, resolve
-    // them to ParcelIDs, and PUT the list to the WQMP. Returns an Observable that completes
-    // whether or not there are parcels to sync. Missing APNs surface as a warning alert.
+    // them to ParcelIDs, and PUT the list to the WQMP. Returns an Observable that always
+    // completes cleanly — lookup / update failures surface as a non-blocking warning alert
+    // rather than errors so the earlier-completed approve doesn't appear to have failed.
+    //
+    // Skips the update entirely when the extraction had no parcel fields at all (common
+    // for pure text PDFs with no APN mentions) — wiping existing WQMP parcels in that case
+    // would be surprising and destructive.
     private syncAcceptedParcels(): Observable<unknown> {
-        const apns = this.fields()
-            .filter((f) => f.key.startsWith(this.PARCEL_KEY_PREFIX))
+        const parcelFields = this.fields().filter((f) => f.key.startsWith(this.PARCEL_KEY_PREFIX));
+        if (parcelFields.length === 0) {
+            return of(null);
+        }
+
+        const apns = parcelFields
             .filter((f) => f.state === "accepted" || f.state === "edited")
             .map((f) => (f.acceptedValue ?? f.value ?? "").trim())
             .filter((apn) => apn.length > 0);
 
+        const warn = (msg: string) => this.alertService.pushAlert(new Alert(msg, AlertContext.Warning));
+
+        const persist = (ids: number[]) =>
+            this.wqmpService.updateParcelsWaterQualityManagementPlan(this.waterQualityManagementPlanID, ids).pipe(
+                catchError(() => {
+                    warn("Approved successfully, but the WQMP's parcel list could not be updated. Try re-opening the WQMP and editing parcels directly.");
+                    return of(null);
+                })
+            );
+
         if (apns.length === 0) {
-            // User rejected / blanked all parcels — clear them on the WQMP too.
-            return this.wqmpService.updateParcelsWaterQualityManagementPlan(this.waterQualityManagementPlanID, []);
+            // Parcels were reviewed but none survived → explicit clear.
+            return persist([]);
         }
 
         return this.parcelService.lookupByNumbersParcel(apns).pipe(
             switchMap((results) => {
-                const ids = results
-                    .filter((r) => r.ParcelID != null)
-                    .map((r) => r.ParcelID!);
+                const ids = results.filter((r) => r.ParcelID != null).map((r) => r.ParcelID!);
                 const missing = results.filter((r) => r.ParcelID == null).map((r) => r.ParcelNumber);
                 if (missing.length > 0) {
-                    this.alertService.pushAlert(
-                        new Alert(
-                            `The following APNs were not found in the parcel database and were skipped: ${missing.join(", ")}.`,
-                            AlertContext.Warning
-                        )
-                    );
+                    // HTML-escape before interpolating — the alert component renders with
+                    // [innerHTML], and APN strings can come from Claude's output and so must
+                    // be treated as untrusted.
+                    const escaped = missing.map((s) => this.escapeHtml(s)).join(", ");
+                    warn(`The following APNs were not found in the parcel database and were skipped: ${escaped}.`);
                 }
-                return this.wqmpService.updateParcelsWaterQualityManagementPlan(this.waterQualityManagementPlanID, ids);
+                return persist(ids);
+            }),
+            catchError(() => {
+                warn("Approved successfully, but couldn't resolve parcels — existing parcels on the WQMP were left unchanged.");
+                return of(null);
             })
         );
+    }
+
+    private escapeHtml(s: string): string {
+        return s
+            .replace(/&/g, "&amp;")
+            .replace(/</g, "&lt;")
+            .replace(/>/g, "&gt;")
+            .replace(/"/g, "&quot;")
+            .replace(/'/g, "&#39;");
     }
 
     cancel(): void {
@@ -843,6 +872,37 @@ export class WqmpReviewComponent implements OnInit, IDeactivateComponent {
         if (!overlayJson) return;
         try {
             const overlay = JSON.parse(overlayJson) as Record<string, DraftOverlayEntry>;
+            const existingKeys = new Set(this.fields().map((f) => f.key));
+
+            // User-added parcels live only in the overlay (parse doesn't recreate them from
+            // the extraction JSON). Rehydrate any overlay keys that look like user-added
+            // parcels and aren't in the current field list before we apply the state/value
+            // mutations below.
+            const userParcelPrefix = `${this.PARCEL_KEY_PREFIX}user-`;
+            const rehydrated: ExtractedField[] = [];
+            for (const [key, entry] of Object.entries(overlay)) {
+                if (!key.startsWith(userParcelPrefix)) continue;
+                if (existingKeys.has(key)) continue;
+                // Bump the counter so later addParcel() clicks don't collide with a rehydrated key.
+                const suffix = parseInt(key.slice(userParcelPrefix.length), 10);
+                if (Number.isFinite(suffix) && suffix >= this.userParcelCounter) {
+                    this.userParcelCounter = suffix + 1;
+                }
+                rehydrated.push({
+                    key,
+                    label: "Parcel (APN)",
+                    value: entry.state === "rejected" ? null : entry.value ?? null,
+                    evidence: null,
+                    source: null,
+                    boundingBox: null,
+                    confidence: "none",
+                    step: 1,
+                    state: entry.state,
+                    acceptedValue: entry.state === "rejected" ? null : entry.value ?? null,
+                    isUserEntered: true,
+                });
+            }
+
             const updated = this.fields().map((field) => {
                 const entry = overlay[field.key];
                 if (!entry) return field;
@@ -852,7 +912,19 @@ export class WqmpReviewComponent implements OnInit, IDeactivateComponent {
                     acceptedValue: entry.state === "rejected" ? null : entry.value ?? null,
                 };
             });
-            this.fields.set(updated);
+
+            // Renumber parcel labels so the on-screen order matches position (extracted
+            // first, then rehydrated user-added, renumbered sequentially).
+            const combined = [...updated, ...rehydrated];
+            let parcelIndex = 0;
+            for (const field of combined) {
+                if (field.key.startsWith(this.PARCEL_KEY_PREFIX)) {
+                    parcelIndex += 1;
+                    field.label = `Parcel ${parcelIndex} (APN)`;
+                }
+            }
+
+            this.fields.set(combined);
         } catch {
             // Ignore malformed overlay — fall back to AI-extracted values
         }
