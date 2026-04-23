@@ -23,6 +23,7 @@ import {
 } from "src/app/shared/generated/enum/water-quality-management-plan-modeling-approach-enum";
 import { HydromodificationAppliesTypesAsSelectDropdownOptions } from "src/app/shared/generated/enum/hydromodification-applies-type-enum";
 import { TrashCaptureStatusTypeEnum, TrashCaptureStatusTypesAsSelectDropdownOptions } from "src/app/shared/generated/enum/trash-capture-status-type-enum";
+import { US_STATES } from "src/app/shared/constants/us-states";
 import { DialogRef } from "@ngneat/dialog";
 import { WaterQualityManagementPlanDto } from "src/app/shared/generated/model/water-quality-management-plan-dto";
 
@@ -36,6 +37,7 @@ import { WaterQualityManagementPlanDto } from "src/app/shared/generated/model/wa
 export class WqmpModalComponent implements OnInit {
     public ref: DialogRef<{ mode: "add" | "edit"; wqmp?: WaterQualityManagementPlanDto }, boolean> = inject(DialogRef);
     public FormFieldType = FormFieldType;
+    public US_STATES = US_STATES;
     public mode: "add" | "edit";
 
     public formGroup = new FormGroup<WaterQualityManagementPlanUpsertDtoForm>({

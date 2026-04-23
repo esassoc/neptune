@@ -3147,6 +3147,73 @@
         }
       }
     },
+    "/parcels/lookup-by-numbers": {
+      "post": {
+        "tags": [
+          "Parcel"
+        ],
+        "operationId": "LookupByNumbers_Parcel",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              }
+            },
+            "text/json": {
+              "schema": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/ParcelLookupResultDto"
+                  }
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/ParcelLookupResultDto"
+                  }
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/ParcelLookupResultDto"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/projects": {
       "get": {
         "tags": [
@@ -12569,6 +12636,21 @@
         },
         "additionalProperties": false
       },
+      "ParcelLookupResultDto": {
+        "type": "object",
+        "properties": {
+          "ParcelNumber": {
+            "type": "string",
+            "nullable": true
+          },
+          "ParcelID": {
+            "type": "integer",
+            "format": "int32",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
       "PersonCreateDto": {
         "required": [
           "Email",
@@ -16376,6 +16458,10 @@
           "StormwaterJurisdictionID": {
             "type": "integer",
             "format": "int32"
+          },
+          "WaterQualityManagementPlanName": {
+            "type": "string",
+            "nullable": true
           },
           "ExtractionResultJson": {
             "type": "string",

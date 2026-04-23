@@ -221,4 +221,9 @@
         background: rgba(220, 53, 69, 0.12);
         color: $danger;
     }
+
+    &--user {
+        background: $gray-100;
+        color: $gray-700;
+    }
 }

@@ -10,6 +10,7 @@ public static class WaterQualityManagementPlanExtractionResultProjections
         WaterQualityManagementPlanID = x.WaterQualityManagementPlanID,
         WaterQualityManagementPlanDocumentID = x.WaterQualityManagementPlanDocumentID,
         StormwaterJurisdictionID = x.WaterQualityManagementPlan.StormwaterJurisdictionID,
+        WaterQualityManagementPlanName = x.WaterQualityManagementPlan.WaterQualityManagementPlanName,
         ExtractionResultJson = x.ExtractionResultJson,
         ExtractedAt = x.ExtractedAt,
         FileResourceGuid = x.WaterQualityManagementPlanDocument.FileResource.FileResourceGUID.ToString(),

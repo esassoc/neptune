@@ -113,6 +113,7 @@ model/organization-upsert-dto.ts
 model/ovta-results-dto.ts
 model/parcel-display-dto.ts
 model/parcel-geometry-simple-dto.ts
+model/parcel-lookup-result-dto.ts
 model/person-create-dto.ts
 model/person-display-dto.ts
 model/person-dto.ts

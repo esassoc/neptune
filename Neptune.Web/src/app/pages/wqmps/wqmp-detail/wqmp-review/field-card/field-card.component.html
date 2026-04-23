@@ -36,6 +36,8 @@
             <span class="origin-pill origin-pill--rejected">Rejected by reviewer</span>
         } @else if (state() === "edited") {
             <span class="origin-pill origin-pill--edited">Edited by reviewer</span>
+        } @else if (origin === "user") {
+            <span class="origin-pill origin-pill--user">User-entered</span>
         } @else if (origin === "blank") {
             <span class="origin-pill origin-pill--blank">Blank in source document</span>
         } @else {
@@ -46,7 +48,7 @@
     <div class="field-card__value">
         @if (isEditing()) {
             <div class="field-card__edit">
-                <form-field [type]="fieldType" [formControl]="editControl" [formInputOptions]="selectOptions"></form-field>
+                <form-field [type]="fieldType" [formControl]="editControl" [formInputOptions]="selectOptions" [mask]="mask"></form-field>
                 <div class="field-card__edit-actions">
                     <button class="btn btn-primary btn-sm" (click)="saveEdit()">Save</button>
                     <button class="btn btn-secondary-outline btn-sm" (click)="cancelEdit()">Cancel</button>
