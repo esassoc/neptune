@@ -37,6 +37,23 @@ export class TransectLineLayerComponent extends MapLayerBase implements OnChange
     public featureCollection$: Observable<IFeature[]>;
 
     ngAfterViewInit(): void {
+        this.loadLayer();
+    }
+
+    /**
+     * Drop the current layer from the map and re-fetch the transect line. Parent components
+     * call this after a save that can change observation geometry (e.g. record-observations
+     * save) so the map reflects the new line without requiring a full page reload.
+     */
+    public refresh(): void {
+        if (this.layer) {
+            this.layer.remove();
+            this.layer = undefined;
+        }
+        this.loadLayer();
+    }
+
+    private loadLayer(): void {
         if (this.ovtaID) {
             const request$ = this.onlandVisualTrashAssessmentService.getTransectLineAsFeatureCollectionOnlandVisualTrashAssessment(this.ovtaID);
             this.featureCollection$ = this.trackLayerRequest$(request$).pipe(
