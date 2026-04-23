@@ -1,4 +1,4 @@
-import { Component, signal } from "@angular/core";
+import { Component, signal, ViewChild } from "@angular/core";
 import * as L from "leaflet";
 import { PageHeaderComponent } from "../../../../shared/components/page-header/page-header.component";
 import { NeptuneMapComponent, NeptuneMapInitEvent } from "../../../../shared/components/leaflet/neptune-map/neptune-map.component";
@@ -72,6 +72,10 @@ export class TrashOvtaRecordObservationsComponent {
 
     @Input() onlandVisualTrashAssessmentID!: number;
 
+    // Template ref used to ask the transect-line layer to re-fetch + redraw after a save so
+    // the map reflects observation edits on the backing assessment without a full page reload.
+    @ViewChild("transectLineLayer") transectLineLayer?: TransectLineLayerComponent;
+
     constructor(
         private onlandVisualTrashAssessmentService: OnlandVisualTrashAssessmentService,
         private onlandVisualTrashAssessmentObservationService: OnlandVisualTrashAssessmentObservationService,
@@ -101,6 +105,9 @@ export class TrashOvtaRecordObservationsComponent {
                         Longitude: onlandVisualTrashAssessmentObservation.Longitude,
                         FileResourceID: onlandVisualTrashAssessmentObservation.FileResourceID,
                         FileResourceGUID: onlandVisualTrashAssessmentObservation.FileResourceGUID,
+                        // Preserve the original observation timestamp so the transect line
+                        // orders observations the same way across edits.
+                        ObservationDatetime: onlandVisualTrashAssessmentObservation.ObservationDatetime,
                     });
                     formArray.push(observation);
                 });
@@ -171,6 +178,10 @@ export class TrashOvtaRecordObservationsComponent {
             Longitude: latlng.lng,
             FileResourceID: null,
             FileResourceGUID: null,
+            // Stamp new observations with the client clock at add-time so each one gets a
+            // distinct timestamp (avoids the backend's UtcNow fallback collapsing everything
+            // into a single value and breaking transect-line ordering).
+            ObservationDatetime: new Date().toISOString(),
         });
         const formArray = this.formGroup.controls.Observations as FormArray;
         formArray.push(observation);
@@ -213,6 +224,9 @@ export class TrashOvtaRecordObservationsComponent {
                 this.alertService.clearAlerts();
                 this.alertService.pushAlert(new Alert("Your observations were successfully updated.", AlertContext.Success));
                 this.ovtaWorkflowProgressService.updateProgress(this.onlandVisualTrashAssessmentID);
+                // Observation edits may have redrawn the area's transect line (when this is
+                // the backing assessment). Ask the layer to re-fetch so the map stays current.
+                this.transectLineLayer?.refresh();
 
                 if (andContinue) {
                     this.onlandVisualTrashAssessmentService.getWorkflowProgressOnlandVisualTrashAssessment(this.onlandVisualTrashAssessmentID).subscribe((response) => {

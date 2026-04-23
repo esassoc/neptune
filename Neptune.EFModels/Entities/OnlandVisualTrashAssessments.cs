@@ -199,17 +199,29 @@ public static class OnlandVisualTrashAssessments
                         ?.OnlandVisualTrashAssessmentScoreID;
             }
 
-            if (onlandVisualTrashAssessment.OnlandVisualTrashAssessmentArea.TransectLine == null && onlandVisualTrashAssessment.OnlandVisualTrashAssessmentObservations.Count >= 2)
+            // Recompute the area's transect line when this save belongs to the backing
+            // assessment: either the area has no line yet (first finalize) or this assessment
+            // is flagged as the backing one (return-to-edit). Repeat assessments on an area
+            // that already has a backing-derived transect leave it alone.
+            var wasNeverSet = onlandVisualTrashAssessment.OnlandVisualTrashAssessmentArea.TransectLine == null;
+            var isBackingAssessment = onlandVisualTrashAssessment.IsTransectBackingAssessment || wasNeverSet;
+
+            if (isBackingAssessment && onlandVisualTrashAssessment.OnlandVisualTrashAssessmentObservations.Count >= 2)
             {
                 var transect = GetTransectLine(onlandVisualTrashAssessment);
                 onlandVisualTrashAssessment.OnlandVisualTrashAssessmentArea.TransectLine = transect;
                 onlandVisualTrashAssessment.OnlandVisualTrashAssessmentArea.TransectLine4326 = transect.ProjectTo4326();
-                onlandVisualTrashAssessment.IsTransectBackingAssessment = true;
 
-                var transectBackingAssessment = GetTransectBackingAssessment(dbContext, onlandVisualTrashAssessment.OnlandVisualTrashAssessmentAreaID);
-                if (transectBackingAssessment != null)
+                if (wasNeverSet)
                 {
-                    transectBackingAssessment.IsTransectBackingAssessment = false;
+                    // First finalize — stamp this assessment as backing and demote any stale
+                    // flag elsewhere (defensive for odd states).
+                    onlandVisualTrashAssessment.IsTransectBackingAssessment = true;
+                    var existingBacking = GetTransectBackingAssessment(dbContext, onlandVisualTrashAssessment.OnlandVisualTrashAssessmentAreaID);
+                    if (existingBacking != null && existingBacking.OnlandVisualTrashAssessmentID != onlandVisualTrashAssessment.OnlandVisualTrashAssessmentID)
+                    {
+                        existingBacking.IsTransectBackingAssessment = false;
+                    }
                 }
             }
         }
