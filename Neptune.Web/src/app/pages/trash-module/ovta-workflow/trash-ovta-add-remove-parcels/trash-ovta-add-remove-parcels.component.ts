@@ -76,12 +76,13 @@ export class TrashOvtaAddRemoveParcelsComponent {
     public handleMapReady(event: NeptuneMapInitEvent, onlandVisualTrashAssessment: OnlandVisualTrashAssessmentAddRemoveParcelsDto): void {
         this.map = event.map;
         this.layerControl = event.layerControl;
-        this.addSelectedParcelsToMap();
+        // Initial load: fit to the selection so the user starts zoomed at the right scale.
+        this.addSelectedParcelsToMap(true);
         this.enableDisableParcelClickEvent(onlandVisualTrashAssessment);
         this.mapIsReady = true;
     }
 
-    private addSelectedParcelsToMap() {
+    private addSelectedParcelsToMap(shouldFitBounds: boolean = false) {
         if (this.selectedParcelsLayer) {
             this.map.removeLayer(this.selectedParcelsLayer);
         }
@@ -89,7 +90,12 @@ export class TrashOvtaAddRemoveParcelsComponent {
             this.wfsService.getGeoserverWFSLayerWithCQLFilter("OCStormwater:Parcels", `ParcelID in (${this.selectedParcelIDs.join(",")})`, "ParcelID").subscribe((response) => {
                 this.selectedParcelsLayer = L.geoJSON(response as any, { style: this.highlightStyle });
                 this.selectedParcelsLayer.addTo(this.map);
-                this.map.fitBounds(this.selectedParcelsLayer.getBounds());
+                // Only fit bounds on initial load / explicit refresh, not on every parcel
+                // click — otherwise the map yanks the user's zoom each time they add or
+                // remove a parcel and makes bulk selection nearly impossible.
+                if (shouldFitBounds) {
+                    this.map.fitBounds(this.selectedParcelsLayer.getBounds());
+                }
             });
         }
     }
@@ -110,7 +116,8 @@ export class TrashOvtaAddRemoveParcelsComponent {
     public refreshParcels() {
         this.onlandVisualTrashAssessmentService.refreshOnlandVisualTrashAssessmentParcelsOnlandVisualTrashAssessment(this.onlandVisualTrashAssessmentID).subscribe((ovta) => {
             this.selectedParcelIDs = ovta.SelectedParcelIDs;
-            this.addSelectedParcelsToMap();
+            // Explicit refresh — fit bounds so the new selection is visible in full.
+            this.addSelectedParcelsToMap(true);
             this.enableDisableParcelClickEvent(ovta);
             this.onlandVisualTrashAssessment$ = of(ovta);
         });
