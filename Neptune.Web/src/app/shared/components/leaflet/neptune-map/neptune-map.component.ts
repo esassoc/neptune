@@ -1,4 +1,5 @@
-import { AfterViewInit, Component, DestroyRef, EventEmitter, Injector, Input, OnDestroy, OnInit, Output, afterNextRender, inject, runInInjectionContext } from "@angular/core";
+import { AfterViewInit, Component, DestroyRef, EventEmitter, Injector, Input, OnDestroy, OnInit, Output, Signal, afterNextRender, inject, runInInjectionContext } from "@angular/core";
+import { toSignal } from "@angular/core/rxjs-interop";
 import { CommonModule } from "@angular/common";
 import { Control, LeafletEvent, Map as LeafletMap, MapOptions, DomUtil, ControlPosition } from "leaflet";
 import "src/scripts/leaflet.groupedlayercontrol.js";
@@ -72,6 +73,14 @@ export class NeptuneMapComponent implements OnInit, AfterViewInit, OnDestroy {
         distinctUntilChanged(),
         shareReplay({ bufferSize: 1, refCount: true })
     );
+
+    // Zoneless Angular needs a signal here — not `async` pipe. The loading state flips from
+    // RxJS `finalize` teardown (MapLayerLoadingService.track$) and Leaflet event handlers, both
+    // of which run outside Angular's scheduler. `markForCheck` from the async pipe was not
+    // reliably triggering a CD tick, so the spinner kept animating even after state went false
+    // until a user click incidentally ran CD. Signals guarantee scheduler notification in
+    // zoneless mode.
+    public readonly isAnyLayerLoading: Signal<boolean> = toSignal(this.isAnyLayerLoading$, { initialValue: false });
 
     private readonly trackedLayerLoadingState = new Map<any, boolean>();
     private readonly trackedLayerListeners = new Map<
