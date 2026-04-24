@@ -1,4 +1,4 @@
-import { Component, ElementRef, EventEmitter, Input, Output, ViewChild } from "@angular/core";
+import { Component, ElementRef, EventEmitter, Input, Output, signal, ViewChild } from "@angular/core";
 import * as L from "leaflet";
 import { BoundingBoxDto } from "src/app/shared/generated/model/bounding-box-dto";
 import { MarkerHelper } from "src/app/shared/helpers/marker-helper";
@@ -24,7 +24,12 @@ export class ObservationsMapComponent {
     @Input() onlandVisualTrashAssessmentID: number;
     public boundingBox: BoundingBoxDto;
 
-    public mapIsReady: boolean = false;
+    // Signal (not plain boolean) so zoneless change detection re-runs the template's @if
+    // guards when Leaflet fires onMapLoad. With a plain field, the ready flag would flip but
+    // the layer @if gates never re-evaluate and the map sits behind the loading spinner
+    // forever. Parallels the fix Jamie landed on trash-ovta-record-observations (commit
+    // dc98dec57).
+    public mapIsReady = signal(false);
     public mapHeight: string = "600px";
 
     @Output()
@@ -50,7 +55,7 @@ export class ObservationsMapComponent {
     public handleMapReady(event: NeptuneMapInitEvent): void {
         this.map = event.map;
         this.layerControl = event.layerControl;
-        this.mapIsReady = true;
+        this.mapIsReady.set(true);
         this.addObservationPointsLayersToMap();
     }
 
