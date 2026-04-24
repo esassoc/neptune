@@ -51,7 +51,7 @@
         [id]="mapID"
         [style.height]="mapHeight"
         [style.cursor]="cursorStyle"
-        [loadingSpinner]="{ isLoading: (isAnyLayerLoading$ | async) ?? false, loadingHeight: null }">
+        [loadingSpinner]="{ isLoading: isAnyLayerLoading(), loadingHeight: null }">
         @if (showLegend) {
             <div class="legend leaflet-control-layers leaflet-control-layers-expanded" [id]="legendID">
                 <a class="leaflet-control-layers-toggle">
