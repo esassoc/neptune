@@ -88,6 +88,34 @@ namespace Neptune.EFModels.Entities
                 .Where(x => x.OnlandVisualTrashAssessmentID == onlandVisualTrashAssessmentID).ExecuteDeleteAsync();
 
             await dbContext.SaveChangesAsync();
+
+            // Return-to-Edit path: if the user edited observations on the area's backing
+            // assessment after it was already finalized, recompute the area's stored
+            // TransectLine from the new geometry. Mirrors the logic in
+            // OnlandVisualTrashAssessments.Update (the finalize path) so both save paths
+            // keep the area's transect in sync with the backing assessment's observations.
+            // Repeat assessments (IsTransectBackingAssessment == false) don't hit this branch
+            // and the area's transect stays anchored to the original backing as intended.
+            var assessment = await dbContext.OnlandVisualTrashAssessments
+                .Include(x => x.OnlandVisualTrashAssessmentArea)
+                .Include(x => x.OnlandVisualTrashAssessmentObservations)
+                .SingleOrDefaultAsync(x => x.OnlandVisualTrashAssessmentID == onlandVisualTrashAssessmentID);
+
+            if (assessment?.OnlandVisualTrashAssessmentArea == null) return;
+
+            var wasNeverSet = assessment.OnlandVisualTrashAssessmentArea.TransectLine == null;
+            var isBacking = assessment.IsTransectBackingAssessment || wasNeverSet;
+
+            if (isBacking && assessment.OnlandVisualTrashAssessmentObservations.Count >= 2)
+            {
+                var transect = OnlandVisualTrashAssessments.GetTransectLine(assessment.OnlandVisualTrashAssessmentObservations);
+                if (transect != null)
+                {
+                    assessment.OnlandVisualTrashAssessmentArea.TransectLine = transect;
+                    assessment.OnlandVisualTrashAssessmentArea.TransectLine4326 = transect.ProjectTo4326();
+                    await dbContext.SaveChangesAsync();
+                }
+            }
         }
     }
 }
