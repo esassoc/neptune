@@ -27,10 +27,10 @@
     </div>
     <div class="g-col-8">
       <neptune-map (onMapLoad)="handleMapReady($event)" [mapHeight]="mapHeight" [showLegend]="true" [boundingBox]="boundingBox">
-        @if (mapIsReady) {
+        @if (mapIsReady()) {
           <land-use-block-layer [displayOnLoad]="true" [map]="map" [layerControl]="layerControl" [sortOrder]="10"></land-use-block-layer>
         }
-        @if (mapIsReady) {
+        @if (mapIsReady()) {
           <ovta-area-layer
             [displayOnLoad]="true"
             [map]="map"
@@ -38,7 +38,7 @@
             [sortOrder]="20"
           [ovtaID]="onlandVisualTrashAssessmentID"></ovta-area-layer>
         }
-        @if (mapIsReady) {
+        @if (mapIsReady()) {
           <transect-line-layer
             [displayOnLoad]="true"
             [map]="map"

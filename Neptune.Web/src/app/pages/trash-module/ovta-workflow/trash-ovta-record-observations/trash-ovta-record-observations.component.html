@@ -24,7 +24,7 @@
         @if (mapIsReady()) {
           <parcel-layer [displayOnLoad]="false" [map]="map" [layerControl]="layerControl" [sortOrder]="15" styles="parcel_alt"></parcel-layer>
         }
-        @if (mapIsReady && onlandVisualTrashAssessment.OnlandVisualTrashAssessmentAreaID) {
+        @if (mapIsReady() && onlandVisualTrashAssessment.OnlandVisualTrashAssessmentAreaID) {
           <ovta-area-layer
             [displayOnLoad]="true"
             [map]="map"
