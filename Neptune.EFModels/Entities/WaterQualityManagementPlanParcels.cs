@@ -73,7 +73,10 @@ public static class WaterQualityManagementPlanParcels
         const int toleranceInSquareMeters = 200;
         var boundaryGeometry = boundary.GeometryNative;
 
+        // Prefilter with Intersects (spatial index) before the expensive Intersection().Area check
+        // so we don't compute per-row intersections against ~1M OC parcels.
         var intersectingParcelIDs = dbContext.ParcelGeometries
+            .Where(pg => pg.GeometryNative.Intersects(boundaryGeometry))
             .Where(pg => pg.GeometryNative.Intersection(boundaryGeometry).Area > toleranceInSquareMeters)
             .Select(pg => pg.ParcelID)
             .ToList();
