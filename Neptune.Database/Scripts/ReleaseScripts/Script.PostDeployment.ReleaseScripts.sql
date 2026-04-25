@@ -54,4 +54,6 @@ GO
 GO
 :r ".\023 - Associate TrainingVideos with NeptuneArea modules.sql"
 GO
+:r ".\024 - MakeValid on invalid Delineation geometries.sql"
+GO
 

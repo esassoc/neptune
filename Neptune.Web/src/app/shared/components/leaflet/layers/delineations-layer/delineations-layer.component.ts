@@ -28,6 +28,7 @@ export class DelineationsLayerComponent extends MapLayerBase implements OnChange
             transparent: true,
             format: "image/png",
             tiled: true,
+            styles: "delineation",
             cql_filter: cqlFilter,
             maxZoom: 22,
         } as any;

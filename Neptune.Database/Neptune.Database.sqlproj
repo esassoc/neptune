@@ -347,6 +347,7 @@
     <Build Include="dbo\Procs\dbo.pDeleteNereidResults.sql" />
     <Build Include="dbo\Procs\dbo.pDeleteProjectLoadGeneratingUnitsPriorToRefreshForProject.sql" />
     <Build Include="dbo\Procs\dbo.pDeleteProjectNereidResults.sql" />
+    <Build Include="dbo\Procs\dbo.pDelineationMakeValid.sql" />
     <Build Include="dbo\Procs\dbo.pDelineationMarkThoseThatHaveDiscrepancies.sql" />
     <Build Include="dbo\Procs\dbo.pFixInvalidRegionalSubbasinGeometries.sql" />
     <Build Include="dbo\Procs\dbo.pLandUseBlockStagingDeleteByPersonID.sql" />

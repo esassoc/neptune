@@ -42,8 +42,13 @@
                 }
 
                 <div class="mt-3">
-                    <button class="btn btn-primary mr-2" (click)="save()" [disabled]="isLoadingSubmit">Save</button>
-                    <button class="btn btn-secondary-outline" (click)="cancel()">Cancel</button>
+                    <button class="btn btn-primary mr-2" (click)="save()" [disabled]="isLoadingSubmit">
+                        @if (isLoadingSubmit) {
+                            <span class="fa fa-spinner loading-spinner"></span>
+                        }
+                        Save
+                    </button>
+                    <button class="btn btn-secondary-outline" (click)="cancel()" [disabled]="isLoadingSubmit">Cancel</button>
                 </div>
             </div>
 
