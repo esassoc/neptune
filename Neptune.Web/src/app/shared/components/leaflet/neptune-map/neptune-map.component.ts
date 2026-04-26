@@ -1,5 +1,4 @@
-import { AfterViewInit, Component, DestroyRef, EventEmitter, Injector, Input, OnDestroy, OnInit, Output, Signal, afterNextRender, inject, runInInjectionContext } from "@angular/core";
-import { toSignal } from "@angular/core/rxjs-interop";
+import { AfterViewInit, Component, DestroyRef, EventEmitter, Injector, Input, OnDestroy, OnInit, Output, afterNextRender, inject, runInInjectionContext } from "@angular/core";
 import { CommonModule } from "@angular/common";
 import { Control, LeafletEvent, Map as LeafletMap, MapOptions, DomUtil, ControlPosition } from "leaflet";
 import "src/scripts/leaflet.groupedlayercontrol.js";
@@ -73,14 +72,6 @@ export class NeptuneMapComponent implements OnInit, AfterViewInit, OnDestroy {
         distinctUntilChanged(),
         shareReplay({ bufferSize: 1, refCount: true })
     );
-
-    // Zoneless Angular needs a signal here — not `async` pipe. The loading state flips from
-    // RxJS `finalize` teardown (MapLayerLoadingService.track$) and Leaflet event handlers, both
-    // of which run outside Angular's scheduler. `markForCheck` from the async pipe was not
-    // reliably triggering a CD tick, so the spinner kept animating even after state went false
-    // until a user click incidentally ran CD. Signals guarantee scheduler notification in
-    // zoneless mode.
-    public readonly isAnyLayerLoading: Signal<boolean> = toSignal(this.isAnyLayerLoading$, { initialValue: false });
 
     private readonly trackedLayerLoadingState = new Map<any, boolean>();
     private readonly trackedLayerListeners = new Map<
@@ -406,6 +397,26 @@ export class NeptuneMapComponent implements OnInit, AfterViewInit, OnDestroy {
 
         if (!this.map || !this.layerControl) {
             return;
+        }
+
+        // When <neptune-map> mounts inside a parent `@if (...$ | async)` gate (e.g. the
+        // OVTA Review-and-Finalize and Record-Observations pages, which wait on observation
+        // data before rendering the map), the container's layout often hasn't settled when
+        // L.map() ran in ngAfterViewInit — Leaflet measured 0x0, fitBounds picked the wrong
+        // zoom, and the WMS base tile layer never fired `load` because no tiles were
+        // actually fetched. The spinner counter then stayed at 1 forever. invalidateSize
+        // here (post-Angular-render, so layout is settled) makes Leaflet remeasure and
+        // re-fetch tiles for the correct viewport, which lets the `load` event fire and
+        // the spinner clear without requiring a stray user click.
+        this.map.invalidateSize(false);
+        if (this.boundingBox) {
+            this.map.fitBounds(
+                [
+                    [this.boundingBox.Bottom, this.boundingBox.Left],
+                    [this.boundingBox.Top, this.boundingBox.Right],
+                ],
+                null
+            );
         }
 
         this.hasEmittedMapLoad = true;
