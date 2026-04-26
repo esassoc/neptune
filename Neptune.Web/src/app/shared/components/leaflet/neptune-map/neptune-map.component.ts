@@ -9,7 +9,7 @@ import { LeafletHelperService } from "src/app/shared/services/leaflet-helper.ser
 import { BoundingBoxDto } from "src/app/shared/generated/model/models";
 import { IconComponent } from "../../icon/icon.component";
 import { NominatimService } from "src/app/shared/services/nominatim.service";
-import { BehaviorSubject, Observable, combineLatest, debounce, distinctUntilChanged, map, of, shareReplay, switchMap, tap, timer } from "rxjs";
+import { Observable, debounce, of, switchMap, tap, timer } from "rxjs";
 import { NgSelectModule } from "@ng-select/ng-select";
 import { FormControl, FormsModule, NG_VALUE_ACCESSOR, ReactiveFormsModule } from "@angular/forms";
 import { LegendItem } from "src/app/shared/models/legend-item";
@@ -60,27 +60,11 @@ export class NeptuneMapComponent implements OnInit, AfterViewInit, OnDestroy {
 
     public cursorStyle: string = "grab";
 
-    private readonly leafletLoadingLayerCountSubject = new BehaviorSubject<number>(0);
-    public readonly isAnyLeafletLayerLoading$ = this.leafletLoadingLayerCountSubject.pipe(
-        map((count) => count > 0),
-        distinctUntilChanged(),
-        shareReplay({ bufferSize: 1, refCount: true })
-    );
-
-    public readonly isAnyLayerLoading$ = combineLatest([this.isAnyLeafletLayerLoading$, inject(MapLayerLoadingService).isLoading$]).pipe(
-        map(([isLeafletLoading, isApiLoading]) => isLeafletLoading || isApiLoading),
-        distinctUntilChanged(),
-        shareReplay({ bufferSize: 1, refCount: true })
-    );
-
-    private readonly trackedLayerLoadingState = new Map<any, boolean>();
-    private readonly trackedLayerListeners = new Map<
-        any,
-        {
-            onLoading: () => void;
-            onLoad: () => void;
-        }
-    >();
+    // Spinner is driven only by our own API requests via MapLayerLoadingService.track$.
+    // Leaflet tile/WMS layers progressive-render on their own; tracking their loading/load
+    // events tied the spinner to events that don't always fire (slow geoservers, missed
+    // `load` when tiles never get fetched), pinning the spinner indefinitely.
+    public readonly isAnyLayerLoading$: Observable<boolean> = inject(MapLayerLoadingService).isLoading$;
 
     private hasEmittedMapLoad: boolean = false;
 
@@ -103,18 +87,6 @@ export class NeptuneMapComponent implements OnInit, AfterViewInit, OnDestroy {
         } as MapOptions;
 
         this.map = L.map(this.mapID, mapOptions);
-
-        // Track loading state for any Leaflet layer that emits 'loading'/'load' events (TileLayer/WMS overlays, etc).
-        // This lets us show a spinner over the map whenever any visible layer is still fetching.
-        this.map.on("layeradd", (e: any) => {
-            this.attachLayerLoadingEvents(e?.layer);
-        });
-        this.map.on("layerremove", (e: any) => {
-            this.detachLayerLoadingEvents(e?.layer);
-        });
-
-        // Attach to whatever layers were added as part of initial map creation (base tile layer, etc).
-        this.map.eachLayer((layer: any) => this.attachLayerLoadingEvents(layer));
 
         this.map.addControl(
             new FullScreen({
@@ -273,22 +245,6 @@ export class NeptuneMapComponent implements OnInit, AfterViewInit, OnDestroy {
     }
 
     ngOnDestroy(): void {
-        console.warn("destroying map");
-
-        for (const [layer, handlers] of this.trackedLayerListeners) {
-            try {
-                if (layer && typeof layer.off === "function") {
-                    layer.off("loading", handlers.onLoading);
-                    layer.off("load", handlers.onLoad);
-                    layer.off("tileerror", handlers.onLoad);
-                    layer.off("error", handlers.onLoad);
-                }
-            } catch (e) {}
-        }
-        this.trackedLayerListeners.clear();
-        this.trackedLayerLoadingState.clear();
-        this.leafletLoadingLayerCountSubject.next(0);
-
         if (this.map) {
             this.map.off();
             this.map.remove();
@@ -297,77 +253,6 @@ export class NeptuneMapComponent implements OnInit, AfterViewInit, OnDestroy {
     }
 
     ngOnInit(): void {}
-
-    private attachLayerLoadingEvents(layer: any): void {
-        if (!layer || typeof layer.on !== "function" || typeof layer.off !== "function") {
-            return;
-        }
-
-        // Avoid duplicate handlers on the same layer instance.
-        if (this.trackedLayerListeners.has(layer)) {
-            return;
-        }
-
-        const onLoading = () => this.markLayerLoading(layer, true);
-
-        // We only want to show the Leaflet spinner for the initial load of a layer.
-        // Tile layers reload on zoom/pan; detaching after the first load avoids spinner flicker during navigation.
-        const onLoad = () => this.detachLayerLoadingEvents(layer);
-
-        // Common Leaflet loading events:
-        // - Tile layers: 'loading' then 'load' (or 'tileerror')
-        // - Some plugin layers emit 'error'
-        layer.on("loading", onLoading);
-        layer.on("load", onLoad);
-        layer.on("tileerror", onLoad);
-        layer.on("error", onLoad);
-
-        this.trackedLayerListeners.set(layer, { onLoading, onLoad });
-        this.trackedLayerLoadingState.set(layer, false);
-    }
-
-    private detachLayerLoadingEvents(layer: any): void {
-        if (!layer) {
-            return;
-        }
-
-        // If this layer was contributing to the spinner count, remove it.
-        this.markLayerLoading(layer, false);
-
-        const handlers = this.trackedLayerListeners.get(layer);
-        if (!handlers) {
-            return;
-        }
-
-        try {
-            if (typeof layer.off === "function") {
-                layer.off("loading", handlers.onLoading);
-                layer.off("load", handlers.onLoad);
-                layer.off("tileerror", handlers.onLoad);
-                layer.off("error", handlers.onLoad);
-            }
-        } catch (e) {}
-
-        this.trackedLayerListeners.delete(layer);
-        this.trackedLayerLoadingState.delete(layer);
-    }
-
-    private markLayerLoading(layer: any, isLoading: boolean): void {
-        if (!layer) {
-            return;
-        }
-
-        const wasLoading = this.trackedLayerLoadingState.get(layer) ?? false;
-        if (wasLoading === isLoading) {
-            return;
-        }
-
-        this.trackedLayerLoadingState.set(layer, isLoading);
-
-        const delta = isLoading ? 1 : -1;
-        const nextCount = Math.max(0, (this.leafletLoadingLayerCountSubject.value ?? 0) + delta);
-        this.leafletLoadingLayerCountSubject.next(nextCount);
-    }
 
     private scheduleEmitMapLoadOnceAfterNextRender(): void {
         if (this.hasEmittedMapLoad) {
@@ -399,15 +284,10 @@ export class NeptuneMapComponent implements OnInit, AfterViewInit, OnDestroy {
             return;
         }
 
-        // When <neptune-map> mounts inside a parent `@if (...$ | async)` gate (e.g. the
-        // OVTA Review-and-Finalize and Record-Observations pages, which wait on observation
-        // data before rendering the map), the container's layout often hasn't settled when
-        // L.map() ran in ngAfterViewInit — Leaflet measured 0x0, fitBounds picked the wrong
-        // zoom, and the WMS base tile layer never fired `load` because no tiles were
-        // actually fetched. The spinner counter then stayed at 1 forever. invalidateSize
-        // here (post-Angular-render, so layout is settled) makes Leaflet remeasure and
-        // re-fetch tiles for the correct viewport, which lets the `load` event fire and
-        // the spinner clear without requiring a stray user click.
+        // When <neptune-map> mounts inside a parent `@if (...$ | async)` gate, the
+        // container's layout often hasn't settled when L.map() ran in ngAfterViewInit —
+        // Leaflet measures 0x0 and fitBounds picks the wrong zoom. Re-measure here
+        // (post-Angular-render) so the initial view is correct.
         this.map.invalidateSize(false);
         if (this.boundingBox) {
             this.map.fitBounds(
