@@ -7,8 +7,8 @@ resources:
     ref: develop
   - repository: BuildTemplates
     type: github
-    name: sitkatech/BuildTemplates
-    endpoint: "sitkatech"
+    name: esassoc/BuildTemplates
+    endpoint: "esassoc"
 
 jobs:  
   - job: RestoreDevBlobStorage
@@ -16,7 +16,6 @@ jobs:
     pool:
       vmImage: 'windows-latest'
     steps:
-
     - template: azure-pipelines/templates/blob-storage-restore/blob-storage-restore.yml@BuildTemplates 
       parameters:
         subscription: '$(azureSubscription)'
