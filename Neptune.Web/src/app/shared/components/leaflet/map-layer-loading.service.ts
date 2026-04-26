@@ -1,5 +1,5 @@
 import { Injectable } from "@angular/core";
-import { BehaviorSubject, Observable, distinctUntilChanged, finalize, map, shareReplay } from "rxjs";
+import { BehaviorSubject, Observable, defer, distinctUntilChanged, finalize, map, shareReplay } from "rxjs";
 
 @Injectable()
 export class MapLayerLoadingService {
@@ -11,9 +11,17 @@ export class MapLayerLoadingService {
         shareReplay({ bufferSize: 1, refCount: true })
     );
 
+    // defer ensures increment fires on subscribe, not at call-time. Layer components call
+    // track$() synchronously in ngAfterViewInit and assign the result to a field that the
+    // template then subscribes to via async pipe — incrementing eagerly meant the counter
+    // ticked up before subscription, and if the resulting CD pass was delayed (it sometimes
+    // is on prod-optimized builds), the counter sat at 1 until a stray click forced CD,
+    // pinning the map spinner indefinitely.
     public track$<T>(source$: Observable<T>): Observable<T> {
-        this.increment();
-        return source$.pipe(finalize(() => this.decrement()));
+        return defer(() => {
+            this.increment();
+            return source$.pipe(finalize(() => this.decrement()));
+        });
     }
 
     /**
