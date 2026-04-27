@@ -87,7 +87,13 @@ USING (VALUES
 (88, 'WQMPModelingOptions', 'WQMP Modeling Options'),
 (89, 'WQMPApprovalSummary', 'WQMP Approval Summary'),
 (90, 'WQMPPostConstructionInspectionAndVerification', 'WQMP Post Construction Inspection and Verification'),
-(91, 'WQMPMap', 'WQMP Map')
+(91, 'WQMPMap', 'WQMP Map'),
+(92, 'WqmpVerificationIntro', 'WQMP O&M Verification Intro'),
+(93, 'WqmpVerificationBasics', 'WQMP O&M Verification - Basics Step'),
+(94, 'WqmpVerificationStructuralBmps', 'WQMP O&M Verification - Structural BMPs Step'),
+(95, 'WqmpVerificationSimplifiedBmps', 'WQMP O&M Verification - Simplified BMPs Step'),
+(96, 'WqmpVerificationSourceControl', 'WQMP O&M Verification - Source Control BMPs Step'),
+(97, 'WqmpVerificationReview', 'WQMP O&M Verification - Review & Finalize Step')
 )
 AS Source (NeptunePageTypeID, NeptunePageTypeName, NeptunePageTypeDisplayName)
 ON Target.NeptunePageTypeID = Source.NeptunePageTypeID

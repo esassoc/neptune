@@ -56,4 +56,6 @@ GO
 GO
 :r ".\024 - MakeValid on invalid Delineation geometries.sql"
 GO
+:r ".\025 - WQMP Verification step help text.sql"
+GO
 

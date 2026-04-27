@@ -21,12 +21,14 @@ import { StructuralBmpsStepComponent, BMPChecklistRow } from "src/app/pages/wqmp
 import { SimplifiedBmpsStepComponent } from "src/app/pages/wqmps/wqmp-detail/verification-wizard/steps/simplified-bmps-step.component";
 import { SourceControlStepComponent, SourceControlRow } from "src/app/pages/wqmps/wqmp-detail/verification-wizard/steps/source-control-step.component";
 import { ReviewStepComponent } from "src/app/pages/wqmps/wqmp-detail/verification-wizard/steps/review-step.component";
+import { WorkflowBodyComponent } from "src/app/shared/components/workflow-body/workflow-body.component";
+import { NeptunePageTypeEnum } from "src/app/shared/generated/enum/neptune-page-type-enum";
 
 @Component({
     selector: "verification-wizard",
     standalone: true,
     imports: [
-        PageHeaderComponent, AlertDisplayComponent,
+        PageHeaderComponent, AlertDisplayComponent, WorkflowBodyComponent,
         VerificationBasicsStepComponent, StructuralBmpsStepComponent,
         SimplifiedBmpsStepComponent, SourceControlStepComponent, ReviewStepComponent,
         RouterLink, AsyncPipe, DatePipe,
@@ -75,12 +77,16 @@ export class VerificationWizardComponent implements OnInit {
     public sourceControlRows = signal<SourceControlRow[]>([]);
 
     public steps = [
-        { number: 1, title: "Basics" },
-        { number: 2, title: "Structural BMPs" },
-        { number: 3, title: "Simplified BMPs" },
-        { number: 4, title: "Source Control" },
-        { number: 5, title: "Review & Finalize" },
+        { number: 1, title: "Basics", helpID: NeptunePageTypeEnum.WqmpVerificationBasics },
+        { number: 2, title: "Structural BMPs", helpID: NeptunePageTypeEnum.WqmpVerificationStructuralBmps },
+        { number: 3, title: "Simplified BMPs", helpID: NeptunePageTypeEnum.WqmpVerificationSimplifiedBmps },
+        { number: 4, title: "Source Control", helpID: NeptunePageTypeEnum.WqmpVerificationSourceControl },
+        { number: 5, title: "Review & Finalize", helpID: NeptunePageTypeEnum.WqmpVerificationReview },
     ];
+
+    public currentStepHelpID(): number {
+        return this.steps.find((s) => s.number === this.currentStep())?.helpID ?? null;
+    }
 
     isStepDisabled(stepNumber: number): boolean {
         // Steps beyond Basics require a saved verification record (ID) to attach child records to
@@ -288,10 +294,6 @@ export class VerificationWizardComponent implements OnInit {
                 this.alertService.pushAlert(new Alert("An error occurred while saving.", AlertContext.Danger));
             },
         });
-    }
-
-    cancel(): void {
-        this.router.navigate(["/water-quality-management-plans", this.waterQualityManagementPlanID]);
     }
 
     deleteVerification(): void {

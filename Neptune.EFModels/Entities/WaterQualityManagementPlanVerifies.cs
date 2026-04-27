@@ -68,6 +68,40 @@ public static class WaterQualityManagementPlanVerifies
             .OrderByDescending(x => x.VerificationDate).ToList();
     }
 
+    public static async Task<List<WaterQualityManagementPlanVerifyIndexGridDto>> ListAllAsIndexGridDtoAsync(
+        NeptuneDbContext dbContext, PersonDto callingPerson)
+    {
+        var viewableJurisdictionIDs = await StormwaterJurisdictionPeople
+            .ListViewableStormwaterJurisdictionIDsByPersonDtoForBMPsAsync(dbContext, callingPerson);
+
+        var dtos = await dbContext.WaterQualityManagementPlanVerifies
+            .AsNoTracking()
+            .Where(x => viewableJurisdictionIDs.Contains(x.WaterQualityManagementPlan.StormwaterJurisdictionID))
+            .OrderByDescending(x => x.VerificationDate)
+            .Select(WaterQualityManagementPlanVerifyProjections.AsIndexGridDto)
+            .ToListAsync();
+
+        // Resolve lookup display names from static binding dictionaries (not available in LINQ-to-SQL)
+        foreach (var dto in dtos)
+        {
+            if (WaterQualityManagementPlanVerifyType.AllLookupDictionary.TryGetValue(dto.WaterQualityManagementPlanVerifyTypeID, out var verifyType))
+            {
+                dto.WaterQualityManagementPlanVerifyTypeDisplayName = verifyType.WaterQualityManagementPlanVerifyTypeDisplayName;
+            }
+            if (WaterQualityManagementPlanVisitStatus.AllLookupDictionary.TryGetValue(dto.WaterQualityManagementPlanVisitStatusID, out var visitStatus))
+            {
+                dto.WaterQualityManagementPlanVisitStatusDisplayName = visitStatus.WaterQualityManagementPlanVisitStatusDisplayName;
+            }
+            if (dto.WaterQualityManagementPlanVerifyStatusID.HasValue
+                && WaterQualityManagementPlanVerifyStatus.AllLookupDictionary.TryGetValue(dto.WaterQualityManagementPlanVerifyStatusID.Value, out var verifyStatus))
+            {
+                dto.WaterQualityManagementPlanVerifyStatusDisplayName = verifyStatus.WaterQualityManagementPlanVerifyStatusDisplayName;
+            }
+        }
+
+        return dtos;
+    }
+
     public static async Task<List<WaterQualityManagementPlanVerifyGridDto>> ListByWaterQualityManagementPlanIDAsDtoAsync(
         NeptuneDbContext dbContext, int waterQualityManagementPlanID)
     {

@@ -1,0 +1,21 @@
+@use "/src/scss/abstracts" as *;
+
+.card-tag {
+    margin-left: auto;
+    font-size: $type-size-200;
+    font-weight: 500;
+    text-transform: uppercase;
+}
+
+.source-control-group {
+    margin-bottom: $spacing-300;
+
+    h4 {
+        margin-bottom: $spacing-100;
+    }
+}
+
+.system-text {
+    font-style: italic;
+    color: $gray-600;
+}

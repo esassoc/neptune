@@ -105,11 +105,24 @@ export class WqmpDetailComponent implements OnInit, OnChanges {
     private delineationsLayer: L.TileLayer;
     private pendingWqmpForMap: WaterQualityManagementPlanDto;
 
-    // Permissions
+    // Permissions — read live from AuthenticationService each CD pass via getters/methods so
+    // the template re-evaluates after the auth service finishes loading the current user.
+    // Using eager fields populated from a fire-and-forget subscribe was timing-fragile and
+    // could leave gated buttons hidden when the user resolved after first template render
+    // (the JE/JM Begin-button bug from NPT-995's first round).
     currentUser: PersonDto;
-    currentPersonCanManage = false;
-    currentPersonCanEdit = false;
-    isAnonymousOrUnassigned = true;
+
+    public get currentPersonCanManage(): boolean {
+        return this.authenticationService.doesCurrentUserHaveJurisdictionManagePermission();
+    }
+
+    public get currentPersonCanEdit(): boolean {
+        return this.authenticationService.doesCurrentUserHaveJurisdictionEditPermission();
+    }
+
+    public get isAnonymousOrUnassigned(): boolean {
+        return !this.currentUser || this.currentUser.RoleID == RoleEnum.Unassigned;
+    }
 
     // Grid column defs
     parcelColumnDefs: ColDef[];
@@ -148,9 +161,6 @@ export class WqmpDetailComponent implements OnInit, OnChanges {
 
         this.authenticationService.getCurrentUser().subscribe((user) => {
             this.currentUser = user;
-            this.isAnonymousOrUnassigned = !user || user.RoleID == RoleEnum.Unassigned;
-            this.currentPersonCanManage = this.authenticationService.doesCurrentUserHaveJurisdictionManagePermission();
-            this.currentPersonCanEdit = this.authenticationService.doesCurrentUserHaveJurisdictionEditPermission();
         });
     }
 
@@ -325,6 +335,24 @@ export class WqmpDetailComponent implements OnInit, OnChanges {
         ];
 
         this.verificationColumnDefs = [
+            this.utilityFunctionsService.createActionsColumnDef((params: any) => {
+                const wqmpID = this.waterQualityManagementPlanID;
+                const verifyID = params.data.WaterQualityManagementPlanVerifyID;
+                const actions: any[] = [
+                    {
+                        ActionName: "View",
+                        ActionHandler: () => this.router.navigate(["/water-quality-management-plans", wqmpID, "verifications", verifyID, "view"]),
+                    },
+                ];
+                if (this.currentPersonCanEdit && params.data.IsDraft) {
+                    actions.push({
+                        ActionName: "Edit",
+                        ActionIcon: "fas fa-edit",
+                        ActionHandler: () => this.router.navigate(["/water-quality-management-plans", wqmpID, "verifications", verifyID]),
+                    });
+                }
+                return actions;
+            }),
             this.utilityFunctionsService.createDateColumnDef("Verification Date", "VerificationDate", "MM/dd/yyyy"),
             this.utilityFunctionsService.createDateColumnDef("Last Edited", "LastEditedDate", "MM/dd/yyyy"),
             this.utilityFunctionsService.createBasicColumnDef("Edited By", "LastEditedByPersonFullName"),
@@ -408,10 +436,17 @@ export class WqmpDetailComponent implements OnInit, OnChanges {
     }
 
     onVerificationRowClicked(event: any): void {
+        // Navigate based on draft state and edit permission. Explicit action column (Edit/View)
+        // is the primary affordance now, but row-click stays as a convenience: drafts → wizard
+        // (when the user can edit), finalized → read-only detail.
         const selectedRows = event.api.getSelectedRows();
-        if (selectedRows?.length) {
-            const verifyID = selectedRows[0].WaterQualityManagementPlanVerifyID;
+        if (!selectedRows?.length) return;
+        const verifyID = selectedRows[0].WaterQualityManagementPlanVerifyID;
+        const isDraft = selectedRows[0].IsDraft;
+        if (isDraft && this.currentPersonCanEdit) {
             this.router.navigate(["/water-quality-management-plans", this.waterQualityManagementPlanID, "verifications", verifyID]);
+        } else {
+            this.router.navigate(["/water-quality-management-plans", this.waterQualityManagementPlanID, "verifications", verifyID, "view"]);
         }
     }
 }
