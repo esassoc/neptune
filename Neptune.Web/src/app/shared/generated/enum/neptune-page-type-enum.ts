@@ -94,12 +94,11 @@ export enum NeptunePageTypeEnum {
   WQMPApprovalSummary = 89,
   WQMPPostConstructionInspectionAndVerification = 90,
   WQMPMap = 91,
-  WqmpVerificationIntro = 92,
-  WqmpVerificationBasics = 93,
-  WqmpVerificationStructuralBmps = 94,
-  WqmpVerificationSimplifiedBmps = 95,
-  WqmpVerificationSourceControl = 96,
-  WqmpVerificationReview = 97
+  WQMPVerificationBasics = 93,
+  WQMPVerificationStructuralBmps = 94,
+  WQMPVerificationSimplifiedBmps = 95,
+  WQMPVerificationSourceControl = 96,
+  WQMPVerificationReview = 97
 }
 
 export const NeptunePageTypes: LookupTableEntry[]  = [
@@ -191,11 +190,10 @@ export const NeptunePageTypes: LookupTableEntry[]  = [
   { Name: "WQMPApprovalSummary", DisplayName: "WQMP Approval Summary", Value: 89 },
   { Name: "WQMPPostConstructionInspectionAndVerification", DisplayName: "WQMP Post Construction Inspection and Verification", Value: 90 },
   { Name: "WQMPMap", DisplayName: "WQMP Map", Value: 91 },
-  { Name: "WqmpVerificationIntro", DisplayName: "WQMP O&M Verification Intro", Value: 92 },
-  { Name: "WqmpVerificationBasics", DisplayName: "WQMP O&M Verification - Basics Step", Value: 93 },
-  { Name: "WqmpVerificationStructuralBmps", DisplayName: "WQMP O&M Verification - Structural BMPs Step", Value: 94 },
-  { Name: "WqmpVerificationSimplifiedBmps", DisplayName: "WQMP O&M Verification - Simplified BMPs Step", Value: 95 },
-  { Name: "WqmpVerificationSourceControl", DisplayName: "WQMP O&M Verification - Source Control BMPs Step", Value: 96 },
-  { Name: "WqmpVerificationReview", DisplayName: "WQMP O&M Verification - Review & Finalize Step", Value: 97 }
+  { Name: "WQMPVerificationBasics", DisplayName: "WQMP O&M Verification - Basics Step", Value: 93 },
+  { Name: "WQMPVerificationStructuralBmps", DisplayName: "WQMP O&M Verification - Structural BMPs Step", Value: 94 },
+  { Name: "WQMPVerificationSimplifiedBmps", DisplayName: "WQMP O&M Verification - Simplified BMPs Step", Value: 95 },
+  { Name: "WQMPVerificationSourceControl", DisplayName: "WQMP O&M Verification - Source Control BMPs Step", Value: 96 },
+  { Name: "WQMPVerificationReview", DisplayName: "WQMP O&M Verification - Review & Finalize Step", Value: 97 }
 ];
 export const NeptunePageTypesAsSelectDropdownOptions = NeptunePageTypes.map((x) => ({ Value: x.Value, Label: x.DisplayName } as SelectDropdownOption));

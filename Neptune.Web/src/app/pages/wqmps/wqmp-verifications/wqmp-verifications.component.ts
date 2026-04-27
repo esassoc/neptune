@@ -72,7 +72,7 @@ export class WqmpVerificationsComponent {
             this.utilityFunctionsService.createBasicColumnDef("Source Control Condition", "SourceControlCondition"),
             this.utilityFunctionsService.createBasicColumnDef("Enforcement / Follow-up", "EnforcementOrFollowupActions"),
             this.utilityFunctionsService.createBasicColumnDef("Draft/Finalized", "IsDraft", {
-                CustomDropdownFilterField: "IsDraft",
+                UseCustomDropdownFilter: true,
                 ValueGetter: (params) => (params.data?.IsDraft ? "Draft" : "Finalized"),
             }),
         ];

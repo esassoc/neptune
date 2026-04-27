@@ -77,11 +77,11 @@ export class VerificationWizardComponent implements OnInit {
     public sourceControlRows = signal<SourceControlRow[]>([]);
 
     public steps = [
-        { number: 1, title: "Basics", helpID: NeptunePageTypeEnum.WqmpVerificationBasics },
-        { number: 2, title: "Structural BMPs", helpID: NeptunePageTypeEnum.WqmpVerificationStructuralBmps },
-        { number: 3, title: "Simplified BMPs", helpID: NeptunePageTypeEnum.WqmpVerificationSimplifiedBmps },
-        { number: 4, title: "Source Control", helpID: NeptunePageTypeEnum.WqmpVerificationSourceControl },
-        { number: 5, title: "Review & Finalize", helpID: NeptunePageTypeEnum.WqmpVerificationReview },
+        { number: 1, title: "Basics", helpID: NeptunePageTypeEnum.WQMPVerificationBasics },
+        { number: 2, title: "Structural BMPs", helpID: NeptunePageTypeEnum.WQMPVerificationStructuralBmps },
+        { number: 3, title: "Simplified BMPs", helpID: NeptunePageTypeEnum.WQMPVerificationSimplifiedBmps },
+        { number: 4, title: "Source Control", helpID: NeptunePageTypeEnum.WQMPVerificationSourceControl },
+        { number: 5, title: "Review & Finalize", helpID: NeptunePageTypeEnum.WQMPVerificationReview },
     ];
 
     public currentStepHelpID(): number {
