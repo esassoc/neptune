@@ -1,4 +1,4 @@
-import { Component } from "@angular/core";
+import { ApplicationRef, Component } from "@angular/core";
 import { ActivatedRoute, Router, RouterLink } from "@angular/router";
 import { Input } from "@angular/core";
 import { BehaviorSubject, Observable, switchMap, tap } from "rxjs";
@@ -71,7 +71,8 @@ export class TrashOvtaAreaDetailComponent {
         private confirmService: ConfirmService,
         private router: Router,
         private datePipe: DatePipe,
-        private dialogService: DialogService
+        private dialogService: DialogService,
+        private appRef: ApplicationRef
     ) {}
 
     ngOnInit(): void {
@@ -134,6 +135,10 @@ export class TrashOvtaAreaDetailComponent {
         this.map = event.map;
         this.layerControl = event.layerControl;
         this.mapIsReady = true;
+
+        // Zoneless: Leaflet's map-init callback runs outside Angular change detection,
+        // so the @if (mapIsReady) layer gates won't re-render without a manual tick.
+        Promise.resolve().then(() => this.appRef.tick());
     }
 
     public addNewOVTA(onlandVisualTrashAssessmentAreaID: number, onlandVisualTrashAssessmentAreaName: string, stormwaterJurisdictionID: number) {
