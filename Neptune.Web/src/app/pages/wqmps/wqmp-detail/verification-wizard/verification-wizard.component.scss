@@ -14,12 +14,17 @@
     }
 
     dt {
+        // Override the global `dt { text-align: right }` rule from scss/components/_dl.scss
+        // which was making the WQMP/Status labels right-align in the narrow sidebar and zigzag
+        // against their left-aligned values.
+        text-align: left;
         font-size: $type-size-100;
         text-transform: uppercase;
         letter-spacing: 0.04em;
         color: $gray-default;
         font-weight: 600;
         margin: 0;
+        padding-bottom: 0;
     }
 
     dd {
