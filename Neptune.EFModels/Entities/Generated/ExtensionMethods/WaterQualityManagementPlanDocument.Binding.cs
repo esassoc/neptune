@@ -13,6 +13,7 @@ namespace Neptune.EFModels.Entities
         {
             public const int DisplayName = 100;
             public const int Description = 1000;
+            public const int AnthropicFileID = 64;
         }
     }
 }

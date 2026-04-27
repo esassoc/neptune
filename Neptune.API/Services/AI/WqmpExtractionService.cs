@@ -1,14 +1,14 @@
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
-using System.IO;
 using System.Linq;
 using System.Text.Json;
 using System.Threading;
 using System.Threading.Tasks;
 using Anthropic;
-using Anthropic.Models.Messages;
-using AnthropicRole = Anthropic.Models.Messages.Role;
+using Anthropic.Exceptions;
+using Anthropic.Models.Beta.Messages;
+using BetaRole = Anthropic.Models.Beta.Messages.Role;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
@@ -27,7 +27,7 @@ public class WqmpExtractionService
     private static readonly Lazy<string> SourceControlBmpSchema = new(BuildSourceControlBmpSchemaJson);
 
     private readonly AnthropicClient _anthropic;
-    private readonly AzureBlobStorageService _blobService;
+    private readonly AnthropicFileService _anthropicFileService;
     private readonly NeptuneDbContext _dbContext;
     private readonly IPromptTemplateService _promptTemplateService;
     private readonly ILogger<WqmpExtractionService> _logger;
@@ -35,14 +35,14 @@ public class WqmpExtractionService
 
     public WqmpExtractionService(
         AnthropicClient anthropic,
-        AzureBlobStorageService blobService,
+        AnthropicFileService anthropicFileService,
         NeptuneDbContext dbContext,
         IPromptTemplateService promptTemplateService,
         ILogger<WqmpExtractionService> logger,
         IOptions<NeptuneConfiguration> configuration)
     {
         _anthropic = anthropic;
-        _blobService = blobService;
+        _anthropicFileService = anthropicFileService;
         _dbContext = dbContext;
         _promptTemplateService = promptTemplateService;
         _logger = logger;
@@ -56,15 +56,13 @@ public class WqmpExtractionService
         _logger.LogInformation("Starting WQMP extraction for documentID={DocumentID}, personID={PersonID}, model={Model}",
             waterQualityManagementPlanDocumentID, personID, _configuration.ClaudeModelId);
 
-        var docDto = await WaterQualityManagementPlanDocuments.GetByIDAsDtoAsync(_dbContext, waterQualityManagementPlanDocumentID);
-        if (docDto == null) throw new InvalidOperationException($"Document {waterQualityManagementPlanDocumentID} not found.");
-
-        // Generate a temporary SAS URL for the PDF in Azure Blob Storage.
-        // Claude fetches the PDF directly from Azure — no base64 encoding, no request-body
-        // size limit. The SAS URL expires after 10 minutes.
-        var blobGuid = docDto.FileResource.FileResourceGUID.ToString();
-        var pdfSasUrl = _blobService.GenerateBlobSasUrl(blobGuid, TimeSpan.FromMinutes(10));
-        _logger.LogInformation("Generated SAS URL for PDF blob {BlobGuid}. Building domain context...", blobGuid);
+        // NPT-1044: upload to Anthropic Files API once and cache the file_id on the document.
+        // The Files-API source path on the Beta Messages API supports up to 500 MB per file
+        // — vs. 32 MB on the URL-source path we used previously — and dodges the SAS-URL
+        // expiry race we used to see on long-running extractions.
+        var fileID = await _anthropicFileService.EnsureUploadedFileIDAsync(waterQualityManagementPlanDocumentID, cancellationToken);
+        _logger.LogInformation("Anthropic file ID resolved for documentID={DocumentID}: {FileID}. Building domain context...",
+            waterQualityManagementPlanDocumentID, fileID);
 
         var domainContext = await BuildDomainContext();
 
@@ -99,9 +97,6 @@ public class WqmpExtractionService
             var catSw = Stopwatch.StartNew();
             _logger.LogInformation("Starting extraction category: {Category}", key);
 
-            using var categoryCts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
-            categoryCts.CancelAfter(TimeSpan.FromMinutes(4));
-
             var templateModel = new
             {
                 EvidenceInstructions = evidenceInstructions,
@@ -113,79 +108,109 @@ public class WqmpExtractionService
             var toolName = $"emit_{key.ToLower()}_extraction";
 
             // System prompt: evidence instructions (cached — stable across all 4 calls)
-            var systemBlocks = new List<TextBlockParam>
+            var systemBlocks = new List<BetaTextBlockParam>
             {
-                new() { Text = evidenceInstructions, CacheControl = new CacheControlEphemeral() },
+                new() { Text = evidenceInstructions, CacheControl = new BetaCacheControlEphemeral() },
             };
 
-            // User message: PDF document (cached) + domain context (cached) + per-category prompt (varies)
-            var messageContent = new List<ContentBlockParam>
+            // Single attempt: build params bound to a specific file_id and stream the response.
+            // Factored out so the outer retry can rebuild the message with a refreshed id
+            // when Anthropic 404s on a stale cached file_id.
+            async Task<(string output, long inputTokens, long outputTokens, long cachedTokens)> AttemptAsync(string attemptFileID)
             {
-                new DocumentBlockParam { Source = new UrlPdfSource { Url = pdfSasUrl.ToString() } },
-                new TextBlockParam { Text = $"DomainContext:\n{domainContext}", CacheControl = new CacheControlEphemeral() },
-                new TextBlockParam { Text = prompt },
-            };
+                using var categoryCts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
+                categoryCts.CancelAfter(TimeSpan.FromMinutes(4));
 
-            var parameters = new MessageCreateParams
-            {
-                Model = _configuration.ClaudeModelId,
-                MaxTokens = 8192,
-                System = systemBlocks,
-                Messages = [new() { Role = AnthropicRole.User, Content = messageContent }],
-                Tools = allTools.Select(t => (ToolUnion)t).ToList(),
-                ToolChoice = new ToolChoiceTool { Name = toolName },
-            };
-
-            // Stream the response — keeps the HTTP connection alive via SSE so there's no
-            // HttpClient.Timeout to worry about, even for large PDFs on a cold cache.
-            var toolInputJson = new System.Text.StringBuilder();
-            long cachedTokens = 0;
-            long inputTokens = 0;
-            long outputTokens = 0;
-
-            await foreach (var evt in _anthropic.Messages.CreateStreaming(parameters, categoryCts.Token))
-            {
-                if (evt.TryPickContentBlockDelta(out var delta))
+                // User message: PDF document (referenced by file_id, cached) + domain context (cached) + per-category prompt (varies)
+                var messageContent = new List<BetaContentBlockParam>
                 {
-                    // Tool-use input arrives as input_json_delta chunks
-                    if (delta.Delta.TryPickInputJson(out var jsonDelta))
+                    new BetaRequestDocumentBlock { Source = new BetaFileDocumentSource { FileID = attemptFileID } },
+                    new BetaTextBlockParam { Text = $"DomainContext:\n{domainContext}", CacheControl = new BetaCacheControlEphemeral() },
+                    new BetaTextBlockParam { Text = prompt },
+                };
+
+                var parameters = new MessageCreateParams
+                {
+                    Model = _configuration.ClaudeModelId,
+                    MaxTokens = 8192,
+                    // The Files-API source variant (BetaFileDocumentSource) is gated behind
+                    // this beta header on the Messages endpoint. Without it the request gets
+                    // routed to the standard validator and rejected with
+                    // "Input tag 'file' found using 'type' does not match any of the
+                    // expected tags: 'base64', 'content', 'text', 'url'".
+                    Betas = ["files-api-2025-04-14"],
+                    System = systemBlocks,
+                    Messages = [new() { Role = BetaRole.User, Content = messageContent }],
+                    Tools = allTools.Select(t => (BetaToolUnion)t).ToList(),
+                    ToolChoice = new BetaToolChoiceTool { Name = toolName },
+                };
+
+                // Stream the response — keeps the HTTP connection alive via SSE so there's no
+                // HttpClient.Timeout to worry about, even for large PDFs on a cold cache.
+                var toolInputJson = new System.Text.StringBuilder();
+                long cachedTokens = 0;
+                long inputTokens = 0;
+                long outputTokens = 0;
+
+                await foreach (var evt in _anthropic.Beta.Messages.CreateStreaming(parameters, categoryCts.Token))
+                {
+                    if (evt.TryPickContentBlockDelta(out var delta))
                     {
-                        toolInputJson.Append(jsonDelta.PartialJson);
+                        // Tool-use input arrives as input_json_delta chunks
+                        if (delta.Delta.TryPickInputJson(out var jsonDelta))
+                        {
+                            toolInputJson.Append(jsonDelta.PartialJson);
+                        }
+                    }
+                    else if (evt.TryPickDelta(out var msgDelta))
+                    {
+                        // message_delta carries usage info
+                        if (msgDelta.Usage != null)
+                        {
+                            outputTokens = msgDelta.Usage.OutputTokens;
+                        }
+                    }
+                    else if (evt.TryPickStart(out var msgStart))
+                    {
+                        if (msgStart.Message?.Usage != null)
+                        {
+                            inputTokens = msgStart.Message.Usage.InputTokens;
+                            cachedTokens = msgStart.Message.Usage.CacheReadInputTokens ?? 0;
+                        }
                     }
                 }
-                else if (evt.TryPickDelta(out var msgDelta))
+
+                var output = toolInputJson.Length > 0 ? toolInputJson.ToString() : (expectArray ? "[]" : "{}");
+
+                if (!IsValidJson(output))
                 {
-                    // message_delta carries usage info
-                    if (msgDelta.Usage != null)
-                    {
-                        outputTokens = msgDelta.Usage.OutputTokens;
-                    }
+                    _logger.LogError("Streamed tool output returned invalid JSON for {Category} after {ElapsedMs}ms. Using empty fallback.",
+                        key, catSw.ElapsedMilliseconds);
+                    output = expectArray ? "[]" : "{}";
                 }
-                else if (evt.TryPickStart(out var msgStart))
+                else
                 {
-                    if (msgStart.Message?.Usage != null)
-                    {
-                        inputTokens = msgStart.Message.Usage.InputTokens;
-                        cachedTokens = msgStart.Message.Usage.CacheReadInputTokens ?? 0;
-                    }
+                    _logger.LogInformation("Finished extraction category: {Category} in {ElapsedMs}ms ({OutputChars} chars, cached={CachedTokens})",
+                        key, catSw.ElapsedMilliseconds, output.Length, cachedTokens);
                 }
+
+                return (output, inputTokens, outputTokens, cachedTokens);
             }
 
-            var output = toolInputJson.Length > 0 ? toolInputJson.ToString() : (expectArray ? "[]" : "{}");
-
-            if (!IsValidJson(output))
+            // Retry once on a stale-file_id 404 — invalidate the cached id and re-upload
+            // (serialized across the 4 parallel calls inside RefreshFileIDAsync), then retry.
+            try
             {
-                _logger.LogError("Streamed tool output returned invalid JSON for {Category} after {ElapsedMs}ms. Using empty fallback.",
-                    key, catSw.ElapsedMilliseconds);
-                output = expectArray ? "[]" : "{}";
+                return await AttemptAsync(fileID);
             }
-            else
+            catch (AnthropicNotFoundException ex)
             {
-                _logger.LogInformation("Finished extraction category: {Category} in {ElapsedMs}ms ({OutputChars} chars, cached={CachedTokens})",
-                    key, catSw.ElapsedMilliseconds, output.Length, cachedTokens);
+                _logger.LogWarning(ex, "Anthropic 404 on {Category} for documentID={DocumentID} (likely stale file_id); refreshing and retrying once.",
+                    key, waterQualityManagementPlanDocumentID);
+                var refreshedFileID = await _anthropicFileService.RefreshFileIDAsync(
+                    waterQualityManagementPlanDocumentID, fileID, cancellationToken);
+                return await AttemptAsync(refreshedFileID);
             }
-
-            return (output, inputTokens, outputTokens, cachedTokens);
         }
 
         var tasks = categoryConfigs.Select(kvp =>
@@ -252,10 +277,10 @@ public class WqmpExtractionService
         }
     }
 
-    private static Tool BuildToolForCategory(string categoryKey, string jsonSchema)
+    private static BetaTool BuildToolForCategory(string categoryKey, string jsonSchema)
     {
         var parsed = JsonSerializer.Deserialize<Dictionary<string, JsonElement>>(jsonSchema);
-        return new Tool
+        return new BetaTool
         {
             Name = $"emit_{categoryKey.ToLower()}_extraction",
             Description = $"Emit the extracted {categoryKey} fields as structured JSON matching the required schema.",

@@ -30,6 +30,12 @@ public partial class WaterQualityManagementPlanDocument
 
     public int WaterQualityManagementPlanDocumentTypeID { get; set; }
 
+    [StringLength(64)]
+    public string? AnthropicFileID { get; set; }
+
+    [Column(TypeName = "datetime")]
+    public DateTime? AnthropicFileUploadedDate { get; set; }
+
     [ForeignKey("FileResourceID")]
     [InverseProperty("WaterQualityManagementPlanDocuments")]
     public virtual FileResource FileResource { get; set; } = null!;

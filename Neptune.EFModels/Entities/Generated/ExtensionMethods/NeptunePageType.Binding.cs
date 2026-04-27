@@ -99,6 +99,11 @@ namespace Neptune.EFModels.Entities
         public static readonly NeptunePageTypeWQMPApprovalSummary WQMPApprovalSummary = NeptunePageTypeWQMPApprovalSummary.Instance;
         public static readonly NeptunePageTypeWQMPPostConstructionInspectionAndVerification WQMPPostConstructionInspectionAndVerification = NeptunePageTypeWQMPPostConstructionInspectionAndVerification.Instance;
         public static readonly NeptunePageTypeWQMPMap WQMPMap = NeptunePageTypeWQMPMap.Instance;
+        public static readonly NeptunePageTypeWQMPVerificationBasics WQMPVerificationBasics = NeptunePageTypeWQMPVerificationBasics.Instance;
+        public static readonly NeptunePageTypeWQMPVerificationStructuralBmps WQMPVerificationStructuralBmps = NeptunePageTypeWQMPVerificationStructuralBmps.Instance;
+        public static readonly NeptunePageTypeWQMPVerificationSimplifiedBmps WQMPVerificationSimplifiedBmps = NeptunePageTypeWQMPVerificationSimplifiedBmps.Instance;
+        public static readonly NeptunePageTypeWQMPVerificationSourceControl WQMPVerificationSourceControl = NeptunePageTypeWQMPVerificationSourceControl.Instance;
+        public static readonly NeptunePageTypeWQMPVerificationReview WQMPVerificationReview = NeptunePageTypeWQMPVerificationReview.Instance;
 
         public static readonly List<NeptunePageType> All;
         public static readonly ReadOnlyDictionary<int, NeptunePageType> AllLookupDictionary;
@@ -108,7 +113,7 @@ namespace Neptune.EFModels.Entities
         /// </summary>
         static NeptunePageType()
         {
-            All = new List<NeptunePageType> { HomePage, About, OrganizationsList, HomeMapInfo, HomeAdditionalInfo, TreatmentBMP, TreatmentBMPType, Jurisdiction, Assessment, ManageObservationTypesList, ManageTreatmentBMPTypesList, ManageObservationTypeInstructions, ManageObservationTypeObservationInstructions, ManageObservationTypeLabelsAndUnitsInstructions, ManageTreatmentBMPTypeInstructions, ManageCustomAttributeTypeInstructions, ManageCustomAttributeInstructions, ManageCustomAttributeTypesList, Legal, FundingSourcesList, FindABMP, LaunchPad, FieldRecords, RequestSupport, InviteUser, WaterQualityMaintenancePlan, ParcelList, Training, ManagerDashboard, WaterQualityMaintenancePlanOandMVerifications, ModelingHomePage, TrashHomePage, OVTAInstructions, OVTAIndex, TrashModuleProgramOverview, DelineationMap, BulkUploadRequest, TreatmentBMPAssessment, EditOVTAArea, LandUseBlock, ExportAssessmentGeospatialData, HRUCharacteristics, RegionalSubbasins, DelineationReconciliationReport, ViewTreatmentBMPModelingAttributes, UploadTreatmentBMPs, AboutModelingBMPPerformance, BulkUploadFieldVisits, HippocampHomePage, HippocampTraining, HippocampLabelsAndDefinitionsList, HippocampAbout, HippocampProjectsList, HippocampProjectInstructions, HippocampProjectBasics, HippocampProjectAttachments, HippocampTreatmentBMPs, HippocampDelineations, HippocampModeledPerformance, HippocampReview, HippocampPlanningMap, OCTAM2Tier2GrantProgramMetrics, OCTAM2Tier2GrantProgramDashboard, EditWQMPBoundary, UploadWQMPs, UploadSimplifiedBMPs, UploadOVTAs, WQMPBoundaryFromAPNList, BMPDataHub, DelineationDataHub, FieldVisitDataHub, WQMPDataHub, SimplifiedBMPsDataHub, WQMPLocationsDataHub, AssessmentAreasDataHub, OVTADataHub, LandUseBlockDataHub, RegionalSubbasinsDataHub, LandUseStatisticsDataHub, ModelBasinsDataHub, PrecipitationZonesDataHub, ParcelUploadDataHub, ExportBMPInventoryToGIS, SPAHomePage, WQMPModelingOptions, WQMPApprovalSummary, WQMPPostConstructionInspectionAndVerification, WQMPMap };
+            All = new List<NeptunePageType> { HomePage, About, OrganizationsList, HomeMapInfo, HomeAdditionalInfo, TreatmentBMP, TreatmentBMPType, Jurisdiction, Assessment, ManageObservationTypesList, ManageTreatmentBMPTypesList, ManageObservationTypeInstructions, ManageObservationTypeObservationInstructions, ManageObservationTypeLabelsAndUnitsInstructions, ManageTreatmentBMPTypeInstructions, ManageCustomAttributeTypeInstructions, ManageCustomAttributeInstructions, ManageCustomAttributeTypesList, Legal, FundingSourcesList, FindABMP, LaunchPad, FieldRecords, RequestSupport, InviteUser, WaterQualityMaintenancePlan, ParcelList, Training, ManagerDashboard, WaterQualityMaintenancePlanOandMVerifications, ModelingHomePage, TrashHomePage, OVTAInstructions, OVTAIndex, TrashModuleProgramOverview, DelineationMap, BulkUploadRequest, TreatmentBMPAssessment, EditOVTAArea, LandUseBlock, ExportAssessmentGeospatialData, HRUCharacteristics, RegionalSubbasins, DelineationReconciliationReport, ViewTreatmentBMPModelingAttributes, UploadTreatmentBMPs, AboutModelingBMPPerformance, BulkUploadFieldVisits, HippocampHomePage, HippocampTraining, HippocampLabelsAndDefinitionsList, HippocampAbout, HippocampProjectsList, HippocampProjectInstructions, HippocampProjectBasics, HippocampProjectAttachments, HippocampTreatmentBMPs, HippocampDelineations, HippocampModeledPerformance, HippocampReview, HippocampPlanningMap, OCTAM2Tier2GrantProgramMetrics, OCTAM2Tier2GrantProgramDashboard, EditWQMPBoundary, UploadWQMPs, UploadSimplifiedBMPs, UploadOVTAs, WQMPBoundaryFromAPNList, BMPDataHub, DelineationDataHub, FieldVisitDataHub, WQMPDataHub, SimplifiedBMPsDataHub, WQMPLocationsDataHub, AssessmentAreasDataHub, OVTADataHub, LandUseBlockDataHub, RegionalSubbasinsDataHub, LandUseStatisticsDataHub, ModelBasinsDataHub, PrecipitationZonesDataHub, ParcelUploadDataHub, ExportBMPInventoryToGIS, SPAHomePage, WQMPModelingOptions, WQMPApprovalSummary, WQMPPostConstructionInspectionAndVerification, WQMPMap, WQMPVerificationBasics, WQMPVerificationStructuralBmps, WQMPVerificationSimplifiedBmps, WQMPVerificationSourceControl, WQMPVerificationReview };
             AllLookupDictionary = new ReadOnlyDictionary<int, NeptunePageType>(All.ToDictionary(x => x.NeptunePageTypeID));
         }
 
@@ -354,6 +359,16 @@ namespace Neptune.EFModels.Entities
                     return WQMPModelingOptions;
                 case NeptunePageTypeEnum.WQMPPostConstructionInspectionAndVerification:
                     return WQMPPostConstructionInspectionAndVerification;
+                case NeptunePageTypeEnum.WQMPVerificationBasics:
+                    return WQMPVerificationBasics;
+                case NeptunePageTypeEnum.WQMPVerificationReview:
+                    return WQMPVerificationReview;
+                case NeptunePageTypeEnum.WQMPVerificationSimplifiedBmps:
+                    return WQMPVerificationSimplifiedBmps;
+                case NeptunePageTypeEnum.WQMPVerificationSourceControl:
+                    return WQMPVerificationSourceControl;
+                case NeptunePageTypeEnum.WQMPVerificationStructuralBmps:
+                    return WQMPVerificationStructuralBmps;
                 default:
                     throw new ArgumentException("Unable to map Enum: {enumValue}");
             }
@@ -449,7 +464,12 @@ namespace Neptune.EFModels.Entities
         WQMPModelingOptions = 88,
         WQMPApprovalSummary = 89,
         WQMPPostConstructionInspectionAndVerification = 90,
-        WQMPMap = 91
+        WQMPMap = 91,
+        WQMPVerificationBasics = 93,
+        WQMPVerificationStructuralBmps = 94,
+        WQMPVerificationSimplifiedBmps = 95,
+        WQMPVerificationSourceControl = 96,
+        WQMPVerificationReview = 97
     }
 
     public partial class NeptunePageTypeHomePage : NeptunePageType
@@ -978,5 +998,35 @@ namespace Neptune.EFModels.Entities
     {
         private NeptunePageTypeWQMPMap(int neptunePageTypeID, string neptunePageTypeName, string neptunePageTypeDisplayName) : base(neptunePageTypeID, neptunePageTypeName, neptunePageTypeDisplayName) {}
         public static readonly NeptunePageTypeWQMPMap Instance = new NeptunePageTypeWQMPMap(91, @"WQMPMap", @"WQMP Map");
+    }
+
+    public partial class NeptunePageTypeWQMPVerificationBasics : NeptunePageType
+    {
+        private NeptunePageTypeWQMPVerificationBasics(int neptunePageTypeID, string neptunePageTypeName, string neptunePageTypeDisplayName) : base(neptunePageTypeID, neptunePageTypeName, neptunePageTypeDisplayName) {}
+        public static readonly NeptunePageTypeWQMPVerificationBasics Instance = new NeptunePageTypeWQMPVerificationBasics(93, @"WQMPVerificationBasics", @"WQMP O&M Verification - Basics Step");
+    }
+
+    public partial class NeptunePageTypeWQMPVerificationStructuralBmps : NeptunePageType
+    {
+        private NeptunePageTypeWQMPVerificationStructuralBmps(int neptunePageTypeID, string neptunePageTypeName, string neptunePageTypeDisplayName) : base(neptunePageTypeID, neptunePageTypeName, neptunePageTypeDisplayName) {}
+        public static readonly NeptunePageTypeWQMPVerificationStructuralBmps Instance = new NeptunePageTypeWQMPVerificationStructuralBmps(94, @"WQMPVerificationStructuralBmps", @"WQMP O&M Verification - Structural BMPs Step");
+    }
+
+    public partial class NeptunePageTypeWQMPVerificationSimplifiedBmps : NeptunePageType
+    {
+        private NeptunePageTypeWQMPVerificationSimplifiedBmps(int neptunePageTypeID, string neptunePageTypeName, string neptunePageTypeDisplayName) : base(neptunePageTypeID, neptunePageTypeName, neptunePageTypeDisplayName) {}
+        public static readonly NeptunePageTypeWQMPVerificationSimplifiedBmps Instance = new NeptunePageTypeWQMPVerificationSimplifiedBmps(95, @"WQMPVerificationSimplifiedBmps", @"WQMP O&M Verification - Simplified BMPs Step");
+    }
+
+    public partial class NeptunePageTypeWQMPVerificationSourceControl : NeptunePageType
+    {
+        private NeptunePageTypeWQMPVerificationSourceControl(int neptunePageTypeID, string neptunePageTypeName, string neptunePageTypeDisplayName) : base(neptunePageTypeID, neptunePageTypeName, neptunePageTypeDisplayName) {}
+        public static readonly NeptunePageTypeWQMPVerificationSourceControl Instance = new NeptunePageTypeWQMPVerificationSourceControl(96, @"WQMPVerificationSourceControl", @"WQMP O&M Verification - Source Control BMPs Step");
+    }
+
+    public partial class NeptunePageTypeWQMPVerificationReview : NeptunePageType
+    {
+        private NeptunePageTypeWQMPVerificationReview(int neptunePageTypeID, string neptunePageTypeName, string neptunePageTypeDisplayName) : base(neptunePageTypeID, neptunePageTypeName, neptunePageTypeDisplayName) {}
+        public static readonly NeptunePageTypeWQMPVerificationReview Instance = new NeptunePageTypeWQMPVerificationReview(97, @"WQMPVerificationReview", @"WQMP O&M Verification - Review & Finalize Step");
     }
 }

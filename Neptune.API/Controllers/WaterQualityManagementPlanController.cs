@@ -32,10 +32,10 @@ namespace Neptune.API.Controllers
         : SitkaController<WaterQualityManagementPlanController>(dbContext, logger,
             neptuneConfiguration)
     {
-        // Claude's Messages API rejects document blocks over 32 MB. We enforce this at upload
-        // (so users don't park unusable PDFs) and again at extract-time as a safety net in case
-        // a file reaches the service through a different path.
-        private const long MaxExtractablePdfSizeBytes = 32L * 1024 * 1024;
+        // PDF size cap for AI extraction. Configurable via NeptuneConfiguration.MaxExtractablePdfSizeBytes
+        // (defaults to 200 MB) — was 32 MB while we used the URL-source document block, raised in
+        // NPT-1044 when we switched extraction + chat to Anthropic's Files API path. Enforced at
+        // upload (so users don't park unusable PDFs) and again at extract-time as a safety net.
 
         [HttpGet]
         [AdminFeature]
@@ -464,10 +464,12 @@ namespace Neptune.API.Controllers
 
             // Reject oversize PDFs up front rather than letting the user upload a file Claude
             // will later refuse during extraction.
-            if (file.Length > MaxExtractablePdfSizeBytes)
+            var maxBytes = neptuneConfiguration.Value.MaxExtractablePdfSizeBytes;
+            if (file.Length > maxBytes)
             {
                 var sizeMB = file.Length / (1024.0 * 1024.0);
-                return BadRequest(new { message = $"PDF is {sizeMB:F0} MB. AI extraction supports PDFs up to 32 MB — please re-export or re-scan the document at a lower resolution (recommended: 150 DPI for scanned pages)." });
+                var maxMB = maxBytes / (1024.0 * 1024.0);
+                return BadRequest(new { message = $"PDF is {sizeMB:F0} MB. AI extraction supports PDFs up to {maxMB:F0} MB — please re-export or re-scan the document at a lower resolution (recommended: 150 DPI for scanned pages)." });
             }
 
             var extension = Path.GetExtension(file.FileName)?.ToLowerInvariant();
@@ -547,12 +549,13 @@ namespace Neptune.API.Controllers
                 return BadRequest(new { message = "No uploaded document found for this WQMP. Upload a PDF before running extraction." });
             }
 
-            // Proactive size check — Claude rejects document blocks over 32 MB, and the error it
-            // returns ("file exceeds maximum allowed size") is less useful than a tailored message.
-            if (document.FileResource.ContentLength > MaxExtractablePdfSizeBytes)
+            // Proactive size check — bounded to NeptuneConfiguration.MaxExtractablePdfSizeBytes.
+            var extractMaxBytes = neptuneConfiguration.Value.MaxExtractablePdfSizeBytes;
+            if (document.FileResource.ContentLength > extractMaxBytes)
             {
                 var sizeMB = document.FileResource.ContentLength / (1024.0 * 1024.0);
-                return BadRequest(new { message = $"This PDF is {sizeMB:F0} MB. AI extraction supports PDFs up to 32 MB — please re-upload a smaller version (re-export or re-scan at a lower resolution, recommended: 150 DPI for scanned pages)." });
+                var maxMB = extractMaxBytes / (1024.0 * 1024.0);
+                return BadRequest(new { message = $"This PDF is {sizeMB:F0} MB. AI extraction supports PDFs up to {maxMB:F0} MB — please re-upload a smaller version (re-export or re-scan at a lower resolution, recommended: 150 DPI for scanned pages)." });
             }
 
             // If a previous extraction (plus any draft overlay) exists, drop it cleanly — the
