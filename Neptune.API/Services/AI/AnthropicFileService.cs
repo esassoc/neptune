@@ -1,10 +1,16 @@
 using System;
+using System.IO;
+using System.Net.Http;
+using System.Net.Http.Headers;
+using System.Net.Http.Json;
+using System.Text.Json;
+using System.Text.Json.Serialization;
 using System.Threading;
 using System.Threading.Tasks;
-using Anthropic;
-using Anthropic.Models.Beta.Files;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Options;
+using Neptune.API.Services;
 using Neptune.EFModels.Entities;
 
 namespace Neptune.API.Services.AI;
@@ -20,21 +26,33 @@ namespace Neptune.API.Services.AI;
 /// </summary>
 public class AnthropicFileService
 {
-    private readonly AnthropicClient _anthropic;
+    private const string AnthropicFilesUrl = "https://api.anthropic.com/v1/files";
+
+    private readonly IHttpClientFactory _httpClientFactory;
     private readonly AzureBlobStorageService _blobService;
     private readonly NeptuneDbContext _dbContext;
     private readonly ILogger<AnthropicFileService> _logger;
+    private readonly NeptuneConfiguration _configuration;
 
     public AnthropicFileService(
-        AnthropicClient anthropic,
+        IHttpClientFactory httpClientFactory,
         AzureBlobStorageService blobService,
         NeptuneDbContext dbContext,
-        ILogger<AnthropicFileService> logger)
+        ILogger<AnthropicFileService> logger,
+        IOptions<NeptuneConfiguration> configuration)
     {
-        _anthropic = anthropic;
+        _httpClientFactory = httpClientFactory;
         _blobService = blobService;
         _dbContext = dbContext;
         _logger = logger;
+        _configuration = configuration.Value;
+    }
+
+    private sealed class FileUploadResponse
+    {
+        [JsonPropertyName("id")] public string Id { get; set; }
+        [JsonPropertyName("filename")] public string Filename { get; set; }
+        [JsonPropertyName("size_bytes")] public long SizeBytes { get; set; }
     }
 
     /// <summary>
@@ -59,28 +77,64 @@ public class AnthropicFileService
         _logger.LogInformation("Anthropic file cache miss for documentID={DocumentID} — uploading to Files API...",
             waterQualityManagementPlanDocumentID);
 
-        // Buffer the entire blob to bytes before handing to the SDK. We tried passing the
-        // Azure BlobDownloadStreamingResult.Content stream directly and consistently hit
-        // AnthropicIOException (HttpIOException: "The response ended prematurely") — the
-        // SDK's multipart encoder needs a known content length, and the chunked Azure
-        // stream doesn't satisfy that. byte[] gets an implicit BinaryContent conversion
-        // and a deterministic Content-Length on the upload. Memory cost is bounded by
-        // MaxExtractablePdfSizeBytes (default 200 MB).
+        // Bypass the SDK for upload. Anthropic.SDK 12.17.0's Beta.Files.Upload still
+        // throws AnthropicIOException with inner ObjectDisposedException on real
+        // payloads — we hit it with both byte[] and Azure streaming inputs. The bug
+        // is internal SDK body-handling; documented in the NPT-1044 card with the
+        // raw HttpClient fallback we're using here. Extraction and chat (which
+        // reference the file_id, not upload it) keep using the SDK normally.
         var downloadResult = await _blobService.DownloadFileResourceFromBlobStorage(document.FileResource);
         var pdfBytes = downloadResult.Content.ToArray();
+        var filename = document.FileResource.GetOriginalCompleteFileName();
+        if (string.IsNullOrWhiteSpace(filename))
+        {
+            filename = $"{document.WaterQualityManagementPlanDocumentID}.pdf";
+        }
 
-        var fileMetadata = await _anthropic.Beta.Files.Upload(
-            new FileUploadParams { File = pdfBytes },
-            cancellationToken);
+        var fileID = await UploadViaHttpClientAsync(pdfBytes, filename, cancellationToken);
 
-        document.AnthropicFileID = fileMetadata.ID;
+        document.AnthropicFileID = fileID;
         document.AnthropicFileUploadedDate = DateTime.UtcNow;
         await _dbContext.SaveChangesAsync(cancellationToken);
 
         _logger.LogInformation("Uploaded documentID={DocumentID} to Anthropic Files API, cached fileID={FileID}",
-            waterQualityManagementPlanDocumentID, fileMetadata.ID);
+            waterQualityManagementPlanDocumentID, fileID);
 
-        return fileMetadata.ID;
+        return fileID;
+    }
+
+    private async Task<string> UploadViaHttpClientAsync(byte[] bytes, string filename, CancellationToken cancellationToken)
+    {
+        using var client = _httpClientFactory.CreateClient();
+        client.Timeout = TimeSpan.FromMinutes(5);
+
+        using var form = new MultipartFormDataContent();
+        var fileContent = new ByteArrayContent(bytes);
+        fileContent.Headers.ContentType = new MediaTypeHeaderValue("application/pdf");
+        form.Add(fileContent, "file", filename);
+
+        using var request = new HttpRequestMessage(HttpMethod.Post, AnthropicFilesUrl) { Content = form };
+        request.Headers.Add("x-api-key", _configuration.AnthropicApiKey);
+        request.Headers.Add("anthropic-version", "2023-06-01");
+        request.Headers.Add("anthropic-beta", "files-api-2025-04-14");
+
+        using var response = await client.SendAsync(request, cancellationToken);
+        var body = await response.Content.ReadAsStringAsync(cancellationToken);
+        if (!response.IsSuccessStatusCode)
+        {
+            _logger.LogError("Anthropic Files API upload failed (status={Status}): {Body}", (int)response.StatusCode, body);
+            throw new InvalidOperationException(
+                $"Anthropic Files API upload returned {(int)response.StatusCode}: {body}");
+        }
+
+        var parsed = JsonSerializer.Deserialize<FileUploadResponse>(body)
+                     ?? throw new InvalidOperationException("Anthropic Files API returned an empty response body.");
+        if (string.IsNullOrEmpty(parsed.Id))
+        {
+            throw new InvalidOperationException(
+                $"Anthropic Files API response missing 'id' field: {body}");
+        }
+        return parsed.Id;
     }
 
     /// <summary>
