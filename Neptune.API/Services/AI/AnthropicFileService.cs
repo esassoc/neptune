@@ -59,17 +59,19 @@ public class AnthropicFileService
         _logger.LogInformation("Anthropic file cache miss for documentID={DocumentID} — uploading to Files API...",
             waterQualityManagementPlanDocumentID);
 
-        var blobGuid = document.FileResource.GetFileResourceGUIDAsString().ToLower();
-        var streamingResult = await _blobService.DownloadBlobFromBlobStorageAsStream(blobGuid);
+        // Buffer the entire blob to bytes before handing to the SDK. We tried passing the
+        // Azure BlobDownloadStreamingResult.Content stream directly and consistently hit
+        // AnthropicIOException (HttpIOException: "The response ended prematurely") — the
+        // SDK's multipart encoder needs a known content length, and the chunked Azure
+        // stream doesn't satisfy that. byte[] gets an implicit BinaryContent conversion
+        // and a deterministic Content-Length on the upload. Memory cost is bounded by
+        // MaxExtractablePdfSizeBytes (default 200 MB).
+        var downloadResult = await _blobService.DownloadFileResourceFromBlobStorage(document.FileResource);
+        var pdfBytes = downloadResult.Content.ToArray();
 
-        FileMetadata fileMetadata;
-        await using (streamingResult.Content)
-        {
-            // BinaryContent has implicit conversion from Stream — pass directly.
-            fileMetadata = await _anthropic.Beta.Files.Upload(
-                new FileUploadParams { File = streamingResult.Content },
-                cancellationToken);
-        }
+        var fileMetadata = await _anthropic.Beta.Files.Upload(
+            new FileUploadParams { File = pdfBytes },
+            cancellationToken);
 
         document.AnthropicFileID = fileMetadata.ID;
         document.AnthropicFileUploadedDate = DateTime.UtcNow;
