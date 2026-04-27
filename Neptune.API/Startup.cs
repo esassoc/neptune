@@ -114,10 +114,19 @@ namespace Neptune.API
             services.AddScoped(s => UserContext.GetUserAsDtoFromHttpContext(s.GetService<NeptuneDbContext>(), s.GetService<IHttpContextAccessor>().HttpContext));
 
             #region Anthropic
+            // ClientOptions.Timeout is a per-request value the SDK applies via CancellationToken,
+            // but the SDK's underlying HttpClient still uses .NET's default 100-second timeout
+            // unless we hand it our own HttpClient. For streaming (CreateStreaming) on a cold
+            // prompt cache with a large file_id reference, time-to-first-byte can exceed 100s
+            // — we hit "TaskCanceledException: HttpClient.Timeout of 100 seconds elapsing" on
+            // 92 MB scanned WQMP extractions. Use Timeout.InfiniteTimeSpan on the inner client
+            // and rely on per-call CancellationTokens (we wrap each category extraction in a
+            // 4-minute CTS upstream) to bound run-time.
             services.AddSingleton(_ => new AnthropicClient(new Anthropic.Core.ClientOptions
             {
                 ApiKey = configuration.AnthropicApiKey,
                 Timeout = TimeSpan.FromMinutes(5),
+                HttpClient = new HttpClient { Timeout = Timeout.InfiniteTimeSpan },
             }));
             #endregion
 
