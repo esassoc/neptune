@@ -1,9 +1,16 @@
 @if (wqmp$ | async; as wqmp) {
-    <page-header [pageTitle]="wqmp.WaterQualityManagementPlanName" [templateAbove]="templateAbove">
+    <page-header [pageTitle]="wqmp.WaterQualityManagementPlanName" [templateAbove]="templateAbove" [templateRight]="templateRight">
         <ng-template #templateAbove>
             <div class="back">
                 <a [routerLink]="['/water-quality-management-plans']" class="back__link">Back to WQMP Grid</a>
             </div>
+        </ng-template>
+        <ng-template #templateRight>
+            @if (currentPersonCanEdit) {
+                <a class="btn btn-primary" [routerLink]="['/water-quality-management-plans', waterQualityManagementPlanID, 'verifications', 'new']">
+                    Begin O&amp;M Verification
+                </a>
+            }
         </ng-template>
     </page-header>
 
@@ -389,9 +396,6 @@
         <div class="card g-col-12 mt-3">
             <div class="card-header">
                 <span class="card-title">WQMP O&amp;M Verification</span>
-                @if (currentPersonCanEdit) {
-                    <a class="btn btn-white-outline btn-sm" [routerLink]="['/water-quality-management-plans', waterQualityManagementPlanID, 'verifications', 'new']">Begin New Verification</a>
-                }
             </div>
             <div class="card-body">
                 @if (verifications$ | async; as verifications) {

@@ -17,6 +17,24 @@ public static class WaterQualityManagementPlanVerifyProjections
         IsDraft = x.IsDraft,
     };
 
+    public static readonly Expression<Func<WaterQualityManagementPlanVerify, WaterQualityManagementPlanVerifyIndexGridDto>> AsIndexGridDto = x => new WaterQualityManagementPlanVerifyIndexGridDto
+    {
+        WaterQualityManagementPlanVerifyID = x.WaterQualityManagementPlanVerifyID,
+        WaterQualityManagementPlanID = x.WaterQualityManagementPlanID,
+        WaterQualityManagementPlanName = x.WaterQualityManagementPlan.WaterQualityManagementPlanName,
+        StormwaterJurisdictionID = x.WaterQualityManagementPlan.StormwaterJurisdictionID,
+        StormwaterJurisdictionName = x.WaterQualityManagementPlan.StormwaterJurisdiction.Organization.OrganizationName,
+        VerificationDate = x.VerificationDate,
+        LastEditedDate = x.LastEditedDate,
+        LastEditedByPersonFullName = x.LastEditedByPerson.FirstName + " " + x.LastEditedByPerson.LastName,
+        WaterQualityManagementPlanVerifyTypeID = x.WaterQualityManagementPlanVerifyTypeID,
+        WaterQualityManagementPlanVisitStatusID = x.WaterQualityManagementPlanVisitStatusID,
+        WaterQualityManagementPlanVerifyStatusID = x.WaterQualityManagementPlanVerifyStatusID,
+        SourceControlCondition = x.SourceControlCondition,
+        EnforcementOrFollowupActions = x.EnforcementOrFollowupActions,
+        IsDraft = x.IsDraft,
+    };
+
     public static readonly Expression<Func<WaterQualityManagementPlanVerify, WaterQualityManagementPlanVerifyDetailDto>> AsDetailDto = x => new WaterQualityManagementPlanVerifyDetailDto
     {
         WaterQualityManagementPlanVerifyID = x.WaterQualityManagementPlanVerifyID,

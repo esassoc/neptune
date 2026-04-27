@@ -58,64 +58,63 @@
 
         <!-- Step content -->
         <div class="wizard-content">
-            @switch (currentStep()) {
-                @case (1) {
-                    <verification-basics-step
-                        [form]="basicsForm"
-                        [verifyTypeOptions]="verifyTypeOptions"
-                        [visitStatusOptions]="visitStatusOptions"
-                        [verifyStatusOptions]="verifyStatusOptions"
-                        [readonly]="mode === 'view'">
-                    </verification-basics-step>
+            <workflow-body [helpCustomRichTextTypeID]="currentStepHelpID()">
+                @switch (currentStep()) {
+                    @case (1) {
+                        <verification-basics-step
+                            [form]="basicsForm"
+                            [verifyTypeOptions]="verifyTypeOptions"
+                            [visitStatusOptions]="visitStatusOptions"
+                            [verifyStatusOptions]="verifyStatusOptions"
+                            [readonly]="mode === 'view'">
+                        </verification-basics-step>
+                    }
+                    @case (2) {
+                        <structural-bmps-step
+                            [rows]="treatmentBMPRows()"
+                            [readonly]="mode === 'view'"
+                            (rowsChange)="treatmentBMPRows.set($event)">
+                        </structural-bmps-step>
+                    }
+                    @case (3) {
+                        <simplified-bmps-step
+                            [rows]="quickBMPRows()"
+                            [readonly]="mode === 'view'"
+                            (rowsChange)="quickBMPRows.set($event)">
+                        </simplified-bmps-step>
+                    }
+                    @case (4) {
+                        <source-control-step
+                            [rows]="sourceControlRows()"
+                            [readonly]="mode === 'view'"
+                            (rowsChange)="sourceControlRows.set($event)">
+                        </source-control-step>
+                    }
+                    @case (5) {
+                        <review-step
+                            [basicsForm]="basicsForm"
+                            [verifyTypeOptions]="verifyTypeOptions"
+                            [visitStatusOptions]="visitStatusOptions"
+                            [verifyStatusOptions]="verifyStatusOptions"
+                            [treatmentBMPRows]="treatmentBMPRows()"
+                            [quickBMPRows]="quickBMPRows()"
+                            [sourceControlRows]="sourceControlRows()">
+                        </review-step>
+                    }
                 }
-                @case (2) {
-                    <structural-bmps-step
-                        [rows]="treatmentBMPRows()"
-                        [readonly]="mode === 'view'"
-                        (rowsChange)="treatmentBMPRows.set($event)">
-                    </structural-bmps-step>
-                }
-                @case (3) {
-                    <simplified-bmps-step
-                        [rows]="quickBMPRows()"
-                        [readonly]="mode === 'view'"
-                        (rowsChange)="quickBMPRows.set($event)">
-                    </simplified-bmps-step>
-                }
-                @case (4) {
-                    <source-control-step
-                        [rows]="sourceControlRows()"
-                        [readonly]="mode === 'view'"
-                        (rowsChange)="sourceControlRows.set($event)">
-                    </source-control-step>
-                }
-                @case (5) {
-                    <review-step
-                        [basicsForm]="basicsForm"
-                        [verifyTypeOptions]="verifyTypeOptions"
-                        [visitStatusOptions]="visitStatusOptions"
-                        [verifyStatusOptions]="verifyStatusOptions"
-                        [treatmentBMPRows]="treatmentBMPRows()"
-                        [quickBMPRows]="quickBMPRows()"
-                        [sourceControlRows]="sourceControlRows()">
-                    </review-step>
-                }
-            }
 
-            <!-- Navigation buttons -->
-            <div class="wizard-nav">
-                <button class="btn btn-secondary-outline" (click)="cancel()">Cancel</button>
-                <div class="wizard-nav__right">
-                    @if (mode !== "view") {
-                        <button class="btn btn-secondary-outline" (click)="save()" [disabled]="isSaving">Save</button>
+                <!-- Footer: Save / Save and Continue / Finalize. KE confirmed these are okay; cancel removed. -->
+                @if (mode !== "view") {
+                    <div class="wizard-nav">
+                        <button class="btn btn-primary-outline" (click)="save()" [disabled]="isSaving">Save</button>
                         @if (currentStep() < steps.length) {
                             <button class="btn btn-primary" (click)="saveAndContinue()" [disabled]="isSaving">Save and Continue</button>
                         } @else {
                             <button class="btn btn-primary" (click)="finalize()" [disabled]="isSaving">Finalize</button>
                         }
-                    }
-                </div>
-            </div>
+                    </div>
+                }
+            </workflow-body>
         </div>
     </div>
 }

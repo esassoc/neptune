@@ -1,11 +1,8 @@
 @use "/src/scss/abstracts" as *;
 
 .wizard-header {
-    padding: 0.75rem;
+    padding: 0.75rem 0;
     margin-bottom: 0.75rem;
-    background: $gray-50;
-    border: 1px solid $gray-100;
-    border-radius: $border-radius-200;
     text-align: left;
 
     dl {
@@ -17,12 +14,17 @@
     }
 
     dt {
+        // Override the global `dt { text-align: right }` rule from scss/components/_dl.scss
+        // which was making the WQMP/Status labels right-align in the narrow sidebar and zigzag
+        // against their left-aligned values.
+        text-align: left;
         font-size: $type-size-100;
         text-transform: uppercase;
         letter-spacing: 0.04em;
         color: $gray-default;
         font-weight: 600;
         margin: 0;
+        padding-bottom: 0;
     }
 
     dd {
@@ -77,21 +79,25 @@
         display: flex;
         align-items: center;
         gap: 0.75rem;
-        padding: 0.75rem 1rem;
-        border: 1px solid $gray-100;
-        border-radius: $border-radius-200;
-        background: $white;
+        padding: 0.625rem 0.75rem;
+        border: none;
+        border-left: 3px solid transparent;
+        border-radius: 0;
+        background: transparent;
         cursor: pointer;
         text-align: left;
 
+        &:hover:not(:disabled) {
+            background: rgba($primary, 0.04);
+        }
+
         &--active {
-            border-color: $primary;
-            background: rgba($primary, 0.06);
+            border-left-color: $primary;
             font-weight: 600;
         }
 
         &--disabled {
-            opacity: 0.5;
+            opacity: 0.45;
             cursor: not-allowed;
         }
     }
@@ -125,14 +131,10 @@
 
 .wizard-nav {
     display: flex;
-    justify-content: space-between;
+    justify-content: flex-end;
     align-items: center;
+    gap: 0.5rem;
     margin-top: 1.5rem;
     padding-top: 1rem;
     border-top: 1px solid $gray-100;
-
-    &__right {
-        display: flex;
-        gap: 0.5rem;
-    }
 }

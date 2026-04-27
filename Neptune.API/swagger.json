@@ -10011,6 +10011,45 @@
           }
         }
       }
+    },
+    "/water-quality-management-plan-verifies": {
+      "get": {
+        "tags": [
+          "WaterQualityManagementPlanVerify"
+        ],
+        "operationId": "ListAllAsIndexGrid_WaterQualityManagementPlanVerify",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/WaterQualityManagementPlanVerifyIndexGridDto"
+                  }
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/WaterQualityManagementPlanVerifyIndexGridDto"
+                  }
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/WaterQualityManagementPlanVerifyIndexGridDto"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
     }
   },
   "components": {
@@ -16978,6 +17017,80 @@
         },
         "additionalProperties": false
       },
+      "WaterQualityManagementPlanVerifyIndexGridDto": {
+        "type": "object",
+        "properties": {
+          "WaterQualityManagementPlanVerifyID": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "WaterQualityManagementPlanID": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "WaterQualityManagementPlanName": {
+            "type": "string",
+            "nullable": true
+          },
+          "StormwaterJurisdictionID": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "StormwaterJurisdictionName": {
+            "type": "string",
+            "nullable": true
+          },
+          "VerificationDate": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "LastEditedDate": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "LastEditedByPersonFullName": {
+            "type": "string",
+            "nullable": true
+          },
+          "WaterQualityManagementPlanVerifyTypeID": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "WaterQualityManagementPlanVerifyTypeDisplayName": {
+            "type": "string",
+            "nullable": true
+          },
+          "WaterQualityManagementPlanVisitStatusID": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "WaterQualityManagementPlanVisitStatusDisplayName": {
+            "type": "string",
+            "nullable": true
+          },
+          "WaterQualityManagementPlanVerifyStatusID": {
+            "type": "integer",
+            "format": "int32",
+            "nullable": true
+          },
+          "WaterQualityManagementPlanVerifyStatusDisplayName": {
+            "type": "string",
+            "nullable": true
+          },
+          "SourceControlCondition": {
+            "type": "string",
+            "nullable": true
+          },
+          "EnforcementOrFollowupActions": {
+            "type": "string",
+            "nullable": true
+          },
+          "IsDraft": {
+            "type": "boolean"
+          }
+        },
+        "additionalProperties": false
+      },
       "WaterQualityManagementPlanVerifyQuickBMPDto": {
         "type": "object",
         "properties": {
@@ -17423,6 +17536,9 @@
     },
     {
       "name": "WaterQualityManagementPlanDocument"
+    },
+    {
+      "name": "WaterQualityManagementPlanVerify"
     }
   ]
 }

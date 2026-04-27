@@ -156,6 +156,7 @@ export * from './water-quality-management-plan-simple-dto';
 export * from './water-quality-management-plan-upsert-dto';
 export * from './water-quality-management-plan-verify-detail-dto';
 export * from './water-quality-management-plan-verify-grid-dto';
+export * from './water-quality-management-plan-verify-index-grid-dto';
 export * from './water-quality-management-plan-verify-quick-bmp-dto';
 export * from './water-quality-management-plan-verify-treatment-bmp-simple-dto';
 export * from './water-quality-management-plan-verify-upsert-dto';
