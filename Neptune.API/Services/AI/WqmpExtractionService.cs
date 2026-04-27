@@ -127,6 +127,12 @@ public class WqmpExtractionService
             {
                 Model = _configuration.ClaudeModelId,
                 MaxTokens = 8192,
+                // The Files-API source variant (BetaFileDocumentSource) is gated behind
+                // this beta header on the Messages endpoint. Without it the request gets
+                // routed to the standard validator and rejected with
+                // "Input tag 'file' found using 'type' does not match any of the
+                // expected tags: 'base64', 'content', 'text', 'url'".
+                Betas = ["files-api-2025-04-14"],
                 System = systemBlocks,
                 Messages = [new() { Role = BetaRole.User, Content = messageContent }],
                 Tools = allTools.Select(t => (BetaToolUnion)t).ToList(),

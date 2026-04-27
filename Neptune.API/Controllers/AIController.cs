@@ -93,6 +93,9 @@ public class AIController(
         {
             Model = appConfiguration.Value.ClaudeModelId,
             MaxTokens = 4096,
+            // Required for BetaFileDocumentSource — see WqmpExtractionService for the
+            // full reasoning. Without this header the API rejects the file-source variant.
+            Betas = ["files-api-2025-04-14"],
             Messages = messages,
         };
 
