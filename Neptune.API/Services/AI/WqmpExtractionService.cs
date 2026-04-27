@@ -1,14 +1,13 @@
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
-using System.IO;
 using System.Linq;
 using System.Text.Json;
 using System.Threading;
 using System.Threading.Tasks;
 using Anthropic;
-using Anthropic.Models.Messages;
-using AnthropicRole = Anthropic.Models.Messages.Role;
+using Anthropic.Models.Beta.Messages;
+using BetaRole = Anthropic.Models.Beta.Messages.Role;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
@@ -27,7 +26,7 @@ public class WqmpExtractionService
     private static readonly Lazy<string> SourceControlBmpSchema = new(BuildSourceControlBmpSchemaJson);
 
     private readonly AnthropicClient _anthropic;
-    private readonly AzureBlobStorageService _blobService;
+    private readonly AnthropicFileService _anthropicFileService;
     private readonly NeptuneDbContext _dbContext;
     private readonly IPromptTemplateService _promptTemplateService;
     private readonly ILogger<WqmpExtractionService> _logger;
@@ -35,14 +34,14 @@ public class WqmpExtractionService
 
     public WqmpExtractionService(
         AnthropicClient anthropic,
-        AzureBlobStorageService blobService,
+        AnthropicFileService anthropicFileService,
         NeptuneDbContext dbContext,
         IPromptTemplateService promptTemplateService,
         ILogger<WqmpExtractionService> logger,
         IOptions<NeptuneConfiguration> configuration)
     {
         _anthropic = anthropic;
-        _blobService = blobService;
+        _anthropicFileService = anthropicFileService;
         _dbContext = dbContext;
         _promptTemplateService = promptTemplateService;
         _logger = logger;
@@ -56,15 +55,13 @@ public class WqmpExtractionService
         _logger.LogInformation("Starting WQMP extraction for documentID={DocumentID}, personID={PersonID}, model={Model}",
             waterQualityManagementPlanDocumentID, personID, _configuration.ClaudeModelId);
 
-        var docDto = await WaterQualityManagementPlanDocuments.GetByIDAsDtoAsync(_dbContext, waterQualityManagementPlanDocumentID);
-        if (docDto == null) throw new InvalidOperationException($"Document {waterQualityManagementPlanDocumentID} not found.");
-
-        // Generate a temporary SAS URL for the PDF in Azure Blob Storage.
-        // Claude fetches the PDF directly from Azure — no base64 encoding, no request-body
-        // size limit. The SAS URL expires after 10 minutes.
-        var blobGuid = docDto.FileResource.FileResourceGUID.ToString();
-        var pdfSasUrl = _blobService.GenerateBlobSasUrl(blobGuid, TimeSpan.FromMinutes(10));
-        _logger.LogInformation("Generated SAS URL for PDF blob {BlobGuid}. Building domain context...", blobGuid);
+        // NPT-1044: upload to Anthropic Files API once and cache the file_id on the document.
+        // The Files-API source path on the Beta Messages API supports up to 500 MB per file
+        // — vs. 32 MB on the URL-source path we used previously — and dodges the SAS-URL
+        // expiry race we used to see on long-running extractions.
+        var fileID = await _anthropicFileService.EnsureUploadedFileIDAsync(waterQualityManagementPlanDocumentID, cancellationToken);
+        _logger.LogInformation("Anthropic file ID resolved for documentID={DocumentID}: {FileID}. Building domain context...",
+            waterQualityManagementPlanDocumentID, fileID);
 
         var domainContext = await BuildDomainContext();
 
@@ -113,17 +110,17 @@ public class WqmpExtractionService
             var toolName = $"emit_{key.ToLower()}_extraction";
 
             // System prompt: evidence instructions (cached — stable across all 4 calls)
-            var systemBlocks = new List<TextBlockParam>
+            var systemBlocks = new List<BetaTextBlockParam>
             {
-                new() { Text = evidenceInstructions, CacheControl = new CacheControlEphemeral() },
+                new() { Text = evidenceInstructions, CacheControl = new BetaCacheControlEphemeral() },
             };
 
-            // User message: PDF document (cached) + domain context (cached) + per-category prompt (varies)
-            var messageContent = new List<ContentBlockParam>
+            // User message: PDF document (referenced by file_id, cached) + domain context (cached) + per-category prompt (varies)
+            var messageContent = new List<BetaContentBlockParam>
             {
-                new DocumentBlockParam { Source = new UrlPdfSource { Url = pdfSasUrl.ToString() } },
-                new TextBlockParam { Text = $"DomainContext:\n{domainContext}", CacheControl = new CacheControlEphemeral() },
-                new TextBlockParam { Text = prompt },
+                new BetaRequestDocumentBlock { Source = new BetaFileDocumentSource { FileID = fileID } },
+                new BetaTextBlockParam { Text = $"DomainContext:\n{domainContext}", CacheControl = new BetaCacheControlEphemeral() },
+                new BetaTextBlockParam { Text = prompt },
             };
 
             var parameters = new MessageCreateParams
@@ -131,9 +128,9 @@ public class WqmpExtractionService
                 Model = _configuration.ClaudeModelId,
                 MaxTokens = 8192,
                 System = systemBlocks,
-                Messages = [new() { Role = AnthropicRole.User, Content = messageContent }],
-                Tools = allTools.Select(t => (ToolUnion)t).ToList(),
-                ToolChoice = new ToolChoiceTool { Name = toolName },
+                Messages = [new() { Role = BetaRole.User, Content = messageContent }],
+                Tools = allTools.Select(t => (BetaToolUnion)t).ToList(),
+                ToolChoice = new BetaToolChoiceTool { Name = toolName },
             };
 
             // Stream the response — keeps the HTTP connection alive via SSE so there's no
@@ -143,7 +140,7 @@ public class WqmpExtractionService
             long inputTokens = 0;
             long outputTokens = 0;
 
-            await foreach (var evt in _anthropic.Messages.CreateStreaming(parameters, categoryCts.Token))
+            await foreach (var evt in _anthropic.Beta.Messages.CreateStreaming(parameters, categoryCts.Token))
             {
                 if (evt.TryPickContentBlockDelta(out var delta))
                 {
@@ -252,10 +249,10 @@ public class WqmpExtractionService
         }
     }
 
-    private static Tool BuildToolForCategory(string categoryKey, string jsonSchema)
+    private static BetaTool BuildToolForCategory(string categoryKey, string jsonSchema)
     {
         var parsed = JsonSerializer.Deserialize<Dictionary<string, JsonElement>>(jsonSchema);
-        return new Tool
+        return new BetaTool
         {
             Name = $"emit_{categoryKey.ToLower()}_extraction",
             Description = $"Emit the extracted {categoryKey} fields as structured JSON matching the required schema.",

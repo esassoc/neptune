@@ -58,4 +58,6 @@ GO
 GO
 :r ".\025 - WQMP Verification step help text.sql"
 GO
+:r ".\026 - Add AnthropicFileID to WaterQualityManagementPlanDocument.sql"
+GO
 

@@ -15,6 +15,14 @@ public class NeptuneConfiguration : NeptuneJobConfiguration
 
     public string AnthropicApiKey { get; set; }
     public string ClaudeModelId { get; set; } = "claude-sonnet-4-6";
+
+    /// <summary>
+    /// Upper bound on PDF size accepted by the WQMP upload + AI extraction pipeline.
+    /// Defaults to 200 MB (Anthropic's Files API ceiling is 500 MB; 200 MB covers
+    /// 99%+ of real-world scanned WQMPs with headroom). Override per environment if
+    /// needed.
+    /// </summary>
+    public long MaxExtractablePdfSizeBytes { get; set; } = 200L * 1024 * 1024;
     public string Auth0Domain { get; set; }
     public string Auth0ClientID { get; set; }
 }

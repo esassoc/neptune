@@ -2,10 +2,10 @@ using System;
 using System.Collections.Generic;
 using System.Threading.Tasks;
 using Anthropic;
-using Anthropic.Models.Messages;
+using Anthropic.Models.Beta.Messages;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
-using AnthropicRole = Anthropic.Models.Messages.Role;
+using BetaRole = Anthropic.Models.Beta.Messages.Role;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using Neptune.API.Services;
@@ -22,8 +22,8 @@ public class AIController(
     NeptuneDbContext dbContext,
     ILogger<AIController> logger,
     IOptions<NeptuneConfiguration> appConfiguration,
-    AzureBlobStorageService azureBlobStorageService,
     AnthropicClient anthropicClient,
+    AnthropicFileService anthropicFileService,
     WqmpExtractionService wqmpExtractionService)
     : SitkaController<AIController>(dbContext, logger, appConfiguration)
 {
@@ -46,10 +46,12 @@ public class AIController(
         var docDto = await WaterQualityManagementPlanDocuments.GetByIDAsDtoAsync(DbContext, waterQualityManagementPlanDocumentID);
         if (docDto == null) { Response.StatusCode = 404; return; }
 
-        // Claude fetches the PDF directly from Azure via a short-lived SAS URL —
-        // no base64 bloat, no server-side memory pressure for large PDFs.
-        var pdfSasUrl = azureBlobStorageService.GenerateBlobSasUrl(
-            docDto.FileResource.FileResourceGUID.ToString(), TimeSpan.FromMinutes(10));
+        // NPT-1044: reference the PDF by Anthropic file_id (Files API). Same shared
+        // upload-and-cache helper used by extraction — first chat on a never-extracted
+        // document uploads on demand; subsequent calls reuse the cached id. Lifts the
+        // 32 MB ceiling that the URL-source path enforced.
+        var fileID = await anthropicFileService.EnsureUploadedFileIDAsync(
+            waterQualityManagementPlanDocumentID, HttpContext.RequestAborted);
 
         var domainContext = await wqmpExtractionService.BuildDomainContext();
 
@@ -57,12 +59,12 @@ public class AIController(
         Response.Headers.Append("X-Accel-Buffering", "no");
 
         // Build messages from the chat history
-        var messages = new List<MessageParam>();
+        var messages = new List<BetaMessageParam>();
         foreach (var msg in chatRequestDto.Messages)
         {
             if (msg.Role?.Equals("assistant", StringComparison.OrdinalIgnoreCase) == true)
             {
-                messages.Add(new() { Role = AnthropicRole.Assistant, Content = msg.Content });
+                messages.Add(new() { Role = BetaRole.Assistant, Content = msg.Content });
             }
             else
             {
@@ -71,18 +73,18 @@ public class AIController(
                 {
                     messages.Add(new()
                     {
-                        Role = AnthropicRole.User,
-                        Content = new List<ContentBlockParam>
+                        Role = BetaRole.User,
+                        Content = new List<BetaContentBlockParam>
                         {
-                            new DocumentBlockParam { Source = new UrlPdfSource { Url = pdfSasUrl.ToString() } },
-                            new TextBlockParam { Text = domainContext, CacheControl = new CacheControlEphemeral() },
-                            new TextBlockParam { Text = msg.Content },
+                            new BetaRequestDocumentBlock { Source = new BetaFileDocumentSource { FileID = fileID } },
+                            new BetaTextBlockParam { Text = domainContext, CacheControl = new BetaCacheControlEphemeral() },
+                            new BetaTextBlockParam { Text = msg.Content },
                         },
                     });
                 }
                 else
                 {
-                    messages.Add(new() { Role = AnthropicRole.User, Content = msg.Content });
+                    messages.Add(new() { Role = BetaRole.User, Content = msg.Content });
                 }
             }
         }
@@ -96,7 +98,7 @@ public class AIController(
 
         // Stream the response via SSE — same format the frontend expects.
         // Observing RequestAborted lets Claude streaming stop as soon as the client disconnects.
-        await foreach (var streamEvent in anthropicClient.Messages.CreateStreaming(parameters, HttpContext.RequestAborted))
+        await foreach (var streamEvent in anthropicClient.Beta.Messages.CreateStreaming(parameters, HttpContext.RequestAborted))
         {
             if (streamEvent.TryPickContentBlockDelta(out var delta) &&
                 delta.Delta.TryPickText(out var text))

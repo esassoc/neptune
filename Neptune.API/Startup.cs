@@ -106,6 +106,7 @@ namespace Neptune.API
 
             services.AddScoped<AzureBlobStorageService>();
             services.AddSingleton<IPromptTemplateService, PromptTemplateService>();
+            services.AddScoped<AnthropicFileService>();
             services.AddScoped<WqmpExtractionService>();
 
             services.AddSingleton<IHttpContextAccessor, HttpContextAccessor>();
