@@ -23,7 +23,7 @@ public class WqmpExtractionService
     private static readonly Lazy<string> ExtractedValueSchema = new(BuildExtractedValueJsonSchema);
     private static readonly Lazy<string> WqmpSchema = new(BuildWqmpSchemaJson);
     private static readonly Lazy<string> ParcelSchema = new(BuildParcelSchemaJson);
-    private static readonly Lazy<string> TreatmentBmpSchema = new(BuildTreatmentBmpSchemaJson);
+    private static readonly Lazy<string> QuickBmpSchema = new(BuildQuickBmpSchemaJson);
     private static readonly Lazy<string> SourceControlBmpSchema = new(BuildSourceControlBmpSchemaJson);
 
     private readonly AnthropicClient _anthropic;
@@ -81,7 +81,7 @@ public class WqmpExtractionService
         {
             ["WQMP"] = (PromptTemplate.ExtractWqmpFields, WqmpSchema.Value, false),
             ["Parcels"] = (PromptTemplate.ExtractParcels, ParcelSchema.Value, true),
-            ["TreatmentBMPs"] = (PromptTemplate.ExtractTreatmentBMPs, TreatmentBmpSchema.Value, true),
+            ["QuickBMPs"] = (PromptTemplate.ExtractQuickBMPs, QuickBmpSchema.Value, true),
             ["SourceControlBMPs"] = (PromptTemplate.ExtractSourceControlBMPs, SourceControlBmpSchema.Value, true),
         };
 
@@ -237,7 +237,7 @@ public class WqmpExtractionService
             return json;
         }
 
-        var finalOutput = $"{{ \"SchemaVersion\": \"{SchemaVersion}\", \"WQMP\": {map["WQMP"]}, \"Parcels\": {UnwrapItems(map["Parcels"])}, \"TreatmentBMPs\": {UnwrapItems(map["TreatmentBMPs"])}, \"SourceControlBMPs\": {UnwrapItems(map["SourceControlBMPs"])} }}";
+        var finalOutput = $"{{ \"SchemaVersion\": \"{SchemaVersion}\", \"WQMP\": {map["WQMP"]}, \"Parcels\": {UnwrapItems(map["Parcels"])}, \"QuickBMPs\": {UnwrapItems(map["QuickBMPs"])}, \"SourceControlBMPs\": {UnwrapItems(map["SourceControlBMPs"])} }}";
 
         if (!IsValidJson(finalOutput))
         {
@@ -449,26 +449,21 @@ public class WqmpExtractionService
     private static string BuildParcelSchemaJson() =>
         WrapAsArraySchema("Array of parcels (ExtractedValue objects).", BuildParcelItemSchema());
 
-    private static object BuildTreatmentBmpItemSchema()
+    // Targets QuickBMP (Simplified Structural BMP) records, which are jurisdiction-scoped
+    // to a single WQMP — distinct from the global TreatmentBMP inventory. Field names match
+    // QuickBMPUpsertDto so the approve endpoint can drop accepted entries straight into the
+    // Merge call. Extraction of the global TreatmentBMP inventory is a future story.
+    private static object BuildQuickBmpItemSchema()
     {
         var properties = new Dictionary<string, object>
         {
-            ["TreatmentBMPName"] = ExtractedValueProp("BMP name."),
-            ["TreatmentBMPType"] = ExtractedValueProp("BMP type/classification."),
-            ["Area"] = ExtractedValueProp("Area in acres."),
-            ["LocationPointAsWellKnownText"] = ExtractedValueProp("Location WKT point."),
-            ["Jurisdiction"] = ExtractedValueProp("Responsible jurisdiction."),
-            ["Notes"] = ExtractedValueProp("Notes/comments."),
-            ["SystemOfRecordID"] = ExtractedValueProp("External identifier."),
-            ["YearBuilt"] = ExtractedValueProp("Year built."),
-            ["OwnerOrganization"] = ExtractedValueProp("Owning organization."),
-            ["TreatmentBMPLifespanType"] = ExtractedValueProp("Lifespan category."),
-            ["TreatmentBMPLifespanEndDate"] = ExtractedValueProp("Lifespan end date."),
-            ["RequiredFieldVisitsPerYear"] = ExtractedValueProp("Routine visits/year."),
-            ["RequiredPostStormFieldVisitsPerYear"] = ExtractedValueProp("Post-storm visits/year."),
-            ["TrashCaptureStatusType"] = ExtractedValueProp("Trash capture status."),
-            ["SizingBasisType"] = ExtractedValueProp("Sizing basis."),
-            ["TrashCaptureEffectiveness"] = ExtractedValueProp("Trash capture effectiveness.")
+            ["QuickBMPName"] = ExtractedValueProp("Simple BMP name as written in the document."),
+            ["TreatmentBMPType"] = ExtractedValueProp("BMP type/classification name; should match a TreatmentBMPType from DomainContext when possible."),
+            ["NumberOfIndividualBMPs"] = ExtractedValueProp("Count of individual physical BMP units this row represents (default 1 if not stated)."),
+            ["PercentOfSiteTreated"] = ExtractedValueProp("% of the WQMP site this BMP treats (0-100)."),
+            ["PercentCaptured"] = ExtractedValueProp("% of design storm captured by this BMP (0-100)."),
+            ["PercentRetained"] = ExtractedValueProp("% of design storm retained on-site (0-100; must be <= PercentCaptured)."),
+            ["QuickBMPNote"] = ExtractedValueProp("Free-form note about this BMP (≤200 chars).")
         };
         return new
         {
@@ -479,8 +474,8 @@ public class WqmpExtractionService
         };
     }
 
-    private static string BuildTreatmentBmpSchemaJson() =>
-        WrapAsArraySchema("Array of treatment BMPs (ExtractedValue objects).", BuildTreatmentBmpItemSchema());
+    private static string BuildQuickBmpSchemaJson() =>
+        WrapAsArraySchema("Array of QuickBMPs (Simplified Structural BMPs, ExtractedValue objects).", BuildQuickBmpItemSchema());
 
     private static object BuildSourceControlBmpItemSchema()
     {

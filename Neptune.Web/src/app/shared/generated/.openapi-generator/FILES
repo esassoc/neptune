@@ -193,6 +193,7 @@ model/water-quality-management-plan-document-dto.ts
 model/water-quality-management-plan-document-extraction-result-dto.ts
 model/water-quality-management-plan-document-upsert-dto.ts
 model/water-quality-management-plan-dto.ts
+model/water-quality-management-plan-extraction-approval-dto.ts
 model/water-quality-management-plan-extraction-draft-upsert-dto.ts
 model/water-quality-management-plan-extraction-result-dto.ts
 model/water-quality-management-plan-grid-dto.ts

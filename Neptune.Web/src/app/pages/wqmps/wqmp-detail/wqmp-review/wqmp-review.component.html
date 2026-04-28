@@ -163,6 +163,29 @@
                             <i class="fa fa-plus"></i> Add Parcel
                         </button>
                     }
+
+                    @if (currentStep() === 3) {
+                        @for (group of bmpGroupsForCurrentStep; track group.bmpIndex) {
+                            <bmp-review-card
+                                [bmpIndex]="group.bmpIndex"
+                                [displayName]="group.displayName"
+                                [fields]="group.fields"
+                                [readOnly]="isApproved()"
+                                [initialIsRejected]="group.isRejected"
+                                (bmpRejected)="onBmpRejected($event)"
+                                (bmpRestored)="onBmpRestored($event)"
+                                (fieldAccepted)="onBmpFieldAccepted($event)"
+                                (fieldEdited)="onBmpFieldEdited($event)"
+                                (fieldRejected)="onBmpFieldRejected($event)"
+                                (navigateToSource)="navigateToSource($event)">
+                            </bmp-review-card>
+                        }
+                        @if (bmpGroupsForCurrentStep.length === 0) {
+                            <div class="review-panel__empty-state">
+                                No Simple BMPs were detected in this document. You can proceed to the next step.
+                            </div>
+                        }
+                    }
                 </div>
             }
         </div>

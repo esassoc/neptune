@@ -41,6 +41,8 @@ import { WaterQualityManagementPlanDocumentDto } from '../model/water-quality-ma
 // @ts-ignore
 import { WaterQualityManagementPlanDto } from '../model/water-quality-management-plan-dto';
 // @ts-ignore
+import { WaterQualityManagementPlanExtractionApprovalDto } from '../model/water-quality-management-plan-extraction-approval-dto';
+// @ts-ignore
 import { WaterQualityManagementPlanExtractionDraftUpsertDto } from '../model/water-quality-management-plan-extraction-draft-upsert-dto';
 // @ts-ignore
 import { WaterQualityManagementPlanExtractionResultDto } from '../model/water-quality-management-plan-extraction-result-dto';
@@ -75,14 +77,14 @@ export class WaterQualityManagementPlanService extends BaseService {
 
     /**
      * @param waterQualityManagementPlanID 
-     * @param waterQualityManagementPlanUpsertDto 
+     * @param waterQualityManagementPlanExtractionApprovalDto 
      * @param observe set whether or not to return the data Observable as the body, response or events. defaults to returning the body.
      * @param reportProgress flag to report request and response progress.
      */
-    public approveExtractionResultWaterQualityManagementPlan(waterQualityManagementPlanID: number, waterQualityManagementPlanUpsertDto?: WaterQualityManagementPlanUpsertDto, observe?: 'body', reportProgress?: boolean, options?: {httpHeaderAccept?: 'text/plain' | 'application/json' | 'text/json', context?: HttpContext, transferCache?: boolean}): Observable<WaterQualityManagementPlanDto>;
-    public approveExtractionResultWaterQualityManagementPlan(waterQualityManagementPlanID: number, waterQualityManagementPlanUpsertDto?: WaterQualityManagementPlanUpsertDto, observe?: 'response', reportProgress?: boolean, options?: {httpHeaderAccept?: 'text/plain' | 'application/json' | 'text/json', context?: HttpContext, transferCache?: boolean}): Observable<HttpResponse<WaterQualityManagementPlanDto>>;
-    public approveExtractionResultWaterQualityManagementPlan(waterQualityManagementPlanID: number, waterQualityManagementPlanUpsertDto?: WaterQualityManagementPlanUpsertDto, observe?: 'events', reportProgress?: boolean, options?: {httpHeaderAccept?: 'text/plain' | 'application/json' | 'text/json', context?: HttpContext, transferCache?: boolean}): Observable<HttpEvent<WaterQualityManagementPlanDto>>;
-    public approveExtractionResultWaterQualityManagementPlan(waterQualityManagementPlanID: number, waterQualityManagementPlanUpsertDto?: WaterQualityManagementPlanUpsertDto, observe: any = 'body', reportProgress: boolean = false, options?: {httpHeaderAccept?: 'text/plain' | 'application/json' | 'text/json', context?: HttpContext, transferCache?: boolean}): Observable<any> {
+    public approveExtractionResultWaterQualityManagementPlan(waterQualityManagementPlanID: number, waterQualityManagementPlanExtractionApprovalDto?: WaterQualityManagementPlanExtractionApprovalDto, observe?: 'body', reportProgress?: boolean, options?: {httpHeaderAccept?: 'text/plain' | 'application/json' | 'text/json', context?: HttpContext, transferCache?: boolean}): Observable<WaterQualityManagementPlanDto>;
+    public approveExtractionResultWaterQualityManagementPlan(waterQualityManagementPlanID: number, waterQualityManagementPlanExtractionApprovalDto?: WaterQualityManagementPlanExtractionApprovalDto, observe?: 'response', reportProgress?: boolean, options?: {httpHeaderAccept?: 'text/plain' | 'application/json' | 'text/json', context?: HttpContext, transferCache?: boolean}): Observable<HttpResponse<WaterQualityManagementPlanDto>>;
+    public approveExtractionResultWaterQualityManagementPlan(waterQualityManagementPlanID: number, waterQualityManagementPlanExtractionApprovalDto?: WaterQualityManagementPlanExtractionApprovalDto, observe?: 'events', reportProgress?: boolean, options?: {httpHeaderAccept?: 'text/plain' | 'application/json' | 'text/json', context?: HttpContext, transferCache?: boolean}): Observable<HttpEvent<WaterQualityManagementPlanDto>>;
+    public approveExtractionResultWaterQualityManagementPlan(waterQualityManagementPlanID: number, waterQualityManagementPlanExtractionApprovalDto?: WaterQualityManagementPlanExtractionApprovalDto, observe: any = 'body', reportProgress: boolean = false, options?: {httpHeaderAccept?: 'text/plain' | 'application/json' | 'text/json', context?: HttpContext, transferCache?: boolean}): Observable<any> {
         if (waterQualityManagementPlanID === null || waterQualityManagementPlanID === undefined) {
             throw new Error('Required parameter waterQualityManagementPlanID was null or undefined when calling approveExtractionResultWaterQualityManagementPlan.');
         }
@@ -130,7 +132,7 @@ export class WaterQualityManagementPlanService extends BaseService {
         return this.httpClient.request<WaterQualityManagementPlanDto>('post', `${basePath}${localVarPath}`,
             {
                 context: localVarHttpContext,
-                body: waterQualityManagementPlanUpsertDto,
+                body: waterQualityManagementPlanExtractionApprovalDto,
                 responseType: <any>responseType_,
                 ...(withCredentials ? { withCredentials } : {}),
                 headers: localVarHeaders,

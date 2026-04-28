@@ -10,7 +10,7 @@ public enum PromptTemplate
 {
     ExtractWqmpFields,
     ExtractParcels,
-    ExtractTreatmentBMPs,
+    ExtractQuickBMPs,
     ExtractSourceControlBMPs
 }
 
