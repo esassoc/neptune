@@ -34,7 +34,11 @@ export class InventoriedBMPsLayerComponent extends MapLayerBase implements OnCha
         super();
     }
 
-    ngAfterViewInit(): void {
+    // Assigned in ngOnInit (not ngAfterViewInit) so the template's `@if (treatmentBMPs$ | async)`
+    // sees the observable on the first template check and the async pipe actually subscribes.
+    // ViewChild template refs used by initLayer() are still safely available by the time the
+    // HTTP response arrives and the tap fires.
+    ngOnInit(): void {
         const request$ = this.treatmentBMPService.listInventoryVerifiedTreatmentBMPsAsFeatureCollectionTreatmentBMP();
         this.treatmentBMPs$ = this.trackLayerRequest$(request$).pipe(
             tap((treatmentBMPs) => {
