@@ -183,20 +183,6 @@ public class OnlandVisualTrashAssessmentController(
             OnlandVisualTrashAssessments.CalculateProgressScore(onlandVisualTrashAssessments)?
                 .OnlandVisualTrashAssessmentScoreID;
 
-        if (onlandVisualTrashAssessment.IsTransectBackingAssessment)
-        {
-            onlandVisualTrashAssessment.IsTransectBackingAssessment = false;
-            onlandVisualTrashAssessmentArea.TransectLine = null;
-            onlandVisualTrashAssessmentArea.TransectLine4326 = null;
-
-            await DbContext.SaveChangesAsync();
-
-            var transectLine = OnlandVisualTrashAssessmentAreas.RecomputeTransectLine(onlandVisualTrashAssessments);
-            onlandVisualTrashAssessmentArea.TransectLine = transectLine;
-            onlandVisualTrashAssessmentArea.TransectLine4326 = transectLine.ProjectTo4326();
-
-        }
-
         await DbContext.SaveChangesAsync();
         return Ok();
     }
