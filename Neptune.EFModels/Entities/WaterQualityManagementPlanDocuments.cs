@@ -1,4 +1,5 @@
-﻿using Microsoft.EntityFrameworkCore;
+﻿using System;
+using Microsoft.EntityFrameworkCore;
 using Neptune.Common.DesignByContract;
 using Neptune.Models.DataTransferObjects;
 
@@ -75,6 +76,22 @@ public static class WaterQualityManagementPlanDocuments
         entity.UpdateFromUpsertDto(dto);
         await dbContext.SaveChangesAsync();
         return await GetByIDAsDtoAsync(dbContext, entity.WaterQualityManagementPlanDocumentID);
+    }
+
+    public static async Task<WaterQualityManagementPlanDocument> CreateFromFileResourceAsync(
+        NeptuneDbContext dbContext, int waterQualityManagementPlanID, int fileResourceID, string displayName, int documentTypeID)
+    {
+        var document = new WaterQualityManagementPlanDocument
+        {
+            WaterQualityManagementPlanID = waterQualityManagementPlanID,
+            FileResourceID = fileResourceID,
+            DisplayName = displayName,
+            UploadDate = DateTime.UtcNow,
+            WaterQualityManagementPlanDocumentTypeID = documentTypeID,
+        };
+        dbContext.WaterQualityManagementPlanDocuments.Add(document);
+        await dbContext.SaveChangesAsync();
+        return document;
     }
 
     public static async Task<bool> DeleteAsync(NeptuneDbContext dbContext, int waterQualityManagementPlanDocumentID)

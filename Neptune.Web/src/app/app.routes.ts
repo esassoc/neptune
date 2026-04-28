@@ -16,6 +16,9 @@ export const routeParams = {
     jurisdictionID: "jurisdictionID",
     regionalSubbasinID: "regionalSubbasinID",
     customAttributePurposeID: "customAttributePurposeID",
+    waterQualityManagementPlanID: "waterQualityManagementPlanID",
+    waterQualityManagementPlanVerifyID: "waterQualityManagementPlanVerifyID",
+    treatmentBMPTypeID: "treatmentBMPTypeID",
 };
 
 export const routes: Routes = [
@@ -327,6 +330,11 @@ export const routes: Routes = [
         children: [
             { path: "", loadComponent: () => import("./pages/home/home-index/home-index.component").then((m) => m.HomeIndexComponent) },
             { path: "about", loadComponent: () => import("./pages/about/about.component").then((m) => m.AboutComponent) },
+            {
+                path: "training",
+                title: "Training",
+                loadComponent: () => import("./pages/training/training.component").then((m) => m.TrainingComponent),
+            },
             { path: "modeling", loadComponent: () => import("./pages/modeling-about/modeling-about.component").then((m) => m.ModelingAboutComponent) },
             {
                 path: `labels-and-definitions/:${routeParams.definitionID}`,
@@ -433,6 +441,74 @@ export const routes: Routes = [
                 loadComponent: () => import("./pages/wqmps/wqmps.component").then((m) => m.WqmpsComponent),
             },
             {
+                path: "water-quality-management-plan-verifications",
+                title: "WQMP O&M Verifications",
+                loadComponent: () => import("./pages/wqmps/wqmp-verifications/wqmp-verifications.component").then((m) => m.WqmpVerificationsComponent),
+                canActivate: [authGuardFn],
+            },
+            {
+                path: `water-quality-management-plans/:${routeParams.waterQualityManagementPlanID}`,
+                title: "WQMP Detail",
+                loadComponent: () => import("./pages/wqmps/wqmp-detail/wqmp-detail.component").then((m) => m.WqmpDetailComponent),
+            },
+            {
+                path: `water-quality-management-plans/:${routeParams.waterQualityManagementPlanID}/edit-source-control-bmps`,
+                title: "Edit Source Control BMPs",
+                loadComponent: () =>
+                    import("./pages/wqmps/wqmp-detail/edit-source-control-bmps/edit-source-control-bmps.component").then((m) => m.EditSourceControlBMPsComponent),
+                canActivate: [authGuardFn],
+            },
+            {
+                path: `water-quality-management-plans/:${routeParams.waterQualityManagementPlanID}/edit-quick-bmps`,
+                title: "Edit Simplified Structural BMPs",
+                loadComponent: () =>
+                    import("./pages/wqmps/wqmp-detail/edit-quick-bmps/edit-quick-bmps.component").then((m) => m.EditQuickBMPsComponent),
+                canActivate: [authGuardFn],
+            },
+            {
+                path: `water-quality-management-plans/:${routeParams.waterQualityManagementPlanID}/edit-boundary`,
+                title: "Refine WQMP Boundary Area",
+                loadComponent: () =>
+                    import("./pages/wqmps/wqmp-detail/edit-boundary/edit-boundary.component").then((m) => m.EditBoundaryComponent),
+                canActivate: [authGuardFn],
+            },
+            {
+                path: `water-quality-management-plans/:${routeParams.waterQualityManagementPlanID}/verifications/new`,
+                title: "New O&M Verification",
+                loadComponent: () =>
+                    import("./pages/wqmps/wqmp-detail/verification-wizard/verification-wizard.component").then((m) => m.VerificationWizardComponent),
+                canActivate: [authGuardFn],
+            },
+            {
+                path: `water-quality-management-plans/:${routeParams.waterQualityManagementPlanID}/verifications/:${routeParams.waterQualityManagementPlanVerifyID}`,
+                title: "O&M Verification",
+                loadComponent: () =>
+                    import("./pages/wqmps/wqmp-detail/verification-wizard/verification-wizard.component").then((m) => m.VerificationWizardComponent),
+                canActivate: [authGuardFn],
+            },
+            {
+                path: `water-quality-management-plans/:${routeParams.waterQualityManagementPlanID}/verifications/:${routeParams.waterQualityManagementPlanVerifyID}/view`,
+                title: "O&M Verification Detail",
+                loadComponent: () =>
+                    import("./pages/wqmps/wqmp-detail/verification-detail/verification-detail.component").then((m) => m.VerificationDetailComponent),
+                canActivate: [authGuardFn],
+            },
+            {
+                path: `water-quality-management-plans/:${routeParams.waterQualityManagementPlanID}/edit-parcels`,
+                title: "Add or Remove Parcels",
+                loadComponent: () =>
+                    import("./pages/wqmps/wqmp-detail/edit-parcels/edit-parcels.component").then((m) => m.EditParcelsComponent),
+                canActivate: [authGuardFn],
+            },
+            {
+                path: `water-quality-management-plans/:${routeParams.waterQualityManagementPlanID}/review`,
+                title: "WQMP AI Review",
+                loadComponent: () =>
+                    import("./pages/wqmps/wqmp-detail/wqmp-review/wqmp-review.component").then((m) => m.WqmpReviewComponent),
+                canActivate: [authGuardFn],
+                canDeactivate: [UnsavedChangesGuard],
+            },
+            {
                 path: "wqmp-annual-report",
                 title: "WQMP Annual Report",
                 loadComponent: () => import("./pages/wqmp-annual-report/wqmp-annual-report.component").then((m) => m.WqmpAnnualReportComponent),
@@ -487,6 +563,26 @@ export const routes: Routes = [
                 path: "manage/custom-attributes",
                 title: "Custom Attributes",
                 loadComponent: () => import("./pages/manage/custom-attributes.component").then((m) => m.CustomAttributesComponent),
+            },
+            {
+                path: "manage/observation-types",
+                title: "Observation Types",
+                loadComponent: () => import("./pages/manage/observation-types-manage.component").then((m) => m.ObservationTypesManageComponent),
+            },
+            {
+                path: "manage/treatment-bmp-types",
+                title: "Treatment BMP Types",
+                loadComponent: () => import("./pages/manage/treatment-bmp-types-manage.component").then((m) => m.TreatmentBmpTypesManageComponent),
+            },
+            {
+                path: "manage/treatment-bmp-types/new",
+                title: "New Treatment BMP Type",
+                loadComponent: () => import("./pages/manage/treatment-bmp-type-edit/treatment-bmp-type-edit.component").then((m) => m.TreatmentBmpTypeEditComponent),
+            },
+            {
+                path: `manage/treatment-bmp-types/:${routeParams.treatmentBMPTypeID}/edit`,
+                title: "Edit Treatment BMP Type",
+                loadComponent: () => import("./pages/manage/treatment-bmp-type-edit/treatment-bmp-type-edit.component").then((m) => m.TreatmentBmpTypeEditComponent),
             },
             {
                 path: "load-generating-units",

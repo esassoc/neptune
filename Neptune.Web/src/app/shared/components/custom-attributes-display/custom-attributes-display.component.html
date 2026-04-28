@@ -20,7 +20,9 @@
                         } @else {
                             {{ attrType.CustomAttributeType.CustomAttributeTypeName }}
                         }
-                        <span class="help-block extra-small">{{ attrType.CustomAttributeType.CustomAttributeTypeDescription }}</span>
+                        @if (attrType.CustomAttributeType.CustomAttributeTypeDescription) {
+                            <br /><span class="help-block extra-small">{{ attrType.CustomAttributeType.CustomAttributeTypeDescription }}</span>
+                        }
                     </td>
                     <td class="text-right" style="min-width: 150px">
                         {{ attributeValuesByTypeID[attrType.CustomAttributeType.CustomAttributeTypeID] }}

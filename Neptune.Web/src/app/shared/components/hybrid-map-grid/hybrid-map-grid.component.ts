@@ -23,7 +23,7 @@ export class HybridMapGridComponent {
     @Input() selectedValue: number = null;
     @Input() selectionFromMap: boolean;
     @Input() entityIDField: string = "";
-    @Input() mapHeight: string = "720px";
+    @Input() gridHeight: string = "675px";
     @Input() boundingBox: BoundingBoxDto;
 
     @Output() onMapLoad: EventEmitter<NeptuneMapInitEvent> = new EventEmitter();

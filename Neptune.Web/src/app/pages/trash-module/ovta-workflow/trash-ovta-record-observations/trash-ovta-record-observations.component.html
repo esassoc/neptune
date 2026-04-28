@@ -2,32 +2,45 @@
 @if (onlandVisualTrashAssessment$ | async; as onlandVisualTrashAssessment) {
   <workflow-body>
     <app-alert-display></app-alert-display>
-    <div class="mb-3">
-      <button class="btn btn-primary mr-2" [disabled]="isLoadingSubmit" (click)="goToCurrentLocation()">Record Observation at Current Location</button>
-      <button class="btn btn-primary mr-2" [disabled]="isLoadingSubmit" (click)="addObservationMarker()">Add an Observation by clicking the map</button>
+    <p class="mb-3">
+      Use the buttons below to add observations along your transect. Click "Record Observation at Current Location" to use your device's GPS,
+      or "Add an Observation by clicking the map" to place a marker manually. Click a marker on the map to select it, then use the card below to add photos and notes.
+      To move an observation, click the pencil icon and then either drag the marker or click a new location on the map.
+    </p>
+    <div class="mb-3" style="display: flex; align-items: center">
+      <button class="btn btn-primary btn-sm mr-2" [disabled]="!mapIsReady() || isLoadingSubmit || isAddingObservation || isEditingLocation" (click)="goToCurrentLocation()">Record Observation at Current Location</button>
+      <button class="btn btn-primary btn-sm mr-2" [disabled]="!mapIsReady() || isLoadingSubmit || isAddingObservation || isEditingLocation" (click)="addObservationMarker()">
+        {{ isAddingObservation ? "Click the map to place observation..." : "Add an Observation by clicking the map" }}
+      </button>
+      @if (isAddingObservation || isEditingLocation) {
+        <button class="btn btn-primary-outline btn-sm" style="margin-left: auto" (click)="cancelEditMode()">{{ isEditingLocation ? "Done Editing" : "Cancel Edit" }}</button>
+      }
     </div>
     @if (onlandVisualTrashAssessmentObservations$ | async) {
       <neptune-map (onMapLoad)="handleMapReady($event, onlandVisualTrashAssessment)" mapHeight="600px" [showLegend]="true">
-        @if (mapIsReady) {
+        @if (mapIsReady()) {
           <land-use-block-layer [displayOnLoad]="true" [map]="map" [layerControl]="layerControl" [sortOrder]="10"></land-use-block-layer>
         }
-        @if (mapIsReady) {
+        @if (mapIsReady()) {
           <parcel-layer [displayOnLoad]="false" [map]="map" [layerControl]="layerControl" [sortOrder]="15" styles="parcel_alt"></parcel-layer>
         }
-        @if (mapIsReady && onlandVisualTrashAssessment.OnlandVisualTrashAssessmentAreaID) {
+        @if (mapIsReady() && onlandVisualTrashAssessment.OnlandVisualTrashAssessmentAreaID) {
           <ovta-area-layer
             [displayOnLoad]="true"
             [map]="map"
             [layerControl]="layerControl"
             [sortOrder]="10"
+            [interactive]="false"
           [ovtaID]="onlandVisualTrashAssessment.OnlandVisualTrashAssessmentID"></ovta-area-layer>
         }
-        @if (mapIsReady) {
+        @if (mapIsReady()) {
           <transect-line-layer
+            #transectLineLayer
             [displayOnLoad]="true"
             [map]="map"
             [layerControl]="layerControl"
             [sortOrder]="25"
+            [interactive]="false"
           [ovtaID]="onlandVisualTrashAssessment.OnlandVisualTrashAssessmentID"></transect-line-layer>
         }
       </neptune-map>
@@ -37,22 +50,15 @@
         <ng-container formArrayName="Observations">
           @if (selectedOnlandVisualTrashAssessmentObservationID === control.controls.OnlandVisualTrashAssessmentObservationID.value) {
             <div class="card">
-              <div class="card-header">
-                Selected Observation
-                <a
-                  href="javascript:void(0);"
-                  [dropdownToggle]="observationDropdownMenu"
-                  class="nav-link dropdown-toggle"
-                  role="button"
-                  data-toggle="dropdown"
-                  aria-haspopup="true"
-                  aria-expanded="false">
-                  <i class="fas fa-bars"></i>
-                </a>
-                <div #observationDropdownMenu class="dropdown-menu" aria-labelledby="navbarDropdown">
-                  <div class="dropdown-divider"></div>
-                  <button class="dropdown-item" (click)="editObservationLocation(i)">Edit Observation Location</button>
-                  <button class="dropdown-item" (click)="deleteObservation(i)">Delete Selected Observation</button>
+              <div class="card-header" style="display: flex; justify-content: space-between; align-items: center">
+                <span class="card-title">Selected Observation</span>
+                <div style="display: flex; gap: 0.5rem">
+                  @if (isEditingLocation) {
+                    <button type="button" class="btn btn-sm btn-white-outline" (click)="cancelEditMode()">Done Editing</button>
+                  } @else {
+                    <button type="button" class="btn btn-sm btn-white-outline" [disabled]="isAddingObservation" (click)="editObservationLocation(i)">Edit</button>
+                  }
+                  <button type="button" class="btn btn-sm btn-white-outline" [disabled]="isEditingLocation || isAddingObservation" (click)="deleteObservation(i)">Delete</button>
                 </div>
               </div>
               <div class="card-body grid-12">

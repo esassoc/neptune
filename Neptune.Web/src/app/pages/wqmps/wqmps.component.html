@@ -1,1 +1,49 @@
-<!-- Placeholder for Water Quality Management Plans component template -->
+<ng-template #addButton>
+    @if (currentPersonCanEdit$ | async) {
+        <a href="javascript:void(0);" [dropdownToggle]="actionsMenu" class="btn btn-primary-outline dropdown-toggle" role="button" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+            Actions <i class="fas fa-chevron-down"></i>
+        </a>
+        <div #actionsMenu class="dropdown-menu dropdown-menu-right">
+            <a href="javascript:void(0);" class="dropdown-item" (click)="openAddModal()">Add Plan</a>
+            <a class="dropdown-item" [href]="siteUrl + '/WaterQualityManagementPlan/UploadWqmps'">Bulk Upload WQMPs</a>
+            <a class="dropdown-item" [href]="siteUrl + '/WaterQualityManagementPlan/UploadSimplifiedBMPs'">Bulk Upload Simplified BMPs</a>
+            <a class="dropdown-item" [href]="siteUrl + '/WaterQualityManagementPlan/UploadWqmpBoundaryFromAPNs'">Bulk Upload WQMP Boundaries From APNs</a>
+            <div class="dropdown-divider"></div>
+            <a href="javascript:void(0);" class="dropdown-item" (click)="pdfFileInput.click()">Upload WQMP PDF (AI Extract)</a>
+        </div>
+        <input #pdfFileInput type="file" accept=".pdf" style="display:none" (change)="onPdfSelected($event)" />
+    }
+</ng-template>
+<page-header pageTitle="Water Quality Management Plans" [templateRight]="addButton"></page-header>
+<app-alert-display></app-alert-display>
+<div class="page-body">
+    @if (boundingBox$ | async; as boundingBox) {
+        @if (columnDefs$ | async; as columnDefs) {
+            <hybrid-map-grid
+                [rowData]="wqmps$ | async"
+                [columnDefs]="columnDefs"
+                downloadFileName="water-quality-management-plans"
+                entityIDField="WaterQualityManagementPlanID"
+                (onMapLoad)="handleMapReady($event, boundingBox)"
+                [selectedValue]="selectedWaterQualityManagementPlanID"
+                [selectionFromMap]="true"
+                (selectedValueChange)="onSelectedWaterQualityManagementPlanIDChanged($event)"
+                [boundingBox]="boundingBox">
+                <wqmps-layer
+                    [map]="map"
+                    [layerControl]="layerControl"
+                    [mode]="OverlayMode.ReferenceWithInteractivity"
+                    [selectedID]="selectedWaterQualityManagementPlanID"
+                    [fitBoundsOnSelect]="zoomOnNextSelection"
+                    [filterToJurisdictionIDs]="wqmpJurisdictionIDs"
+                    (selected)="onSelectedWaterQualityManagementPlanIDChanged($event, true)">
+                </wqmps-layer>
+                @if (mapIsReady) {
+                    <parcel-layer [map]="map" [layerControl]="layerControl"></parcel-layer>
+                    <delineations-layer [map]="map" [layerControl]="layerControl" [isAnalyzedInModelingModule]="false"></delineations-layer>
+                    <jurisdictions-layer [map]="map" [layerControl]="layerControl" [mode]="OverlayMode.ReferenceOnly"></jurisdictions-layer>
+                }
+            </hybrid-map-grid>
+        }
+    }
+</div>

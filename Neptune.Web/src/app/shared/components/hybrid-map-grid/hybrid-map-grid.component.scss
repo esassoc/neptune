@@ -3,6 +3,9 @@
 .button-group {
     padding: 0;
     overflow: hidden;
+    margin-bottom: 0;
+    border: 1px solid $gray-200;
+    border-radius: 4px;
 
     &__item {
         border: none;
@@ -48,5 +51,35 @@
 
     @include tablet-max {
         grid-template-columns: unset;
+    }
+
+    // Make the map panel stretch to match the grid panel height.
+    // The grid panel drives the row height (ag-grid + footer).
+    // neptune-map's :host { display: block } overrides display: flex set
+    // from outside, so we use height: 100% to cascade the height down
+    // instead, then flex only inside .map-wrapper.
+    // In map-only mode the grid is hidden so nothing drives height; use min-height.
+    &:has(> .tab-nav-container__panel.hidden) > &__map-panel {
+        min-height: 500px;
+    }
+    &__map-panel {
+        neptune-map {
+            height: 100%;
+
+            ::ng-deep .map-wrapper {
+                height: 100%;
+                display: flex;
+                flex-direction: column;
+
+                .map-container {
+                    flex: 1;
+                    min-height: 0;
+                }
+
+                .form-group {
+                    margin-bottom: 0;
+                }
+            }
+        }
     }
 }

@@ -100,5 +100,7 @@
         public double TotalTCuInflow { get; set;}
         public double TotalTPbInflow { get; set;}
         public double TotalTZnInflow { get; set;}
+
+        public DateTime? LastCalculatedDate { get; set; }
     }
 }

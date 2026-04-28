@@ -1,4 +1,4 @@
-import { Component } from "@angular/core";
+import { Component, signal, ViewChild } from "@angular/core";
 import * as L from "leaflet";
 import { PageHeaderComponent } from "../../../../shared/components/page-header/page-header.component";
 import { NeptuneMapComponent, NeptuneMapInitEvent } from "../../../../shared/components/leaflet/neptune-map/neptune-map.component";
@@ -9,7 +9,6 @@ import { Input } from "@angular/core";
 import { OnlandVisualTrashAssessmentDetailDto } from "src/app/shared/generated/model/onland-visual-trash-assessment-detail-dto";
 import { OnlandVisualTrashAssessmentService } from "src/app/shared/generated/api/onland-visual-trash-assessment.service";
 import { MarkerHelper } from "src/app/shared/helpers/marker-helper";
-import { DropdownToggleDirective } from "src/app/shared/directives/dropdown-toggle.directive";
 import { FormArray, FormBuilder, FormControl, FormGroup, FormsModule, ReactiveFormsModule } from "@angular/forms";
 import { FormFieldComponent, FormFieldType } from "src/app/shared/components/forms/form-field/form-field.component";
 import { AlertDisplayComponent } from "../../../../shared/components/alert-display/alert-display.component";
@@ -35,7 +34,6 @@ import { TransectLineLayerComponent } from "src/app/shared/components/leaflet/la
     imports: [
         PageHeaderComponent,
         NeptuneMapComponent,
-        DropdownToggleDirective,
         AsyncPipe,
         FormFieldComponent,
         ReactiveFormsModule,
@@ -54,7 +52,7 @@ export class TrashOvtaRecordObservationsComponent {
     public FormFieldType = FormFieldType;
     public map: L.Map;
     public layerControl: L.Control.Layers;
-    public mapIsReady = false;
+    public mapIsReady = signal(false);
     public isLoadingSubmit = false;
     public ovtaObservationLayer: L.GeoJSON<any>;
     public uploadFormField: FormControl<Blob> = new FormControl<Blob>(null);
@@ -64,12 +62,19 @@ export class TrashOvtaRecordObservationsComponent {
 
     public selectedOnlandVisualTrashAssessmentObservationID: number;
     public newObservationIDIndex: number = -1;
+    public isAddingObservation = false;
+    public isEditingLocation = false;
+    public editingObservationIndex: number = null;
 
     public onlandVisualTrashAssessmentObservations$: Observable<OnlandVisualTrashAssessmentObservationWithPhotoDto[]>;
 
     public onlandVisualTrashAssessment$: Observable<OnlandVisualTrashAssessmentDetailDto>;
 
     @Input() onlandVisualTrashAssessmentID!: number;
+
+    // Template ref used to ask the transect-line layer to re-fetch + redraw after a save so
+    // the map reflects observation edits on the backing assessment without a full page reload.
+    @ViewChild("transectLineLayer") transectLineLayer?: TransectLineLayerComponent;
 
     constructor(
         private onlandVisualTrashAssessmentService: OnlandVisualTrashAssessmentService,
@@ -100,6 +105,9 @@ export class TrashOvtaRecordObservationsComponent {
                         Longitude: onlandVisualTrashAssessmentObservation.Longitude,
                         FileResourceID: onlandVisualTrashAssessmentObservation.FileResourceID,
                         FileResourceGUID: onlandVisualTrashAssessmentObservation.FileResourceGUID,
+                        // Preserve the original observation timestamp so the transect line
+                        // orders observations the same way across edits.
+                        ObservationDatetime: onlandVisualTrashAssessmentObservation.ObservationDatetime,
                     });
                     formArray.push(observation);
                 });
@@ -110,11 +118,11 @@ export class TrashOvtaRecordObservationsComponent {
     public handleMapReady(event: NeptuneMapInitEvent, onlandVisualTrashAssessment: OnlandVisualTrashAssessmentDetailDto): void {
         this.map = event.map;
         this.layerControl = event.layerControl;
-        this.mapIsReady = true;
+        this.mapIsReady.set(true);
         if (this.formGroup.controls.Observations.length > 0) {
             this.addObservationPointsLayersToMap();
             this.map.fitBounds(this.ovtaObservationLayer.getBounds());
-        } else if (onlandVisualTrashAssessment.OnlandVisualTrashAssessmentAreaID !== null) {
+        } else if (onlandVisualTrashAssessment.OnlandVisualTrashAssessmentAreaID) {
             this.wfsService
                 .getGeoserverWFSLayerWithCQLFilter(
                     "OCStormwater:OnlandVisualTrashAssessmentAreas",
@@ -137,10 +145,26 @@ export class TrashOvtaRecordObservationsComponent {
         }
     }
 
+    public cancelEditMode() {
+        this.map.off("click");
+        this.isAddingObservation = false;
+        this.isEditingLocation = false;
+        this.map.getContainer().style.cursor = "grab";
+        const selectedMarker = this.getSelectedMarker();
+        if (selectedMarker) {
+            selectedMarker.off("dragend");
+            selectedMarker.dragging.disable();
+        }
+    }
+
     public addObservationMarker() {
+        this.isAddingObservation = true;
+        this.map.getContainer().style.cursor = "crosshair";
         this.map.on("click", (e: L.LeafletMouseEvent) => {
             this.addObservation(e.latlng);
             this.map.off("click");
+            this.isAddingObservation = false;
+            this.map.getContainer().style.cursor = "grab";
         });
     }
 
@@ -154,6 +178,10 @@ export class TrashOvtaRecordObservationsComponent {
             Longitude: latlng.lng,
             FileResourceID: null,
             FileResourceGUID: null,
+            // Stamp new observations with the client clock at add-time so each one gets a
+            // distinct timestamp (avoids the backend's UtcNow fallback collapsing everything
+            // into a single value and breaking transect-line ordering).
+            ObservationDatetime: new Date().toISOString(),
         });
         const formArray = this.formGroup.controls.Observations as FormArray;
         formArray.push(observation);
@@ -196,6 +224,9 @@ export class TrashOvtaRecordObservationsComponent {
                 this.alertService.clearAlerts();
                 this.alertService.pushAlert(new Alert("Your observations were successfully updated.", AlertContext.Success));
                 this.ovtaWorkflowProgressService.updateProgress(this.onlandVisualTrashAssessmentID);
+                // Observation edits may have redrawn the area's transect line (when this is
+                // the backing assessment). Ask the layer to re-fetch so the map stays current.
+                this.transectLineLayer?.refresh();
 
                 if (andContinue) {
                     this.onlandVisualTrashAssessmentService.getWorkflowProgressOnlandVisualTrashAssessment(this.onlandVisualTrashAssessmentID).subscribe((response) => {
@@ -242,14 +273,54 @@ export class TrashOvtaRecordObservationsComponent {
     }
 
     public editObservationLocation(index: number) {
-        this.map.on("click", (e: L.LeafletMouseEvent) => {
-            const observation = this.formGroup.controls.Observations.controls[index].value;
-            observation.Latitude = e.latlng.lat;
-            observation.Longitude = e.latlng.lng;
-            this.formGroup.controls.Observations.controls[index].patchValue(observation);
+        this.editingObservationIndex = index;
+        this.isEditingLocation = true;
+        this.map.getContainer().style.cursor = "crosshair";
+
+        // Find the selected marker and enable dragging
+        const selectedMarker = this.getSelectedMarker();
+        if (selectedMarker) {
+            selectedMarker.dragging.enable();
+        }
+
+        const updateObservation = (latlng: L.LatLng) => {
+            const observation = this.formGroup.controls.Observations.controls[this.editingObservationIndex].value;
+            observation.Latitude = latlng.lat;
+            observation.Longitude = latlng.lng;
+            this.formGroup.controls.Observations.controls[this.editingObservationIndex].patchValue(observation);
             this.addObservationPointsLayersToMap();
-            this.map.off("click");
-        });
+            // Re-enable dragging on the new marker after layer rebuild
+            const newMarker = this.getSelectedMarker();
+            if (newMarker) {
+                newMarker.dragging.enable();
+                newMarker.on("dragend", onDragEnd);
+            }
+        };
+
+        const onMapClick = (e: L.LeafletMouseEvent) => {
+            updateObservation(e.latlng);
+        };
+
+        const onDragEnd = (e: L.DragEndEvent) => {
+            updateObservation((e.target as L.Marker).getLatLng());
+        };
+
+        this.map.on("click", onMapClick);
+        if (selectedMarker) {
+            selectedMarker.on("dragend", onDragEnd);
+        }
+    }
+
+    private getSelectedMarker(): L.Marker | null {
+        let selectedMarker: L.Marker = null;
+        if (this.ovtaObservationLayer) {
+            this.ovtaObservationLayer.eachLayer((layer: L.Marker) => {
+                if (layer.feature?.properties?.OnlandVisualTrashAssessmentObservationID === this.selectedOnlandVisualTrashAssessmentObservationID) {
+                    selectedMarker = layer;
+                }
+            });
+        }
+        return selectedMarker;
     }
 
     public deleteObservation(index: number) {

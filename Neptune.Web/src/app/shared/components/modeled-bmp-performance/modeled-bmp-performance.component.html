@@ -19,7 +19,7 @@
             @if (selectedTreatmentBMPID !== -1) {
             <tr>
                 <td class="left">
-                    <field-definition fieldDefinitionType="SiteRunoff" labelOverride="To BMP"></field-definition>
+                    <field-definition fieldDefinitionType="SiteRunoff" [labelOverride]="siteRunoffLabel"></field-definition>
                 </td>
                 <td>
                     <span>{{ loadReducingResult.WetWeatherInflow | neptuneModelingResultSigFig : 3 | number }}</span>
@@ -175,7 +175,7 @@
             @if (selectedTreatmentBMPID !== -1) {
             <tr>
                 <td class="left">
-                    <field-definition fieldDefinitionType="SiteRunoff" labelOverride="To BMP"></field-definition>
+                    <field-definition fieldDefinitionType="SiteRunoff" [labelOverride]="siteRunoffLabel"></field-definition>
                 </td>
                 <td>
                     <span>{{ loadReducingResult.DryWeatherInflow | neptuneModelingResultSigFig : 3 | number }}</span>
@@ -331,7 +331,7 @@
             @if (selectedTreatmentBMPID !== -1) {
             <tr>
                 <td class="left">
-                    <field-definition fieldDefinitionType="SiteRunoff" labelOverride="To BMP"></field-definition>
+                    <field-definition fieldDefinitionType="SiteRunoff" [labelOverride]="siteRunoffLabel"></field-definition>
                 </td>
                 <td>
                     <span>{{ loadReducingResult.TotalInflow | neptuneModelingResultSigFig : 3 | number }}</span>

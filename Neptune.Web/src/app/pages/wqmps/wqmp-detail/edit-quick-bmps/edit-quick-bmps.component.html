@@ -1,0 +1,131 @@
+<page-header pageTitle="Simplified Structural BMPs" [templateAbove]="templateAbove">
+    <ng-template #templateAbove>
+        <div class="back">
+            <a [routerLink]="['/water-quality-management-plans', waterQualityManagementPlanID]" class="back__link">Back to WQMP Detail</a>
+        </div>
+    </ng-template>
+</page-header>
+
+<app-alert-display></app-alert-display>
+
+@if (validationErrors.length) {
+    <div class="alert alert-danger">
+        <ul class="mb-0">
+            @for (error of validationErrors; track error) {
+                <li>{{ error }}</li>
+            }
+        </ul>
+    </div>
+}
+
+@if (loaded$ | async) {
+    <p class="mb-3">
+        Describe simplified structural BMPs associated with this WQMP. This does not add records to the detailed Inventory.
+        If the simplified model approach is selected then the percent of site, percent captured, and percent retained values
+        will be used by the Modeling Module to determine load and volume reduction credit. In the percent of site field please
+        enter the percentage of this WQMP site treated by each Simplified Structural BMP. The total should not exceed 100%.
+    </p>
+
+    <hr />
+
+    <p>
+        Should all BMPs override Dry Weather Flow?&nbsp;&nbsp;
+        <button type="button" class="btn btn-sm btn-primary" (click)="setAllDryWeatherOverridesToYes()">Set all to 'Yes'</button>
+    </p>
+
+    @if (quickBMPRows.length) {
+        @for (row of quickBMPRows.controls; track $index) {
+            <div class="quick-bmp-entry" [formGroup]="row">
+                <div class="quick-bmp-entry-body">
+                    <div class="quick-bmp-delete-col">
+                        <a class="delete-icon" (click)="removeRow($index)" title="Remove row">
+                            <i class="fa fa-trash"></i>
+                        </a>
+                    </div>
+                    <div class="quick-bmp-fields">
+                        <div class="field-group field-name">
+                            <form-field
+                                [formControl]="$any(row.controls['QuickBMPName'])"
+                                [type]="FormFieldType.Text"
+                                fieldLabel="Name"
+                                placeholder=""></form-field>
+                        </div>
+                        <div class="field-group field-type">
+                            <form-field
+                                [formControl]="$any(row.controls['TreatmentBMPTypeID'])"
+                                [type]="FormFieldType.Select"
+                                fieldLabel="Type"
+                                placeholder="Select a Treatment BMP Type"
+                                [formInputOptions]="treatmentBMPTypeOptions"></form-field>
+                        </div>
+                        <div class="field-group field-num-bmps">
+                            <form-field
+                                [formControl]="$any(row.controls['NumberOfIndividualBMPs'])"
+                                [type]="FormFieldType.Number"
+                                fieldLabel="# of Individual BMPs"
+                                placeholder="#"></form-field>
+                        </div>
+                        <div class="field-group field-pct-site">
+                            <form-field
+                                [formControl]="$any(row.controls['PercentOfSiteTreated'])"
+                                [type]="FormFieldType.Number"
+                                fieldLabel="% of Site Treated"
+                                placeholder="%"></form-field>
+                        </div>
+                        <div class="field-group field-dwf">
+                            <form-field
+                                [formControl]="$any(row.controls['DryWeatherFlowOverrideID'])"
+                                [type]="FormFieldType.Select"
+                                fieldLabel="Dry Weather Flow Override?"
+                                placeholder="Select..."
+                                [formInputOptions]="dryWeatherFlowOverrideOptions"></form-field>
+                        </div>
+                        <div class="field-group field-pct-captured">
+                            <form-field
+                                [formControl]="$any(row.controls['PercentCaptured'])"
+                                [type]="FormFieldType.Number"
+                                fieldLabel="Wet Weather % Captured"
+                                placeholder="%"></form-field>
+                        </div>
+                        <div class="field-group field-pct-retained">
+                            <form-field
+                                [formControl]="$any(row.controls['PercentRetained'])"
+                                [type]="FormFieldType.Number"
+                                fieldLabel="Wet Weather % Retained"
+                                placeholder="%"></form-field>
+                        </div>
+                    </div>
+                    <div class="quick-bmp-notes">
+                        <form-field
+                            [formControl]="$any(row.controls['QuickBMPNote'])"
+                            [type]="FormFieldType.Textarea"
+                            fieldLabel="Notes"
+                            placeholder=""></form-field>
+                    </div>
+                </div>
+            </div>
+        }
+
+        <div class="untreated-percentage">
+            <span class="untreated-label">Untreated Percentage</span>
+            <span class="untreated-value">{{ calculateUntreatedPercentage() }}%</span>
+        </div>
+    } @else {
+        <p class="system-text">There are no Simplified Structural BMPs associated with this WQMP. Use the Add button to enter one or more.</p>
+    }
+
+    <div class="actions-row mt-3">
+        <button class="btn btn-primary" (click)="addRow()">
+            <i class="fa fa-plus"></i> Add
+        </button>
+    </div>
+
+    <hr />
+
+    <div class="actions-row mt-3">
+        <button class="btn btn-primary" (click)="save()" [disabled]="quickBMPRows.invalid">Save</button>
+        <button class="btn btn-primary-outline" (click)="cancel()">Cancel</button>
+    </div>
+} @else {
+    <p>Loading...</p>
+}

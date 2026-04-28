@@ -35,7 +35,13 @@
 <div class="grid-12">
     @for (image of images; track image.FileResourceGUID) {
         <div class="g-col-2">
-            <img class="existing-image-preview" [src]="imagePreviewUrls[image.FileResourceGUID]" alt="Preview of existing photo." />
+            @if (imagePreviewUrls()[image.FileResourceGUID]) {
+                <img class="existing-image-preview" [src]="imagePreviewUrls()[image.FileResourceGUID]" alt="Preview of existing photo." />
+            } @else {
+                <div class="existing-image-preview" style="display: flex; align-items: center; justify-content: center; background: #f0f0f0;">
+                    <span class="spinner-border spinner-border-sm"></span>
+                </div>
+            }
         </div>
         <div class="g-col-8">
             <form-field [formControl]="captionControls[image.FileResourceGUID]" fieldLabel="Caption" [type]="FormFieldType.Textarea" placeholder="Caption"></form-field>

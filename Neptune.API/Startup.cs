@@ -9,6 +9,7 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Neptune.API.Services;
+using Neptune.API.Services.AI;
 using Neptune.API.Services.Filter;
 using Neptune.API.Services.Middleware;
 using Neptune.Common.Email;
@@ -21,11 +22,10 @@ using Neptune.Jobs.Hangfire;
 using Neptune.Jobs.Services;
 using NetTopologySuite.Geometries;
 using NetTopologySuite.IO.Converters;
-using OpenAI;
+using Anthropic;
 using SendGrid;
 using Serilog;
 using System;
-using System.ClientModel;
 using System.Net.Http;
 using System.Text.Json;
 using System.Text.Json.Serialization;
@@ -105,24 +105,29 @@ namespace Neptune.API
             AddExternalHttpClientServices(services, configuration);
 
             services.AddScoped<AzureBlobStorageService>();
+            services.AddSingleton<IPromptTemplateService, PromptTemplateService>();
+            services.AddScoped<AnthropicFileService>();
+            services.AddScoped<WqmpExtractionService>();
 
             services.AddSingleton<IHttpContextAccessor, HttpContextAccessor>();
             services.AddScoped(s => s.GetService<IHttpContextAccessor>().HttpContext);
             services.AddScoped(s => UserContext.GetUserAsDtoFromHttpContext(s.GetService<NeptuneDbContext>(), s.GetService<IHttpContextAccessor>().HttpContext));
 
-            #region OpenAI
-            services.AddSingleton(_ =>
+            #region Anthropic
+            // ClientOptions.Timeout is a per-request value the SDK applies via CancellationToken,
+            // but the SDK's underlying HttpClient still uses .NET's default 100-second timeout
+            // unless we hand it our own HttpClient. For streaming (CreateStreaming) on a cold
+            // prompt cache with a large file_id reference, time-to-first-byte can exceed 100s
+            // — we hit "TaskCanceledException: HttpClient.Timeout of 100 seconds elapsing" on
+            // 92 MB scanned WQMP extractions. Use Timeout.InfiniteTimeSpan on the inner client
+            // and rely on per-call CancellationTokens (we wrap each category extraction in a
+            // 4-minute CTS upstream) to bound run-time.
+            services.AddSingleton(_ => new AnthropicClient(new Anthropic.Core.ClientOptions
             {
-                ApiKeyCredential nonAzureOpenAIApiKey = new(configuration.OpenAIApiKey);
-                OpenAIClient client = new(nonAzureOpenAIApiKey,
-                    new OpenAIClientOptions
-                    {
-                        OrganizationId = configuration.OpenAIOrganizationID,
-                        ProjectId = configuration.OpenAIProjectID
-                    });
-
-                return client;
-            });
+                ApiKey = configuration.AnthropicApiKey,
+                Timeout = TimeSpan.FromMinutes(5),
+                HttpClient = new HttpClient { Timeout = Timeout.InfiniteTimeSpan },
+            }));
             #endregion
 
             #region Sendgrid

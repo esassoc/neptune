@@ -1,0 +1,72 @@
+<div class="modal">
+<div class="modal-header">
+    <h3 class="section-title">Edit Inventoried Structural BMPs</h3>
+</div>
+
+<div class="modal-body">
+    <app-alert-display></app-alert-display>
+    <p>Select Treatment BMPs to associate with this WQMP. Only BMPs within the same jurisdiction that are not already assigned to another WQMP are available.</p>
+
+    @if (availableBMPs$ | async; as availableBMPs) {
+        <div style="display: flex; gap: 0.5rem; align-items: flex-end; margin-bottom: 1rem">
+            <div style="flex: 1 1 0; min-width: 0; overflow: hidden">
+                <ng-select
+                    [items]="availableBMPs"
+                    bindValue="TreatmentBMPID"
+                    [(ngModel)]="pickerBMPID"
+                    [searchable]="true"
+                    [clearable]="true"
+                    appendTo="body"
+                    placeholder="Search for a BMP...">
+                    <ng-template ng-option-tmp let-item="item">
+                        {{ item.TreatmentBMPName }} ({{ item.TreatmentBMPTypeName }})
+                    </ng-template>
+                    <ng-template ng-label-tmp let-item="item">
+                        <span style="overflow: hidden; text-overflow: ellipsis; white-space: nowrap; display: block">{{ item.TreatmentBMPName }} ({{ item.TreatmentBMPTypeName }})</span>
+                    </ng-template>
+                </ng-select>
+            </div>
+            <button class="btn btn-primary-outline btn-sm" style="flex: 0 0 auto; margin-bottom: 2px" (click)="addBMP()" [disabled]="pickerBMPID == null">
+                <i class="fa fa-plus"></i> Add
+            </button>
+        </div>
+
+        @if (selectedBMPs$ | async; as selectedBMPs) {
+            @if (selectedBMPs.length) {
+                <label class="field-label">Associated BMPs</label>
+                <table class="table table-condensed table-bordered">
+                    <thead>
+                        <tr>
+                            <th>BMP Name</th>
+                            <th>Type</th>
+                            <th style="width: 50px"></th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @for (bmp of selectedBMPs; track bmp.TreatmentBMPID) {
+                            <tr>
+                                <td>{{ bmp.TreatmentBMPName }}</td>
+                                <td>{{ bmp.TreatmentBMPTypeName }}</td>
+                                <td>
+                                    <button class="btn btn-sm btn-danger" (click)="removeBMP(bmp.TreatmentBMPID)" title="Remove">
+                                        <icon icon="Delete"></icon>
+                                    </button>
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            } @else {
+                <p class="system-text">No BMPs associated. Use the picker above to add Treatment BMPs.</p>
+            }
+        }
+    } @else {
+        <p>Loading...</p>
+    }
+</div>
+
+<div class="modal-footer">
+    <button class="btn btn-primary" (click)="save()">Save</button>
+    <button class="btn btn-primary-outline" (click)="cancel()">Cancel</button>
+</div>
+</div>

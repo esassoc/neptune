@@ -1,0 +1,155 @@
+<page-header [pageTitle]="isCreate ? 'New Treatment BMP Type' : 'Edit Treatment BMP Type'" [templateAbove]="templateAbove">
+    <ng-template #templateAbove>
+        <div class="back">
+            <a [routerLink]="['/manage/treatment-bmp-types']" class="back__link">Back to Treatment BMP Types</a>
+        </div>
+    </ng-template>
+</page-header>
+
+<app-alert-display></app-alert-display>
+
+@if (loaded$ | async) {
+    <div class="page-body">
+        <!-- Basics -->
+        <div class="card mb-3">
+            <div class="card-header"><span class="card-title">Basics</span></div>
+            <div class="card-body">
+                <div class="grid-12">
+                    <form-field class="g-col-6" [formControl]="nameControl" fieldLabel="Name" [type]="FormFieldType.Text" [required]="true" placeholder="Treatment BMP Type Name"></form-field>
+                    <form-field class="g-col-12" [formControl]="descriptionControl" fieldLabel="Description" [type]="FormFieldType.Textarea" placeholder="Description"></form-field>
+                </div>
+            </div>
+        </div>
+
+        <!-- Observation Types -->
+        <div class="card mb-3">
+            <div class="card-header"><span class="card-title">Observation Types</span></div>
+            <div class="card-body">
+                <div class="picker-row mb-3">
+                    <ng-select
+                        [items]="availableObservationTypes"
+                        bindValue="TreatmentBMPAssessmentObservationTypeID"
+                        bindLabel="TreatmentBMPAssessmentObservationTypeName"
+                        [(ngModel)]="pickerObservationTypeID"
+                        [searchable]="true"
+                        [clearable]="true"
+                        appendTo="body"
+                        placeholder="Search for an observation type...">
+                    </ng-select>
+                    <button class="btn btn-primary-outline btn-sm" (click)="addObservationType()" [disabled]="pickerObservationTypeID == null">
+                        <i class="fa fa-plus"></i> Add
+                    </button>
+                </div>
+
+                @if (observationTypeRows().length) {
+                    <table class="table table-condensed table-bordered">
+                        <thead>
+                            <tr>
+                                <th>Observation Type</th>
+                                <th>Collection Method</th>
+                                <th style="width: 100px">Weight %</th>
+                                <th style="width: 100px">Threshold</th>
+                                <th style="width: 100px">Benchmark</th>
+                                <th style="width: 60px">Override</th>
+                                <th style="width: 70px">Order</th>
+                                <th style="width: 50px"></th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @for (row of observationTypeRows(); track row.TreatmentBMPAssessmentObservationTypeID) {
+                                <tr>
+                                    <td>{{ row.Name }}</td>
+                                    <td>{{ row.CollectionMethod }}</td>
+                                    <td><input type="number" class="form-control form-control-sm" [(ngModel)]="row.AssessmentScoreWeight" min="0" max="100" step="0.01"></td>
+                                    <td><input type="number" class="form-control form-control-sm" [(ngModel)]="row.DefaultThresholdValue"></td>
+                                    <td><input type="number" class="form-control form-control-sm" [(ngModel)]="row.DefaultBenchmarkValue"></td>
+                                    <td class="text-center"><input type="checkbox" [(ngModel)]="row.OverrideAssessmentScoreIfFailing"></td>
+                                    <td><input type="number" class="form-control form-control-sm" [(ngModel)]="row.SortOrder" min="1"></td>
+                                    <td>
+                                        <button class="btn btn-sm btn-danger-outline" (click)="removeObservationType(row.TreatmentBMPAssessmentObservationTypeID)">
+                                            <i class="fa fa-trash"></i>
+                                        </button>
+                                    </td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                    <div class="weight-summary" [class.weight-summary--error]="hasWeightError">
+                        Weight Total: {{ weightTotal | number: '1.2-2' }}%
+                        @if (hasWeightError) {
+                            <span class="weight-summary__message">(must equal 100%)</span>
+                        }
+                    </div>
+                } @else {
+                    <p class="system-text">No observation types assigned. Use the picker above to add.</p>
+                }
+            </div>
+        </div>
+
+        <!-- Custom Attributes -->
+        <div class="card mb-3">
+            <div class="card-header"><span class="card-title">Custom Attributes</span></div>
+            <div class="card-body">
+                <div class="picker-row mb-3">
+                    <ng-select
+                        [items]="availableCustomAttributes"
+                        bindValue="CustomAttributeTypeID"
+                        bindLabel="CustomAttributeTypeName"
+                        [(ngModel)]="pickerCustomAttributeID"
+                        [searchable]="true"
+                        [clearable]="true"
+                        appendTo="body"
+                        placeholder="Search for a custom attribute...">
+                        <ng-template ng-option-tmp let-item="item">
+                            {{ item.CustomAttributeTypeName }} <span class="text-muted">({{ item.Purpose }})</span>
+                        </ng-template>
+                    </ng-select>
+                    <button class="btn btn-primary-outline btn-sm" (click)="addCustomAttribute()" [disabled]="pickerCustomAttributeID == null">
+                        <i class="fa fa-plus"></i> Add
+                    </button>
+                </div>
+
+                @if (customAttributesByPurpose.length) {
+                    @for (group of customAttributesByPurpose; track group.purpose) {
+                        <h5 class="mt-3">{{ group.purpose }}</h5>
+                        <table class="table table-condensed table-bordered">
+                            <thead>
+                                <tr>
+                                    <th>Attribute Name</th>
+                                    <th style="width: 70px">Order</th>
+                                    <th style="width: 50px"></th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @for (row of group.rows; track row.CustomAttributeTypeID) {
+                                    <tr>
+                                        <td>{{ row.Name }}</td>
+                                        <td><input type="number" class="form-control form-control-sm" [(ngModel)]="row.SortOrder" min="1"></td>
+                                        <td>
+                                            <button class="btn btn-sm btn-danger-outline" (click)="removeCustomAttribute(row.CustomAttributeTypeID)">
+                                                <i class="fa fa-trash"></i>
+                                            </button>
+                                        </td>
+                                    </tr>
+                                }
+                            </tbody>
+                        </table>
+                    }
+                } @else {
+                    <p class="system-text">No custom attributes assigned. Use the picker above to add.</p>
+                }
+            </div>
+        </div>
+
+        <!-- Actions -->
+        <div class="page-footer">
+            <button class="btn btn-primary" (click)="save()" [disabled]="isSaving || nameControl.invalid || hasWeightError">Save</button>
+            <button class="btn btn-secondary-outline" (click)="cancel()">Cancel</button>
+            @if (!isCreate) {
+                <button class="btn btn-danger-outline" (click)="deleteBMPType()" style="margin-left: auto">
+                    <i class="fa fa-trash"></i> Delete
+                </button>
+            }
+        </div>
+    </div>
+}

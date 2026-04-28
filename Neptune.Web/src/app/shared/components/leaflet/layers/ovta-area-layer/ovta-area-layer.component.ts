@@ -23,22 +23,30 @@ export class OvtaAreaLayerComponent extends MapLayerBase implements OnChanges {
 
     @Input() ovtaID: number;
     @Input() ovtaAreaID: number;
+    @Input() interactive: boolean = true;
     public layer;
 
-    private ovtaAreaStyle = {
-        color: "blue",
-        fillOpacity: 0.2,
-        opacity: 0,
-    };
+    private get ovtaAreaStyle() {
+        return {
+            color: "blue",
+            fillOpacity: 0.2,
+            opacity: 0,
+            interactive: this.interactive,
+        };
+    }
 
     public featureCollection$: Observable<IFeature[]>;
 
-    ngAfterViewInit(): void {
+    // Assigned in ngOnInit (not ngAfterViewInit) so the template's `@if (featureCollection$ | async)`
+    // sees the observable on the first template check and the async pipe actually subscribes.
+    // ViewChild template refs used by initLayer() are still safely available by the time the
+    // HTTP response arrives and the tap fires.
+    ngOnInit(): void {
         if (this.ovtaID) {
             const request$ = this.onlandVisualTrashAssessmentService.getAreaAsFeatureCollectionOnlandVisualTrashAssessment(this.ovtaID);
             this.featureCollection$ = this.trackLayerRequest$(request$).pipe(
-                tap((transectLineFeatureCollection) => {
-                    this.layer = new L.GeoJSON(transectLineFeatureCollection as any, {
+                tap((featureCollection) => {
+                    this.layer = new L.GeoJSON(featureCollection as any, {
                         style: this.ovtaAreaStyle,
                     });
                     this.initLayer();
@@ -47,8 +55,8 @@ export class OvtaAreaLayerComponent extends MapLayerBase implements OnChanges {
         } else if (this.ovtaAreaID) {
             const request$ = this.onlandVisualTrashAssessmentAreaService.getAreaAsFeatureCollectionOnlandVisualTrashAssessmentArea(this.ovtaAreaID);
             this.featureCollection$ = this.trackLayerRequest$(request$).pipe(
-                tap((transectLineFeatureCollection) => {
-                    this.layer = new L.GeoJSON(transectLineFeatureCollection as any, {
+                tap((featureCollection) => {
+                    this.layer = new L.GeoJSON(featureCollection as any, {
                         style: this.ovtaAreaStyle,
                     });
                     this.initLayer();

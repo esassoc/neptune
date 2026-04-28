@@ -46,4 +46,18 @@ GO
 GO
 :r ".\019 - Add Dry Weather Flow Override custom attribute for all Modeled Treatment BMPs without it.sql"
 GO
+:r ".\020 - Drop WaterQualityManagementPlanDocumentVectorStore table.sql"
+GO
+:r ".\021 - Make Other Design Attributes Optional.sql"
+GO
+:r ".\022 - Make All Custom Attributes Optional.sql"
+GO
+:r ".\023 - Associate TrainingVideos with NeptuneArea modules.sql"
+GO
+:r ".\024 - MakeValid on invalid Delineation geometries.sql"
+GO
+:r ".\025 - WQMP Verification step help text.sql"
+GO
+:r ".\026 - Add AnthropicFileID to WaterQualityManagementPlanDocument.sql"
+GO
 

@@ -13,16 +13,23 @@ export class DelineationsLayerComponent extends MapLayerBase implements OnChange
         super();
     }
     @Input() isAnalyzedInModelingModule: boolean = true;
+    @Input() delineationStatus: "Verified" | "Provisional" = "Verified";
     public wmsOptions: L.WMSOptions;
     public layer;
 
     ngAfterViewInit(): void {
+        let cqlFilter = `DelineationStatus = '${this.delineationStatus}'`;
+        if (this.delineationStatus === "Verified" && this.isAnalyzedInModelingModule) {
+            cqlFilter += " AND IsAnalyzedInModelingModule = 1";
+        }
+
         this.wmsOptions = {
             layers: "OCStormwater:Delineations",
             transparent: true,
             format: "image/png",
             tiled: true,
-            cql_filter: this.isAnalyzedInModelingModule ? "DelineationStatus = 'Verified' AND IsAnalyzedInModelingModule = 1" : "DelineationStatus = 'Verified'",
+            styles: "delineation",
+            cql_filter: cqlFilter,
             maxZoom: 22,
         } as any;
 

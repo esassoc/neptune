@@ -1,18 +1,20 @@
-<div class="modal-header">
-    <h3>{{ mode === "add" ? "Add Funding Source" : "Edit Funding Source" }}</h3>
-</div>
-<div class="modal-body">
-    <app-alert-display></app-alert-display>
-    <form [formGroup]="formGroup">
-        <form-field [formControl]="formGroup.controls.OrganizationID" fieldLabel="Organization ID" [type]="FormFieldType.Number" [required]="true" placeholder="Organization ID">
-        </form-field>
-        <form-field [formControl]="formGroup.controls.FundingSourceName" fieldLabel="Funding Source Name" [type]="FormFieldType.Text" [required]="true" placeholder="Name">
-        </form-field>
-        <form-field [formControl]="formGroup.controls.FundingSourceDescription" fieldLabel="Description" [type]="FormFieldType.Textarea" placeholder="Description"> </form-field>
-        <form-field [formControl]="formGroup.controls.IsActive" fieldLabel="Active?" [type]="FormFieldType.Check" checkLabel="Active"> </form-field>
-    </form>
-</div>
-<div class="modal-footer">
-    <button class="btn btn-primary" (click)="save()">Save</button>
-    <button class="btn btn-secondary" (click)="cancel()">Cancel</button>
+<div class="modal">
+    <div class="modal-header">
+        <h3>{{ mode === "add" ? "Add Funding Source" : "Edit Funding Source" }}</h3>
+    </div>
+    <div class="modal-body">
+        <app-alert-display></app-alert-display>
+        <form [formGroup]="formGroup" class="grid-12">
+            <form-field class="g-col-12" [formControl]="formGroup.controls.FundingSourceName" fieldLabel="Funding Source Name" [type]="FormFieldType.Text" [required]="true" placeholder="Name">
+            </form-field>
+            <form-field class="g-col-12" [formControl]="formGroup.controls.FundingSourceDescription" fieldLabel="Description" [type]="FormFieldType.Textarea" placeholder="Description"></form-field>
+            <form-field class="g-col-12" [formControl]="formGroup.controls.OrganizationID" fieldLabel="Organization" [type]="FormFieldType.Select" [required]="true" placeholder="Select organization" [formInputOptions]="organizationOptions$ | async">
+            </form-field>
+            <form-field class="g-col-12" [formControl]="formGroup.controls.IsActive" fieldLabel="Active?" [type]="FormFieldType.Radio" name="isActive" [formInputOptions]="[{ Label: 'Yes', Value: true, disabled: false }, { Label: 'No', Value: false, disabled: false }]"></form-field>
+        </form>
+    </div>
+    <div class="modal-footer">
+        <button class="btn btn-primary" (click)="save()">Save</button>
+        <button class="btn btn-secondary" (click)="cancel()">Cancel</button>
+    </div>
 </div>

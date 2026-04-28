@@ -50,7 +50,7 @@
             else
             {
                 Sitka.testGridName.showHideFilterRow(false);
-                Sitka.testGridName.setGridInstructions("<div style=\"padding:10px; font-weight:bold\">I am empty</div>", true);
+                Sitka.testGridName.setGridInstructions("<div id=\"gridEmptyText\" style=\"padding:10px; font-weight:bold\">I am empty</div>", true);
             }
         });
         

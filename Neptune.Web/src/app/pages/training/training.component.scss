@@ -1,0 +1,33 @@
+@use "/src/scss/abstracts" as *;
+
+.filter-bar {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    gap: $spacing-200;
+    margin-bottom: $spacing-400;
+
+    ng-select {
+        width: 200px;
+    }
+}
+
+.video-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: $spacing-400;
+}
+
+.video-card {
+    background: $gray-100;
+    border: 1px solid #ccc;
+    box-shadow: $shadow-300;
+    padding: $spacing-200;
+    border-radius: $spacing-100;
+}
+
+.video-header {
+    padding-bottom: $spacing-200;
+    margin-bottom: $spacing-200;
+    border-bottom: 1px solid #ccc;
+}

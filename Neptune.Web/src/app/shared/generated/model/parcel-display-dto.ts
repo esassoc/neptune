@@ -13,6 +13,7 @@ import { FormControl, FormControlOptions, FormControlState, Validators } from "@
 export class ParcelDisplayDto { 
     ParcelID?: number;
     ParcelNumber?: string | null;
+    ParcelAddress?: string | null;
     constructor(obj?: any) {
         Object.assign(this, obj);
     }
@@ -21,6 +22,7 @@ export class ParcelDisplayDto {
 export interface ParcelDisplayDtoForm { 
     ParcelID?: FormControl<number>;
     ParcelNumber?: FormControl<string>;
+    ParcelAddress?: FormControl<string>;
 }
 
 export class ParcelDisplayDtoFormControls { 
@@ -35,6 +37,16 @@ export class ParcelDisplayDtoFormControls {
         }
     );
     public static ParcelNumber = (value: FormControlState<string> | string = undefined, formControlOptions?: FormControlOptions | null) => new FormControl<string>(
+        value,
+        formControlOptions ?? 
+        {
+            nonNullable: false,
+            validators: 
+            [
+            ],
+        }
+    );
+    public static ParcelAddress = (value: FormControlState<string> | string = undefined, formControlOptions?: FormControlOptions | null) => new FormControl<string>(
         value,
         formControlOptions ?? 
         {

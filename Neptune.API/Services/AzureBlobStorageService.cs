@@ -1,5 +1,7 @@
-﻿using Azure.Storage.Blobs;
+﻿using System;
+using Azure.Storage.Blobs;
 using Azure.Storage.Blobs.Models;
+using Azure.Storage.Sas;
 using Microsoft.Extensions.Options;
 using Neptune.EFModels.Entities;
 using System.Collections.Generic;
@@ -744,6 +746,13 @@ public class AzureBlobStorageService
         var blobClient = _fileResourceContainerClient.GetBlobClient(canonicalName);
         var downloadResult = await blobClient.DownloadStreamingAsync();
         return downloadResult.Value;
+    }
+
+    public Uri GenerateBlobSasUrl(string canonicalName, TimeSpan expiry)
+    {
+        var blobClient = _fileResourceContainerClient.GetBlobClient(canonicalName);
+        var sasBuilder = new BlobSasBuilder(BlobSasPermissions.Read, DateTimeOffset.UtcNow.Add(expiry));
+        return blobClient.GenerateSasUri(sasBuilder);
     }
 
     private string GetFileResourceContentType(FileResource fileResource)

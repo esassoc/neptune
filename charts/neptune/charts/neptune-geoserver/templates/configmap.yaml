@@ -12,7 +12,6 @@ data:
   HTTP_PROXY_NAME: "{{ .Values.global.domains.geoserver }}"
   HTTP_SCHEME: "https"
   GEOSERVER_ADMIN_USER: "geomaster"
-  GEOSERVER_ADMIN_PASSWORD_FILE: "/app/secrets/geoserverAdminPassword"
   GEOSERVER_CONFIG_DIRECTORY: "/app/config"
   INITIAL_MEMORY: "4G"
   MAXIMUM_MEMORY: "8G"

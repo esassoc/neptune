@@ -1,7 +1,8 @@
 ---
 name: plan-story
 description: Fetch a Jira card by key (e.g. NPT-100) and produce a detailed implementation plan. Use this when starting work on a new story.
-allowed-tools: [mcp__atlassian__getAccessibleAtlassianResources, mcp__atlassian__getJiraIssue, Read, Glob, Grep, Task, EnterPlanMode]
+allowed-tools: [mcp__atlassian__getAccessibleAtlassianResources, mcp__atlassian__getJiraIssue, Read, Glob, Grep, Agent, AskUserQuestion, EnterPlanMode, ExitPlanMode]
+user-invocable: true
 ---
 
 Given a Jira issue key passed as an argument (e.g. `NPT-100`), fetch the story details and produce a full implementation plan.

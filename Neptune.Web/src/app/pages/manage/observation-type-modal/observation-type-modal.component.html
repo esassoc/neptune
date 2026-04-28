@@ -1,0 +1,61 @@
+<div class="modal">
+<div class="modal-header">
+    <h3>{{ isEdit ? "Edit" : "Add" }} Observation Type</h3>
+</div>
+<div class="modal-body">
+    <app-alert-display></app-alert-display>
+    @if (!isLoading()) {
+        <form [formGroup]="formGroup">
+            <div class="grid-12">
+                <form-field class="g-col-12" [formControl]="formGroup.controls.TreatmentBMPAssessmentObservationTypeName"
+                    fieldLabel="Name" [type]="FormFieldType.Text" [required]="true" placeholder="Observation Type Name">
+                </form-field>
+                <form-field class="g-col-12" [formControl]="formGroup.controls.ObservationTypeSpecificationID"
+                    fieldLabel="Specification" [type]="FormFieldType.Select" [required]="true"
+                    placeholder="Select Specification (Collection Method + Target + Threshold)" [formInputOptions]="specificationOptions">
+                </form-field>
+            </div>
+        </form>
+
+        @if (collectionMethod()) {
+            <h4 class="mt-3">
+                Schema Configuration
+                <button type="button" class="btn btn-sm btn-secondary-outline" style="margin-left: 1rem" (click)="showPreview.set(!showPreview())">
+                    {{ showPreview() ? "Hide Preview" : "Show Preview" }}
+                </button>
+            </h4>
+
+            @if (showPreview()) {
+                <div class="schema-preview-wrapper">
+                    <schema-preview
+                        [collectionMethod]="collectionMethod()"
+                        [passFailSchema]="passFailSchema()"
+                        [discreteSchema]="discreteSchema()"
+                        [percentageSchema]="percentageSchema()">
+                    </schema-preview>
+                </div>
+            } @else {
+                @switch (collectionMethod()) {
+                    @case ("PassFail") {
+                        <pass-fail-schema-builder [schema]="passFailSchema()" (schemaChange)="passFailSchema.set($event)"></pass-fail-schema-builder>
+                    }
+                    @case ("DiscreteValue") {
+                        <discrete-schema-builder [schema]="discreteSchema()" (schemaChange)="discreteSchema.set($event)"></discrete-schema-builder>
+                    }
+                    @case ("Percentage") {
+                        <percentage-schema-builder [schema]="percentageSchema()" (schemaChange)="percentageSchema.set($event)"></percentage-schema-builder>
+                    }
+                }
+            }
+        } @else if (formGroup.controls.ObservationTypeSpecificationID.value) {
+            <p class="system-text mt-3">This specification type is not yet supported by the schema builder. Contact an administrator.</p>
+        }
+    } @else {
+        <p>Loading...</p>
+    }
+</div>
+<div class="modal-footer">
+    <button class="btn btn-primary" (click)="save()" [disabled]="formGroup.invalid">Save</button>
+    <button class="btn btn-secondary-outline" (click)="cancel()">Cancel</button>
+</div>
+</div>

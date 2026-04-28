@@ -55,6 +55,9 @@ public partial class Person
     [Unicode(false)]
     public string? GlobalID { get; set; }
 
+    [InverseProperty("Person")]
+    public virtual ICollection<AITokenUsage> AITokenUsages { get; set; } = new List<AITokenUsage>();
+
     [InverseProperty("UploadedByPerson")]
     public virtual ICollection<DelineationStaging> DelineationStagings { get; set; } = new List<DelineationStaging>();
 
@@ -118,6 +121,12 @@ public partial class Person
 
     [InverseProperty("InventoryVerifiedByPerson")]
     public virtual ICollection<TreatmentBMP> TreatmentBMPs { get; set; } = new List<TreatmentBMP>();
+
+    [InverseProperty("ApprovedByPerson")]
+    public virtual ICollection<WaterQualityManagementPlanExtractionResult> WaterQualityManagementPlanExtractionResultApprovedByPeople { get; set; } = new List<WaterQualityManagementPlanExtractionResult>();
+
+    [InverseProperty("DraftUpdatedByPerson")]
+    public virtual ICollection<WaterQualityManagementPlanExtractionResult> WaterQualityManagementPlanExtractionResultDraftUpdatedByPeople { get; set; } = new List<WaterQualityManagementPlanExtractionResult>();
 
     [InverseProperty("LastEditedByPerson")]
     public virtual ICollection<WaterQualityManagementPlanVerify> WaterQualityManagementPlanVerifies { get; set; } = new List<WaterQualityManagementPlanVerify>();

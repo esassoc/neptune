@@ -110,3 +110,8 @@ Source/Neptune.GeoServer/data_dir/logs/
 .vs/Neptune/copilot-chat
 .vs/Neptune/v18/
 /Neptune.Common/bin/Debug/net10.0
+
+# Claude Code per-developer state
+/.claude/settings.local.json
+/.claude/.claude_backup/
+/.claude/plans/

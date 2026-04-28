@@ -987,4 +987,34 @@ public static class TreatmentBMPs
         var updatedTreatmentBMPDto = await GetByIDAsDtoAsync(dbContext, treatmentBMPID);
         return updatedTreatmentBMPDto;
     }
+
+    public static async Task UpdateWaterQualityManagementPlanAssociationsAsync(
+        NeptuneDbContext dbContext, int waterQualityManagementPlanID, List<int> treatmentBMPIDs)
+    {
+        var existingTreatmentBMPs = ListByWaterQualityManagementPlanIDWithChangeTracking(dbContext, waterQualityManagementPlanID);
+        existingTreatmentBMPs.ForEach(x => { x.WaterQualityManagementPlanID = null; });
+
+        dbContext.TreatmentBMPs.Where(x => treatmentBMPIDs.Contains(x.TreatmentBMPID))
+            .ToList()
+            .ForEach(x => { x.WaterQualityManagementPlanID = waterQualityManagementPlanID; });
+
+        await dbContext.SaveChangesAsync();
+    }
+
+    public static async Task<List<TreatmentBMPMinimalDto>> ListAvailableForWaterQualityManagementPlanAsync(
+        NeptuneDbContext dbContext, int stormwaterJurisdictionID, int waterQualityManagementPlanID)
+    {
+        return await dbContext.TreatmentBMPs
+            .AsNoTracking()
+            .Where(x => x.StormwaterJurisdictionID == stormwaterJurisdictionID &&
+                        (x.WaterQualityManagementPlanID == null || x.WaterQualityManagementPlanID == waterQualityManagementPlanID))
+            .Select(x => new TreatmentBMPMinimalDto
+            {
+                TreatmentBMPID = x.TreatmentBMPID,
+                TreatmentBMPName = x.TreatmentBMPName,
+                TreatmentBMPTypeName = x.TreatmentBMPType.TreatmentBMPTypeName
+            })
+            .OrderBy(x => x.TreatmentBMPName)
+            .ToListAsync();
+    }
 }

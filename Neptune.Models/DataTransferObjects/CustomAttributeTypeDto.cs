@@ -16,6 +16,7 @@ public class CustomAttributeTypeDto
     public string Purpose { get; set; }
     public int? CustomAttributeTypeSortOrder { get; set; }
     public string CustomAttributeTypeDefaultValue { get; set; }
+    public List<string> TreatmentBMPTypeNames { get; set; }
 }
 
 public class CustomAttributeTypeWithTreatmentBMPTypeIDsDto : CustomAttributeTypeDto

@@ -13,7 +13,12 @@ import { FormControl, FormControlOptions, FormControlState, Validators } from "@
 export class TreatmentBMPMinimalDto { 
     TreatmentBMPID?: number;
     TreatmentBMPName?: string | null;
+    TreatmentBMPTypeName?: string | null;
+    Notes?: string | null;
+    DelineationStatus?: string | null;
     Area?: number | null;
+    Latitude?: number | null;
+    Longitude?: number | null;
     constructor(obj?: any) {
         Object.assign(this, obj);
     }
@@ -22,7 +27,12 @@ export class TreatmentBMPMinimalDto {
 export interface TreatmentBMPMinimalDtoForm { 
     TreatmentBMPID?: FormControl<number>;
     TreatmentBMPName?: FormControl<string>;
+    TreatmentBMPTypeName?: FormControl<string>;
+    Notes?: FormControl<string>;
+    DelineationStatus?: FormControl<string>;
     Area?: FormControl<number>;
+    Latitude?: FormControl<number>;
+    Longitude?: FormControl<number>;
 }
 
 export class TreatmentBMPMinimalDtoFormControls { 
@@ -46,7 +56,57 @@ export class TreatmentBMPMinimalDtoFormControls {
             ],
         }
     );
+    public static TreatmentBMPTypeName = (value: FormControlState<string> | string = undefined, formControlOptions?: FormControlOptions | null) => new FormControl<string>(
+        value,
+        formControlOptions ?? 
+        {
+            nonNullable: false,
+            validators: 
+            [
+            ],
+        }
+    );
+    public static Notes = (value: FormControlState<string> | string = undefined, formControlOptions?: FormControlOptions | null) => new FormControl<string>(
+        value,
+        formControlOptions ?? 
+        {
+            nonNullable: false,
+            validators: 
+            [
+            ],
+        }
+    );
+    public static DelineationStatus = (value: FormControlState<string> | string = undefined, formControlOptions?: FormControlOptions | null) => new FormControl<string>(
+        value,
+        formControlOptions ?? 
+        {
+            nonNullable: false,
+            validators: 
+            [
+            ],
+        }
+    );
     public static Area = (value: FormControlState<number> | number = undefined, formControlOptions?: FormControlOptions | null) => new FormControl<number>(
+        value,
+        formControlOptions ?? 
+        {
+            nonNullable: false,
+            validators: 
+            [
+            ],
+        }
+    );
+    public static Latitude = (value: FormControlState<number> | number = undefined, formControlOptions?: FormControlOptions | null) => new FormControl<number>(
+        value,
+        formControlOptions ?? 
+        {
+            nonNullable: false,
+            validators: 
+            [
+            ],
+        }
+    );
+    public static Longitude = (value: FormControlState<number> | number = undefined, formControlOptions?: FormControlOptions | null) => new FormControl<number>(
         value,
         formControlOptions ?? 
         {

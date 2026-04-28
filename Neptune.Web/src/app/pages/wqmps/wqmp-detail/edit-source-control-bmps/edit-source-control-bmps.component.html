@@ -1,0 +1,76 @@
+<page-header pageTitle="Source Control BMPs" [templateAbove]="templateAbove">
+    <ng-template #templateAbove>
+        <div class="back">
+            <a [routerLink]="['/water-quality-management-plans', waterQualityManagementPlanID]" class="back__link">Back to WQMP Detail</a>
+        </div>
+    </ng-template>
+</page-header>
+
+<app-alert-display></app-alert-display>
+
+@if (validationErrors.length) {
+    <div class="alert alert-danger">
+        <ul class="mb-0">
+            @for (error of validationErrors; track error) {
+                <li>{{ error }}</li>
+            }
+        </ul>
+    </div>
+}
+
+@if (loaded$ | async) {
+    <p class="mb-3">Optionally identify which BMPs are present on the project.</p>
+
+    @for (group of groupedAttributes; track group.category) {
+        <div class="source-control-category-panel">
+            <div class="panel-heading" (click)="toggleCategory(group)">
+                <h5>
+                    {{ group.category }}
+                    <i class="fa" [class.fa-chevron-down]="!group.collapsed" [class.fa-chevron-right]="group.collapsed"></i>
+                </h5>
+            </div>
+            @if (!group.collapsed) {
+                <div class="panel-body">
+                    <table class="table table-condensed source-control-edit-table">
+                        <thead>
+                            <tr>
+                                <th class="col-attribute">Source Control Attribute</th>
+                                <th class="col-present">Present?</th>
+                                <th class="col-notes">Note</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @for (row of group.rows; track row.get('SourceControlBMPAttributeID').value) {
+                                <tr [formGroup]="row">
+                                    <td class="col-attribute">
+                                        <label>{{ row.get("SourceControlBMPAttributeName").value }}</label>
+                                    </td>
+                                    <td class="col-present">
+                                        <form-field
+                                            [formControl]="$any(row.controls['IsPresent'])"
+                                            [type]="FormFieldType.Radio"
+                                            [name]="'isPresent_' + row.get('SourceControlBMPAttributeID').value"
+                                            [formInputOptions]="isPresentOptions"></form-field>
+                                    </td>
+                                    <td class="col-notes">
+                                        <form-field
+                                            [formControl]="$any(row.controls['SourceControlBMPNote'])"
+                                            [type]="FormFieldType.Text"
+                                            placeholder=""></form-field>
+                                    </td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            }
+        </div>
+    }
+
+    <div class="actions-row mt-4">
+        <button class="btn btn-primary" (click)="save()">Save</button>
+        <button class="btn btn-primary-outline" (click)="cancel()">Cancel</button>
+    </div>
+} @else {
+    <p>Loading...</p>
+}

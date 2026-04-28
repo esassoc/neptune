@@ -11,12 +11,21 @@
     [selectedValue]="selectedLoadGeneratingUnitID"
     [selectionFromMap]="true"
     (selectedValueChange)="onSelectedLoadGeneratingUnitIDChanged($event)">
-    <load-generating-units-layer
-        [map]="map"
-        [layerControl]="layerControl"
-        [mode]="OverlayMode.ReferenceWithInteractivity"
-        [selectedID]="selectedLoadGeneratingUnitID"
-        (selected)="onSelectedLoadGeneratingUnitIDChanged($event, true)">
-    </load-generating-units-layer>
+    <div mapLayers>
+        @if (mapIsReady) {
+            <load-generating-units-layer
+                [map]="map"
+                [layerControl]="layerControl"
+                [mode]="OverlayMode.ReferenceWithInteractivity"
+                [selectedID]="selectedLoadGeneratingUnitID"
+                (selected)="onSelectedLoadGeneratingUnitIDChanged($event, true)">
+            </load-generating-units-layer>
+            <regional-subbasins-layer [mode]="OverlayMode.ReferenceOnly" [map]="map" [layerControl]="layerControl" [displayOnLoad]="false" [sortOrder]="10"></regional-subbasins-layer>
+            <jurisdictions-layer [mode]="OverlayMode.ReferenceOnly" [map]="map" [layerControl]="layerControl" [displayOnLoad]="false" [sortOrder]="30"></jurisdictions-layer>
+            <wqmps-layer [displayOnLoad]="false" [map]="map" [layerControl]="layerControl" [sortOrder]="40"></wqmps-layer>
+            <delineations-layer delineationStatus="Verified" [displayOnLoad]="false" [map]="map" [layerControl]="layerControl" [sortOrder]="50"></delineations-layer>
+            <delineations-layer delineationStatus="Provisional" [displayOnLoad]="false" [map]="map" [layerControl]="layerControl" [sortOrder]="51"></delineations-layer>
+        }
+    </div>
 </hybrid-map-grid>
 }

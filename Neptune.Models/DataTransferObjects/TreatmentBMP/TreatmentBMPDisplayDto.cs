@@ -22,5 +22,10 @@ public class TreatmentBMPMinimalDto
 {
     public int TreatmentBMPID { get; set; }
     public string TreatmentBMPName { get; set; }
+    public string TreatmentBMPTypeName { get; set; }
+    public string Notes { get; set; }
+    public string DelineationStatus { get; set; }
     public double? Area { get; set; }
+    public double? Latitude { get; set; }
+    public double? Longitude { get; set; }
 }

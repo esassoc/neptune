@@ -1,0 +1,83 @@
+@use "/src/scss/abstracts" as *;
+
+.search-wrapper {
+    position: relative;
+}
+
+.search-results {
+    position: absolute;
+    z-index: 9999;
+    width: 100%;
+    background: white;
+    border: 1px solid $gray-200;
+    border-radius: $border-radius-200;
+    box-shadow: $shadow-100;
+    max-height: 300px;
+    overflow-y: auto;
+
+    &__item {
+        display: flex;
+        flex-direction: column;
+        width: 100%;
+        padding: 0.5rem 0.75rem;
+        border: none;
+        background: none;
+        text-align: left;
+        cursor: pointer;
+
+        &:hover {
+            background-color: $gray-100;
+        }
+
+        & + & {
+            border-top: 1px solid $gray-100;
+        }
+    }
+
+    &__apn {
+        font-weight: 600;
+    }
+
+    &__address {
+        font-size: $type-size-200;
+        color: $gray-400;
+    }
+}
+
+.parcel-list {
+    max-height: 500px;
+    overflow-y: auto;
+
+    &__item {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        padding: 0.4rem 0.75rem;
+
+        & + & {
+            border-top: 1px solid $gray-100;
+        }
+    }
+
+    &__remove {
+        border: none;
+        background: none;
+        color: $gray-400;
+        cursor: pointer;
+        padding: 0;
+
+        &:hover {
+            color: $danger;
+        }
+    }
+
+    &__apn {
+        font-weight: 600;
+        font-size: $type-size-200;
+    }
+
+    &__address {
+        font-size: $type-size-200;
+        color: $gray-400;
+    }
+}

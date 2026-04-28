@@ -11,6 +11,8 @@ public partial class NeptuneDbContext : DbContext
     {
     }
 
+    public virtual DbSet<AITokenUsage> AITokenUsages { get; set; }
+
     public virtual DbSet<County> Counties { get; set; }
 
     public virtual DbSet<CustomAttribute> CustomAttributes { get; set; }
@@ -183,7 +185,7 @@ public partial class NeptuneDbContext : DbContext
 
     public virtual DbSet<WaterQualityManagementPlanDocument> WaterQualityManagementPlanDocuments { get; set; }
 
-    public virtual DbSet<WaterQualityManagementPlanDocumentVectorStore> WaterQualityManagementPlanDocumentVectorStores { get; set; }
+    public virtual DbSet<WaterQualityManagementPlanExtractionResult> WaterQualityManagementPlanExtractionResults { get; set; }
 
     public virtual DbSet<WaterQualityManagementPlanParcel> WaterQualityManagementPlanParcels { get; set; }
 
@@ -317,6 +319,13 @@ public partial class NeptuneDbContext : DbContext
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
+        modelBuilder.Entity<AITokenUsage>(entity =>
+        {
+            entity.HasKey(e => e.AITokenUsageID).HasName("PK_AITokenUsage_AITokenUsageID");
+
+            entity.HasOne(d => d.Person).WithMany(p => p.AITokenUsages).OnDelete(DeleteBehavior.ClientSetNull);
+        });
+
         modelBuilder.Entity<County>(entity =>
         {
             entity.HasKey(e => e.CountyID).HasName("PK_County_CountyID");
@@ -1037,9 +1046,17 @@ public partial class NeptuneDbContext : DbContext
             entity.HasOne(d => d.WaterQualityManagementPlan).WithMany(p => p.WaterQualityManagementPlanDocuments).OnDelete(DeleteBehavior.ClientSetNull);
         });
 
-        modelBuilder.Entity<WaterQualityManagementPlanDocumentVectorStore>(entity =>
+        modelBuilder.Entity<WaterQualityManagementPlanExtractionResult>(entity =>
         {
-            entity.HasOne(d => d.WaterQualityManagementPlanDocument).WithOne(p => p.WaterQualityManagementPlanDocumentVectorStore).OnDelete(DeleteBehavior.ClientSetNull);
+            entity.HasKey(e => e.WaterQualityManagementPlanExtractionResultID).HasName("PK_WaterQualityManagementPlanExtractionResult_WaterQualityManagementPlanExtractionResultID");
+
+            entity.HasOne(d => d.ApprovedByPerson).WithMany(p => p.WaterQualityManagementPlanExtractionResultApprovedByPeople).HasConstraintName("FK_WaterQualityManagementPlanExtractionResult_Person_ApprovedByPersonID_PersonID");
+
+            entity.HasOne(d => d.DraftUpdatedByPerson).WithMany(p => p.WaterQualityManagementPlanExtractionResultDraftUpdatedByPeople).HasConstraintName("FK_WaterQualityManagementPlanExtractionResult_Person_DraftUpdatedByPersonID_PersonID");
+
+            entity.HasOne(d => d.WaterQualityManagementPlanDocument).WithMany(p => p.WaterQualityManagementPlanExtractionResults).OnDelete(DeleteBehavior.ClientSetNull);
+
+            entity.HasOne(d => d.WaterQualityManagementPlan).WithOne(p => p.WaterQualityManagementPlanExtractionResult).OnDelete(DeleteBehavior.ClientSetNull);
         });
 
         modelBuilder.Entity<WaterQualityManagementPlanParcel>(entity =>

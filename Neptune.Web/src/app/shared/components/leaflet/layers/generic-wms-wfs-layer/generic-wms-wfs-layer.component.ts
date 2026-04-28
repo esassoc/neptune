@@ -25,13 +25,14 @@ export class GenericWmsWfsLayerComponent extends MapLayerBase implements OnChang
     @Input() identifierProperty: string;
     @Input() overlayLabel: string;
     @Input() selectedStyle: L.PathOptions = {
-        color: "#fcfc12",
+        color: "#ff6ba9",
         weight: 2,
         opacity: 0.65,
         fillOpacity: 0.1,
     };
     @Input() cqlFilter: string = "1=1";
     @Input() addToLayerControl: boolean = true;
+    @Input() fitBoundsOnSelect: boolean = true;
     @Output() selected = new EventEmitter<number>();
     public wfsLayer: L.FeatureGroup;
     public layer: L.Layer;
@@ -91,6 +92,14 @@ export class GenericWmsWfsLayerComponent extends MapLayerBase implements OnChang
 
     ngOnChanges(changes: any): void {
         this.createWmsLayerIfNeeded();
+        // If the layer was already created on an earlier change cycle with a stale cqlFilter
+        // (e.g. "1=1" before the caller's async filter resolved), push the new cql_filter into
+        // the existing WMS layer. Without this, callers like <wqmps-layer> that dynamically
+        // supply [filterToJurisdictionIDs] would be stuck with the initial filter forever,
+        // because createWmsLayerIfNeeded short-circuits when this.layer is already set.
+        if (this.layer && changes?.cqlFilter && !changes.cqlFilter.firstChange) {
+            (this.layer as L.TileLayer.WMS).setParams({ cql_filter: this.cqlFilter } as any);
+        }
         // Only add to map if displayOnLoad is true and WMS layer exists
         if (this.layer && this.map && this.displayOnLoad && !this.map.hasLayer(this.layer)) {
             this.layer.addTo(this.map);
@@ -128,9 +137,16 @@ export class GenericWmsWfsLayerComponent extends MapLayerBase implements OnChang
                     this.selected.emit(Number(groupId));
                 });
                 geoJson.addTo(this.wfsLayer);
-                // Zoom to bounds
-                if ("getBounds" in geoJson && typeof geoJson.getBounds === "function" && this.map) {
-                    this.map.fitBounds(geoJson.getBounds());
+                // Zoom to bounds (only if fitBoundsOnSelect is enabled)
+                if (this.fitBoundsOnSelect && "getBounds" in geoJson && typeof geoJson.getBounds === "function" && this.map) {
+                    try {
+                        const bounds = geoJson.getBounds();
+                        if (bounds.isValid()) {
+                            this.map.fitBounds(bounds);
+                        }
+                    } catch (e) {
+                        // Bounds may be invalid if geometry is null or empty
+                    }
                 }
             });
             if (this.map) {

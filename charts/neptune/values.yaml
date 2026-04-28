@@ -25,9 +25,8 @@ global:
     hangfirePassword: "passwordhere"
     recaptchaV3SiteKey: "recaptchaV3SiteKeyHere"
     recaptchaV3SecretKey: "recaptchaV3SecretKeyHere"
-    openAIApiKey: "openAIApiKeyHere"
-    openAIOrganizationID: "openAIOrganizationID"
-    openAIProjectID: "openAIProjectID"
+    anthropicApiKey: "anthropicApiKeyHere"
+    claudeModelId: "claude-sonnet-4-6"
 
 api:
   replicaCount: 1
@@ -149,11 +148,11 @@ webmvc:
   nameOverride: ""
   fullnameOverride: ""
   namespace: h2o
-  resources: 
+  resources:
     requests:
-      memory: "8G"
+      memory: "4G"
     limits:
-      memory: "12G"
+      memory: "8G"
   serviceAccount:
     # Specifies whether a service account should be created
     create: true
@@ -192,7 +191,7 @@ webmvc:
     maxReplicas: 100
     targetCPUUtilizationPercentage: 80
     # targetMemoryUtilizationPercentage: 80
-  nodeSelector: 
+  nodeSelector:
     agentpool: appnodepool
   tolerations: []
   affinity: {}

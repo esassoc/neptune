@@ -30,7 +30,7 @@
     }">
   <div class="tab-nav-container__panel" [class.hidden]="selectedPanel === 'Map'">
     <neptune-grid
-      height="675px"
+      [height]="gridHeight"
       [rowData]="rowData"
       [columnDefs]="columnDefs"
       [overrideDefaultGridHeader]="true"
@@ -42,8 +42,8 @@
     [colIDsToExclude]=""></neptune-grid>
   </div>
 
-  <div class="tab-nav-container__panel" [class.hidden]="selectedPanel === 'Grid'">
-    <neptune-map class="location-card" [mapHeight]="mapHeight" (onMapLoad)="handleMapReady($event)" [boundingBox]="boundingBox">
+  <div class="tab-nav-container__panel tab-nav-container__map-panel" [class.hidden]="selectedPanel === 'Grid'">
+    <neptune-map class="location-card" mapHeight="auto" (onMapLoad)="handleMapReady($event)" [boundingBox]="boundingBox">
       @if (mapIsReady) {
         <ng-content select="[mapLayers]"></ng-content>
       }

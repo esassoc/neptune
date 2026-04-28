@@ -13,6 +13,7 @@ namespace Neptune.EFModels.Entities
     {
         public static readonly WaterQualityManagementPlanStatusActive Active = WaterQualityManagementPlanStatusActive.Instance;
         public static readonly WaterQualityManagementPlanStatusInactive Inactive = WaterQualityManagementPlanStatusInactive.Instance;
+        public static readonly WaterQualityManagementPlanStatusDraft Draft = WaterQualityManagementPlanStatusDraft.Instance;
 
         public static readonly List<WaterQualityManagementPlanStatus> All;
         public static readonly ReadOnlyDictionary<int, WaterQualityManagementPlanStatus> AllLookupDictionary;
@@ -22,7 +23,7 @@ namespace Neptune.EFModels.Entities
         /// </summary>
         static WaterQualityManagementPlanStatus()
         {
-            All = new List<WaterQualityManagementPlanStatus> { Active, Inactive };
+            All = new List<WaterQualityManagementPlanStatus> { Active, Inactive, Draft };
             AllLookupDictionary = new ReadOnlyDictionary<int, WaterQualityManagementPlanStatus>(All.ToDictionary(x => x.WaterQualityManagementPlanStatusID));
         }
 
@@ -94,6 +95,8 @@ namespace Neptune.EFModels.Entities
             {
                 case WaterQualityManagementPlanStatusEnum.Active:
                     return Active;
+                case WaterQualityManagementPlanStatusEnum.Draft:
+                    return Draft;
                 case WaterQualityManagementPlanStatusEnum.Inactive:
                     return Inactive;
                 default:
@@ -105,7 +108,8 @@ namespace Neptune.EFModels.Entities
     public enum WaterQualityManagementPlanStatusEnum
     {
         Active = 1,
-        Inactive = 2
+        Inactive = 2,
+        Draft = 3
     }
 
     public partial class WaterQualityManagementPlanStatusActive : WaterQualityManagementPlanStatus
@@ -118,5 +122,11 @@ namespace Neptune.EFModels.Entities
     {
         private WaterQualityManagementPlanStatusInactive(int waterQualityManagementPlanStatusID, string waterQualityManagementPlanStatusName, string waterQualityManagementPlanStatusDisplayName) : base(waterQualityManagementPlanStatusID, waterQualityManagementPlanStatusName, waterQualityManagementPlanStatusDisplayName) {}
         public static readonly WaterQualityManagementPlanStatusInactive Instance = new WaterQualityManagementPlanStatusInactive(2, @"Inactive", @"Inactive");
+    }
+
+    public partial class WaterQualityManagementPlanStatusDraft : WaterQualityManagementPlanStatus
+    {
+        private WaterQualityManagementPlanStatusDraft(int waterQualityManagementPlanStatusID, string waterQualityManagementPlanStatusName, string waterQualityManagementPlanStatusDisplayName) : base(waterQualityManagementPlanStatusID, waterQualityManagementPlanStatusName, waterQualityManagementPlanStatusDisplayName) {}
+        public static readonly WaterQualityManagementPlanStatusDraft Instance = new WaterQualityManagementPlanStatusDraft(3, @"Draft", @"Draft");
     }
 }

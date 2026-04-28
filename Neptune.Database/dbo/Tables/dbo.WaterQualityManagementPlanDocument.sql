@@ -6,5 +6,7 @@ CREATE TABLE [dbo].[WaterQualityManagementPlanDocument](
 	[Description] [varchar](1000) NULL,
 	[UploadDate] [datetime] NOT NULL,
 	[WaterQualityManagementPlanDocumentTypeID] [int] NOT NULL CONSTRAINT [FK_WaterQualityManagementPlanDocument_WaterQualityManagementPlanDocumentType_WaterQualityManagementPlanDocumentTypeID] FOREIGN KEY REFERENCES [dbo].[WaterQualityManagementPlanDocumentType] ([WaterQualityManagementPlanDocumentTypeID]),
+	[AnthropicFileID] [nvarchar](64) NULL,
+	[AnthropicFileUploadedDate] [datetime] NULL,
 	CONSTRAINT [AK_WaterQualityManagementPlanDocument_DisplayName_WaterQualityManagementPlanID] UNIQUE ([DisplayName], [WaterQualityManagementPlanID])
 )

@@ -112,8 +112,9 @@ stages:
         SecretsFilter: '*'
         RunAsPreJob: true
 
-    - template: azure-pipelines/templates/docker/docker-template.yml@BuildTemplates 
+    - template: azure-pipelines/templates/docker/docker-template.yml@BuildTemplates
       parameters:
+        projectName: 'neptune'
         displayName: 'API'
         subscription: '$(azureSubscription)'
         containerRegistry: '$(kv-containerRegistry)'
@@ -122,6 +123,10 @@ stages:
         additionalImageTags: |
           $(Build.BuildNumber)-$(environment)
         includeLatestTag: true
+        imageNames:
+          - neptune/webmvc
+          - neptune/api
+          - neptune/gdalapi
 
 
   - job: BuildWeb
@@ -140,8 +145,9 @@ stages:
         SecretsFilter: '*'
         RunAsPreJob: true
 
-    - template: azure-pipelines/templates/docker/docker-template.yml@BuildTemplates 
+    - template: azure-pipelines/templates/docker/docker-template.yml@BuildTemplates
       parameters:
+        projectName: 'neptune'
         displayName: 'Web'
         subscription: '$(azureSubscription)'
         containerRegistry: '$(kv-containerRegistry)'
@@ -150,6 +156,8 @@ stages:
         additionalImageTags: |
           $(Build.BuildNumber)-$(environment)
         includeLatestTag: true
+        imageNames:
+          - neptune/web
 
   - job: BuildQGIS
     displayName: Build QGISApi
@@ -167,8 +175,9 @@ stages:
         SecretsFilter: '*'
         RunAsPreJob: true
 
-    - template: azure-pipelines/templates/docker/docker-template.yml@BuildTemplates 
+    - template: azure-pipelines/templates/docker/docker-template.yml@BuildTemplates
       parameters:
+        projectName: 'neptune'
         displayName: 'QGISApi'
         subscription: '$(azureSubscription)'
         containerRegistry: '$(kv-containerRegistry)'
@@ -177,6 +186,8 @@ stages:
         additionalImageTags: |
           $(Build.BuildNumber)-$(environment)
         includeLatestTag: true
+        imageNames:
+          - neptune/qgisapi
 
 - stage: BuildNereid
   displayName: Build Nereid
@@ -676,9 +687,7 @@ stages:
                 global.secrets.recaptchaV3SecretKey="$(recaptchaV3SecretKey)"
                 global.secrets.apiSqlPassword=$(SQL_API_PASSWORD)
                 global.secrets.sendGridApiKey="$(kv-sendGridApiKey)"
-                global.secrets.openAIApiKey="$(openAIApiKey)"
-                global.secrets.openAIOrganizationID="$(openAIOrganizationID)"
-                global.secrets.openAIProjectID="$(openAIProjectID)"
+                global.secrets.anthropicApiKey="$(anthropicApiKey)"
                 api.image.tag="$(Build.BuildNumber)-$(environment)"
                 api.image.repository="$(kv-containerRegistry)/neptune/api"
                 web.image.tag="$(Build.BuildNumber)-$(environment)"

@@ -1,0 +1,41 @@
+<div class="modal-header">
+    <h4 class="modal-title">Upload WQMP PDF</h4>
+</div>
+<div class="modal-body">
+    <app-alert-display></app-alert-display>
+
+    <p class="copy copy-2 mb-3">
+        Upload a WQMP PDF to create a Draft WQMP. You'll be able to run AI extraction against the PDF from the review page.
+    </p>
+
+    <div class="mb-3">
+        <strong>File:</strong> {{ file.name }}
+    </div>
+
+    <form-field
+        fieldLabel="WQMP Name"
+        [type]="FormFieldType.Text"
+        [formControl]="wqmpNameControl"
+        placeholder="Enter a name for this WQMP">
+    </form-field>
+
+    @if (jurisdictionOptions$ | async; as opts) {
+        <form-field
+            fieldLabel="Jurisdiction"
+            [type]="FormFieldType.Select"
+            [formControl]="jurisdictionControl"
+            [formInputOptions]="opts"
+            placeholder="Select a jurisdiction">
+        </form-field>
+    }
+
+    @if (isUploading()) {
+        <div class="mt-3 copy copy-2">
+            <i class="fa fa-spinner fa-spin"></i> Uploading...
+        </div>
+    }
+</div>
+<div class="modal-footer">
+    <button class="btn btn-primary" (click)="upload()" [disabled]="jurisdictionControl.invalid || wqmpNameControl.invalid || isUploading()">Upload</button>
+    <button class="btn btn-secondary-outline" (click)="cancel()" [disabled]="isUploading()">Cancel</button>
+</div>

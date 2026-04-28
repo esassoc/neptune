@@ -1,5 +1,6 @@
 ﻿using System.Collections.Generic;
 using System.Threading.Tasks;
+using Hangfire;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
@@ -7,6 +8,7 @@ using Neptune.API.Services;
 using Neptune.API.Services.Attributes;
 using Neptune.API.Services.Authorization;
 using Neptune.EFModels.Entities;
+using Neptune.Jobs.Hangfire;
 using Neptune.Models.DataTransferObjects;
 using NetTopologySuite.Features;
 
@@ -60,8 +62,16 @@ public class RegionalSubbasinController : SitkaController<RegionalSubbasinContro
         return Ok(dtos);
     }
 
+    [HttpPost("enqueue-refresh")]
+    [SitkaAdminFeature]
+    public IActionResult EnqueueRefresh()
+    {
+        BackgroundJob.Enqueue<RegionalSubbasinRefreshJob>(x => x.RunJob());
+        return Ok("Regional Subbasin refresh has been queued.");
+    }
+
     [HttpPost("/graph-trace-as-feature-collection-from-point")]
-    [AdminFeature]
+    [UserViewFeature]
     public ActionResult<FeatureCollection> GetRegionalSubbasinGraphTraceAsFeatureCollectionFromPoint([FromBody] CoordinateDto coordinateDto)
     {
         var featureCollection = RegionalSubbasins.GetRegionalSubbasinGraphTraceAsFeatureCollection(DbContext, coordinateDto);

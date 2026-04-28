@@ -26,8 +26,8 @@ namespace Neptune.API.Services
             var fileResource = new FileResource()
             {
                 FileResourceMimeTypeID = fileResourceMimeType.FileResourceMimeTypeID,
-                OriginalBaseFilename = inputFile.FileName,
-                OriginalFileExtension = inputFile.FileName.Split('.').Last(),
+                OriginalBaseFilename = Path.GetFileNameWithoutExtension(inputFile.FileName),
+                OriginalFileExtension = Path.GetExtension(inputFile.FileName).TrimStart('.'),
                 FileResourceGUID = Guid.NewGuid(),
                 CreatePersonID = person.PersonID,
                 CreateDate = DateTime.UtcNow,

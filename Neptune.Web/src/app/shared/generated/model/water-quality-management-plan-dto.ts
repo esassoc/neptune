@@ -50,6 +50,11 @@ export class WaterQualityManagementPlanDto {
     LastNereidLogID?: number | null;
     WaterQualityManagementPlanBoundaryNotes?: string | null;
     WaterQualityManagementPlanBoundaryBBox?: string | null;
+    CalculatedWQMPAcreage?: number | null;
+    AllDetailedBMPsNotFullyParameterized?: boolean;
+    AnyDetailedBMPsNotFullyParameterized?: boolean;
+    AllSimpleBMPsNotFullyParameterized?: boolean;
+    AnySimpleBMPsNotFullyParameterized?: boolean;
     Parcels?: Array<ParcelDisplayDto> | null;
     TreatmentBMPs?: Array<TreatmentBMPMinimalDto> | null;
     constructor(obj?: any) {
@@ -95,6 +100,11 @@ export interface WaterQualityManagementPlanDtoForm {
     LastNereidLogID?: FormControl<number>;
     WaterQualityManagementPlanBoundaryNotes?: FormControl<string>;
     WaterQualityManagementPlanBoundaryBBox?: FormControl<string>;
+    CalculatedWQMPAcreage?: FormControl<number>;
+    AllDetailedBMPsNotFullyParameterized?: FormControl<boolean>;
+    AnyDetailedBMPsNotFullyParameterized?: FormControl<boolean>;
+    AllSimpleBMPsNotFullyParameterized?: FormControl<boolean>;
+    AnySimpleBMPsNotFullyParameterized?: FormControl<boolean>;
     Parcels?: FormControl<Array<ParcelDisplayDto>>;
     TreatmentBMPs?: FormControl<Array<TreatmentBMPMinimalDto>>;
 }
@@ -461,6 +471,56 @@ export class WaterQualityManagementPlanDtoFormControls {
         }
     );
     public static WaterQualityManagementPlanBoundaryBBox = (value: FormControlState<string> | string = undefined, formControlOptions?: FormControlOptions | null) => new FormControl<string>(
+        value,
+        formControlOptions ?? 
+        {
+            nonNullable: false,
+            validators: 
+            [
+            ],
+        }
+    );
+    public static CalculatedWQMPAcreage = (value: FormControlState<number> | number = undefined, formControlOptions?: FormControlOptions | null) => new FormControl<number>(
+        value,
+        formControlOptions ?? 
+        {
+            nonNullable: false,
+            validators: 
+            [
+            ],
+        }
+    );
+    public static AllDetailedBMPsNotFullyParameterized = (value: FormControlState<boolean> | boolean = undefined, formControlOptions?: FormControlOptions | null) => new FormControl<boolean>(
+        value,
+        formControlOptions ?? 
+        {
+            nonNullable: false,
+            validators: 
+            [
+            ],
+        }
+    );
+    public static AnyDetailedBMPsNotFullyParameterized = (value: FormControlState<boolean> | boolean = undefined, formControlOptions?: FormControlOptions | null) => new FormControl<boolean>(
+        value,
+        formControlOptions ?? 
+        {
+            nonNullable: false,
+            validators: 
+            [
+            ],
+        }
+    );
+    public static AllSimpleBMPsNotFullyParameterized = (value: FormControlState<boolean> | boolean = undefined, formControlOptions?: FormControlOptions | null) => new FormControl<boolean>(
+        value,
+        formControlOptions ?? 
+        {
+            nonNullable: false,
+            validators: 
+            [
+            ],
+        }
+    );
+    public static AnySimpleBMPsNotFullyParameterized = (value: FormControlState<boolean> | boolean = undefined, formControlOptions?: FormControlOptions | null) => new FormControl<boolean>(
         value,
         formControlOptions ?? 
         {

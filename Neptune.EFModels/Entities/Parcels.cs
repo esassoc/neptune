@@ -21,6 +21,7 @@ Source code is available upon request via <support@sitkatech.com>.
 
 using Microsoft.EntityFrameworkCore;
 using Neptune.Common.DesignByContract;
+using Neptune.Models.DataTransferObjects;
 
 namespace Neptune.EFModels.Entities
 {
@@ -67,6 +68,48 @@ namespace Neptune.EFModels.Entities
             var parcel = GetImpl(dbContext).FirstOrDefault(x => x.ParcelNumber == parcelNumber);
             Check.RequireNotNull(parcel, $"Parcel with number {parcelNumber} not found!");
             return parcel;
+        }
+
+        // Bulk lookup used by the WQMP AI-extraction review flow to resolve the accepted
+        // list of APN strings into Parcel IDs before writing them to the WQMP. Returns every
+        // requested parcel number, with ParcelID = null when not found so the caller can
+        // surface missing ones to the user.
+        public static List<ParcelLookupResultDto> LookupByParcelNumbers(NeptuneDbContext dbContext, List<string> parcelNumbers)
+        {
+            var normalized = parcelNumbers
+                .Where(x => !string.IsNullOrWhiteSpace(x))
+                .Select(x => x.Trim())
+                .Distinct()
+                .ToList();
+
+            var matches = dbContext.Parcels
+                .AsNoTracking()
+                .Where(x => normalized.Contains(x.ParcelNumber))
+                .Select(x => new { x.ParcelNumber, x.ParcelID })
+                .ToList()
+                .ToDictionary(x => x.ParcelNumber, x => (int?)x.ParcelID);
+
+            return normalized
+                .Select(pn => new ParcelLookupResultDto
+                {
+                    ParcelNumber = pn,
+                    ParcelID = matches.TryGetValue(pn, out var id) ? id : null,
+                })
+                .ToList();
+        }
+
+        public static List<ParcelDisplayDto> Search(NeptuneDbContext dbContext, string term)
+        {
+            var searchString = term.Trim();
+            return dbContext.Parcels
+                .AsNoTracking()
+                .Where(x => x.ParcelNumber.Contains(searchString) ||
+                             x.ParcelAddress.Contains(searchString))
+                .OrderBy(x => x.ParcelAddress)
+                .ThenBy(x => x.ParcelNumber)
+                .Take(20)
+                .Select(ParcelProjections.AsDisplayDto)
+                .ToList();
         }
     }
 }

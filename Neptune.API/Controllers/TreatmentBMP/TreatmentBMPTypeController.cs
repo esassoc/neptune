@@ -1,11 +1,13 @@
-﻿using Microsoft.AspNetCore.Authorization;
+﻿using System.Collections.Generic;
+using System.Threading.Tasks;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using Neptune.API.Services;
+using Neptune.API.Services.Authorization;
 using Neptune.EFModels.Entities;
 using Neptune.Models.DataTransferObjects;
-using System.Collections.Generic;
 
 namespace Neptune.API.Controllers;
 
@@ -31,5 +33,46 @@ public class TreatmentBMPTypeController(
     {
         var treatmentBMPTypeCustomAttributeTypeDtos = TreatmentBMPTypeCustomAttributeTypes.ListByTreatmentBMPTypeAsDto(DbContext, treatmentBMPTypeID);
         return treatmentBMPTypeCustomAttributeTypeDtos;
+    }
+
+    [HttpGet("grid")]
+    [AdminFeature]
+    public async Task<ActionResult<List<TreatmentBMPTypeGridDto>>> ListAsGridDto()
+    {
+        var dtos = await TreatmentBMPTypesAdmin.ListAsGridDtoAsync(DbContext);
+        return Ok(dtos);
+    }
+
+    [HttpGet("{treatmentBMPTypeID}/detail")]
+    [AllowAnonymous]
+    public async Task<ActionResult<TreatmentBMPTypeDetailDto>> GetDetail([FromRoute] int treatmentBMPTypeID)
+    {
+        var dto = await TreatmentBMPTypesAdmin.GetByIDAsDtoAsync(DbContext, treatmentBMPTypeID);
+        if (dto == null) return NotFound();
+        return Ok(dto);
+    }
+
+    [HttpPost]
+    [AdminFeature]
+    public async Task<ActionResult<TreatmentBMPTypeDetailDto>> Create([FromBody] TreatmentBMPTypeUpsertDto dto)
+    {
+        var created = await TreatmentBMPTypesAdmin.CreateAsync(DbContext, dto);
+        return Ok(created);
+    }
+
+    [HttpPut("{treatmentBMPTypeID}")]
+    [AdminFeature]
+    public async Task<ActionResult<TreatmentBMPTypeDetailDto>> Update([FromRoute] int treatmentBMPTypeID, [FromBody] TreatmentBMPTypeUpsertDto dto)
+    {
+        var updated = await TreatmentBMPTypesAdmin.UpdateAsync(DbContext, treatmentBMPTypeID, dto);
+        return Ok(updated);
+    }
+
+    [HttpDelete("{treatmentBMPTypeID}")]
+    [AdminFeature]
+    public async Task<IActionResult> Delete([FromRoute] int treatmentBMPTypeID)
+    {
+        await TreatmentBMPTypesAdmin.DeleteAsync(DbContext, treatmentBMPTypeID);
+        return NoContent();
     }
 }

@@ -6,7 +6,7 @@
                             selector: '#ProgramPageContent',
                             height: 200,
                             menubar: false,
-                            toolbar: ' styleselect | bold italic removeformat | bullist numlist outdent indent | image table hr charmap | link unlink anchor',
+                            toolbar: 'styleselect | bold italic removeformat | bullist numlist outdent indent | image table hr charmap | link unlink anchor',
                             entity_encoding: 'named+numeric',
                             plugins: 'lists link image table code help wordcount charmap anchor',
                             toolbar_mode: 'floating',

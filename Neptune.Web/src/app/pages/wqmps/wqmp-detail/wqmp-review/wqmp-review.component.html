@@ -1,0 +1,193 @@
+@if (pageData$ | async; as pageData) {
+    <div class="review-layout">
+        <!-- Sidebar -->
+        <aside class="review-sidebar">
+            <a [routerLink]="['/water-quality-management-plans', waterQualityManagementPlanID]" class="review-sidebar__back">
+                <i class="fa fa-arrow-left"></i> Back to WQMP
+            </a>
+            <div class="review-sidebar__steps">
+                <div class="review-sidebar__label">Review Steps</div>
+                <ul class="step-nav">
+                    @for (step of steps; track step.number) {
+                        <li class="step-nav__item"
+                            [class.step-nav__item--current]="currentStep() === step.number"
+                            [class.step-nav__item--disabled]="step.disabled"
+                            (click)="goToStep(step.number)">
+                            <span class="step-nav__number">{{ step.number }}</span>
+                            <div class="step-nav__text">
+                                <span class="step-nav__title">{{ step.title }}</span>
+                                <span class="step-nav__desc">{{ step.desc }}</span>
+                            </div>
+                        </li>
+                        @if (step.number < steps.length) {
+                            <li class="step-nav__connector"></li>
+                        }
+                    }
+                </ul>
+            </div>
+            <div class="review-sidebar__progress">
+                <div class="progress-bar">
+                    <div class="progress-bar__fill" [style.width.%]="totalFieldCount > 0 ? (confirmedCount / totalFieldCount * 100) : 0"></div>
+                </div>
+                <span class="progress-bar__label">{{ confirmedCount }} of {{ totalFieldCount }} fields confirmed</span>
+            </div>
+            @if (pageData.hasResult) {
+                <div class="review-sidebar__actions">
+                    @if (!isApproved()) {
+                        <button class="btn btn-primary btn-block" (click)="saveDraft()" [disabled]="isSavingDraft || isExtracting() || !hasUnsavedChanges()">
+                            @if (isSavingDraft) { <i class="fa fa-spinner fa-spin"></i> } Save Draft
+                        </button>
+                        <button class="btn btn-primary btn-block" (click)="approveAndApply()" [disabled]="isApplying || isExtracting() || confirmedCount === 0">
+                            @if (isApplying) { <i class="fa fa-spinner fa-spin"></i> } Approve &amp; Apply
+                        </button>
+                        <button class="btn btn-secondary-outline btn-block" (click)="discardDraft()" [disabled]="isSavingDraft || isExtracting() || (!currentResult()?.DraftUpdatedDate && !hasUnsavedChanges())">
+                            Discard Draft
+                        </button>
+                        <button class="btn btn-secondary-outline btn-block" (click)="confirmReExtract()" [disabled]="isExtracting()" title="Replace the existing extraction and clear draft edits">
+                            @if (isExtracting()) { <i class="fa fa-spinner fa-spin"></i> Extracting... } @else { <i class="fa fa-magic"></i> Re-run extraction }
+                        </button>
+                    }
+                    <button class="btn btn-secondary-outline btn-block" (click)="cancel()" [disabled]="isExtracting()">
+                        @if (isApproved()) { Back } @else { Cancel }
+                    </button>
+                </div>
+            }
+        </aside>
+
+        <!-- PDF Panel -->
+        <div class="pdf-panel">
+            @if (isNavigating()) {
+                <div class="pdf-panel__loading">
+                    <i class="fa fa-spinner fa-spin"></i> Finding in document...
+                </div>
+            }
+            @if (pdfBlob) {
+                <ng2-pdfjs-viewer
+                    #pdfViewer
+                    [pdfSrc]="pdfBlob"
+                    [zoom]="'page-fit'"
+                    [showFind]="true"
+                    [showViewBookmark]="false"
+                    [showOpenFile]="false"
+                    [showDownload]="false"
+                    [showPrint]="false"
+                    [showAnnotations]="false"
+                    [showSpinner]="false"
+                    [showSecondaryToolbarToggle]="false"
+                    (onDocumentLoad)="onPdfLoaded()"
+                    (onPageRendered)="onPdfPageRendered()"
+                    style="width: 100%; height: 100%;">
+                </ng2-pdfjs-viewer>
+            }
+        </div>
+
+        <!-- Review Panel -->
+        <div class="review-panel">
+            <div class="review-panel__header">
+                <h2>{{ steps[currentStep() - 1].title }}</h2>
+                @if (pageData.hasResult) {
+                    <p class="review-panel__desc">Review and confirm the AI-extracted values below.</p>
+                }
+            </div>
+
+            <app-alert-display></app-alert-display>
+
+            @if (pageData.hasResult && !isApproved()) {
+                <div class="review-panel__tips">
+                    <i class="fa fa-lightbulb-o"></i>
+                    <div>
+                        <strong>Tips:</strong>
+                        Click a field's value or evidence to jump to the source on the PDF.
+                        Use <strong>&#10003;&nbsp;Accept</strong>, <strong>&#9998;&nbsp;Edit</strong>, or <strong>&#10007;&nbsp;Reject</strong> (clears the value) on each field.
+                        <strong>Save Draft</strong> preserves progress; <strong>Approve&nbsp;&amp;&nbsp;Apply</strong> commits values to the live WQMP.
+                    </div>
+                </div>
+            }
+
+            @if (!pageData.hasResult) {
+                <div class="review-panel__extract-cta">
+                    <i class="fa fa-magic review-panel__extract-cta-icon"></i>
+                    <h3>Not yet extracted</h3>
+                    <p>Review the uploaded PDF on the right, then click below to run AI extraction against the document.</p>
+                    <button class="btn btn-primary" (click)="runExtraction()" [disabled]="isExtracting()">
+                        @if (isExtracting()) { <i class="fa fa-spinner fa-spin"></i> Extracting... } @else { <i class="fa fa-magic"></i> Extract with AI }
+                    </button>
+                </div>
+            }
+
+            @if (pageData.hasResult && isApproved()) {
+                <div class="review-panel__banner review-panel__banner--approved">
+                    <i class="fa fa-check-circle"></i>
+                    Approved by {{ currentResult()?.ApprovedByFullName }} on {{ currentResult()?.ApprovedDate | date: "medium" }}. This review is read-only.
+                </div>
+            } @else if (currentResult()?.DraftUpdatedDate) {
+                <div class="review-panel__banner review-panel__banner--draft">
+                    <i class="fa fa-save"></i>
+                    Draft saved by {{ currentResult()?.DraftUpdatedByFullName }} on {{ currentResult()?.DraftUpdatedDate | date: "medium" }}.
+                    @if (hasUnsavedChanges()) {
+                        <span class="review-panel__banner-note">You have unsaved changes.</span>
+                    }
+                </div>
+            } @else if (hasUnsavedChanges()) {
+                <div class="review-panel__banner review-panel__banner--dirty">
+                    <i class="fa fa-exclamation-circle"></i>
+                    You have unsaved changes.
+                </div>
+            }
+
+            @if (pageData.hasResult) {
+                <div class="review-panel__fields">
+                    @for (field of fieldsForCurrentStep; track field.key) {
+                        <field-card
+                            [fieldLabel]="field.label"
+                            [extractedValue]="field.value"
+                            [extractionEvidence]="field.evidence"
+                            [documentSource]="field.source"
+                            [boundingBox]="field.boundingBox"
+                            [confidence]="field.confidence"
+                            [fieldType]="field.fieldType ?? FormFieldType.Text"
+                            [selectOptions]="field.selectOptions ?? []"
+                            [mask]="field.mask ?? null"
+                            [origin]="getFieldOrigin(field)"
+                            [readOnly]="isApproved()"
+                            [initialState]="field.state"
+                            [initialValue]="field.acceptedValue ?? field.value"
+                            (valueAccepted)="onFieldAccepted(field, $event)"
+                            (valueEdited)="onFieldEdited(field, $event)"
+                            (valueRejected)="onFieldRejected(field)"
+                            (navigateToSource)="navigateToSource($event)">
+                        </field-card>
+                    }
+                    @if (currentStep() === 1 && !isApproved()) {
+                        <button class="btn btn-primary-outline btn-sm review-panel__add-parcel" (click)="addParcel()">
+                            <i class="fa fa-plus"></i> Add Parcel
+                        </button>
+                    }
+
+                    @if (currentStep() === 3) {
+                        @for (group of bmpGroupsForCurrentStep; track group.bmpIndex) {
+                            <bmp-review-card
+                                [bmpIndex]="group.bmpIndex"
+                                [displayName]="group.displayName"
+                                [fields]="group.fields"
+                                [readOnly]="isApproved()"
+                                [initialIsRejected]="group.isRejected"
+                                (bmpRejected)="onBmpRejected($event)"
+                                (bmpRestored)="onBmpRestored($event)"
+                                (fieldAccepted)="onBmpFieldAccepted($event)"
+                                (fieldEdited)="onBmpFieldEdited($event)"
+                                (fieldRejected)="onBmpFieldRejected($event)"
+                                (navigateToSource)="navigateToSource($event)">
+                            </bmp-review-card>
+                        }
+                        @if (bmpGroupsForCurrentStep.length === 0) {
+                            <div class="review-panel__empty-state">
+                                No Simple BMPs were detected in this document. You can proceed to the next step.
+                            </div>
+                        }
+                    }
+                </div>
+            }
+        </div>
+    </div>
+}

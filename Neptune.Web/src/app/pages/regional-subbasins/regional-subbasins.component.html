@@ -12,6 +12,9 @@
         [selectedValue]="selectedRegionalSubbasinID"
         [selectionFromMap]="true"
         (selectedValueChange)="onSelectedRegionalSubbasinIDChanged($event)">
+        @if (isSitkaAdmin) {
+            <button headerActions class="btn btn-primary btn-sm" (click)="refreshFromOCSurvey()">Refresh from OC Survey</button>
+        }
         <regional-subbasins-layer
             [map]="map"
             [layerControl]="layerControl"

@@ -1,0 +1,117 @@
+@use "/src/scss/abstracts" as *;
+
+.card-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+
+    .icon-button {
+        cursor: pointer;
+    }
+
+}
+
+.card-body h4 {
+    color: $primary;
+    font-size: $type-size-400;
+}
+
+.modeling-approach-row {
+    display: flex;
+    gap: 1rem;
+    margin-bottom: 1rem;
+    align-items: flex-start;
+
+    .modeling-approach-label {
+        min-width: 100px;
+        flex-shrink: 0;
+    }
+
+    .modeling-approach-check {
+        color: green;
+        margin-right: 0.25rem;
+    }
+
+    &.modeling-approach-unselected {
+        color: #c7c7c7;
+        font-style: italic;
+    }
+}
+
+.source-control-table {
+    width: 100%;
+    border: none;
+    border-collapse: collapse;
+    border-radius: 0;
+
+    thead th {
+        background: none;
+        color: $black;
+        padding: 0.5rem;
+        font-weight: bold;
+        border-bottom: 1px solid rgba($black, 0.1);
+        border-radius: 0;
+    }
+
+    tbody {
+        tr:nth-of-type(even) {
+            background: none;
+        }
+
+        td {
+            padding: 0.5rem;
+            border-top: 1px solid rgba($black, 0.1);
+        }
+
+        tr > td:first-of-type {
+            font-weight: normal;
+        }
+    }
+
+    .category-header-cell {
+        background: none;
+        border: none;
+        padding-top: 1.5rem;
+        padding-bottom: 0.25rem;
+
+        h5 {
+            margin-bottom: 0;
+            color: $primary;
+            font-size: $type-size-300;
+        }
+    }
+}
+
+.document-entry {
+    margin-bottom: 1rem;
+}
+
+::ng-deep .ag-row-pinned-bottom {
+    font-weight: bold;
+}
+
+.document-details {
+    margin-top: 0.25rem;
+    margin-left: 1rem;
+
+    dt {
+        float: left;
+        width: 120px;
+        font-weight: normal;
+        clear: left;
+    }
+
+    dd {
+        margin-left: 130px;
+    }
+}
+
+.draft-banner {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0.75rem 1rem;
+    background: rgba(0, 153, 171, 0.06);
+    border: 1px solid $primary;
+    border-radius: $border-radius-200;
+}

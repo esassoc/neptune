@@ -14,6 +14,12 @@ import { RegionalSubbasinsLayerComponent } from "src/app/shared/components/leafl
 import { BoundingBoxDto } from "src/app/shared/generated/model/bounding-box-dto";
 import { AlertDisplayComponent } from "src/app/shared/components/alert-display/alert-display.component";
 import { OverlayMode } from "src/app/shared/components/leaflet/layers/generic-wms-wfs-layer/overlay-mode.enum";
+import { AuthenticationService } from "src/app/services/authentication.service";
+import { RoleEnum } from "src/app/shared/generated/enum/role-enum";
+import { ConfirmService } from "src/app/shared/services/confirm/confirm.service";
+import { AlertService } from "src/app/shared/services/alert.service";
+import { Alert } from "src/app/shared/models/alert";
+import { AlertContext } from "src/app/shared/models/enums/alert-context.enum";
 
 @Component({
     selector: "regional-subbasins",
@@ -31,16 +37,22 @@ export class RegionalSubbasinsComponent {
     public boundingBox$: Observable<BoundingBoxDto>;
     public selectedRegionalSubbasinID: number;
     public isLoading: boolean = true;
+    public isSitkaAdmin = false;
 
     constructor(
         private regionalSubbasinService: RegionalSubbasinService,
         private jurisdictionService: StormwaterJurisdictionService,
-        private utilityFunctionsService: UtilityFunctionsService
+        private utilityFunctionsService: UtilityFunctionsService,
+        private authenticationService: AuthenticationService,
+        private confirmService: ConfirmService,
+        private alertService: AlertService
     ) {}
 
     ngOnInit(): void {
         this.columnDefs = [
-            this.utilityFunctionsService.createBasicColumnDef("RSB ID", "RegionalSubbasinID"),
+            this.utilityFunctionsService.createLinkColumnDef("RSB ID", "RegionalSubbasinID", "RegionalSubbasinID", {
+                InRouterLink: "/regional-subbasins/",
+            }),
             this.utilityFunctionsService.createBasicColumnDef("Drain ID", "DrainID"),
             this.utilityFunctionsService.createBasicColumnDef("Watershed", "Watershed"),
             this.utilityFunctionsService.createBasicColumnDef("Area (sq mi)", "AreaSqMi"),
@@ -49,6 +61,9 @@ export class RegionalSubbasinsComponent {
         ];
         this.regionalSubbasins$ = this.regionalSubbasinService.listRegionalSubbasin().pipe(tap(() => (this.isLoading = false)));
         this.boundingBox$ = this.jurisdictionService.getBoundingBoxStormwaterJurisdiction();
+        this.authenticationService.getCurrentUser().subscribe((user) => {
+            this.isSitkaAdmin = user?.RoleID === RoleEnum.SitkaAdmin;
+        });
     }
 
     public handleMapReady(event: NeptuneMapInitEvent, boundingBox?: BoundingBoxDto) {
@@ -61,6 +76,25 @@ export class RegionalSubbasinsComponent {
                 [boundingBox.Top, boundingBox.Right],
             ]);
         }
+    }
+
+    refreshFromOCSurvey(): void {
+        this.confirmService
+            .confirm({
+                title: "Refresh Regional Subbasins",
+                message: "Are you sure you want to refresh the Regional Subbasins from OC Survey? This can take a while to run.",
+                buttonTextYes: "Refresh",
+                buttonTextNo: "Cancel",
+                buttonClassYes: "btn-primary",
+            })
+            .then((confirmed) => {
+                if (confirmed) {
+                    this.regionalSubbasinService.enqueueRefreshRegionalSubbasin().subscribe(() => {
+                        this.alertService.clearAlerts();
+                        this.alertService.pushAlert(new Alert("Regional Subbasins refresh will run in the background.", AlertContext.Success));
+                    });
+                }
+            });
     }
 
     public onSelectedRegionalSubbasinIDChanged(selectedRegionalSubbasinID: number, fromMap: boolean = false) {

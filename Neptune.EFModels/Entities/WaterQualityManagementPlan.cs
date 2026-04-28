@@ -74,9 +74,9 @@ namespace Neptune.EFModels.Entities
                 .ExecuteDeleteAsync();
             await dbContext.SourceControlBMPs.Where(x => x.WaterQualityManagementPlanID == WaterQualityManagementPlanID)
                 .ExecuteDeleteAsync();
-            await dbContext.TrashGeneratingUnits
-                .Where(x => x.WaterQualityManagementPlanID == WaterQualityManagementPlanID).ExecuteDeleteAsync();
             await dbContext.TrashGeneratingUnit4326s
+                .Where(x => x.WaterQualityManagementPlanID == WaterQualityManagementPlanID).ExecuteDeleteAsync();
+            await dbContext.TrashGeneratingUnits
                 .Where(x => x.WaterQualityManagementPlanID == WaterQualityManagementPlanID).ExecuteDeleteAsync();
             foreach (var treatmentBMP in dbContext.TreatmentBMPs.Where(x => x.WaterQualityManagementPlanID == WaterQualityManagementPlanID).ToList())
             {
@@ -86,6 +86,14 @@ namespace Neptune.EFModels.Entities
 
             await dbContext.WaterQualityManagementPlanBoundaries
                 .Where(x => x.WaterQualityManagementPlanID == WaterQualityManagementPlanID).ExecuteDeleteAsync();
+            var documentIDs = await dbContext.WaterQualityManagementPlanDocuments
+                .Where(x => x.WaterQualityManagementPlanID == WaterQualityManagementPlanID)
+                .Select(x => x.WaterQualityManagementPlanDocumentID).ToListAsync();
+            if (documentIDs.Any())
+            {
+                await dbContext.WaterQualityManagementPlanExtractionResults
+                    .Where(x => documentIDs.Contains(x.WaterQualityManagementPlanDocumentID)).ExecuteDeleteAsync();
+            }
             await dbContext.WaterQualityManagementPlanDocuments
                 .Where(x => x.WaterQualityManagementPlanID == WaterQualityManagementPlanID)
                 .ExecuteDeleteAsync();

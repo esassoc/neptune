@@ -9,14 +9,14 @@ import { FundingEventUpsertDtoFormControls } from "src/app/shared/generated/mode
 import { FundingEventFundingSourceSimpleDtoFormControls } from "src/app/shared/generated/model/funding-event-funding-source-simple-dto";
 import { FundingEventByTreatmentBMPIDService } from "src/app/shared/generated/api/funding-event-by-treatment-bmpid.service";
 import { FundingSourceService } from "src/app/shared/generated/api/funding-source.service";
-import { map } from "rxjs/operators";
+import { map, shareReplay } from "rxjs/operators";
 import { FormInputOption } from "src/app/shared/components/forms/form-field/form-field.component";
 import { AlertService } from "src/app/shared/services/alert.service";
 import { Alert } from "src/app/shared/models/alert";
 import { AlertContext } from "src/app/shared/models/enums/alert-context.enum";
 import { DialogRef } from "@ngneat/dialog";
 import { Observable } from "rxjs";
-import { FundingSourceDto } from "src/app/shared/generated/model/models";
+
 import { FundingEventTypesAsSelectDropdownOptions } from "src/app/shared/generated/enum/funding-event-type-enum";
 
 @Component({
@@ -33,7 +33,6 @@ export class FundingEventModalComponent implements OnInit {
         return ids.length !== new Set(ids).size;
     }
     public fundingEventTypeOptions = FundingEventTypesAsSelectDropdownOptions;
-    public fundingSources$: Observable<FundingSourceDto[]>;
     public fundingSourceOptions$: Observable<FormInputOption[]>;
 
     getFundingSourceIDControl(group: FormGroup): FormControl {
@@ -99,9 +98,7 @@ export class FundingEventModalComponent implements OnInit {
                 );
             });
         }
-        // Set funding sources and options observable
-        this.fundingSources$ = this.fundingSourceService.listFundingSource();
-        this.fundingSourceOptions$ = this.fundingSources$.pipe(
+        this.fundingSourceOptions$ = this.fundingSourceService.listFundingSource().pipe(
             map((sources) =>
                 (sources || []).map(
                     (src) =>
@@ -111,7 +108,8 @@ export class FundingEventModalComponent implements OnInit {
                             disabled: false,
                         }) as FormInputOption
                 )
-            )
+            ),
+            shareReplay(1)
         );
     }
 

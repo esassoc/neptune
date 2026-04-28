@@ -1,7 +1,6 @@
 import { AsyncPipe, DatePipe } from "@angular/common";
-import { Component } from "@angular/core";
+import { Component, Input } from "@angular/core";
 import { Router, RouterLink } from "@angular/router";
-import { Input } from "@angular/core";
 import { Observable, switchMap } from "rxjs";
 import { OnlandVisualTrashAssessmentService } from "src/app/shared/generated/api/onland-visual-trash-assessment.service";
 import { OnlandVisualTrashAssessmentDetailDto } from "src/app/shared/generated/model/onland-visual-trash-assessment-detail-dto";
@@ -28,6 +27,7 @@ export class TrashOvtaDetailComponent {
     public onlandVisualTrashAssessment$: Observable<OnlandVisualTrashAssessmentDetailDto>;
     public onlandVisualTrashAssessmentObservations$: Observable<OnlandVisualTrashAssessmentObservationWithPhotoDto[]>;
     public PreliminarySourceIdentificationCategories = PreliminarySourceIdentificationCategories;
+    public OnlandVisualTrashAssessmentStatusEnum = OnlandVisualTrashAssessmentStatusEnum;
 
     @Input() onlandVisualTrashAssessmentID!: number;
     constructor(
@@ -70,5 +70,20 @@ export class TrashOvtaDetailComponent {
         } else {
             this.router.navigateByUrl(`/trash/onland-visual-trash-assessments/edit/${onlandVisualTrashAssessmentID}/record-observations`);
         }
+    }
+
+    public deleteOVTA(onlandVisualTrashAssessmentID: number, createdDate: string) {
+        const modalContents = `<p>Are you sure you want to delete the assessment from ${this.datePipe.transform(createdDate, "MM/dd/yyyy")}?</p>`;
+        this.confirmService
+            .confirm({ buttonClassYes: "btn-primary", buttonTextYes: "Delete", buttonTextNo: "Cancel", title: "Delete OVTA", message: modalContents })
+            .then((confirmed) => {
+                if (confirmed) {
+                    this.onlandVisualTrashAssessmentService.deleteOnlandVisualTrashAssessment(onlandVisualTrashAssessmentID).subscribe(() => {
+                        this.alertService.clearAlerts();
+                        this.alertService.pushAlert(new Alert("Your OVTA was successfully deleted.", AlertContext.Success));
+                        this.router.navigate(["/trash/onland-visual-trash-assessments"]);
+                    });
+                }
+            });
     }
 }

@@ -347,6 +347,7 @@
     <Build Include="dbo\Procs\dbo.pDeleteNereidResults.sql" />
     <Build Include="dbo\Procs\dbo.pDeleteProjectLoadGeneratingUnitsPriorToRefreshForProject.sql" />
     <Build Include="dbo\Procs\dbo.pDeleteProjectNereidResults.sql" />
+    <Build Include="dbo\Procs\dbo.pDelineationMakeValid.sql" />
     <Build Include="dbo\Procs\dbo.pDelineationMarkThoseThatHaveDiscrepancies.sql" />
     <Build Include="dbo\Procs\dbo.pFixInvalidRegionalSubbasinGeometries.sql" />
     <Build Include="dbo\Procs\dbo.pLandUseBlockStagingDeleteByPersonID.sql" />
@@ -434,7 +435,9 @@
     <None Include="Scripts\ReleaseScripts\018 - Add CustomAttributeType, TreatmentBMPCustomAttributeType, CustomAttribute and CustomAttributeValues for modeling attributes.sql" />
     <Build Include="dbo\Views\dbo.vTreatmentBMPModelingAttribute.sql" />
     <None Include="Scripts\ReleaseScripts\019 - Add Dry Weather Flow Override custom attribute for all Modeled Treatment BMPs without it.sql" />
-    <Build Include="dbo\Tables\dbo.WaterQualityManagementPlanDocumentVectorStore.sql" />
+    <None Include="Scripts\ReleaseScripts\020 - Drop WaterQualityManagementPlanDocumentVectorStore table.sql" />
+    <Build Include="dbo\Tables\dbo.WaterQualityManagementPlanExtractionResult.sql" />
+    <Build Include="dbo\Tables\dbo.AITokenUsage.sql" />
   </ItemGroup>
   <ItemGroup>
     <RefactorLog Include="Neptune.Database.refactorlog" />

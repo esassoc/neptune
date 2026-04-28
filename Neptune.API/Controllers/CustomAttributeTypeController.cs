@@ -3,9 +3,11 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using Neptune.API.Services;
+using Neptune.API.Services.Authorization;
 using Neptune.EFModels.Entities;
 using Neptune.Models.DataTransferObjects;
 using System.Collections.Generic;
+using System.Threading.Tasks;
 
 namespace Neptune.API.Controllers;
 
@@ -43,5 +45,29 @@ public class CustomAttributeTypeController(
             CustomAttributeTypes.GetByCustomAttributeTypePurposeAsWithTreatmentBMPTypeIDsDto(DbContext, customAttributeTypePurposeID);
 
         return customAttributeTypeDtos;
+    }
+
+    [HttpPost]
+    [AdminFeature]
+    public async Task<ActionResult<CustomAttributeTypeDto>> Create([FromBody] CustomAttributeTypeUpsertDto dto)
+    {
+        var created = await CustomAttributeTypes.CreateAsync(DbContext, dto);
+        return Ok(created);
+    }
+
+    [HttpPut("{customAttributeTypeID}")]
+    [AdminFeature]
+    public async Task<ActionResult<CustomAttributeTypeDto>> Update([FromRoute] int customAttributeTypeID, [FromBody] CustomAttributeTypeUpsertDto dto)
+    {
+        var updated = await CustomAttributeTypes.UpdateAsync(DbContext, customAttributeTypeID, dto);
+        return Ok(updated);
+    }
+
+    [HttpDelete("{customAttributeTypeID}")]
+    [AdminFeature]
+    public async Task<IActionResult> Delete([FromRoute] int customAttributeTypeID)
+    {
+        await CustomAttributeTypes.DeleteAsync(DbContext, customAttributeTypeID);
+        return NoContent();
     }
 }

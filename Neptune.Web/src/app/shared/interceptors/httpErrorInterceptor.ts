@@ -44,21 +44,19 @@ export class HttpErrorInterceptor implements HttpInterceptor {
                                 return throwError(() => error);
                             }
 
+                            const formatValue = (val: unknown): string =>
+                                Array.isArray(val) ? (val as string[]).join("<br/>") : String(val);
+
                             if (error.error.errors) {
                                 for (const key of Object.keys(error.error.errors)) {
-                                    const newLocal = new Alert((error.error.errors[key] as string[]).join("<br/>"), AlertContext.Danger);
-                                    this.alertService.pushAlert(newLocal);
+                                    this.alertService.pushAlert(new Alert(formatValue(error.error.errors[key]), AlertContext.Danger));
                                 }
+                            } else if (typeof error.error === "string") {
+                                this.alertService.pushAlert(new Alert(error.error, AlertContext.Danger));
                             } else {
-                                //if error.error is just a string message
-                                if (typeof error.error === "string") {
-                                    this.alertService.pushAlert(new Alert(error.error, AlertContext.Danger));
-                                } else {
-                                    //otherwise assume it's a dictionary of messages
-                                    for (const key of Object.keys(error.error)) {
-                                        const newLocal = new Alert((error.error[key] as string[]).join("<br/>"), AlertContext.Danger);
-                                        this.alertService.pushAlert(newLocal);
-                                    }
+                                // Dictionary of messages — each value may be a string or a string[]
+                                for (const key of Object.keys(error.error)) {
+                                    this.alertService.pushAlert(new Alert(formatValue(error.error[key]), AlertContext.Danger));
                                 }
                             }
                         }

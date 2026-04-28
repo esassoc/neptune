@@ -16,11 +16,11 @@
                 [customAttributeTypePurposeEnum]="customAttributePurposeID"
                 [formGroup]="formGroup">
             </custom-attributes-editor>
+            <div class="page-footer">
+                <button class="btn btn-primary mr-2" (click)="save(treatmentBMPTypeCustomAttributeTypes)" [disabled]="isLoadingSubmit || formGroup.invalid">Save</button>
+                <button class="btn btn-secondary" (click)="cancel()">Cancel</button>
+            </div>
         }
-        <div class="page-footer">
-            <button class="btn btn-primary mr-2" (click)="save(treatmentBMPTypeCustomAttributeTypes)" [disabled]="isLoadingSubmit || formGroup.invalid">Save</button>
-            <button class="btn btn-secondary" (click)="cancel()">Cancel</button>
-        </div>
     }
 } @else {
     <div [loadingSpinner]="{ isLoading: true, loadingHeight: 500 }"></div>

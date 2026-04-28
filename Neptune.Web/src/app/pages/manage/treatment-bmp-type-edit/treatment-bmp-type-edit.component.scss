@@ -1,0 +1,30 @@
+@use "/src/scss/abstracts" as *;
+
+.picker-row {
+    display: flex;
+    gap: 0.5rem;
+    align-items: flex-end;
+
+    ng-select {
+        flex: 1 1 0;
+        min-width: 0;
+    }
+}
+
+form-field {
+    display: block;
+}
+
+.weight-summary {
+    margin-top: 0.5rem;
+    font-weight: 600;
+    font-size: $type-size-200;
+
+    &--error {
+        color: $red-default;
+    }
+
+    &__message {
+        font-weight: 400;
+    }
+}

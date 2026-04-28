@@ -1,0 +1,47 @@
+<div class="bmp-card" [class.bmp-card--rejected]="isRejected()" [class.bmp-card--read-only]="readOnly">
+    <div class="bmp-card__header">
+        <span class="bmp-card__label">
+            <i class="fa fa-cube"></i>
+            {{ headerLabel }}
+        </span>
+        <div class="bmp-card__actions">
+            @if (!readOnly && !isRejected()) {
+                <button class="bmp-card__btn bmp-card__btn--reject" type="button" (click)="rejectBmp()">
+                    <i class="fa fa-times"></i> Reject this BMP
+                </button>
+            }
+            @if (!readOnly && isRejected()) {
+                <button class="bmp-card__btn bmp-card__btn--restore" type="button" (click)="restoreBmp()">
+                    <i class="fa fa-undo"></i> Restore
+                </button>
+            }
+        </div>
+    </div>
+
+    @if (isRejected()) {
+        <div class="bmp-card__rejected-banner">
+            This BMP will not be created on approval.
+        </div>
+    }
+
+    <div class="bmp-card__fields">
+        @for (field of fields; track field.key) {
+            <field-card
+                [fieldLabel]="field.label"
+                [extractedValue]="field.value"
+                [extractionEvidence]="field.evidence"
+                [documentSource]="field.source"
+                [boundingBox]="field.boundingBox"
+                [fieldType]="field.fieldType ?? FormFieldType.Text"
+                [selectOptions]="field.selectOptions ?? []"
+                [readOnly]="readOnly || isRejected()"
+                [initialState]="field.state"
+                [initialValue]="field.acceptedValue ?? field.value"
+                (valueAccepted)="onFieldAccepted(field.key, $event)"
+                (valueEdited)="onFieldEdited(field.key, $event)"
+                (valueRejected)="onFieldRejected(field.key)"
+                (navigateToSource)="onNavigateToSource($event)">
+            </field-card>
+        }
+    </div>
+</div>

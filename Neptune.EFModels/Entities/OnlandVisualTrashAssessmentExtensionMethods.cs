@@ -100,7 +100,10 @@ public static class OnlandVisualTrashAssessmentExtensionMethods
             AssessmentAreaDescription = onlandVisualTrashAssessment.OnlandVisualTrashAssessmentArea != null ? onlandVisualTrashAssessment.OnlandVisualTrashAssessmentArea.AssessmentAreaDescription : onlandVisualTrashAssessment.DraftAreaDescription,
             AssessingNewArea = onlandVisualTrashAssessment.AssessingNewArea ?? false,
             IsProgressAssessment = onlandVisualTrashAssessment.IsProgressAssessment,
-            AssessmentDate = DateOnly.FromDateTime(DateTime.UtcNow),
+            // Preserve the originally-finalized Assessment Date on return-to-edit. Fall back to
+            // today only when CompletedDate has never been set (initial finalize of a new OVTA),
+            // so the form still pre-fills a reasonable default for brand-new records.
+            AssessmentDate = onlandVisualTrashAssessment.CompletedDate ?? DateOnly.FromDateTime(DateTime.UtcNow),
             OnlandVisualTrashAssessmentStatusID = onlandVisualTrashAssessment.OnlandVisualTrashAssessmentStatusID,
         };
 

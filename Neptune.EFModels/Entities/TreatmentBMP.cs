@@ -150,7 +150,8 @@ namespace Neptune.EFModels.Entities
                 .Include(x => x.Delineation)
                 .Where(x => x.Delineation != null && x.Delineation.TreatmentBMPID == TreatmentBMPID)
                 .ExecuteDeleteAsync();
-            await dbContext.TrashGeneratingUnits.Include(x => x.Delineation).Where(x => x.Delineation.TreatmentBMPID == TreatmentBMPID).ExecuteDeleteAsync();
+            await dbContext.TrashGeneratingUnit4326s.Include(x => x.TrashGeneratingUnit).ThenInclude(x => x.Delineation).Where(x => x.TrashGeneratingUnit != null && x.TrashGeneratingUnit.Delineation != null && x.TrashGeneratingUnit.Delineation.TreatmentBMPID == TreatmentBMPID).ExecuteDeleteAsync();
+            await dbContext.TrashGeneratingUnits.Include(x => x.Delineation).Where(x => x.Delineation != null && x.Delineation.TreatmentBMPID == TreatmentBMPID).ExecuteDeleteAsync();
             await dbContext.Delineations.Where(x => x.TreatmentBMPID == TreatmentBMPID).ExecuteDeleteAsync();
             await dbContext.DirtyModelNodes.Where(x => x.TreatmentBMPID == TreatmentBMPID).ExecuteDeleteAsync();
             await dbContext.MaintenanceRecordObservationValues
