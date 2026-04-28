@@ -1,15 +1,12 @@
 import { Component, Input, OnChanges } from "@angular/core";
 import * as L from "leaflet";
 import { MapLayerBase } from "../map-layer-base.component";
-import { Observable, tap } from "rxjs";
 import { OnlandVisualTrashAssessmentAreaService } from "src/app/shared/generated/api/onland-visual-trash-assessment-area.service";
-import { IFeature } from "src/app/shared/generated/model/i-feature";
-import { AsyncPipe } from "@angular/common";
 import { OnlandVisualTrashAssessmentService } from "src/app/shared/generated/api/onland-visual-trash-assessment.service";
 
 @Component({
     selector: "transect-line-layer",
-    imports: [AsyncPipe],
+    imports: [],
     templateUrl: "./transect-line-layer.component.html",
     styleUrl: "./transect-line-layer.component.scss",
 })
@@ -34,8 +31,6 @@ export class TransectLineLayerComponent extends MapLayerBase implements OnChange
         };
     }
 
-    public featureCollection$: Observable<IFeature[]>;
-
     ngAfterViewInit(): void {
         this.loadLayer();
     }
@@ -54,26 +49,21 @@ export class TransectLineLayerComponent extends MapLayerBase implements OnChange
     }
 
     private loadLayer(): void {
-        if (this.ovtaID) {
-            const request$ = this.onlandVisualTrashAssessmentService.getTransectLineAsFeatureCollectionOnlandVisualTrashAssessment(this.ovtaID);
-            this.featureCollection$ = this.trackLayerRequest$(request$).pipe(
-                tap((transectLineFeatureCollection) => {
-                    this.layer = new L.GeoJSON(transectLineFeatureCollection as any, {
-                        style: this.transectLineStyle,
-                    });
-                    this.initLayer();
-                })
-            );
-        } else if (this.ovtaAreaID) {
-            const request$ = this.onlandVisualTrashAssessmentAreaService.getTransectLineAsFeatureCollectionOnlandVisualTrashAssessmentArea(this.ovtaAreaID);
-            this.featureCollection$ = this.trackLayerRequest$(request$).pipe(
-                tap((transectLineFeatureCollection) => {
-                    this.layer = new L.GeoJSON(transectLineFeatureCollection as any, {
-                        style: this.transectLineStyle,
-                    });
-                    this.initLayer();
-                })
-            );
-        }
+        // Subscribe imperatively rather than via `featureCollection$ | async` in the template.
+        // In zoneless production builds the late assignment after ngAfterViewInit doesn't trigger
+        // a second template check, so the async-pipe subscription never wires up and the request
+        // never fires until something else (e.g. a user click) forces change detection.
+        const request$ = this.ovtaID
+            ? this.onlandVisualTrashAssessmentService.getTransectLineAsFeatureCollectionOnlandVisualTrashAssessment(this.ovtaID)
+            : this.ovtaAreaID
+              ? this.onlandVisualTrashAssessmentAreaService.getTransectLineAsFeatureCollectionOnlandVisualTrashAssessmentArea(this.ovtaAreaID)
+              : null;
+        if (!request$) return;
+        this.trackLayerRequest$(request$).subscribe((featureCollection) => {
+            this.layer = new L.GeoJSON(featureCollection as any, {
+                style: this.transectLineStyle,
+            });
+            this.initLayer();
+        });
     }
 }
