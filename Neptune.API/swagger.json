@@ -9766,17 +9766,17 @@
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/WaterQualityManagementPlanUpsertDto"
+                "$ref": "#/components/schemas/WaterQualityManagementPlanExtractionApprovalDto"
               }
             },
             "text/json": {
               "schema": {
-                "$ref": "#/components/schemas/WaterQualityManagementPlanUpsertDto"
+                "$ref": "#/components/schemas/WaterQualityManagementPlanExtractionApprovalDto"
               }
             },
             "application/*+json": {
               "schema": {
-                "$ref": "#/components/schemas/WaterQualityManagementPlanUpsertDto"
+                "$ref": "#/components/schemas/WaterQualityManagementPlanExtractionApprovalDto"
               }
             }
           }
@@ -16467,6 +16467,25 @@
             "type": "array",
             "items": {
               "$ref": "#/components/schemas/TreatmentBMPMinimalDto"
+            },
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "WaterQualityManagementPlanExtractionApprovalDto": {
+        "required": [
+          "WaterQualityManagementPlan"
+        ],
+        "type": "object",
+        "properties": {
+          "WaterQualityManagementPlan": {
+            "$ref": "#/components/schemas/WaterQualityManagementPlanUpsertDto"
+          },
+          "ApprovedQuickBMPs": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/QuickBMPUpsertDto"
             },
             "nullable": true
           }

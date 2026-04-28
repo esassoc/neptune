@@ -278,45 +278,10 @@ namespace Neptune.API.Controllers
         public async Task<ActionResult> MergeQuickBMPs(
             [FromRoute] int waterQualityManagementPlanID, [FromBody] List<QuickBMPUpsertDto> quickBMPs)
         {
-            var quickBMPNoteMaxLength = QuickBMP.FieldLengths.QuickBMPNote;
-            var duplicateNames = quickBMPs?.GroupBy(x => x.QuickBMPName).Where(g => g.Count() > 1).Select(g => g.Key).ToList();
-            if (duplicateNames?.Any() == true)
+            var validationError = QuickBMPs.Validate(quickBMPs);
+            if (validationError != null)
             {
-                return BadRequest($"Duplicate BMP names found: {string.Join(", ", duplicateNames)}. All names must be unique.");
-            }
-
-            var bmps = quickBMPs ?? new List<QuickBMPUpsertDto>();
-            foreach (var bmp in bmps)
-            {
-                if (bmp.QuickBMPNote?.Length > quickBMPNoteMaxLength)
-                {
-                    return BadRequest($"\"{bmp.QuickBMPName}\"'s note exceeds the maximum of {quickBMPNoteMaxLength} characters.");
-                }
-            }
-
-            if (bmps.Any(x => x.PercentRetained > x.PercentCaptured))
-            {
-                return BadRequest("Percent Captured needs to be greater than or equal to Percent Retained.");
-            }
-
-            if (bmps.Any(x => x.PercentOfSiteTreated < 0 || x.PercentOfSiteTreated > 100))
-            {
-                return BadRequest("Percent of Site Treated needs to be between 0 and 100.");
-            }
-
-            if (bmps.Any(x => x.PercentCaptured < 0 || x.PercentCaptured > 100))
-            {
-                return BadRequest("Percent Captured needs to be between 0 and 100.");
-            }
-
-            if (bmps.Any(x => x.PercentRetained < 0 || x.PercentRetained > 100))
-            {
-                return BadRequest("Percent Retained needs to be between 0 and 100.");
-            }
-
-            if (bmps.Any(x => x.PercentOfSiteTreated.HasValue) && bmps.Sum(x => x.PercentOfSiteTreated ?? 0) > 100)
-            {
-                return BadRequest("The Percent of Site Treated exceeds 100 percent, please correct any errors before saving.");
+                return BadRequest(validationError);
             }
 
             await QuickBMPs.MergeAsync(DbContext, waterQualityManagementPlanID, quickBMPs);
@@ -667,21 +632,40 @@ namespace Neptune.API.Controllers
         [EntityNotFound(typeof(WaterQualityManagementPlan), "waterQualityManagementPlanID")]
         public async Task<ActionResult<WaterQualityManagementPlanDto>> ApproveExtractionResult(
             [FromRoute] int waterQualityManagementPlanID,
-            [FromBody] WaterQualityManagementPlanUpsertDto dto)
+            [FromBody] WaterQualityManagementPlanExtractionApprovalDto dto)
         {
+            if (dto?.WaterQualityManagementPlan == null)
+            {
+                return BadRequest("Approval payload missing the WQMP root upsert.");
+            }
+
+            // NPT-1047: validate the QuickBMPs the user accepted on Step 3 of the review
+            // workflow up-front so a bad list doesn't leave the WQMP root fields half-written.
+            // Same rule set the manual MergeQuickBMPs endpoint enforces.
+            var quickBMPValidationError = QuickBMPs.Validate(dto.ApprovedQuickBMPs);
+            if (quickBMPValidationError != null)
+            {
+                return BadRequest(quickBMPValidationError);
+            }
+
             // Pre-check the extraction result exists and is not already approved BEFORE touching
             // the live WQMP, so we fail fast with no partial writes.
             var existing = await WaterQualityManagementPlanExtractionResults.GetByWqmpIDAsync(DbContext, waterQualityManagementPlanID);
             if (existing == null) return NotFound("No extraction result found for this WQMP.");
             if (existing.ApprovedDate.HasValue) return BadRequest("Extraction result has already been approved.");
 
-            // Wrap the live-WQMP update and the approval stamp in a single transaction so a partial
-            // failure can't leave the WQMP modified without the approval being recorded.
+            // Wrap the live-WQMP update, the QuickBMP merge, and the approval stamp in a single
+            // transaction so a partial failure can't leave the WQMP modified without the approval
+            // being recorded — or the BMPs created without the WQMP-level edits applied.
             await using var transaction = await DbContext.Database.BeginTransactionAsync();
             try
             {
-                var updated = await WaterQualityManagementPlans.UpdateAsync(DbContext, waterQualityManagementPlanID, dto);
+                var updated = await WaterQualityManagementPlans.UpdateAsync(DbContext, waterQualityManagementPlanID, dto.WaterQualityManagementPlan);
                 if (updated == null) return NotFound();
+
+                // MergeAsync handles re-approval idempotency by matching on (WQMPID, QuickBMPName):
+                // re-running extraction → re-approving the same set produces no duplicates.
+                await QuickBMPs.MergeAsync(DbContext, waterQualityManagementPlanID, dto.ApprovedQuickBMPs ?? new List<QuickBMPUpsertDto>());
 
                 await WaterQualityManagementPlanExtractionResults.MarkApprovedAsync(DbContext, waterQualityManagementPlanID, CallingUser.PersonID);
                 await transaction.CommitAsync();
