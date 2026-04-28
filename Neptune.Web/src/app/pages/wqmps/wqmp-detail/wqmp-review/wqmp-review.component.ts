@@ -1007,16 +1007,24 @@ export class WqmpReviewComponent implements OnInit, IDeactivateComponent {
 
         const rejected = this.rejectedBmpIndices();
         const result: QuickBMPUpsertDto[] = [];
+        // valueOf returns the reviewer-current value as a trimmed non-empty string, or
+        // null. Empty/whitespace strings (e.g. when FieldCardComponent.saveEdit() emits
+        // "" because the user cleared the field) collapse to null here so downstream
+        // numeric parsing can't turn them into a stray 0 (and the backend's [Required]
+        // checks fire correctly when the reviewer really did blank a value).
         const valueOf = (f: ExtractedField | undefined): string | null => {
             if (!f) return null;
             // A per-field reject means the reviewer wants this attribute blank, even if
             // the AI extracted a value. Pending falls back to the AI value so cards the
             // reviewer didn't touch still carry the extraction through.
             if (f.state === "rejected") return null;
-            return (f.acceptedValue ?? f.value) ?? null;
+            const raw = (f.acceptedValue ?? f.value) ?? null;
+            if (raw == null) return null;
+            const trimmed = String(raw).trim();
+            return trimmed === "" ? null : trimmed;
         };
         const numericOf = (s: string | null): number | null => {
-            if (s == null || s === "") return null;
+            if (s == null) return null;
             const n = Number(s);
             return Number.isFinite(n) ? n : null;
         };
@@ -1025,9 +1033,12 @@ export class WqmpReviewComponent implements OnInit, IDeactivateComponent {
             if (rejected.has(bmpIndex)) continue;
 
             const name = valueOf(attrMap.get("QuickBMPName"));
-            const typeIDStr = valueOf(attrMap.get("TreatmentBMPType"));
-            const typeID = typeIDStr != null ? Number(typeIDStr) : null;
-            const count = numericOf(valueOf(attrMap.get("NumberOfIndividualBMPs"))) ?? 1;
+            const typeID = numericOf(valueOf(attrMap.get("TreatmentBMPType")));
+            // Backend NumberOfIndividualBMPs is int? — truncate decimals so model binding
+            // doesn't reject "2.5"-style values. Default 1 mirrors the prompt's default
+            // and the manual-entry UI's behavior.
+            const countRaw = numericOf(valueOf(attrMap.get("NumberOfIndividualBMPs")));
+            const count = countRaw != null ? Math.trunc(countRaw) : 1;
 
             // Skip phantom rows where the reviewer rejected the name and didn't supply
             // a replacement — there's nothing to merge against on the backend.
@@ -1035,7 +1046,7 @@ export class WqmpReviewComponent implements OnInit, IDeactivateComponent {
 
             result.push({
                 QuickBMPName: name,
-                TreatmentBMPTypeID: Number.isFinite(typeID as number) ? (typeID as number) : null,
+                TreatmentBMPTypeID: typeID,
                 NumberOfIndividualBMPs: count,
                 PercentOfSiteTreated: numericOf(valueOf(attrMap.get("PercentOfSiteTreated"))),
                 PercentCaptured: numericOf(valueOf(attrMap.get("PercentCaptured"))),

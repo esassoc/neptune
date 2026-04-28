@@ -473,13 +473,13 @@
                                     <label class="g-col-4">BMPs</label>
                                     <div class="g-col-8">
                                         <ul>
-                                            @for (bmp of finalOutputObject?.TreatmentBMPs || []; track bmp.TreatmentBMPName) {
+                                            @for (bmp of finalOutputObject?.QuickBMPs || []; track bmp.QuickBMPName) {
                                                 <li>
-                                                    {{ bmp.TreatmentBMPName?.Value || "" }}
-                                                    @if (bmp.Area?.Value) {
-                                                        ({{ bmp.Area?.Value }})
+                                                    {{ bmp.QuickBMPName?.Value || "" }}
+                                                    @if (bmp.TreatmentBMPType?.Value) {
+                                                        ({{ bmp.TreatmentBMPType?.Value }})
                                                     }
-                                                    <icon icon="Info" class="ml-2 view-source" (click)="onViewSource('BMP', bmp.TreatmentBMPName)"></icon>
+                                                    <icon icon="Info" class="ml-2 view-source" (click)="onViewSource('BMP', bmp.QuickBMPName)"></icon>
                                                 </li>
                                             }
                                         </ul>
