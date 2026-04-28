@@ -14,8 +14,11 @@ import { AlertContext } from "src/app/shared/models/enums/alert-context.enum";
 import { WaterQualityManagementPlanService } from "src/app/shared/generated/api/water-quality-management-plan.service";
 import { ParcelService } from "src/app/shared/generated/api/parcel.service";
 import { StormwaterJurisdictionService } from "src/app/shared/generated/api/stormwater-jurisdiction.service";
+import { TreatmentBMPTypeService } from "src/app/shared/generated/api/treatment-bmp-type.service";
 import { WaterQualityManagementPlanExtractionResultDto } from "src/app/shared/generated/model/water-quality-management-plan-extraction-result-dto";
+import { QuickBMPUpsertDto } from "src/app/shared/generated/model/quick-bmp-upsert-dto";
 import { EvidenceBoundingBox, FieldCardComponent, SourceNavigation } from "src/app/pages/wqmps/wqmp-detail/wqmp-review/field-card/field-card.component";
+import { BmpReviewCardComponent } from "src/app/pages/wqmps/wqmp-detail/wqmp-review/bmp-review-card/bmp-review-card.component";
 import { IDeactivateComponent } from "src/app/shared/guards/unsaved-changes.guard";
 import { WaterQualityManagementPlanPrioritiesAsSelectDropdownOptions } from "src/app/shared/generated/enum/water-quality-management-plan-priority-enum";
 import { WaterQualityManagementPlanDevelopmentTypesAsSelectDropdownOptions } from "src/app/shared/generated/enum/water-quality-management-plan-development-type-enum";
@@ -57,7 +60,7 @@ interface DraftOverlayEntry {
 @Component({
     selector: "wqmp-review",
     standalone: true,
-    imports: [AlertDisplayComponent, FieldCardComponent, PdfJsViewerModule, RouterLink, AsyncPipe, DatePipe],
+    imports: [AlertDisplayComponent, FieldCardComponent, BmpReviewCardComponent, PdfJsViewerModule, RouterLink, AsyncPipe, DatePipe],
     templateUrl: "./wqmp-review.component.html",
     styleUrl: "./wqmp-review.component.scss",
 })
@@ -71,6 +74,7 @@ export class WqmpReviewComponent implements OnInit, IDeactivateComponent {
     private wqmpService = inject(WaterQualityManagementPlanService);
     private parcelService = inject(ParcelService);
     private jurisdictionService = inject(StormwaterJurisdictionService);
+    private treatmentBMPTypeService = inject(TreatmentBMPTypeService);
     private alertService = inject(AlertService);
     private confirmService = inject(ConfirmService);
     private viewContainerRef = inject(ViewContainerRef);
@@ -80,6 +84,32 @@ export class WqmpReviewComponent implements OnInit, IDeactivateComponent {
     // working unchanged. Filter by this prefix to distinguish parcels from single-value fields.
     public readonly PARCEL_KEY_PREFIX = "__Parcel__-";
     private userParcelCounter = 0;
+
+    // NPT-1047: Step 3 BMP cards. ExtractedField rows for BMPs use a composite key of the
+    // form `__BMP__-{i}-{attr}` so each (BMP, attribute) pair has a stable identity for
+    // draft persistence. The card-level "reject this BMP" overlay is tracked separately
+    // in `rejectedBmpIndices` because it spans multiple fields.
+    public readonly BMP_KEY_PREFIX = "__BMP__-";
+    public readonly BMP_FIELD_KEYS = [
+        "QuickBMPName",
+        "TreatmentBMPType",
+        "NumberOfIndividualBMPs",
+        "PercentOfSiteTreated",
+        "PercentCaptured",
+        "PercentRetained",
+        "QuickBMPNote",
+    ];
+    private readonly BMP_FIELD_LABELS: Record<string, string> = {
+        QuickBMPName: "Name",
+        TreatmentBMPType: "Type",
+        NumberOfIndividualBMPs: "# of Individual BMPs",
+        PercentOfSiteTreated: "% of Site Treated",
+        PercentCaptured: "% Captured",
+        PercentRetained: "% Retained",
+        QuickBMPNote: "Note",
+    };
+    public rejectedBmpIndices = signal<Set<number>>(new Set());
+    public treatmentBMPTypeOptions = signal<SelectDropdownOption[]>([]);
 
     public FormFieldType = FormFieldType;
     // pageData$ emits on every reload and is the outer gate for the template. It completes
@@ -119,7 +149,7 @@ export class WqmpReviewComponent implements OnInit, IDeactivateComponent {
     public steps = [
         { number: 1, title: "Location", desc: "Jurisdiction & parcels" },
         { number: 2, title: "Basics", desc: "Project details & contacts" },
-        { number: 3, title: "BMPs", desc: "Treatment controls", disabled: true },
+        { number: 3, title: "BMPs", desc: "Treatment controls" },
         { number: 4, title: "Review", desc: "Final review & submit", disabled: true },
     ];
 
@@ -167,9 +197,20 @@ export class WqmpReviewComponent implements OnInit, IDeactivateComponent {
             map((s) => s.map((x) => ({ Label: x.HydrologicSubareaName, Value: x.HydrologicSubareaID }) as SelectDropdownOption)),
             catchError(() => of([] as SelectDropdownOption[]))
         );
+        // NPT-1047: TreatmentBMPType options drive the type dropdown on each BMP card in
+        // Step 3. Loaded once with the other lookups so parseExtractionResult can resolve
+        // extracted type strings to their IDs synchronously.
+        const treatmentBMPTypes$ = this.treatmentBMPTypeService.listTreatmentBMPType().pipe(
+            map((types) => types
+                .filter((t) => t.TreatmentBMPTypeID != null && t.TreatmentBMPTypeName)
+                .map((t) => ({ Label: t.TreatmentBMPTypeName!, Value: t.TreatmentBMPTypeID! }) as SelectDropdownOption)
+                .sort((a, b) => a.Label.localeCompare(b.Label))),
+            catchError(() => of([] as SelectDropdownOption[]))
+        );
 
-        this.pageData$ = forkJoin([jurisdictions$, hydrologicSubareas$]).pipe(
-            tap(([jurisdictions, hydrologicSubareas]) => {
+        this.pageData$ = forkJoin([jurisdictions$, hydrologicSubareas$, treatmentBMPTypes$]).pipe(
+            tap(([jurisdictions, hydrologicSubareas, treatmentBMPTypes]) => {
+                this.treatmentBMPTypeOptions.set(treatmentBMPTypes);
                 this.lookupFieldConfig = {
                     Jurisdiction: { options: jurisdictions, dtoField: "StormwaterJurisdictionID" },
                     HydrologicSubarea: { options: hydrologicSubareas, dtoField: "HydrologicSubareaID" },
@@ -267,7 +308,48 @@ export class WqmpReviewComponent implements OnInit, IDeactivateComponent {
     }
 
     get fieldsForCurrentStep(): ExtractedField[] {
-        return this.fields().filter((f) => f.step === this.currentStep());
+        // Step 3's BMP fields are grouped under bmp-review-card components rather than
+        // rendered flat — exclude them from the top-level field list so the Step 1/2
+        // template path doesn't duplicate them.
+        return this.fields().filter(
+            (f) => f.step === this.currentStep() && !f.key.startsWith(this.BMP_KEY_PREFIX)
+        );
+    }
+
+    /**
+     * NPT-1047: groups BMP fields back into per-BMP cards for Step 3 rendering. Returns
+     * one entry per `__BMP__-{i}` index with the seven attribute fields in the order
+     * declared in `BMP_FIELD_KEYS`. Skipped when not on Step 3.
+     */
+    get bmpGroupsForCurrentStep(): { bmpIndex: number; displayName: string | null; fields: ExtractedField[]; isRejected: boolean }[] {
+        if (this.currentStep() !== 3) return [];
+        const groups = new Map<number, ExtractedField[]>();
+        for (const field of this.fields()) {
+            if (!field.key.startsWith(this.BMP_KEY_PREFIX)) continue;
+            const suffix = field.key.slice(this.BMP_KEY_PREFIX.length);
+            const dashIdx = suffix.indexOf("-");
+            if (dashIdx < 0) continue;
+            const bmpIndex = parseInt(suffix.slice(0, dashIdx), 10);
+            if (!Number.isFinite(bmpIndex)) continue;
+            if (!groups.has(bmpIndex)) groups.set(bmpIndex, []);
+            groups.get(bmpIndex)!.push(field);
+        }
+
+        const rejected = this.rejectedBmpIndices();
+        const orderIndex = (key: string) => {
+            const attr = key.slice(key.lastIndexOf("-") + 1);
+            const idx = this.BMP_FIELD_KEYS.indexOf(attr);
+            return idx < 0 ? this.BMP_FIELD_KEYS.length : idx;
+        };
+
+        return Array.from(groups.entries())
+            .sort(([a], [b]) => a - b)
+            .map(([bmpIndex, fields]) => {
+                fields.sort((a, b) => orderIndex(a.key) - orderIndex(b.key));
+                const nameField = fields.find((f) => f.key.endsWith("-QuickBMPName"));
+                const displayName = (nameField?.acceptedValue ?? nameField?.value) ?? null;
+                return { bmpIndex, displayName, fields, isRejected: rejected.has(bmpIndex) };
+            });
     }
 
     get confirmedCount(): number {
@@ -623,6 +705,45 @@ export class WqmpReviewComponent implements OnInit, IDeactivateComponent {
         this.hasUnsavedChanges.set(true);
     }
 
+    // NPT-1047: BmpReviewCard emits per-field events keyed by string. Bridge them into
+    // the same field-array updates that Step 1/2's per-field cards already drive.
+    onBmpFieldAccepted(payload: { key: string; value: string | null }): void {
+        const field = this.fields().find((f) => f.key === payload.key);
+        if (field) this.onFieldAccepted(field, payload.value);
+    }
+
+    onBmpFieldEdited(payload: { key: string; value: string }): void {
+        const field = this.fields().find((f) => f.key === payload.key);
+        if (field) this.onFieldEdited(field, payload.value);
+    }
+
+    onBmpFieldRejected(payload: { key: string }): void {
+        const field = this.fields().find((f) => f.key === payload.key);
+        if (field) this.onFieldRejected(field);
+    }
+
+    // Card-level rejection — independent of per-field state. Excluded BMPs are dropped
+    // from the approval payload regardless of whether their fields were accepted.
+    onBmpRejected(bmpIndex: number): void {
+        if (this.isApproved()) return;
+        this.rejectedBmpIndices.update((s) => {
+            const next = new Set(s);
+            next.add(bmpIndex);
+            return next;
+        });
+        this.hasUnsavedChanges.set(true);
+    }
+
+    onBmpRestored(bmpIndex: number): void {
+        if (this.isApproved()) return;
+        this.rejectedBmpIndices.update((s) => {
+            const next = new Set(s);
+            next.delete(bmpIndex);
+            return next;
+        });
+        this.hasUnsavedChanges.set(true);
+    }
+
     // Add a blank user-entered parcel row to the Location step. The reviewer edits the APN
     // in the new row's edit form and hits the row's check mark to accept it; the approve-
     // and-apply flow resolves the APN to a ParcelID via POST /parcels/lookup-by-numbers.
@@ -770,7 +891,15 @@ export class WqmpReviewComponent implements OnInit, IDeactivateComponent {
                     }
                 }
 
-                return this.wqmpService.approveExtractionResultWaterQualityManagementPlan(this.waterQualityManagementPlanID, dto).pipe(
+                // NPT-1047: include accepted/edited BMPs (Step 3) in the approval payload
+                // alongside the WQMP root upsert. Card-level rejected BMPs are dropped here.
+                // Re-extracting and re-approving an unchanged set is idempotent because the
+                // backend MergeAsync matches by (WQMPID, QuickBMPName).
+                const approvedQuickBMPs = this.buildApprovedQuickBMPs();
+                return this.wqmpService.approveExtractionResultWaterQualityManagementPlan(
+                    this.waterQualityManagementPlanID,
+                    { WaterQualityManagementPlan: dto, ApprovedQuickBMPs: approvedQuickBMPs }
+                ).pipe(
                     switchMap(() => this.syncAcceptedParcels())
                 );
             })
@@ -855,6 +984,75 @@ export class WqmpReviewComponent implements OnInit, IDeactivateComponent {
         this.router.navigate(["/water-quality-management-plans", this.waterQualityManagementPlanID]);
     }
 
+    /**
+     * NPT-1047: materialize the Step 3 BMP cards into QuickBMPUpsertDto[] for the approval
+     * payload. Drops card-level-rejected BMPs entirely. For each remaining BMP, every
+     * field's `acceptedValue` (when accepted/edited) overrides the AI value; pending /
+     * rejected fields fall back to the original extracted value (or null). The backend
+     * still validates the assembled list and rejects the whole approval if it's invalid.
+     */
+    private buildApprovedQuickBMPs(): QuickBMPUpsertDto[] {
+        const groups = new Map<number, Map<string, ExtractedField>>();
+        for (const field of this.fields()) {
+            if (!field.key.startsWith(this.BMP_KEY_PREFIX)) continue;
+            const suffix = field.key.slice(this.BMP_KEY_PREFIX.length);
+            const dashIdx = suffix.indexOf("-");
+            if (dashIdx < 0) continue;
+            const bmpIndex = parseInt(suffix.slice(0, dashIdx), 10);
+            const attr = suffix.slice(dashIdx + 1);
+            if (!Number.isFinite(bmpIndex)) continue;
+            if (!groups.has(bmpIndex)) groups.set(bmpIndex, new Map());
+            groups.get(bmpIndex)!.set(attr, field);
+        }
+
+        const rejected = this.rejectedBmpIndices();
+        const result: QuickBMPUpsertDto[] = [];
+        const valueOf = (f: ExtractedField | undefined): string | null => {
+            if (!f) return null;
+            // A per-field reject means the reviewer wants this attribute blank, even if
+            // the AI extracted a value. Pending falls back to the AI value so cards the
+            // reviewer didn't touch still carry the extraction through.
+            if (f.state === "rejected") return null;
+            return (f.acceptedValue ?? f.value) ?? null;
+        };
+        const numericOf = (s: string | null): number | null => {
+            if (s == null || s === "") return null;
+            const n = Number(s);
+            return Number.isFinite(n) ? n : null;
+        };
+
+        for (const [bmpIndex, attrMap] of Array.from(groups.entries()).sort(([a], [b]) => a - b)) {
+            if (rejected.has(bmpIndex)) continue;
+
+            const name = valueOf(attrMap.get("QuickBMPName"));
+            const typeIDStr = valueOf(attrMap.get("TreatmentBMPType"));
+            const typeID = typeIDStr != null ? Number(typeIDStr) : null;
+            const count = numericOf(valueOf(attrMap.get("NumberOfIndividualBMPs"))) ?? 1;
+
+            // Skip phantom rows where the reviewer rejected the name and didn't supply
+            // a replacement — there's nothing to merge against on the backend.
+            if (!name) continue;
+
+            result.push({
+                QuickBMPName: name,
+                TreatmentBMPTypeID: Number.isFinite(typeID as number) ? (typeID as number) : null,
+                NumberOfIndividualBMPs: count,
+                PercentOfSiteTreated: numericOf(valueOf(attrMap.get("PercentOfSiteTreated"))),
+                PercentCaptured: numericOf(valueOf(attrMap.get("PercentCaptured"))),
+                PercentRetained: numericOf(valueOf(attrMap.get("PercentRetained"))),
+                QuickBMPNote: valueOf(attrMap.get("QuickBMPNote")),
+                DryWeatherFlowOverrideID: null,
+            });
+        }
+
+        return result;
+    }
+
+    // Special draft-overlay key carrying the set of BMP card indices the reviewer
+    // rejected at the card level (NPT-1047). Stored as a JSON array of numbers under a
+    // reserved key so it round-trips through the same string-map shape Step 1/2 uses.
+    private readonly REJECTED_BMPS_OVERLAY_KEY = "__BMP_REJECTIONS__";
+
     private buildDraftOverlayJson(): string {
         const overlay: Record<string, DraftOverlayEntry> = {};
         for (const field of this.fields()) {
@@ -865,6 +1063,15 @@ export class WqmpReviewComponent implements OnInit, IDeactivateComponent {
                 overlay[field.key] = { state: field.state, value: field.acceptedValue ?? null };
             }
         }
+        const rejectedBmps = Array.from(this.rejectedBmpIndices()).sort((a, b) => a - b);
+        if (rejectedBmps.length > 0) {
+            // `state: "rejected"` is a no-op for this synthetic entry — the array of indices
+            // travels in `value` as a JSON-encoded string. applyDraftOverlay decodes it.
+            overlay[this.REJECTED_BMPS_OVERLAY_KEY] = {
+                state: "rejected",
+                value: JSON.stringify(rejectedBmps),
+            };
+        }
         return JSON.stringify(overlay);
     }
 
@@ -872,6 +1079,24 @@ export class WqmpReviewComponent implements OnInit, IDeactivateComponent {
         if (!overlayJson) return;
         try {
             const overlay = JSON.parse(overlayJson) as Record<string, DraftOverlayEntry>;
+
+            // NPT-1047: pull the rejected-BMP indices off first so they don't get treated
+            // as a phantom field key during the per-field overlay pass below.
+            const rejectedBmpsEntry = overlay[this.REJECTED_BMPS_OVERLAY_KEY];
+            if (rejectedBmpsEntry?.value) {
+                try {
+                    const indices = JSON.parse(rejectedBmpsEntry.value) as unknown;
+                    if (Array.isArray(indices)) {
+                        this.rejectedBmpIndices.set(new Set(indices.filter((n) => typeof n === "number")));
+                    }
+                } catch {
+                    /* malformed — ignore */
+                }
+                delete overlay[this.REJECTED_BMPS_OVERLAY_KEY];
+            } else {
+                this.rejectedBmpIndices.set(new Set());
+            }
+
             const existingKeys = new Set(this.fields().map((f) => f.key));
 
             // User-added parcels live only in the overlay (parse doesn't recreate them from
@@ -931,6 +1156,11 @@ export class WqmpReviewComponent implements OnInit, IDeactivateComponent {
     }
 
     private parseExtractionResult(json: string): void {
+        // Reset BMP rejection state on every parse so re-extracting (which discards the
+        // draft) doesn't leak stale rejections from the previous extraction. applyDraftOverlay
+        // restores rejections from the saved overlay if there is one.
+        this.rejectedBmpIndices.set(new Set());
+
         try {
             const parsed = JSON.parse(json);
             const wqmp = parsed.WQMP || {};
@@ -954,6 +1184,48 @@ export class WqmpReviewComponent implements OnInit, IDeactivateComponent {
                     const field = this.makeField(`${this.PARCEL_KEY_PREFIX}${i}`, extracted, 1);
                     field.label = `Parcel ${i + 1} (APN)`;
                     allFields.push(field);
+                });
+            }
+
+            // NPT-1047 Step 3: each entry in `QuickBMPs` is { QuickBMPName: ExtractedValue,
+            // TreatmentBMPType: ExtractedValue, ...7 attributes }. Emit one field per
+            // (BMP, attribute) keyed `__BMP__-{i}-{attr}`, step=3. The bmp-review-card
+            // component groups them back into per-BMP cards via bmpGroupsForCurrentStep.
+            const bmpArr = parsed.QuickBMPs;
+            if (Array.isArray(bmpArr)) {
+                const bmpTypeOptions = this.treatmentBMPTypeOptions();
+                bmpArr.forEach((bmp: any, i: number) => {
+                    if (!bmp) return;
+                    for (const attr of this.BMP_FIELD_KEYS) {
+                        const extracted = bmp[attr];
+                        const key = `${this.BMP_KEY_PREFIX}${i}-${attr}`;
+                        const field = this.makeField(key, extracted, 3);
+                        field.label = this.BMP_FIELD_LABELS[attr] ?? attr;
+
+                        // Type field: Select dropdown of TreatmentBMPType IDs. Pre-resolve
+                        // the extracted name string to a TreatmentBMPTypeID via case-insensitive
+                        // match; staff confirms or corrects via dropdown if no match.
+                        if (attr === "TreatmentBMPType") {
+                            field.fieldType = FormFieldType.Select;
+                            field.selectOptions = bmpTypeOptions;
+                            const rawName = extracted?.Value as string | null | undefined;
+                            if (rawName) {
+                                const match = bmpTypeOptions.find(
+                                    (o) => o.Label.toLowerCase() === rawName.toLowerCase()
+                                );
+                                field.value = match ? String(match.Value) : null;
+                            }
+                        } else if (
+                            attr === "NumberOfIndividualBMPs" ||
+                            attr === "PercentOfSiteTreated" ||
+                            attr === "PercentCaptured" ||
+                            attr === "PercentRetained"
+                        ) {
+                            field.fieldType = FormFieldType.Number;
+                        }
+
+                        allFields.push(field);
+                    }
                 });
             }
 

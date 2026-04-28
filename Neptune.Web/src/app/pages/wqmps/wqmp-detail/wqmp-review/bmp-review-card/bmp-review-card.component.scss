@@ -1,0 +1,94 @@
+@use "/src/scss/abstracts" as *;
+
+.bmp-card {
+    border: 1px solid $gray-300;
+    border-radius: $border-radius-300;
+    padding: 0.75rem 0.85rem;
+    margin-bottom: 1rem;
+    background-color: white;
+
+    &--rejected {
+        border-color: $danger;
+        background-color: rgba(220, 53, 69, 0.04);
+        opacity: 0.75;
+    }
+
+    &--read-only {
+        background-color: $gray-100;
+    }
+
+    &__header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 0.5rem;
+        padding-bottom: 0.4rem;
+        border-bottom: 1px solid $gray-200;
+    }
+
+    &__label {
+        font-weight: 600;
+        font-size: $type-size-300;
+        color: $gray-700;
+        display: flex;
+        align-items: center;
+        gap: 0.45rem;
+
+        i {
+            color: $primary;
+        }
+    }
+
+    &__actions {
+        display: flex;
+        gap: 0.5rem;
+    }
+
+    &__btn {
+        border: 1px solid transparent;
+        background: none;
+        padding: 0.25rem 0.55rem;
+        border-radius: $border-radius-200;
+        cursor: pointer;
+        font-size: $type-size-100;
+        font-weight: 500;
+        display: inline-flex;
+        align-items: center;
+        gap: 0.3rem;
+
+        &--reject {
+            color: $danger;
+            border-color: rgba(220, 53, 69, 0.4);
+
+            &:hover {
+                background: rgba(220, 53, 69, 0.08);
+                border-color: $danger;
+            }
+        }
+
+        &--restore {
+            color: $primary;
+            border-color: rgba(0, 153, 171, 0.4);
+
+            &:hover {
+                background: rgba(0, 153, 171, 0.08);
+                border-color: $primary;
+            }
+        }
+    }
+
+    &__rejected-banner {
+        background: rgba(220, 53, 69, 0.08);
+        color: $danger;
+        font-size: $type-size-200;
+        padding: 0.4rem 0.6rem;
+        border-radius: $border-radius-200;
+        margin-bottom: 0.5rem;
+    }
+
+    &__fields {
+        display: flex;
+        flex-direction: column;
+        gap: 0.4rem;
+    }
+}
