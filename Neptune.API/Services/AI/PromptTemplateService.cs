@@ -16,12 +16,23 @@ public enum PromptTemplate
 
 public interface IPromptTemplateService
 {
-    string Render(PromptTemplate template, object model, string version = "v1");
-    string? GetRawTemplate(PromptTemplate template, string version = "v1");
+    string Render(PromptTemplate template, object model, string? version = null);
+    string? GetRawTemplate(PromptTemplate template, string? version = null);
 }
 
 public sealed class PromptTemplateService : IPromptTemplateService
 {
+    // Active prompt version per template. Templates not listed here default to "v1".
+    // Bump an entry here (and add the corresponding _vN.md file) to roll out a new prompt;
+    // callers can still pass an explicit version to override for A/B testing.
+    private static readonly Dictionary<PromptTemplate, string> ActiveVersion = new()
+    {
+        [PromptTemplate.ExtractWqmpFields] = "v2",
+        [PromptTemplate.ExtractParcels] = "v2",
+        [PromptTemplate.ExtractQuickBMPs] = "v3",
+        [PromptTemplate.ExtractSourceControlBMPs] = "v2",
+    };
+
     private readonly string _promptsDirectory;
     private readonly ConcurrentDictionary<string, string> _templateCache = new();
     private static readonly Regex PlaceholderRegex = new(@"\{\{(\w+)\}\}", RegexOptions.Compiled);
@@ -32,8 +43,9 @@ public sealed class PromptTemplateService : IPromptTemplateService
             ?? Path.Combine(AppContext.BaseDirectory, "Services", "AI", "Prompts");
     }
 
-    public string Render(PromptTemplate template, object model, string version = "v1")
+    public string Render(PromptTemplate template, object model, string? version = null)
     {
+        version ??= ActiveVersion.GetValueOrDefault(template, "v1");
         var templateContent = GetRawTemplate(template, version)
             ?? throw new InvalidOperationException($"Prompt template '{template}_{version}' not found at {_promptsDirectory}.");
 
@@ -45,8 +57,9 @@ public sealed class PromptTemplateService : IPromptTemplateService
         });
     }
 
-    public string? GetRawTemplate(PromptTemplate template, string version = "v1")
+    public string? GetRawTemplate(PromptTemplate template, string? version = null)
     {
+        version ??= ActiveVersion.GetValueOrDefault(template, "v1");
         var cacheKey = $"{template}_{version}";
         var result = _templateCache.GetOrAdd(cacheKey, _ => LoadTemplate(template.ToString(), version));
         return string.IsNullOrEmpty(result) ? null : result;
