@@ -27,7 +27,10 @@ public sealed class PromptTemplateService : IPromptTemplateService
     // callers can still pass an explicit version to override for A/B testing.
     private static readonly Dictionary<PromptTemplate, string> ActiveVersion = new()
     {
+        [PromptTemplate.ExtractWqmpFields] = "v2",
+        [PromptTemplate.ExtractParcels] = "v2",
         [PromptTemplate.ExtractQuickBMPs] = "v3",
+        [PromptTemplate.ExtractSourceControlBMPs] = "v2",
     };
 
     private readonly string _promptsDirectory;
