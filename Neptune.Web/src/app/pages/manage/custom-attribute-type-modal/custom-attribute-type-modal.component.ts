@@ -50,12 +50,23 @@ export class CustomAttributeTypeModalComponent implements OnInit {
 
     public optionsList = signal<string[]>([]);
     public newOptionText = signal("");
-    public bmpTypeNames = signal<string[]>([]);
+    // NPT-1038: inline-edit support for PickFromList/MultiSelect option text. Tracks
+    // which option row is currently being edited (or null when nothing is edited).
+    public editingOptionIndex = signal<number | null>(null);
 
     ngOnInit(): void {
         this.alertService.clearAlerts();
         this.mode = this.ref.data.mode;
         this.isEdit = this.mode === "edit";
+
+        // NPT-1038 rework: hide the Modeling purpose on create. Modeling-purpose
+        // attributes are system-managed, and the backend ValidateForCreate also
+        // rejects them — this is the friendlier UI gate.
+        if (!this.isEdit) {
+            this.purposeOptions = CustomAttributeTypePurposesAsSelectDropdownOptions.filter(
+                (o) => (o.Value as number) !== CustomAttributeTypePurposeEnum.Modeling
+            );
+        }
 
         if (this.isEdit && this.ref.data.customAttributeType) {
             const cat = this.ref.data.customAttributeType;
@@ -68,11 +79,6 @@ export class CustomAttributeTypeModalComponent implements OnInit {
                 CustomAttributeTypeDescription: cat.CustomAttributeTypeDescription,
                 CustomAttributeTypeDefaultValue: cat.CustomAttributeTypeDefaultValue,
             });
-
-            // Show related BMP types
-            if (cat.TreatmentBMPTypeNames?.length) {
-                this.bmpTypeNames.set(cat.TreatmentBMPTypeNames);
-            }
 
             // Parse existing options schema
             if (cat.CustomAttributeTypeOptionsSchema) {
@@ -121,6 +127,37 @@ export class CustomAttributeTypeModalComponent implements OnInit {
 
     removeOption(index: number): void {
         this.optionsList.update((list) => list.filter((_, i) => i !== index));
+        if (this.editingOptionIndex() === index) {
+            this.editingOptionIndex.set(null);
+        }
+    }
+
+    // NPT-1038 rework: enter edit-in-place for the option at `index`. Mutually
+    // exclusive — only one option can be edited at a time.
+    startEditOption(index: number): void {
+        this.editingOptionIndex.set(index);
+    }
+
+    // Persist the edited text back into the options array. No-ops if the new value
+    // is empty (treat as cancel) or duplicates another option (silent reject —
+    // the UI already shows the current text in the input so the user sees their typo).
+    saveOptionEdit(index: number, newText: string): void {
+        const trimmed = (newText ?? "").trim();
+        if (!trimmed) {
+            this.editingOptionIndex.set(null);
+            return;
+        }
+        const current = this.optionsList();
+        if (current.some((opt, i) => i !== index && opt === trimmed)) {
+            this.editingOptionIndex.set(null);
+            return;
+        }
+        this.optionsList.update((list) => list.map((opt, i) => (i === index ? trimmed : opt)));
+        this.editingOptionIndex.set(null);
+    }
+
+    cancelOptionEdit(): void {
+        this.editingOptionIndex.set(null);
     }
 
     save(): void {

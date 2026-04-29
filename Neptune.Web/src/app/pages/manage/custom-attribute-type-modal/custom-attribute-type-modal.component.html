@@ -40,14 +40,32 @@
 
         @if (showOptionsEditor) {
             <h4 class="mt-3">Options</h4>
-            <p class="system-text">Add the available options for this pick-list or multi-select attribute.</p>
+            <p class="system-text">Add the available options for this pick-list or multi-select attribute. Click an option to edit its text.</p>
             <div class="options-editor">
                 @for (option of optionsList(); track $index) {
                     <div class="options-editor__item">
-                        <span>{{ option }}</span>
-                        <button type="button" class="btn btn-sm btn-danger-outline" (click)="removeOption($index)">
-                            <i class="fa fa-trash"></i>
-                        </button>
+                        @if (editingOptionIndex() === $index) {
+                            <!-- NPT-1038 rework: inline-edit affordance. Replaces the prior delete-and-re-add
+                                 dance for fixing typos. Enter saves, Escape cancels. -->
+                            <input #editInput type="text" class="form-control form-control-sm options-editor__edit-input"
+                                [value]="option"
+                                (keydown.enter)="saveOptionEdit($index, editInput.value); $event.preventDefault()"
+                                (keydown.escape)="cancelOptionEdit(); $event.preventDefault()">
+                            <button type="button" class="btn btn-sm btn-primary" (click)="saveOptionEdit($index, editInput.value)" title="Save">
+                                <i class="fa fa-check"></i>
+                            </button>
+                            <button type="button" class="btn btn-sm btn-secondary-outline" (click)="cancelOptionEdit()" title="Cancel">
+                                <i class="fa fa-times"></i>
+                            </button>
+                        } @else {
+                            <span class="options-editor__text" (click)="startEditOption($index)" title="Click to edit">{{ option }}</span>
+                            <button type="button" class="btn btn-sm btn-secondary-outline" (click)="startEditOption($index)" title="Edit">
+                                <i class="fa fa-pencil"></i>
+                            </button>
+                            <button type="button" class="btn btn-sm btn-danger-outline" (click)="removeOption($index)" title="Delete">
+                                <i class="fa fa-trash"></i>
+                            </button>
+                        }
                     </div>
                 }
                 <div class="options-editor__add">
@@ -61,14 +79,9 @@
             </div>
         }
 
-        @if (isEdit && bmpTypeNames().length) {
-            <h4 class="mt-3">Used by Treatment BMP Types</h4>
-            <ul>
-                @for (name of bmpTypeNames(); track $index) {
-                    <li>{{ name }}</li>
-                }
-            </ul>
-        }
+        <!-- NPT-1038 rework: "Used by Treatment BMP Types" moved out of this modal
+             to the dedicated /manage/custom-attributes/:id detail page so the modal
+             stays focused on edit. -->
     </form>
 </div>
 <div class="modal-footer">
