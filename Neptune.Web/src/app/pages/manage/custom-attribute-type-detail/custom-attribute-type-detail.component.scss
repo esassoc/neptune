@@ -1,0 +1,6 @@
+@use "/src/scss/abstracts" as *;
+
+// Match the spacing pattern from other detail pages (e.g. verification-detail).
+:host {
+    display: block;
+}

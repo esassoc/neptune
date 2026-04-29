@@ -565,6 +565,11 @@ export const routes: Routes = [
                 loadComponent: () => import("./pages/manage/custom-attributes.component").then((m) => m.CustomAttributesComponent),
             },
             {
+                path: "manage/custom-attributes/:customAttributeTypeID",
+                title: "Custom Attribute Type Detail",
+                loadComponent: () => import("./pages/manage/custom-attribute-type-detail/custom-attribute-type-detail.component").then((m) => m.CustomAttributeTypeDetailComponent),
+            },
+            {
                 path: "manage/observation-types",
                 title: "Observation Types",
                 loadComponent: () => import("./pages/manage/observation-types-manage.component").then((m) => m.ObservationTypesManageComponent),
