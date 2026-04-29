@@ -19,9 +19,14 @@ public static class WqmpExtractionFieldApplier
 {
     public sealed class UnknownFieldKeyException(string fieldKey) : Exception($"Unknown FieldKey '{fieldKey}'.");
 
+    public sealed class UnknownActionException(string action) : Exception($"Unknown Action '{action}'. Expected one of: accept, edit, reject.");
+
     public sealed class FieldNotRejectableException(string fieldKey) : Exception($"Field '{fieldKey}' is required and cannot be cleared via the AI workflow.");
 
     public sealed class InvalidFieldValueException(string fieldKey, string raw) : Exception($"Field '{fieldKey}' could not parse value '{raw}'.");
+
+    /// <summary>Set of actions the per-field endpoint is allowed to apply.</summary>
+    public static readonly IReadOnlySet<string> AllowedActions = new HashSet<string>(StringComparer.OrdinalIgnoreCase) { "accept", "edit", "reject" };
 
     private delegate void Applier(WaterQualityManagementPlan wqmp, string? rawValue, bool isReject);
 
@@ -78,6 +83,13 @@ public static class WqmpExtractionFieldApplier
         if (!FieldAppliers.TryGetValue(fieldKey, out var applier))
         {
             throw new UnknownFieldKeyException(fieldKey);
+        }
+        // Defense in depth: the controller validates Action up front, but reject this
+        // here too so a future caller can't silently coerce "approve" / "" / null into
+        // a non-reject write while diverging the overlay state string.
+        if (string.IsNullOrEmpty(action) || !AllowedActions.Contains(action))
+        {
+            throw new UnknownActionException(action ?? "");
         }
 
         var isReject = string.Equals(action, "reject", StringComparison.OrdinalIgnoreCase);

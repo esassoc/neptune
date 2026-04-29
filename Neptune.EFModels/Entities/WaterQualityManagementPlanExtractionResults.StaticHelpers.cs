@@ -43,9 +43,11 @@ public static class WaterQualityManagementPlanExtractionResults
         // Parse the existing overlay (or start fresh) and upsert the field's entry.
         // Uses System.Text.Json.Nodes for tolerant in-place mutation — overlay shape:
         //   { "Jurisdiction": { "state": "accepted", "value": "37" }, ... }
-        var overlay = string.IsNullOrWhiteSpace(entity.DraftOverlayJson)
-            ? new JsonObject()
-            : JsonNode.Parse(entity.DraftOverlayJson) as JsonObject ?? new JsonObject();
+        // A malformed overlay (legacy bad data, partial write, etc.) collapses to a
+        // fresh object so a single corrupt row can't turn every per-field call into a
+        // 500. Worst case: prior status entries are lost — far better than blocking
+        // the workflow.
+        var overlay = ParseOverlayOrEmpty(entity.DraftOverlayJson);
 
         var entry = new JsonObject { ["state"] = state };
         if (state != "rejected")
@@ -64,6 +66,19 @@ public static class WaterQualityManagementPlanExtractionResults
         await dbContext.WaterQualityManagementPlanExtractionResults
             .Where(x => x.WaterQualityManagementPlanID == waterQualityManagementPlanID)
             .ExecuteDeleteAsync();
+    }
+
+    private static JsonObject ParseOverlayOrEmpty(string? draftOverlayJson)
+    {
+        if (string.IsNullOrWhiteSpace(draftOverlayJson)) return new JsonObject();
+        try
+        {
+            return JsonNode.Parse(draftOverlayJson) as JsonObject ?? new JsonObject();
+        }
+        catch (JsonException)
+        {
+            return new JsonObject();
+        }
     }
 
     public static async Task MarkApprovedAsync(NeptuneDbContext dbContext, int waterQualityManagementPlanID, int personID)

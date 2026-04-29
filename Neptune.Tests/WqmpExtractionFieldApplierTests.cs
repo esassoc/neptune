@@ -115,6 +115,25 @@ namespace Neptune.Tests
         }
 
         [TestMethod]
+        public void Apply_UnknownAction_Throws()
+        {
+            // Defense-in-depth — even if a future caller bypasses the controller's action
+            // validation, the applier rejects unknown actions so the overlay state string
+            // can't diverge from a successful entity write.
+            var wqmp = NewWqmp();
+            Assert.Throws<WqmpExtractionFieldApplier.UnknownActionException>(() =>
+                WqmpExtractionFieldApplier.Apply(wqmp, "MaintenanceContactZip", "92626", "approve"));
+        }
+
+        [TestMethod]
+        public void Apply_EmptyAction_Throws()
+        {
+            var wqmp = NewWqmp();
+            Assert.Throws<WqmpExtractionFieldApplier.UnknownActionException>(() =>
+                WqmpExtractionFieldApplier.Apply(wqmp, "MaintenanceContactZip", "92626", ""));
+        }
+
+        [TestMethod]
         public void IsKnownFieldKey_KnownAndUnknown()
         {
             Assert.IsTrue(WqmpExtractionFieldApplier.IsKnownFieldKey("Jurisdiction"));

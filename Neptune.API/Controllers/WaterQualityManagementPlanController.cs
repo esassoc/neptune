@@ -611,6 +611,10 @@ namespace Neptune.API.Controllers
             {
                 return BadRequest($"Unknown FieldKey '{dto.FieldKey}'.");
             }
+            if (!WqmpExtractionFieldApplier.AllowedActions.Contains(dto.Action))
+            {
+                return BadRequest($"Unknown Action '{dto.Action}'. Expected one of: accept, edit, reject.");
+            }
 
             var wqmp = WaterQualityManagementPlans.GetByIDWithChangeTracking(DbContext, waterQualityManagementPlanID);
             if (wqmp == null) return NotFound();
@@ -622,6 +626,7 @@ namespace Neptune.API.Controllers
                     DbContext, waterQualityManagementPlanID, dto.FieldKey, NormalizeState(dto.Action), dto.Value, CallingUser.PersonID);
                 await DbContext.SaveChangesAsync();
             }
+            catch (WqmpExtractionFieldApplier.UnknownActionException ex) { return BadRequest(ex.Message); }
             catch (WqmpExtractionFieldApplier.FieldNotRejectableException ex) { return BadRequest(ex.Message); }
             catch (WqmpExtractionFieldApplier.InvalidFieldValueException ex) { return BadRequest(ex.Message); }
             catch (InvalidOperationException ex) { return BadRequest(ex.Message); }
@@ -643,6 +648,10 @@ namespace Neptune.API.Controllers
             if (string.IsNullOrEmpty(dto?.ParcelKey) || string.IsNullOrEmpty(dto?.Action))
             {
                 return BadRequest("ParcelKey and Action are required.");
+            }
+            if (!WqmpExtractionFieldApplier.AllowedActions.Contains(dto.Action))
+            {
+                return BadRequest($"Unknown Action '{dto.Action}'. Expected one of: accept, edit, reject.");
             }
 
             var isReject = string.Equals(dto.Action, "reject", StringComparison.OrdinalIgnoreCase);
@@ -668,32 +677,48 @@ namespace Neptune.API.Controllers
 
             // Build the post-action parcel set. Accept/edit ensures the ParcelID is present;
             // reject removes the parcel that the SPA was tracking under this ParcelKey, so we
-            // need the prior status entry to know which ID to drop. Read it from DraftOverlayJson.
+            // need the prior status entry to know which APN to drop. Read it from DraftOverlayJson
+            // and re-resolve to a ParcelID at reject time — keeps the overlay shape APN-only,
+            // matching what the SPA's applyDraftOverlay rehydration expects.
             var nextSet = existingParcelIDs.ToHashSet();
             if (parcelID.HasValue)
             {
                 nextSet.Add(parcelID.Value);
             }
-
-            // For reject, look up which ParcelID was previously associated with this ParcelKey
-            // (stored when the user accepted it) and remove it. If not found, no-op.
             if (isReject)
             {
-                var priorParcelID = await GetPriorParcelIDForKeyAsync(waterQualityManagementPlanID, dto.ParcelKey);
-                if (priorParcelID.HasValue)
+                var priorApn = await GetPriorParcelApnForKeyAsync(waterQualityManagementPlanID, dto.ParcelKey);
+                if (!string.IsNullOrWhiteSpace(priorApn))
                 {
-                    nextSet.Remove(priorParcelID.Value);
+                    var priorLookup = Parcels.LookupByParcelNumbers(DbContext, new List<string> { priorApn }).FirstOrDefault();
+                    if (priorLookup?.ParcelID != null)
+                    {
+                        nextSet.Remove(priorLookup.ParcelID.Value);
+                    }
                 }
             }
 
-            await WaterQualityManagementPlanParcels.UpdateParcelsAndRecomputeBoundary(DbContext, waterQualityManagementPlanID, nextSet.ToList());
+            // Wrap parcel update + status write in one transaction. UpdateParcelsAndRecomputeBoundary
+            // calls SaveChangesAsync internally, so without a transaction a malformed overlay JSON in
+            // SetFieldStatusAsync would commit the parcel change but leave the status tracker stale.
+            await using var transaction = await DbContext.Database.BeginTransactionAsync();
+            try
+            {
+                await WaterQualityManagementPlanParcels.UpdateParcelsAndRecomputeBoundary(DbContext, waterQualityManagementPlanID, nextSet.ToList());
 
-            // Record per-card status. Value carries either the resolved ParcelID (so future
-            // rejects can find what to remove) or null when rejected.
-            await WaterQualityManagementPlanExtractionResults.SetFieldStatusAsync(
-                DbContext, waterQualityManagementPlanID, dto.ParcelKey, NormalizeState(dto.Action),
-                isReject ? null : parcelID?.ToString(), CallingUser.PersonID);
-            await DbContext.SaveChangesAsync();
+                // Store the APN (not the resolved ParcelID) — the SPA's applyDraftOverlay reads
+                // entry.value as the APN string when rehydrating user-added parcel rows on reload.
+                await WaterQualityManagementPlanExtractionResults.SetFieldStatusAsync(
+                    DbContext, waterQualityManagementPlanID, dto.ParcelKey, NormalizeState(dto.Action),
+                    isReject ? null : apn, CallingUser.PersonID);
+                await DbContext.SaveChangesAsync();
+                await transaction.CommitAsync();
+            }
+            catch
+            {
+                await transaction.RollbackAsync();
+                throw;
+            }
             return NoContent();
         }
 
@@ -711,10 +736,23 @@ namespace Neptune.API.Controllers
             {
                 return BadRequest("BmpIndex and Action are required.");
             }
+            if (!WqmpExtractionFieldApplier.AllowedActions.Contains(dto.Action))
+            {
+                return BadRequest($"Unknown Action '{dto.Action}'. Expected one of: accept, edit, reject.");
+            }
 
             var bmpKey = $"__BMP__-{dto.BmpIndex}";
             var isReject = string.Equals(dto.Action, "reject", StringComparison.OrdinalIgnoreCase);
+            if (!isReject && dto.QuickBMPUpsert == null)
+            {
+                return BadRequest("QuickBMPUpsert is required on accept/edit.");
+            }
 
+            // Wrap BMP write + status write in one transaction. UpsertSingleAsync /
+            // DeleteByNameAsync save internally, so the outer transaction is what keeps
+            // the live QuickBMP row and the status tracker in lockstep on a malformed
+            // overlay or any other late failure.
+            await using var transaction = await DbContext.Database.BeginTransactionAsync();
             try
             {
                 if (isReject)
@@ -727,22 +765,25 @@ namespace Neptune.API.Controllers
                 }
                 else
                 {
-                    if (dto.QuickBMPUpsert == null)
-                    {
-                        return BadRequest("QuickBMPUpsert is required on accept/edit.");
-                    }
-                    await QuickBMPs.UpsertSingleAsync(DbContext, waterQualityManagementPlanID, dto.QuickBMPUpsert);
+                    await QuickBMPs.UpsertSingleAsync(DbContext, waterQualityManagementPlanID, dto.QuickBMPUpsert!);
                 }
+
+                await WaterQualityManagementPlanExtractionResults.SetFieldStatusAsync(
+                    DbContext, waterQualityManagementPlanID, bmpKey, NormalizeState(dto.Action),
+                    isReject ? null : dto.QuickBMPUpsert?.QuickBMPName, CallingUser.PersonID);
+                await DbContext.SaveChangesAsync();
+                await transaction.CommitAsync();
             }
             catch (InvalidOperationException ex)
             {
+                await transaction.RollbackAsync();
                 return BadRequest(ex.Message);
             }
-
-            await WaterQualityManagementPlanExtractionResults.SetFieldStatusAsync(
-                DbContext, waterQualityManagementPlanID, bmpKey, NormalizeState(dto.Action),
-                isReject ? null : dto.QuickBMPUpsert?.QuickBMPName, CallingUser.PersonID);
-            await DbContext.SaveChangesAsync();
+            catch
+            {
+                await transaction.RollbackAsync();
+                throw;
+            }
             return NoContent();
         }
 
@@ -757,7 +798,7 @@ namespace Neptune.API.Controllers
             };
         }
 
-        private async Task<int?> GetPriorParcelIDForKeyAsync(int waterQualityManagementPlanID, string parcelKey)
+        private async Task<string?> GetPriorParcelApnForKeyAsync(int waterQualityManagementPlanID, string parcelKey)
         {
             var existing = await WaterQualityManagementPlanExtractionResults.GetByWqmpIDAsync(DbContext, waterQualityManagementPlanID);
             if (existing?.DraftOverlayJson == null) return null;
@@ -766,10 +807,9 @@ namespace Neptune.API.Controllers
                 using var doc = System.Text.Json.JsonDocument.Parse(existing.DraftOverlayJson);
                 if (doc.RootElement.TryGetProperty(parcelKey, out var entry) &&
                     entry.TryGetProperty("value", out var valueProp) &&
-                    valueProp.ValueKind == System.Text.Json.JsonValueKind.String &&
-                    int.TryParse(valueProp.GetString(), out var id))
+                    valueProp.ValueKind == System.Text.Json.JsonValueKind.String)
                 {
-                    return id;
+                    return valueProp.GetString();
                 }
             }
             catch (System.Text.Json.JsonException) { /* malformed overlay — treat as no prior */ }

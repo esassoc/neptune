@@ -794,10 +794,14 @@ export class WqmpReviewComponent implements OnInit, IDeactivateComponent {
                     field.state = previousState;
                     field.acceptedValue = previousValue;
                     this.fields.update((f) => [...f]);
-                    const msg = err.status === 400 && typeof err.error === "string"
+                    // The alert component renders message via [innerHTML], so the
+                    // server's 400 body must be HTML-escaped before display —
+                    // InvalidFieldValueException echoes the raw user value into the
+                    // message and that value is untrusted.
+                    const raw = err.status === 400 && typeof err.error === "string"
                         ? err.error
                         : `Failed to save ${field.label}.`;
-                    this.alertService.pushAlert(new Alert(msg, AlertContext.Danger));
+                    this.alertService.pushAlert(new Alert(this.escapeHtml(raw), AlertContext.Danger));
                 },
             });
     }
