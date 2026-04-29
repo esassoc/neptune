@@ -22,6 +22,8 @@ import { SimplifiedBmpsStepComponent } from "src/app/pages/wqmps/wqmp-detail/ver
 import { SourceControlStepComponent, SourceControlRow } from "src/app/pages/wqmps/wqmp-detail/verification-wizard/steps/source-control-step.component";
 import { ReviewStepComponent } from "src/app/pages/wqmps/wqmp-detail/verification-wizard/steps/review-step.component";
 import { WorkflowBodyComponent } from "src/app/shared/components/workflow-body/workflow-body.component";
+import { WorkflowNavComponent } from "src/app/shared/components/workflow-nav/workflow-nav.component";
+import { IconComponent } from "src/app/shared/components/icon/icon.component";
 import { NeptunePageTypeEnum } from "src/app/shared/generated/enum/neptune-page-type-enum";
 
 @Component({
@@ -29,6 +31,7 @@ import { NeptunePageTypeEnum } from "src/app/shared/generated/enum/neptune-page-
     standalone: true,
     imports: [
         PageHeaderComponent, AlertDisplayComponent, WorkflowBodyComponent,
+        WorkflowNavComponent, IconComponent,
         VerificationBasicsStepComponent, StructuralBmpsStepComponent,
         SimplifiedBmpsStepComponent, SourceControlStepComponent, ReviewStepComponent,
         RouterLink, AsyncPipe, DatePipe,
@@ -296,16 +299,4 @@ export class VerificationWizardComponent implements OnInit {
         });
     }
 
-    deleteVerification(): void {
-        if (!confirm("Are you sure you want to delete this verification?")) return;
-        this.wqmpService.deleteVerificationWaterQualityManagementPlan(this.waterQualityManagementPlanID, this.waterQualityManagementPlanVerifyID).subscribe({
-            next: () => {
-                this.alertService.pushAlert(new Alert("Verification deleted.", AlertContext.Success));
-                this.router.navigate(["/water-quality-management-plans", this.waterQualityManagementPlanID]);
-            },
-            error: () => {
-                this.alertService.pushAlert(new Alert("An error occurred while deleting.", AlertContext.Danger));
-            },
-        });
-    }
 }

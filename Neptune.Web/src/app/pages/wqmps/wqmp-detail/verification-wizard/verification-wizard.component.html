@@ -37,23 +37,35 @@
                         <dd>{{ verificationDate() | date: "MM/dd/yyyy" }}</dd>
                     </dl>
                 }
-                @if (waterQualityManagementPlanVerifyID && !isFinalized()) {
-                    <button class="btn btn-danger-outline btn-sm wizard-header__delete" (click)="deleteVerification()">
-                        <i class="fa fa-trash"></i> Delete
-                    </button>
-                }
             </div>
 
-            @for (step of steps; track step.number) {
-                <button class="wizard-sidebar__step"
-                    [class.wizard-sidebar__step--active]="currentStep() === step.number"
-                    [class.wizard-sidebar__step--disabled]="isStepDisabled(step.number)"
-                    [disabled]="isStepDisabled(step.number)"
-                    (click)="goToStep(step.number)">
-                    <span class="wizard-sidebar__number">{{ step.number }}</span>
-                    <span class="wizard-sidebar__title">{{ step.title }}</span>
-                </button>
-            }
+            <!-- NPT-995 rework: switched from custom-numbered circles to the shared
+                 workflow-nav pattern (StepComplete / StepIncomplete icons) so this
+                 wizard matches the OVTA + Project workflows visually. The items are
+                 buttons rather than routerLinks because step state is signal-driven,
+                 not route-driven — same icons + classes as workflow-nav-item, just
+                 click-handled inline. -->
+            <workflow-nav>
+                @for (step of steps; track step.number) {
+                    <li class="sidebar-item workflow-sidebar-item">
+                        <button type="button"
+                                class="sidebar-link"
+                                [class.active]="currentStep() === step.number"
+                                [class.disabled]="isStepDisabled(step.number)"
+                                [disabled]="isStepDisabled(step.number)"
+                                (click)="goToStep(step.number)">
+                            <div>
+                                @if (step.number < currentStep()) {
+                                    <icon class="complete" icon="StepComplete"></icon>
+                                } @else {
+                                    <icon class="fade" icon="StepIncomplete"></icon>
+                                }
+                            </div>
+                            <div>{{ step.title }}</div>
+                        </button>
+                    </li>
+                }
+            </workflow-nav>
         </aside>
 
         <!-- Step content -->

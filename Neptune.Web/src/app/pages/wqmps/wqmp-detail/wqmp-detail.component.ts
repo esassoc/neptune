@@ -20,6 +20,7 @@ import { LoadingDirective } from "src/app/shared/directives/loading.directive";
 import { UtilityFunctionsService } from "src/app/services/utility-functions.service";
 import { AuthenticationService } from "src/app/services/authentication.service";
 import { AlertService } from "src/app/shared/services/alert.service";
+import { ConfirmService } from "src/app/shared/services/confirm/confirm.service";
 import { Alert } from "src/app/shared/models/alert";
 import { AlertContext } from "src/app/shared/models/enums/alert-context.enum";
 import { MarkerHelper } from "src/app/shared/helpers/marker-helper";
@@ -150,6 +151,7 @@ export class WqmpDetailComponent implements OnInit, OnChanges {
         private authenticationService: AuthenticationService,
         private dialogService: DialogService,
         private alertService: AlertService,
+        private confirmService: ConfirmService,
         private groupByPipe: GroupByPipe,
         private sumPipe: SumPipe,
         private router: Router
@@ -350,6 +352,11 @@ export class WqmpDetailComponent implements OnInit, OnChanges {
                         ActionIcon: "fas fa-edit",
                         ActionHandler: () => this.router.navigate(["/water-quality-management-plans", wqmpID, "verifications", verifyID]),
                     });
+                    actions.push({
+                        ActionName: "Delete",
+                        ActionIcon: "fa fa-trash text-danger",
+                        ActionHandler: () => this.confirmDeleteVerification(verifyID, params.data.VerificationDate),
+                    });
                 }
                 return actions;
             }),
@@ -448,5 +455,34 @@ export class WqmpDetailComponent implements OnInit, OnChanges {
         } else {
             this.router.navigate(["/water-quality-management-plans", this.waterQualityManagementPlanID, "verifications", verifyID, "view"]);
         }
+    }
+
+    // NPT-995 rework: Delete moved off the wizard sign-off step into a row action on
+    // the verifications grid. Mirrors the project-list deleteModal pattern. Gated by
+    // the same currentPersonCanEdit + IsDraft conditions as the action column itself,
+    // so finalized verifications can't be removed accidentally.
+    confirmDeleteVerification(verifyID: number, verificationDate: string | null | undefined): void {
+        const dateText = verificationDate ? new Date(verificationDate).toLocaleDateString() : "this draft";
+        this.confirmService
+            .confirm({
+                title: "Delete Verification",
+                message: `<p>You are about to delete the verification from <strong>${dateText}</strong>.</p><p>Are you sure you wish to proceed?</p>`,
+                buttonClassYes: "btn btn-danger",
+                buttonTextYes: "Delete",
+                buttonTextNo: "Cancel",
+            })
+            .then((confirmed) => {
+                if (!confirmed) return;
+                this.wqmpService.deleteVerificationWaterQualityManagementPlan(this.waterQualityManagementPlanID, verifyID).subscribe({
+                    next: () => {
+                        this.alertService.pushAlert(new Alert("Verification deleted.", AlertContext.Success));
+                        // Re-assign the observable so the async pipe re-subscribes and the grid refreshes.
+                        this.verifications$ = this.wqmpService.listVerificationsWaterQualityManagementPlan(this.waterQualityManagementPlanID);
+                    },
+                    error: () => {
+                        this.alertService.pushAlert(new Alert("An error occurred while deleting the verification.", AlertContext.Danger));
+                    },
+                });
+            });
     }
 }

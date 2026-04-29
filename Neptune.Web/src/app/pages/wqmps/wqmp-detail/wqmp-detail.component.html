@@ -396,6 +396,12 @@
         <div class="card g-col-12 mt-3">
             <div class="card-header">
                 <span class="card-title">WQMP O&amp;M Verification</span>
+                @if (currentPersonCanEdit) {
+                    <a class="btn btn-primary btn-sm"
+                       [routerLink]="['/water-quality-management-plans', waterQualityManagementPlanID, 'verifications', 'new']">
+                        <i class="fa fa-plus"></i> Begin O&amp;M Verification
+                    </a>
+                }
             </div>
             <div class="card-body">
                 @if (verifications$ | async; as verifications) {
