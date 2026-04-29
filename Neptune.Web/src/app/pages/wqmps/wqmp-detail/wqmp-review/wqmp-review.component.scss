@@ -1,5 +1,20 @@
 @use "/src/scss/abstracts" as *;
 
+// NPT-1020: Re-run Extraction action lives in this sticky bottom-right footer.
+// Positioned over the review panel via fixed positioning so it floats above
+// scroll content without consuming layout space.
+.review-rerun-footer {
+    position: fixed;
+    bottom: 1.25rem;
+    right: 1.25rem;
+    z-index: 50;
+
+    .btn {
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+        background: $white;
+    }
+}
+
 .review-layout {
     display: flex;
     // Pin to viewport height minus the site header stack so the three panels always fit on

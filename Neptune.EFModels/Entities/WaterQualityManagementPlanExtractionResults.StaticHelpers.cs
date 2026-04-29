@@ -1,3 +1,5 @@
+using System.Text.Json;
+using System.Text.Json.Nodes;
 using Microsoft.EntityFrameworkCore;
 using Neptune.Models.DataTransferObjects;
 
@@ -20,22 +22,39 @@ public static class WaterQualityManagementPlanExtractionResults
             .SingleOrDefaultAsync();
     }
 
-    public static async Task SaveDraftAsync(NeptuneDbContext dbContext, int waterQualityManagementPlanID, string draftOverlayJson, int personID)
+    /// <summary>
+    /// NPT-1020: per-field status writer. Reads <c>DraftOverlayJson</c>, mutates the entry
+    /// for <paramref name="fieldKey"/>, writes back. Caller composes this with the live
+    /// WQMP write inside the same DbContext transaction so the draft state and the WQMP
+    /// stay in lockstep.
+    /// </summary>
+    /// <param name="state">One of <c>"accepted"</c>, <c>"edited"</c>, <c>"rejected"</c>.</param>
+    /// <param name="value">Reviewer-current value as a string. Null on reject.</param>
+    public static async Task SetFieldStatusAsync(NeptuneDbContext dbContext, int waterQualityManagementPlanID, string fieldKey, string state, string? value, int personID)
     {
         var entity = await GetByWqmpIDAsync(dbContext, waterQualityManagementPlanID)
             ?? throw new InvalidOperationException($"No extraction result exists for WQMP {waterQualityManagementPlanID}.");
 
-        entity.ApplyDraftOverlay(draftOverlayJson, personID, DateTime.UtcNow);
-        await dbContext.SaveChangesAsync();
-    }
+        if (entity.ApprovedDate.HasValue)
+        {
+            throw new InvalidOperationException("Cannot modify a field on an extraction result that has already been approved.");
+        }
 
-    public static async Task ClearDraftAsync(NeptuneDbContext dbContext, int waterQualityManagementPlanID)
-    {
-        var entity = await GetByWqmpIDAsync(dbContext, waterQualityManagementPlanID);
-        if (entity == null) return;
+        // Parse the existing overlay (or start fresh) and upsert the field's entry.
+        // Uses System.Text.Json.Nodes for tolerant in-place mutation — overlay shape:
+        //   { "Jurisdiction": { "state": "accepted", "value": "37" }, ... }
+        var overlay = string.IsNullOrWhiteSpace(entity.DraftOverlayJson)
+            ? new JsonObject()
+            : JsonNode.Parse(entity.DraftOverlayJson) as JsonObject ?? new JsonObject();
 
-        entity.ClearDraftOverlay();
-        await dbContext.SaveChangesAsync();
+        var entry = new JsonObject { ["state"] = state };
+        if (state != "rejected")
+        {
+            entry["value"] = value;
+        }
+        overlay[fieldKey] = entry;
+
+        entity.ApplyDraftOverlay(overlay.ToJsonString(), personID, DateTime.UtcNow);
     }
 
     // Used when a reviewer re-runs the AI extraction — the draft overlay lives on the existing
