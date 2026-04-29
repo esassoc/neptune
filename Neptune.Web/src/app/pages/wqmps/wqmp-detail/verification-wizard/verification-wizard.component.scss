@@ -75,53 +75,35 @@
     flex-direction: column;
     gap: 0.25rem;
 
-    &__step {
-        display: flex;
-        align-items: center;
-        gap: 0.75rem;
-        padding: 0.625rem 0.75rem;
+    // Step list visual now comes from the shared workflow-nav primitives
+    // (sidebar-link + workflow-sidebar-item). The wizard buttons reuse those
+    // classes; only the click-vs-routerLink distinction remains.
+    button.sidebar-link {
+        width: 100%;
         border: none;
-        border-left: 3px solid transparent;
-        border-radius: 0;
         background: transparent;
-        cursor: pointer;
         text-align: left;
+        cursor: pointer;
 
-        &:hover:not(:disabled) {
-            background: rgba($primary, 0.04);
-        }
-
-        &--active {
-            border-left-color: $primary;
-            font-weight: 600;
-        }
-
-        &--disabled {
-            opacity: 0.45;
+        &[disabled] {
             cursor: not-allowed;
         }
     }
 
-    &__number {
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        width: 28px;
-        height: 28px;
-        border-radius: 50%;
-        background: $gray-100;
-        font-size: $type-size-200;
-        font-weight: 600;
-        flex-shrink: 0;
-
-        .wizard-sidebar__step--active & {
-            background: $primary;
+    // Replicate the icon coloring from workflow-nav-item.component.scss. That file's
+    // rules are scoped to the workflow-nav-item component (default ViewEncapsulation),
+    // so the inline icon markup we're using here doesn't pick them up — without these
+    // local rules every step icon would render the same default color.
+    .workflow-sidebar-item {
+        button.sidebar-link:hover .complete {
             color: $white;
         }
-    }
-
-    &__title {
-        font-size: $type-size-200;
+        .complete {
+            color: $green-default;
+        }
+        .info {
+            color: $teal-default;
+        }
     }
 }
 
