@@ -2,7 +2,7 @@ import { Component } from "@angular/core";
 import { Router } from "@angular/router";
 import { AsyncPipe } from "@angular/common";
 import { ColDef } from "ag-grid-community";
-import { Observable, tap } from "rxjs";
+import { finalize, Observable } from "rxjs";
 import { PageHeaderComponent } from "src/app/shared/components/page-header/page-header.component";
 import { AlertDisplayComponent } from "src/app/shared/components/alert-display/alert-display.component";
 import { NeptuneGridComponent } from "src/app/shared/components/neptune-grid/neptune-grid.component";
@@ -95,7 +95,25 @@ export class WqmpVerificationsComponent {
 
     private refreshVerifications(): void {
         this.isLoading = true;
-        this.verifications$ = this.wqmpVerifyService.listAllAsIndexGridWaterQualityManagementPlanVerify().pipe(tap(() => (this.isLoading = false)));
+        // finalize so the spinner clears on both success and error — a failed list call
+        // (e.g. transient API outage right after a delete) was leaving the page stuck
+        // on the loading overlay.
+        this.verifications$ = this.wqmpVerifyService
+            .listAllAsIndexGridWaterQualityManagementPlanVerify()
+            .pipe(finalize(() => (this.isLoading = false)));
+    }
+
+    // ConfirmModalComponent renders message via [innerHtml] + bypassSecurityTrustHtml,
+    // so any user-controlled string interpolated into the template must be HTML-escaped
+    // first. WQMP names come from API data sourced from external uploads — treat as
+    // untrusted.
+    private escapeHtml(s: string): string {
+        return s
+            .replace(/&/g, "&amp;")
+            .replace(/</g, "&lt;")
+            .replace(/>/g, "&gt;")
+            .replace(/"/g, "&quot;")
+            .replace(/'/g, "&#39;");
     }
 
     // NPT-995 rework: Delete moved off the wizard sign-off step into a row action.
@@ -103,7 +121,7 @@ export class WqmpVerificationsComponent {
     // IsDraft (set on the action push), so finalized verifications stay locked.
     confirmDeleteVerification(wqmpID: number, verifyID: number, wqmpName: string | null | undefined, verificationDate: string | null | undefined): void {
         const dateText = verificationDate ? new Date(verificationDate).toLocaleDateString() : "this draft";
-        const nameText = wqmpName ? ` for <strong>${wqmpName}</strong>` : "";
+        const nameText = wqmpName ? ` for <strong>${this.escapeHtml(wqmpName)}</strong>` : "";
         this.confirmService
             .confirm({
                 title: "Delete Verification",

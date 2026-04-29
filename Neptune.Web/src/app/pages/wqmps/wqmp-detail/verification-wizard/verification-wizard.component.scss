@@ -89,6 +89,22 @@
             cursor: not-allowed;
         }
     }
+
+    // Replicate the icon coloring from workflow-nav-item.component.scss. That file's
+    // rules are scoped to the workflow-nav-item component (default ViewEncapsulation),
+    // so the inline icon markup we're using here doesn't pick them up — without these
+    // local rules every step icon would render the same default color.
+    .workflow-sidebar-item {
+        button.sidebar-link:hover .complete {
+            color: $white;
+        }
+        .complete {
+            color: $green-default;
+        }
+        .info {
+            color: $teal-default;
+        }
+    }
 }
 
 .wizard-content {
