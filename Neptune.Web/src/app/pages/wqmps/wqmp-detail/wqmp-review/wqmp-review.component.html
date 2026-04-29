@@ -34,22 +34,18 @@
             @if (pageData.hasResult) {
                 <div class="review-sidebar__actions">
                     @if (!isApproved()) {
-                        <button class="btn btn-primary btn-block" (click)="saveDraft()" [disabled]="isSavingDraft || isExtracting() || !hasUnsavedChanges()">
-                            @if (isSavingDraft) { <i class="fa fa-spinner fa-spin"></i> } Save Draft
+                        <!-- NPT-1020: per-field accept/edit/reject auto-saves through to the
+                             WQMP, so Save Draft / Discard Draft / Cancel are gone. Approve
+                             All commits any leftover (parcels + BMPs) and locks the workflow.
+                             Re-run Extraction lives in a sticky bottom-right footer below. -->
+                        <button class="btn btn-primary btn-block" (click)="approveAndApply()" [disabled]="isApplying || isExtracting()">
+                            @if (isApplying) { <i class="fa fa-spinner fa-spin"></i> } Approve All
                         </button>
-                        <button class="btn btn-primary btn-block" (click)="approveAndApply()" [disabled]="isApplying || isExtracting() || confirmedCount === 0">
-                            @if (isApplying) { <i class="fa fa-spinner fa-spin"></i> } Approve &amp; Apply
-                        </button>
-                        <button class="btn btn-secondary-outline btn-block" (click)="discardDraft()" [disabled]="isSavingDraft || isExtracting() || (!currentResult()?.DraftUpdatedDate && !hasUnsavedChanges())">
-                            Discard Draft
-                        </button>
-                        <button class="btn btn-secondary-outline btn-block" (click)="confirmReExtract()" [disabled]="isExtracting()" title="Replace the existing extraction and clear draft edits">
-                            @if (isExtracting()) { <i class="fa fa-spinner fa-spin"></i> Extracting... } @else { <i class="fa fa-magic"></i> Re-run extraction }
-                        </button>
+                    } @else {
+                        <a class="btn btn-secondary-outline btn-block" [routerLink]="['/water-quality-management-plans', waterQualityManagementPlanID]">
+                            Back to WQMP
+                        </a>
                     }
-                    <button class="btn btn-secondary-outline btn-block" (click)="cancel()" [disabled]="isExtracting()">
-                        @if (isApproved()) { Back } @else { Cancel }
-                    </button>
                 </div>
             }
         </aside>
@@ -164,6 +160,16 @@
                         </button>
                     }
 
+                    @if (currentStep() === 4) {
+                        <review-summary
+                            [locationFields]="summaryLocationFields"
+                            [basicsFields]="summaryBasicsFields"
+                            [parcelFields]="summaryParcelFields"
+                            [bmpGroups]="summaryBmpGroups"
+                            [lookupOptionsByKey]="summaryLookupOptionsByKey">
+                        </review-summary>
+                    }
+
                     @if (currentStep() === 3) {
                         @for (group of bmpGroupsForCurrentStep; track group.bmpIndex) {
                             <bmp-review-card
@@ -190,4 +196,15 @@
             }
         </div>
     </div>
+
+    <!-- NPT-1020: Re-run Extraction lives in a sticky bottom-right footer so it's
+         always reachable but doesn't compete with the per-field action area for the eye.
+         Hidden once the workflow has been approved (read-only state). -->
+    @if (!isApproved() && pageData.hasResult) {
+        <div class="review-rerun-footer">
+            <button class="btn btn-secondary-outline" (click)="confirmReExtract()" [disabled]="isExtracting()" title="Replace the existing extraction (does not clobber values you've already accepted)">
+                @if (isExtracting()) { <i class="fa fa-spinner fa-spin"></i> Extracting... } @else { <i class="fa fa-magic"></i> Re-run Extraction }
+            </button>
+        </div>
+    }
 }

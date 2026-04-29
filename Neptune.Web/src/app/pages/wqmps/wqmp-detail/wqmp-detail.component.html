@@ -16,9 +16,13 @@
 
     <app-alert-display></app-alert-display>
 
-    @if (currentPersonCanEdit && wqmp.WaterQualityManagementPlanStatusID === WaterQualityManagementPlanStatusEnum.Draft) {
+    @if (currentPersonCanEdit) {
         <div class="draft-banner mb-3">
-            <span>This WQMP is in <strong>Draft</strong> status.</span>
+            @if (wqmp.WaterQualityManagementPlanStatusID === WaterQualityManagementPlanStatusEnum.Draft) {
+                <span>This WQMP is in <strong>Draft</strong> status.</span>
+            } @else {
+                <span>AI extraction is also available for this WQMP.</span>
+            }
             <a [routerLink]="['/water-quality-management-plans', waterQualityManagementPlanID, 'review']" class="btn btn-primary-outline btn-sm">
                 Review AI Extraction
             </a>

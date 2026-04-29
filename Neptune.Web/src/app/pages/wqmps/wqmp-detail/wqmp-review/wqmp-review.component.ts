@@ -19,6 +19,7 @@ import { WaterQualityManagementPlanExtractionResultDto } from "src/app/shared/ge
 import { QuickBMPUpsertDto } from "src/app/shared/generated/model/quick-bmp-upsert-dto";
 import { EvidenceBoundingBox, FieldCardComponent, SourceNavigation } from "src/app/pages/wqmps/wqmp-detail/wqmp-review/field-card/field-card.component";
 import { BmpReviewCardComponent } from "src/app/pages/wqmps/wqmp-detail/wqmp-review/bmp-review-card/bmp-review-card.component";
+import { ReviewSummaryComponent } from "src/app/pages/wqmps/wqmp-detail/wqmp-review/review-summary/review-summary.component";
 import { IDeactivateComponent } from "src/app/shared/guards/unsaved-changes.guard";
 import { WaterQualityManagementPlanPrioritiesAsSelectDropdownOptions } from "src/app/shared/generated/enum/water-quality-management-plan-priority-enum";
 import { WaterQualityManagementPlanDevelopmentTypesAsSelectDropdownOptions } from "src/app/shared/generated/enum/water-quality-management-plan-development-type-enum";
@@ -60,7 +61,7 @@ interface DraftOverlayEntry {
 @Component({
     selector: "wqmp-review",
     standalone: true,
-    imports: [AlertDisplayComponent, FieldCardComponent, BmpReviewCardComponent, PdfJsViewerModule, RouterLink, AsyncPipe, DatePipe],
+    imports: [AlertDisplayComponent, FieldCardComponent, BmpReviewCardComponent, ReviewSummaryComponent, PdfJsViewerModule, RouterLink, AsyncPipe, DatePipe],
     templateUrl: "./wqmp-review.component.html",
     styleUrl: "./wqmp-review.component.scss",
 })
@@ -126,7 +127,6 @@ export class WqmpReviewComponent implements OnInit, IDeactivateComponent {
     public fields = signal<ExtractedField[]>([]);
     public pdfBlob: Blob | null = null;
     public isApplying = false;
-    public isSavingDraft = false;
     public hasUnsavedChanges = signal(false);
     public isApproved = computed(() => !!this.currentResult()?.ApprovedDate);
     public isNavigating = signal(false);
@@ -146,11 +146,11 @@ export class WqmpReviewComponent implements OnInit, IDeactivateComponent {
     private pendingHighlight: { pageNumber: number; box: EvidenceBoundingBox | null; searchPhrase: string | null } | null = null;
 
 
-    public steps = [
+    public steps: { number: number; title: string; desc: string; disabled?: boolean }[] = [
         { number: 1, title: "Location", desc: "Jurisdiction & parcels" },
         { number: 2, title: "Basics", desc: "Project details & contacts" },
         { number: 3, title: "BMPs", desc: "Treatment controls" },
-        { number: 4, title: "Review", desc: "Final review & submit", disabled: true },
+        { number: 4, title: "Review", desc: "Final review & submit" },
     ];
 
     // Fields per step
@@ -314,6 +314,48 @@ export class WqmpReviewComponent implements OnInit, IDeactivateComponent {
         return this.fields().filter(
             (f) => f.step === this.currentStep() && !f.key.startsWith(this.BMP_KEY_PREFIX)
         );
+    }
+
+    // NPT-1020: helpers for Step 4's review-summary component — slice the flat fields
+    // signal back into the per-step buckets the summary renders.
+    get summaryLocationFields(): ExtractedField[] {
+        return this.fields().filter((f) => f.step === 1 && !f.key.startsWith(this.PARCEL_KEY_PREFIX));
+    }
+    get summaryBasicsFields(): ExtractedField[] {
+        return this.fields().filter((f) => f.step === 2);
+    }
+    get summaryParcelFields(): ExtractedField[] {
+        return this.fields().filter((f) => f.key.startsWith(this.PARCEL_KEY_PREFIX));
+    }
+    get summaryBmpGroups(): { bmpIndex: number; displayName: string | null; fields: ExtractedField[]; isRejected: boolean }[] {
+        // Same grouping logic as bmpGroupsForCurrentStep but without the step==3 gate
+        // (the summary view runs on Step 4).
+        const groups = new Map<number, ExtractedField[]>();
+        for (const field of this.fields()) {
+            if (!field.key.startsWith(this.BMP_KEY_PREFIX)) continue;
+            const suffix = field.key.slice(this.BMP_KEY_PREFIX.length);
+            const dashIdx = suffix.indexOf("-");
+            if (dashIdx < 0) continue;
+            const bmpIndex = parseInt(suffix.slice(0, dashIdx), 10);
+            if (!Number.isFinite(bmpIndex)) continue;
+            if (!groups.has(bmpIndex)) groups.set(bmpIndex, []);
+            groups.get(bmpIndex)!.push(field);
+        }
+        const rejected = this.rejectedBmpIndices();
+        return Array.from(groups.entries())
+            .sort(([a], [b]) => a - b)
+            .map(([bmpIndex, fields]) => {
+                const nameField = fields.find((f) => f.key.endsWith("-QuickBMPName"));
+                const displayName = (nameField?.acceptedValue ?? nameField?.value) ?? null;
+                return { bmpIndex, displayName, fields, isRejected: rejected.has(bmpIndex) };
+            });
+    }
+    get summaryLookupOptionsByKey(): Record<string, SelectDropdownOption[]> {
+        const map: Record<string, SelectDropdownOption[]> = {};
+        for (const [key, cfg] of Object.entries(this.lookupFieldConfig)) {
+            map[key] = cfg.options;
+        }
+        return map;
     }
 
     /**
@@ -685,24 +727,83 @@ export class WqmpReviewComponent implements OnInit, IDeactivateComponent {
     }
 
     onFieldAccepted(field: ExtractedField, value: string | null): void {
+        const previousState = field.state;
+        const previousValue = field.acceptedValue;
         field.state = "accepted";
         field.acceptedValue = value;
         this.fields.update((f) => [...f]);
-        this.hasUnsavedChanges.set(true);
+        // NPT-1020: root WQMP fields auto-save through to the live WQMP. Parcels and BMPs
+        // are list-shaped and stay batched until Approve All commits them — they show
+        // an "unsaved" warning in the meantime via hasUnsavedChanges.
+        if (this.isRootField(field.key)) {
+            this.applyFieldImmediately(field, "accept", value, previousState, previousValue);
+        } else {
+            this.hasUnsavedChanges.set(true);
+        }
     }
 
     onFieldEdited(field: ExtractedField, value: string): void {
+        const previousState = field.state;
+        const previousValue = field.acceptedValue;
         field.state = "edited";
         field.acceptedValue = value;
         this.fields.update((f) => [...f]);
-        this.hasUnsavedChanges.set(true);
+        if (this.isRootField(field.key)) {
+            this.applyFieldImmediately(field, "edit", value, previousState, previousValue);
+        } else {
+            this.hasUnsavedChanges.set(true);
+        }
     }
 
     onFieldRejected(field: ExtractedField): void {
+        const previousState = field.state;
+        const previousValue = field.acceptedValue;
         field.state = "rejected";
         field.acceptedValue = null;
         this.fields.update((f) => [...f]);
-        this.hasUnsavedChanges.set(true);
+        if (this.isRootField(field.key)) {
+            this.applyFieldImmediately(field, "reject", null, previousState, previousValue);
+        } else {
+            this.hasUnsavedChanges.set(true);
+        }
+    }
+
+    // NPT-1020: any field key that isn't a parcel row or a BMP attribute is a flat WQMP
+    // root field — these auto-save through the apply-field endpoint. Parcels (key prefix
+    // __Parcel__) and BMPs (key prefix __BMP__) batch through Approve All.
+    private isRootField(key: string): boolean {
+        return !key.startsWith(this.PARCEL_KEY_PREFIX) && !key.startsWith(this.BMP_KEY_PREFIX);
+    }
+
+    private applyFieldImmediately(field: ExtractedField, action: "accept" | "edit" | "reject", value: string | null, previousState: ExtractedField["state"], previousValue: string | null | undefined): void {
+        // Resolve the value the SPA actually wants to persist. For lookup fields the
+        // captured value is already a numeric ID string (the dropdowns deal in IDs);
+        // text/date fields pass through unchanged.
+        this.wqmpService
+            .applyExtractionFieldWaterQualityManagementPlan(this.waterQualityManagementPlanID, {
+                FieldKey: field.key,
+                Value: value,
+                Action: action,
+            })
+            .subscribe({
+                next: () => {
+                    // No local change — the per-card visual state already reflects the action.
+                    // Auto-save means there are no unsaved root-field edits to warn about.
+                },
+                error: (err: HttpErrorResponse) => {
+                    field.state = previousState;
+                    field.acceptedValue = previousValue;
+                    this.fields.update((f) => [...f]);
+                    // The alert component renders message via [innerHTML], so the
+                    // server's 400 body must be HTML-escaped before display —
+                    // InvalidFieldValueException echoes the raw user value into the
+                    // message and that value is untrusted.
+                    const raw = err.status === 400 && typeof err.error === "string"
+                        ? err.error
+                        : `Failed to save ${field.label}.`;
+                    this.alertService.pushAlert(new Alert(this.escapeHtml(raw), AlertContext.Danger));
+                },
+            });
     }
 
     // NPT-1047: BmpReviewCard emits per-field events keyed by string. Bridge them into
@@ -777,44 +878,9 @@ export class WqmpReviewComponent implements OnInit, IDeactivateComponent {
         return field.value ? "ai" : "blank";
     }
 
-    saveDraft(): void {
-        if (this.isApproved()) return;
-        this.isSavingDraft = true;
-        this.alertService.clearAlerts();
-        const overlayJson = this.buildDraftOverlayJson();
-        this.wqmpService
-            .saveExtractionResultDraftWaterQualityManagementPlan(this.waterQualityManagementPlanID, { DraftOverlayJson: overlayJson })
-            .subscribe({
-                next: () => {
-                    this.isSavingDraft = false;
-                    this.hasUnsavedChanges.set(false);
-                    this.alertService.pushAlert(new Alert("Draft saved.", AlertContext.Success));
-                    this.reload$.next();
-                },
-                error: () => {
-                    this.isSavingDraft = false;
-                    this.alertService.pushAlert(new Alert("Failed to save draft.", AlertContext.Danger));
-                },
-            });
-    }
-
-    discardDraft(): void {
-        if (this.isApproved()) return;
-        if (!confirm("Discard all reviewer edits and revert to AI-extracted values?")) return;
-        this.alertService.clearAlerts();
-        this.wqmpService
-            .clearExtractionResultDraftWaterQualityManagementPlan(this.waterQualityManagementPlanID)
-            .subscribe({
-                next: () => {
-                    this.hasUnsavedChanges.set(false);
-                    this.alertService.pushAlert(new Alert("Draft discarded.", AlertContext.Success));
-                    this.reload$.next();
-                },
-                error: () => {
-                    this.alertService.pushAlert(new Alert("Failed to discard draft.", AlertContext.Danger));
-                },
-            });
-    }
+    // NPT-1020: saveDraft / discardDraft removed — root fields auto-save on accept/edit/
+    // reject and Approve All commits the leftover (parcels + BMPs). The draft-overlay
+    // column persists for status tracking only.
 
     approveAndApply(): void {
         if (this.isApproved()) return;
@@ -980,9 +1046,9 @@ export class WqmpReviewComponent implements OnInit, IDeactivateComponent {
             .replace(/'/g, "&#39;");
     }
 
-    cancel(): void {
-        this.router.navigate(["/water-quality-management-plans", this.waterQualityManagementPlanID]);
-    }
+    // NPT-1020: cancel() removed alongside the Cancel button. Approve All commits and
+    // navigates; the existing Back to WQMP link in the page header / sidebar covers the
+    // "leave without committing" path (parcels + BMPs warn via UnsavedChangesGuard if dirty).
 
     /**
      * NPT-1047: materialize the Step 3 BMP cards into QuickBMPUpsertDto[] for the approval
@@ -1064,27 +1130,9 @@ export class WqmpReviewComponent implements OnInit, IDeactivateComponent {
     // reserved key so it round-trips through the same string-map shape Step 1/2 uses.
     private readonly REJECTED_BMPS_OVERLAY_KEY = "__BMP_REJECTIONS__";
 
-    private buildDraftOverlayJson(): string {
-        const overlay: Record<string, DraftOverlayEntry> = {};
-        for (const field of this.fields()) {
-            if (field.state === "pending") continue;
-            if (field.state === "rejected") {
-                overlay[field.key] = { state: "rejected" };
-            } else {
-                overlay[field.key] = { state: field.state, value: field.acceptedValue ?? null };
-            }
-        }
-        const rejectedBmps = Array.from(this.rejectedBmpIndices()).sort((a, b) => a - b);
-        if (rejectedBmps.length > 0) {
-            // `state: "rejected"` is a no-op for this synthetic entry — the array of indices
-            // travels in `value` as a JSON-encoded string. applyDraftOverlay decodes it.
-            overlay[this.REJECTED_BMPS_OVERLAY_KEY] = {
-                state: "rejected",
-                value: JSON.stringify(rejectedBmps),
-            };
-        }
-        return JSON.stringify(overlay);
-    }
+    // NPT-1020: buildDraftOverlayJson removed — the apply-field endpoint writes per-field
+    // status server-side now (see SetFieldStatusAsync). The SPA only READS the overlay
+    // via applyDraftOverlay below to seed per-card state on page load.
 
     private applyDraftOverlay(overlayJson: string | null): void {
         if (!overlayJson) return;
