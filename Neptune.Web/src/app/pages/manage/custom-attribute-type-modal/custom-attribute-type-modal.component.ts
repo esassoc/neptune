@@ -127,8 +127,15 @@ export class CustomAttributeTypeModalComponent implements OnInit {
 
     removeOption(index: number): void {
         this.optionsList.update((list) => list.filter((_, i) => i !== index));
-        if (this.editingOptionIndex() === index) {
+        // Keep editingOptionIndex in sync with the post-delete array. Deleting the
+        // currently-edited row clears the edit; deleting an earlier row shifts the
+        // edited index left by one; deleting a later row leaves it alone.
+        const editing = this.editingOptionIndex();
+        if (editing === null) return;
+        if (editing === index) {
             this.editingOptionIndex.set(null);
+        } else if (editing > index) {
+            this.editingOptionIndex.set(editing - 1);
         }
     }
 

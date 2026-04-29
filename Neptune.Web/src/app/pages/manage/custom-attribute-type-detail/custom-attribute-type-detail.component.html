@@ -51,14 +51,15 @@
         </div>
 
         @if (isOptionsType(attribute.CustomAttributeDataTypeID)) {
+            @let options = parseOptions(attribute.CustomAttributeTypeOptionsSchema);
             <div class="card g-col-12 mt-3">
                 <div class="card-header">
                     <span class="card-title">Options</span>
                 </div>
                 <div class="card-body">
-                    @if (parseOptions(attribute.CustomAttributeTypeOptionsSchema).length) {
+                    @if (options.length) {
                         <ul>
-                            @for (opt of parseOptions(attribute.CustomAttributeTypeOptionsSchema); track $index) {
+                            @for (opt of options; track $index) {
                                 <li>{{ opt }}</li>
                             }
                         </ul>

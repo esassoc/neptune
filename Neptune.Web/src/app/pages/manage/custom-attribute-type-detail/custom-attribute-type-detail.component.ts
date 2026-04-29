@@ -1,7 +1,7 @@
 import { Component, inject, Input, OnInit } from "@angular/core";
 import { AsyncPipe } from "@angular/common";
 import { Router, RouterLink } from "@angular/router";
-import { BehaviorSubject, Observable, switchMap } from "rxjs";
+import { BehaviorSubject, catchError, EMPTY, Observable, shareReplay, switchMap, tap } from "rxjs";
 import { DialogService } from "@ngneat/dialog";
 import { PageHeaderComponent } from "src/app/shared/components/page-header/page-header.component";
 import { AlertDisplayComponent } from "src/app/shared/components/alert-display/alert-display.component";
@@ -47,12 +47,22 @@ export class CustomAttributeTypeDetailComponent implements OnInit {
     public CustomAttributeTypePurposeEnum = CustomAttributeTypePurposeEnum;
 
     ngOnInit(): void {
+        // Single subscription via the async pipe — isLoading and error handling are
+        // baked into the pipeline so no second subscribe is needed (a separate
+        // .subscribe would have fired a duplicate HTTP call on every reload).
+        // shareReplay caches the latest emission for any future subscriber.
         this.attribute$ = this.reload$.pipe(
-            switchMap(() => this.customAttributeTypeService.getCustomAttributeType(this.customAttributeTypeID)),
+            tap(() => (this.isLoading = true)),
+            switchMap(() => this.customAttributeTypeService.getCustomAttributeType(this.customAttributeTypeID).pipe(
+                tap(() => (this.isLoading = false)),
+                catchError(() => {
+                    this.isLoading = false;
+                    this.alertService.pushAlert(new Alert("Failed to load custom attribute type.", AlertContext.Danger));
+                    return EMPTY;
+                }),
+            )),
+            shareReplay(1),
         );
-        // Async-pipe handles the data; spinner only shows in the @else branch of the
-        // template (no data resolved yet). isLoading is the spinner's input there.
-        this.attribute$.subscribe(() => (this.isLoading = false));
     }
 
     isOptionsType(dataTypeID: number | undefined): boolean {

@@ -58,11 +58,14 @@
                                 <i class="fa fa-times"></i>
                             </button>
                         } @else {
-                            <span class="options-editor__text" (click)="startEditOption($index)" title="Click to edit">{{ option }}</span>
-                            <button type="button" class="btn btn-sm btn-secondary-outline" (click)="startEditOption($index)" title="Edit">
+                            <!-- Plain text + a separate Edit button. The pencil <button> is the
+                                 canonical edit trigger so keyboard / screen-reader users get the
+                                 same affordance as mouse users — no <span (click)> shortcut. -->
+                            <span class="options-editor__text">{{ option }}</span>
+                            <button type="button" class="btn btn-sm btn-secondary-outline" (click)="startEditOption($index)" [attr.aria-label]="'Edit option ' + option" title="Edit">
                                 <i class="fa fa-pencil"></i>
                             </button>
-                            <button type="button" class="btn btn-sm btn-danger-outline" (click)="removeOption($index)" title="Delete">
+                            <button type="button" class="btn btn-sm btn-danger-outline" (click)="removeOption($index)" [attr.aria-label]="'Delete option ' + option" title="Delete">
                                 <i class="fa fa-trash"></i>
                             </button>
                         }
