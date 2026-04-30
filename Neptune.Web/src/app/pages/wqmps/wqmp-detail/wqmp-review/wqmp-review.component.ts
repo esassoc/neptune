@@ -131,7 +131,8 @@ export class WqmpReviewComponent implements OnInit, IDeactivateComponent {
     public isApproved = computed(() => !!this.currentResult()?.ApprovedDate);
     public isNavigating = signal(false);
     // NPT-1020 rework: tracks which field card most recently triggered a PDF jump so the
-    // template can paint a "selected" outline on it. Cleared on extraction reload.
+    // template can paint a "selected" outline on it. Reset on extraction reload (see the
+    // tap inside the reload pipe in load()).
     public selectedFieldKey = signal<string | null>(null);
     // Tracks whether the PDF.js iframe has fully loaded — until then, evidence clicks can't
     // reach PDFViewerApplication.pdfDocument. If the user clicks early, queue the request here
@@ -140,7 +141,9 @@ export class WqmpReviewComponent implements OnInit, IDeactivateComponent {
     private pendingNavigation: SourceNavigation | null = null;
     // NPT-1020 item 5: pre-extract per-page text once on PDF load so subsequent evidence
     // clicks become O(1) lookups instead of re-iterating every page through getTextContent().
-    // Built eagerly in onPdfLoaded; cleared+rebuilt when Re-run Extraction replaces the blob.
+    // pdfBlob is loaded once today (set-once guard in the reload pipe), so the cache stays
+    // valid for the component's lifetime. If pdfBlob ever becomes re-fetchable, clear this
+    // map AND reset pdfTextCacheBuilding wherever the blob is replaced.
     private pdfTextCache: Map<number, string> = new Map();
     private pdfTextCacheBuilding = false;
     // After `navigateToSource` picks a target page, this holds the details of the box we
@@ -248,6 +251,9 @@ export class WqmpReviewComponent implements OnInit, IDeactivateComponent {
                     this.fields.set([]);
                 }
                 this.hasUnsavedChanges.set(false);
+                // Drop any prior selection so a Re-run Extraction (or initial load) doesn't
+                // leave a stale "selected" outline on a field card from a previous result.
+                this.selectedFieldKey.set(null);
             }),
             switchMap(({ extractionResult, documents }) => {
                 // Prefer the extraction result's cached GUID; fall back to the first (primary)
@@ -1033,10 +1039,14 @@ export class WqmpReviewComponent implements OnInit, IDeactivateComponent {
                 // (state === "pending") fields fall back to the AI value so a reviewer who hits
                 // Approve All on a fresh extraction without per-field ✓ clicks still gets the
                 // extracted values written through. Only rejected fields are dropped.
+                // Empty / whitespace strings collapse to null so the lookup-FK branch below can't
+                // turn "" into Number(0) and write a bogus FK (Copilot review feedback on PR #477).
                 const valueOf = (f: ExtractedField): string | null => {
                     if (f.state === "rejected") return null;
                     const v = f.acceptedValue ?? f.value ?? null;
-                    return v == null ? null : String(v);
+                    if (v == null) return null;
+                    const trimmed = String(v).trim();
+                    return trimmed === "" ? null : trimmed;
                 };
                 for (const field of this.fields()) {
                     // Parcels persist via a separate endpoint after the main approve. BMPs
@@ -1082,19 +1092,25 @@ export class WqmpReviewComponent implements OnInit, IDeactivateComponent {
                     this.waterQualityManagementPlanID,
                     { WaterQualityManagementPlan: dto, ApprovedQuickBMPs: approvedQuickBMPs }
                 ).pipe(
-                    switchMap((response: WaterQualityManagementPlanExtractionApprovalResponseDto) => this.syncAcceptedParcels().pipe(
-                        // NPT-1020 item 3: surface skipped-BMP warnings before navigating
-                        // away from the review page so the reviewer sees them.
-                        tap(() => this.warnAboutSkippedBMPs(response?.SkippedBMPs)),
-                    )),
+                    // Carry SkippedBMPs through syncAcceptedParcels so we can surface warnings
+                    // post-navigation — pushing alerts here would get cleared on this component's
+                    // destroy (see edit-boundary.component.ts:110 for the same pattern).
+                    switchMap((response: WaterQualityManagementPlanExtractionApprovalResponseDto) =>
+                        this.syncAcceptedParcels().pipe(map(() => response?.SkippedBMPs ?? null))
+                    ),
                 );
             })
         ).subscribe({
-            next: () => {
+            next: (skippedBMPs: Array<QuickBMPMergeSkipDto> | null) => {
                 this.isApplying = false;
                 this.hasUnsavedChanges.set(false);
-                this.alertService.pushAlert(new Alert("Review approved and applied to WQMP.", AlertContext.Success));
-                this.router.navigate(["/water-quality-management-plans", this.waterQualityManagementPlanID]);
+                // Navigate first, then push toasts — wqmp-review's <app-alert-display> defaults
+                // to clearAlertsOnDestroy=true, so any pre-navigate pushAlert gets wiped on
+                // teardown before the destination page mounts its own alert-display.
+                this.router.navigate(["/water-quality-management-plans", this.waterQualityManagementPlanID]).then(() => {
+                    this.alertService.pushAlert(new Alert("Review approved and applied to WQMP.", AlertContext.Success));
+                    this.warnAboutSkippedBMPs(skippedBMPs);
+                });
             },
             error: () => {
                 this.isApplying = false;
@@ -1106,8 +1122,8 @@ export class WqmpReviewComponent implements OnInit, IDeactivateComponent {
     // NPT-1020 item 3: emit a non-blocking warning per QuickBMP that couldn't be
     // auto-created (typically because the AI didn't extract a Treatment BMP Type and
     // the reviewer didn't pick one before Approve All). The reviewer can still create
-    // the BMPs manually via the WQMP detail page. Alerts are stable across navigation
-    // because pushAlert flips persistence on.
+    // the BMPs manually via the WQMP detail page. Called after router.navigate completes
+    // so the warnings land on the destination WQMP detail page's alert-display.
     private warnAboutSkippedBMPs(skipped: Array<QuickBMPMergeSkipDto> | null | undefined): void {
         if (!skipped?.length) return;
         for (const entry of skipped) {
