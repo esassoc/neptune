@@ -1,0 +1,44 @@
+@if (workflow$ | async; as workflow) {
+    <h2>{{ headerLabel }}</h2>
+
+    @if (!hasAssessment(workflow)) {
+        <p>
+            @if (isPostMaintenance) {
+                Begin a Post-Maintenance Assessment to capture observations after the maintenance event, or skip to the visit summary.
+            } @else {
+                Begin an Initial Assessment to capture observations of the BMP's current condition, or skip to the maintenance step.
+            }
+        </p>
+
+        <div class="step-footer">
+            <button type="button" class="btn btn-link" (click)="skip(workflow)">
+                Skip to {{ isPostMaintenance ? "Visit Summary" : "Maintenance" }}
+            </button>
+            <button type="button" class="btn btn-primary" (click)="beginAssessment(workflow)">
+                Begin {{ isPostMaintenance ? "Post-Maintenance" : "Initial" }} Assessment
+            </button>
+        </div>
+    } @else {
+        <div class="card">
+            <div class="card-header"><span class="card-title">{{ headerLabel }} in progress</span></div>
+            <div class="card-body">
+                <p>Status: <strong>{{ assessmentComplete(workflow) ? "Complete" : "In Progress" }}</strong></p>
+                @if (assessmentScore(workflow) != null) {
+                    <p>Score: <strong>{{ assessmentScore(workflow) | number: "1.1-1" }}</strong></p>
+                }
+            </div>
+        </div>
+
+        <div class="step-footer">
+            <button type="button" class="btn btn-link" (click)="skip(workflow)">
+                Skip to {{ isPostMaintenance ? "Visit Summary" : "Maintenance" }}
+            </button>
+            <button type="button" class="btn btn-secondary" (click)="goToPhotos(workflow)">
+                Edit Photos
+            </button>
+            <button type="button" class="btn btn-primary" (click)="goToObservations(workflow)">
+                Edit Observations
+            </button>
+        </div>
+    }
+}

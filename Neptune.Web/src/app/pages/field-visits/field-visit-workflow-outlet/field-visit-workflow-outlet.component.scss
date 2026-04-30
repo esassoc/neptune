@@ -1,0 +1,83 @@
+@use "/src/scss/abstracts" as *;
+
+.dashboard.workflow {
+    display: flex;
+    align-items: stretch;
+    min-height: 100vh;
+}
+
+.sidebar {
+    width: 22rem;
+    flex-shrink: 0;
+    background: $gray-100;
+    border-right: 1px solid $gray-300;
+    padding: $spacing-500 $spacing-400;
+
+    .sidebar-header {
+        margin-bottom: $spacing-500;
+
+        .back {
+            display: inline-block;
+            font-size: $type-size-200;
+            margin-bottom: $spacing-200;
+        }
+
+        .bmp-name {
+            font-size: $type-size-400;
+            margin: 0;
+        }
+
+        .bmp-type {
+            font-size: $type-size-200;
+            color: $gray-600;
+            margin: 0 0 $spacing-200;
+        }
+
+        .visit-meta {
+            font-size: $type-size-200;
+            margin: 0 0 $spacing-100;
+            display: flex;
+            align-items: center;
+            gap: $spacing-200;
+        }
+
+        .visit-status {
+            font-size: $type-size-200;
+            color: $gray-700;
+            margin: 0;
+        }
+
+        .btn-edit-date {
+            border: 0;
+            background: transparent;
+            padding: $spacing-100 $spacing-200;
+            color: $primary;
+            cursor: pointer;
+        }
+    }
+}
+
+.main {
+    flex-grow: 1;
+    padding: $spacing-500 $spacing-600;
+}
+
+.loading-shell {
+    min-height: 50vh;
+}
+
+@media (max-width: 768px) {
+    .dashboard.workflow {
+        flex-direction: column;
+    }
+
+    .sidebar {
+        width: 100%;
+        border-right: 0;
+        border-bottom: 1px solid $gray-300;
+    }
+
+    .main {
+        padding: $spacing-400;
+    }
+}

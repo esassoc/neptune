@@ -1,24 +1,16 @@
-@if (treatmentBMP$ | async; as treatmentBMP) {
-    <page-header [pageTitle]="'Edit Photos for ' + treatmentBMP.TreatmentBMPName" [templateAbove]="templateAbove">
-        <ng-template #templateAbove>
-            <div class="back">
-                <a [routerLink]="['/treatment-bmps', treatmentBMPID]" class="back__link">Back to BMP Detail</a>
-            </div>
-        </ng-template>
-    </page-header>
-}
+<page-header pageTitle="Edit Photos" [templateAbove]="templateAbove">
+    <ng-template #templateAbove>
+        <div class="back">
+            <a [routerLink]="['/treatment-bmps', treatmentBMPID]" class="back__link">Back to BMP Detail</a>
+        </div>
+    </ng-template>
+</page-header>
 
 <app-alert-display></app-alert-display>
 
-@if (imageEditorItems$ | async; as imageEditorItems) {
-    <image-editor
-        [images]="imageEditorItems"
-        [isLoadingSubmit]="isLoadingSubmit"
-        [captionControlForm]="captionControlForm"
-        (newImageAdded)="onNewImageAdded($event)"
-        (imageDeleted)="onImageDeleted($event)"
-        (saveClicked)="onSaveClicked($event)"
-        (cancelClicked)="onCancelClicked()"></image-editor>
-} @else {
-    <div [loadingSpinner]="{ isLoading: true, loadingHeight: 500 }"></div>
+@if (treatmentBMPID != null) {
+    <treatment-bmp-images-editor
+        [treatmentBMPID]="treatmentBMPID"
+        (saved)="onSaved()"
+        (cancelled)="onCancelled()"></treatment-bmp-images-editor>
 }

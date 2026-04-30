@@ -1,0 +1,33 @@
+@use "/src/scss/abstracts" as *;
+
+.card + .card {
+    margin-top: $spacing-400;
+}
+
+dl {
+    margin: 0;
+
+    dt {
+        font-weight: 600;
+        margin-top: $spacing-200;
+
+        &:first-child {
+            margin-top: 0;
+        }
+    }
+
+    dd {
+        margin-left: 0;
+    }
+}
+
+.step-footer {
+    display: flex;
+    align-items: center;
+    gap: $spacing-300;
+    margin-top: $spacing-500;
+
+    .spacer {
+        flex-grow: 1;
+    }
+}

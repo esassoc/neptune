@@ -1,27 +1,17 @@
-@if (treatmentBMP$ | async; as treatmentBMP) {
-    <page-header [pageTitle]="'Edit ' + customAttributePurposeName + ' for ' + treatmentBMP.TreatmentBMPName" [templateAbove]="templateAbove">
-        <ng-template #templateAbove>
-            <div class="back">
-                <a [routerLink]="['/treatment-bmps', treatmentBMP.TreatmentBMPID]" class="back__link">Back to BMP Detail</a>
-            </div>
-        </ng-template>
-    </page-header>
+<page-header [pageTitle]="'Edit ' + (purposeName || 'Custom Attributes')" [templateAbove]="templateAbove">
+    <ng-template #templateAbove>
+        <div class="back">
+            <a [routerLink]="['/treatment-bmps', treatmentBMPID]" class="back__link">Back to BMP Detail</a>
+        </div>
+    </ng-template>
+</page-header>
 
-    <app-alert-display></app-alert-display>
-    @if (treatmentBMPTypeCustomAttributeTypes$ | async; as treatmentBMPTypeCustomAttributeTypes) {
-        @if (customAttributes$ | async; as customAttributes) {
-            <custom-attributes-editor
-                [treatmentBMPTypeCustomAttributeTypes]="treatmentBMPTypeCustomAttributeTypes"
-                [customAttributes]="customAttributes"
-                [customAttributeTypePurposeEnum]="customAttributePurposeID"
-                [formGroup]="formGroup">
-            </custom-attributes-editor>
-            <div class="page-footer">
-                <button class="btn btn-primary mr-2" (click)="save(treatmentBMPTypeCustomAttributeTypes)" [disabled]="isLoadingSubmit || formGroup.invalid">Save</button>
-                <button class="btn btn-secondary" (click)="cancel()">Cancel</button>
-            </div>
-        }
-    }
-} @else {
-    <div [loadingSpinner]="{ isLoading: true, loadingHeight: 500 }"></div>
+<app-alert-display></app-alert-display>
+
+@if (treatmentBMPID != null && customAttributePurposeID != null) {
+    <treatment-bmp-custom-attributes-form
+        [treatmentBMPID]="treatmentBMPID"
+        [customAttributePurposeID]="customAttributePurposeID"
+        (saved)="onSaved()"
+        (cancelled)="onCancelled()"></treatment-bmp-custom-attributes-form>
 }

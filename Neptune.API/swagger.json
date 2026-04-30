@@ -628,6 +628,542 @@
         }
       }
     },
+    "/field-visits": {
+      "get": {
+        "tags": [
+          "FieldVisit"
+        ],
+        "operationId": "List_FieldVisit",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/FieldVisitDto"
+                  }
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/FieldVisitDto"
+                  }
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/FieldVisitDto"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/field-visits/{fieldVisitID}": {
+      "get": {
+        "tags": [
+          "FieldVisit"
+        ],
+        "operationId": "GetByID_FieldVisit",
+        "parameters": [
+          {
+            "name": "fieldVisitID",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/FieldVisitWorkflowDto"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FieldVisitWorkflowDto"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FieldVisitWorkflowDto"
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "FieldVisit"
+        ],
+        "operationId": "Delete_FieldVisit",
+        "parameters": [
+          {
+            "name": "fieldVisitID",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/treatment-bmps/{treatmentBMPID}/field-visits/in-progress": {
+      "get": {
+        "tags": [
+          "FieldVisit"
+        ],
+        "operationId": "GetInProgressForTreatmentBMP_FieldVisit",
+        "parameters": [
+          {
+            "name": "treatmentBMPID",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/FieldVisitDto"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FieldVisitDto"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FieldVisitDto"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/treatment-bmps/{treatmentBMPID}/field-visits": {
+      "post": {
+        "tags": [
+          "FieldVisit"
+        ],
+        "operationId": "Create_FieldVisit",
+        "parameters": [
+          {
+            "name": "treatmentBMPID",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/FieldVisitCreateDto"
+              }
+            },
+            "text/json": {
+              "schema": {
+                "$ref": "#/components/schemas/FieldVisitCreateDto"
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "$ref": "#/components/schemas/FieldVisitCreateDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/FieldVisitDto"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FieldVisitDto"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FieldVisitDto"
+                }
+              }
+            }
+          }
+        }
+      },
+      "get": {
+        "tags": [
+          "TreatmentBMP"
+        ],
+        "operationId": "FieldVisitGridJsonData_TreatmentBMP",
+        "parameters": [
+          {
+            "name": "treatmentBMPID",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/FieldVisitDto"
+                  }
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/FieldVisitDto"
+                  }
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/FieldVisitDto"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "x-anonymous": true
+      }
+    },
+    "/field-visits/{fieldVisitID}/date-and-type": {
+      "put": {
+        "tags": [
+          "FieldVisit"
+        ],
+        "operationId": "UpdateDateAndType_FieldVisit",
+        "parameters": [
+          {
+            "name": "fieldVisitID",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/FieldVisitUpsertDto"
+              }
+            },
+            "text/json": {
+              "schema": {
+                "$ref": "#/components/schemas/FieldVisitUpsertDto"
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "$ref": "#/components/schemas/FieldVisitUpsertDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/FieldVisitDto"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FieldVisitDto"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FieldVisitDto"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/field-visits/{fieldVisitID}/inventory-updated": {
+      "put": {
+        "tags": [
+          "FieldVisit"
+        ],
+        "operationId": "UpdateInventoryUpdated_FieldVisit",
+        "parameters": [
+          {
+            "name": "fieldVisitID",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/FieldVisitInventoryUpdatedDto"
+              }
+            },
+            "text/json": {
+              "schema": {
+                "$ref": "#/components/schemas/FieldVisitInventoryUpdatedDto"
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "$ref": "#/components/schemas/FieldVisitInventoryUpdatedDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/FieldVisitDto"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FieldVisitDto"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FieldVisitDto"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/field-visits/{fieldVisitID}/verify": {
+      "post": {
+        "tags": [
+          "FieldVisit"
+        ],
+        "operationId": "Verify_FieldVisit",
+        "parameters": [
+          {
+            "name": "fieldVisitID",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/FieldVisitDto"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FieldVisitDto"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FieldVisitDto"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/field-visits/{fieldVisitID}/mark-provisional": {
+      "post": {
+        "tags": [
+          "FieldVisit"
+        ],
+        "operationId": "MarkProvisional_FieldVisit",
+        "parameters": [
+          {
+            "name": "fieldVisitID",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/FieldVisitDto"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FieldVisitDto"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FieldVisitDto"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/field-visits/{fieldVisitID}/return-to-edit": {
+      "post": {
+        "tags": [
+          "FieldVisit"
+        ],
+        "operationId": "ReturnToEdit_FieldVisit",
+        "parameters": [
+          {
+            "name": "fieldVisitID",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/FieldVisitDto"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FieldVisitDto"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FieldVisitDto"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/field-visits/{fieldVisitID}/finalize": {
+      "post": {
+        "tags": [
+          "FieldVisit"
+        ],
+        "operationId": "Finalize_FieldVisit",
+        "parameters": [
+          {
+            "name": "fieldVisitID",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/FieldVisitDto"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FieldVisitDto"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FieldVisitDto"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/file-resources/{fileResourceGuidAsString}": {
       "get": {
         "tags": [
@@ -1392,6 +1928,246 @@
                   "items": {
                     "$ref": "#/components/schemas/HRUCharacteristicDto"
                   }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/maintenance-records": {
+      "get": {
+        "tags": [
+          "MaintenanceRecord"
+        ],
+        "operationId": "List_MaintenanceRecord",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/MaintenanceRecordGridDto"
+                  }
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/MaintenanceRecordGridDto"
+                  }
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/MaintenanceRecordGridDto"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/maintenance-records/{maintenanceRecordID}": {
+      "get": {
+        "tags": [
+          "MaintenanceRecord"
+        ],
+        "operationId": "GetByID_MaintenanceRecord",
+        "parameters": [
+          {
+            "name": "maintenanceRecordID",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/MaintenanceRecordDetailDto"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MaintenanceRecordDetailDto"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MaintenanceRecordDetailDto"
+                }
+              }
+            }
+          }
+        }
+      },
+      "put": {
+        "tags": [
+          "MaintenanceRecord"
+        ],
+        "operationId": "Update_MaintenanceRecord",
+        "parameters": [
+          {
+            "name": "maintenanceRecordID",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/MaintenanceRecordUpsertDto"
+              }
+            },
+            "text/json": {
+              "schema": {
+                "$ref": "#/components/schemas/MaintenanceRecordUpsertDto"
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "$ref": "#/components/schemas/MaintenanceRecordUpsertDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/MaintenanceRecordDetailDto"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MaintenanceRecordDetailDto"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MaintenanceRecordDetailDto"
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "MaintenanceRecord"
+        ],
+        "operationId": "Delete_MaintenanceRecord",
+        "parameters": [
+          {
+            "name": "maintenanceRecordID",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/field-visits/{fieldVisitID}/maintenance-record": {
+      "get": {
+        "tags": [
+          "MaintenanceRecord"
+        ],
+        "operationId": "GetByFieldVisit_MaintenanceRecord",
+        "parameters": [
+          {
+            "name": "fieldVisitID",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/MaintenanceRecordDetailDto"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MaintenanceRecordDetailDto"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MaintenanceRecordDetailDto"
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "MaintenanceRecord"
+        ],
+        "operationId": "CreateForFieldVisit_MaintenanceRecord",
+        "parameters": [
+          {
+            "name": "fieldVisitID",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/MaintenanceRecordDetailDto"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MaintenanceRecordDetailDto"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MaintenanceRecordDetailDto"
                 }
               }
             }
@@ -6143,57 +6919,6 @@
         "x-anonymous": true
       }
     },
-    "/treatment-bmps/{treatmentBMPID}/field-visits": {
-      "get": {
-        "tags": [
-          "TreatmentBMP"
-        ],
-        "operationId": "FieldVisitGridJsonData_TreatmentBMP",
-        "parameters": [
-          {
-            "name": "treatmentBMPID",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "integer",
-              "format": "int32"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "OK",
-            "content": {
-              "text/plain": {
-                "schema": {
-                  "type": "array",
-                  "items": {
-                    "$ref": "#/components/schemas/FieldVisitDto"
-                  }
-                }
-              },
-              "application/json": {
-                "schema": {
-                  "type": "array",
-                  "items": {
-                    "$ref": "#/components/schemas/FieldVisitDto"
-                  }
-                }
-              },
-              "text/json": {
-                "schema": {
-                  "type": "array",
-                  "items": {
-                    "$ref": "#/components/schemas/FieldVisitDto"
-                  }
-                }
-              }
-            }
-          }
-        },
-        "x-anonymous": true
-      }
-    },
     "/treatment-bmps/modeling-attributes": {
       "get": {
         "tags": [
@@ -6458,6 +7183,307 @@
         }
       }
     },
+    "/treatment-bmp-assessments": {
+      "get": {
+        "tags": [
+          "TreatmentBMPAssessment"
+        ],
+        "operationId": "List_TreatmentBMPAssessment",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/TreatmentBMPAssessmentGridDto"
+                  }
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/TreatmentBMPAssessmentGridDto"
+                  }
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/TreatmentBMPAssessmentGridDto"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/treatment-bmp-assessments/{treatmentBMPAssessmentID}": {
+      "get": {
+        "tags": [
+          "TreatmentBMPAssessment"
+        ],
+        "operationId": "GetByID_TreatmentBMPAssessment",
+        "parameters": [
+          {
+            "name": "treatmentBMPAssessmentID",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/TreatmentBMPAssessmentDetailDto"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TreatmentBMPAssessmentDetailDto"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TreatmentBMPAssessmentDetailDto"
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "TreatmentBMPAssessment"
+        ],
+        "operationId": "Delete_TreatmentBMPAssessment",
+        "parameters": [
+          {
+            "name": "treatmentBMPAssessmentID",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/treatment-bmp-assessments/{treatmentBMPAssessmentID}/observations": {
+      "put": {
+        "tags": [
+          "TreatmentBMPAssessment"
+        ],
+        "operationId": "UpsertObservations_TreatmentBMPAssessment",
+        "parameters": [
+          {
+            "name": "treatmentBMPAssessmentID",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/TreatmentBMPAssessmentUpsertDto"
+              }
+            },
+            "text/json": {
+              "schema": {
+                "$ref": "#/components/schemas/TreatmentBMPAssessmentUpsertDto"
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "$ref": "#/components/schemas/TreatmentBMPAssessmentUpsertDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/TreatmentBMPAssessmentDetailDto"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TreatmentBMPAssessmentDetailDto"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TreatmentBMPAssessmentDetailDto"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/treatment-bmp-assessments/{treatmentBMPAssessmentID}/copy-from-initial": {
+      "post": {
+        "tags": [
+          "TreatmentBMPAssessment"
+        ],
+        "operationId": "CopyFromInitial_TreatmentBMPAssessment",
+        "parameters": [
+          {
+            "name": "treatmentBMPAssessmentID",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/TreatmentBMPAssessmentDetailDto"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TreatmentBMPAssessmentDetailDto"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TreatmentBMPAssessmentDetailDto"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/field-visits/{fieldVisitID}/assessments/{treatmentBMPAssessmentTypeID}": {
+      "get": {
+        "tags": [
+          "TreatmentBMPAssessmentByFieldVisit"
+        ],
+        "operationId": "GetByType_TreatmentBMPAssessmentByFieldVisit",
+        "parameters": [
+          {
+            "name": "fieldVisitID",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          },
+          {
+            "name": "treatmentBMPAssessmentTypeID",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/TreatmentBMPAssessmentDetailDto"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TreatmentBMPAssessmentDetailDto"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TreatmentBMPAssessmentDetailDto"
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "TreatmentBMPAssessmentByFieldVisit"
+        ],
+        "operationId": "Create_TreatmentBMPAssessmentByFieldVisit",
+        "parameters": [
+          {
+            "name": "fieldVisitID",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          },
+          {
+            "name": "treatmentBMPAssessmentTypeID",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/TreatmentBMPAssessmentDetailDto"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TreatmentBMPAssessmentDetailDto"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TreatmentBMPAssessmentDetailDto"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/observation-types": {
       "get": {
         "tags": [
@@ -6652,6 +7678,224 @@
         "parameters": [
           {
             "name": "observationTypeID",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/treatment-bmp-assessments/{treatmentBMPAssessmentID}/photos": {
+      "get": {
+        "tags": [
+          "TreatmentBMPAssessmentPhoto"
+        ],
+        "operationId": "List_TreatmentBMPAssessmentPhoto",
+        "parameters": [
+          {
+            "name": "treatmentBMPAssessmentID",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/TreatmentBMPAssessmentPhotoDto"
+                  }
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/TreatmentBMPAssessmentPhotoDto"
+                  }
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/TreatmentBMPAssessmentPhotoDto"
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "TreatmentBMPAssessmentPhoto"
+        ],
+        "operationId": "Create_TreatmentBMPAssessmentPhoto",
+        "parameters": [
+          {
+            "name": "treatmentBMPAssessmentID",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "multipart/form-data": {
+              "schema": {
+                "required": [
+                  "File"
+                ],
+                "type": "object",
+                "properties": {
+                  "File": {
+                    "type": "string",
+                    "format": "binary"
+                  },
+                  "Caption": {
+                    "type": "string"
+                  }
+                }
+              },
+              "encoding": {
+                "File": {
+                  "style": "form"
+                },
+                "Caption": {
+                  "style": "form"
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/TreatmentBMPAssessmentPhotoDto"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TreatmentBMPAssessmentPhotoDto"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TreatmentBMPAssessmentPhotoDto"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/treatment-bmp-assessments/{treatmentBMPAssessmentID}/photos/{treatmentBMPAssessmentPhotoID}": {
+      "put": {
+        "tags": [
+          "TreatmentBMPAssessmentPhoto"
+        ],
+        "operationId": "UpdateCaption_TreatmentBMPAssessmentPhoto",
+        "parameters": [
+          {
+            "name": "treatmentBMPAssessmentID",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          },
+          {
+            "name": "treatmentBMPAssessmentPhotoID",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/TreatmentBMPAssessmentPhotoUpdateDto"
+              }
+            },
+            "text/json": {
+              "schema": {
+                "$ref": "#/components/schemas/TreatmentBMPAssessmentPhotoUpdateDto"
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "$ref": "#/components/schemas/TreatmentBMPAssessmentPhotoUpdateDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/TreatmentBMPAssessmentPhotoDto"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TreatmentBMPAssessmentPhotoDto"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TreatmentBMPAssessmentPhotoDto"
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "TreatmentBMPAssessmentPhoto"
+        ],
+        "operationId": "Delete_TreatmentBMPAssessmentPhoto",
+        "parameters": [
+          {
+            "name": "treatmentBMPAssessmentID",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          },
+          {
+            "name": "treatmentBMPAssessmentPhotoID",
             "in": "path",
             "required": true,
             "schema": {
@@ -10812,6 +12056,28 @@
         },
         "additionalProperties": false
       },
+      "FieldVisitCreateDto": {
+        "type": "object",
+        "properties": {
+          "TreatmentBMPID": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "VisitDate": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "FieldVisitTypeID": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "ContinueExistingInProgress": {
+            "type": "boolean",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
       "FieldVisitDto": {
         "type": "object",
         "properties": {
@@ -10943,6 +12209,136 @@
           "WaterQualityManagementPlanName": {
             "type": "string",
             "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "FieldVisitInventoryUpdatedDto": {
+        "type": "object",
+        "properties": {
+          "InventoryUpdated": {
+            "type": "boolean"
+          }
+        },
+        "additionalProperties": false
+      },
+      "FieldVisitUpsertDto": {
+        "type": "object",
+        "properties": {
+          "VisitDate": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "FieldVisitTypeID": {
+            "type": "integer",
+            "format": "int32"
+          }
+        },
+        "additionalProperties": false
+      },
+      "FieldVisitWorkflowDto": {
+        "type": "object",
+        "properties": {
+          "FieldVisitID": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "VisitDate": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "FieldVisitTypeID": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "FieldVisitTypeDisplayName": {
+            "type": "string",
+            "nullable": true
+          },
+          "FieldVisitStatusID": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "FieldVisitStatusDisplayName": {
+            "type": "string",
+            "nullable": true
+          },
+          "IsFieldVisitVerified": {
+            "type": "boolean"
+          },
+          "InventoryUpdated": {
+            "type": "boolean"
+          },
+          "TreatmentBMPID": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "TreatmentBMPName": {
+            "type": "string",
+            "nullable": true
+          },
+          "TreatmentBMPTypeID": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "TreatmentBMPTypeName": {
+            "type": "string",
+            "nullable": true
+          },
+          "StormwaterJurisdictionID": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "PerformedByPersonID": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "PerformedByPersonName": {
+            "type": "string",
+            "nullable": true
+          },
+          "InitialAssessmentID": {
+            "type": "integer",
+            "format": "int32",
+            "nullable": true
+          },
+          "InitialAssessmentComplete": {
+            "type": "boolean"
+          },
+          "InitialAssessmentScore": {
+            "type": "number",
+            "format": "double",
+            "nullable": true
+          },
+          "PostMaintenanceAssessmentID": {
+            "type": "integer",
+            "format": "int32",
+            "nullable": true
+          },
+          "PostMaintenanceAssessmentComplete": {
+            "type": "boolean"
+          },
+          "PostMaintenanceAssessmentScore": {
+            "type": "number",
+            "format": "double",
+            "nullable": true
+          },
+          "MaintenanceRecordID": {
+            "type": "integer",
+            "format": "int32",
+            "nullable": true
+          },
+          "NumberOfRequiredAttributes": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "NumberRequiredAttributesEntered": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "RequiredAttributesEntered": {
+            "type": "boolean",
+            "readOnly": true
           }
         },
         "additionalProperties": false
@@ -11739,6 +13135,250 @@
           "TargetLoadReduction": {
             "type": "number",
             "format": "double"
+          }
+        },
+        "additionalProperties": false
+      },
+      "MaintenanceRecordDetailDto": {
+        "type": "object",
+        "properties": {
+          "MaintenanceRecordID": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "FieldVisitID": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "TreatmentBMPID": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "TreatmentBMPTypeID": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "MaintenanceRecordTypeID": {
+            "type": "integer",
+            "format": "int32",
+            "nullable": true
+          },
+          "MaintenanceRecordTypeDisplayName": {
+            "type": "string",
+            "nullable": true
+          },
+          "MaintenanceRecordDescription": {
+            "type": "string",
+            "nullable": true
+          },
+          "Observations": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/MaintenanceRecordObservationDto"
+            },
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "MaintenanceRecordGridDto": {
+        "type": "object",
+        "properties": {
+          "MaintenanceRecordID": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "FieldVisitID": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "TreatmentBMPID": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "TreatmentBMPName": {
+            "type": "string",
+            "nullable": true
+          },
+          "TreatmentBMPTypeID": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "VisitDate": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "StormwaterJurisdictionID": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "StormwaterJurisdictionName": {
+            "type": "string",
+            "nullable": true
+          },
+          "WaterQualityManagementPlanID": {
+            "type": "integer",
+            "format": "int32",
+            "nullable": true
+          },
+          "WaterQualityManagementPlanName": {
+            "type": "string",
+            "nullable": true
+          },
+          "PerformedByPersonID": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "PerformedByPersonName": {
+            "type": "string",
+            "nullable": true
+          },
+          "MaintenanceRecordTypeID": {
+            "type": "integer",
+            "format": "int32",
+            "nullable": true
+          },
+          "MaintenanceRecordTypeDisplayName": {
+            "type": "string",
+            "nullable": true
+          },
+          "MaintenanceRecordDescription": {
+            "type": "string",
+            "nullable": true
+          },
+          "StructuralRepairConducted": {
+            "type": "string",
+            "nullable": true
+          },
+          "MechanicalRepairConducted": {
+            "type": "string",
+            "nullable": true
+          },
+          "InfiltrationSurfaceRestored": {
+            "type": "string",
+            "nullable": true
+          },
+          "FiltrationSurfaceRestored": {
+            "type": "string",
+            "nullable": true
+          },
+          "MediaReplaced": {
+            "type": "string",
+            "nullable": true
+          },
+          "MulchAdded": {
+            "type": "string",
+            "nullable": true
+          },
+          "PercentTrash": {
+            "type": "string",
+            "nullable": true
+          },
+          "PercentGreenWaste": {
+            "type": "string",
+            "nullable": true
+          },
+          "PercentSediment": {
+            "type": "string",
+            "nullable": true
+          },
+          "AreaReseeded": {
+            "type": "string",
+            "nullable": true
+          },
+          "VegetationPlanted": {
+            "type": "string",
+            "nullable": true
+          },
+          "SurfaceAndBankErosionRepaired": {
+            "type": "string",
+            "nullable": true
+          },
+          "TotalMaterialVolumeRemovedCubicFeet": {
+            "type": "string",
+            "nullable": true
+          },
+          "TotalMaterialVolumeRemovedGallons": {
+            "type": "string",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "MaintenanceRecordObservationDto": {
+        "type": "object",
+        "properties": {
+          "MaintenanceRecordObservationID": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "CustomAttributeTypeID": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "CustomAttributeTypeName": {
+            "type": "string",
+            "nullable": true
+          },
+          "Values": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/MaintenanceRecordObservationValueDto"
+            },
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "MaintenanceRecordObservationUpsertDto": {
+        "type": "object",
+        "properties": {
+          "CustomAttributeTypeID": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "Values": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "MaintenanceRecordObservationValueDto": {
+        "type": "object",
+        "properties": {
+          "MaintenanceRecordObservationValueID": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "ObservationValue": {
+            "type": "string",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "MaintenanceRecordUpsertDto": {
+        "type": "object",
+        "properties": {
+          "MaintenanceRecordTypeID": {
+            "type": "integer",
+            "format": "int32",
+            "nullable": true
+          },
+          "MaintenanceRecordDescription": {
+            "type": "string",
+            "nullable": true
+          },
+          "Observations": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/MaintenanceRecordObservationUpsertDto"
+            },
+            "nullable": true
           }
         },
         "additionalProperties": false
@@ -14582,6 +16222,142 @@
         },
         "additionalProperties": false
       },
+      "TreatmentBMPAssessmentDetailDto": {
+        "type": "object",
+        "properties": {
+          "TreatmentBMPAssessmentID": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "FieldVisitID": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "TreatmentBMPID": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "TreatmentBMPTypeID": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "TreatmentBMPAssessmentTypeID": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "TreatmentBMPAssessmentTypeDisplayName": {
+            "type": "string",
+            "nullable": true
+          },
+          "IsAssessmentComplete": {
+            "type": "boolean"
+          },
+          "AssessmentScore": {
+            "type": "number",
+            "format": "double",
+            "nullable": true
+          },
+          "Notes": {
+            "type": "string",
+            "nullable": true
+          },
+          "Observations": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/TreatmentBMPObservationDto"
+            },
+            "nullable": true
+          },
+          "ObservationTypes": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/TreatmentBMPAssessmentObservationTypeForFormDto"
+            },
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "TreatmentBMPAssessmentGridDto": {
+        "type": "object",
+        "properties": {
+          "TreatmentBMPAssessmentID": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "FieldVisitID": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "TreatmentBMPID": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "TreatmentBMPName": {
+            "type": "string",
+            "nullable": true
+          },
+          "TreatmentBMPTypeID": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "TreatmentBMPTypeName": {
+            "type": "string",
+            "nullable": true
+          },
+          "VisitDate": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "StormwaterJurisdictionID": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "StormwaterJurisdictionName": {
+            "type": "string",
+            "nullable": true
+          },
+          "WaterQualityManagementPlanID": {
+            "type": "integer",
+            "format": "int32",
+            "nullable": true
+          },
+          "WaterQualityManagementPlanName": {
+            "type": "string",
+            "nullable": true
+          },
+          "PerformedByPersonID": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "PerformedByPersonName": {
+            "type": "string",
+            "nullable": true
+          },
+          "FieldVisitTypeDisplayName": {
+            "type": "string",
+            "nullable": true
+          },
+          "TreatmentBMPAssessmentTypeDisplayName": {
+            "type": "string",
+            "nullable": true
+          },
+          "IsAssessmentComplete": {
+            "type": "boolean"
+          },
+          "AssessmentScore": {
+            "type": "number",
+            "format": "double",
+            "nullable": true
+          },
+          "Status": {
+            "type": "string",
+            "nullable": true,
+            "readOnly": true
+          }
+        },
+        "additionalProperties": false
+      },
       "TreatmentBMPAssessmentObservationTypeDetailDto": {
         "type": "object",
         "properties": {
@@ -14618,6 +16394,37 @@
             "items": {
               "type": "string"
             },
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "TreatmentBMPAssessmentObservationTypeForFormDto": {
+        "type": "object",
+        "properties": {
+          "TreatmentBMPAssessmentObservationTypeID": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "TreatmentBMPAssessmentObservationTypeName": {
+            "type": "string",
+            "nullable": true
+          },
+          "ObservationTypeSpecificationID": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "ObservationTypeCollectionMethodName": {
+            "type": "string",
+            "nullable": true
+          },
+          "TreatmentBMPAssessmentObservationTypeSchema": {
+            "type": "string",
+            "nullable": true
+          },
+          "SortOrder": {
+            "type": "integer",
+            "format": "int32",
             "nullable": true
           }
         },
@@ -14675,6 +16482,59 @@
           },
           "TreatmentBMPAssessmentObservationTypeSchema": {
             "type": "string",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "TreatmentBMPAssessmentPhotoDto": {
+        "type": "object",
+        "properties": {
+          "TreatmentBMPAssessmentPhotoID": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "TreatmentBMPAssessmentID": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "FileResourceID": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "FileResourceGUID": {
+            "type": "string",
+            "nullable": true
+          },
+          "Caption": {
+            "type": "string",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "TreatmentBMPAssessmentPhotoUpdateDto": {
+        "type": "object",
+        "properties": {
+          "TreatmentBMPAssessmentPhotoID": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "Caption": {
+            "type": "string",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "TreatmentBMPAssessmentUpsertDto": {
+        "type": "object",
+        "properties": {
+          "Observations": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/TreatmentBMPObservationUpsertDto"
+            },
             "nullable": true
           }
         },
@@ -15731,6 +17591,38 @@
             "type": "boolean"
           },
           "DryWeatherFlowOverride": {
+            "type": "string",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "TreatmentBMPObservationDto": {
+        "type": "object",
+        "properties": {
+          "TreatmentBMPObservationID": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "TreatmentBMPAssessmentObservationTypeID": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "ObservationData": {
+            "type": "string",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "TreatmentBMPObservationUpsertDto": {
+        "type": "object",
+        "properties": {
+          "TreatmentBMPAssessmentObservationTypeID": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "ObservationData": {
             "type": "string",
             "nullable": true
           }
@@ -17597,6 +19489,12 @@
       "name": "FieldDefinition"
     },
     {
+      "name": "FieldVisit"
+    },
+    {
+      "name": "TreatmentBMP"
+    },
+    {
       "name": "FileResource"
     },
     {
@@ -17613,6 +19511,9 @@
     },
     {
       "name": "LoadGeneratingUnit"
+    },
+    {
+      "name": "MaintenanceRecord"
     },
     {
       "name": "Nereid"
@@ -17660,10 +19561,16 @@
       "name": "TrashGeneratingUnitByStormwaterJurisdiction"
     },
     {
-      "name": "TreatmentBMP"
+      "name": "TreatmentBMPAssessment"
+    },
+    {
+      "name": "TreatmentBMPAssessmentByFieldVisit"
     },
     {
       "name": "TreatmentBMPAssessmentObservationType"
+    },
+    {
+      "name": "TreatmentBMPAssessmentPhoto"
     },
     {
       "name": "TreatmentBMPBenchmarkAndThreshold"

@@ -1,0 +1,74 @@
+@if (workflow$ | async; as workflow) {
+    <h2>Visit Summary</h2>
+
+    <div class="card">
+        <div class="card-header"><span class="card-title">Visit Details</span></div>
+        <div class="card-body grid-12">
+            <dl class="g-col-12 g-col-md-6">
+                <dt>Visit Date</dt>
+                <dd>{{ workflow.VisitDate | date: "MM/dd/yyyy" }}</dd>
+                <dt>Visit Type</dt>
+                <dd>{{ workflow.FieldVisitTypeDisplayName }}</dd>
+                <dt>Performed By</dt>
+                <dd>{{ workflow.PerformedByPersonName }}</dd>
+            </dl>
+            <dl class="g-col-12 g-col-md-6">
+                <dt>Status</dt>
+                <dd>{{ workflow.FieldVisitStatusDisplayName }}</dd>
+                <dt>Verified</dt>
+                <dd>{{ workflow.IsFieldVisitVerified ? "Yes" : "No" }}</dd>
+                <dt>Inventory Updated</dt>
+                <dd>{{ workflow.InventoryUpdated ? "Yes" : "No" }}</dd>
+            </dl>
+        </div>
+    </div>
+
+    <div class="card">
+        <div class="card-header"><span class="card-title">Assessments &amp; Maintenance</span></div>
+        <div class="card-body grid-12">
+            <dl class="g-col-12 g-col-md-6">
+                <dt>Initial Assessment</dt>
+                <dd>
+                    @if (workflow.InitialAssessmentID) {
+                        {{ workflow.InitialAssessmentComplete ? "Complete" : "In Progress" }}
+                        @if (workflow.InitialAssessmentScore != null) {
+                            &mdash; Score {{ workflow.InitialAssessmentScore | number: "1.1-1" }}
+                        }
+                    } @else {
+                        Not Performed
+                    }
+                </dd>
+                <dt>Maintenance</dt>
+                <dd>{{ workflow.MaintenanceRecordID ? "Performed" : "Not Performed" }}</dd>
+            </dl>
+            <dl class="g-col-12 g-col-md-6">
+                <dt>Post-Maintenance Assessment</dt>
+                <dd>
+                    @if (workflow.PostMaintenanceAssessmentID) {
+                        {{ workflow.PostMaintenanceAssessmentComplete ? "Complete" : "In Progress" }}
+                        @if (workflow.PostMaintenanceAssessmentScore != null) {
+                            &mdash; Score {{ workflow.PostMaintenanceAssessmentScore | number: "1.1-1" }}
+                        }
+                    } @else {
+                        Not Performed
+                    }
+                </dd>
+            </dl>
+        </div>
+    </div>
+
+    <div class="step-footer">
+        <button type="button" class="btn btn-danger" (click)="deleteVisit(workflow)">Delete Visit</button>
+        <span class="spacer"></span>
+
+        @if (canManage) {
+            @if (workflow.IsFieldVisitVerified) {
+                <button type="button" class="btn btn-secondary" (click)="markProvisional(workflow)">Mark Provisional</button>
+                <button type="button" class="btn btn-secondary" (click)="returnToEdit(workflow)">Return to Edit</button>
+            } @else {
+                <button type="button" class="btn btn-secondary" (click)="finalize(workflow)">Mark Complete</button>
+                <button type="button" class="btn btn-primary" (click)="verify(workflow)">Verify Field Visit</button>
+            }
+        }
+    </div>
+}

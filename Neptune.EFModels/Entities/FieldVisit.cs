@@ -19,6 +19,33 @@ public partial class FieldVisit
         return GetAssessmentByType(TreatmentBMPAssessmentTypeEnum.PostMaintenance);
     }
 
+    public void VerifyFieldVisit()
+    {
+        IsFieldVisitVerified = true;
+        FieldVisitStatusID = (int)FieldVisitStatusEnum.Complete;
+    }
+
+    public void MarkFieldVisitAsProvisional()
+    {
+        IsFieldVisitVerified = false;
+    }
+
+    public void ReturnFieldVisitToEdit()
+    {
+        IsFieldVisitVerified = false;
+        FieldVisitStatusID = (int)FieldVisitStatusEnum.ReturnedToEdit;
+    }
+
+    public void MarkFieldVisitAsProvisionalIfNonManager(Person person)
+    {
+        var canManageJurisdiction = person.IsManagerOrAdmin()
+            && person.IsAssignedToStormwaterJurisdiction(TreatmentBMP.StormwaterJurisdictionID);
+        if (!canManageJurisdiction)
+        {
+            IsFieldVisitVerified = false;
+        }
+    }
+
     public async Task DeleteFull(NeptuneDbContext dbContext)
     {
         await dbContext.MaintenanceRecordObservationValues

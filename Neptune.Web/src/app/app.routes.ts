@@ -19,6 +19,7 @@ export const routeParams = {
     waterQualityManagementPlanID: "waterQualityManagementPlanID",
     waterQualityManagementPlanVerifyID: "waterQualityManagementPlanVerifyID",
     treatmentBMPTypeID: "treatmentBMPTypeID",
+    fieldVisitID: "fieldVisitID",
 };
 
 export const routes: Routes = [
@@ -434,6 +435,100 @@ export const routes: Routes = [
                 path: "field-records",
                 title: "View All Field Records",
                 loadComponent: () => import("./pages/field-records/field-records.component").then((m) => m.FieldRecordsComponent),
+            },
+            {
+                path: `field-visits/:${routeParams.fieldVisitID}`,
+                title: "Field Visit",
+                loadComponent: () =>
+                    import("./pages/field-visits/field-visit-workflow-outlet/field-visit-workflow-outlet.component").then(
+                        (m) => m.FieldVisitWorkflowOutletComponent
+                    ),
+                canActivate: [JurisdictionManagerOrEditorOnlyGuard],
+                children: [
+                    { path: "", redirectTo: "inventory", pathMatch: "full" },
+                    {
+                        path: "inventory",
+                        title: "Inventory",
+                        loadComponent: () =>
+                            import("./pages/field-visits/field-visit-workflow-outlet/inventory-step/inventory-step.component").then(
+                                (m) => m.FieldVisitInventoryStepComponent
+                            ),
+                    },
+                    {
+                        path: "assessment",
+                        title: "Initial Assessment",
+                        loadComponent: () =>
+                            import("./pages/field-visits/field-visit-workflow-outlet/assessment-step/assessment-step.component").then(
+                                (m) => m.FieldVisitAssessmentStepComponent
+                            ),
+                    },
+                    {
+                        path: "assessment/observations",
+                        title: "Initial Assessment Observations",
+                        loadComponent: () =>
+                            import("./pages/field-visits/field-visit-workflow-outlet/observations-step/observations-step.component").then(
+                                (m) => m.FieldVisitObservationsStepComponent
+                            ),
+                    },
+                    {
+                        path: "assessment/photos",
+                        title: "Initial Assessment Photos",
+                        loadComponent: () =>
+                            import("./pages/field-visits/field-visit-workflow-outlet/assessment-photos-step/assessment-photos-step.component").then(
+                                (m) => m.FieldVisitAssessmentPhotosStepComponent
+                            ),
+                    },
+                    {
+                        path: "maintenance",
+                        title: "Maintenance",
+                        loadComponent: () =>
+                            import("./pages/field-visits/field-visit-workflow-outlet/maintenance-step/maintenance-step.component").then(
+                                (m) => m.FieldVisitMaintenanceStepComponent
+                            ),
+                    },
+                    {
+                        path: "maintenance/edit",
+                        title: "Edit Maintenance Record",
+                        loadComponent: () =>
+                            import("./pages/field-visits/field-visit-workflow-outlet/maintenance-edit-step/maintenance-edit-step.component").then(
+                                (m) => m.FieldVisitMaintenanceEditStepComponent
+                            ),
+                    },
+                    {
+                        path: "post-maintenance-assessment",
+                        title: "Post-Maintenance Assessment",
+                        loadComponent: () =>
+                            import(
+                                "./pages/field-visits/field-visit-workflow-outlet/post-maintenance-assessment-step/post-maintenance-assessment-step.component"
+                            ).then((m) => m.FieldVisitPostMaintenanceAssessmentStepComponent),
+                    },
+                    {
+                        path: "post-maintenance-assessment/observations",
+                        title: "Post-Maintenance Observations",
+                        loadComponent: () =>
+                            import("./pages/field-visits/field-visit-workflow-outlet/observations-step/observations-step.component").then(
+                                (m) => m.FieldVisitObservationsStepComponent
+                            ),
+                        data: { assessmentTypeID: 2 },
+                    },
+                    {
+                        path: "post-maintenance-assessment/photos",
+                        title: "Post-Maintenance Photos",
+                        loadComponent: () =>
+                            import("./pages/field-visits/field-visit-workflow-outlet/assessment-photos-step/assessment-photos-step.component").then(
+                                (m) => m.FieldVisitAssessmentPhotosStepComponent
+                            ),
+                        data: { assessmentTypeID: 2 },
+                    },
+                    {
+                        path: "summary",
+                        title: "Visit Summary",
+                        loadComponent: () =>
+                            import("./pages/field-visits/field-visit-workflow-outlet/visit-summary-step/visit-summary-step.component").then(
+                                (m) => m.FieldVisitVisitSummaryStepComponent
+                            ),
+                    },
+                ],
             },
             {
                 path: "water-quality-management-plans",
