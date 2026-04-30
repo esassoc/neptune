@@ -134,6 +134,7 @@ model/project-upsert-dto.ts
 model/project-workflow-progress-dto-steps.ts
 model/project-workflow-progress-dto.ts
 model/quick-bmp-dto.ts
+model/quick-bmp-merge-skip-dto.ts
 model/quick-bmp-upsert-dto.ts
 model/regional-subbasin-dto.ts
 model/regional-subbasin-revision-request-dto.ts
@@ -194,6 +195,7 @@ model/water-quality-management-plan-document-extraction-result-dto.ts
 model/water-quality-management-plan-document-upsert-dto.ts
 model/water-quality-management-plan-dto.ts
 model/water-quality-management-plan-extraction-approval-dto.ts
+model/water-quality-management-plan-extraction-approval-response-dto.ts
 model/water-quality-management-plan-extraction-field-upsert-dto.ts
 model/water-quality-management-plan-extraction-parcel-upsert-dto.ts
 model/water-quality-management-plan-extraction-quick-bmp-upsert-dto.ts

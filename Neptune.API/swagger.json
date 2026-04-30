@@ -9868,17 +9868,17 @@
             "content": {
               "text/plain": {
                 "schema": {
-                  "$ref": "#/components/schemas/WaterQualityManagementPlanDto"
+                  "$ref": "#/components/schemas/WaterQualityManagementPlanExtractionApprovalResponseDto"
                 }
               },
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/WaterQualityManagementPlanDto"
+                  "$ref": "#/components/schemas/WaterQualityManagementPlanExtractionApprovalResponseDto"
                 }
               },
               "text/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/WaterQualityManagementPlanDto"
+                  "$ref": "#/components/schemas/WaterQualityManagementPlanExtractionApprovalResponseDto"
                 }
               }
             }
@@ -14001,6 +14001,23 @@
         },
         "additionalProperties": false
       },
+      "QuickBMPMergeSkipDto": {
+        "type": "object",
+        "properties": {
+          "ProposedName": {
+            "type": "string",
+            "nullable": true
+          },
+          "Reasons": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
       "QuickBMPUpsertDto": {
         "required": [
           "NumberOfIndividualBMPs",
@@ -16567,6 +16584,22 @@
             "type": "array",
             "items": {
               "$ref": "#/components/schemas/QuickBMPUpsertDto"
+            },
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "WaterQualityManagementPlanExtractionApprovalResponseDto": {
+        "type": "object",
+        "properties": {
+          "WaterQualityManagementPlan": {
+            "$ref": "#/components/schemas/WaterQualityManagementPlanDto"
+          },
+          "SkippedBMPs": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/QuickBMPMergeSkipDto"
             },
             "nullable": true
           }

@@ -12,11 +12,12 @@ import { AlertService } from "src/app/shared/services/alert.service";
 import { Alert } from "src/app/shared/models/alert";
 import { AlertContext } from "src/app/shared/models/enums/alert-context.enum";
 import { WaterQualityManagementPlanService } from "src/app/shared/generated/api/water-quality-management-plan.service";
-import { ParcelService } from "src/app/shared/generated/api/parcel.service";
 import { StormwaterJurisdictionService } from "src/app/shared/generated/api/stormwater-jurisdiction.service";
 import { TreatmentBMPTypeService } from "src/app/shared/generated/api/treatment-bmp-type.service";
 import { WaterQualityManagementPlanExtractionResultDto } from "src/app/shared/generated/model/water-quality-management-plan-extraction-result-dto";
 import { QuickBMPUpsertDto } from "src/app/shared/generated/model/quick-bmp-upsert-dto";
+import { QuickBMPMergeSkipDto } from "src/app/shared/generated/model/quick-bmp-merge-skip-dto";
+import { WaterQualityManagementPlanExtractionApprovalResponseDto } from "src/app/shared/generated/model/water-quality-management-plan-extraction-approval-response-dto";
 import { EvidenceBoundingBox, FieldCardComponent, SourceNavigation } from "src/app/pages/wqmps/wqmp-detail/wqmp-review/field-card/field-card.component";
 import { BmpReviewCardComponent } from "src/app/pages/wqmps/wqmp-detail/wqmp-review/bmp-review-card/bmp-review-card.component";
 import { ReviewSummaryComponent } from "src/app/pages/wqmps/wqmp-detail/wqmp-review/review-summary/review-summary.component";
@@ -73,7 +74,6 @@ export class WqmpReviewComponent implements OnInit, IDeactivateComponent {
     private router = inject(Router);
     private http = inject(HttpClient);
     private wqmpService = inject(WaterQualityManagementPlanService);
-    private parcelService = inject(ParcelService);
     private jurisdictionService = inject(StormwaterJurisdictionService);
     private treatmentBMPTypeService = inject(TreatmentBMPTypeService);
     private alertService = inject(AlertService);
@@ -130,11 +130,19 @@ export class WqmpReviewComponent implements OnInit, IDeactivateComponent {
     public hasUnsavedChanges = signal(false);
     public isApproved = computed(() => !!this.currentResult()?.ApprovedDate);
     public isNavigating = signal(false);
+    // NPT-1020 rework: tracks which field card most recently triggered a PDF jump so the
+    // template can paint a "selected" outline on it. Cleared on extraction reload.
+    public selectedFieldKey = signal<string | null>(null);
     // Tracks whether the PDF.js iframe has fully loaded — until then, evidence clicks can't
     // reach PDFViewerApplication.pdfDocument. If the user clicks early, queue the request here
     // and replay once onDocumentLoad fires.
     private pdfLoaded = false;
     private pendingNavigation: SourceNavigation | null = null;
+    // NPT-1020 item 5: pre-extract per-page text once on PDF load so subsequent evidence
+    // clicks become O(1) lookups instead of re-iterating every page through getTextContent().
+    // Built eagerly in onPdfLoaded; cleared+rebuilt when Re-run Extraction replaces the blob.
+    private pdfTextCache: Map<number, string> = new Map();
+    private pdfTextCacheBuilding = false;
     // After `navigateToSource` picks a target page, this holds the details of the box we
     // want to draw there. `onPdfPageRendered` fires every time PDF.js finishes rendering a
     // page; we reinspect the DOM at that point and draw. Keying off the render event means
@@ -150,7 +158,7 @@ export class WqmpReviewComponent implements OnInit, IDeactivateComponent {
         { number: 1, title: "Location", desc: "Jurisdiction & parcels" },
         { number: 2, title: "Basics", desc: "Project details & contacts" },
         { number: 3, title: "BMPs", desc: "Treatment controls" },
-        { number: 4, title: "Review", desc: "Final review & submit" },
+        { number: 4, title: "Review", desc: "Final review" },
     ];
 
     // Fields per step
@@ -404,12 +412,46 @@ export class WqmpReviewComponent implements OnInit, IDeactivateComponent {
 
     onPdfLoaded(): void {
         this.pdfLoaded = true;
+        // Build the page-text cache eagerly so the very first evidence click is fast.
+        // Don't await — the navigateToSource path falls back to a per-page fetch if a
+        // click lands before the cache finishes filling.
+        void this.buildPdfTextCache();
         // Replay any click that arrived before the iframe finished initializing.
         if (this.pendingNavigation) {
             const nav = this.pendingNavigation;
             this.pendingNavigation = null;
             this.navigateToSource(nav);
         }
+    }
+
+    private async buildPdfTextCache(): Promise<void> {
+        if (this.pdfTextCacheBuilding) return;
+        this.pdfTextCacheBuilding = true;
+        try {
+            const iframe = this.pdfViewer?.iframe?.nativeElement as HTMLIFrameElement;
+            const pdfApp = (iframe?.contentWindow as any)?.PDFViewerApplication;
+            if (!pdfApp?.pdfDocument) return;
+            const pdfDoc = pdfApp.pdfDocument;
+            const totalPages: number = pdfDoc.numPages;
+            for (let i = 1; i <= totalPages; i++) {
+                if (this.pdfTextCache.has(i)) continue;
+                try {
+                    const page = await pdfDoc.getPage(i);
+                    const textContent = await page.getTextContent();
+                    const pageText = this.normalizeText(textContent.items.map((item: any) => item.str).join(" "));
+                    this.pdfTextCache.set(i, pageText);
+                } catch {
+                    // Skip unreadable pages — searchPdfForText will just miss them.
+                }
+            }
+        } finally {
+            this.pdfTextCacheBuilding = false;
+        }
+    }
+
+    onSourceClick(key: string, nav: SourceNavigation): void {
+        this.selectedFieldKey.set(key);
+        this.navigateToSource(nav);
     }
 
     async navigateToSource(nav: SourceNavigation): Promise<void> {
@@ -599,9 +641,15 @@ export class WqmpReviewComponent implements OnInit, IDeactivateComponent {
             const totalPages: number = pdfDoc.numPages;
             const matches: number[] = [];
             for (let i = 1; i <= totalPages; i++) {
-                const page = await pdfDoc.getPage(i);
-                const textContent = await page.getTextContent();
-                const pageText = this.normalizeText(textContent.items.map((item: any) => item.str).join(" "));
+                let pageText = this.pdfTextCache.get(i);
+                if (pageText === undefined) {
+                    // Cache miss (cache still building, or build skipped this page) — fetch on
+                    // demand and memoize so the next click skips the work.
+                    const page = await pdfDoc.getPage(i);
+                    const textContent = await page.getTextContent();
+                    pageText = this.normalizeText(textContent.items.map((item: any) => item.str).join(" "));
+                    this.pdfTextCache.set(i, pageText);
+                }
                 if (pageText.includes(searchPhrase)) matches.push(i);
             }
 
@@ -732,11 +780,13 @@ export class WqmpReviewComponent implements OnInit, IDeactivateComponent {
         field.state = "accepted";
         field.acceptedValue = value;
         this.fields.update((f) => [...f]);
-        // NPT-1020: root WQMP fields auto-save through to the live WQMP. Parcels and BMPs
-        // are list-shaped and stay batched until Approve All commits them — they show
-        // an "unsaved" warning in the meantime via hasUnsavedChanges.
+        // NPT-1020: root WQMP fields and parcels auto-save through to the live WQMP
+        // (parcel saves recompute the boundary). BMPs are still list-shaped and batch
+        // through Approve All; they show an "unsaved" warning via hasUnsavedChanges.
         if (this.isRootField(field.key)) {
             this.applyFieldImmediately(field, "accept", value, previousState, previousValue);
+        } else if (field.key.startsWith(this.PARCEL_KEY_PREFIX)) {
+            this.applyParcelImmediately(field, "accept", value, previousState, previousValue);
         } else {
             this.hasUnsavedChanges.set(true);
         }
@@ -750,6 +800,8 @@ export class WqmpReviewComponent implements OnInit, IDeactivateComponent {
         this.fields.update((f) => [...f]);
         if (this.isRootField(field.key)) {
             this.applyFieldImmediately(field, "edit", value, previousState, previousValue);
+        } else if (field.key.startsWith(this.PARCEL_KEY_PREFIX)) {
+            this.applyParcelImmediately(field, "edit", value, previousState, previousValue);
         } else {
             this.hasUnsavedChanges.set(true);
         }
@@ -763,6 +815,8 @@ export class WqmpReviewComponent implements OnInit, IDeactivateComponent {
         this.fields.update((f) => [...f]);
         if (this.isRootField(field.key)) {
             this.applyFieldImmediately(field, "reject", null, previousState, previousValue);
+        } else if (field.key.startsWith(this.PARCEL_KEY_PREFIX)) {
+            this.applyParcelImmediately(field, "reject", null, previousState, previousValue);
         } else {
             this.hasUnsavedChanges.set(true);
         }
@@ -770,7 +824,8 @@ export class WqmpReviewComponent implements OnInit, IDeactivateComponent {
 
     // NPT-1020: any field key that isn't a parcel row or a BMP attribute is a flat WQMP
     // root field — these auto-save through the apply-field endpoint. Parcels (key prefix
-    // __Parcel__) and BMPs (key prefix __BMP__) batch through Approve All.
+    // __Parcel__) auto-save through apply-parcel. BMPs (key prefix __BMP__) batch through
+    // Approve All.
     private isRootField(key: string): boolean {
         return !key.startsWith(this.PARCEL_KEY_PREFIX) && !key.startsWith(this.BMP_KEY_PREFIX);
     }
@@ -798,6 +853,39 @@ export class WqmpReviewComponent implements OnInit, IDeactivateComponent {
                     // server's 400 body must be HTML-escaped before display —
                     // InvalidFieldValueException echoes the raw user value into the
                     // message and that value is untrusted.
+                    const raw = err.status === 400 && typeof err.error === "string"
+                        ? err.error
+                        : `Failed to save ${field.label}.`;
+                    this.alertService.pushAlert(new Alert(this.escapeHtml(raw), AlertContext.Danger));
+                },
+            });
+    }
+
+    // NPT-1020 item 1: per-parcel write-through to the live WQMP. Routes through the
+    // existing ApplyExtractionParcel controller endpoint, which calls
+    // UpdateParcelsAndRecomputeBoundary so the WQMP boundary is rebuilt from the parcel
+    // set on every accept/edit/reject. Mirrors applyFieldImmediately's revert-on-error.
+    private applyParcelImmediately(
+        field: ExtractedField,
+        action: "accept" | "edit" | "reject",
+        value: string | null,
+        previousState: ExtractedField["state"],
+        previousValue: string | null | undefined,
+    ): void {
+        this.wqmpService
+            .applyExtractionParcelWaterQualityManagementPlan(this.waterQualityManagementPlanID, {
+                ParcelKey: field.key,
+                ParcelNumber: action === "reject" ? null : value,
+                Action: action,
+            })
+            .subscribe({
+                next: () => {
+                    // Auto-save committed — no page-level unsaved-changes warning for parcels.
+                },
+                error: (err: HttpErrorResponse) => {
+                    field.state = previousState;
+                    field.acceptedValue = previousValue;
+                    this.fields.update((f) => [...f]);
                     const raw = err.status === 400 && typeof err.error === "string"
                         ? err.error
                         : `Failed to save ${field.label}.`;
@@ -866,7 +954,9 @@ export class WqmpReviewComponent implements OnInit, IDeactivateComponent {
             isUserEntered: true,
         };
         this.fields.update((f) => [...f, newField]);
-        this.hasUnsavedChanges.set(true);
+        // NPT-1020 item 1: a freshly added empty parcel row isn't yet "unsaved" — there's
+        // nothing to commit until the reviewer types an APN and clicks Accept, at which
+        // point applyParcelImmediately writes through. Don't trigger the navigation guard.
     }
 
     // origin reflects the source of the field's *value*, not any reviewer action.
@@ -890,6 +980,13 @@ export class WqmpReviewComponent implements OnInit, IDeactivateComponent {
         // Fetch the existing WQMP first to preserve required fields, then merge accepted text fields
         this.wqmpService.getWaterQualityManagementPlan(this.waterQualityManagementPlanID).pipe(
             switchMap((existing) => {
+                // NPT-1020 item 4: seed the upsert dto with EVERY nullable WQMP field from
+                // the live WQMP, not just the required ones. The previous version omitted
+                // Priority/LandUse/DevelopmentType/PermitTerm/Hydromodification/HydrologicSubarea/
+                // ApprovalDate/DateOfConstruction → backend's UpdateAsync wrote those as null,
+                // clobbering values the user had set outside the AI workflow ("don't overwrite
+                // user-entered data" in Kathleen's tester feedback). Accepted/edited fields
+                // overlay below; pending/rejected fields fall through to the live value.
                 const dto: any = {
                     WaterQualityManagementPlanName: existing.WaterQualityManagementPlanName,
                     StormwaterJurisdictionID: existing.StormwaterJurisdictionID,
@@ -906,6 +1003,17 @@ export class WqmpReviewComponent implements OnInit, IDeactivateComponent {
                     MaintenanceContactCity: existing.MaintenanceContactCity,
                     MaintenanceContactState: existing.MaintenanceContactState,
                     MaintenanceContactZip: existing.MaintenanceContactZip,
+                    WaterQualityManagementPlanPriorityID: existing.WaterQualityManagementPlanPriorityID,
+                    WaterQualityManagementPlanDevelopmentTypeID: existing.WaterQualityManagementPlanDevelopmentTypeID,
+                    WaterQualityManagementPlanLandUseID: existing.WaterQualityManagementPlanLandUseID,
+                    WaterQualityManagementPlanPermitTermID: existing.WaterQualityManagementPlanPermitTermID,
+                    HydromodificationAppliesTypeID: existing.HydromodificationAppliesTypeID,
+                    HydrologicSubareaID: existing.HydrologicSubareaID,
+                    ApprovalDate: existing.ApprovalDate,
+                    DateOfConstruction: existing.DateOfConstruction,
+                    TrashCaptureEffectiveness: existing.TrashCaptureEffectiveness,
+                    LastNereidLogID: existing.LastNereidLogID,
+                    WaterQualityManagementPlanBoundaryNotes: existing.WaterQualityManagementPlanBoundaryNotes,
                 };
 
                 // Overlay accepted/edited text fields
@@ -921,40 +1029,48 @@ export class WqmpReviewComponent implements OnInit, IDeactivateComponent {
                     MaintenanceContactState: "MaintenanceContactState",
                     MaintenanceContactZip: "MaintenanceContactZip",
                 };
+                // NPT-1020 rework: "Approve All" means accept every non-rejected field. Untouched
+                // (state === "pending") fields fall back to the AI value so a reviewer who hits
+                // Approve All on a fresh extraction without per-field ✓ clicks still gets the
+                // extracted values written through. Only rejected fields are dropped.
+                const valueOf = (f: ExtractedField): string | null => {
+                    if (f.state === "rejected") return null;
+                    const v = f.acceptedValue ?? f.value ?? null;
+                    return v == null ? null : String(v);
+                };
                 for (const field of this.fields()) {
-                    // Parcels are persisted via a separate endpoint after the main approve
-                    // succeeds — skip them here.
+                    // Parcels persist via a separate endpoint after the main approve. BMPs
+                    // build their own upsert payload below.
                     if (field.key.startsWith(this.PARCEL_KEY_PREFIX)) continue;
-                    if (field.state !== "accepted" && field.state !== "edited") continue;
-                    if (field.acceptedValue == null) continue;
+                    if (field.key.startsWith(this.BMP_KEY_PREFIX)) continue;
+                    const v = valueOf(field);
+                    if (v == null) continue;
 
-                    // Text fields
                     if (textFields[field.key]) {
-                        dto[textFields[field.key]] = field.acceptedValue;
+                        dto[textFields[field.key]] = v;
                         continue;
                     }
 
-                    // Lookup fields (value is already an ID from the dropdown)
+                    // Lookup fields — value is an ID string (makeField resolves AI labels to IDs).
                     const lookupConfig = this.lookupFieldConfig[field.key];
                     if (lookupConfig) {
-                        dto[lookupConfig.dtoField] = Number(field.acceptedValue);
+                        const n = Number(v);
+                        if (!isNaN(n)) dto[lookupConfig.dtoField] = n;
                         continue;
                     }
                 }
 
-                // Handle numeric fields
                 const acresField = this.fields().find((f) => f.key === "RecordedWQMPAreaInAcres");
-                if (acresField && (acresField.state === "accepted" || acresField.state === "edited") && acresField.acceptedValue) {
-                    const parsed = parseFloat(acresField.acceptedValue);
+                const acresV = acresField ? valueOf(acresField) : null;
+                if (acresV) {
+                    const parsed = parseFloat(acresV);
                     if (!isNaN(parsed)) dto.RecordedWQMPAreaInAcres = parsed;
                 }
 
-                // Handle date fields
                 for (const dateKey of ["ApprovalDate", "DateOfConstruction"]) {
                     const dateField = this.fields().find((f) => f.key === dateKey);
-                    if (dateField && (dateField.state === "accepted" || dateField.state === "edited") && dateField.acceptedValue) {
-                        dto[dateKey] = dateField.acceptedValue;
-                    }
+                    const dateV = dateField ? valueOf(dateField) : null;
+                    if (dateV) dto[dateKey] = dateV;
                 }
 
                 // NPT-1047: include accepted/edited BMPs (Step 3) in the approval payload
@@ -966,7 +1082,11 @@ export class WqmpReviewComponent implements OnInit, IDeactivateComponent {
                     this.waterQualityManagementPlanID,
                     { WaterQualityManagementPlan: dto, ApprovedQuickBMPs: approvedQuickBMPs }
                 ).pipe(
-                    switchMap(() => this.syncAcceptedParcels())
+                    switchMap((response: WaterQualityManagementPlanExtractionApprovalResponseDto) => this.syncAcceptedParcels().pipe(
+                        // NPT-1020 item 3: surface skipped-BMP warnings before navigating
+                        // away from the review page so the reviewer sees them.
+                        tap(() => this.warnAboutSkippedBMPs(response?.SkippedBMPs)),
+                    )),
                 );
             })
         ).subscribe({
@@ -983,57 +1103,74 @@ export class WqmpReviewComponent implements OnInit, IDeactivateComponent {
         });
     }
 
-    // After the main approve/apply lands, collect the accepted parcel APN strings, resolve
-    // them to ParcelIDs, and PUT the list to the WQMP. Returns an Observable that always
-    // completes cleanly — lookup / update failures surface as a non-blocking warning alert
-    // rather than errors so the earlier-completed approve doesn't appear to have failed.
+    // NPT-1020 item 3: emit a non-blocking warning per QuickBMP that couldn't be
+    // auto-created (typically because the AI didn't extract a Treatment BMP Type and
+    // the reviewer didn't pick one before Approve All). The reviewer can still create
+    // the BMPs manually via the WQMP detail page. Alerts are stable across navigation
+    // because pushAlert flips persistence on.
+    private warnAboutSkippedBMPs(skipped: Array<QuickBMPMergeSkipDto> | null | undefined): void {
+        if (!skipped?.length) return;
+        for (const entry of skipped) {
+            const name = this.escapeHtml(entry.ProposedName ?? "(unnamed)");
+            const reasons = (entry.Reasons ?? []).map((r) => this.escapeHtml(r)).join(", ");
+            const msg = reasons
+                ? `Could not auto-create BMP "${name}" — missing required field(s): ${reasons}. Add it manually on the WQMP page if needed.`
+                : `Could not auto-create BMP "${name}". Add it manually on the WQMP page if needed.`;
+            this.alertService.pushAlert(new Alert(msg, AlertContext.Warning));
+        }
+    }
+
+    // NPT-1020 item 2: after the main approve/apply lands, batch the accepted/edited
+    // parcels through the per-parcel apply endpoint so the WQMP boundary is recomputed
+    // from the parcel set. The prior PUT-the-id-list path skipped the boundary recompute,
+    // which is why Kathleen's Approve-All test on WQMP 00618276 left the boundary empty.
     //
-    // Skips the update entirely when the extraction had no parcel fields at all (common
-    // for pure text PDFs with no APN mentions) — wiping existing WQMP parcels in that case
-    // would be surprising and destructive.
+    // Sequential because UpdateParcelsAndRecomputeBoundary mutates the same WQMP and is
+    // not safe to run concurrently. Re-applying parcels that were already saved per-field
+    // is idempotent — the controller adds the resolved ParcelID into a HashSet.
     private syncAcceptedParcels(): Observable<unknown> {
         const parcelFields = this.fields().filter((f) => f.key.startsWith(this.PARCEL_KEY_PREFIX));
         if (parcelFields.length === 0) {
             return of(null);
         }
 
-        const apns = parcelFields
-            .filter((f) => f.state === "accepted" || f.state === "edited")
-            .map((f) => (f.acceptedValue ?? f.value ?? "").trim())
-            .filter((apn) => apn.length > 0);
-
         const warn = (msg: string) => this.alertService.pushAlert(new Alert(msg, AlertContext.Warning));
 
-        const persist = (ids: number[]) =>
-            this.wqmpService.updateParcelsWaterQualityManagementPlan(this.waterQualityManagementPlanID, ids).pipe(
-                catchError(() => {
-                    warn("Approved successfully, but the WQMP's parcel list could not be updated. Try re-opening the WQMP and editing parcels directly.");
-                    return of(null);
-                })
-            );
+        // NPT-1020 rework: include pending parcels (untouched AI extractions) alongside
+        // accepted/edited ones — Approve All on a fresh extraction shouldn't require the
+        // reviewer to click ✓ on every parcel row first. Reject is still honored.
+        const toSync = parcelFields.filter(
+            (f) => f.state !== "rejected" && (f.acceptedValue ?? f.value ?? "").toString().trim().length > 0,
+        );
 
-        if (apns.length === 0) {
-            // Parcels were reviewed but none survived → explicit clear.
-            return persist([]);
+        if (toSync.length === 0) {
+            return of(null);
         }
 
-        return this.parcelService.lookupByNumbersParcel(apns).pipe(
-            switchMap((results) => {
-                const ids = results.filter((r) => r.ParcelID != null).map((r) => r.ParcelID!);
-                const missing = results.filter((r) => r.ParcelID == null).map((r) => r.ParcelNumber);
-                if (missing.length > 0) {
-                    // HTML-escape before interpolating — the alert component renders with
-                    // [innerHTML], and APN strings can come from Claude's output and so must
-                    // be treated as untrusted.
-                    const escaped = missing.map((s) => this.escapeHtml(s)).join(", ");
-                    warn(`The following APNs were not found in the parcel database and were skipped: ${escaped}.`);
+        const failed: string[] = [];
+        return toSync.reduce<Observable<unknown>>((chain, field) => {
+            const apn = (field.acceptedValue ?? field.value ?? "").toString().trim();
+            const action = field.state === "edited" ? "edit" : "accept";
+            return chain.pipe(
+                switchMap(() =>
+                    this.wqmpService.applyExtractionParcelWaterQualityManagementPlan(
+                        this.waterQualityManagementPlanID,
+                        { ParcelKey: field.key, ParcelNumber: apn, Action: action },
+                    ).pipe(
+                        catchError(() => {
+                            failed.push(apn);
+                            return of(null);
+                        }),
+                    ),
+                ),
+            );
+        }, of(null)).pipe(
+            tap(() => {
+                if (failed.length > 0) {
+                    const escaped = failed.map((s) => this.escapeHtml(s)).join(", ");
+                    warn(`Approved successfully, but the following APNs could not be applied: ${escaped}.`);
                 }
-                return persist(ids);
             }),
-            catchError(() => {
-                warn("Approved successfully, but couldn't resolve parcels — existing parcels on the WQMP were left unchanged.");
-                return of(null);
-            })
         );
     }
 

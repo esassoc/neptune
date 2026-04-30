@@ -43,6 +43,7 @@ export class FieldCardComponent implements OnChanges {
     @Input() readOnly = false;
     @Input() initialState: FieldState = "pending";
     @Input() initialValue: string | null = null;
+    @Input() selected = false;
 
     @Output() valueAccepted = new EventEmitter<string | null>();
     @Output() valueEdited = new EventEmitter<string>();

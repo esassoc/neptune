@@ -245,6 +245,14 @@
     border-left: 1px solid $gray-200;
     min-height: 0;
 
+    // Step 4 (Final review) hides the PDF panel and lets the summary occupy the
+    // remaining width to the right of the 240-px sidebar.
+    &--full-width {
+        width: auto;
+        flex: 1;
+        max-width: none;
+    }
+
     &__header {
         padding: 0.6rem 1.25rem 0.7rem;
         border-bottom: 1px solid $gray-200;

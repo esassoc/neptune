@@ -837,7 +837,7 @@ namespace Neptune.API.Controllers
         [HttpPost("{waterQualityManagementPlanID}/extraction-result/approve")]
         [JurisdictionEditFeature]
         [EntityNotFound(typeof(WaterQualityManagementPlan), "waterQualityManagementPlanID")]
-        public async Task<ActionResult<WaterQualityManagementPlanDto>> ApproveExtractionResult(
+        public async Task<ActionResult<WaterQualityManagementPlanExtractionApprovalResponseDto>> ApproveExtractionResult(
             [FromRoute] int waterQualityManagementPlanID,
             [FromBody] WaterQualityManagementPlanExtractionApprovalDto dto)
         {
@@ -849,7 +849,14 @@ namespace Neptune.API.Controllers
             // NPT-1047: validate the QuickBMPs the user accepted on Step 3 of the review
             // workflow up-front so a bad list doesn't leave the WQMP root fields half-written.
             // Same rule set the manual MergeQuickBMPs endpoint enforces.
-            var quickBMPValidationError = QuickBMPs.Validate(dto.ApprovedQuickBMPs);
+            //
+            // NPT-1020 item 3: skip rows missing required fields when validating sum/uniqueness
+            // rules — those land in the merge report's Skipped list instead of hard-failing the
+            // whole approval. Hard validation (% out of range, duplicate names, etc.) still
+            // applies to the rest. PartitionForMerge is the single source of truth for
+            // "what counts as mergeable" — shared with MergeWithReportAsync below.
+            var (quickBMPsForValidation, _) = QuickBMPs.PartitionForMerge(dto.ApprovedQuickBMPs);
+            var quickBMPValidationError = QuickBMPs.Validate(quickBMPsForValidation);
             if (quickBMPValidationError != null)
             {
                 return BadRequest(quickBMPValidationError);
@@ -870,13 +877,18 @@ namespace Neptune.API.Controllers
                 var updated = await WaterQualityManagementPlans.UpdateAsync(DbContext, waterQualityManagementPlanID, dto.WaterQualityManagementPlan);
                 if (updated == null) return NotFound();
 
-                // MergeAsync handles re-approval idempotency by matching on (WQMPID, QuickBMPName):
-                // re-running extraction → re-approving the same set produces no duplicates.
-                await QuickBMPs.MergeAsync(DbContext, waterQualityManagementPlanID, dto.ApprovedQuickBMPs ?? new List<QuickBMPUpsertDto>());
+                // MergeWithReportAsync handles re-approval idempotency by matching on
+                // (WQMPID, QuickBMPName). Rows missing required fields land in report.Skipped
+                // and are surfaced as a warning toast on the SPA — not an error.
+                var report = await QuickBMPs.MergeWithReportAsync(DbContext, waterQualityManagementPlanID, dto.ApprovedQuickBMPs ?? new List<QuickBMPUpsertDto>());
 
                 await WaterQualityManagementPlanExtractionResults.MarkApprovedAsync(DbContext, waterQualityManagementPlanID, CallingUser.PersonID);
                 await transaction.CommitAsync();
-                return Ok(updated);
+                return Ok(new WaterQualityManagementPlanExtractionApprovalResponseDto
+                {
+                    WaterQualityManagementPlan = updated,
+                    SkippedBMPs = report.Skipped,
+                });
             }
             catch (InvalidOperationException ex)
             {
