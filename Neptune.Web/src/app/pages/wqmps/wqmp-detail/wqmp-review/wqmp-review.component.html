@@ -50,8 +50,11 @@
             }
         </aside>
 
-        <!-- PDF Panel -->
-        <div class="pdf-panel">
+        <!-- PDF Panel — hidden on Step 4 (Final review) since the summary view doesn't
+             reference evidence on the PDF. Use [hidden] rather than @if so the iframe
+             stays mounted across step navigation; otherwise pdfLoaded / pendingNavigation /
+             pdfTextCache get out of sync with the new iframe instance on return. -->
+        <div class="pdf-panel" [hidden]="currentStep() === 4">
             @if (isNavigating()) {
                 <div class="pdf-panel__loading">
                     <i class="fa fa-spinner fa-spin"></i> Finding in document...
@@ -78,7 +81,7 @@
         </div>
 
         <!-- Review Panel -->
-        <div class="review-panel">
+        <div class="review-panel" [class.review-panel--full-width]="currentStep() === 4">
             <div class="review-panel__header">
                 <h2>{{ steps[currentStep() - 1].title }}</h2>
                 @if (pageData.hasResult) {
@@ -148,10 +151,11 @@
                             [readOnly]="isApproved()"
                             [initialState]="field.state"
                             [initialValue]="field.acceptedValue ?? field.value"
+                            [selected]="selectedFieldKey() === field.key"
                             (valueAccepted)="onFieldAccepted(field, $event)"
                             (valueEdited)="onFieldEdited(field, $event)"
                             (valueRejected)="onFieldRejected(field)"
-                            (navigateToSource)="navigateToSource($event)">
+                            (navigateToSource)="onSourceClick(field.key, $event)">
                         </field-card>
                     }
                     @if (currentStep() === 1 && !isApproved()) {
@@ -178,12 +182,13 @@
                                 [fields]="group.fields"
                                 [readOnly]="isApproved()"
                                 [initialIsRejected]="group.isRejected"
+                                [selectedFieldKey]="selectedFieldKey()"
                                 (bmpRejected)="onBmpRejected($event)"
                                 (bmpRestored)="onBmpRestored($event)"
                                 (fieldAccepted)="onBmpFieldAccepted($event)"
                                 (fieldEdited)="onBmpFieldEdited($event)"
                                 (fieldRejected)="onBmpFieldRejected($event)"
-                                (navigateToSource)="navigateToSource($event)">
+                                (navigateToSource)="onSourceClick($event.key, $event.nav)">
                             </bmp-review-card>
                         }
                         @if (bmpGroupsForCurrentStep.length === 0) {
