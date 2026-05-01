@@ -26,7 +26,7 @@ namespace Neptune.WebMvc.Views.WaterQualityManagementPlan
 
         [Required]
         [DisplayName("Verification Date")]
-        public DateTime VerificationDate { get; set; }
+        public DateOnly VerificationDate { get; set; }
 
         public int? WaterQualityManagementPlanVerifyStatusID { get; set; }
         public string EnforcementOrFollowupActions { get; set; }
@@ -80,7 +80,7 @@ namespace Neptune.WebMvc.Views.WaterQualityManagementPlan
             waterQualityManagementPlanVerify.WaterQualityManagementPlanVerifyStatusID = WaterQualityManagementPlanVerifyStatusID;
             waterQualityManagementPlanVerify.LastEditedByPersonID = currentPerson.PersonID;
             waterQualityManagementPlanVerify.LastEditedDate = DateTime.UtcNow;
-            waterQualityManagementPlanVerify.VerificationDate = VerificationDate.ConvertTimeFromPSTToUTC();
+            waterQualityManagementPlanVerify.VerificationDate = VerificationDate;
 
             var allWaterQualityManagementPlanVerifyQuickBMPsInDatabase = dbContext.WaterQualityManagementPlanVerifyQuickBMPs;
             var waterQualityManagementPlanVerifyQuickBMPsToUpdate = WaterQualityManagementPlanVerifyQuickBMPs

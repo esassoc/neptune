@@ -755,7 +755,7 @@ namespace Neptune.WebMvc.Controllers
                 LastEditedByPersonID = CurrentPerson.PersonID,
                 LastEditedDate = DateTime.UtcNow,
                 IsDraft = true,
-                VerificationDate = DateTime.UtcNow
+                VerificationDate = DateOnly.FromDateTime(DateTime.UtcNow)
             };
             var viewModel = new NewWqmpVerifyViewModel(waterQualityManagementPlan, waterQualityManagementPlanVerify, quickBMPs, treatmentBMPs);
             return ViewNewWqmpVerify(waterQualityManagementPlan, viewModel);
@@ -779,7 +779,7 @@ namespace Neptune.WebMvc.Controllers
                 LastEditedByPersonID = CurrentPerson.PersonID,
                 LastEditedDate = DateTime.UtcNow,
                 IsDraft = !viewModel.HiddenIsFinalizeVerificationInput,
-                VerificationDate = viewModel.VerificationDate.ConvertTimeFromPSTToUTC()
+                VerificationDate = viewModel.VerificationDate
             };
             await _dbContext.WaterQualityManagementPlanVerifies.AddAsync(waterQualityManagementPlanVerify);
             await _dbContext.SaveChangesAsync();
@@ -1274,7 +1274,7 @@ The WQMP Boundaries for Stormwater Jurisdiction {stormwaterJurisdiction} were su
             var wqmpInventoryVerificationsAndFieldVisits = vWaterQualityManagementPlanAnnualReports
                 .ListForStormwaterJurisdictionIDs(_dbContext, CurrentPerson, stormwaterJurisdictionIDsPersonCanView).Where(x =>
                     (stormwaterJurisdictionID == -1 || x.StormwaterJurisdictionID == stormwaterJurisdictionID) 
-                    && x.WaterQualityManagementPlanVerifyVerificationDate >= reportingPeriodStart && x.WaterQualityManagementPlanVerifyVerificationDate <= reportingPeriodEnd)
+                    && x.WaterQualityManagementPlanVerifyVerificationDate >= DateOnly.FromDateTime(reportingPeriodStart) && x.WaterQualityManagementPlanVerifyVerificationDate <= DateOnly.FromDateTime(reportingPeriodEnd))
                 .GroupBy(x => x.WaterQualityManagementPlanID);
 
             var postConstructionInspectionAndVerificationGridSimples = wqmpInventoryVerificationsAndFieldVisits.Select(
