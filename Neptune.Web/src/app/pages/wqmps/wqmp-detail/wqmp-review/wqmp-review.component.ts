@@ -128,11 +128,20 @@ export class WqmpReviewComponent implements OnInit, IDeactivateComponent {
     // NPT-1051: per-section save in progress. Set while POST /save-{location|basics|bmps} is
     // outstanding; binds the corresponding step's Save button to a spinner + disabled state.
     public savingSection = signal<"location" | "basics" | "bmps" | null>(null);
-    // NPT-1051: hasUnsavedChanges is now derived from field state — any field accepted/edited/
+    // NPT-1051: hasUnsavedChanges is derived from field state — any field accepted/edited/
     // rejected (or any card-level BMP rejection) counts as dirty until the corresponding section
     // Save commits. UnsavedChangesGuard reads canExit() which reads this.
+    //
+    // User-entered fields (Jurisdiction + WQMP Name from the upload modal) get pre-marked
+    // "accepted" at parse time so the field card renders the user's value instead of the AI
+    // suggestion. That auto-accept is settled state — not unsaved review work — so it doesn't
+    // count toward hasUnsavedChanges. Editing or rejecting a user-entered field still counts.
     public hasUnsavedChanges = computed(() => {
-        return this.fields().some((f) => f.state !== "pending") || this.rejectedBmpIndices().size > 0;
+        return this.fields().some((f) => {
+            if (f.state === "pending") return false;
+            if (f.isUserEntered && f.state === "accepted") return false;
+            return true;
+        }) || this.rejectedBmpIndices().size > 0;
     });
     public isNavigating = signal(false);
     // NPT-1020 rework: tracks which field card most recently triggered a PDF jump so the
@@ -1000,6 +1009,15 @@ export class WqmpReviewComponent implements OnInit, IDeactivateComponent {
                 ? field.acceptedValue
                 : field.value;
             const v = this.normalizeOverlayValue(raw);
+
+            // Tester feedback (Kathleen): don't overwrite user-entered data with nothing. If the
+            // AI didn't extract a value and the reviewer hasn't typed one in (state=pending or
+            // accepted with no value), leave the seeded live value alone. The reviewer can
+            // explicitly clear via Edit (state=edited will still go through the textFieldKeys
+            // branch below to write null). Required-FK columns (TrashCaptureStatusTypeID,
+            // StormwaterJurisdictionID) are also protected by this skip — they'd 400 the request
+            // on null otherwise.
+            if (v == null && field.state !== "edited") continue;
 
             if (textFieldKeys.has(key)) {
                 dto[key] = v;

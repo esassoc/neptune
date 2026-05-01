@@ -23,14 +23,16 @@
             } @else {
                 <span>AI extraction is also available for this WQMP.</span>
             }
-            <a [routerLink]="['/water-quality-management-plans', waterQualityManagementPlanID, 'review']" class="btn btn-primary-outline btn-sm">
-                Review AI Extraction
-            </a>
-            @if (wqmp.WaterQualityManagementPlanStatusID === WaterQualityManagementPlanStatusEnum.Draft) {
-                <button type="button" class="btn btn-primary btn-sm" (click)="confirmPromote(wqmp)" [disabled]="isPromoting()">
-                    @if (isPromoting()) { <i class="fa fa-spinner fa-spin"></i> Promoting... } @else { Promote to Active }
-                </button>
-            }
+            <div class="draft-banner__actions">
+                <a [routerLink]="['/water-quality-management-plans', waterQualityManagementPlanID, 'review']" class="btn btn-primary-outline btn-sm">
+                    Review AI Extraction
+                </a>
+                @if (wqmp.WaterQualityManagementPlanStatusID === WaterQualityManagementPlanStatusEnum.Draft) {
+                    <button type="button" class="btn btn-primary btn-sm" (click)="confirmPromote(wqmp)" [disabled]="isPromoting()">
+                        @if (isPromoting()) { <i class="fa fa-spinner fa-spin"></i> Promoting... } @else { Promote to Active }
+                    </button>
+                }
+            </div>
         </div>
     }
 

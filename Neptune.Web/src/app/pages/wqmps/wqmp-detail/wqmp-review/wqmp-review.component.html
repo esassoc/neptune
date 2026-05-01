@@ -34,8 +34,15 @@
             <!-- NPT-1051: Approve All removed. Each step's Save button now writes that
                  section's accepted/edited fields straight through to the live WQMP — overwrite
                  semantics matching the modal CRUD editors. The Save buttons live alongside
-                 their step's content (below). Re-run Extraction is in the sticky footer. -->
-
+                 their step's content. Re-run Extraction sits below the steps here, where it's
+                 close to the navigation but doesn't compete with the per-field action area. -->
+            @if (pageData.hasResult) {
+                <div class="review-sidebar__rerun">
+                    <button class="btn btn-secondary-outline btn-block" (click)="confirmReExtract()" [disabled]="isExtracting()" title="Replace the AI-extracted suggestions with a fresh run. Saved sections on the WQMP are preserved.">
+                        @if (isExtracting()) { <i class="fa fa-spinner fa-spin"></i> Extracting... } @else { <i class="fa fa-magic"></i> Re-run Extraction }
+                    </button>
+                </div>
+            }
         </aside>
 
         <!-- PDF Panel — hidden on Step 4 (Final review) since the summary view doesn't
@@ -71,9 +78,27 @@
         <!-- Review Panel -->
         <div class="review-panel" [class.review-panel--full-width]="currentStep() === 4">
             <div class="review-panel__header">
-                <h2>{{ steps[currentStep() - 1].title }}</h2>
-                @if (pageData.hasResult) {
-                    <p class="review-panel__desc">Review and confirm the AI-extracted values below.</p>
+                <div class="review-panel__header-text">
+                    <h2>{{ steps[currentStep() - 1].title }}</h2>
+                    @if (pageData.hasResult) {
+                        <p class="review-panel__desc">Review and confirm the AI-extracted values below.</p>
+                    }
+                </div>
+                <!-- NPT-1051: per-step Save button anchored to the section header so it's
+                     always visible without scrolling past the field list. Step 4 (Review)
+                     is a read-only summary — no Save action there. -->
+                @if (pageData.hasResult && currentStep() === 1) {
+                    <button class="btn btn-primary review-panel__header-action" (click)="saveLocation()" [disabled]="savingSection() !== null || isExtracting()">
+                        @if (savingSection() === "location") { <i class="fa fa-spinner fa-spin"></i> Saving... } @else { Save }
+                    </button>
+                } @else if (pageData.hasResult && currentStep() === 2) {
+                    <button class="btn btn-primary review-panel__header-action" (click)="saveBasics()" [disabled]="savingSection() !== null || isExtracting()">
+                        @if (savingSection() === "basics") { <i class="fa fa-spinner fa-spin"></i> Saving... } @else { Save }
+                    </button>
+                } @else if (pageData.hasResult && currentStep() === 3) {
+                    <button class="btn btn-primary review-panel__header-action" (click)="saveBmps()" [disabled]="savingSection() !== null || isExtracting()">
+                        @if (savingSection() === "bmps") { <i class="fa fa-spinner fa-spin"></i> Saving... } @else { Save }
+                    </button>
                 }
             </div>
 
@@ -86,7 +111,7 @@
                         <strong>Tips:</strong>
                         Click a field's value or evidence to jump to the source on the PDF.
                         Use <strong>&#10003;&nbsp;Accept</strong>, <strong>&#9998;&nbsp;Edit</strong>, or <strong>&#10007;&nbsp;Reject</strong> (preserves the existing live value) on each field.
-                        <strong>Save</strong> at the bottom of each step writes the section's accepted values to the WQMP — untouched fields auto-accept their AI value when you save.
+                        <strong>Save</strong> in each step's header writes the section's accepted values to the WQMP — untouched fields auto-accept their AI value when you save.
                     </div>
                 </div>
             }
@@ -105,7 +130,7 @@
             @if (hasUnsavedChanges()) {
                 <div class="review-panel__banner review-panel__banner--dirty">
                     <i class="fa fa-exclamation-circle"></i>
-                    You have unsaved changes. Click the Save button at the bottom of this step to write them to the WQMP.
+                    You have unsaved changes. Click the Save button in this step's header to write them to the WQMP.
                 </div>
             }
 
@@ -171,42 +196,9 @@
                         }
                     }
 
-                    <!-- NPT-1051: per-step Save buttons. Each writes that section's accepted /
-                         edited values to the live WQMP via /save-{location|basics|bmps}. Step 4
-                         (Review) is a read-only summary — no Save action there. -->
-                    @if (currentStep() === 1) {
-                        <div class="review-panel__step-actions">
-                            <button class="btn btn-primary" (click)="saveLocation()" [disabled]="savingSection() !== null || isExtracting()">
-                                @if (savingSection() === "location") { <i class="fa fa-spinner fa-spin"></i> Saving... } @else { Save Location }
-                            </button>
-                        </div>
-                    } @else if (currentStep() === 2) {
-                        <div class="review-panel__step-actions">
-                            <button class="btn btn-primary" (click)="saveBasics()" [disabled]="savingSection() !== null || isExtracting()">
-                                @if (savingSection() === "basics") { <i class="fa fa-spinner fa-spin"></i> Saving... } @else { Save Basics }
-                            </button>
-                        </div>
-                    } @else if (currentStep() === 3) {
-                        <div class="review-panel__step-actions">
-                            <button class="btn btn-primary" (click)="saveBmps()" [disabled]="savingSection() !== null || isExtracting()">
-                                @if (savingSection() === "bmps") { <i class="fa fa-spinner fa-spin"></i> Saving... } @else { Save BMPs }
-                            </button>
-                        </div>
-                    }
                 </div>
             }
         </div>
     </div>
 
-    <!-- Re-run Extraction lives in a sticky bottom-right footer so it's always reachable
-         but doesn't compete with the per-field action area for the eye. NPT-1051: always
-         available regardless of WQMP state — saved sections survive a re-extract because
-         extraction overwrites the AI suggestion, not the live WQMP. -->
-    @if (pageData.hasResult) {
-        <div class="review-rerun-footer">
-            <button class="btn btn-secondary-outline" (click)="confirmReExtract()" [disabled]="isExtracting()" title="Replace the AI-extracted suggestions with a fresh run. Saved sections on the WQMP are preserved.">
-                @if (isExtracting()) { <i class="fa fa-spinner fa-spin"></i> Extracting... } @else { <i class="fa fa-magic"></i> Re-run Extraction }
-            </button>
-        </div>
-    }
 }
