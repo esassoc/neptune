@@ -118,7 +118,7 @@
                     <ul>
                         @for (bmpType of vm.detail.TreatmentBMPTypes; track bmpType.TreatmentBMPTypeID) {
                             <li>
-                                <a [href]="bmpTypeDetailUrl(bmpType.TreatmentBMPTypeID!)">{{ bmpType.TreatmentBMPTypeName }}</a>
+                                <a [routerLink]="['/program-info/treatment-bmp-types', bmpType.TreatmentBMPTypeID]">{{ bmpType.TreatmentBMPTypeName }}</a>
                             </li>
                         }
                     </ul>

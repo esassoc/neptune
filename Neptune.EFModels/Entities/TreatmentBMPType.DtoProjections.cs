@@ -48,6 +48,10 @@ public static class TreatmentBMPTypeProjections
                     CustomAttributeTypeName = y.CustomAttributeType.CustomAttributeTypeName,
                     CustomAttributeTypePurposeID = y.CustomAttributeType.CustomAttributeTypePurposeID,
                     SortOrder = y.SortOrder,
+                    CustomAttributeDataTypeID = y.CustomAttributeType.CustomAttributeDataTypeID,
+                    MeasurementUnitTypeID = y.CustomAttributeType.MeasurementUnitTypeID,
+                    IsRequired = y.CustomAttributeType.IsRequired,
+                    CustomAttributeTypeDescription = y.CustomAttributeType.CustomAttributeTypeDescription,
                 }).ToList(),
         };
 }

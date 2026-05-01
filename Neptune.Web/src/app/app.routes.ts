@@ -535,6 +535,11 @@ export const routes: Routes = [
                 loadComponent: () => import("./pages/program-info/treatment-bmp-types.component").then((m) => m.TreatmentBmpTypesComponent),
             },
             {
+                path: "program-info/treatment-bmp-types/:treatmentBMPTypeID",
+                title: "Treatment BMP Type Detail",
+                loadComponent: () => import("./pages/program-info/treatment-bmp-type-detail/treatment-bmp-type-detail.component").then((m) => m.TreatmentBmpTypeDetailComponent),
+            },
+            {
                 path: "funding-sources",
                 title: "Funding Sources",
                 loadComponent: () => import("./pages/funding-sources/funding-sources.component").then((m) => m.FundingSourcesComponent),
