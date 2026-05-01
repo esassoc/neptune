@@ -7,37 +7,35 @@
  * https://openapi-generator.tech
  * Do not edit the class manually.
  */
-import { QuickBMPUpsertDto } from './quick-bmp-upsert-dto';
 import { WaterQualityManagementPlanUpsertDto } from './water-quality-management-plan-upsert-dto';
 
 
 import { FormControl, FormControlOptions, FormControlState, Validators } from "@angular/forms";
-export class WaterQualityManagementPlanExtractionApprovalDto { 
-    WaterQualityManagementPlan: WaterQualityManagementPlanUpsertDto;
-    ApprovedQuickBMPs?: Array<QuickBMPUpsertDto> | null;
+export class WaterQualityManagementPlanSectionSaveLocationDto { 
+    WaterQualityManagementPlan?: WaterQualityManagementPlanUpsertDto;
+    ParcelIDs?: Array<number> | null;
     constructor(obj?: any) {
         Object.assign(this, obj);
     }
 }
 
-export interface WaterQualityManagementPlanExtractionApprovalDtoForm { 
-    WaterQualityManagementPlan: FormControl<WaterQualityManagementPlanUpsertDto>;
-    ApprovedQuickBMPs?: FormControl<Array<QuickBMPUpsertDto>>;
+export interface WaterQualityManagementPlanSectionSaveLocationDtoForm { 
+    WaterQualityManagementPlan?: FormControl<WaterQualityManagementPlanUpsertDto>;
+    ParcelIDs?: FormControl<Array<number>>;
 }
 
-export class WaterQualityManagementPlanExtractionApprovalDtoFormControls { 
+export class WaterQualityManagementPlanSectionSaveLocationDtoFormControls { 
     public static WaterQualityManagementPlan = (value: FormControlState<WaterQualityManagementPlanUpsertDto> | WaterQualityManagementPlanUpsertDto = undefined, formControlOptions?: FormControlOptions | null) => new FormControl<WaterQualityManagementPlanUpsertDto>(
         value,
         formControlOptions ?? 
         {
-            nonNullable: true,
+            nonNullable: false,
             validators: 
             [
-                Validators.required,
             ],
         }
     );
-    public static ApprovedQuickBMPs = (value: FormControlState<Array<QuickBMPUpsertDto>> | Array<QuickBMPUpsertDto> = undefined, formControlOptions?: FormControlOptions | null) => new FormControl<Array<QuickBMPUpsertDto>>(
+    public static ParcelIDs = (value: FormControlState<Array<number>> | Array<number> = undefined, formControlOptions?: FormControlOptions | null) => new FormControl<Array<number>>(
         value,
         formControlOptions ?? 
         {

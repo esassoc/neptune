@@ -12,7 +12,7 @@ import { QuickBMPMergeSkipDto } from './quick-bmp-merge-skip-dto';
 
 
 import { FormControl, FormControlOptions, FormControlState, Validators } from "@angular/forms";
-export class WaterQualityManagementPlanExtractionApprovalResponseDto { 
+export class WaterQualityManagementPlanSectionSaveResponseDto { 
     WaterQualityManagementPlan?: WaterQualityManagementPlanDto;
     SkippedBMPs?: Array<QuickBMPMergeSkipDto> | null;
     constructor(obj?: any) {
@@ -20,12 +20,12 @@ export class WaterQualityManagementPlanExtractionApprovalResponseDto {
     }
 }
 
-export interface WaterQualityManagementPlanExtractionApprovalResponseDtoForm { 
+export interface WaterQualityManagementPlanSectionSaveResponseDtoForm { 
     WaterQualityManagementPlan?: FormControl<WaterQualityManagementPlanDto>;
     SkippedBMPs?: FormControl<Array<QuickBMPMergeSkipDto>>;
 }
 
-export class WaterQualityManagementPlanExtractionApprovalResponseDtoFormControls { 
+export class WaterQualityManagementPlanSectionSaveResponseDtoFormControls { 
     public static WaterQualityManagementPlan = (value: FormControlState<WaterQualityManagementPlanDto> | WaterQualityManagementPlanDto = undefined, formControlOptions?: FormControlOptions | null) => new FormControl<WaterQualityManagementPlanDto>(
         value,
         formControlOptions ?? 
