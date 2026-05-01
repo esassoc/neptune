@@ -900,20 +900,38 @@ export class WqmpReviewComponent implements OnInit, IDeactivateComponent {
         this.savingSection.set("location");
         this.alertService.clearAlerts();
 
+        // Buffer the lookup-by-numbers misses so we only warn the reviewer after the save
+        // actually succeeds — surfacing "Saved Location, but APN X was skipped..." before the
+        // POST /save-location call would be misleading if that call then 400s. Also dedupe
+        // the parcel IDs before sending: the unique constraint on
+        // (WaterQualityManagementPlanID, ParcelID) would otherwise fail if two parcel rows
+        // typed the same APN.
+        let missedApns: string[] = [];
+
         this.wqmpService.getWaterQualityManagementPlan(this.waterQualityManagementPlanID).pipe(
             switchMap((existing) => {
                 const dto = this.buildSectionUpsertDto(existing, this.locationFields);
                 return this.collectAcceptedParcelIDs().pipe(
-                    switchMap((parcelIDs) => this.wqmpService.saveLocationWaterQualityManagementPlan(
-                        this.waterQualityManagementPlanID,
-                        { WaterQualityManagementPlan: dto, ParcelIDs: parcelIDs },
-                    )),
+                    switchMap(({ parcelIDs, missed }) => {
+                        missedApns = missed;
+                        return this.wqmpService.saveLocationWaterQualityManagementPlan(
+                            this.waterQualityManagementPlanID,
+                            { WaterQualityManagementPlan: dto, ParcelIDs: parcelIDs },
+                        );
+                    }),
                 );
             }),
             finalize(() => this.savingSection.set(null)),
         ).subscribe({
             next: () => {
                 this.alertService.pushAlert(new Alert("Location saved.", AlertContext.Success));
+                if (missedApns.length > 0) {
+                    const escaped = missedApns.map((s) => escapeHtml(s ?? "")).join(", ");
+                    this.alertService.pushAlert(new Alert(
+                        `The following APNs could not be matched to a parcel and were skipped: ${escaped}.`,
+                        AlertContext.Warning,
+                    ));
+                }
                 this.markSectionFieldsClean(this.locationFields);
                 this.markParcelFieldsClean();
             },
@@ -1064,26 +1082,27 @@ export class WqmpReviewComponent implements OnInit, IDeactivateComponent {
 
     // Resolves the accepted/edited APNs from the parcel rows into ParcelIDs via the
     // /parcels/lookup-by-numbers endpoint. Pending rows with non-empty values are auto-
-    // accepted (AC #7); rejected rows + blank rows are dropped. Misses (APN with no
-    // matching parcel) are surfaced as a non-blocking warning toast.
-    private collectAcceptedParcelIDs(): Observable<number[]> {
+    // accepted (AC #7); rejected rows + blank rows are dropped. Returns the resolved IDs
+    // (deduped — duplicate APNs across rows would violate the unique constraint on
+    // (WaterQualityManagementPlanID, ParcelID) when the backend rebuilds associations) and
+    // the list of unmatched APNs so the caller can warn after a successful save (warning
+    // before would mislead the reviewer if save then fails).
+    private collectAcceptedParcelIDs(): Observable<{ parcelIDs: number[]; missed: string[] }> {
         const parcelFields = this.fields().filter((f) => f.key.startsWith(this.PARCEL_KEY_PREFIX));
         const apns = parcelFields
             .filter((f) => f.state !== "rejected")
             .map((f) => (f.acceptedValue ?? f.value ?? "").toString().trim())
             .filter((apn) => apn.length > 0);
-        if (apns.length === 0) return of([]);
+        if (apns.length === 0) return of({ parcelIDs: [], missed: [] });
         return this.parcelService.lookupByNumbersParcel(apns).pipe(
             map((results) => {
-                const missed = results.filter((r) => r.ParcelID == null).map((r) => r.ParcelNumber);
-                if (missed.length > 0) {
-                    const escaped = missed.map((s) => escapeHtml(s ?? "")).join(", ");
-                    this.alertService.pushAlert(new Alert(
-                        `Saved Location, but the following APNs could not be matched to a parcel and were skipped: ${escaped}.`,
-                        AlertContext.Warning,
-                    ));
-                }
-                return results.map((r) => r.ParcelID).filter((id): id is number => id != null);
+                const missed = results
+                    .filter((r) => r.ParcelID == null)
+                    .map((r) => r.ParcelNumber ?? "");
+                const parcelIDs = Array.from(new Set(
+                    results.map((r) => r.ParcelID).filter((id): id is number => id != null),
+                ));
+                return { parcelIDs, missed };
             }),
         );
     }
