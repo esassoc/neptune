@@ -1,0 +1,16 @@
+@use "/src/scss/abstracts" as *;
+
+.todo {
+    background: $teal-50;
+    border-left: 3px solid $teal-500;
+    padding: $spacing-300;
+    margin-top: $spacing-300;
+}
+
+.step-footer {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    gap: $spacing-300;
+    margin-top: $spacing-500;
+}

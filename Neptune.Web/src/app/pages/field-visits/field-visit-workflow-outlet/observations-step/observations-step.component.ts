@@ -1,0 +1,252 @@
+import { Component, Input, OnInit } from "@angular/core";
+import { Router } from "@angular/router";
+import { AsyncPipe } from "@angular/common";
+import { FormControl, ReactiveFormsModule } from "@angular/forms";
+import { Observable, of, switchMap, take } from "rxjs";
+
+import { FormFieldType, SelectDropdownOption } from "src/app/shared/components/forms/form-field/form-field.component";
+import { LoadingDirective } from "src/app/shared/directives/loading.directive";
+
+import { TreatmentBMPAssessmentByFieldVisitService } from "src/app/shared/generated/api/treatment-bmp-assessment-by-field-visit.service";
+import { TreatmentBMPAssessmentService } from "src/app/shared/generated/api/treatment-bmp-assessment.service";
+import { TreatmentBMPAssessmentDetailDto } from "src/app/shared/generated/model/treatment-bmp-assessment-detail-dto";
+import { TreatmentBMPAssessmentObservationTypeForFormDto } from "src/app/shared/generated/model/treatment-bmp-assessment-observation-type-for-form-dto";
+import { TreatmentBMPObservationDto } from "src/app/shared/generated/model/treatment-bmp-observation-dto";
+import { TreatmentBMPAssessmentUpsertDto } from "src/app/shared/generated/model/treatment-bmp-assessment-upsert-dto";
+import { FieldVisitWorkflowDto } from "src/app/shared/generated/model/field-visit-workflow-dto";
+
+import { FieldVisitWorkflowService } from "../../services/field-visit-workflow.service";
+import { AlertService } from "src/app/shared/services/alert.service";
+import { ConfirmService } from "src/app/shared/services/confirm/confirm.service";
+import { Alert } from "src/app/shared/models/alert";
+import { AlertContext } from "src/app/shared/models/enums/alert-context.enum";
+
+/**
+ * Observations editor: dynamically renders a form panel per observation type
+ * applicable to the BMP type. Each panel contains a row per "property to observe"
+ * (from the observation-type's JSON schema). The input rendered for each property
+ * varies by collection method:
+ *   - DiscreteValue → number input with optional min/max from the schema
+ *   - PassFail → Pass/Fail radio
+ *   - Percentage → number input clamped 0–100
+ *
+ * The saved data shape on the wire matches the legacy contract:
+ *   { SingleValueObservations: [{ PropertyObserved, ObservationValue, Notes }] }
+ * serialized as a JSON string in TreatmentBMPObservation.ObservationData.
+ */
+
+interface PropertyControl {
+    propertyObserved: string;
+    valueControl: FormControl<string | null>;
+    notesControl: FormControl<string | null>;
+    /** PassFail only — Pass/Fail dropdown options */
+    passFailOptions?: SelectDropdownOption[];
+}
+
+interface ObservationTypePanel {
+    observationTypeID: number;
+    name: string;
+    collectionMethod: "DiscreteValue" | "PassFail" | "Percentage" | string;
+    measurementUnitLabel?: string;
+    minValue?: number;
+    maxValue?: number;
+    assessmentDescription?: string;
+    benchmarkDescription?: string;
+    thresholdDescription?: string;
+    passingLabel?: string;
+    failingLabel?: string;
+    properties: PropertyControl[];
+}
+
+@Component({
+    selector: "field-visit-observations-step",
+    standalone: true,
+    imports: [AsyncPipe, ReactiveFormsModule, LoadingDirective],
+    templateUrl: "./observations-step.component.html",
+    styleUrl: "./observations-step.component.scss",
+})
+export class FieldVisitObservationsStepComponent implements OnInit {
+    /** 1 = Initial, 2 = PostMaintenance — passed via route data. */
+    @Input() assessmentTypeID: number = 1;
+
+    public workflow$: Observable<FieldVisitWorkflowDto | null>;
+    public assessment: TreatmentBMPAssessmentDetailDto | null = null;
+    public panels: ObservationTypePanel[] = [];
+    public isLoading = true;
+    public FormFieldType = FormFieldType;
+
+    constructor(
+        private workflowService: FieldVisitWorkflowService,
+        private assessmentByFieldVisitService: TreatmentBMPAssessmentByFieldVisitService,
+        private assessmentService: TreatmentBMPAssessmentService,
+        private alertService: AlertService,
+        private confirmService: ConfirmService,
+        private router: Router
+    ) {}
+
+    public get isPostMaintenance(): boolean {
+        return this.assessmentTypeID === 2;
+    }
+
+    public get headerLabel(): string {
+        return this.isPostMaintenance ? "Post-Maintenance Assessment Observations" : "Initial Assessment Observations";
+    }
+
+    ngOnInit(): void {
+        this.workflow$ = this.workflowService.workflow$;
+        this.workflow$
+            .pipe(
+                take(1),
+                switchMap((workflow) => {
+                    if (!workflow) return of(null);
+                    return this.assessmentByFieldVisitService.getByTypeTreatmentBMPAssessmentByFieldVisit(workflow.FieldVisitID, this.assessmentTypeID);
+                })
+            )
+            .subscribe((assessment) => {
+                this.assessment = assessment;
+                this.panels = (assessment?.ObservationTypes ?? [])
+                    .map((t) => this.buildPanel(t, assessment?.Observations ?? []))
+                    .filter((p): p is ObservationTypePanel => p != null);
+                this.isLoading = false;
+            });
+    }
+
+    private buildPanel(typeForForm: TreatmentBMPAssessmentObservationTypeForFormDto, observations: TreatmentBMPObservationDto[]): ObservationTypePanel | null {
+        const schemaObj = this.parseSchema(typeForForm.TreatmentBMPAssessmentObservationTypeSchema);
+        const properties: string[] = (schemaObj?.PropertiesToObserve as string[]) ?? [];
+        if (properties.length === 0) {
+            // Without properties to observe, the legacy form has nothing to render either; skip.
+            return null;
+        }
+
+        const existingObservation = observations.find((o) => o.TreatmentBMPAssessmentObservationTypeID === typeForForm.TreatmentBMPAssessmentObservationTypeID);
+        const existingValues = this.parseObservationData(existingObservation?.ObservationData);
+
+        const collectionMethod = typeForForm.ObservationTypeCollectionMethodName ?? "";
+        const passingLabel: string | undefined = schemaObj?.PassingScoreLabel;
+        const failingLabel: string | undefined = schemaObj?.FailingScoreLabel;
+
+        const passFailOptions: SelectDropdownOption[] | undefined =
+            collectionMethod === "PassFail"
+                ? [
+                      { Value: "true", Label: passingLabel || "Pass", disabled: false },
+                      { Value: "false", Label: failingLabel || "Fail", disabled: false },
+                  ]
+                : undefined;
+
+        return {
+            observationTypeID: typeForForm.TreatmentBMPAssessmentObservationTypeID,
+            name: typeForForm.TreatmentBMPAssessmentObservationTypeName,
+            collectionMethod,
+            measurementUnitLabel: schemaObj?.MeasurementUnitLabel,
+            minValue: schemaObj?.MinimumValueOfObservations,
+            maxValue: schemaObj?.MaximumValueOfObservations,
+            assessmentDescription: schemaObj?.AssessmentDescription,
+            benchmarkDescription: schemaObj?.BenchmarkDescription,
+            thresholdDescription: schemaObj?.ThresholdDescription,
+            passingLabel,
+            failingLabel,
+            properties: properties.map((prop) => {
+                const existing = existingValues.find((v) => v.PropertyObserved === prop);
+                return {
+                    propertyObserved: prop,
+                    valueControl: new FormControl<string | null>(this.formatExisting(existing?.ObservationValue), { validators: [] }),
+                    notesControl: new FormControl<string | null>(existing?.Notes ?? ""),
+                    passFailOptions,
+                };
+            }),
+        };
+    }
+
+    private parseSchema(schemaJson: string | null | undefined): any {
+        if (!schemaJson) return {};
+        try {
+            return JSON.parse(schemaJson);
+        } catch {
+            return {};
+        }
+    }
+
+    private parseObservationData(observationData: string | null | undefined): Array<{ PropertyObserved: string; ObservationValue: any; Notes?: string }> {
+        if (!observationData) return [];
+        try {
+            const parsed = JSON.parse(observationData);
+            return parsed?.SingleValueObservations ?? [];
+        } catch {
+            return [];
+        }
+    }
+
+    private formatExisting(value: any): string {
+        if (value === null || value === undefined) return "";
+        if (typeof value === "boolean") return value ? "true" : "false";
+        return String(value);
+    }
+
+    save(workflow: FieldVisitWorkflowDto, andContinue: boolean): void {
+        if (!this.assessment) return;
+
+        const observations = this.panels.map((panel) => {
+            const observationData = JSON.stringify({
+                SingleValueObservations: panel.properties.map((p) => ({
+                    PropertyObserved: p.propertyObserved,
+                    ObservationValue: this.coerceValue(panel.collectionMethod, p.valueControl.value),
+                    Notes: p.notesControl.value ?? null,
+                })),
+            });
+            return {
+                TreatmentBMPAssessmentObservationTypeID: panel.observationTypeID,
+                ObservationData: observationData,
+            };
+        });
+
+        const dto = new TreatmentBMPAssessmentUpsertDto({ Observations: observations });
+
+        this.assessmentService.upsertObservationsTreatmentBMPAssessment(this.assessment.TreatmentBMPAssessmentID, dto).subscribe(() => {
+            this.alertService.pushAlert(new Alert("Observations saved.", AlertContext.Success));
+            this.workflowService.refresh().subscribe(() => {
+                if (andContinue) {
+                    const next = this.isPostMaintenance ? "summary" : "maintenance";
+                    this.router.navigate(["/field-visits", workflow.FieldVisitID, next]);
+                }
+            });
+        });
+    }
+
+    /**
+     * For PassFail/DiscreteValue/Percentage, persist the right primitive type
+     * inside ObservationData so the C# scoring helpers can parse it. Match the
+     * legacy contract: PassFail stores boolean, others store numeric or null.
+     */
+    private coerceValue(collectionMethod: string, raw: string | null): boolean | number | null {
+        if (raw === null || raw === undefined || raw === "") return null;
+        if (collectionMethod === "PassFail") {
+            return raw === "true";
+        }
+        const num = Number(raw);
+        return Number.isFinite(num) ? num : null;
+    }
+
+    copyFromInitial(workflow: FieldVisitWorkflowDto): void {
+        if (!this.assessment) return;
+        this.confirmService
+            .confirm({
+                title: "Copy data from Initial Assessment?",
+                message: "This will overwrite the post-maintenance observations with the values entered for the Initial Assessment. Continue?",
+                buttonClassYes: "btn btn-primary",
+                buttonTextYes: "Copy",
+                buttonTextNo: "Cancel",
+            })
+            .then((confirmed) => {
+                if (!confirmed) return;
+                this.assessmentService.copyFromInitialTreatmentBMPAssessment(this.assessment!.TreatmentBMPAssessmentID).subscribe((updated) => {
+                    this.assessment = updated;
+                    this.panels = (updated?.ObservationTypes ?? [])
+                        .map((t) => this.buildPanel(t, updated?.Observations ?? []))
+                        .filter((p): p is ObservationTypePanel => p != null);
+                    this.alertService.pushAlert(new Alert("Copied observations from Initial Assessment.", AlertContext.Success));
+                    this.workflowService.refresh().subscribe();
+                });
+            });
+    }
+}

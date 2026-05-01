@@ -1,0 +1,81 @@
+@if (workflow$ | async; as workflow) {
+    <h2>Inventory</h2>
+    <p>
+        Confirm that the BMP's location, photos, and required attributes are accurate before performing the assessment. Changes saved here update the
+        Treatment BMP itself. When you're done, mark the inventory complete and continue to the assessment, or skip.
+    </p>
+
+    <div class="card">
+        <div class="card-header">
+            <span class="card-title">Review Inventory</span>
+        </div>
+        <div class="card-body">
+            <ul class="inventory-actions">
+                <li>
+                    <span class="action-label">Location</span>
+                    @if (activePanel === "location") {
+                        <button type="button" class="btn btn-link" (click)="collapsePanel()">Collapse</button>
+                    } @else {
+                        <button type="button" class="btn btn-secondary" (click)="expandPanel('location')">Edit Location</button>
+                    }
+                </li>
+                @if (activePanel === "location") {
+                    <li class="inline-editor">
+                        <treatment-bmp-location-editor
+                            [treatmentBMPID]="workflow.TreatmentBMPID"
+                            (saved)="onLocationSaved()"
+                            (cancelled)="collapsePanel()"></treatment-bmp-location-editor>
+                    </li>
+                }
+                <li>
+                    <span class="action-label">Photos</span>
+                    @if (activePanel === "photos") {
+                        <button type="button" class="btn btn-link" (click)="collapsePanel()">Collapse</button>
+                    } @else {
+                        <button type="button" class="btn btn-secondary" (click)="expandPanel('photos')">Edit Photos</button>
+                    }
+                </li>
+                @if (activePanel === "photos") {
+                    <li class="inline-editor">
+                        <treatment-bmp-images-editor
+                            [treatmentBMPID]="workflow.TreatmentBMPID"
+                            (saved)="onPhotosSaved()"
+                            (cancelled)="collapsePanel()"></treatment-bmp-images-editor>
+                    </li>
+                }
+                <li>
+                    <span class="action-label">Custom Attributes</span>
+                    @if (activePanel === "attributes") {
+                        <button type="button" class="btn btn-link" (click)="collapsePanel()">Collapse</button>
+                    } @else {
+                        <button type="button" class="btn btn-secondary" (click)="expandPanel('attributes')">Other Design Attributes</button>
+                    }
+                </li>
+                @if (activePanel === "attributes") {
+                    <li class="inline-editor">
+                        <treatment-bmp-custom-attributes-form
+                            [treatmentBMPID]="workflow.TreatmentBMPID"
+                            [customAttributePurposeID]="OtherDesignAttributesPurposeID"
+                            (saved)="onAttributesSaved()"
+                            (cancelled)="collapsePanel()"></treatment-bmp-custom-attributes-form>
+                    </li>
+                }
+            </ul>
+
+            @if (workflow.NumberOfRequiredAttributes > 0) {
+                <p class="required-attrs">
+                    Required attributes entered: <strong>{{ workflow.NumberRequiredAttributesEntered }}</strong> of
+                    <strong>{{ workflow.NumberOfRequiredAttributes }}</strong>
+                    @if (!workflow.RequiredAttributesEntered) {
+                        <span class="warn"> &mdash; not all required attributes have values yet.</span>
+                    }
+                </p>
+            }
+        </div>
+    </div>
+
+    <div class="step-footer">
+        <button type="button" class="btn btn-link" (click)="skipInventoryAndContinue(workflow)">Skip to Assessment</button>
+        <button type="button" class="btn btn-primary" (click)="markInventoryUpdatedAndContinue(workflow)">Mark Inventory Updated &amp; Continue</button>
+    </div>
+}

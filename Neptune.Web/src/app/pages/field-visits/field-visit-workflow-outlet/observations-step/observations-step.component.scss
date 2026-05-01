@@ -1,0 +1,70 @@
+@use "/src/scss/abstracts" as *;
+
+.copy-from-initial {
+    display: flex;
+    justify-content: flex-end;
+    margin-bottom: $spacing-300;
+}
+
+.observation-panel + .observation-panel {
+    margin-top: $spacing-400;
+}
+
+.assessment-description {
+    margin: 0 0 $spacing-300;
+    font-style: italic;
+}
+
+.thresholds {
+    background: $gray-50;
+    padding: $spacing-300;
+    border-left: 3px solid $teal-500;
+    margin: 0 0 $spacing-400;
+
+    dt {
+        font-weight: 600;
+        margin-top: $spacing-200;
+
+        &:first-child {
+            margin-top: 0;
+        }
+    }
+
+    dd {
+        margin-left: 0;
+        margin-bottom: 0;
+    }
+}
+
+.property-rows {
+    display: flex;
+    flex-direction: column;
+    gap: $spacing-300;
+}
+
+.property-row {
+    align-items: center;
+
+    .property-label {
+        font-weight: 600;
+    }
+
+    .value-input {
+        display: flex;
+        align-items: center;
+        gap: $spacing-200;
+
+        .unit-suffix {
+            color: $gray-600;
+            font-size: $type-size-200;
+        }
+    }
+}
+
+.step-footer {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    gap: $spacing-300;
+    margin-top: $spacing-500;
+}

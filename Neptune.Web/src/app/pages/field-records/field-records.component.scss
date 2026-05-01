@@ -1,1 +1,5 @@
-/* Placeholder for Field Records component styles */
+@use "/src/scss/abstracts" as *;
+
+.card + .card {
+    margin-top: $spacing-500;
+}

@@ -1,0 +1,233 @@
+import { Component, OnInit } from "@angular/core";
+import { Router } from "@angular/router";
+import { AsyncPipe } from "@angular/common";
+import { FormControl, FormGroup, ReactiveFormsModule, Validators } from "@angular/forms";
+import { combineLatest, map, Observable, switchMap, take } from "rxjs";
+
+import { FormFieldComponent, FormFieldType, SelectDropdownOption } from "src/app/shared/components/forms/form-field/form-field.component";
+import { LoadingDirective } from "src/app/shared/directives/loading.directive";
+
+import { FieldVisitWorkflowDto } from "src/app/shared/generated/model/field-visit-workflow-dto";
+import { MaintenanceRecordService } from "src/app/shared/generated/api/maintenance-record.service";
+import { MaintenanceRecordDetailDto } from "src/app/shared/generated/model/maintenance-record-detail-dto";
+import { MaintenanceRecordUpsertDto } from "src/app/shared/generated/model/maintenance-record-upsert-dto";
+import { MaintenanceRecordObservationUpsertDto } from "src/app/shared/generated/model/maintenance-record-observation-upsert-dto";
+import { TreatmentBMPTypeService } from "src/app/shared/generated/api/treatment-bmp-type.service";
+import { TreatmentBMPTypeCustomAttributeTypeDto } from "src/app/shared/generated/model/treatment-bmp-type-custom-attribute-type-dto";
+import { CustomAttributeTypePurposeEnum } from "src/app/shared/generated/enum/custom-attribute-type-purpose-enum";
+import { CustomAttributeDataTypeEnum } from "src/app/shared/generated/enum/custom-attribute-data-type-enum";
+import { MaintenanceRecordTypes, MaintenanceRecordTypesAsSelectDropdownOptions } from "src/app/shared/generated/enum/maintenance-record-type-enum";
+
+import { FieldVisitWorkflowService } from "../../services/field-visit-workflow.service";
+import { AlertService } from "src/app/shared/services/alert.service";
+import { ConfirmService } from "src/app/shared/services/confirm/confirm.service";
+import { Alert } from "src/app/shared/models/alert";
+import { AlertContext } from "src/app/shared/models/enums/alert-context.enum";
+
+interface ObservationField {
+    customAttributeTypeID: number;
+    name: string;
+    description?: string;
+    isRequired: boolean;
+    sortOrder: number;
+    dataTypeID: number;
+    /** Per-data-type display info — drives which input the template renders. */
+    dataTypeKind: "text" | "integer" | "decimal" | "date" | "pick-one" | "multi-select";
+    options: SelectDropdownOption[];
+    /** Single-value input control (text / integer / decimal / date / pick-one). */
+    control: FormControl<string | null>;
+    /** Multi-select input control (string list). */
+    multiControl: FormControl<string[] | null>;
+}
+
+@Component({
+    selector: "field-visit-maintenance-edit-step",
+    standalone: true,
+    imports: [AsyncPipe, ReactiveFormsModule, FormFieldComponent, LoadingDirective],
+    templateUrl: "./maintenance-edit-step.component.html",
+    styleUrl: "./maintenance-edit-step.component.scss",
+})
+export class FieldVisitMaintenanceEditStepComponent implements OnInit {
+    public workflow$: Observable<FieldVisitWorkflowDto | null>;
+    public maintenanceRecord: MaintenanceRecordDetailDto | null = null;
+    public observationFields: ObservationField[] = [];
+    public isLoading = true;
+    public FormFieldType = FormFieldType;
+    public maintenanceRecordTypeOptions: SelectDropdownOption[] = MaintenanceRecordTypesAsSelectDropdownOptions;
+
+    public formGroup = new FormGroup({
+        MaintenanceRecordTypeID: new FormControl<number | null>(null, { validators: [Validators.required] }),
+        MaintenanceRecordDescription: new FormControl<string | null>(""),
+        // Per-observation controls are added dynamically once the BMP type's attribute schema loads;
+        // see buildObservationField. Keeping them under a nested group means formGroup.invalid +
+        // [disabled] on the Save button correctly reflect required observation inputs.
+        Observations: new FormGroup<{ [key: string]: FormControl<any> }>({}),
+    });
+
+    constructor(
+        private workflowService: FieldVisitWorkflowService,
+        private maintenanceRecordService: MaintenanceRecordService,
+        private treatmentBMPTypeService: TreatmentBMPTypeService,
+        private alertService: AlertService,
+        private confirmService: ConfirmService,
+        private router: Router
+    ) {}
+
+    ngOnInit(): void {
+        this.workflow$ = this.workflowService.workflow$;
+        this.workflowService.workflow$
+            .pipe(
+                take(1),
+                switchMap((workflow) => {
+                    if (!workflow) throw new Error("Field Visit not loaded");
+                    return combineLatest({
+                        record: this.maintenanceRecordService.getByFieldVisitMaintenanceRecord(workflow.FieldVisitID),
+                        attributeTypes: this.treatmentBMPTypeService.listCustomAttributeTypesTreatmentBMPType(workflow.TreatmentBMPTypeID),
+                    }).pipe(map((r) => ({ workflow, ...r })));
+                })
+            )
+            .subscribe(({ record, attributeTypes }) => {
+                this.maintenanceRecord = record;
+                this.formGroup.patchValue({
+                    MaintenanceRecordTypeID: record?.MaintenanceRecordTypeID ?? null,
+                    MaintenanceRecordDescription: record?.MaintenanceRecordDescription ?? "",
+                });
+
+                const maintenanceTypes = (attributeTypes ?? []).filter(
+                    (t) => t.CustomAttributeType?.CustomAttributeTypePurposeID === CustomAttributeTypePurposeEnum.Maintenance
+                );
+                // Reset the dynamic Observations sub-group before re-populating in case the load fires twice.
+                const observationsGroup = this.formGroup.controls.Observations;
+                Object.keys(observationsGroup.controls).forEach((k) => observationsGroup.removeControl(k));
+
+                this.observationFields = maintenanceTypes
+                    .map((t) => this.buildObservationField(t, record))
+                    .sort((a, b) => a.sortOrder - b.sortOrder);
+
+                // Register each field's active control so formGroup.invalid reflects required observations.
+                for (const field of this.observationFields) {
+                    const active = field.dataTypeKind === "multi-select" ? field.multiControl : field.control;
+                    observationsGroup.addControl(`${field.customAttributeTypeID}`, active);
+                }
+                this.isLoading = false;
+            });
+    }
+
+    private buildObservationField(typeAttr: TreatmentBMPTypeCustomAttributeTypeDto, record: MaintenanceRecordDetailDto | null): ObservationField {
+        const attr = typeAttr.CustomAttributeType;
+        const existing = record?.Observations?.find((o) => o.CustomAttributeTypeID === typeAttr.CustomAttributeTypeID);
+        const existingValues = (existing?.Values ?? []).map((v) => v.ObservationValue ?? "").filter((v) => v.length > 0);
+        const dataTypeID = attr?.CustomAttributeDataTypeID ?? CustomAttributeDataTypeEnum.String;
+        const dataTypeKind = this.mapDataTypeKind(dataTypeID);
+        const options = this.parseOptions(attr?.CustomAttributeTypeOptionsSchema ?? null);
+
+        const isRequired = attr?.IsRequired ?? false;
+        const required = isRequired ? [Validators.required] : [];
+
+        const initialSingle = existingValues[0] ?? "";
+
+        return {
+            customAttributeTypeID: typeAttr.CustomAttributeTypeID,
+            name: attr?.CustomAttributeTypeName ?? "Observation",
+            description: attr?.CustomAttributeTypeDescription,
+            isRequired,
+            sortOrder: typeAttr.SortOrder ?? 0,
+            dataTypeID,
+            dataTypeKind,
+            options,
+            control: new FormControl<string | null>(initialSingle, { validators: required }),
+            multiControl: new FormControl<string[] | null>(existingValues, { validators: required }),
+        };
+    }
+
+    private mapDataTypeKind(dataTypeID: number): ObservationField["dataTypeKind"] {
+        switch (dataTypeID) {
+            case CustomAttributeDataTypeEnum.Integer:
+                return "integer";
+            case CustomAttributeDataTypeEnum.Decimal:
+                return "decimal";
+            case CustomAttributeDataTypeEnum.DateTime:
+                return "date";
+            case CustomAttributeDataTypeEnum.PickFromList:
+                return "pick-one";
+            case CustomAttributeDataTypeEnum.MultiSelect:
+                return "multi-select";
+            case CustomAttributeDataTypeEnum.String:
+            default:
+                return "text";
+        }
+    }
+
+    private parseOptions(schema: string | null): SelectDropdownOption[] {
+        if (!schema) return [];
+        try {
+            const parsed = JSON.parse(schema);
+            if (!Array.isArray(parsed)) return [];
+            return parsed.map((opt: string) => ({ Value: opt, Label: opt, disabled: false }));
+        } catch {
+            return [];
+        }
+    }
+
+    save(workflow: FieldVisitWorkflowDto): void {
+        if (this.formGroup.invalid || !this.maintenanceRecord) return;
+
+        const observations: MaintenanceRecordObservationUpsertDto[] = this.observationFields
+            .map((field) => ({
+                CustomAttributeTypeID: field.customAttributeTypeID,
+                Values: this.collectFieldValues(field),
+            }))
+            .filter((o) => o.Values.length > 0);
+
+        const dto = new MaintenanceRecordUpsertDto({
+            MaintenanceRecordTypeID: this.formGroup.controls.MaintenanceRecordTypeID.value!,
+            MaintenanceRecordDescription: this.formGroup.controls.MaintenanceRecordDescription.value ?? "",
+            Observations: observations,
+        });
+
+        this.maintenanceRecordService.updateMaintenanceRecord(this.maintenanceRecord.MaintenanceRecordID, dto).subscribe(() => {
+            this.alertService.pushAlert(new Alert("Maintenance Record saved.", AlertContext.Success));
+            this.workflowService.refresh().subscribe(() => {
+                this.router.navigate(["/field-visits", workflow.FieldVisitID, "post-maintenance-assessment"]);
+            });
+        });
+    }
+
+    onMultiSelectToggle(field: ObservationField, value: string, checked: boolean): void {
+        const current = field.multiControl.value ?? [];
+        const next = checked ? [...new Set([...current, value])] : current.filter((v) => v !== value);
+        field.multiControl.setValue(next);
+        field.multiControl.markAsDirty();
+    }
+
+    private collectFieldValues(field: ObservationField): string[] {
+        if (field.dataTypeKind === "multi-select") {
+            const values = field.multiControl.value ?? [];
+            return values.filter((v) => v && v.trim().length > 0);
+        }
+        const single = field.control.value ?? "";
+        return single.trim().length > 0 ? [single.trim()] : [];
+    }
+
+    deleteRecord(workflow: FieldVisitWorkflowDto): void {
+        if (!this.maintenanceRecord) return;
+        const recordID = this.maintenanceRecord.MaintenanceRecordID;
+        this.confirmService
+            .confirm({
+                title: "Delete Maintenance Record",
+                message: "Are you sure you want to delete the Maintenance Record for this Field Visit? This will remove all entered observations.",
+                buttonClassYes: "btn btn-danger",
+                buttonTextYes: "Delete",
+                buttonTextNo: "Cancel",
+            })
+            .then((confirmed) => {
+                if (!confirmed) return;
+                this.maintenanceRecordService.deleteMaintenanceRecord(recordID).subscribe(() => {
+                    this.alertService.pushAlert(new Alert("Maintenance Record deleted.", AlertContext.Success));
+                    this.workflowService.refresh().subscribe(() => {
+                        this.router.navigate(["/field-visits", workflow.FieldVisitID, "maintenance"]);
+                    });
+                });
+            });
+    }
+}

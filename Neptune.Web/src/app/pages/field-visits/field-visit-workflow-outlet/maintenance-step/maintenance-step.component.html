@@ -1,0 +1,22 @@
+@if (workflow$ | async; as workflow) {
+    <h2>Maintenance</h2>
+
+    @if (!workflow.MaintenanceRecordID) {
+        <p>Did maintenance occur during this Field Visit? Begin a Maintenance Record to capture what was done, or skip to the post-maintenance assessment.</p>
+        <div class="step-footer">
+            <button type="button" class="btn btn-link" (click)="skipToPostMaintenanceAssessment(workflow)">Skip to Post-Maintenance Assessment</button>
+            <button type="button" class="btn btn-primary" (click)="beginMaintenance(workflow)">Begin Maintenance Record</button>
+        </div>
+    } @else {
+        <div class="card">
+            <div class="card-header"><span class="card-title">Maintenance Record</span></div>
+            <div class="card-body">
+                <p>A maintenance record exists for this visit. Open it to record observations and details.</p>
+            </div>
+        </div>
+        <div class="step-footer">
+            <button type="button" class="btn btn-link" (click)="skipToPostMaintenanceAssessment(workflow)">Skip to Post-Maintenance Assessment</button>
+            <button type="button" class="btn btn-primary" (click)="editMaintenance(workflow)">Edit Maintenance Record</button>
+        </div>
+    }
+}

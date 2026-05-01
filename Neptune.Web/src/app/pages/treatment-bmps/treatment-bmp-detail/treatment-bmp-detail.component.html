@@ -407,8 +407,7 @@
                 <span class="card-title">Field Visits</span>
                 @if (currentPersonCanManage) {
                     <span class="card-actions">
-                        <!-- TODO: Implement modal dialog for Begin Field Visit -->
-                        <button class="btn btn-primary"><span class="icon-plus"></span> Begin Field Visit</button>
+                        <button class="btn btn-primary" (click)="openBeginFieldVisitModal()"><span class="icon-plus"></span> Begin Field Visit</button>
                     </span>
                 }
             </div>

@@ -1,0 +1,47 @@
+@use "/src/scss/abstracts" as *;
+
+.multi-select-field {
+    .field-label {
+        font-weight: 600;
+        display: block;
+        margin-bottom: $spacing-200;
+
+        .required {
+            color: $danger;
+            margin-left: $spacing-100;
+        }
+    }
+
+    .checkbox-row {
+        display: flex;
+        align-items: center;
+        gap: $spacing-200;
+        font-weight: normal;
+        margin-bottom: $spacing-100;
+    }
+}
+
+.card + .card {
+    margin-top: $spacing-400;
+}
+
+.hint {
+    font-size: $type-size-200;
+    color: $gray-600;
+    margin: 0 0 $spacing-300;
+}
+
+.step-footer {
+    display: flex;
+    align-items: center;
+    gap: $spacing-300;
+    margin-top: $spacing-500;
+
+    .spacer {
+        flex-grow: 1;
+    }
+}
+
+form-field {
+    display: block;
+}
