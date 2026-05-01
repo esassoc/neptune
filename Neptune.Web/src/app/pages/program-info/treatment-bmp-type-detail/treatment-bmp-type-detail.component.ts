@@ -1,4 +1,4 @@
-import { Component, inject, Input, OnInit } from "@angular/core";
+import { Component, inject, Input, numberAttribute, OnInit } from "@angular/core";
 import { AsyncPipe } from "@angular/common";
 import { RouterLink } from "@angular/router";
 import { catchError, EMPTY, Observable, shareReplay, tap } from "rxjs";
@@ -28,7 +28,7 @@ interface AttributesByPurpose {
     styleUrl: "./treatment-bmp-type-detail.component.scss",
 })
 export class TreatmentBmpTypeDetailComponent implements OnInit {
-    @Input() treatmentBMPTypeID!: number;
+    @Input({ transform: numberAttribute }) treatmentBMPTypeID!: number;
 
     private bmpTypeService = inject(TreatmentBMPTypeService);
     private alertService = inject(AlertService);

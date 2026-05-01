@@ -1,4 +1,4 @@
-import { Component, computed, inject, Input, OnInit, signal } from "@angular/core";
+import { Component, computed, inject, Input, numberAttribute, OnInit, signal } from "@angular/core";
 import { Router, RouterLink } from "@angular/router";
 import { AsyncPipe } from "@angular/common";
 import { FormControl, ReactiveFormsModule, Validators, FormsModule } from "@angular/forms";
@@ -12,6 +12,7 @@ import { AlertService } from "src/app/shared/services/alert.service";
 import { Alert } from "src/app/shared/models/alert";
 import { AlertContext } from "src/app/shared/models/enums/alert-context.enum";
 import { ConfirmService } from "src/app/shared/services/confirm/confirm.service";
+import { escapeHtml } from "src/app/shared/helpers/html-escape";
 import { TreatmentBMPTypeService } from "src/app/shared/generated/api/treatment-bmp-type.service";
 import { TreatmentBMPAssessmentObservationTypeService } from "src/app/shared/generated/api/treatment-bmp-assessment-observation-type.service";
 import { CustomAttributeTypeService } from "src/app/shared/generated/api/custom-attribute-type.service";
@@ -63,7 +64,7 @@ interface CustomAttributeRow {
     styleUrl: "./treatment-bmp-type-edit.component.scss",
 })
 export class TreatmentBmpTypeEditComponent implements OnInit {
-    @Input() treatmentBMPTypeID: number;
+    @Input({ transform: numberAttribute }) treatmentBMPTypeID: number;
 
     private router = inject(Router);
     private bmpTypeService = inject(TreatmentBMPTypeService);
@@ -108,8 +109,11 @@ export class TreatmentBmpTypeEditComponent implements OnInit {
     public hasWeightError = computed(() => {
         const rows = this.observationTypeRows().filter((r) => this.rowCountsTowardWeight(r));
         const rowsWithWeight = rows.filter((r) => r.AssessmentScoreWeight != null);
-        // If any rows count toward weight, the total of the weighted rows must be exactly 100.
-        return rowsWithWeight.length > 0 && this.weightTotal() !== 100;
+        // If any rows count toward weight, the total of the weighted rows must equal 100 within
+        // a small tolerance. The tolerance handles two cases: (1) JS floating-point summation of
+        // legacy fractional weights stored on the API as decimals; (2) admins editing existing
+        // BMP types that were configured before the whole-number-input rule landed.
+        return rowsWithWeight.length > 0 && Math.abs(this.weightTotal() - 100) > 0.01;
     });
 
     ngOnInit(): void {
@@ -184,9 +188,15 @@ export class TreatmentBmpTypeEditComponent implements OnInit {
         const ot = this.allObservationTypes().find((o) => o.TreatmentBMPAssessmentObservationTypeID === this.pickerObservationTypeID);
         if (!ot) return;
         const triple = specToTriple(ot.ObservationTypeSpecificationID);
-        const collectionMethodID = triple?.CollectionMethodID ?? 0;
-        const targetTypeID = triple?.TargetTypeID ?? 0;
-        const thresholdTypeID = triple?.ThresholdTypeID ?? 0;
+        if (triple == null) {
+            // Unknown ObservationTypeSpecificationID — likely an unsupported spec the SPA doesn't
+            // know how to render (Rate, etc.). Bail rather than guessing IDs (defaulting to 0
+            // would break PassFail detection because ObservationThresholdTypeEnum.None is 3, not 0).
+            this.alertService.pushAlert(new Alert(`Cannot add ${ot.TreatmentBMPAssessmentObservationTypeName}: its observation specification is not supported by the editor.`, AlertContext.Danger));
+            this.pickerObservationTypeID = null;
+            return;
+        }
+        const { CollectionMethodID: collectionMethodID, TargetTypeID: targetTypeID, ThresholdTypeID: thresholdTypeID } = triple;
         const isPassFail = collectionMethodID === ObservationTypeCollectionMethodEnum.PassFail;
         this.observationTypeRows.update((rows) => [...rows, {
             TreatmentBMPAssessmentObservationTypeID: ot.TreatmentBMPAssessmentObservationTypeID,
@@ -310,7 +320,7 @@ export class TreatmentBmpTypeEditComponent implements OnInit {
     }
 
     deleteBMPType(): void {
-        const name = this.escapeHtml(this.nameControl.value || "this BMP type");
+        const name = escapeHtml(this.nameControl.value || "this BMP type");
         const obsCount = this.observationTypeRows().length;
         const catCount = this.customAttributeRows().length;
         this.confirmService
@@ -339,12 +349,4 @@ export class TreatmentBmpTypeEditComponent implements OnInit {
             });
     }
 
-    private escapeHtml(s: string): string {
-        return s
-            .replace(/&/g, "&amp;")
-            .replace(/</g, "&lt;")
-            .replace(/>/g, "&gt;")
-            .replace(/"/g, "&quot;")
-            .replace(/'/g, "&#39;");
-    }
 }

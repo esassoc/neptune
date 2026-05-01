@@ -121,13 +121,6 @@ public static class TreatmentBMPTypesAdmin
     }
 
     /// <summary>
-    /// Post-materialize lookup resolution for TreatmentBMPType detail DTOs. Loads the related
-    /// TreatmentBMPAssessmentObservationType entities once (with their schema JSON) and reuses
-    /// their existing helper methods (BenchmarkMeasurementUnitLabel / ThresholdMeasurementUnitLabel /
-    /// GetFormattedBenchmarkValue / GetFormattedThresholdValue) so the SPA gets the same display
-    /// strings the legacy MVC pages compute.
-    /// </summary>
-    /// <summary>
     /// Cached per-OT spec-driven labels — populated once per OT entity to avoid re-parsing the
     /// schema JSON across every row that references the same OT.
     /// </summary>
@@ -136,6 +129,13 @@ public static class TreatmentBMPTypesAdmin
         string BenchmarkUnitDisplayName,
         string ThresholdUnitDisplayName);
 
+    /// <summary>
+    /// Post-materialize lookup resolution for TreatmentBMPType detail DTOs. Loads the related
+    /// TreatmentBMPAssessmentObservationType entities once (with their schema JSON) and reuses
+    /// their existing helper methods (BenchmarkMeasurementUnitLabel / ThresholdMeasurementUnitLabel /
+    /// GetFormattedBenchmarkValue / GetFormattedThresholdValue) so the SPA gets the same display
+    /// strings the legacy MVC pages compute.
+    /// </summary>
     public static async Task ResolveLookupDisplayNamesAsync(NeptuneDbContext dbContext, IReadOnlyCollection<TreatmentBMPTypeDetailDto> dtos)
     {
         if (dtos.Count == 0) return;

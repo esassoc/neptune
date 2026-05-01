@@ -11,6 +11,7 @@ import { AlertService } from "src/app/shared/services/alert.service";
 import { Alert } from "src/app/shared/models/alert";
 import { AlertContext } from "src/app/shared/models/enums/alert-context.enum";
 import { ConfirmService } from "src/app/shared/services/confirm/confirm.service";
+import { escapeHtml } from "src/app/shared/helpers/html-escape";
 import { TreatmentBMPTypeService } from "src/app/shared/generated/api/treatment-bmp-type.service";
 import { TreatmentBMPTypeGridDto } from "src/app/shared/generated/model/treatment-bmp-type-grid-dto";
 import { NeptunePageTypeEnum } from "src/app/shared/generated/enum/neptune-page-type-enum";
@@ -102,7 +103,7 @@ export class TreatmentBmpTypesManageComponent implements OnInit {
     }
 
     private confirmDelete(row: TreatmentBMPTypeGridDto): void {
-        const name = this.escapeHtml(row.TreatmentBMPTypeName ?? "this BMP type");
+        const name = escapeHtml(row.TreatmentBMPTypeName ?? "this BMP type");
         // Cascade summary mirrors the data we have on the row + the back-end DeleteFull cascade
         // (BMPs, Quick BMPs, maintenance records, observations, custom attribute values, join tables).
         this.confirmService
@@ -136,12 +137,4 @@ export class TreatmentBmpTypesManageComponent implements OnInit {
             });
     }
 
-    private escapeHtml(s: string): string {
-        return s
-            .replace(/&/g, "&amp;")
-            .replace(/</g, "&lt;")
-            .replace(/>/g, "&gt;")
-            .replace(/"/g, "&quot;")
-            .replace(/'/g, "&#39;");
-    }
 }

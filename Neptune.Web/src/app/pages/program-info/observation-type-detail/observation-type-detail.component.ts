@@ -1,4 +1,4 @@
-import { Component, inject, Input, OnInit } from "@angular/core";
+import { Component, inject, Input, numberAttribute, OnInit } from "@angular/core";
 import { AsyncPipe } from "@angular/common";
 import { RouterLink } from "@angular/router";
 import { BehaviorSubject, catchError, EMPTY, map, Observable, shareReplay, switchMap, tap } from "rxjs";
@@ -40,7 +40,7 @@ interface ObservationTypeDetailViewModel {
     templateUrl: "./observation-type-detail.component.html",
 })
 export class ObservationTypeDetailComponent implements OnInit {
-    @Input() observationTypeID!: number;
+    @Input({ transform: numberAttribute }) observationTypeID!: number;
 
     private observationTypeService = inject(TreatmentBMPAssessmentObservationTypeService);
     private alertService = inject(AlertService);

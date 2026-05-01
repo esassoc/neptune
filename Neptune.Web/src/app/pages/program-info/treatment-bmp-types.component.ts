@@ -1,9 +1,12 @@
 import { Component, inject, OnInit, signal } from "@angular/core";
 import { AsyncPipe } from "@angular/common";
 import { RouterLink } from "@angular/router";
-import { Observable, shareReplay } from "rxjs";
+import { catchError, EMPTY, finalize, Observable, shareReplay } from "rxjs";
 import { PageHeaderComponent } from "src/app/shared/components/page-header/page-header.component";
 import { LoadingDirective } from "src/app/shared/directives/loading.directive";
+import { AlertService } from "src/app/shared/services/alert.service";
+import { Alert } from "src/app/shared/models/alert";
+import { AlertContext } from "src/app/shared/models/enums/alert-context.enum";
 import { AuthenticationService } from "src/app/services/authentication.service";
 import { TreatmentBMPTypeService } from "src/app/shared/generated/api/treatment-bmp-type.service";
 import { TreatmentBMPTypeDetailDto } from "src/app/shared/generated/model/treatment-bmp-type-detail-dto";
@@ -26,6 +29,7 @@ interface PurposeCount {
 export class TreatmentBmpTypesComponent implements OnInit {
     private bmpTypeService = inject(TreatmentBMPTypeService);
     private authenticationService = inject(AuthenticationService);
+    private alertService = inject(AlertService);
 
     public bmpTypes$: Observable<TreatmentBMPTypeDetailDto[]>;
     public isLoading = signal(true);
@@ -38,8 +42,17 @@ export class TreatmentBmpTypesComponent implements OnInit {
     }
 
     ngOnInit(): void {
-        this.bmpTypes$ = this.bmpTypeService.listAsDetailDtoTreatmentBMPType().pipe(shareReplay(1));
-        this.bmpTypes$.subscribe(() => this.isLoading.set(false));
+        // Drive isLoading off the pipeline (finalize fires on both success and error) so the
+        // spinner clears even if the request fails. catchError surfaces an alert and emits an
+        // empty list so the template's @if branch shows the "no BMP types configured" message.
+        this.bmpTypes$ = this.bmpTypeService.listAsDetailDtoTreatmentBMPType().pipe(
+            catchError(() => {
+                this.alertService.pushAlert(new Alert("Failed to load Treatment BMP Types.", AlertContext.Danger));
+                return EMPTY;
+            }),
+            finalize(() => this.isLoading.set(false)),
+            shareReplay(1),
+        );
     }
 
     public attributeCountsByPurpose(bmpType: TreatmentBMPTypeDetailDto): PurposeCount[] {
