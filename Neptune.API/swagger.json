@@ -3099,6 +3099,45 @@
         }
       }
     },
+    "/parcels": {
+      "get": {
+        "tags": [
+          "Parcel"
+        ],
+        "operationId": "List_Parcel",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/ParcelGridDto"
+                  }
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/ParcelGridDto"
+                  }
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/ParcelGridDto"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/parcels/search": {
       "get": {
         "tags": [
@@ -12816,6 +12855,36 @@
           "ParcelID": {
             "type": "integer",
             "format": "int32"
+          }
+        },
+        "additionalProperties": false
+      },
+      "ParcelGridDto": {
+        "type": "object",
+        "properties": {
+          "ParcelID": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "ParcelNumber": {
+            "type": "string",
+            "nullable": true
+          },
+          "ParcelAddress": {
+            "type": "string",
+            "nullable": true
+          },
+          "ParcelCityState": {
+            "type": "string",
+            "nullable": true
+          },
+          "ParcelZipCode": {
+            "type": "string",
+            "nullable": true
+          },
+          "ParcelAreaInAcres": {
+            "type": "number",
+            "format": "double"
           }
         },
         "additionalProperties": false
