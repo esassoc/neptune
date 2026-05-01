@@ -14,10 +14,5 @@ public static class WaterQualityManagementPlanExtractionResultProjections
         ExtractionResultJson = x.ExtractionResultJson,
         ExtractedAt = x.ExtractedAt,
         FileResourceGuid = x.WaterQualityManagementPlanDocument.FileResource.FileResourceGUID.ToString(),
-        DraftOverlayJson = x.DraftOverlayJson,
-        DraftUpdatedDate = x.DraftUpdatedDate,
-        DraftUpdatedByFullName = x.DraftUpdatedByPerson != null ? x.DraftUpdatedByPerson.FirstName + " " + x.DraftUpdatedByPerson.LastName : null,
-        ApprovedDate = x.ApprovedDate,
-        ApprovedByFullName = x.ApprovedByPerson != null ? x.ApprovedByPerson.FirstName + " " + x.ApprovedByPerson.LastName : null,
     };
 }

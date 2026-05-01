@@ -194,13 +194,10 @@ model/water-quality-management-plan-document-dto.ts
 model/water-quality-management-plan-document-extraction-result-dto.ts
 model/water-quality-management-plan-document-upsert-dto.ts
 model/water-quality-management-plan-dto.ts
-model/water-quality-management-plan-extraction-approval-dto.ts
-model/water-quality-management-plan-extraction-approval-response-dto.ts
-model/water-quality-management-plan-extraction-field-upsert-dto.ts
-model/water-quality-management-plan-extraction-parcel-upsert-dto.ts
-model/water-quality-management-plan-extraction-quick-bmp-upsert-dto.ts
 model/water-quality-management-plan-extraction-result-dto.ts
 model/water-quality-management-plan-grid-dto.ts
+model/water-quality-management-plan-section-save-location-dto.ts
+model/water-quality-management-plan-section-save-response-dto.ts
 model/water-quality-management-plan-simple-dto.ts
 model/water-quality-management-plan-upsert-dto.ts
 model/water-quality-management-plan-verify-detail-dto.ts

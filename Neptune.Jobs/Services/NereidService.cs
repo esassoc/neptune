@@ -670,8 +670,10 @@ public class NereidService : BaseAPIService<NereidService>
 
     public List<WaterQualityManagementPlanNode> GetWaterQualityManagementPlanNodes(NeptuneDbContext dbContext, int? projectID = null, List<int> projectRegionalSubbasinIDs = null)
     {
+        var activeStatusID = (int)WaterQualityManagementPlanStatusEnum.Active;
         var wqmpns = dbContext.LoadGeneratingUnits.Include(x => x.RegionalSubbasin).Include(x => x.WaterQualityManagementPlan)
-            .Where(x => x.WaterQualityManagementPlanID != null && x.RegionalSubbasinID != null)
+            .Where(x => x.WaterQualityManagementPlanID != null && x.RegionalSubbasinID != null
+                && x.WaterQualityManagementPlan.WaterQualityManagementPlanStatusID == activeStatusID)
             .Select(x => new WaterQualityManagementPlanNode
             {
                 WaterQualityManagementPlanID = x.WaterQualityManagementPlanID.Value,
@@ -683,7 +685,8 @@ public class NereidService : BaseAPIService<NereidService>
         if (projectID != null && projectRegionalSubbasinIDs != null)
         {
             var ppwqmpns = dbContext.ProjectLoadGeneratingUnits.Include(x => x.RegionalSubbasin).Include(x => x.WaterQualityManagementPlan)
-                .Where(x => x.WaterQualityManagementPlanID != null && x.RegionalSubbasinID != null && x.ProjectID == projectID)
+                .Where(x => x.WaterQualityManagementPlanID != null && x.RegionalSubbasinID != null && x.ProjectID == projectID
+                    && x.WaterQualityManagementPlan.WaterQualityManagementPlanStatusID == activeStatusID)
                 .Select(x => new WaterQualityManagementPlanNode
                 {
                     WaterQualityManagementPlanID = x.WaterQualityManagementPlanID.Value,

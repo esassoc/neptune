@@ -389,4 +389,13 @@
         margin-left: auto;
         font-weight: 600;
     }
+
+    // NPT-1051: per-step Save button anchored to the bottom of each step's content area.
+    &__step-actions {
+        display: flex;
+        justify-content: flex-end;
+        margin-top: 1.5rem;
+        padding-top: 1rem;
+        border-top: 1px solid $gray-200;
+    }
 }

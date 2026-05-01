@@ -1,8 +1,9 @@
-import { Component, Input, OnInit, OnChanges, SimpleChanges } from "@angular/core";
+import { Component, inject, Input, OnInit, OnChanges, signal, SimpleChanges, ViewContainerRef } from "@angular/core";
+import { HttpErrorResponse } from "@angular/common/http";
 import { Router, RouterLink } from "@angular/router";
 import { DatePipe, AsyncPipe, CommonModule } from "@angular/common";
 import { Observable, of } from "rxjs";
-import { shareReplay, switchMap, tap } from "rxjs/operators";
+import { finalize, shareReplay, switchMap, tap } from "rxjs/operators";
 import { DialogService } from "@ngneat/dialog";
 import { ColDef } from "ag-grid-community";
 import * as L from "leaflet";
@@ -24,6 +25,7 @@ import { ConfirmService } from "src/app/shared/services/confirm/confirm.service"
 import { Alert } from "src/app/shared/models/alert";
 import { AlertContext } from "src/app/shared/models/enums/alert-context.enum";
 import { MarkerHelper } from "src/app/shared/helpers/marker-helper";
+import { escapeHtml } from "src/app/shared/helpers/html-escape";
 import { WaterQualityManagementPlanService } from "src/app/shared/generated/api/water-quality-management-plan.service";
 import { WaterQualityManagementPlanDto } from "src/app/shared/generated/model/water-quality-management-plan-dto";
 import { WaterQualityManagementPlanDocumentDto } from "src/app/shared/generated/model/water-quality-management-plan-document-dto";
@@ -144,6 +146,12 @@ export class WqmpDetailComponent implements OnInit, OnChanges {
         [WaterQualityManagementPlanModelingApproachEnum.Simplified]:
             "This WQMP is modeled by entering simplified structural BMP modeling parameters directly on this WQMP page.",
     };
+
+    // NPT-1051: Promote (Draft → Active) is the act of declaring "this transcription is the
+    // binding legal record." Status flips from Draft to Active and the WQMP starts flowing
+    // into modeling and trash result calculations.
+    public isPromoting = signal(false);
+    private viewContainerRef = inject(ViewContainerRef);
 
     constructor(
         private wqmpService: WaterQualityManagementPlanService,
@@ -387,6 +395,45 @@ export class WqmpDetailComponent implements OnInit, OnChanges {
             this.addTreatmentBMPsLayer(this.pendingWqmpForMap);
             this.pendingWqmpForMap = null;
         }
+    }
+
+    async confirmPromote(wqmp: WaterQualityManagementPlanDto): Promise<void> {
+        const confirmed = await this.confirmService.confirm({
+            title: "Promote to Active?",
+            message: "This makes the WQMP the binding legal record and includes it in modeling and trash result calculations. This is reversible only by changing the Status back to Draft via the Edit form.",
+            buttonTextYes: "Promote to Active",
+            buttonTextNo: "Cancel",
+            buttonClassYes: "btn-primary",
+        }, this.viewContainerRef);
+        if (!confirmed) return;
+
+        this.isPromoting.set(true);
+        this.alertService.clearAlerts();
+        this.wqmpService.promoteWaterQualityManagementPlan(wqmp.WaterQualityManagementPlanID).pipe(
+            finalize(() => this.isPromoting.set(false)),
+        ).subscribe({
+            next: () => {
+                this.alertService.pushAlert(new Alert("WQMP promoted to Active.", AlertContext.Success));
+                this.loadData();
+            },
+            error: (err: HttpErrorResponse) => {
+                // Backend returns 400 with `{ MissingFields: string[] }` when promote fails the
+                // legal-record completeness check, or a string for the wrong-status case. Render
+                // the missing-field list as an actionable danger toast.
+                if (err.status === 400 && err.error?.MissingFields?.length) {
+                    const fields = err.error.MissingFields.map((f: string) => escapeHtml(f)).join(", ");
+                    this.alertService.pushAlert(new Alert(
+                        `Cannot promote: the following required field(s) are missing — ${fields}. Edit the WQMP to fill them in, then try again.`,
+                        AlertContext.Danger,
+                    ));
+                    return;
+                }
+                const msg = (err.status === 400 && typeof err.error === "string")
+                    ? err.error
+                    : "Failed to promote WQMP. Please try again.";
+                this.alertService.pushAlert(new Alert(escapeHtml(msg), AlertContext.Danger));
+            },
+        });
     }
 
     openEditModal(wqmp: WaterQualityManagementPlanDto): void {

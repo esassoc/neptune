@@ -9680,12 +9680,12 @@
         }
       }
     },
-    "/water-quality-management-plans/{waterQualityManagementPlanID}/extraction-result/apply-field": {
+    "/water-quality-management-plans/{waterQualityManagementPlanID}/save-location": {
       "post": {
         "tags": [
           "WaterQualityManagementPlan"
         ],
-        "operationId": "ApplyExtractionField_WaterQualityManagementPlan",
+        "operationId": "SaveLocation_WaterQualityManagementPlan",
         "parameters": [
           {
             "name": "waterQualityManagementPlanID",
@@ -9701,21 +9701,122 @@
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/WaterQualityManagementPlanExtractionFieldUpsertDto"
+                "$ref": "#/components/schemas/WaterQualityManagementPlanSectionSaveLocationDto"
               }
             },
             "text/json": {
               "schema": {
-                "$ref": "#/components/schemas/WaterQualityManagementPlanExtractionFieldUpsertDto"
+                "$ref": "#/components/schemas/WaterQualityManagementPlanSectionSaveLocationDto"
               }
             },
             "application/*+json": {
               "schema": {
-                "$ref": "#/components/schemas/WaterQualityManagementPlanExtractionFieldUpsertDto"
+                "$ref": "#/components/schemas/WaterQualityManagementPlanSectionSaveLocationDto"
               }
             }
           }
         },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/WaterQualityManagementPlanSectionSaveResponseDto"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WaterQualityManagementPlanSectionSaveResponseDto"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WaterQualityManagementPlanSectionSaveResponseDto"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/water-quality-management-plans/{waterQualityManagementPlanID}/save-basics": {
+      "post": {
+        "tags": [
+          "WaterQualityManagementPlan"
+        ],
+        "operationId": "SaveBasics_WaterQualityManagementPlan",
+        "parameters": [
+          {
+            "name": "waterQualityManagementPlanID",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/WaterQualityManagementPlanUpsertDto"
+              }
+            },
+            "text/json": {
+              "schema": {
+                "$ref": "#/components/schemas/WaterQualityManagementPlanUpsertDto"
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "$ref": "#/components/schemas/WaterQualityManagementPlanUpsertDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/WaterQualityManagementPlanSectionSaveResponseDto"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WaterQualityManagementPlanSectionSaveResponseDto"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WaterQualityManagementPlanSectionSaveResponseDto"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/water-quality-management-plans/{waterQualityManagementPlanID}/promote": {
+      "post": {
+        "tags": [
+          "WaterQualityManagementPlan"
+        ],
+        "operationId": "Promote_WaterQualityManagementPlan",
+        "parameters": [
+          {
+            "name": "waterQualityManagementPlanID",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          }
+        ],
         "responses": {
           "200": {
             "description": "OK",
@@ -9740,12 +9841,12 @@
         }
       }
     },
-    "/water-quality-management-plans/{waterQualityManagementPlanID}/extraction-result/apply-parcel": {
+    "/water-quality-management-plans/{waterQualityManagementPlanID}/save-bmps": {
       "post": {
         "tags": [
           "WaterQualityManagementPlan"
         ],
-        "operationId": "ApplyExtractionParcel_WaterQualityManagementPlan",
+        "operationId": "SaveBmps_WaterQualityManagementPlan",
         "parameters": [
           {
             "name": "waterQualityManagementPlanID",
@@ -9761,103 +9862,26 @@
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/WaterQualityManagementPlanExtractionParcelUpsertDto"
+                "type": "array",
+                "items": {
+                  "$ref": "#/components/schemas/QuickBMPUpsertDto"
+                }
               }
             },
             "text/json": {
               "schema": {
-                "$ref": "#/components/schemas/WaterQualityManagementPlanExtractionParcelUpsertDto"
+                "type": "array",
+                "items": {
+                  "$ref": "#/components/schemas/QuickBMPUpsertDto"
+                }
               }
             },
             "application/*+json": {
               "schema": {
-                "$ref": "#/components/schemas/WaterQualityManagementPlanExtractionParcelUpsertDto"
-              }
-            }
-          }
-        },
-        "responses": {
-          "200": {
-            "description": "OK"
-          }
-        }
-      }
-    },
-    "/water-quality-management-plans/{waterQualityManagementPlanID}/extraction-result/apply-quick-bmp": {
-      "post": {
-        "tags": [
-          "WaterQualityManagementPlan"
-        ],
-        "operationId": "ApplyExtractionQuickBMP_WaterQualityManagementPlan",
-        "parameters": [
-          {
-            "name": "waterQualityManagementPlanID",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "integer",
-              "format": "int32"
-            }
-          }
-        ],
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/WaterQualityManagementPlanExtractionQuickBMPUpsertDto"
-              }
-            },
-            "text/json": {
-              "schema": {
-                "$ref": "#/components/schemas/WaterQualityManagementPlanExtractionQuickBMPUpsertDto"
-              }
-            },
-            "application/*+json": {
-              "schema": {
-                "$ref": "#/components/schemas/WaterQualityManagementPlanExtractionQuickBMPUpsertDto"
-              }
-            }
-          }
-        },
-        "responses": {
-          "200": {
-            "description": "OK"
-          }
-        }
-      }
-    },
-    "/water-quality-management-plans/{waterQualityManagementPlanID}/extraction-result/approve": {
-      "post": {
-        "tags": [
-          "WaterQualityManagementPlan"
-        ],
-        "operationId": "ApproveExtractionResult_WaterQualityManagementPlan",
-        "parameters": [
-          {
-            "name": "waterQualityManagementPlanID",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "integer",
-              "format": "int32"
-            }
-          }
-        ],
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/WaterQualityManagementPlanExtractionApprovalDto"
-              }
-            },
-            "text/json": {
-              "schema": {
-                "$ref": "#/components/schemas/WaterQualityManagementPlanExtractionApprovalDto"
-              }
-            },
-            "application/*+json": {
-              "schema": {
-                "$ref": "#/components/schemas/WaterQualityManagementPlanExtractionApprovalDto"
+                "type": "array",
+                "items": {
+                  "$ref": "#/components/schemas/QuickBMPUpsertDto"
+                }
               }
             }
           }
@@ -9868,17 +9892,17 @@
             "content": {
               "text/plain": {
                 "schema": {
-                  "$ref": "#/components/schemas/WaterQualityManagementPlanExtractionApprovalResponseDto"
+                  "$ref": "#/components/schemas/WaterQualityManagementPlanSectionSaveResponseDto"
                 }
               },
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/WaterQualityManagementPlanExtractionApprovalResponseDto"
+                  "$ref": "#/components/schemas/WaterQualityManagementPlanSectionSaveResponseDto"
                 }
               },
               "text/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/WaterQualityManagementPlanExtractionApprovalResponseDto"
+                  "$ref": "#/components/schemas/WaterQualityManagementPlanSectionSaveResponseDto"
                 }
               }
             }
@@ -16571,106 +16595,6 @@
         },
         "additionalProperties": false
       },
-      "WaterQualityManagementPlanExtractionApprovalDto": {
-        "required": [
-          "WaterQualityManagementPlan"
-        ],
-        "type": "object",
-        "properties": {
-          "WaterQualityManagementPlan": {
-            "$ref": "#/components/schemas/WaterQualityManagementPlanUpsertDto"
-          },
-          "ApprovedQuickBMPs": {
-            "type": "array",
-            "items": {
-              "$ref": "#/components/schemas/QuickBMPUpsertDto"
-            },
-            "nullable": true
-          }
-        },
-        "additionalProperties": false
-      },
-      "WaterQualityManagementPlanExtractionApprovalResponseDto": {
-        "type": "object",
-        "properties": {
-          "WaterQualityManagementPlan": {
-            "$ref": "#/components/schemas/WaterQualityManagementPlanDto"
-          },
-          "SkippedBMPs": {
-            "type": "array",
-            "items": {
-              "$ref": "#/components/schemas/QuickBMPMergeSkipDto"
-            },
-            "nullable": true
-          }
-        },
-        "additionalProperties": false
-      },
-      "WaterQualityManagementPlanExtractionFieldUpsertDto": {
-        "required": [
-          "Action",
-          "FieldKey"
-        ],
-        "type": "object",
-        "properties": {
-          "FieldKey": {
-            "minLength": 1,
-            "type": "string"
-          },
-          "Value": {
-            "type": "string",
-            "nullable": true
-          },
-          "Action": {
-            "minLength": 1,
-            "type": "string"
-          }
-        },
-        "additionalProperties": false
-      },
-      "WaterQualityManagementPlanExtractionParcelUpsertDto": {
-        "required": [
-          "Action",
-          "ParcelKey"
-        ],
-        "type": "object",
-        "properties": {
-          "ParcelKey": {
-            "minLength": 1,
-            "type": "string"
-          },
-          "ParcelNumber": {
-            "type": "string",
-            "nullable": true
-          },
-          "Action": {
-            "minLength": 1,
-            "type": "string"
-          }
-        },
-        "additionalProperties": false
-      },
-      "WaterQualityManagementPlanExtractionQuickBMPUpsertDto": {
-        "required": [
-          "Action",
-          "BmpIndex"
-        ],
-        "type": "object",
-        "properties": {
-          "BmpIndex": {
-            "type": "integer",
-            "format": "int32"
-          },
-          "QuickBMPUpsert": {
-            "$ref": "#/components/schemas/QuickBMPUpsertDto"
-          },
-          "Action": {
-            "minLength": 1,
-            "type": "string"
-          }
-        },
-        "additionalProperties": false
-      },
       "WaterQualityManagementPlanExtractionResultDto": {
         "type": "object",
         "properties": {
@@ -16699,28 +16623,6 @@
             "format": "date-time"
           },
           "FileResourceGuid": {
-            "type": "string",
-            "nullable": true
-          },
-          "DraftOverlayJson": {
-            "type": "string",
-            "nullable": true
-          },
-          "DraftUpdatedDate": {
-            "type": "string",
-            "format": "date-time",
-            "nullable": true
-          },
-          "DraftUpdatedByFullName": {
-            "type": "string",
-            "nullable": true
-          },
-          "ApprovedDate": {
-            "type": "string",
-            "format": "date-time",
-            "nullable": true
-          },
-          "ApprovedByFullName": {
             "type": "string",
             "nullable": true
           }
@@ -16857,6 +16759,39 @@
           },
           "IsDraft": {
             "type": "boolean"
+          }
+        },
+        "additionalProperties": false
+      },
+      "WaterQualityManagementPlanSectionSaveLocationDto": {
+        "type": "object",
+        "properties": {
+          "WaterQualityManagementPlan": {
+            "$ref": "#/components/schemas/WaterQualityManagementPlanUpsertDto"
+          },
+          "ParcelIDs": {
+            "type": "array",
+            "items": {
+              "type": "integer",
+              "format": "int32"
+            },
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "WaterQualityManagementPlanSectionSaveResponseDto": {
+        "type": "object",
+        "properties": {
+          "WaterQualityManagementPlan": {
+            "$ref": "#/components/schemas/WaterQualityManagementPlanDto"
+          },
+          "SkippedBMPs": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/QuickBMPMergeSkipDto"
+            },
+            "nullable": true
           }
         },
         "additionalProperties": false

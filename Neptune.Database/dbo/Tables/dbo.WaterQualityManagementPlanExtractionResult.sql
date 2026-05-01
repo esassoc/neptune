@@ -5,6 +5,10 @@ CREATE TABLE [dbo].[WaterQualityManagementPlanExtractionResult]
     [WaterQualityManagementPlanDocumentID]           INT NOT NULL,
     [ExtractionResultJson]                          NVARCHAR(MAX) NOT NULL,
     [ExtractedAt]                                   DATETIME NOT NULL,
+    -- DEPRECATED (NPT-1051): the columns below are no longer written by application code.
+    -- The AI wizard was reframed as another data-entry method peer to the modal CRUD editors;
+    -- per-field draft state and the propose+approve cycle were removed. Schema drop deferred
+    -- to a follow-up data-cleanup ticket so the live DB doesn't lose history rows.
     [DraftOverlayJson]                              NVARCHAR(MAX) NULL,
     [DraftUpdatedByPersonID]                        INT NULL,
     [DraftUpdatedDate]                              DATETIME NULL,
