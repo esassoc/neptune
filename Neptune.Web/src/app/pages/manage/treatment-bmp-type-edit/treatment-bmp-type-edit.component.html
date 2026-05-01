@@ -1,7 +1,11 @@
 <page-header [pageTitle]="isCreate ? 'New Treatment BMP Type' : 'Edit Treatment BMP Type'" [templateAbove]="templateAbove">
     <ng-template #templateAbove>
         <div class="back">
-            <a [routerLink]="['/manage/treatment-bmp-types']" class="back__link">Back to Treatment BMP Types</a>
+            @if (isCreate) {
+                <a [routerLink]="['/manage/treatment-bmp-types']" class="back__link">Back to Treatment BMP Types</a>
+            } @else {
+                <a [routerLink]="['/program-info/treatment-bmp-types', treatmentBMPTypeID]" class="back__link">Back to {{ nameControl.value || "Treatment BMP Type" }}</a>
+            }
         </div>
     </ng-template>
 </page-header>

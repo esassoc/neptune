@@ -285,10 +285,12 @@ export class TreatmentBmpTypeEditComponent implements OnInit {
             : this.bmpTypeService.updateTreatmentBMPType(this.treatmentBMPTypeID, dto);
 
         save$.subscribe({
-            next: () => {
+            next: (saved) => {
                 this.isSaving = false;
                 this.alertService.pushAlert(new Alert(`Treatment BMP Type ${this.isCreate ? "created" : "updated"}.`, AlertContext.Success));
-                this.router.navigate(["/manage/treatment-bmp-types"]);
+                // Match MVC behavior: redirect to the detail page after save (works for both
+                // create and update — the response carries the persisted ID).
+                this.router.navigate(["/program-info/treatment-bmp-types", saved.TreatmentBMPTypeID]);
             },
             error: () => {
                 this.isSaving = false;
@@ -298,7 +300,13 @@ export class TreatmentBmpTypeEditComponent implements OnInit {
     }
 
     cancel(): void {
-        this.router.navigate(["/manage/treatment-bmp-types"]);
+        // Edit mode → back to the BMP Type's detail page; create mode → back to the manage list
+        // (no detail to return to).
+        if (this.isCreate) {
+            this.router.navigate(["/manage/treatment-bmp-types"]);
+        } else {
+            this.router.navigate(["/program-info/treatment-bmp-types", this.treatmentBMPTypeID]);
+        }
     }
 
     deleteBMPType(): void {
