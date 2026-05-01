@@ -755,7 +755,9 @@ namespace Neptune.WebMvc.Controllers
                 LastEditedByPersonID = CurrentPerson.PersonID,
                 LastEditedDate = DateTime.UtcNow,
                 IsDraft = true,
-                VerificationDate = DateOnly.FromDateTime(DateTime.UtcNow)
+                // Default to today in Pacific time (the OC stormwater client locale) so a late-night
+                // Pacific session doesn't pre-fill tomorrow's UTC date in the picker.
+                VerificationDate = DateOnly.FromDateTime(TimeZoneInfo.ConvertTimeFromUtc(DateTime.UtcNow, TimeZoneInfo.FindSystemTimeZoneById("Pacific Standard Time")))
             };
             var viewModel = new NewWqmpVerifyViewModel(waterQualityManagementPlan, waterQualityManagementPlanVerify, quickBMPs, treatmentBMPs);
             return ViewNewWqmpVerify(waterQualityManagementPlan, viewModel);

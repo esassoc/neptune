@@ -142,6 +142,10 @@ export class WqmpVerificationWorkflowService {
      *  Mode auto-resolves: "create" when no verifyID, "edit" for a draft, and "view" once the load
      *  detects a finalized record below. */
     public load(wqmpID: number, verifyID: number | null): Observable<boolean> {
+        // The service is providedIn: "root", so it survives wizard remounts. Reset state up-front
+        // so values from a prior session can't bleed into a new wizard before forkJoin resolves.
+        this.resetState();
+
         this.waterQualityManagementPlanID.set(wqmpID);
         this.waterQualityManagementPlanVerifyID.set(verifyID ?? null);
         this.mode.set(verifyID ? "edit" : "create");
@@ -244,6 +248,18 @@ export class WqmpVerificationWorkflowService {
 
     public stepHelpID(key: VerificationStepKey): number {
         return this.steps.find((s) => s.key === key)?.helpID ?? null;
+    }
+
+    private resetState(): void {
+        this.wqmpName.set("");
+        this.isFinalized.set(false);
+        this.isSaving.set(false);
+        this.treatmentBMPRows.set([]);
+        this.quickBMPRows.set([]);
+        this.sourceControlRows.set([]);
+        this.basicsForm.reset({}, { emitEvent: false });
+        this.basicsForm.enable({ emitEvent: false });
+        this.basicsFormValidSignal.set(this.basicsForm.valid);
     }
 
     private buildUpsertDto(isDraft: boolean): WaterQualityManagementPlanVerifyUpsertDto {
