@@ -6,7 +6,7 @@ import { FieldDefinitionComponent } from "src/app/shared/components/field-defini
     standalone: true,
     imports: [FieldDefinitionComponent],
     template: `
-        <field-definition fieldDefinitionType="PropertiesToObserve" labelOverride="Properties to Observe" [inline]="true"></field-definition>
+        <field-definition fieldDefinitionType="PropertiesToObserve" labelOverride="Properties to Observe"></field-definition>
         @for (prop of properties; track $index) {
             <div class="prop-row">
                 <span>{{ prop }}</span>

@@ -7604,6 +7604,46 @@
         }
       }
     },
+    "/treatment-bmp-types/cards": {
+      "get": {
+        "tags": [
+          "TreatmentBMPType"
+        ],
+        "operationId": "ListAsDetailDto_TreatmentBMPType",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/TreatmentBMPTypeDetailDto"
+                  }
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/TreatmentBMPTypeDetailDto"
+                  }
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/TreatmentBMPTypeDetailDto"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "x-anonymous": true
+      }
+    },
     "/treatment-bmp-types/{treatmentBMPTypeID}/detail": {
       "get": {
         "tags": [
@@ -15823,6 +15863,30 @@
             "type": "integer",
             "format": "int32",
             "nullable": true
+          },
+          "CustomAttributeDataTypeID": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "CustomAttributeDataTypeDisplayName": {
+            "type": "string",
+            "nullable": true
+          },
+          "MeasurementUnitTypeID": {
+            "type": "integer",
+            "format": "int32",
+            "nullable": true
+          },
+          "MeasurementUnitDisplayName": {
+            "type": "string",
+            "nullable": true
+          },
+          "IsRequired": {
+            "type": "boolean"
+          },
+          "CustomAttributeTypeDescription": {
+            "type": "string",
+            "nullable": true
           }
         },
         "additionalProperties": false
@@ -15986,6 +16050,37 @@
           "ObservationTypeSpecificationID": {
             "type": "integer",
             "format": "int32"
+          },
+          "ObservationTypeCollectionMethodID": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "ObservationTargetTypeID": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "ObservationThresholdTypeID": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "HasBenchmarkAndThreshold": {
+            "type": "boolean"
+          },
+          "BenchmarkUnitDisplayName": {
+            "type": "string",
+            "nullable": true
+          },
+          "ThresholdUnitDisplayName": {
+            "type": "string",
+            "nullable": true
+          },
+          "FormattedBenchmarkValue": {
+            "type": "string",
+            "nullable": true
+          },
+          "FormattedThresholdValue": {
+            "type": "string",
+            "nullable": true
           }
         },
         "additionalProperties": false

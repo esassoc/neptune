@@ -17,6 +17,12 @@ export class TreatmentBMPTypeCustomAttributeTypeDetailDto {
     CustomAttributeTypePurposeDisplayName?: string | null;
     CustomAttributeTypePurposeID?: number;
     SortOrder?: number | null;
+    CustomAttributeDataTypeID?: number;
+    CustomAttributeDataTypeDisplayName?: string | null;
+    MeasurementUnitTypeID?: number | null;
+    MeasurementUnitDisplayName?: string | null;
+    IsRequired?: boolean;
+    CustomAttributeTypeDescription?: string | null;
     constructor(obj?: any) {
         Object.assign(this, obj);
     }
@@ -29,6 +35,12 @@ export interface TreatmentBMPTypeCustomAttributeTypeDetailDtoForm {
     CustomAttributeTypePurposeDisplayName?: FormControl<string>;
     CustomAttributeTypePurposeID?: FormControl<number>;
     SortOrder?: FormControl<number>;
+    CustomAttributeDataTypeID?: FormControl<number>;
+    CustomAttributeDataTypeDisplayName?: FormControl<string>;
+    MeasurementUnitTypeID?: FormControl<number>;
+    MeasurementUnitDisplayName?: FormControl<string>;
+    IsRequired?: FormControl<boolean>;
+    CustomAttributeTypeDescription?: FormControl<string>;
 }
 
 export class TreatmentBMPTypeCustomAttributeTypeDetailDtoFormControls { 
@@ -83,6 +95,66 @@ export class TreatmentBMPTypeCustomAttributeTypeDetailDtoFormControls {
         }
     );
     public static SortOrder = (value: FormControlState<number> | number = undefined, formControlOptions?: FormControlOptions | null) => new FormControl<number>(
+        value,
+        formControlOptions ?? 
+        {
+            nonNullable: false,
+            validators: 
+            [
+            ],
+        }
+    );
+    public static CustomAttributeDataTypeID = (value: FormControlState<number> | number = undefined, formControlOptions?: FormControlOptions | null) => new FormControl<number>(
+        value,
+        formControlOptions ?? 
+        {
+            nonNullable: false,
+            validators: 
+            [
+            ],
+        }
+    );
+    public static CustomAttributeDataTypeDisplayName = (value: FormControlState<string> | string = undefined, formControlOptions?: FormControlOptions | null) => new FormControl<string>(
+        value,
+        formControlOptions ?? 
+        {
+            nonNullable: false,
+            validators: 
+            [
+            ],
+        }
+    );
+    public static MeasurementUnitTypeID = (value: FormControlState<number> | number = undefined, formControlOptions?: FormControlOptions | null) => new FormControl<number>(
+        value,
+        formControlOptions ?? 
+        {
+            nonNullable: false,
+            validators: 
+            [
+            ],
+        }
+    );
+    public static MeasurementUnitDisplayName = (value: FormControlState<string> | string = undefined, formControlOptions?: FormControlOptions | null) => new FormControl<string>(
+        value,
+        formControlOptions ?? 
+        {
+            nonNullable: false,
+            validators: 
+            [
+            ],
+        }
+    );
+    public static IsRequired = (value: FormControlState<boolean> | boolean = undefined, formControlOptions?: FormControlOptions | null) => new FormControl<boolean>(
+        value,
+        formControlOptions ?? 
+        {
+            nonNullable: false,
+            validators: 
+            [
+            ],
+        }
+    );
+    public static CustomAttributeTypeDescription = (value: FormControlState<string> | string = undefined, formControlOptions?: FormControlOptions | null) => new FormControl<string>(
         value,
         formControlOptions ?? 
         {

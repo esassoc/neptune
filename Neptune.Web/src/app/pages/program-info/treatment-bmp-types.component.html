@@ -1,0 +1,62 @@
+<page-header pageTitle="All BMP Types" [customRichTextTypeID]="NeptunePageTypeEnum.TreatmentBMPType"></page-header>
+
+<div class="page-body">
+    @if (bmpTypes$ | async; as bmpTypes) {
+        <div class="grid-12 bmp-type-cards">
+            @for (bmpType of bmpTypes; track bmpType.TreatmentBMPTypeID) {
+                <div class="card bmp-type-card g-col-6">
+                    <div class="card-header">
+                        <span class="card-title">{{ bmpType.TreatmentBMPTypeName }}</span>
+                        @if (isAuthenticated) {
+                            <a class="btn btn-sm btn-white-outline view-details" [routerLink]="['/program-info/treatment-bmp-types', bmpType.TreatmentBMPTypeID]">
+                                View Details
+                            </a>
+                        }
+                    </div>
+                    <div class="card-body">
+                        <p class="bmp-type-description"><strong>Description:</strong> {{ bmpType.TreatmentBMPTypeDescription || "—" }}</p>
+
+                        @if (isAuthenticated) {
+                            @if (bmpType.ObservationTypes?.length) {
+                                <p class="section-label">Applicable Observation Types:</p>
+                                <table class="table table-condensed bmp-type-card__observations">
+                                    <thead>
+                                        <tr>
+                                            <th>Observation</th>
+                                            <th>Weight</th>
+                                            <th>Benchmark Default</th>
+                                            <th>Threshold Default</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        @for (ot of bmpType.ObservationTypes; track ot.TreatmentBMPTypeAssessmentObservationTypeID) {
+                                            <tr>
+                                                <td>
+                                                    <a [routerLink]="['/program-info/observation-types', ot.TreatmentBMPAssessmentObservationTypeID]">{{ ot.TreatmentBMPAssessmentObservationTypeName }}</a>
+                                                </td>
+                                                <td>{{ weightDisplay(ot) }}</td>
+                                                <td>{{ ot.HasBenchmarkAndThreshold ? (ot.FormattedBenchmarkValue ?? "—") : "N/A" }}</td>
+                                                <td>{{ ot.HasBenchmarkAndThreshold ? (ot.FormattedThresholdValue ?? "—") : "N/A" }}</td>
+                                            </tr>
+                                        }
+                                    </tbody>
+                                </table>
+                            }
+
+                            <p class="section-label">Attribute Types:</p>
+                            <ul class="bmp-type-card__attribute-counts">
+                                @for (purpose of attributeCountsByPurpose(bmpType); track purpose.purposeDisplayName) {
+                                    <li>This BMP Type has {{ purpose.count }} {{ purpose.purposeDisplayName }}</li>
+                                }
+                            </ul>
+                        }
+                    </div>
+                </div>
+            } @empty {
+                <p class="g-col-12 system-text">No Treatment BMP Types are configured.</p>
+            }
+        </div>
+    } @else {
+        <div [loadingSpinner]="{ isLoading: isLoading(), loadingHeight: 400 }"></div>
+    }
+</div>

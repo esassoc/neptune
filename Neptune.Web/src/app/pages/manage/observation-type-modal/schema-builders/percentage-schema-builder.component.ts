@@ -30,7 +30,7 @@ import { SchemaBuilderSection } from "./pass-fail-schema-builder.component";
             @case ("labelsUnits") {
                 <div class="grid-12">
                     <div class="g-col-12">
-                        <field-definition fieldDefinitionType="MeasurementUnitLabel" labelOverride="Measurement Unit Label" [inline]="true"></field-definition>
+                        <field-definition fieldDefinitionType="MeasurementUnitLabel" labelOverride="Measurement Unit Label"></field-definition>
                         <input type="text" class="form-control" [(ngModel)]="schema.MeasurementUnitLabel" (ngModelChange)="emit()" placeholder="e.g. Percent Cover">
                     </div>
                     <div class="g-col-12">
