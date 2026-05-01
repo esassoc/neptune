@@ -1,1 +1,25 @@
-<!-- Placeholder for Parcels component template -->
+<page-header pageTitle="Parcels"></page-header>
+<app-alert-display></app-alert-display>
+<div class="page-body">
+    @if (boundingBox$ | async; as boundingBox) {
+        <hybrid-map-grid
+            [rowData]="parcels$ | async"
+            [columnDefs]="columnDefs"
+            downloadFileName="parcels"
+            entityIDField="ParcelID"
+            (onMapLoad)="handleMapReady($event, boundingBox)"
+            [selectedValue]="selectedParcelID"
+            [selectionFromMap]="true"
+            (selectedValueChange)="onSelectedParcelIDChanged($event)"
+            [boundingBox]="boundingBox">
+            <parcels-layer
+                [map]="map"
+                [layerControl]="layerControl"
+                [mode]="OverlayMode.ReferenceWithInteractivity"
+                [selectedID]="selectedParcelID"
+                [fitBoundsOnSelect]="zoomOnNextSelection"
+                (selected)="onSelectedParcelIDChanged($event, true)">
+            </parcels-layer>
+        </hybrid-map-grid>
+    }
+</div>

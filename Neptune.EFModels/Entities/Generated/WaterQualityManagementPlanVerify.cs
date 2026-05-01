@@ -37,8 +37,7 @@ public partial class WaterQualityManagementPlanVerify
 
     public bool IsDraft { get; set; }
 
-    [Column(TypeName = "datetime")]
-    public DateTime VerificationDate { get; set; }
+    public DateOnly VerificationDate { get; set; }
 
     [ForeignKey("FileResourceID")]
     [InverseProperty("WaterQualityManagementPlanVerifies")]

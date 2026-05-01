@@ -31,27 +31,25 @@
                 </div>
                 <span class="progress-bar__label">{{ confirmedCount }} of {{ totalFieldCount }} fields confirmed</span>
             </div>
+            <!-- NPT-1051: Approve All removed. Each step's Save button now writes that
+                 section's accepted/edited fields straight through to the live WQMP — overwrite
+                 semantics matching the modal CRUD editors. The Save buttons live alongside
+                 their step's content. Re-run Extraction sits below the steps here, where it's
+                 close to the navigation but doesn't compete with the per-field action area. -->
             @if (pageData.hasResult) {
-                <div class="review-sidebar__actions">
-                    @if (!isApproved()) {
-                        <!-- NPT-1020: per-field accept/edit/reject auto-saves through to the
-                             WQMP, so Save Draft / Discard Draft / Cancel are gone. Approve
-                             All commits any leftover (parcels + BMPs) and locks the workflow.
-                             Re-run Extraction lives in a sticky bottom-right footer below. -->
-                        <button class="btn btn-primary btn-block" (click)="approveAndApply()" [disabled]="isApplying || isExtracting()">
-                            @if (isApplying) { <i class="fa fa-spinner fa-spin"></i> } Approve All
-                        </button>
-                    } @else {
-                        <a class="btn btn-secondary-outline btn-block" [routerLink]="['/water-quality-management-plans', waterQualityManagementPlanID]">
-                            Back to WQMP
-                        </a>
-                    }
+                <div class="review-sidebar__rerun">
+                    <button class="btn btn-secondary-outline btn-block" (click)="confirmReExtract()" [disabled]="isExtracting()" title="Replace the AI-extracted suggestions with a fresh run. Saved sections on the WQMP are preserved.">
+                        @if (isExtracting()) { <i class="fa fa-spinner fa-spin"></i> Extracting... } @else { <i class="fa fa-magic"></i> Re-run Extraction }
+                    </button>
                 </div>
             }
         </aside>
 
-        <!-- PDF Panel -->
-        <div class="pdf-panel">
+        <!-- PDF Panel — hidden on Step 4 (Final review) since the summary view doesn't
+             reference evidence on the PDF. Use [hidden] rather than @if so the iframe
+             stays mounted across step navigation; otherwise pdfLoaded / pendingNavigation /
+             pdfTextCache get out of sync with the new iframe instance on return. -->
+        <div class="pdf-panel" [hidden]="currentStep() === 4">
             @if (isNavigating()) {
                 <div class="pdf-panel__loading">
                     <i class="fa fa-spinner fa-spin"></i> Finding in document...
@@ -78,24 +76,42 @@
         </div>
 
         <!-- Review Panel -->
-        <div class="review-panel">
+        <div class="review-panel" [class.review-panel--full-width]="currentStep() === 4">
             <div class="review-panel__header">
-                <h2>{{ steps[currentStep() - 1].title }}</h2>
-                @if (pageData.hasResult) {
-                    <p class="review-panel__desc">Review and confirm the AI-extracted values below.</p>
+                <div class="review-panel__header-text">
+                    <h2>{{ steps[currentStep() - 1].title }}</h2>
+                    @if (pageData.hasResult) {
+                        <p class="review-panel__desc">Review and confirm the AI-extracted values below.</p>
+                    }
+                </div>
+                <!-- NPT-1051: per-step Save button anchored to the section header so it's
+                     always visible without scrolling past the field list. Step 4 (Review)
+                     is a read-only summary — no Save action there. -->
+                @if (pageData.hasResult && currentStep() === 1) {
+                    <button class="btn btn-primary review-panel__header-action" (click)="saveLocation()" [disabled]="savingSection() !== null || isExtracting()">
+                        @if (savingSection() === "location") { <i class="fa fa-spinner fa-spin"></i> Saving... } @else { Save }
+                    </button>
+                } @else if (pageData.hasResult && currentStep() === 2) {
+                    <button class="btn btn-primary review-panel__header-action" (click)="saveBasics()" [disabled]="savingSection() !== null || isExtracting()">
+                        @if (savingSection() === "basics") { <i class="fa fa-spinner fa-spin"></i> Saving... } @else { Save }
+                    </button>
+                } @else if (pageData.hasResult && currentStep() === 3) {
+                    <button class="btn btn-primary review-panel__header-action" (click)="saveBmps()" [disabled]="savingSection() !== null || isExtracting()">
+                        @if (savingSection() === "bmps") { <i class="fa fa-spinner fa-spin"></i> Saving... } @else { Save }
+                    </button>
                 }
             </div>
 
             <app-alert-display></app-alert-display>
 
-            @if (pageData.hasResult && !isApproved()) {
+            @if (pageData.hasResult) {
                 <div class="review-panel__tips">
                     <i class="fa fa-lightbulb-o"></i>
                     <div>
                         <strong>Tips:</strong>
                         Click a field's value or evidence to jump to the source on the PDF.
-                        Use <strong>&#10003;&nbsp;Accept</strong>, <strong>&#9998;&nbsp;Edit</strong>, or <strong>&#10007;&nbsp;Reject</strong> (clears the value) on each field.
-                        <strong>Save Draft</strong> preserves progress; <strong>Approve&nbsp;&amp;&nbsp;Apply</strong> commits values to the live WQMP.
+                        Use <strong>&#10003;&nbsp;Accept</strong>, <strong>&#9998;&nbsp;Edit</strong>, or <strong>&#10007;&nbsp;Reject</strong> (preserves the existing live value) on each field.
+                        <strong>Save</strong> in each step's header writes the section's accepted values to the WQMP — untouched fields auto-accept their AI value when you save.
                     </div>
                 </div>
             }
@@ -111,23 +127,10 @@
                 </div>
             }
 
-            @if (pageData.hasResult && isApproved()) {
-                <div class="review-panel__banner review-panel__banner--approved">
-                    <i class="fa fa-check-circle"></i>
-                    Approved by {{ currentResult()?.ApprovedByFullName }} on {{ currentResult()?.ApprovedDate | date: "medium" }}. This review is read-only.
-                </div>
-            } @else if (currentResult()?.DraftUpdatedDate) {
-                <div class="review-panel__banner review-panel__banner--draft">
-                    <i class="fa fa-save"></i>
-                    Draft saved by {{ currentResult()?.DraftUpdatedByFullName }} on {{ currentResult()?.DraftUpdatedDate | date: "medium" }}.
-                    @if (hasUnsavedChanges()) {
-                        <span class="review-panel__banner-note">You have unsaved changes.</span>
-                    }
-                </div>
-            } @else if (hasUnsavedChanges()) {
+            @if (hasUnsavedChanges()) {
                 <div class="review-panel__banner review-panel__banner--dirty">
                     <i class="fa fa-exclamation-circle"></i>
-                    You have unsaved changes.
+                    You have unsaved changes. Click the Save button in this step's header to write them to the WQMP.
                 </div>
             }
 
@@ -145,16 +148,16 @@
                             [selectOptions]="field.selectOptions ?? []"
                             [mask]="field.mask ?? null"
                             [origin]="getFieldOrigin(field)"
-                            [readOnly]="isApproved()"
                             [initialState]="field.state"
                             [initialValue]="field.acceptedValue ?? field.value"
+                            [selected]="selectedFieldKey() === field.key"
                             (valueAccepted)="onFieldAccepted(field, $event)"
                             (valueEdited)="onFieldEdited(field, $event)"
                             (valueRejected)="onFieldRejected(field)"
-                            (navigateToSource)="navigateToSource($event)">
+                            (navigateToSource)="onSourceClick(field.key, $event)">
                         </field-card>
                     }
-                    @if (currentStep() === 1 && !isApproved()) {
+                    @if (currentStep() === 1) {
                         <button class="btn btn-primary-outline btn-sm review-panel__add-parcel" (click)="addParcel()">
                             <i class="fa fa-plus"></i> Add Parcel
                         </button>
@@ -176,14 +179,14 @@
                                 [bmpIndex]="group.bmpIndex"
                                 [displayName]="group.displayName"
                                 [fields]="group.fields"
-                                [readOnly]="isApproved()"
                                 [initialIsRejected]="group.isRejected"
+                                [selectedFieldKey]="selectedFieldKey()"
                                 (bmpRejected)="onBmpRejected($event)"
                                 (bmpRestored)="onBmpRestored($event)"
                                 (fieldAccepted)="onBmpFieldAccepted($event)"
                                 (fieldEdited)="onBmpFieldEdited($event)"
                                 (fieldRejected)="onBmpFieldRejected($event)"
-                                (navigateToSource)="navigateToSource($event)">
+                                (navigateToSource)="onSourceClick($event.key, $event.nav)">
                             </bmp-review-card>
                         }
                         @if (bmpGroupsForCurrentStep.length === 0) {
@@ -192,19 +195,10 @@
                             </div>
                         }
                     }
+
                 </div>
             }
         </div>
     </div>
 
-    <!-- NPT-1020: Re-run Extraction lives in a sticky bottom-right footer so it's
-         always reachable but doesn't compete with the per-field action area for the eye.
-         Hidden once the workflow has been approved (read-only state). -->
-    @if (!isApproved() && pageData.hasResult) {
-        <div class="review-rerun-footer">
-            <button class="btn btn-secondary-outline" (click)="confirmReExtract()" [disabled]="isExtracting()" title="Replace the existing extraction (does not clobber values you've already accepted)">
-                @if (isExtracting()) { <i class="fa fa-spinner fa-spin"></i> Extracting... } @else { <i class="fa fa-magic"></i> Re-run Extraction }
-            </button>
-        </div>
-    }
 }

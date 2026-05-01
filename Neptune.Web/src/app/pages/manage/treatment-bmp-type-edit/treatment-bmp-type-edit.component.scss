@@ -28,3 +28,29 @@ form-field {
         font-weight: 400;
     }
 }
+
+.value-with-suffix {
+    display: flex;
+    align-items: center;
+    gap: 0.25rem;
+}
+
+.value-suffix {
+    font-size: $type-size-200;
+    color: #666;
+    white-space: nowrap;
+}
+
+.page-footer {
+    display: flex;
+    gap: 0.5rem;
+    margin-top: 1rem;
+}
+
+.cell-center {
+    text-align: center;
+}
+
+.muted {
+    color: $gray-500;
+}

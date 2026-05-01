@@ -7,7 +7,7 @@ public class WaterQualityManagementPlanVerifyIndexGridDto
     public string? WaterQualityManagementPlanName { get; set; }
     public int StormwaterJurisdictionID { get; set; }
     public string? StormwaterJurisdictionName { get; set; }
-    public DateTime VerificationDate { get; set; }
+    public DateOnly VerificationDate { get; set; }
     public DateTime LastEditedDate { get; set; }
     public string? LastEditedByPersonFullName { get; set; }
     public int WaterQualityManagementPlanVerifyTypeID { get; set; }

@@ -29,6 +29,7 @@ export class BmpReviewCardComponent {
     @Input() fields: ExtractedField[] = [];
     @Input() readOnly = false;
     @Input() initialIsRejected = false;
+    @Input() selectedFieldKey: string | null = null;
 
     /** Reference exposed for template default-binding (FormFieldType.Text fallback). */
     public FormFieldType = FormFieldType;
@@ -38,7 +39,7 @@ export class BmpReviewCardComponent {
     @Output() fieldAccepted = new EventEmitter<{ key: string; value: string | null }>();
     @Output() fieldEdited = new EventEmitter<{ key: string; value: string }>();
     @Output() fieldRejected = new EventEmitter<{ key: string }>();
-    @Output() navigateToSource = new EventEmitter<SourceNavigation>();
+    @Output() navigateToSource = new EventEmitter<{ key: string; nav: SourceNavigation }>();
 
     public isRejected = signal(false);
 
@@ -72,8 +73,8 @@ export class BmpReviewCardComponent {
         this.fieldRejected.emit({ key });
     }
 
-    onNavigateToSource(nav: SourceNavigation): void {
-        this.navigateToSource.emit(nav);
+    onNavigateToSource(key: string, nav: SourceNavigation): void {
+        this.navigateToSource.emit({ key, nav });
     }
 
     get headerLabel(): string {

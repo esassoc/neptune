@@ -1,20 +1,5 @@
 @use "/src/scss/abstracts" as *;
 
-// NPT-1020: Re-run Extraction action lives in this sticky bottom-right footer.
-// Positioned over the review panel via fixed positioning so it floats above
-// scroll content without consuming layout space.
-.review-rerun-footer {
-    position: fixed;
-    bottom: 1.25rem;
-    right: 1.25rem;
-    z-index: 50;
-
-    .btn {
-        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
-        background: $white;
-    }
-}
-
 .review-layout {
     display: flex;
     // Pin to viewport height minus the site header stack so the three panels always fit on
@@ -65,11 +50,10 @@
         padding: 0.75rem 1.25rem;
     }
 
-    &__actions {
+    // NPT-1051: Re-run Extraction sits below the steps. Same width treatment as the old
+    // sidebar action group so it reads as a sibling of the per-step Save buttons.
+    &__rerun {
         padding: 0.75rem 1.25rem 1.25rem;
-        display: flex;
-        flex-direction: column;
-        gap: 0.5rem;
 
         .btn-block {
             display: block;
@@ -82,8 +66,7 @@
         }
 
         // Boost outline button contrast vs. the default light-gray-on-white btn-secondary-
-        // outline styling (fails WCAG AA here). Scoped to this action group so we don't
-        // shift the look of btn-secondary-outline elsewhere in the app.
+        // outline styling (fails WCAG AA here). Scoped so we don't shift the look elsewhere.
         .btn-secondary-outline {
             color: $gray-700;
             border-color: $gray-500;
@@ -245,6 +228,14 @@
     border-left: 1px solid $gray-200;
     min-height: 0;
 
+    // Step 4 (Final review) hides the PDF panel and lets the summary occupy the
+    // remaining width to the right of the 240-px sidebar.
+    &--full-width {
+        width: auto;
+        flex: 1;
+        max-width: none;
+    }
+
     &__header {
         padding: 0.6rem 1.25rem 0.7rem;
         border-bottom: 1px solid $gray-200;
@@ -380,5 +371,24 @@
     &__banner-note {
         margin-left: auto;
         font-weight: 600;
+    }
+
+    // NPT-1051: section header lays out title + per-step Save button on the same row.
+    // Title flexes; the Save action stays right-anchored so it's reachable without scrolling.
+    &__header {
+        display: flex;
+        align-items: flex-start;
+        justify-content: space-between;
+        gap: 1rem;
+    }
+
+    &__header-text {
+        flex: 1 1 auto;
+        min-width: 0;
+    }
+
+    &__header-action {
+        flex: 0 0 auto;
+        white-space: nowrap;
     }
 }

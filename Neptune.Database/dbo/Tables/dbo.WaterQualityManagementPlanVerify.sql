@@ -10,5 +10,5 @@ CREATE TABLE [dbo].[WaterQualityManagementPlanVerify](
 	[EnforcementOrFollowupActions] [varchar](1000) NULL,
 	[LastEditedDate] [datetime] NOT NULL,
 	[IsDraft] [bit] NOT NULL,
-	[VerificationDate] [datetime] NOT NULL
+	[VerificationDate] [date] NOT NULL
 )

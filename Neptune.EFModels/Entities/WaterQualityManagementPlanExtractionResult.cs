@@ -1,35 +1,10 @@
 namespace Neptune.EFModels.Entities;
 
+// NPT-1051: ApplyDraftOverlay / ClearDraftOverlay / Approve instance methods removed.
+// The wizard no longer round-trips draft state through the DB — per-field marks are SPA-local
+// and section saves write through to the live WQMP. The legacy DraftOverlayJson, ApprovedDate,
+// ApprovedByPersonID, DraftUpdatedByPersonID, and DraftUpdatedDate columns and their related
+// FKs were dropped from the schema in this change.
 public partial class WaterQualityManagementPlanExtractionResult
 {
-    public void ApplyDraftOverlay(string draftOverlayJson, int editorPersonID, DateTime now)
-    {
-        if (ApprovedDate.HasValue)
-        {
-            throw new InvalidOperationException("Cannot save a draft on an extraction result that has already been approved.");
-        }
-
-        DraftOverlayJson = draftOverlayJson;
-        DraftUpdatedByPersonID = editorPersonID;
-        DraftUpdatedDate = now;
-    }
-
-    public void ClearDraftOverlay()
-    {
-        DraftOverlayJson = null;
-        DraftUpdatedByPersonID = null;
-        DraftUpdatedDate = null;
-    }
-
-    public void Approve(int approverPersonID, DateTime now)
-    {
-        if (ApprovedDate.HasValue)
-        {
-            throw new InvalidOperationException("Extraction result has already been approved and cannot be re-approved.");
-        }
-
-        ApprovedByPersonID = approverPersonID;
-        ApprovedDate = now;
-        ClearDraftOverlay();
-    }
 }

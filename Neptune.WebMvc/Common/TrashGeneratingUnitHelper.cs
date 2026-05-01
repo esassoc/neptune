@@ -91,8 +91,16 @@ namespace Neptune.WebMvc.Common
         {
             return (trashGeneratingUnit.Delineation?.TreatmentBMP.TrashCaptureStatusTypeID ==
                 (int) TrashCaptureStatusTypeEnum.Full ||
-                trashGeneratingUnit.WaterQualityManagementPlan?.TrashCaptureStatusTypeID ==
+                trashGeneratingUnit.ActiveWaterQualityManagementPlan()?.TrashCaptureStatusTypeID ==
                 (int)TrashCaptureStatusTypeEnum.Full);
+        }
+
+        // NPT-1051: Only Active WQMPs contribute to trash result calculations. Treats Draft/Inactive WQMPs as if the TGU has no WQMP association.
+        private static WaterQualityManagementPlan ActiveWaterQualityManagementPlan(this TrashGeneratingUnit trashGeneratingUnit)
+        {
+            return trashGeneratingUnit.WaterQualityManagementPlan?.WaterQualityManagementPlanStatusID == (int)WaterQualityManagementPlanStatusEnum.Active
+                ? trashGeneratingUnit.WaterQualityManagementPlan
+                : null;
         }
 
         // OVTA-based calculations

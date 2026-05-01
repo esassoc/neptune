@@ -41,17 +41,13 @@ import { WaterQualityManagementPlanDocumentDto } from '../model/water-quality-ma
 // @ts-ignore
 import { WaterQualityManagementPlanDto } from '../model/water-quality-management-plan-dto';
 // @ts-ignore
-import { WaterQualityManagementPlanExtractionApprovalDto } from '../model/water-quality-management-plan-extraction-approval-dto';
-// @ts-ignore
-import { WaterQualityManagementPlanExtractionFieldUpsertDto } from '../model/water-quality-management-plan-extraction-field-upsert-dto';
-// @ts-ignore
-import { WaterQualityManagementPlanExtractionParcelUpsertDto } from '../model/water-quality-management-plan-extraction-parcel-upsert-dto';
-// @ts-ignore
-import { WaterQualityManagementPlanExtractionQuickBMPUpsertDto } from '../model/water-quality-management-plan-extraction-quick-bmp-upsert-dto';
-// @ts-ignore
 import { WaterQualityManagementPlanExtractionResultDto } from '../model/water-quality-management-plan-extraction-result-dto';
 // @ts-ignore
 import { WaterQualityManagementPlanGridDto } from '../model/water-quality-management-plan-grid-dto';
+// @ts-ignore
+import { WaterQualityManagementPlanSectionSaveLocationDto } from '../model/water-quality-management-plan-section-save-location-dto';
+// @ts-ignore
+import { WaterQualityManagementPlanSectionSaveResponseDto } from '../model/water-quality-management-plan-section-save-response-dto';
 // @ts-ignore
 import { WaterQualityManagementPlanUpsertDto } from '../model/water-quality-management-plan-upsert-dto';
 // @ts-ignore
@@ -77,272 +73,6 @@ export class WaterQualityManagementPlanService extends BaseService {
 
     constructor(protected httpClient: HttpClient, @Optional() @Inject(BASE_PATH) basePath: string|string[], @Optional() configuration?: Configuration) {
         super(basePath, configuration);
-    }
-
-    /**
-     * @param waterQualityManagementPlanID 
-     * @param waterQualityManagementPlanExtractionFieldUpsertDto 
-     * @param observe set whether or not to return the data Observable as the body, response or events. defaults to returning the body.
-     * @param reportProgress flag to report request and response progress.
-     */
-    public applyExtractionFieldWaterQualityManagementPlan(waterQualityManagementPlanID: number, waterQualityManagementPlanExtractionFieldUpsertDto?: WaterQualityManagementPlanExtractionFieldUpsertDto, observe?: 'body', reportProgress?: boolean, options?: {httpHeaderAccept?: 'text/plain' | 'application/json' | 'text/json', context?: HttpContext, transferCache?: boolean}): Observable<WaterQualityManagementPlanDto>;
-    public applyExtractionFieldWaterQualityManagementPlan(waterQualityManagementPlanID: number, waterQualityManagementPlanExtractionFieldUpsertDto?: WaterQualityManagementPlanExtractionFieldUpsertDto, observe?: 'response', reportProgress?: boolean, options?: {httpHeaderAccept?: 'text/plain' | 'application/json' | 'text/json', context?: HttpContext, transferCache?: boolean}): Observable<HttpResponse<WaterQualityManagementPlanDto>>;
-    public applyExtractionFieldWaterQualityManagementPlan(waterQualityManagementPlanID: number, waterQualityManagementPlanExtractionFieldUpsertDto?: WaterQualityManagementPlanExtractionFieldUpsertDto, observe?: 'events', reportProgress?: boolean, options?: {httpHeaderAccept?: 'text/plain' | 'application/json' | 'text/json', context?: HttpContext, transferCache?: boolean}): Observable<HttpEvent<WaterQualityManagementPlanDto>>;
-    public applyExtractionFieldWaterQualityManagementPlan(waterQualityManagementPlanID: number, waterQualityManagementPlanExtractionFieldUpsertDto?: WaterQualityManagementPlanExtractionFieldUpsertDto, observe: any = 'body', reportProgress: boolean = false, options?: {httpHeaderAccept?: 'text/plain' | 'application/json' | 'text/json', context?: HttpContext, transferCache?: boolean}): Observable<any> {
-        if (waterQualityManagementPlanID === null || waterQualityManagementPlanID === undefined) {
-            throw new Error('Required parameter waterQualityManagementPlanID was null or undefined when calling applyExtractionFieldWaterQualityManagementPlan.');
-        }
-
-        let localVarHeaders = this.defaultHeaders;
-
-        const localVarHttpHeaderAcceptSelected: string | undefined = options?.httpHeaderAccept ?? this.configuration.selectHeaderAccept([
-            'text/plain',
-            'application/json',
-            'text/json'
-        ]);
-        if (localVarHttpHeaderAcceptSelected !== undefined) {
-            localVarHeaders = localVarHeaders.set('Accept', localVarHttpHeaderAcceptSelected);
-        }
-
-        const localVarHttpContext: HttpContext = options?.context ?? new HttpContext();
-
-        const localVarTransferCache: boolean = options?.transferCache ?? true;
-
-
-        // to determine the Content-Type header
-        const consumes: string[] = [
-            'application/json',
-            'text/json',
-            'application/*+json'
-        ];
-        const httpContentTypeSelected: string | undefined = this.configuration.selectHeaderContentType(consumes);
-        if (httpContentTypeSelected !== undefined) {
-            localVarHeaders = localVarHeaders.set('Content-Type', httpContentTypeSelected);
-        }
-
-        let responseType_: 'text' | 'json' | 'blob' = 'json';
-        if (localVarHttpHeaderAcceptSelected) {
-            if (localVarHttpHeaderAcceptSelected.startsWith('text')) {
-                responseType_ = 'text';
-            } else if (this.configuration.isJsonMime(localVarHttpHeaderAcceptSelected)) {
-                responseType_ = 'json';
-            } else {
-                responseType_ = 'blob';
-            }
-        }
-
-        let localVarPath = `/water-quality-management-plans/${this.configuration.encodeParam({name: "waterQualityManagementPlanID", value: waterQualityManagementPlanID, in: "path", style: "simple", explode: false, dataType: "number", dataFormat: "int32"})}/extraction-result/apply-field`;
-        const { basePath, withCredentials } = this.configuration;
-        return this.httpClient.request<WaterQualityManagementPlanDto>('post', `${basePath}${localVarPath}`,
-            {
-                context: localVarHttpContext,
-                body: waterQualityManagementPlanExtractionFieldUpsertDto,
-                responseType: <any>responseType_,
-                ...(withCredentials ? { withCredentials } : {}),
-                headers: localVarHeaders,
-                observe: observe,
-                transferCache: localVarTransferCache,
-                reportProgress: reportProgress
-            }
-        );
-    }
-
-    /**
-     * @param waterQualityManagementPlanID 
-     * @param waterQualityManagementPlanExtractionParcelUpsertDto 
-     * @param observe set whether or not to return the data Observable as the body, response or events. defaults to returning the body.
-     * @param reportProgress flag to report request and response progress.
-     */
-    public applyExtractionParcelWaterQualityManagementPlan(waterQualityManagementPlanID: number, waterQualityManagementPlanExtractionParcelUpsertDto?: WaterQualityManagementPlanExtractionParcelUpsertDto, observe?: 'body', reportProgress?: boolean, options?: {httpHeaderAccept?: undefined, context?: HttpContext, transferCache?: boolean}): Observable<any>;
-    public applyExtractionParcelWaterQualityManagementPlan(waterQualityManagementPlanID: number, waterQualityManagementPlanExtractionParcelUpsertDto?: WaterQualityManagementPlanExtractionParcelUpsertDto, observe?: 'response', reportProgress?: boolean, options?: {httpHeaderAccept?: undefined, context?: HttpContext, transferCache?: boolean}): Observable<HttpResponse<any>>;
-    public applyExtractionParcelWaterQualityManagementPlan(waterQualityManagementPlanID: number, waterQualityManagementPlanExtractionParcelUpsertDto?: WaterQualityManagementPlanExtractionParcelUpsertDto, observe?: 'events', reportProgress?: boolean, options?: {httpHeaderAccept?: undefined, context?: HttpContext, transferCache?: boolean}): Observable<HttpEvent<any>>;
-    public applyExtractionParcelWaterQualityManagementPlan(waterQualityManagementPlanID: number, waterQualityManagementPlanExtractionParcelUpsertDto?: WaterQualityManagementPlanExtractionParcelUpsertDto, observe: any = 'body', reportProgress: boolean = false, options?: {httpHeaderAccept?: undefined, context?: HttpContext, transferCache?: boolean}): Observable<any> {
-        if (waterQualityManagementPlanID === null || waterQualityManagementPlanID === undefined) {
-            throw new Error('Required parameter waterQualityManagementPlanID was null or undefined when calling applyExtractionParcelWaterQualityManagementPlan.');
-        }
-
-        let localVarHeaders = this.defaultHeaders;
-
-        const localVarHttpHeaderAcceptSelected: string | undefined = options?.httpHeaderAccept ?? this.configuration.selectHeaderAccept([
-        ]);
-        if (localVarHttpHeaderAcceptSelected !== undefined) {
-            localVarHeaders = localVarHeaders.set('Accept', localVarHttpHeaderAcceptSelected);
-        }
-
-        const localVarHttpContext: HttpContext = options?.context ?? new HttpContext();
-
-        const localVarTransferCache: boolean = options?.transferCache ?? true;
-
-
-        // to determine the Content-Type header
-        const consumes: string[] = [
-            'application/json',
-            'text/json',
-            'application/*+json'
-        ];
-        const httpContentTypeSelected: string | undefined = this.configuration.selectHeaderContentType(consumes);
-        if (httpContentTypeSelected !== undefined) {
-            localVarHeaders = localVarHeaders.set('Content-Type', httpContentTypeSelected);
-        }
-
-        let responseType_: 'text' | 'json' | 'blob' = 'json';
-        if (localVarHttpHeaderAcceptSelected) {
-            if (localVarHttpHeaderAcceptSelected.startsWith('text')) {
-                responseType_ = 'text';
-            } else if (this.configuration.isJsonMime(localVarHttpHeaderAcceptSelected)) {
-                responseType_ = 'json';
-            } else {
-                responseType_ = 'blob';
-            }
-        }
-
-        let localVarPath = `/water-quality-management-plans/${this.configuration.encodeParam({name: "waterQualityManagementPlanID", value: waterQualityManagementPlanID, in: "path", style: "simple", explode: false, dataType: "number", dataFormat: "int32"})}/extraction-result/apply-parcel`;
-        const { basePath, withCredentials } = this.configuration;
-        return this.httpClient.request<any>('post', `${basePath}${localVarPath}`,
-            {
-                context: localVarHttpContext,
-                body: waterQualityManagementPlanExtractionParcelUpsertDto,
-                responseType: <any>responseType_,
-                ...(withCredentials ? { withCredentials } : {}),
-                headers: localVarHeaders,
-                observe: observe,
-                transferCache: localVarTransferCache,
-                reportProgress: reportProgress
-            }
-        );
-    }
-
-    /**
-     * @param waterQualityManagementPlanID 
-     * @param waterQualityManagementPlanExtractionQuickBMPUpsertDto 
-     * @param observe set whether or not to return the data Observable as the body, response or events. defaults to returning the body.
-     * @param reportProgress flag to report request and response progress.
-     */
-    public applyExtractionQuickBMPWaterQualityManagementPlan(waterQualityManagementPlanID: number, waterQualityManagementPlanExtractionQuickBMPUpsertDto?: WaterQualityManagementPlanExtractionQuickBMPUpsertDto, observe?: 'body', reportProgress?: boolean, options?: {httpHeaderAccept?: undefined, context?: HttpContext, transferCache?: boolean}): Observable<any>;
-    public applyExtractionQuickBMPWaterQualityManagementPlan(waterQualityManagementPlanID: number, waterQualityManagementPlanExtractionQuickBMPUpsertDto?: WaterQualityManagementPlanExtractionQuickBMPUpsertDto, observe?: 'response', reportProgress?: boolean, options?: {httpHeaderAccept?: undefined, context?: HttpContext, transferCache?: boolean}): Observable<HttpResponse<any>>;
-    public applyExtractionQuickBMPWaterQualityManagementPlan(waterQualityManagementPlanID: number, waterQualityManagementPlanExtractionQuickBMPUpsertDto?: WaterQualityManagementPlanExtractionQuickBMPUpsertDto, observe?: 'events', reportProgress?: boolean, options?: {httpHeaderAccept?: undefined, context?: HttpContext, transferCache?: boolean}): Observable<HttpEvent<any>>;
-    public applyExtractionQuickBMPWaterQualityManagementPlan(waterQualityManagementPlanID: number, waterQualityManagementPlanExtractionQuickBMPUpsertDto?: WaterQualityManagementPlanExtractionQuickBMPUpsertDto, observe: any = 'body', reportProgress: boolean = false, options?: {httpHeaderAccept?: undefined, context?: HttpContext, transferCache?: boolean}): Observable<any> {
-        if (waterQualityManagementPlanID === null || waterQualityManagementPlanID === undefined) {
-            throw new Error('Required parameter waterQualityManagementPlanID was null or undefined when calling applyExtractionQuickBMPWaterQualityManagementPlan.');
-        }
-
-        let localVarHeaders = this.defaultHeaders;
-
-        const localVarHttpHeaderAcceptSelected: string | undefined = options?.httpHeaderAccept ?? this.configuration.selectHeaderAccept([
-        ]);
-        if (localVarHttpHeaderAcceptSelected !== undefined) {
-            localVarHeaders = localVarHeaders.set('Accept', localVarHttpHeaderAcceptSelected);
-        }
-
-        const localVarHttpContext: HttpContext = options?.context ?? new HttpContext();
-
-        const localVarTransferCache: boolean = options?.transferCache ?? true;
-
-
-        // to determine the Content-Type header
-        const consumes: string[] = [
-            'application/json',
-            'text/json',
-            'application/*+json'
-        ];
-        const httpContentTypeSelected: string | undefined = this.configuration.selectHeaderContentType(consumes);
-        if (httpContentTypeSelected !== undefined) {
-            localVarHeaders = localVarHeaders.set('Content-Type', httpContentTypeSelected);
-        }
-
-        let responseType_: 'text' | 'json' | 'blob' = 'json';
-        if (localVarHttpHeaderAcceptSelected) {
-            if (localVarHttpHeaderAcceptSelected.startsWith('text')) {
-                responseType_ = 'text';
-            } else if (this.configuration.isJsonMime(localVarHttpHeaderAcceptSelected)) {
-                responseType_ = 'json';
-            } else {
-                responseType_ = 'blob';
-            }
-        }
-
-        let localVarPath = `/water-quality-management-plans/${this.configuration.encodeParam({name: "waterQualityManagementPlanID", value: waterQualityManagementPlanID, in: "path", style: "simple", explode: false, dataType: "number", dataFormat: "int32"})}/extraction-result/apply-quick-bmp`;
-        const { basePath, withCredentials } = this.configuration;
-        return this.httpClient.request<any>('post', `${basePath}${localVarPath}`,
-            {
-                context: localVarHttpContext,
-                body: waterQualityManagementPlanExtractionQuickBMPUpsertDto,
-                responseType: <any>responseType_,
-                ...(withCredentials ? { withCredentials } : {}),
-                headers: localVarHeaders,
-                observe: observe,
-                transferCache: localVarTransferCache,
-                reportProgress: reportProgress
-            }
-        );
-    }
-
-    /**
-     * @param waterQualityManagementPlanID 
-     * @param waterQualityManagementPlanExtractionApprovalDto 
-     * @param observe set whether or not to return the data Observable as the body, response or events. defaults to returning the body.
-     * @param reportProgress flag to report request and response progress.
-     */
-    public approveExtractionResultWaterQualityManagementPlan(waterQualityManagementPlanID: number, waterQualityManagementPlanExtractionApprovalDto?: WaterQualityManagementPlanExtractionApprovalDto, observe?: 'body', reportProgress?: boolean, options?: {httpHeaderAccept?: 'text/plain' | 'application/json' | 'text/json', context?: HttpContext, transferCache?: boolean}): Observable<WaterQualityManagementPlanDto>;
-    public approveExtractionResultWaterQualityManagementPlan(waterQualityManagementPlanID: number, waterQualityManagementPlanExtractionApprovalDto?: WaterQualityManagementPlanExtractionApprovalDto, observe?: 'response', reportProgress?: boolean, options?: {httpHeaderAccept?: 'text/plain' | 'application/json' | 'text/json', context?: HttpContext, transferCache?: boolean}): Observable<HttpResponse<WaterQualityManagementPlanDto>>;
-    public approveExtractionResultWaterQualityManagementPlan(waterQualityManagementPlanID: number, waterQualityManagementPlanExtractionApprovalDto?: WaterQualityManagementPlanExtractionApprovalDto, observe?: 'events', reportProgress?: boolean, options?: {httpHeaderAccept?: 'text/plain' | 'application/json' | 'text/json', context?: HttpContext, transferCache?: boolean}): Observable<HttpEvent<WaterQualityManagementPlanDto>>;
-    public approveExtractionResultWaterQualityManagementPlan(waterQualityManagementPlanID: number, waterQualityManagementPlanExtractionApprovalDto?: WaterQualityManagementPlanExtractionApprovalDto, observe: any = 'body', reportProgress: boolean = false, options?: {httpHeaderAccept?: 'text/plain' | 'application/json' | 'text/json', context?: HttpContext, transferCache?: boolean}): Observable<any> {
-        if (waterQualityManagementPlanID === null || waterQualityManagementPlanID === undefined) {
-            throw new Error('Required parameter waterQualityManagementPlanID was null or undefined when calling approveExtractionResultWaterQualityManagementPlan.');
-        }
-
-        let localVarHeaders = this.defaultHeaders;
-
-        const localVarHttpHeaderAcceptSelected: string | undefined = options?.httpHeaderAccept ?? this.configuration.selectHeaderAccept([
-            'text/plain',
-            'application/json',
-            'text/json'
-        ]);
-        if (localVarHttpHeaderAcceptSelected !== undefined) {
-            localVarHeaders = localVarHeaders.set('Accept', localVarHttpHeaderAcceptSelected);
-        }
-
-        const localVarHttpContext: HttpContext = options?.context ?? new HttpContext();
-
-        const localVarTransferCache: boolean = options?.transferCache ?? true;
-
-
-        // to determine the Content-Type header
-        const consumes: string[] = [
-            'application/json',
-            'text/json',
-            'application/*+json'
-        ];
-        const httpContentTypeSelected: string | undefined = this.configuration.selectHeaderContentType(consumes);
-        if (httpContentTypeSelected !== undefined) {
-            localVarHeaders = localVarHeaders.set('Content-Type', httpContentTypeSelected);
-        }
-
-        let responseType_: 'text' | 'json' | 'blob' = 'json';
-        if (localVarHttpHeaderAcceptSelected) {
-            if (localVarHttpHeaderAcceptSelected.startsWith('text')) {
-                responseType_ = 'text';
-            } else if (this.configuration.isJsonMime(localVarHttpHeaderAcceptSelected)) {
-                responseType_ = 'json';
-            } else {
-                responseType_ = 'blob';
-            }
-        }
-
-        let localVarPath = `/water-quality-management-plans/${this.configuration.encodeParam({name: "waterQualityManagementPlanID", value: waterQualityManagementPlanID, in: "path", style: "simple", explode: false, dataType: "number", dataFormat: "int32"})}/extraction-result/approve`;
-        const { basePath, withCredentials } = this.configuration;
-        return this.httpClient.request<WaterQualityManagementPlanDto>('post', `${basePath}${localVarPath}`,
-            {
-                context: localVarHttpContext,
-                body: waterQualityManagementPlanExtractionApprovalDto,
-                responseType: <any>responseType_,
-                ...(withCredentials ? { withCredentials } : {}),
-                headers: localVarHeaders,
-                observe: observe,
-                transferCache: localVarTransferCache,
-                reportProgress: reportProgress
-            }
-        );
     }
 
     /**
@@ -1690,6 +1420,61 @@ export class WaterQualityManagementPlanService extends BaseService {
      * @param observe set whether or not to return the data Observable as the body, response or events. defaults to returning the body.
      * @param reportProgress flag to report request and response progress.
      */
+    public promoteWaterQualityManagementPlan(waterQualityManagementPlanID: number, observe?: 'body', reportProgress?: boolean, options?: {httpHeaderAccept?: 'text/plain' | 'application/json' | 'text/json', context?: HttpContext, transferCache?: boolean}): Observable<WaterQualityManagementPlanDto>;
+    public promoteWaterQualityManagementPlan(waterQualityManagementPlanID: number, observe?: 'response', reportProgress?: boolean, options?: {httpHeaderAccept?: 'text/plain' | 'application/json' | 'text/json', context?: HttpContext, transferCache?: boolean}): Observable<HttpResponse<WaterQualityManagementPlanDto>>;
+    public promoteWaterQualityManagementPlan(waterQualityManagementPlanID: number, observe?: 'events', reportProgress?: boolean, options?: {httpHeaderAccept?: 'text/plain' | 'application/json' | 'text/json', context?: HttpContext, transferCache?: boolean}): Observable<HttpEvent<WaterQualityManagementPlanDto>>;
+    public promoteWaterQualityManagementPlan(waterQualityManagementPlanID: number, observe: any = 'body', reportProgress: boolean = false, options?: {httpHeaderAccept?: 'text/plain' | 'application/json' | 'text/json', context?: HttpContext, transferCache?: boolean}): Observable<any> {
+        if (waterQualityManagementPlanID === null || waterQualityManagementPlanID === undefined) {
+            throw new Error('Required parameter waterQualityManagementPlanID was null or undefined when calling promoteWaterQualityManagementPlan.');
+        }
+
+        let localVarHeaders = this.defaultHeaders;
+
+        const localVarHttpHeaderAcceptSelected: string | undefined = options?.httpHeaderAccept ?? this.configuration.selectHeaderAccept([
+            'text/plain',
+            'application/json',
+            'text/json'
+        ]);
+        if (localVarHttpHeaderAcceptSelected !== undefined) {
+            localVarHeaders = localVarHeaders.set('Accept', localVarHttpHeaderAcceptSelected);
+        }
+
+        const localVarHttpContext: HttpContext = options?.context ?? new HttpContext();
+
+        const localVarTransferCache: boolean = options?.transferCache ?? true;
+
+
+        let responseType_: 'text' | 'json' | 'blob' = 'json';
+        if (localVarHttpHeaderAcceptSelected) {
+            if (localVarHttpHeaderAcceptSelected.startsWith('text')) {
+                responseType_ = 'text';
+            } else if (this.configuration.isJsonMime(localVarHttpHeaderAcceptSelected)) {
+                responseType_ = 'json';
+            } else {
+                responseType_ = 'blob';
+            }
+        }
+
+        let localVarPath = `/water-quality-management-plans/${this.configuration.encodeParam({name: "waterQualityManagementPlanID", value: waterQualityManagementPlanID, in: "path", style: "simple", explode: false, dataType: "number", dataFormat: "int32"})}/promote`;
+        const { basePath, withCredentials } = this.configuration;
+        return this.httpClient.request<WaterQualityManagementPlanDto>('post', `${basePath}${localVarPath}`,
+            {
+                context: localVarHttpContext,
+                responseType: <any>responseType_,
+                ...(withCredentials ? { withCredentials } : {}),
+                headers: localVarHeaders,
+                observe: observe,
+                transferCache: localVarTransferCache,
+                reportProgress: reportProgress
+            }
+        );
+    }
+
+    /**
+     * @param waterQualityManagementPlanID 
+     * @param observe set whether or not to return the data Observable as the body, response or events. defaults to returning the body.
+     * @param reportProgress flag to report request and response progress.
+     */
     public runExtractionWaterQualityManagementPlan(waterQualityManagementPlanID: number, observe?: 'body', reportProgress?: boolean, options?: {httpHeaderAccept?: 'text/plain' | 'application/json' | 'text/json', context?: HttpContext, transferCache?: boolean}): Observable<WaterQualityManagementPlanExtractionResultDto>;
     public runExtractionWaterQualityManagementPlan(waterQualityManagementPlanID: number, observe?: 'response', reportProgress?: boolean, options?: {httpHeaderAccept?: 'text/plain' | 'application/json' | 'text/json', context?: HttpContext, transferCache?: boolean}): Observable<HttpResponse<WaterQualityManagementPlanExtractionResultDto>>;
     public runExtractionWaterQualityManagementPlan(waterQualityManagementPlanID: number, observe?: 'events', reportProgress?: boolean, options?: {httpHeaderAccept?: 'text/plain' | 'application/json' | 'text/json', context?: HttpContext, transferCache?: boolean}): Observable<HttpEvent<WaterQualityManagementPlanExtractionResultDto>>;
@@ -1730,6 +1515,210 @@ export class WaterQualityManagementPlanService extends BaseService {
         return this.httpClient.request<WaterQualityManagementPlanExtractionResultDto>('post', `${basePath}${localVarPath}`,
             {
                 context: localVarHttpContext,
+                responseType: <any>responseType_,
+                ...(withCredentials ? { withCredentials } : {}),
+                headers: localVarHeaders,
+                observe: observe,
+                transferCache: localVarTransferCache,
+                reportProgress: reportProgress
+            }
+        );
+    }
+
+    /**
+     * @param waterQualityManagementPlanID 
+     * @param waterQualityManagementPlanUpsertDto 
+     * @param observe set whether or not to return the data Observable as the body, response or events. defaults to returning the body.
+     * @param reportProgress flag to report request and response progress.
+     */
+    public saveBasicsWaterQualityManagementPlan(waterQualityManagementPlanID: number, waterQualityManagementPlanUpsertDto?: WaterQualityManagementPlanUpsertDto, observe?: 'body', reportProgress?: boolean, options?: {httpHeaderAccept?: 'text/plain' | 'application/json' | 'text/json', context?: HttpContext, transferCache?: boolean}): Observable<WaterQualityManagementPlanSectionSaveResponseDto>;
+    public saveBasicsWaterQualityManagementPlan(waterQualityManagementPlanID: number, waterQualityManagementPlanUpsertDto?: WaterQualityManagementPlanUpsertDto, observe?: 'response', reportProgress?: boolean, options?: {httpHeaderAccept?: 'text/plain' | 'application/json' | 'text/json', context?: HttpContext, transferCache?: boolean}): Observable<HttpResponse<WaterQualityManagementPlanSectionSaveResponseDto>>;
+    public saveBasicsWaterQualityManagementPlan(waterQualityManagementPlanID: number, waterQualityManagementPlanUpsertDto?: WaterQualityManagementPlanUpsertDto, observe?: 'events', reportProgress?: boolean, options?: {httpHeaderAccept?: 'text/plain' | 'application/json' | 'text/json', context?: HttpContext, transferCache?: boolean}): Observable<HttpEvent<WaterQualityManagementPlanSectionSaveResponseDto>>;
+    public saveBasicsWaterQualityManagementPlan(waterQualityManagementPlanID: number, waterQualityManagementPlanUpsertDto?: WaterQualityManagementPlanUpsertDto, observe: any = 'body', reportProgress: boolean = false, options?: {httpHeaderAccept?: 'text/plain' | 'application/json' | 'text/json', context?: HttpContext, transferCache?: boolean}): Observable<any> {
+        if (waterQualityManagementPlanID === null || waterQualityManagementPlanID === undefined) {
+            throw new Error('Required parameter waterQualityManagementPlanID was null or undefined when calling saveBasicsWaterQualityManagementPlan.');
+        }
+
+        let localVarHeaders = this.defaultHeaders;
+
+        const localVarHttpHeaderAcceptSelected: string | undefined = options?.httpHeaderAccept ?? this.configuration.selectHeaderAccept([
+            'text/plain',
+            'application/json',
+            'text/json'
+        ]);
+        if (localVarHttpHeaderAcceptSelected !== undefined) {
+            localVarHeaders = localVarHeaders.set('Accept', localVarHttpHeaderAcceptSelected);
+        }
+
+        const localVarHttpContext: HttpContext = options?.context ?? new HttpContext();
+
+        const localVarTransferCache: boolean = options?.transferCache ?? true;
+
+
+        // to determine the Content-Type header
+        const consumes: string[] = [
+            'application/json',
+            'text/json',
+            'application/*+json'
+        ];
+        const httpContentTypeSelected: string | undefined = this.configuration.selectHeaderContentType(consumes);
+        if (httpContentTypeSelected !== undefined) {
+            localVarHeaders = localVarHeaders.set('Content-Type', httpContentTypeSelected);
+        }
+
+        let responseType_: 'text' | 'json' | 'blob' = 'json';
+        if (localVarHttpHeaderAcceptSelected) {
+            if (localVarHttpHeaderAcceptSelected.startsWith('text')) {
+                responseType_ = 'text';
+            } else if (this.configuration.isJsonMime(localVarHttpHeaderAcceptSelected)) {
+                responseType_ = 'json';
+            } else {
+                responseType_ = 'blob';
+            }
+        }
+
+        let localVarPath = `/water-quality-management-plans/${this.configuration.encodeParam({name: "waterQualityManagementPlanID", value: waterQualityManagementPlanID, in: "path", style: "simple", explode: false, dataType: "number", dataFormat: "int32"})}/save-basics`;
+        const { basePath, withCredentials } = this.configuration;
+        return this.httpClient.request<WaterQualityManagementPlanSectionSaveResponseDto>('post', `${basePath}${localVarPath}`,
+            {
+                context: localVarHttpContext,
+                body: waterQualityManagementPlanUpsertDto,
+                responseType: <any>responseType_,
+                ...(withCredentials ? { withCredentials } : {}),
+                headers: localVarHeaders,
+                observe: observe,
+                transferCache: localVarTransferCache,
+                reportProgress: reportProgress
+            }
+        );
+    }
+
+    /**
+     * @param waterQualityManagementPlanID 
+     * @param quickBMPUpsertDto 
+     * @param observe set whether or not to return the data Observable as the body, response or events. defaults to returning the body.
+     * @param reportProgress flag to report request and response progress.
+     */
+    public saveBmpsWaterQualityManagementPlan(waterQualityManagementPlanID: number, quickBMPUpsertDto?: Array<QuickBMPUpsertDto>, observe?: 'body', reportProgress?: boolean, options?: {httpHeaderAccept?: 'text/plain' | 'application/json' | 'text/json', context?: HttpContext, transferCache?: boolean}): Observable<WaterQualityManagementPlanSectionSaveResponseDto>;
+    public saveBmpsWaterQualityManagementPlan(waterQualityManagementPlanID: number, quickBMPUpsertDto?: Array<QuickBMPUpsertDto>, observe?: 'response', reportProgress?: boolean, options?: {httpHeaderAccept?: 'text/plain' | 'application/json' | 'text/json', context?: HttpContext, transferCache?: boolean}): Observable<HttpResponse<WaterQualityManagementPlanSectionSaveResponseDto>>;
+    public saveBmpsWaterQualityManagementPlan(waterQualityManagementPlanID: number, quickBMPUpsertDto?: Array<QuickBMPUpsertDto>, observe?: 'events', reportProgress?: boolean, options?: {httpHeaderAccept?: 'text/plain' | 'application/json' | 'text/json', context?: HttpContext, transferCache?: boolean}): Observable<HttpEvent<WaterQualityManagementPlanSectionSaveResponseDto>>;
+    public saveBmpsWaterQualityManagementPlan(waterQualityManagementPlanID: number, quickBMPUpsertDto?: Array<QuickBMPUpsertDto>, observe: any = 'body', reportProgress: boolean = false, options?: {httpHeaderAccept?: 'text/plain' | 'application/json' | 'text/json', context?: HttpContext, transferCache?: boolean}): Observable<any> {
+        if (waterQualityManagementPlanID === null || waterQualityManagementPlanID === undefined) {
+            throw new Error('Required parameter waterQualityManagementPlanID was null or undefined when calling saveBmpsWaterQualityManagementPlan.');
+        }
+
+        let localVarHeaders = this.defaultHeaders;
+
+        const localVarHttpHeaderAcceptSelected: string | undefined = options?.httpHeaderAccept ?? this.configuration.selectHeaderAccept([
+            'text/plain',
+            'application/json',
+            'text/json'
+        ]);
+        if (localVarHttpHeaderAcceptSelected !== undefined) {
+            localVarHeaders = localVarHeaders.set('Accept', localVarHttpHeaderAcceptSelected);
+        }
+
+        const localVarHttpContext: HttpContext = options?.context ?? new HttpContext();
+
+        const localVarTransferCache: boolean = options?.transferCache ?? true;
+
+
+        // to determine the Content-Type header
+        const consumes: string[] = [
+            'application/json',
+            'text/json',
+            'application/*+json'
+        ];
+        const httpContentTypeSelected: string | undefined = this.configuration.selectHeaderContentType(consumes);
+        if (httpContentTypeSelected !== undefined) {
+            localVarHeaders = localVarHeaders.set('Content-Type', httpContentTypeSelected);
+        }
+
+        let responseType_: 'text' | 'json' | 'blob' = 'json';
+        if (localVarHttpHeaderAcceptSelected) {
+            if (localVarHttpHeaderAcceptSelected.startsWith('text')) {
+                responseType_ = 'text';
+            } else if (this.configuration.isJsonMime(localVarHttpHeaderAcceptSelected)) {
+                responseType_ = 'json';
+            } else {
+                responseType_ = 'blob';
+            }
+        }
+
+        let localVarPath = `/water-quality-management-plans/${this.configuration.encodeParam({name: "waterQualityManagementPlanID", value: waterQualityManagementPlanID, in: "path", style: "simple", explode: false, dataType: "number", dataFormat: "int32"})}/save-bmps`;
+        const { basePath, withCredentials } = this.configuration;
+        return this.httpClient.request<WaterQualityManagementPlanSectionSaveResponseDto>('post', `${basePath}${localVarPath}`,
+            {
+                context: localVarHttpContext,
+                body: quickBMPUpsertDto,
+                responseType: <any>responseType_,
+                ...(withCredentials ? { withCredentials } : {}),
+                headers: localVarHeaders,
+                observe: observe,
+                transferCache: localVarTransferCache,
+                reportProgress: reportProgress
+            }
+        );
+    }
+
+    /**
+     * @param waterQualityManagementPlanID 
+     * @param waterQualityManagementPlanSectionSaveLocationDto 
+     * @param observe set whether or not to return the data Observable as the body, response or events. defaults to returning the body.
+     * @param reportProgress flag to report request and response progress.
+     */
+    public saveLocationWaterQualityManagementPlan(waterQualityManagementPlanID: number, waterQualityManagementPlanSectionSaveLocationDto?: WaterQualityManagementPlanSectionSaveLocationDto, observe?: 'body', reportProgress?: boolean, options?: {httpHeaderAccept?: 'text/plain' | 'application/json' | 'text/json', context?: HttpContext, transferCache?: boolean}): Observable<WaterQualityManagementPlanSectionSaveResponseDto>;
+    public saveLocationWaterQualityManagementPlan(waterQualityManagementPlanID: number, waterQualityManagementPlanSectionSaveLocationDto?: WaterQualityManagementPlanSectionSaveLocationDto, observe?: 'response', reportProgress?: boolean, options?: {httpHeaderAccept?: 'text/plain' | 'application/json' | 'text/json', context?: HttpContext, transferCache?: boolean}): Observable<HttpResponse<WaterQualityManagementPlanSectionSaveResponseDto>>;
+    public saveLocationWaterQualityManagementPlan(waterQualityManagementPlanID: number, waterQualityManagementPlanSectionSaveLocationDto?: WaterQualityManagementPlanSectionSaveLocationDto, observe?: 'events', reportProgress?: boolean, options?: {httpHeaderAccept?: 'text/plain' | 'application/json' | 'text/json', context?: HttpContext, transferCache?: boolean}): Observable<HttpEvent<WaterQualityManagementPlanSectionSaveResponseDto>>;
+    public saveLocationWaterQualityManagementPlan(waterQualityManagementPlanID: number, waterQualityManagementPlanSectionSaveLocationDto?: WaterQualityManagementPlanSectionSaveLocationDto, observe: any = 'body', reportProgress: boolean = false, options?: {httpHeaderAccept?: 'text/plain' | 'application/json' | 'text/json', context?: HttpContext, transferCache?: boolean}): Observable<any> {
+        if (waterQualityManagementPlanID === null || waterQualityManagementPlanID === undefined) {
+            throw new Error('Required parameter waterQualityManagementPlanID was null or undefined when calling saveLocationWaterQualityManagementPlan.');
+        }
+
+        let localVarHeaders = this.defaultHeaders;
+
+        const localVarHttpHeaderAcceptSelected: string | undefined = options?.httpHeaderAccept ?? this.configuration.selectHeaderAccept([
+            'text/plain',
+            'application/json',
+            'text/json'
+        ]);
+        if (localVarHttpHeaderAcceptSelected !== undefined) {
+            localVarHeaders = localVarHeaders.set('Accept', localVarHttpHeaderAcceptSelected);
+        }
+
+        const localVarHttpContext: HttpContext = options?.context ?? new HttpContext();
+
+        const localVarTransferCache: boolean = options?.transferCache ?? true;
+
+
+        // to determine the Content-Type header
+        const consumes: string[] = [
+            'application/json',
+            'text/json',
+            'application/*+json'
+        ];
+        const httpContentTypeSelected: string | undefined = this.configuration.selectHeaderContentType(consumes);
+        if (httpContentTypeSelected !== undefined) {
+            localVarHeaders = localVarHeaders.set('Content-Type', httpContentTypeSelected);
+        }
+
+        let responseType_: 'text' | 'json' | 'blob' = 'json';
+        if (localVarHttpHeaderAcceptSelected) {
+            if (localVarHttpHeaderAcceptSelected.startsWith('text')) {
+                responseType_ = 'text';
+            } else if (this.configuration.isJsonMime(localVarHttpHeaderAcceptSelected)) {
+                responseType_ = 'json';
+            } else {
+                responseType_ = 'blob';
+            }
+        }
+
+        let localVarPath = `/water-quality-management-plans/${this.configuration.encodeParam({name: "waterQualityManagementPlanID", value: waterQualityManagementPlanID, in: "path", style: "simple", explode: false, dataType: "number", dataFormat: "int32"})}/save-location`;
+        const { basePath, withCredentials } = this.configuration;
+        return this.httpClient.request<WaterQualityManagementPlanSectionSaveResponseDto>('post', `${basePath}${localVarPath}`,
+            {
+                context: localVarHttpContext,
+                body: waterQualityManagementPlanSectionSaveLocationDto,
                 responseType: <any>responseType_,
                 ...(withCredentials ? { withCredentials } : {}),
                 headers: localVarHeaders,

@@ -21,14 +21,14 @@ function stripBase(apiBaseUrl: string, uri: string): string | null {
 
 const ANON_EXACT: ExactMap = {
   'DELETE': [],
-  'GET': ["/","/custom-attribute-types","/field-definitions","/jurisdictions/bounding-box","/jurisdictions/user-viewable","/land-use-blocks","/observation-types","/training-videos","/trash-generating-units/last-update-date","/treatment-bmp-type-custom-attribute-types","/treatment-bmp-types","/treatment-bmps","/treatment-bmps/modeling-attributes","/treatment-bmps/verified/feature-collection","/water-quality-management-plans/grid"],
+  'GET': ["/","/custom-attribute-types","/field-definitions","/jurisdictions/bounding-box","/jurisdictions/user-viewable","/land-use-blocks","/observation-types","/training-videos","/trash-generating-units/last-update-date","/treatment-bmp-type-custom-attribute-types","/treatment-bmp-types","/treatment-bmp-types/cards","/treatment-bmps","/treatment-bmps/modeling-attributes","/treatment-bmps/verified/feature-collection","/water-quality-management-plans/grid"],
   'POST': [],
   'PUT': [],
 };
 
 const SECURED_EXACT: ExactMap = {
   'DELETE': [],
-  'GET': ["/delineations","/field-visits","/funding-sources","/hru-characteristics","/jurisdictions","/load-generating-units","/maintenance-records","/nereid/config","/nereid/delta-solve","/nereid/delta-solve-test","/nereid/health","/nereid/land-surface-loading","/nereid/land-surface-loading-baseline","/nereid/land-surface-table","/nereid/no-treatment-facility-validate","/nereid/solution-sequence","/nereid/solution-test-case","/nereid/subgraph","/nereid/total-network-graph","/nereid/treatment-facilities","/nereid/treatment-facility-validate","/nereid/treatment-sites","/nereid/validate","/onland-visual-trash-assessment-areas","/onland-visual-trash-assessments","/organization-types","/organizations","/parcels/search","/projects","/projects/OCTAM2Tier2GrantProgram","/projects/OCTAM2Tier2GrantProgram/download","/projects/OCTAM2Tier2GrantProgram/treatmentBMPs/download","/projects/delineations","/projects/download","/projects/treatmentBMPs/download","/regional-subbasins","/trash-generating-units","/treatment-bmp-assessments","/treatment-bmp-types/grid","/treatment-bmps/octa-m2-tier2-grant-program","/treatment-bmps/planned-projects","/users","/water-quality-management-plan-documents","/water-quality-management-plan-verifies","/water-quality-management-plans","/water-quality-management-plans/display-dtos","/water-quality-management-plans/hydrologic-subareas","/water-quality-management-plans/source-control-bmp-attributes","/water-quality-management-plans/with-final-document"],
+  'GET': ["/delineations","/field-visits","/funding-sources","/hru-characteristics","/jurisdictions","/load-generating-units","/maintenance-records","/nereid/config","/nereid/delta-solve","/nereid/delta-solve-test","/nereid/health","/nereid/land-surface-loading","/nereid/land-surface-loading-baseline","/nereid/land-surface-table","/nereid/no-treatment-facility-validate","/nereid/solution-sequence","/nereid/solution-test-case","/nereid/subgraph","/nereid/total-network-graph","/nereid/treatment-facilities","/nereid/treatment-facility-validate","/nereid/treatment-sites","/nereid/validate","/onland-visual-trash-assessment-areas","/onland-visual-trash-assessments","/organization-types","/organizations","/parcels","/parcels/search","/projects","/projects/OCTAM2Tier2GrantProgram","/projects/OCTAM2Tier2GrantProgram/download","/projects/OCTAM2Tier2GrantProgram/treatmentBMPs/download","/projects/delineations","/projects/download","/projects/treatmentBMPs/download","/regional-subbasins","/trash-generating-units","/treatment-bmp-assessments","/treatment-bmp-types/grid","/treatment-bmps/octa-m2-tier2-grant-program","/treatment-bmps/planned-projects","/users","/water-quality-management-plan-documents","/water-quality-management-plan-verifies","/water-quality-management-plans","/water-quality-management-plans/display-dtos","/water-quality-management-plans/hydrologic-subareas","/water-quality-management-plans/source-control-bmp-attributes","/water-quality-management-plans/with-final-document"],
   'POST': ["/custom-attribute-types","/funding-sources","/graph-trace-as-feature-collection-from-point","/hru-characteristics/enqueue-refresh","/observation-types","/onland-visual-trash-assessments","/organizations","/parcels/lookup-by-numbers","/projects","/regional-subbasins/enqueue-refresh","/treatment-bmp-types","/treatment-bmps","/user-claims","/users","/water-quality-management-plan-documents","/water-quality-management-plans","/water-quality-management-plans/upload"],
   'PUT': ["/land-use-blocks"],
 };
@@ -193,10 +193,10 @@ const SECURED_REGEX: RegexMap = {
     new RegExp("^/treatment-bmps/[^/]+/treatment-bmp-documents$"),
     new RegExp("^/treatment-bmps/[^/]+/treatment-bmp-images$"),
     new RegExp("^/water-quality-management-plans/[^/]+/extract$"),
-    new RegExp("^/water-quality-management-plans/[^/]+/extraction-result/apply-field$"),
-    new RegExp("^/water-quality-management-plans/[^/]+/extraction-result/apply-parcel$"),
-    new RegExp("^/water-quality-management-plans/[^/]+/extraction-result/apply-quick-bmp$"),
-    new RegExp("^/water-quality-management-plans/[^/]+/extraction-result/approve$"),
+    new RegExp("^/water-quality-management-plans/[^/]+/promote$"),
+    new RegExp("^/water-quality-management-plans/[^/]+/save-basics$"),
+    new RegExp("^/water-quality-management-plans/[^/]+/save-bmps$"),
+    new RegExp("^/water-quality-management-plans/[^/]+/save-location$"),
     new RegExp("^/water-quality-management-plans/[^/]+/verifications$"),
   ],
   'PUT': [

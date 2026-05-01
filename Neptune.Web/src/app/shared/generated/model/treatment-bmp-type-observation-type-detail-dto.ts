@@ -21,6 +21,14 @@ export class TreatmentBMPTypeObservationTypeDetailDto {
     SortOrder?: number | null;
     ObservationTypeCollectionMethodDisplayName?: string | null;
     ObservationTypeSpecificationID?: number;
+    ObservationTypeCollectionMethodID?: number;
+    ObservationTargetTypeID?: number;
+    ObservationThresholdTypeID?: number;
+    HasBenchmarkAndThreshold?: boolean;
+    BenchmarkUnitDisplayName?: string | null;
+    ThresholdUnitDisplayName?: string | null;
+    FormattedBenchmarkValue?: string | null;
+    FormattedThresholdValue?: string | null;
     constructor(obj?: any) {
         Object.assign(this, obj);
     }
@@ -37,6 +45,14 @@ export interface TreatmentBMPTypeObservationTypeDetailDtoForm {
     SortOrder?: FormControl<number>;
     ObservationTypeCollectionMethodDisplayName?: FormControl<string>;
     ObservationTypeSpecificationID?: FormControl<number>;
+    ObservationTypeCollectionMethodID?: FormControl<number>;
+    ObservationTargetTypeID?: FormControl<number>;
+    ObservationThresholdTypeID?: FormControl<number>;
+    HasBenchmarkAndThreshold?: FormControl<boolean>;
+    BenchmarkUnitDisplayName?: FormControl<string>;
+    ThresholdUnitDisplayName?: FormControl<string>;
+    FormattedBenchmarkValue?: FormControl<string>;
+    FormattedThresholdValue?: FormControl<string>;
 }
 
 export class TreatmentBMPTypeObservationTypeDetailDtoFormControls { 
@@ -131,6 +147,86 @@ export class TreatmentBMPTypeObservationTypeDetailDtoFormControls {
         }
     );
     public static ObservationTypeSpecificationID = (value: FormControlState<number> | number = undefined, formControlOptions?: FormControlOptions | null) => new FormControl<number>(
+        value,
+        formControlOptions ?? 
+        {
+            nonNullable: false,
+            validators: 
+            [
+            ],
+        }
+    );
+    public static ObservationTypeCollectionMethodID = (value: FormControlState<number> | number = undefined, formControlOptions?: FormControlOptions | null) => new FormControl<number>(
+        value,
+        formControlOptions ?? 
+        {
+            nonNullable: false,
+            validators: 
+            [
+            ],
+        }
+    );
+    public static ObservationTargetTypeID = (value: FormControlState<number> | number = undefined, formControlOptions?: FormControlOptions | null) => new FormControl<number>(
+        value,
+        formControlOptions ?? 
+        {
+            nonNullable: false,
+            validators: 
+            [
+            ],
+        }
+    );
+    public static ObservationThresholdTypeID = (value: FormControlState<number> | number = undefined, formControlOptions?: FormControlOptions | null) => new FormControl<number>(
+        value,
+        formControlOptions ?? 
+        {
+            nonNullable: false,
+            validators: 
+            [
+            ],
+        }
+    );
+    public static HasBenchmarkAndThreshold = (value: FormControlState<boolean> | boolean = undefined, formControlOptions?: FormControlOptions | null) => new FormControl<boolean>(
+        value,
+        formControlOptions ?? 
+        {
+            nonNullable: false,
+            validators: 
+            [
+            ],
+        }
+    );
+    public static BenchmarkUnitDisplayName = (value: FormControlState<string> | string = undefined, formControlOptions?: FormControlOptions | null) => new FormControl<string>(
+        value,
+        formControlOptions ?? 
+        {
+            nonNullable: false,
+            validators: 
+            [
+            ],
+        }
+    );
+    public static ThresholdUnitDisplayName = (value: FormControlState<string> | string = undefined, formControlOptions?: FormControlOptions | null) => new FormControl<string>(
+        value,
+        formControlOptions ?? 
+        {
+            nonNullable: false,
+            validators: 
+            [
+            ],
+        }
+    );
+    public static FormattedBenchmarkValue = (value: FormControlState<string> | string = undefined, formControlOptions?: FormControlOptions | null) => new FormControl<string>(
+        value,
+        formControlOptions ?? 
+        {
+            nonNullable: false,
+            validators: 
+            [
+            ],
+        }
+    );
+    public static FormattedThresholdValue = (value: FormControlState<string> | string = undefined, formControlOptions?: FormControlOptions | null) => new FormControl<string>(
         value,
         formControlOptions ?? 
         {

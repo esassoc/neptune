@@ -1,0 +1,43 @@
+@use "/src/scss/abstracts" as *;
+
+.bmp-type-cards {
+    margin-top: 1rem;
+}
+
+.bmp-type-card {
+    margin-bottom: 1rem;
+
+    .card-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+
+        .view-details {
+            margin-left: 1rem;
+        }
+    }
+}
+
+.bmp-type-description {
+    margin-bottom: 0.75rem;
+}
+
+.section-label {
+    margin-top: 0.75rem;
+    margin-bottom: 0.25rem;
+    font-weight: 600;
+}
+
+.bmp-type-card__observations {
+    margin-bottom: 0.5rem;
+    font-size: $type-size-200;
+
+    th, td {
+        padding: 0.25rem 0.5rem;
+    }
+}
+
+.bmp-type-card__attribute-counts {
+    margin-bottom: 0;
+    padding-left: 1.25rem;
+}

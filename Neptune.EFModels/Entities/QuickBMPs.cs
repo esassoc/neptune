@@ -216,6 +216,60 @@ public static class QuickBMPs
         }
     }
 
+    /// <summary>
+    /// NPT-1020 item 3: pure partition that splits a candidate BMP list into a "merge-ready"
+    /// list (all required fields present) and a list of skipped entries naming each missing
+    /// field. Extracted from <see cref="MergeWithReportAsync"/> so it can be unit-tested
+    /// without a database. Required fields: <c>QuickBMPName</c>, <c>TreatmentBMPTypeID</c>,
+    /// <c>NumberOfIndividualBMPs</c>.
+    /// </summary>
+    public static (List<QuickBMPUpsertDto> Mergeable, List<QuickBMPMergeSkipDto> Skipped) PartitionForMerge(
+        IEnumerable<QuickBMPUpsertDto>? dtos)
+    {
+        var mergeable = new List<QuickBMPUpsertDto>();
+        var skipped = new List<QuickBMPMergeSkipDto>();
+
+        foreach (var dto in dtos ?? Enumerable.Empty<QuickBMPUpsertDto>())
+        {
+            var reasons = new List<string>();
+            if (string.IsNullOrWhiteSpace(dto.QuickBMPName)) reasons.Add("Name");
+            if (dto.TreatmentBMPTypeID == null) reasons.Add("Treatment BMP Type");
+            if (dto.NumberOfIndividualBMPs == null) reasons.Add("# of Individual BMPs");
+
+            if (reasons.Count > 0)
+            {
+                skipped.Add(new QuickBMPMergeSkipDto
+                {
+                    ProposedName = string.IsNullOrWhiteSpace(dto.QuickBMPName) ? "(unnamed)" : dto.QuickBMPName!,
+                    Reasons = reasons,
+                });
+                continue;
+            }
+
+            mergeable.Add(dto);
+        }
+
+        return (mergeable, skipped);
+    }
+
+    /// <summary>
+    /// NPT-1020 item 3: variant of <see cref="MergeAsync"/> that returns a report rather
+    /// than throwing on rows missing required fields. Per Kathleen's tester feedback on
+    /// the "Approve All → treatment bmps" AC, one BMP missing a TreatmentBMPType should
+    /// not roll back the whole approval — surface a warning naming the BMP + missing
+    /// fields instead, and merge the rest. Validation rules already enforced by
+    /// <see cref="Validate"/> (out-of-range %, duplicate names, etc.) still hard-fail.
+    /// </summary>
+    public static async Task<QuickBMPMergeReport> MergeWithReportAsync(
+        NeptuneDbContext dbContext,
+        int waterQualityManagementPlanID,
+        List<QuickBMPUpsertDto> dtos)
+    {
+        var (mergeable, skipped) = PartitionForMerge(dtos);
+        await MergeAsync(dbContext, waterQualityManagementPlanID, mergeable);
+        return new QuickBMPMergeReport { Skipped = skipped };
+    }
+
     public static async Task MergeAsync(NeptuneDbContext dbContext, int waterQualityManagementPlanID, List<QuickBMPUpsertDto> dtos)
     {
         var existingQuickBMPs = ListByWaterQualityManagementPlanIDWithChangeTracking(dbContext, waterQualityManagementPlanID);

@@ -29,6 +29,11 @@
         background-color: $gray-100;
     }
 
+    &--selected {
+        border-color: $primary;
+        box-shadow: 0 0 0 2px rgba(0, 153, 171, 0.35);
+    }
+
     &__origin {
         margin-top: 0;
         margin-bottom: 0.15rem;

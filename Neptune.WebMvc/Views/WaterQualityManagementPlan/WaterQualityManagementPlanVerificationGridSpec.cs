@@ -49,7 +49,7 @@ namespace Neptune.WebMvc.Views.WaterQualityManagementPlan
             Add("WQMP Name", x => UrlTemplate.MakeHrefString(wqmpDetailUrlTemplate.ParameterReplace(x.WaterQualityManagementPlanID), x.WaterQualityManagementPlan.WaterQualityManagementPlanName), 300, DhtmlxGridColumnFilterType.Text);
             Add("Jurisdiction", x => isAnonymousOrUnassigned ? new HtmlString(x.WaterQualityManagementPlan.StormwaterJurisdiction.GetOrganizationDisplayName()) :
                 UrlTemplate.MakeHrefString(stormwaterJurisdictionDetailUrlTemplate.ParameterReplace(x.WaterQualityManagementPlan.StormwaterJurisdictionID), x.WaterQualityManagementPlan.StormwaterJurisdiction.GetOrganizationDisplayName()), 150);
-            Add("Verification Date", x => x.VerificationDate, 150);
+            Add("Verification Date", x => x.VerificationDate.ToDateTime(TimeOnly.MinValue), 150);
             Add("Last Edited Date", x => x.LastEditedDate, 150);
             Add("Last Edited By", x => x.LastEditedByPerson.GetFullNameFirstLast(), 150, DhtmlxGridColumnFilterType.SelectFilterStrict);
             Add("Type of Verification",
