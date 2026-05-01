@@ -1,10 +1,12 @@
 import { Component, EventEmitter, Input, Output, signal } from "@angular/core";
+import { FieldDefinitionComponent } from "src/app/shared/components/field-definition/field-definition.component";
 
 @Component({
     selector: "properties-to-observe-editor",
     standalone: true,
+    imports: [FieldDefinitionComponent],
     template: `
-        <label class="field-label">Properties to Observe</label>
+        <field-definition fieldDefinitionType="PropertiesToObserve" labelOverride="Properties to Observe" [inline]="true"></field-definition>
         @for (prop of properties; track $index) {
             <div class="prop-row">
                 <span>{{ prop }}</span>
@@ -22,7 +24,6 @@ import { Component, EventEmitter, Input, Output, signal } from "@angular/core";
         .prop-row { display: flex; gap: 0.5rem; align-items: center; margin-bottom: 0.25rem; }
         .prop-row span { flex: 1; }
         .prop-row input { flex: 1; }
-        .field-label { font-weight: 600; font-size: 0.875rem; display: block; margin-bottom: 0.25rem; }
     `],
 })
 export class PropertiesToObserveEditorComponent {

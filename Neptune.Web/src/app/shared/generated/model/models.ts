@@ -132,6 +132,7 @@ export * from './treatment-bmp-type-detail-dto';
 export * from './treatment-bmp-type-grid-dto';
 export * from './treatment-bmp-type-observation-type-detail-dto';
 export * from './treatment-bmp-type-observation-type-upsert-dto';
+export * from './treatment-bmp-type-reference-dto';
 export * from './treatment-bmp-type-update-dto';
 export * from './treatment-bmp-type-upsert-dto';
 export * from './treatment-bmp-type-with-modeling-attributes-dto';

@@ -14654,10 +14654,10 @@
             "type": "string",
             "nullable": true
           },
-          "TreatmentBMPTypeNames": {
+          "TreatmentBMPTypes": {
             "type": "array",
             "items": {
-              "type": "string"
+              "$ref": "#/components/schemas/TreatmentBMPTypeReferenceDto"
             },
             "nullable": true
           }
@@ -16018,6 +16018,20 @@
           "SortOrder": {
             "type": "integer",
             "format": "int32",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "TreatmentBMPTypeReferenceDto": {
+        "type": "object",
+        "properties": {
+          "TreatmentBMPTypeID": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "TreatmentBMPTypeName": {
+            "type": "string",
             "nullable": true
           }
         },
