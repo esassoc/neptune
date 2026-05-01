@@ -75,7 +75,12 @@ export class HttpErrorInterceptor implements HttpInterceptor {
                             });
                         }
                         if (error.status == 404) {
-                            if (error.error.includes("User with GUID ")) {
+                            // Bare 404s from EntityNotFoundMiddleware have no response body, so
+                            // error.error is null. Coerce to "" before .includes() so the
+                            // user-create login-callback flow detection doesn't TypeError out
+                            // and silently swallow the redirect to /not-found.
+                            const body = typeof error.error === "string" ? error.error : "";
+                            if (body.includes("User with GUID ")) {
                                 // we want the login-callback to create the user to trigger so we just let it pass through and have authentication-service handle it
                                 return throwError(error);
                             } else {
