@@ -126,7 +126,9 @@ export class ObservationTypesManageComponent implements OnInit {
         // Pull the detail to surface the affected BMP types in the cascade warning, mirroring
         // the Custom Attribute Type delete flow. Falls back to a plain warning if the fetch fails.
         this.observationTypeService.getTreatmentBMPAssessmentObservationType(row.TreatmentBMPAssessmentObservationTypeID).subscribe({
-            next: (detail) => this.promptDelete(row, (detail.TreatmentBMPTypes ?? []).map((t) => t.TreatmentBMPTypeName)),
+            next: (detail) => this.promptDelete(row, (detail.TreatmentBMPTypes ?? [])
+                .map((t) => t.TreatmentBMPTypeName)
+                .filter((n): n is string => !!n)),
             error: () => this.promptDelete(row, []),
         });
     }
