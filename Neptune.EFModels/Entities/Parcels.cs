@@ -72,6 +72,18 @@ namespace Neptune.EFModels.Entities
                 .ToListAsync();
         }
 
+        // Cheap fingerprint of the Parcel table for HTTP ETag-based caching of the grid list
+        // endpoint. Changes whenever any parcel is added, removed, or has its LastUpdate column
+        // bumped — which the OC Survey refresh and bulk-upload flows already do.
+        public static async Task<string> GetGridVersionETagAsync(NeptuneDbContext dbContext)
+        {
+            var count = await dbContext.Parcels.CountAsync();
+            var maxLastUpdateTicks = count > 0
+                ? (await dbContext.Parcels.MaxAsync(p => p.LastUpdate)).Ticks
+                : 0L;
+            return $"\"{count}-{maxLastUpdateTicks}\"";
+        }
+
         public static Parcel GetParcelByParcelNumber(NeptuneDbContext dbContext, string parcelNumber)
         {
             var parcel = GetImpl(dbContext).FirstOrDefault(x => x.ParcelNumber == parcelNumber);

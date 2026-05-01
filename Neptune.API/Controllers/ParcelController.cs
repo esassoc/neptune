@@ -1,5 +1,6 @@
 using System.Collections.Generic;
 using System.Threading.Tasks;
+using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
@@ -22,6 +23,18 @@ namespace Neptune.API.Controllers
         [JurisdictionEditFeature]
         public async Task<ActionResult<List<ParcelGridDto>>> List()
         {
+            // ETag-based conditional GET: skip the ~14 MB serialize+download when the parcel
+            // table hasn't changed since the client's last fetch. Browsers handle 304 transparently
+            // and serve the cached body back to Angular's HttpClient, so the SPA needs no changes.
+            var etag = await Parcels.GetGridVersionETagAsync(DbContext);
+            Response.Headers.ETag = etag;
+            Response.Headers.CacheControl = "private, no-cache";
+
+            if (Request.Headers.IfNoneMatch.ToString() == etag)
+            {
+                return StatusCode(StatusCodes.Status304NotModified);
+            }
+
             var parcels = await Parcels.ListAsGridDtoAsync(DbContext);
             return Ok(parcels);
         }
