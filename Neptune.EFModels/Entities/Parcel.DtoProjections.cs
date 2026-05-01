@@ -19,6 +19,6 @@ public static class ParcelProjections
         ParcelAddress = parcel.ParcelAddress,
         ParcelCityState = parcel.ParcelCityState,
         ParcelZipCode = parcel.ParcelZipCode,
-        ParcelAreaInAcres = parcel.ParcelAreaInAcres,
+        ParcelAreaInAcres = Math.Round(parcel.ParcelAreaInAcres, 2),
     };
 }
