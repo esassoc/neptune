@@ -175,6 +175,7 @@ model/treatment-bmp-type-detail-dto.ts
 model/treatment-bmp-type-grid-dto.ts
 model/treatment-bmp-type-observation-type-detail-dto.ts
 model/treatment-bmp-type-observation-type-upsert-dto.ts
+model/treatment-bmp-type-reference-dto.ts
 model/treatment-bmp-type-update-dto.ts
 model/treatment-bmp-type-upsert-dto.ts
 model/treatment-bmp-type-with-modeling-attributes-dto.ts

@@ -525,6 +525,11 @@ export const routes: Routes = [
                 loadComponent: () => import("./pages/program-info/observation-types.component").then((m) => m.ObservationTypesComponent),
             },
             {
+                path: "program-info/observation-types/:observationTypeID",
+                title: "Observation Type Detail",
+                loadComponent: () => import("./pages/program-info/observation-type-detail/observation-type-detail.component").then((m) => m.ObservationTypeDetailComponent),
+            },
+            {
                 path: "program-info/treatment-bmp-types",
                 title: "Treatment BMP Types",
                 loadComponent: () => import("./pages/program-info/treatment-bmp-types.component").then((m) => m.TreatmentBmpTypesComponent),
