@@ -10,7 +10,7 @@ public class WaterQualityManagementPlanVerifyDetailDto
     public string WaterQualityManagementPlanVisitStatusDisplayName { get; set; }
     public int? WaterQualityManagementPlanVerifyStatusID { get; set; }
     public string WaterQualityManagementPlanVerifyStatusDisplayName { get; set; }
-    public DateTime VerificationDate { get; set; }
+    public DateOnly VerificationDate { get; set; }
     public DateTime LastEditedDate { get; set; }
     public string LastEditedByPersonFullName { get; set; }
     public string SourceControlCondition { get; set; }

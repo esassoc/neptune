@@ -1,0 +1,29 @@
+@use "/src/scss/abstracts" as *;
+
+.sidebar-title {
+    .verification-label {
+        color: $gray-500;
+        margin: 0;
+    }
+
+    .wqmp-link {
+        color: $teal-700;
+        text-decoration: underline;
+        text-underline-offset: 8px;
+        text-decoration-thickness: 1px;
+        font-weight: 500;
+        word-break: break-word;
+    }
+
+    .verification-status {
+        color: $gray-default;
+        font-size: $type-size-100;
+        font-style: italic;
+        font-weight: normal;
+        margin-top: 0.25rem;
+    }
+
+    p {
+        margin: 0;
+    }
+}

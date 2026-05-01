@@ -17219,7 +17219,7 @@
           },
           "VerificationDate": {
             "type": "string",
-            "format": "date-time"
+            "format": "date"
           },
           "LastEditedDate": {
             "type": "string",
@@ -17277,7 +17277,7 @@
           },
           "VerificationDate": {
             "type": "string",
-            "format": "date-time"
+            "format": "date"
           },
           "LastEditedDate": {
             "type": "string",
@@ -17343,7 +17343,7 @@
           },
           "VerificationDate": {
             "type": "string",
-            "format": "date-time"
+            "format": "date"
           },
           "LastEditedDate": {
             "type": "string",
@@ -17490,7 +17490,7 @@
           },
           "VerificationDate": {
             "type": "string",
-            "format": "date-time"
+            "format": "date"
           },
           "WaterQualityManagementPlanVerifyStatusID": {
             "type": "integer",

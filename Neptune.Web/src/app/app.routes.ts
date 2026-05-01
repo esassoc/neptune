@@ -476,15 +476,71 @@ export const routes: Routes = [
                 path: `water-quality-management-plans/:${routeParams.waterQualityManagementPlanID}/verifications/new`,
                 title: "New O&M Verification",
                 loadComponent: () =>
-                    import("./pages/wqmps/wqmp-detail/verification-wizard/verification-wizard.component").then((m) => m.VerificationWizardComponent),
+                    import("./pages/wqmps/wqmp-detail/verification-wizard/verification-wizard-outlet.component").then((m) => m.VerificationWizardOutletComponent),
                 canActivate: [authGuardFn],
+                children: [
+                    { path: "", redirectTo: "basics", pathMatch: "full" },
+                    {
+                        path: "basics",
+                        loadComponent: () =>
+                            import("./pages/wqmps/wqmp-detail/verification-wizard/steps/verification-basics-step.component").then((m) => m.VerificationBasicsStepComponent),
+                    },
+                    {
+                        path: "structural-bmps",
+                        loadComponent: () =>
+                            import("./pages/wqmps/wqmp-detail/verification-wizard/steps/structural-bmps-step.component").then((m) => m.StructuralBmpsStepComponent),
+                    },
+                    {
+                        path: "simplified-bmps",
+                        loadComponent: () =>
+                            import("./pages/wqmps/wqmp-detail/verification-wizard/steps/simplified-bmps-step.component").then((m) => m.SimplifiedBmpsStepComponent),
+                    },
+                    {
+                        path: "source-control",
+                        loadComponent: () =>
+                            import("./pages/wqmps/wqmp-detail/verification-wizard/steps/source-control-step.component").then((m) => m.SourceControlStepComponent),
+                    },
+                    {
+                        path: "review-and-finalize",
+                        loadComponent: () =>
+                            import("./pages/wqmps/wqmp-detail/verification-wizard/steps/review-step.component").then((m) => m.ReviewStepComponent),
+                    },
+                ],
             },
             {
                 path: `water-quality-management-plans/:${routeParams.waterQualityManagementPlanID}/verifications/:${routeParams.waterQualityManagementPlanVerifyID}`,
                 title: "O&M Verification",
                 loadComponent: () =>
-                    import("./pages/wqmps/wqmp-detail/verification-wizard/verification-wizard.component").then((m) => m.VerificationWizardComponent),
+                    import("./pages/wqmps/wqmp-detail/verification-wizard/verification-wizard-outlet.component").then((m) => m.VerificationWizardOutletComponent),
                 canActivate: [authGuardFn],
+                children: [
+                    { path: "", redirectTo: "basics", pathMatch: "full" },
+                    {
+                        path: "basics",
+                        loadComponent: () =>
+                            import("./pages/wqmps/wqmp-detail/verification-wizard/steps/verification-basics-step.component").then((m) => m.VerificationBasicsStepComponent),
+                    },
+                    {
+                        path: "structural-bmps",
+                        loadComponent: () =>
+                            import("./pages/wqmps/wqmp-detail/verification-wizard/steps/structural-bmps-step.component").then((m) => m.StructuralBmpsStepComponent),
+                    },
+                    {
+                        path: "simplified-bmps",
+                        loadComponent: () =>
+                            import("./pages/wqmps/wqmp-detail/verification-wizard/steps/simplified-bmps-step.component").then((m) => m.SimplifiedBmpsStepComponent),
+                    },
+                    {
+                        path: "source-control",
+                        loadComponent: () =>
+                            import("./pages/wqmps/wqmp-detail/verification-wizard/steps/source-control-step.component").then((m) => m.SourceControlStepComponent),
+                    },
+                    {
+                        path: "review-and-finalize",
+                        loadComponent: () =>
+                            import("./pages/wqmps/wqmp-detail/verification-wizard/steps/review-step.component").then((m) => m.ReviewStepComponent),
+                    },
+                ],
             },
             {
                 path: `water-quality-management-plans/:${routeParams.waterQualityManagementPlanID}/verifications/:${routeParams.waterQualityManagementPlanVerifyID}/view`,

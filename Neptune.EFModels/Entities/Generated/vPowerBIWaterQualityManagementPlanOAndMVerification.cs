@@ -19,8 +19,7 @@ public partial class vPowerBIWaterQualityManagementPlanOAndMVerification
     [Unicode(false)]
     public string Jurisdiction { get; set; } = null!;
 
-    [Column(TypeName = "datetime")]
-    public DateTime VerificationDate { get; set; }
+    public DateOnly VerificationDate { get; set; }
 
     [Column(TypeName = "datetime")]
     public DateTime LastEditedDate { get; set; }
