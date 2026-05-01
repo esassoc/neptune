@@ -32,7 +32,7 @@ import { SchemaBuilderSection } from "./pass-fail-schema-builder.component";
             @case ("labelsUnits") {
                 <div class="grid-12">
                     <div class="g-col-6">
-                        <field-definition fieldDefinitionType="MeasurementUnitLabel" labelOverride="Measurement Unit Label" [inline]="true"></field-definition>
+                        <field-definition fieldDefinitionType="MeasurementUnitLabel" labelOverride="Measurement Unit Label"></field-definition>
                         <input type="text" class="form-control" [(ngModel)]="schema.MeasurementUnitLabel" (ngModelChange)="emit()" placeholder="e.g. Sediment Depth">
                     </div>
                     <div class="g-col-6">
@@ -41,19 +41,19 @@ import { SchemaBuilderSection } from "./pass-fail-schema-builder.component";
                             [(ngModel)]="schema.MeasurementUnitTypeID" (ngModelChange)="emit()" placeholder="Select Unit"></form-field>
                     </div>
                     <div class="g-col-3">
-                        <field-definition fieldDefinitionType="MinimumNumberOfObservations" labelOverride="Min # Observations" [inline]="true"></field-definition>
+                        <field-definition fieldDefinitionType="MinimumNumberOfObservations" labelOverride="Min # Observations"></field-definition>
                         <input type="number" class="form-control" [(ngModel)]="schema.MinimumNumberOfObservations" (ngModelChange)="emit()" min="1">
                     </div>
                     <div class="g-col-3">
-                        <field-definition fieldDefinitionType="MaximumNumberOfObservations" labelOverride="Max # Observations" [inline]="true"></field-definition>
+                        <field-definition fieldDefinitionType="MaximumNumberOfObservations" labelOverride="Max # Observations"></field-definition>
                         <input type="number" class="form-control" [(ngModel)]="schema.MaximumNumberOfObservations" (ngModelChange)="emit()">
                     </div>
                     <div class="g-col-3">
-                        <field-definition fieldDefinitionType="MinimumValueOfEachObservation" labelOverride="Min Value" [inline]="true"></field-definition>
+                        <field-definition fieldDefinitionType="MinimumValueOfEachObservation" labelOverride="Min Value"></field-definition>
                         <input type="number" class="form-control" [(ngModel)]="schema.MinimumValueOfObservations" (ngModelChange)="emit()">
                     </div>
                     <div class="g-col-3">
-                        <field-definition fieldDefinitionType="MaximumValueOfEachObservation" labelOverride="Max Value" [inline]="true"></field-definition>
+                        <field-definition fieldDefinitionType="MaximumValueOfEachObservation" labelOverride="Max Value"></field-definition>
                         <input type="number" class="form-control" [(ngModel)]="schema.MaximumValueOfObservations" (ngModelChange)="emit()">
                     </div>
                     <div class="g-col-12">
