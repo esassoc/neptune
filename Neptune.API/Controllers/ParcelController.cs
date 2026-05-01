@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using System.Threading.Tasks;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
@@ -17,6 +18,14 @@ namespace Neptune.API.Controllers
         IOptions<NeptuneConfiguration> neptuneConfiguration)
         : SitkaController<ParcelController>(dbContext, logger, neptuneConfiguration)
     {
+        [HttpGet]
+        [JurisdictionEditFeature]
+        public async Task<ActionResult<List<ParcelGridDto>>> List()
+        {
+            var parcels = await Parcels.ListAsGridDtoAsync(DbContext);
+            return Ok(parcels);
+        }
+
         [HttpGet("search")]
         [JurisdictionEditFeature]
         public ActionResult<List<ParcelDisplayDto>> Search([FromQuery] string term)

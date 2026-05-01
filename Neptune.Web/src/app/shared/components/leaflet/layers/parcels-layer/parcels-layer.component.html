@@ -1,0 +1,17 @@
+<generic-wms-wfs-layer
+    [map]="map"
+    [layerControl]="layerControl"
+    [interactive]="interactive"
+    [displayOnLoad]="displayOnLoad"
+    [sortOrder]="sortOrder"
+    [cqlFilter]="cqlFilter"
+    [selectedID]="selectedID"
+    [wmsLayerName]="addToLayerControl || !selectedID ? wmsLayerName : null"
+    [wmsStyle]="wmsStyle"
+    [wfsFeatureType]="wfsFeatureType"
+    [identifierProperty]="identifierProperty"
+    [overlayLabel]="overlayLabel"
+    [selectedStyle]="selectedStyle"
+    [fitBoundsOnSelect]="fitBoundsOnSelect"
+    (selected)="selected.emit($event)">
+</generic-wms-wfs-layer>

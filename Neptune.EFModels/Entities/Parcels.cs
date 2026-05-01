@@ -63,6 +63,15 @@ namespace Neptune.EFModels.Entities
             return GetImpl(dbContext).AsNoTracking().OrderBy(x => x.ParcelNumber).ToList();
         }
 
+        public static async Task<List<ParcelGridDto>> ListAsGridDtoAsync(NeptuneDbContext dbContext)
+        {
+            return await GetImpl(dbContext)
+                .AsNoTracking()
+                .OrderBy(x => x.ParcelNumber)
+                .Select(ParcelProjections.AsGridDto)
+                .ToListAsync();
+        }
+
         public static Parcel GetParcelByParcelNumber(NeptuneDbContext dbContext, string parcelNumber)
         {
             var parcel = GetImpl(dbContext).FirstOrDefault(x => x.ParcelNumber == parcelNumber);
