@@ -6,7 +6,6 @@ import { OverlayMode } from "../generic-wms-wfs-layer/overlay-mode.enum";
     selector: "parcels-layer",
     imports: [GenericWmsWfsLayerComponent],
     templateUrl: "./parcels-layer.component.html",
-    styleUrls: ["./parcels-layer.component.scss"],
 })
 export class ParcelsLayerComponent {
     readonly WFS_FEATURE_TYPE = "OCStormwater:Parcels";

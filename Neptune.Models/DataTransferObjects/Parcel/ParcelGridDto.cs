@@ -7,5 +7,5 @@ public class ParcelGridDto
     public string ParcelAddress { get; set; }
     public string ParcelCityState { get; set; }
     public string ParcelZipCode { get; set; }
-    public double? ParcelAreaInAcres { get; set; }
+    public double ParcelAreaInAcres { get; set; }
 }

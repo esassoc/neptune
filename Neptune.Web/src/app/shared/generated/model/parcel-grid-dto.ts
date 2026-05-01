@@ -16,7 +16,7 @@ export class ParcelGridDto {
     ParcelAddress?: string | null;
     ParcelCityState?: string | null;
     ParcelZipCode?: string | null;
-    ParcelAreaInAcres?: number | null;
+    ParcelAreaInAcres?: number;
     constructor(obj?: any) {
         Object.assign(this, obj);
     }

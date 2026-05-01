@@ -61,7 +61,9 @@ export class ParcelsComponent {
     }
 
     public onSelectedParcelIDChanged(selectedID: number, fromMap: boolean = false): void {
-        if (this.selectedParcelID == selectedID) return;
+        // No early-return on same ID: re-clicking a grid row after panning the map should
+        // re-zoom (when fromMap=false flips zoomOnNextSelection back to true, the layer's
+        // ngOnChanges fires and re-runs fitBounds even though selectedID didn't change).
         this.zoomOnNextSelection = !fromMap;
         this.selectedParcelID = selectedID;
     }

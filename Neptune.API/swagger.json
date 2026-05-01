@@ -12884,8 +12884,7 @@
           },
           "ParcelAreaInAcres": {
             "type": "number",
-            "format": "double",
-            "nullable": true
+            "format": "double"
           }
         },
         "additionalProperties": false
