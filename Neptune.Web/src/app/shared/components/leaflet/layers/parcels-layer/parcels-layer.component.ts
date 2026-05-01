@@ -14,10 +14,10 @@ export class ParcelsLayerComponent {
     readonly OVERLAY_LABEL = "Parcels";
     readonly WMS_STYLE = "parcel";
     readonly DEFAULT_SELECTED_STYLE: L.PathOptions = {
-        color: "#ff0000",
+        color: "#fcfc12",
         weight: 2,
-        opacity: 0.9,
-        fillOpacity: 0,
+        opacity: 0.65,
+        fillOpacity: 0.1,
     };
 
     @Input() mode: OverlayMode = OverlayMode.ReferenceOnly;
