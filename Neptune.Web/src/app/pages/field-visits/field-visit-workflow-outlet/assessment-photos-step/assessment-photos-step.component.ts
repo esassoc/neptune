@@ -2,7 +2,7 @@ import { Component, Input, OnInit } from "@angular/core";
 import { Router } from "@angular/router";
 import { AsyncPipe } from "@angular/common";
 import { FormGroup } from "@angular/forms";
-import { Observable, of, switchMap, take } from "rxjs";
+import { forkJoin, Observable, of, switchMap, take } from "rxjs";
 
 import { ImageEditorComponent, ImageEditorItem } from "src/app/shared/components/image-editor/image-editor.component";
 import { LoadingDirective } from "src/app/shared/directives/loading.directive";
@@ -126,10 +126,14 @@ export class FieldVisitAssessmentPhotosStepComponent implements OnInit {
                 })
             );
 
-        // Sequential fire-and-forget — captions are independent so concurrency isn't required.
-        Promise.all(requests.map((r) => r.toPromise())).then(() => {
-            this.alertService.pushAlert(new Alert("Captions saved.", AlertContext.Success));
-            this.refreshPhotos();
+        forkJoin(requests).subscribe({
+            next: () => {
+                this.alertService.pushAlert(new Alert("Captions saved.", AlertContext.Success));
+                this.refreshPhotos();
+            },
+            error: () => {
+                this.alertService.pushAlert(new Alert("An error occurred saving captions.", AlertContext.Danger));
+            },
         });
     }
 

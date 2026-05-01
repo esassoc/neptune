@@ -1,6 +1,6 @@
 import { Component, OnInit } from "@angular/core";
 import { Router } from "@angular/router";
-import { AsyncPipe, DecimalPipe } from "@angular/common";
+import { AsyncPipe } from "@angular/common";
 import { Observable } from "rxjs";
 
 import { FieldVisitWorkflowDto } from "src/app/shared/generated/model/field-visit-workflow-dto";

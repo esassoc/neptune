@@ -1,4 +1,4 @@
-import { Component } from "@angular/core";
+import { Component, OnInit } from "@angular/core";
 import { AsyncPipe } from "@angular/common";
 import { Router, RouterModule } from "@angular/router";
 import { ColDef } from "ag-grid-community";
@@ -17,6 +17,7 @@ import { MaintenanceRecordGridDto } from "src/app/shared/generated/model/mainten
 
 import { UtilityFunctionsService } from "src/app/services/utility-functions.service";
 import { ConfirmService } from "src/app/shared/services/confirm/confirm.service";
+import { escapeHtml } from "src/app/shared/helpers/html-escape";
 import { AlertService } from "src/app/shared/services/alert.service";
 import { Alert } from "src/app/shared/models/alert";
 import { AlertContext } from "src/app/shared/models/enums/alert-context.enum";
@@ -29,7 +30,7 @@ import { AuthenticationService } from "src/app/services/authentication.service";
     templateUrl: "./field-records.component.html",
     styleUrl: "./field-records.component.scss",
 })
-export class FieldRecordsComponent {
+export class FieldRecordsComponent implements OnInit {
     public fieldVisits$: Observable<FieldVisitDto[]>;
     public assessments$: Observable<TreatmentBMPAssessmentGridDto[]>;
     public maintenanceRecords$: Observable<MaintenanceRecordGridDto[]>;
@@ -182,10 +183,12 @@ export class FieldRecordsComponent {
 
     private deleteFieldVisit(params: any): void {
         const visit: FieldVisitDto = params.data;
+        const bmpName = escapeHtml(visit.TreatmentBMPName ?? "this BMP");
+        const visitDate = new Date(visit.VisitDate).toLocaleDateString();
         this.confirmService
             .confirm({
                 title: "Delete Field Visit",
-                message: `<p>You are about to delete the field visit for <strong>${visit.TreatmentBMPName ?? "this BMP"}</strong> dated ${new Date(visit.VisitDate).toLocaleDateString()}.</p><p>This will also delete the assessment(s) and maintenance record associated with this visit.</p><p>Are you sure you wish to proceed?</p>`,
+                message: `<p>You are about to delete the field visit for <strong>${bmpName}</strong> dated ${visitDate}.</p><p>This will also delete the assessment(s) and maintenance record associated with this visit.</p><p>Are you sure you wish to proceed?</p>`,
                 buttonClassYes: "btn btn-danger",
                 buttonTextYes: "Delete",
                 buttonTextNo: "Cancel",

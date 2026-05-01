@@ -1,4 +1,4 @@
-import { Component } from "@angular/core";
+import { Component, OnInit } from "@angular/core";
 import { AsyncPipe } from "@angular/common";
 import { ColDef } from "ag-grid-community";
 import { Observable } from "rxjs";
@@ -19,7 +19,7 @@ import { UtilityFunctionsService } from "src/app/services/utility-functions.serv
     templateUrl: "./latest-bmp-assessments.component.html",
     styleUrl: "./latest-bmp-assessments.component.scss",
 })
-export class LatestBmpAssessmentsComponent {
+export class LatestBmpAssessmentsComponent implements OnInit {
     public assessments$: Observable<TreatmentBMPAssessmentGridDto[]>;
     public columnDefs: ColDef[];
 

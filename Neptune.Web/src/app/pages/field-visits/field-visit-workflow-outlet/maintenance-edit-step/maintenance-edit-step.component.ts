@@ -58,6 +58,10 @@ export class FieldVisitMaintenanceEditStepComponent implements OnInit {
     public formGroup = new FormGroup({
         MaintenanceRecordTypeID: new FormControl<number | null>(null, { validators: [Validators.required] }),
         MaintenanceRecordDescription: new FormControl<string | null>(""),
+        // Per-observation controls are added dynamically once the BMP type's attribute schema loads;
+        // see buildObservationField. Keeping them under a nested group means formGroup.invalid +
+        // [disabled] on the Save button correctly reflect required observation inputs.
+        Observations: new FormGroup<{ [key: string]: FormControl<any> }>({}),
     });
 
     constructor(
@@ -92,9 +96,19 @@ export class FieldVisitMaintenanceEditStepComponent implements OnInit {
                 const maintenanceTypes = (attributeTypes ?? []).filter(
                     (t) => t.CustomAttributeType?.CustomAttributeTypePurposeID === CustomAttributeTypePurposeEnum.Maintenance
                 );
+                // Reset the dynamic Observations sub-group before re-populating in case the load fires twice.
+                const observationsGroup = this.formGroup.controls.Observations;
+                Object.keys(observationsGroup.controls).forEach((k) => observationsGroup.removeControl(k));
+
                 this.observationFields = maintenanceTypes
                     .map((t) => this.buildObservationField(t, record))
                     .sort((a, b) => a.sortOrder - b.sortOrder);
+
+                // Register each field's active control so formGroup.invalid reflects required observations.
+                for (const field of this.observationFields) {
+                    const active = field.dataTypeKind === "multi-select" ? field.multiControl : field.control;
+                    observationsGroup.addControl(`${field.customAttributeTypeID}`, active);
+                }
                 this.isLoading = false;
             });
     }

@@ -15,9 +15,8 @@ import { AlertContext } from "src/app/shared/models/enums/alert-context.enum";
  * AssessmentStepComponent renders both the Initial and Post-Maintenance assessment
  * landing pages — the layout is identical, only the assessment type and the
  * "skip to" target differ. Pass the type via the route data: { assessmentTypeID: 1 | 2 }.
- *
- * For Phase 2B this is a decision page only (Begin / Skip). The dynamic
- * observations form is being delivered in Phase 2C.
+ * It's a decision page (Begin / Skip / continue to existing); the dynamic
+ * observations form lives in ObservationsStepComponent.
  */
 @Component({
     selector: "field-visit-assessment-step",
