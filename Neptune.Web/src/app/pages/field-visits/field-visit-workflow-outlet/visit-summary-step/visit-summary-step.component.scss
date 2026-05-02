@@ -4,30 +4,18 @@
     margin-top: $spacing-400;
 }
 
-dl {
+// Browser default `dd { margin-left: 40px }` and the global `dt { padding-bottom: 0.5rem }`
+// both throw off the grid-row alignment. Zero them out so each dt/dd pair sits flush on the same baseline.
+dl.grid-12 {
     margin: 0;
+    row-gap: $spacing-300;
 
     dt {
-        font-weight: 600;
-        margin-top: $spacing-200;
-
-        &:first-child {
-            margin-top: 0;
-        }
+        padding-bottom: 0;
     }
 
     dd {
         margin-left: 0;
-    }
-}
-
-.step-footer {
-    display: flex;
-    align-items: center;
-    gap: $spacing-300;
-    margin-top: $spacing-500;
-
-    .spacer {
-        flex-grow: 1;
+        margin-bottom: 0;
     }
 }

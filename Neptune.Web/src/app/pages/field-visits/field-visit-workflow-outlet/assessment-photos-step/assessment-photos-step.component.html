@@ -1,15 +1,15 @@
 @if (workflow$ | async; as workflow) {
-    <h2>{{ headerLabel }}</h2>
+    <page-header [pageTitle]="headerLabel"></page-header>
 
-    @if (isLoading) {
+    @if (isLoading()) {
         <div [loadingSpinner]="{ isLoading: true }"></div>
-    } @else if (!assessment) {
+    } @else if (!assessment()) {
         <p>No assessment exists yet for this field visit. Return to the Assessment landing page to begin one.</p>
     } @else {
         <div class="card">
             <div class="card-body">
                 <image-editor
-                    [images]="photos"
+                    [images]="photos()"
                     [captionControlForm]="captionControlForm"
                     (newImageAdded)="onPhotoUpload($event)"
                     (imageDeleted)="onPhotoDelete($any($event))"

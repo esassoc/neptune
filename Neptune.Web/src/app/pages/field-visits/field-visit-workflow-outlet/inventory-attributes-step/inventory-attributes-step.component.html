@@ -1,0 +1,8 @@
+@if (workflow$ | async; as workflow) {
+    <page-header pageTitle="Attributes"></page-header>
+    <treatment-bmp-custom-attributes-form
+        [treatmentBMPID]="workflow.TreatmentBMPID"
+        [customAttributePurposeID]="OtherDesignAttributesPurposeID"
+        (saved)="onSaved(workflow)"
+        (cancelled)="onCancelled(workflow)"></treatment-bmp-custom-attributes-form>
+}

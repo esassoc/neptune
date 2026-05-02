@@ -455,12 +455,40 @@ export const routes: Routes = [
                             ),
                     },
                     {
+                        path: "inventory/location",
+                        title: "Inventory — Location",
+                        loadComponent: () =>
+                            import("./pages/field-visits/field-visit-workflow-outlet/inventory-location-step/inventory-location-step.component").then(
+                                (m) => m.FieldVisitInventoryLocationStepComponent
+                            ),
+                    },
+                    {
+                        path: "inventory/photos",
+                        title: "Inventory — Photos",
+                        loadComponent: () =>
+                            import("./pages/field-visits/field-visit-workflow-outlet/inventory-photos-step/inventory-photos-step.component").then(
+                                (m) => m.FieldVisitInventoryPhotosStepComponent
+                            ),
+                    },
+                    {
+                        path: "inventory/attributes",
+                        title: "Inventory — Attributes",
+                        loadComponent: () =>
+                            import("./pages/field-visits/field-visit-workflow-outlet/inventory-attributes-step/inventory-attributes-step.component").then(
+                                (m) => m.FieldVisitInventoryAttributesStepComponent
+                            ),
+                    },
+                    {
                         path: "assessment",
                         title: "Initial Assessment",
                         loadComponent: () =>
                             import("./pages/field-visits/field-visit-workflow-outlet/assessment-step/assessment-step.component").then(
                                 (m) => m.FieldVisitAssessmentStepComponent
                             ),
+                        // withComponentInputBinding() overrides @Input defaults with `undefined` when the route has
+                        // no matching data key — must explicitly set `assessmentTypeID: 1` here so the Initial
+                        // assessment landing page (and observations/photos sub-steps) get the right type.
+                        data: { assessmentTypeID: 1 },
                     },
                     {
                         path: "assessment/observations",
@@ -469,6 +497,7 @@ export const routes: Routes = [
                             import("./pages/field-visits/field-visit-workflow-outlet/observations-step/observations-step.component").then(
                                 (m) => m.FieldVisitObservationsStepComponent
                             ),
+                        data: { assessmentTypeID: 1 },
                     },
                     {
                         path: "assessment/photos",
@@ -477,6 +506,7 @@ export const routes: Routes = [
                             import("./pages/field-visits/field-visit-workflow-outlet/assessment-photos-step/assessment-photos-step.component").then(
                                 (m) => m.FieldVisitAssessmentPhotosStepComponent
                             ),
+                        data: { assessmentTypeID: 1 },
                     },
                     {
                         path: "maintenance",

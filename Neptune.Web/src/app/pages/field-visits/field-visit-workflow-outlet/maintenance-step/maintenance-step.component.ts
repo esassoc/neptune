@@ -5,6 +5,7 @@ import { Observable } from "rxjs";
 
 import { FieldVisitWorkflowDto } from "src/app/shared/generated/model/field-visit-workflow-dto";
 import { MaintenanceRecordService } from "src/app/shared/generated/api/maintenance-record.service";
+import { PageHeaderComponent } from "src/app/shared/components/page-header/page-header.component";
 
 import { FieldVisitWorkflowService } from "../../services/field-visit-workflow.service";
 import { AlertService } from "src/app/shared/services/alert.service";
@@ -14,7 +15,7 @@ import { AlertContext } from "src/app/shared/models/enums/alert-context.enum";
 @Component({
     selector: "field-visit-maintenance-step",
     standalone: true,
-    imports: [AsyncPipe],
+    imports: [AsyncPipe, PageHeaderComponent],
     templateUrl: "./maintenance-step.component.html",
     styleUrl: "./maintenance-step.component.scss",
 })

@@ -32,6 +32,10 @@ export class TreatmentBmpImagesEditorComponent implements OnInit {
 
     @Output() saved = new EventEmitter<void>();
     @Output() cancelled = new EventEmitter<void>();
+    /** Fired after a successful image upload — distinct from `(saved)` (caption save click). */
+    @Output() uploaded = new EventEmitter<void>();
+    /** Fired after a successful image delete — distinct from `(saved)` (caption save click). */
+    @Output() deleted = new EventEmitter<void>();
 
     public treatmentBMPImages$!: Observable<TreatmentBMPImageDto[]>;
     public reloadTrigger$ = new BehaviorSubject<void>(undefined);
@@ -66,6 +70,7 @@ export class TreatmentBmpImagesEditorComponent implements OnInit {
                 this.reloadTrigger$.next();
                 this.alertService.pushAlert(new Alert("Image added successfully.", AlertContext.Success));
                 this.isLoadingSubmit = false;
+                this.uploaded.emit();
             },
             error: () => (this.isLoadingSubmit = false),
         });
@@ -78,6 +83,7 @@ export class TreatmentBmpImagesEditorComponent implements OnInit {
                 this.reloadTrigger$.next();
                 this.alertService.pushAlert(new Alert("Image deleted successfully.", AlertContext.Success));
                 this.isLoadingSubmit = false;
+                this.deleted.emit();
             },
             error: () => (this.isLoadingSubmit = false),
         });

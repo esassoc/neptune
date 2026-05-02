@@ -1,0 +1,7 @@
+@if (workflow$ | async; as workflow) {
+    <page-header pageTitle="Location"></page-header>
+    <treatment-bmp-location-editor
+        [treatmentBMPID]="workflow.TreatmentBMPID"
+        (saved)="onSaved(workflow)"
+        (cancelled)="onCancelled(workflow)"></treatment-bmp-location-editor>
+}

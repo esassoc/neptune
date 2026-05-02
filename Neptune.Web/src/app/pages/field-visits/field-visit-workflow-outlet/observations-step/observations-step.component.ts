@@ -1,11 +1,12 @@
-import { Component, Input, OnInit } from "@angular/core";
+import { Component, Input, OnInit, signal } from "@angular/core";
 import { Router } from "@angular/router";
 import { AsyncPipe } from "@angular/common";
-import { FormControl, ReactiveFormsModule } from "@angular/forms";
+import { FormControl, ReactiveFormsModule, ValidatorFn, Validators } from "@angular/forms";
 import { Observable, of, switchMap, take } from "rxjs";
 
-import { FormFieldType, SelectDropdownOption } from "src/app/shared/components/forms/form-field/form-field.component";
+import { FormFieldComponent, FormFieldType, SelectDropdownOption } from "src/app/shared/components/forms/form-field/form-field.component";
 import { LoadingDirective } from "src/app/shared/directives/loading.directive";
+import { PageHeaderComponent } from "src/app/shared/components/page-header/page-header.component";
 
 import { TreatmentBMPAssessmentByFieldVisitService } from "src/app/shared/generated/api/treatment-bmp-assessment-by-field-visit.service";
 import { TreatmentBMPAssessmentService } from "src/app/shared/generated/api/treatment-bmp-assessment.service";
@@ -61,7 +62,7 @@ interface ObservationTypePanel {
 @Component({
     selector: "field-visit-observations-step",
     standalone: true,
-    imports: [AsyncPipe, ReactiveFormsModule, LoadingDirective],
+    imports: [AsyncPipe, ReactiveFormsModule, LoadingDirective, PageHeaderComponent, FormFieldComponent],
     templateUrl: "./observations-step.component.html",
     styleUrl: "./observations-step.component.scss",
 })
@@ -70,9 +71,11 @@ export class FieldVisitObservationsStepComponent implements OnInit {
     @Input() assessmentTypeID: number = 1;
 
     public workflow$: Observable<FieldVisitWorkflowDto | null>;
-    public assessment: TreatmentBMPAssessmentDetailDto | null = null;
-    public panels: ObservationTypePanel[] = [];
-    public isLoading = true;
+    // Signals — plain fields don't reliably trigger CD when mutated inside subscribe callbacks
+    // under zoneless behavior, leaving the spinner stuck until a stray click forces a render.
+    public assessment = signal<TreatmentBMPAssessmentDetailDto | null>(null);
+    public panels = signal<ObservationTypePanel[]>([]);
+    public isLoading = signal(true);
     public FormFieldType = FormFieldType;
 
     constructor(
@@ -89,7 +92,9 @@ export class FieldVisitObservationsStepComponent implements OnInit {
     }
 
     public get headerLabel(): string {
-        return this.isPostMaintenance ? "Post-Maintenance Assessment Observations" : "Initial Assessment Observations";
+        // Single-word page title — the sidebar already says which assessment is active,
+        // so no need to repeat "Initial / Post-Maintenance Assessment" in the page header.
+        return "Observations";
     }
 
     ngOnInit(): void {
@@ -103,11 +108,13 @@ export class FieldVisitObservationsStepComponent implements OnInit {
                 })
             )
             .subscribe((assessment) => {
-                this.assessment = assessment;
-                this.panels = (assessment?.ObservationTypes ?? [])
-                    .map((t) => this.buildPanel(t, assessment?.Observations ?? []))
-                    .filter((p): p is ObservationTypePanel => p != null);
-                this.isLoading = false;
+                this.assessment.set(assessment);
+                this.panels.set(
+                    (assessment?.ObservationTypes ?? [])
+                        .map((t) => this.buildPanel(t, assessment?.Observations ?? []))
+                        .filter((p): p is ObservationTypePanel => p != null)
+                );
+                this.isLoading.set(false);
             });
     }
 
@@ -134,13 +141,20 @@ export class FieldVisitObservationsStepComponent implements OnInit {
                   ]
                 : undefined;
 
+        const minValue = schemaObj?.MinimumValueOfObservations;
+        const maxValue = schemaObj?.MaximumValueOfObservations;
+        // Range validators replace the previous DOM-level min/max attrs (lost when we migrated to
+        // <form-field>, which doesn't surface min/max on the underlying number input). Validation
+        // now lives on the FormControl so formGroup.invalid + Save-button state reflect it.
+        const valueValidators = this.buildValueValidators(collectionMethod, minValue, maxValue);
+
         return {
             observationTypeID: typeForForm.TreatmentBMPAssessmentObservationTypeID,
             name: typeForForm.TreatmentBMPAssessmentObservationTypeName,
             collectionMethod,
             measurementUnitLabel: schemaObj?.MeasurementUnitLabel,
-            minValue: schemaObj?.MinimumValueOfObservations,
-            maxValue: schemaObj?.MaximumValueOfObservations,
+            minValue,
+            maxValue,
             assessmentDescription: schemaObj?.AssessmentDescription,
             benchmarkDescription: schemaObj?.BenchmarkDescription,
             thresholdDescription: schemaObj?.ThresholdDescription,
@@ -150,12 +164,25 @@ export class FieldVisitObservationsStepComponent implements OnInit {
                 const existing = existingValues.find((v) => v.PropertyObserved === prop);
                 return {
                     propertyObserved: prop,
-                    valueControl: new FormControl<string | null>(this.formatExisting(existing?.ObservationValue), { validators: [] }),
+                    valueControl: new FormControl<string | null>(this.formatExisting(existing?.ObservationValue), { validators: valueValidators }),
                     notesControl: new FormControl<string | null>(existing?.Notes ?? ""),
                     passFailOptions,
                 };
             }),
         };
+    }
+
+    private buildValueValidators(collectionMethod: string, minValue: number | undefined, maxValue: number | undefined): ValidatorFn[] {
+        if (collectionMethod === "Percentage") {
+            return [Validators.min(0), Validators.max(100)];
+        }
+        if (collectionMethod === "DiscreteValue") {
+            const validators: ValidatorFn[] = [];
+            if (typeof minValue === "number") validators.push(Validators.min(minValue));
+            if (typeof maxValue === "number") validators.push(Validators.max(maxValue));
+            return validators;
+        }
+        return [];
     }
 
     private parseSchema(schemaJson: string | null | undefined): any {
@@ -184,9 +211,24 @@ export class FieldVisitObservationsStepComponent implements OnInit {
     }
 
     save(workflow: FieldVisitWorkflowDto, andContinue: boolean): void {
-        if (!this.assessment) return;
+        const assessment = this.assessment();
+        if (!assessment) return;
 
-        const observations = this.panels.map((panel) => {
+        // Touch every value control so out-of-range / range-validator errors surface in form-field
+        // before we bail out. Notes have no validators, so no need to touch them.
+        let hasInvalid = false;
+        for (const panel of this.panels()) {
+            for (const prop of panel.properties) {
+                prop.valueControl.markAsTouched();
+                if (prop.valueControl.invalid) hasInvalid = true;
+            }
+        }
+        if (hasInvalid) {
+            this.alertService.pushAlert(new Alert("One or more observations are out of range. Please review and correct before saving.", AlertContext.Danger));
+            return;
+        }
+
+        const observations = this.panels().map((panel) => {
             const observationData = JSON.stringify({
                 SingleValueObservations: panel.properties.map((p) => ({
                     PropertyObserved: p.propertyObserved,
@@ -202,7 +244,7 @@ export class FieldVisitObservationsStepComponent implements OnInit {
 
         const dto = new TreatmentBMPAssessmentUpsertDto({ Observations: observations });
 
-        this.assessmentService.upsertObservationsTreatmentBMPAssessment(this.assessment.TreatmentBMPAssessmentID, dto).subscribe(() => {
+        this.assessmentService.upsertObservationsTreatmentBMPAssessment(assessment.TreatmentBMPAssessmentID, dto).subscribe(() => {
             this.alertService.pushAlert(new Alert("Observations saved.", AlertContext.Success));
             this.workflowService.refresh().subscribe(() => {
                 if (andContinue) {
@@ -228,7 +270,8 @@ export class FieldVisitObservationsStepComponent implements OnInit {
     }
 
     copyFromInitial(workflow: FieldVisitWorkflowDto): void {
-        if (!this.assessment) return;
+        const assessment = this.assessment();
+        if (!assessment) return;
         this.confirmService
             .confirm({
                 title: "Copy data from Initial Assessment?",
@@ -239,11 +282,13 @@ export class FieldVisitObservationsStepComponent implements OnInit {
             })
             .then((confirmed) => {
                 if (!confirmed) return;
-                this.assessmentService.copyFromInitialTreatmentBMPAssessment(this.assessment!.TreatmentBMPAssessmentID).subscribe((updated) => {
-                    this.assessment = updated;
-                    this.panels = (updated?.ObservationTypes ?? [])
-                        .map((t) => this.buildPanel(t, updated?.Observations ?? []))
-                        .filter((p): p is ObservationTypePanel => p != null);
+                this.assessmentService.copyFromInitialTreatmentBMPAssessment(assessment.TreatmentBMPAssessmentID).subscribe((updated) => {
+                    this.assessment.set(updated);
+                    this.panels.set(
+                        (updated?.ObservationTypes ?? [])
+                            .map((t) => this.buildPanel(t, updated?.Observations ?? []))
+                            .filter((p): p is ObservationTypePanel => p != null)
+                    );
                     this.alertService.pushAlert(new Alert("Copied observations from Initial Assessment.", AlertContext.Success));
                     this.workflowService.refresh().subscribe();
                 });

@@ -1,0 +1,9 @@
+@if (workflow$ | async; as workflow) {
+    <page-header pageTitle="Photos"></page-header>
+    <treatment-bmp-images-editor
+        [treatmentBMPID]="workflow.TreatmentBMPID"
+        (uploaded)="onPhotosChanged(workflow)"
+        (deleted)="onPhotosChanged(workflow)"
+        (saved)="onContinue(workflow)"
+        (cancelled)="onCancelled(workflow)"></treatment-bmp-images-editor>
+}

@@ -1,0 +1,10 @@
+<li class="sidebar-sub-item">
+    <a [routerLink]="navRouterLink" routerLinkActive="active" [routerLinkActiveOptions]="{ exact: true }" class="sidebar-sub-link" [class.disabled]="disabled">
+        @if (complete) {
+            <icon class="complete" icon="StepComplete"></icon>
+        } @else {
+            <icon class="fade" icon="StepIncomplete"></icon>
+        }
+        <span class="sub-label"><ng-content></ng-content></span>
+    </a>
+</li>
