@@ -1,7 +1,7 @@
 import { Component, Input, OnInit, signal } from "@angular/core";
 import { Router } from "@angular/router";
 import { AsyncPipe } from "@angular/common";
-import { FormControl, ReactiveFormsModule } from "@angular/forms";
+import { FormControl, ReactiveFormsModule, ValidatorFn, Validators } from "@angular/forms";
 import { Observable, of, switchMap, take } from "rxjs";
 
 import { FormFieldComponent, FormFieldType, SelectDropdownOption } from "src/app/shared/components/forms/form-field/form-field.component";
@@ -141,13 +141,20 @@ export class FieldVisitObservationsStepComponent implements OnInit {
                   ]
                 : undefined;
 
+        const minValue = schemaObj?.MinimumValueOfObservations;
+        const maxValue = schemaObj?.MaximumValueOfObservations;
+        // Range validators replace the previous DOM-level min/max attrs (lost when we migrated to
+        // <form-field>, which doesn't surface min/max on the underlying number input). Validation
+        // now lives on the FormControl so formGroup.invalid + Save-button state reflect it.
+        const valueValidators = this.buildValueValidators(collectionMethod, minValue, maxValue);
+
         return {
             observationTypeID: typeForForm.TreatmentBMPAssessmentObservationTypeID,
             name: typeForForm.TreatmentBMPAssessmentObservationTypeName,
             collectionMethod,
             measurementUnitLabel: schemaObj?.MeasurementUnitLabel,
-            minValue: schemaObj?.MinimumValueOfObservations,
-            maxValue: schemaObj?.MaximumValueOfObservations,
+            minValue,
+            maxValue,
             assessmentDescription: schemaObj?.AssessmentDescription,
             benchmarkDescription: schemaObj?.BenchmarkDescription,
             thresholdDescription: schemaObj?.ThresholdDescription,
@@ -157,12 +164,25 @@ export class FieldVisitObservationsStepComponent implements OnInit {
                 const existing = existingValues.find((v) => v.PropertyObserved === prop);
                 return {
                     propertyObserved: prop,
-                    valueControl: new FormControl<string | null>(this.formatExisting(existing?.ObservationValue), { validators: [] }),
+                    valueControl: new FormControl<string | null>(this.formatExisting(existing?.ObservationValue), { validators: valueValidators }),
                     notesControl: new FormControl<string | null>(existing?.Notes ?? ""),
                     passFailOptions,
                 };
             }),
         };
+    }
+
+    private buildValueValidators(collectionMethod: string, minValue: number | undefined, maxValue: number | undefined): ValidatorFn[] {
+        if (collectionMethod === "Percentage") {
+            return [Validators.min(0), Validators.max(100)];
+        }
+        if (collectionMethod === "DiscreteValue") {
+            const validators: ValidatorFn[] = [];
+            if (typeof minValue === "number") validators.push(Validators.min(minValue));
+            if (typeof maxValue === "number") validators.push(Validators.max(maxValue));
+            return validators;
+        }
+        return [];
     }
 
     private parseSchema(schemaJson: string | null | undefined): any {
@@ -193,6 +213,20 @@ export class FieldVisitObservationsStepComponent implements OnInit {
     save(workflow: FieldVisitWorkflowDto, andContinue: boolean): void {
         const assessment = this.assessment();
         if (!assessment) return;
+
+        // Touch every value control so out-of-range / range-validator errors surface in form-field
+        // before we bail out. Notes have no validators, so no need to touch them.
+        let hasInvalid = false;
+        for (const panel of this.panels()) {
+            for (const prop of panel.properties) {
+                prop.valueControl.markAsTouched();
+                if (prop.valueControl.invalid) hasInvalid = true;
+            }
+        }
+        if (hasInvalid) {
+            this.alertService.pushAlert(new Alert("One or more observations are out of range. Please review and correct before saving.", AlertContext.Danger));
+            return;
+        }
 
         const observations = this.panels().map((panel) => {
             const observationData = JSON.stringify({

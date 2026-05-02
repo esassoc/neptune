@@ -37,8 +37,15 @@ export class FieldVisitWorkflowService {
      * Flip InventoryUpdated=true on the field visit (server-side) and refresh the local workflow signal.
      * Used by every Inventory sub-step (Location / Photos / Attributes) on save so the Inventory parent
      * nav-item gets its green check, matching legacy MVC behavior where any sub-step submit set the flag.
+     *
+     * Short-circuits when the flag is already true — avoids redundant round-trips on every photo
+     * upload/delete during a single visit (the photos sub-step calls this on each persistence event).
      */
     public markInventoryUpdatedAndRefresh(fieldVisitID: number): Observable<FieldVisitWorkflowDto | null> {
+        const current = this.workflowSubject.value;
+        if (current?.InventoryUpdated) {
+            return of(current);
+        }
         const dto = new FieldVisitInventoryUpdatedDto({ InventoryUpdated: true });
         return this.fieldVisitService.updateInventoryUpdatedFieldVisit(fieldVisitID, dto).pipe(switchMap(() => this.refresh()));
     }
