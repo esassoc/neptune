@@ -8,13 +8,19 @@ import { RouterLink, RouterLinkActive } from "@angular/router";
     standalone: true,
     imports: [IconComponent, RouterLink, RouterLinkActive],
     templateUrl: "./workflow-nav-item.component.html",
-    styleUrls: ["./workflow-nav-item.component.scss"]
+    styleUrls: ["./workflow-nav-item.component.scss"],
 })
 export class WorkflowNavItemComponent {
     @Input() navRouterLink: string | string[];
     @Input() complete: boolean = false;
     @Input() disabled: boolean = false;
     @Input() required: boolean = true;
+    /** When true, render the projected sub-nav slot whenever the parent route is active. */
+    @Input() hasSubNav: boolean = false;
 
-    constructor() {}
+    public isActive: boolean = false;
+
+    onIsActiveChange(active: boolean): void {
+        this.isActive = active;
+    }
 }

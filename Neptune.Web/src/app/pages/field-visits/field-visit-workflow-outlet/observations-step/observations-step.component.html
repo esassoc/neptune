@@ -1,16 +1,16 @@
 @if (workflow$ | async; as workflow) {
-    <h2>{{ headerLabel }}</h2>
+    <page-header pageTitle="Observations"></page-header>
 
-    @if (isLoading) {
+    @if (isLoading()) {
         <div [loadingSpinner]="{ isLoading: true }"></div>
-    } @else if (!assessment) {
+    } @else if (!assessment()) {
         <p>No assessment exists yet for this field visit. Return to the Assessment landing page to begin one.</p>
-    } @else {
-        @if (panels.length === 0) {
+    } @else if (assessment(); as assessmentDetail) {
+        @if (panels().length === 0) {
             <p>No observation types are configured for this BMP type.</p>
         }
 
-        @if (isPostMaintenance && assessment.ObservationTypes.length > 0) {
+        @if (isPostMaintenance && assessmentDetail.ObservationTypes.length > 0) {
             <div class="copy-from-initial">
                 <button type="button" class="btn btn-secondary" (click)="copyFromInitial(workflow)">
                     Copy data from Initial Assessment
@@ -18,7 +18,7 @@
             </div>
         }
 
-        @for (panel of panels; track panel.observationTypeID) {
+        @for (panel of panels(); track panel.observationTypeID) {
             <div class="card observation-panel">
                 <div class="card-header"><span class="card-title">{{ panel.name }}</span></div>
                 <div class="card-body">
@@ -38,61 +38,50 @@
                         </dl>
                     }
 
-                    <div class="property-rows">
-                        @for (property of panel.properties; track property.propertyObserved) {
-                            <div class="property-row grid-12">
-                                <label class="property-label g-col-12 g-col-md-3">{{ property.propertyObserved }}</label>
-
-                                @switch (panel.collectionMethod) {
-                                    @case ("DiscreteValue") {
-                                        <div class="value-input g-col-12 g-col-md-3">
-                                            <input
-                                                type="number"
-                                                class="form-control"
-                                                [formControl]="property.valueControl"
-                                                [attr.min]="panel.minValue ?? null"
-                                                [attr.max]="panel.maxValue ?? null"
-                                                [placeholder]="panel.measurementUnitLabel || 'value'" />
-                                            @if (panel.measurementUnitLabel) {
-                                                <span class="unit-suffix">{{ panel.measurementUnitLabel }}</span>
-                                            }
-                                        </div>
-                                    }
-                                    @case ("PassFail") {
-                                        <div class="value-input g-col-12 g-col-md-3">
-                                            <select class="form-control" [formControl]="property.valueControl">
-                                                <option [ngValue]="null">— select —</option>
-                                                @for (opt of property.passFailOptions; track opt.Value) {
-                                                    <option [value]="opt.Value">{{ opt.Label }}</option>
-                                                }
-                                            </select>
-                                        </div>
-                                    }
-                                    @case ("Percentage") {
-                                        <div class="value-input g-col-12 g-col-md-3">
-                                            <input
-                                                type="number"
-                                                class="form-control"
-                                                [formControl]="property.valueControl"
-                                                min="0"
-                                                max="100"
-                                                placeholder="0–100" />
-                                            <span class="unit-suffix">%</span>
-                                        </div>
-                                    }
-                                    @default {
-                                        <div class="value-input g-col-12 g-col-md-3">
-                                            <input type="text" class="form-control" [formControl]="property.valueControl" />
-                                        </div>
-                                    }
+                    @for (property of panel.properties; track property.propertyObserved) {
+                        <div class="grid-12 property-row">
+                            @switch (panel.collectionMethod) {
+                                @case ("DiscreteValue") {
+                                    <form-field
+                                        class="g-col-12 g-col-md-6"
+                                        [formControl]="property.valueControl"
+                                        [fieldLabel]="property.propertyObserved"
+                                        [type]="FormFieldType.Number"
+                                        [units]="panel.measurementUnitLabel || ''"></form-field>
                                 }
-
-                                <div class="notes-input g-col-12 g-col-md-6">
-                                    <input type="text" class="form-control" [formControl]="property.notesControl" placeholder="Notes (optional)" />
-                                </div>
-                            </div>
-                        }
-                    </div>
+                                @case ("PassFail") {
+                                    <form-field
+                                        class="g-col-12 g-col-md-6"
+                                        [formControl]="property.valueControl"
+                                        [fieldLabel]="property.propertyObserved"
+                                        [type]="FormFieldType.Select"
+                                        [formInputOptions]="property.passFailOptions || []"
+                                        placeholder="— select —"></form-field>
+                                }
+                                @case ("Percentage") {
+                                    <form-field
+                                        class="g-col-12 g-col-md-6"
+                                        [formControl]="property.valueControl"
+                                        [fieldLabel]="property.propertyObserved"
+                                        [type]="FormFieldType.Number"
+                                        units="%"></form-field>
+                                }
+                                @default {
+                                    <form-field
+                                        class="g-col-12 g-col-md-6"
+                                        [formControl]="property.valueControl"
+                                        [fieldLabel]="property.propertyObserved"
+                                        [type]="FormFieldType.Text"></form-field>
+                                }
+                            }
+                            <form-field
+                                class="g-col-12 g-col-md-6"
+                                [formControl]="property.notesControl"
+                                fieldLabel="Notes"
+                                [type]="FormFieldType.Text"
+                                placeholder="Optional"></form-field>
+                        </div>
+                    }
                 </div>
             </div>
         }
@@ -100,7 +89,7 @@
         <div class="step-footer">
             <button type="button" class="btn btn-secondary" (click)="save(workflow, false)">Save</button>
             <button type="button" class="btn btn-primary" (click)="save(workflow, true)">
-                Save &amp; Continue
+                Save &amp; Continue <i class="fa fa-caret-right ml-2"></i>
             </button>
         </div>
     }

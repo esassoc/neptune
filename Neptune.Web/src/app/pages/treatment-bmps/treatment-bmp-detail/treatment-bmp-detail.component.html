@@ -406,9 +406,7 @@
             <div class="card-header">
                 <span class="card-title">Field Visits</span>
                 @if (currentPersonCanManage) {
-                    <span class="card-actions">
-                        <button class="btn btn-primary" (click)="openBeginFieldVisitModal()"><span class="icon-plus"></span> Begin Field Visit</button>
-                    </span>
+                    <button class="btn btn-white-outline btn-sm" (click)="openBeginFieldVisitModal()"><i class="fa fa-plus"></i> Begin Field Visit</button>
                 }
             </div>
             <div class="card-body">
@@ -425,12 +423,10 @@
 
         <!-- Funding Events -->
         <div class="card g-col-6 mt-3">
-            <div class="card-header d-flex justify-content-between align-items-center">
+            <div class="card-header">
                 <span class="card-title">Funding Events</span>
                 @if (currentPersonCanManage) {
-                    <span class="card-actions">
-                        <button class="btn btn-primary" (click)="openAddFundingEventModal()"><span class="icon-plus"></span> Add Funding Event</button>
-                    </span>
+                    <button class="btn btn-white-outline btn-sm" (click)="openAddFundingEventModal()"><i class="fa fa-plus"></i> Add Funding Event</button>
                 }
             </div>
             <div class="card-body">
@@ -535,9 +531,7 @@
                 <div class="card-header">
                     <span class="card-title">Documents</span>
                     @if (currentPersonCanManage) {
-                        <span class="card-actions">
-                            <button class="btn btn-primary" (click)="openDocumentUploadModal()"><span class="icon-plus"></span> Upload Document</button>
-                        </span>
+                        <button class="btn btn-white-outline btn-sm" (click)="openDocumentUploadModal()"><i class="fa fa-plus"></i> Upload Document</button>
                     }
                 </div>
                 <div class="card-body">

@@ -1,22 +1,24 @@
 @if (workflow$ | async; as workflow) {
-    <h2>Maintenance</h2>
+    <page-header pageTitle="Maintenance"></page-header>
 
-    @if (!workflow.MaintenanceRecordID) {
-        <p>Did maintenance occur during this Field Visit? Begin a Maintenance Record to capture what was done, or skip to the post-maintenance assessment.</p>
-        <div class="step-footer">
-            <button type="button" class="btn btn-link" (click)="skipToPostMaintenanceAssessment(workflow)">Skip to Post-Maintenance Assessment</button>
-            <button type="button" class="btn btn-primary" (click)="beginMaintenance(workflow)">Begin Maintenance Record</button>
-        </div>
-    } @else {
-        <div class="card">
-            <div class="card-header"><span class="card-title">Maintenance Record</span></div>
-            <div class="card-body">
-                <p>A maintenance record exists for this visit. Open it to record observations and details.</p>
-            </div>
-        </div>
-        <div class="step-footer">
-            <button type="button" class="btn btn-link" (click)="skipToPostMaintenanceAssessment(workflow)">Skip to Post-Maintenance Assessment</button>
-            <button type="button" class="btn btn-primary" (click)="editMaintenance(workflow)">Edit Maintenance Record</button>
-        </div>
-    }
+    <p>The maintenance workflow allows input of observations to quantify the type and amount of maintenance performed.</p>
+    <p>
+        Some observations are required for the Maintenance Record to be considered complete. The required observations are marked with a
+        <span class="required-asterisk">*</span> on the form.
+    </p>
+
+    <div class="step-footer">
+        <button type="button" class="btn btn-primary" (click)="skipToPostMaintenanceAssessment(workflow)">
+            Skip to Post-Maintenance Assessment <i class="fa fa-forward ml-2"></i>
+        </button>
+        @if (!workflow.MaintenanceRecordID) {
+            <button type="button" class="btn btn-primary" (click)="beginMaintenance(workflow)">
+                Create Maintenance Record <i class="fa fa-caret-right ml-2"></i>
+            </button>
+        } @else {
+            <button type="button" class="btn btn-primary" (click)="editMaintenance(workflow)">
+                Edit Maintenance Record <i class="fa fa-caret-right ml-2"></i>
+            </button>
+        }
+    </div>
 }

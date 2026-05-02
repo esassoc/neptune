@@ -1,5 +1,4 @@
 import { Component, OnInit } from "@angular/core";
-import { Router } from "@angular/router";
 import { AsyncPipe, DatePipe, DecimalPipe } from "@angular/common";
 import { Observable } from "rxjs";
 
@@ -8,15 +7,15 @@ import { FieldVisitService } from "src/app/shared/generated/api/field-visit.serv
 
 import { FieldVisitWorkflowService } from "../../services/field-visit-workflow.service";
 import { AlertService } from "src/app/shared/services/alert.service";
-import { ConfirmService } from "src/app/shared/services/confirm/confirm.service";
 import { Alert } from "src/app/shared/models/alert";
 import { AlertContext } from "src/app/shared/models/enums/alert-context.enum";
 import { AuthenticationService } from "src/app/services/authentication.service";
+import { PageHeaderComponent } from "src/app/shared/components/page-header/page-header.component";
 
 @Component({
     selector: "field-visit-visit-summary-step",
     standalone: true,
-    imports: [AsyncPipe, DatePipe, DecimalPipe],
+    imports: [AsyncPipe, DatePipe, DecimalPipe, PageHeaderComponent],
     templateUrl: "./visit-summary-step.component.html",
     styleUrl: "./visit-summary-step.component.scss",
 })
@@ -28,9 +27,7 @@ export class FieldVisitVisitSummaryStepComponent implements OnInit {
         private workflowService: FieldVisitWorkflowService,
         private fieldVisitService: FieldVisitService,
         private alertService: AlertService,
-        private confirmService: ConfirmService,
-        private authenticationService: AuthenticationService,
-        private router: Router
+        private authenticationService: AuthenticationService
     ) {}
 
     ngOnInit(): void {
@@ -66,22 +63,4 @@ export class FieldVisitVisitSummaryStepComponent implements OnInit {
         });
     }
 
-    deleteVisit(workflow: FieldVisitWorkflowDto): void {
-        this.confirmService
-            .confirm({
-                title: "Delete Field Visit",
-                message:
-                    "Are you sure you want to delete this Field Visit? This will remove the visit, all assessments, and the maintenance record.",
-                buttonClassYes: "btn btn-danger",
-                buttonTextYes: "Delete",
-                buttonTextNo: "Cancel",
-            })
-            .then((confirmed) => {
-                if (!confirmed) return;
-                this.fieldVisitService.deleteFieldVisit(workflow.FieldVisitID).subscribe(() => {
-                    this.alertService.pushAlert(new Alert("Field Visit deleted.", AlertContext.Success));
-                    this.router.navigate(["/treatment-bmps", workflow.TreatmentBMPID]);
-                });
-            });
-    }
 }

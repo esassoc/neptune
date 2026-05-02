@@ -1,16 +1,28 @@
 @use "/src/scss/abstracts" as *;
 
-.todo {
-    background: $teal-50;
-    border-left: 3px solid $teal-500;
-    padding: $spacing-300;
-    margin-top: $spacing-300;
-}
+.icon-legend {
+    list-style: none;
+    padding-left: 0;
+    margin: 0 0 $spacing-400;
 
-.step-footer {
-    display: flex;
-    align-items: center;
-    justify-content: flex-end;
-    gap: $spacing-300;
-    margin-top: $spacing-500;
+    li {
+        display: flex;
+        align-items: center;
+        gap: $spacing-200;
+        margin-bottom: $spacing-200;
+    }
+
+    .legend-icon {
+        display: inline-flex;
+        width: 1rem;
+        flex: 0 0 auto;
+
+        &.complete {
+            color: $green-default;
+        }
+
+        &.incomplete {
+            color: $orange-default;
+        }
+    }
 }

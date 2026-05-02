@@ -36,35 +36,14 @@
     }
 }
 
-.property-rows {
-    display: flex;
-    flex-direction: column;
-    gap: $spacing-300;
-}
-
 .property-row {
-    align-items: center;
+    margin-bottom: $spacing-300;
 
-    .property-label {
-        font-weight: 600;
+    &:last-child {
+        margin-bottom: 0;
     }
 
-    .value-input {
-        display: flex;
-        align-items: center;
-        gap: $spacing-200;
-
-        .unit-suffix {
-            color: $gray-600;
-            font-size: $type-size-200;
-        }
+    form-field {
+        display: block;
     }
-}
-
-.step-footer {
-    display: flex;
-    align-items: center;
-    justify-content: flex-end;
-    gap: $spacing-300;
-    margin-top: $spacing-500;
 }

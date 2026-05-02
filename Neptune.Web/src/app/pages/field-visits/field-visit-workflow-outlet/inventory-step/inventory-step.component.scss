@@ -1,36 +1,5 @@
 @use "/src/scss/abstracts" as *;
 
-.inline-editor {
-    display: block !important;
-    padding: $spacing-400 0;
-    background: $gray-50;
-    margin: $spacing-200 calc(-1 * $spacing-400);
-    padding-left: $spacing-400;
-    padding-right: $spacing-400;
-}
-
-.inventory-actions {
-    list-style: none;
-    padding: 0;
-    margin: 0;
-
-    li {
-        display: flex;
-        align-items: center;
-        justify-content: space-between;
-        padding: $spacing-300 0;
-        border-bottom: 1px solid $gray-200;
-
-        &:last-child {
-            border-bottom: 0;
-        }
-    }
-
-    .action-label {
-        font-weight: 600;
-    }
-}
-
 .required-attrs {
     margin-top: $spacing-400;
     font-size: $type-size-200;
@@ -38,12 +7,4 @@
     .warn {
         color: $danger;
     }
-}
-
-.step-footer {
-    display: flex;
-    align-items: center;
-    justify-content: flex-end;
-    gap: $spacing-300;
-    margin-top: $spacing-500;
 }

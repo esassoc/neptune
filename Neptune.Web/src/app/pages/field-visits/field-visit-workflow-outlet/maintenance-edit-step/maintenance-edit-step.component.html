@@ -1,8 +1,8 @@
 @if (workflow$ | async; as workflow) {
-    <h2>Edit Maintenance Record</h2>
+    <page-header pageTitle="Edit Maintenance Record"></page-header>
     <p>Capture the maintenance type, a description of what was done, and observations for the applicable maintenance attributes.</p>
 
-    @if (isLoading) {
+    @if (isLoading()) {
         <div [loadingSpinner]="{ isLoading: true }"></div>
     } @else {
         <form [formGroup]="formGroup">
@@ -26,12 +26,12 @@
                 </div>
             </div>
 
-            @if (observationFields.length > 0) {
+            @if (observationFields().length > 0) {
                 <div class="card">
                     <div class="card-header"><span class="card-title">Observations</span></div>
                     <div class="card-body">
                         <div class="grid-12">
-                            @for (field of observationFields; track field.customAttributeTypeID) {
+                            @for (field of observationFields(); track field.customAttributeTypeID) {
                                 @switch (field.dataTypeKind) {
                                     @case ("integer") {
                                         <form-field
@@ -111,7 +111,9 @@
         <div class="step-footer">
             <button type="button" class="btn btn-danger" (click)="deleteRecord(workflow)">Delete Record</button>
             <span class="spacer"></span>
-            <button type="button" class="btn btn-primary" [disabled]="formGroup.invalid" (click)="save(workflow)">Save &amp; Continue</button>
+            <button type="button" class="btn btn-primary" [disabled]="formGroup.invalid" (click)="save(workflow)">
+                Save &amp; Continue <i class="fa fa-caret-right ml-2"></i>
+            </button>
         </div>
     }
 }

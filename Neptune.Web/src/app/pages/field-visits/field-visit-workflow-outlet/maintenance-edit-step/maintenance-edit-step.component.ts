@@ -1,4 +1,4 @@
-import { Component, OnInit } from "@angular/core";
+import { Component, OnInit, signal } from "@angular/core";
 import { Router } from "@angular/router";
 import { AsyncPipe } from "@angular/common";
 import { FormControl, FormGroup, ReactiveFormsModule, Validators } from "@angular/forms";
@@ -6,6 +6,7 @@ import { combineLatest, map, Observable, switchMap, take } from "rxjs";
 
 import { FormFieldComponent, FormFieldType, SelectDropdownOption } from "src/app/shared/components/forms/form-field/form-field.component";
 import { LoadingDirective } from "src/app/shared/directives/loading.directive";
+import { PageHeaderComponent } from "src/app/shared/components/page-header/page-header.component";
 
 import { FieldVisitWorkflowDto } from "src/app/shared/generated/model/field-visit-workflow-dto";
 import { MaintenanceRecordService } from "src/app/shared/generated/api/maintenance-record.service";
@@ -43,15 +44,17 @@ interface ObservationField {
 @Component({
     selector: "field-visit-maintenance-edit-step",
     standalone: true,
-    imports: [AsyncPipe, ReactiveFormsModule, FormFieldComponent, LoadingDirective],
+    imports: [AsyncPipe, ReactiveFormsModule, FormFieldComponent, LoadingDirective, PageHeaderComponent],
     templateUrl: "./maintenance-edit-step.component.html",
     styleUrl: "./maintenance-edit-step.component.scss",
 })
 export class FieldVisitMaintenanceEditStepComponent implements OnInit {
     public workflow$: Observable<FieldVisitWorkflowDto | null>;
-    public maintenanceRecord: MaintenanceRecordDetailDto | null = null;
-    public observationFields: ObservationField[] = [];
-    public isLoading = true;
+    // Signals — plain fields don't reliably trigger CD when mutated inside subscribe callbacks
+    // under zoneless behavior, leaving the spinner stuck until a stray click forces a render.
+    public maintenanceRecord = signal<MaintenanceRecordDetailDto | null>(null);
+    public observationFields = signal<ObservationField[]>([]);
+    public isLoading = signal(true);
     public FormFieldType = FormFieldType;
     public maintenanceRecordTypeOptions: SelectDropdownOption[] = MaintenanceRecordTypesAsSelectDropdownOptions;
 
@@ -87,7 +90,7 @@ export class FieldVisitMaintenanceEditStepComponent implements OnInit {
                 })
             )
             .subscribe(({ record, attributeTypes }) => {
-                this.maintenanceRecord = record;
+                this.maintenanceRecord.set(record);
                 this.formGroup.patchValue({
                     MaintenanceRecordTypeID: record?.MaintenanceRecordTypeID ?? null,
                     MaintenanceRecordDescription: record?.MaintenanceRecordDescription ?? "",
@@ -100,16 +103,17 @@ export class FieldVisitMaintenanceEditStepComponent implements OnInit {
                 const observationsGroup = this.formGroup.controls.Observations;
                 Object.keys(observationsGroup.controls).forEach((k) => observationsGroup.removeControl(k));
 
-                this.observationFields = maintenanceTypes
+                const fields = maintenanceTypes
                     .map((t) => this.buildObservationField(t, record))
                     .sort((a, b) => a.sortOrder - b.sortOrder);
+                this.observationFields.set(fields);
 
                 // Register each field's active control so formGroup.invalid reflects required observations.
-                for (const field of this.observationFields) {
+                for (const field of fields) {
                     const active = field.dataTypeKind === "multi-select" ? field.multiControl : field.control;
                     observationsGroup.addControl(`${field.customAttributeTypeID}`, active);
                 }
-                this.isLoading = false;
+                this.isLoading.set(false);
             });
     }
 
@@ -170,9 +174,10 @@ export class FieldVisitMaintenanceEditStepComponent implements OnInit {
     }
 
     save(workflow: FieldVisitWorkflowDto): void {
-        if (this.formGroup.invalid || !this.maintenanceRecord) return;
+        const record = this.maintenanceRecord();
+        if (this.formGroup.invalid || !record) return;
 
-        const observations: MaintenanceRecordObservationUpsertDto[] = this.observationFields
+        const observations: MaintenanceRecordObservationUpsertDto[] = this.observationFields()
             .map((field) => ({
                 CustomAttributeTypeID: field.customAttributeTypeID,
                 Values: this.collectFieldValues(field),
@@ -185,7 +190,7 @@ export class FieldVisitMaintenanceEditStepComponent implements OnInit {
             Observations: observations,
         });
 
-        this.maintenanceRecordService.updateMaintenanceRecord(this.maintenanceRecord.MaintenanceRecordID, dto).subscribe(() => {
+        this.maintenanceRecordService.updateMaintenanceRecord(record.MaintenanceRecordID, dto).subscribe(() => {
             this.alertService.pushAlert(new Alert("Maintenance Record saved.", AlertContext.Success));
             this.workflowService.refresh().subscribe(() => {
                 this.router.navigate(["/field-visits", workflow.FieldVisitID, "post-maintenance-assessment"]);
@@ -210,8 +215,9 @@ export class FieldVisitMaintenanceEditStepComponent implements OnInit {
     }
 
     deleteRecord(workflow: FieldVisitWorkflowDto): void {
-        if (!this.maintenanceRecord) return;
-        const recordID = this.maintenanceRecord.MaintenanceRecordID;
+        const record = this.maintenanceRecord();
+        if (!record) return;
+        const recordID = record.MaintenanceRecordID;
         this.confirmService
             .confirm({
                 title: "Delete Maintenance Record",
