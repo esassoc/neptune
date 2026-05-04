@@ -90,13 +90,17 @@ export class TrashOvtaAreaDetailComponent {
                                 : this.router.navigateByUrl(`/trash/onland-visual-trash-assessments/edit/${params.data.OnlandVisualTrashAssessmentID}/record-observations`),
                     },
                 ];
-                if (params.data.OnlandVisualTrashAssessmentStatusID != OnlandVisualTrashAssessmentStatusEnum.Complete) {
-                    actions.push({
-                        ActionName: "Delete",
-                        ActionIcon: "fas fa-trash text-danger",
-                        ActionHandler: () => this.deleteOVTA(params.data.OnlandVisualTrashAssessmentID, params.data.CreatedDate),
-                    });
-                }
+                actions.push({
+                    ActionName: "Delete",
+                    ActionIcon: "fas fa-trash text-danger",
+                    ActionHandler: () =>
+                        this.deleteOVTA(
+                            params.data.OnlandVisualTrashAssessmentID,
+                            params.data.CreatedDate,
+                            params.data.OnlandVisualTrashAssessmentStatusID,
+                            params.data.CompletedDate
+                        ),
+                });
                 return actions;
             }),
             this.utilityFunctionsService.createLinkColumnDef("Assessment ID", "OnlandVisualTrashAssessmentID", "OnlandVisualTrashAssessmentID", {
@@ -180,8 +184,18 @@ export class TrashOvtaAreaDetailComponent {
             });
     }
 
-    public deleteOVTA(onlandVisualTrashAssessmentID: number, createdDate: string) {
-        const modalContents = `<p>Are you sure you want to delete the assessment from ${this.datePipe.transform(createdDate, "MM/dd/yyyy")}?</p>`;
+    public deleteOVTA(onlandVisualTrashAssessmentID: number, createdDate: string, statusID: number, completedDate: string) {
+        const finalizedWarning =
+            statusID === OnlandVisualTrashAssessmentStatusEnum.Complete
+                ? `<br/><p>This OVTA was finalized on ${this.datePipe.transform(
+                      completedDate,
+                      "MM/dd/yyyy"
+                  )}. Deleting it will remove its completed score from the OVTA Area.</p>`
+                : "";
+        const modalContents = `<p>Are you sure you want to delete the assessment from ${this.datePipe.transform(
+            createdDate,
+            "MM/dd/yyyy"
+        )}? This cannot be undone.</p>${finalizedWarning}`;
         this.confirmService
             .confirm({ buttonClassYes: "btn-primary", buttonTextYes: "Delete", buttonTextNo: "Cancel", title: "Delete OVTA", message: modalContents })
             .then((confirmed) => {
