@@ -258,10 +258,17 @@ export class WqmpReviewComponent implements OnInit, IDeactivateComponent {
             })),
             tap(({ extractionResult }) => {
                 this.currentResult.set(extractionResult);
-                if (extractionResult) {
+                if (extractionResult?.ExtractionResultJson) {
                     this.parseExtractionResult(extractionResult.ExtractionResultJson);
                 } else {
+                    // Either no extraction yet, or the prior run failed (failure row carries
+                    // ErrorMessage/ErrorCode but null JSON). Surface the error if present.
                     this.fields.set([]);
+                    if (extractionResult?.ErrorMessage) {
+                        this.alertService.pushAlert(new Alert(
+                            `Last extraction failed: ${extractionResult.ErrorMessage}`,
+                            AlertContext.Danger));
+                    }
                 }
                 this.rejectedBmpIndices.set(new Set());
                 // Drop any prior selection so a Re-run Extraction (or initial load) doesn't

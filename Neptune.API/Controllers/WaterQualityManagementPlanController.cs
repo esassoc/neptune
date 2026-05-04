@@ -3,7 +3,6 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Threading.Tasks;
-using Anthropic.Exceptions;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
@@ -545,11 +544,25 @@ namespace Neptune.API.Controllers
                 var dto = await WaterQualityManagementPlanExtractionResults.GetByWqmpIDAsDtoAsync(DbContext, waterQualityManagementPlanID);
                 return Ok(dto);
             }
-            catch (Exception ex) when (ex is InvalidOperationException or Anthropic4xxException)
+            catch (Exception ex)
             {
-                // Surface actionable Claude / validation errors as 400s. The WQMP + document
-                // stay intact so the reviewer can retry once the underlying issue is addressed
-                // (smaller re-scan, different file, etc.).
+                // NPT-1051 rework: catch everything (timeouts, 5xx, 404 file-gone, JSON parse,
+                // anything else). Persist a failure row with ErrorMessage/ErrorCode so the
+                // failure leaves a diagnostic trail and the wizard can show why on next load.
+                Logger.LogError(ex, "WQMP extraction failed for WQMP={WaterQualityManagementPlanID}", waterQualityManagementPlanID);
+
+                var failureRow = new WaterQualityManagementPlanExtractionResult
+                {
+                    WaterQualityManagementPlanID = waterQualityManagementPlanID,
+                    WaterQualityManagementPlanDocumentID = document.WaterQualityManagementPlanDocumentID,
+                    ExtractionResultJson = null,
+                    ExtractedAt = DateTime.UtcNow,
+                    ErrorMessage = ex.Message,
+                    ErrorCode = ex.GetType().Name,
+                };
+                DbContext.WaterQualityManagementPlanExtractionResults.Add(failureRow);
+                await DbContext.SaveChangesAsync();
+
                 return BadRequest(new { message = ExtractReadableErrorMessage(ex.Message) });
             }
         }

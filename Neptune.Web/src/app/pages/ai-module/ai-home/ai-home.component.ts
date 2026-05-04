@@ -1,4 +1,8 @@
-import { Component, OnInit, OnDestroy } from "@angular/core";
+import { Component, inject, OnInit, OnDestroy } from "@angular/core";
+import { HttpErrorResponse } from "@angular/common/http";
+import { AlertService } from "src/app/shared/services/alert.service";
+import { Alert } from "src/app/shared/models/alert";
+import { AlertContext } from "src/app/shared/models/enums/alert-context.enum";
 import { filter, map, Observable, of, switchMap, tap, catchError, shareReplay, BehaviorSubject, interval, takeUntil, Subject, share } from "rxjs";
 import { CommonModule } from "@angular/common";
 import { ReactiveFormsModule, FormControl } from "@angular/forms";
@@ -75,6 +79,8 @@ export class AiHomeComponent implements OnInit, OnDestroy {
     ];
 
     public isChatbotOpen: boolean = false;
+
+    private alertService = inject(AlertService);
 
     constructor(
         private waterQualityManagementPlanService: WaterQualityManagementPlanService,
@@ -154,8 +160,12 @@ export class AiHomeComponent implements OnInit, OnDestroy {
 
                 this.isExtracting = false;
             }),
-            catchError(error => {
+            catchError((error: HttpErrorResponse) => {
                 this.isExtracting = false;
+                // NPT-1051: don't swallow extraction failures — surface them so the user knows
+                // the run errored instead of seeing the spinner stop with no feedback.
+                const msg = error?.error?.message ?? "Extraction failed. Please try again or contact support.";
+                this.alertService.pushAlert(new Alert(msg, AlertContext.Danger));
                 return of(null);
             })
         );
