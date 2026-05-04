@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Threading.Tasks;
+using Hangfire;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
@@ -16,6 +17,7 @@ using Neptune.API.Services.Authorization;
 using Neptune.EFModels.Entities;
 using Neptune.API.Services.AI;
 using Neptune.EFModels.Nereid;
+using Neptune.Jobs.Hangfire;
 using Neptune.Models.DataTransferObjects;
 
 namespace Neptune.API.Controllers
@@ -728,6 +730,11 @@ namespace Neptune.API.Controllers
             // dirty so the next network solve picks it up rather than waiting for some other
             // mutation to trigger it.
             await NereidUtilities.MarkWqmpDirty(entity, DbContext);
+
+            // NPT-1051 rework: kick off the incremental solve immediately. Without this, the
+            // dirty marker only gets consumed when HRURefreshJob next runs (hours away on the
+            // schedule), so a freshly-promoted WQMP shows no modeling results until then.
+            BackgroundJob.Enqueue<DeltaSolveJob>(x => x.RunJob());
 
             var dto = await WaterQualityManagementPlans.GetByIDAsDtoAsync(DbContext, waterQualityManagementPlanID);
             return Ok(dto);
