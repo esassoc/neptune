@@ -2,7 +2,7 @@ import { Component, inject, Input, OnInit, OnChanges, signal, SimpleChanges, Vie
 import { HttpErrorResponse } from "@angular/common/http";
 import { Router, RouterLink } from "@angular/router";
 import { DatePipe, AsyncPipe, CommonModule } from "@angular/common";
-import { Observable, of } from "rxjs";
+import { BehaviorSubject, Observable, of } from "rxjs";
 import { finalize, shareReplay, switchMap, tap } from "rxjs/operators";
 import { DialogService } from "@ngneat/dialog";
 import { ColDef } from "ag-grid-community";
@@ -87,6 +87,11 @@ export class WqmpDetailComponent implements OnInit, OnChanges {
     public aboutModelingBMPPerformanceUrl = `${environment.ocStormwaterToolsBaseUrl}/Home/AboutModelingBMPPerformance`;
     public apiBaseUrl = environment.mainAppApiUrl;
 
+    // NPT-1051: wqmp$ is a stable observable driven by reload$ so the AsyncPipe stays
+    // subscribed to one reference. Modal saves call reload$.next() to refetch — this is
+    // robust against AsyncPipe re-subscription quirks that can leave the page showing
+    // stale Status / Modeling Approach values when wqmp$ is reassigned mid-stream.
+    private reload$ = new BehaviorSubject<void>(undefined);
     wqmp$: Observable<WaterQualityManagementPlanDto>;
     quickBMPs$: Observable<QuickBMPDto[]>;
     quickBMPTotalRow: any[] = [];
@@ -182,27 +187,34 @@ export class WqmpDetailComponent implements OnInit, OnChanges {
 
     private loadData(): void {
         this.boundingBox = undefined;
-        this.wqmp$ = this.wqmpService.getWaterQualityManagementPlan(this.waterQualityManagementPlanID).pipe(
-            tap((wqmp) => {
-                if (wqmp?.WaterQualityManagementPlanBoundaryBBox) {
-                    const parts = wqmp.WaterQualityManagementPlanBoundaryBBox.split(",").map(Number);
-                    if (parts.length === 4) {
-                        this.boundingBox = new BoundingBoxDto({
-                            Left: parts[0],
-                            Bottom: parts[1],
-                            Right: parts[2],
-                            Top: parts[3],
-                        });
+        // wqmp$ is initialized once; subsequent loadData() calls just push reload$ to
+        // refetch through the stable observable.
+        if (!this.wqmp$) {
+            this.wqmp$ = this.reload$.pipe(
+                switchMap(() => this.wqmpService.getWaterQualityManagementPlan(this.waterQualityManagementPlanID)),
+                tap((wqmp) => {
+                    if (wqmp?.WaterQualityManagementPlanBoundaryBBox) {
+                        const parts = wqmp.WaterQualityManagementPlanBoundaryBBox.split(",").map(Number);
+                        if (parts.length === 4) {
+                            this.boundingBox = new BoundingBoxDto({
+                                Left: parts[0],
+                                Bottom: parts[1],
+                                Right: parts[2],
+                                Top: parts[3],
+                            });
+                        }
                     }
-                }
-                if (this.map) {
-                    this.addTreatmentBMPsLayer(wqmp);
-                } else {
-                    this.pendingWqmpForMap = wqmp;
-                }
-            }),
-            shareReplay(1)
-        );
+                    if (this.map) {
+                        this.addTreatmentBMPsLayer(wqmp);
+                    } else {
+                        this.pendingWqmpForMap = wqmp;
+                    }
+                }),
+                shareReplay(1)
+            );
+        } else {
+            this.reload$.next();
+        }
 
         this.quickBMPs$ = this.wqmpService.listQuickBMPsWaterQualityManagementPlan(this.waterQualityManagementPlanID).pipe(
             tap((quickBMPs) => {
