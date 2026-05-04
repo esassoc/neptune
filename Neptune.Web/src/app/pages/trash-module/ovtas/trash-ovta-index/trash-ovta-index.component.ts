@@ -77,6 +77,7 @@ export class TrashOvtaIndexComponent {
                 CustomDropdownFilterField: "StormwaterJurisdictionName",
             }),
             this.utilityFunctionsService.createBasicColumnDef("Created By", "CreatedByPersonFullName"),
+            this.utilityFunctionsService.createBasicColumnDef("Second Assessor", "SecondAssessorName"),
             this.utilityFunctionsService.createDateColumnDef("Created On", "CreatedDate", "short"),
         ];
         this.onlandVisualTrashAssessments$ = this.onlandVisualTrashAssessmentService.listOnlandVisualTrashAssessment().pipe(tap((x) => (this.isLoading = false)));

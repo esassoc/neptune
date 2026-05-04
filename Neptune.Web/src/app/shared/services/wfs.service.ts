@@ -129,6 +129,21 @@ export class WfsService {
         });
     }
 
+    public getLandUseBlockByCoordinate(longitude: number, latitude: number): Observable<FeatureCollection> {
+        const url: string = `${environment.geoserverMapServiceUrl}/wms`;
+        return this.http.get<FeatureCollection>(url, {
+            params: {
+                service: "WFS",
+                version: "2.0",
+                request: "GetFeature",
+                outputFormat: "application/json",
+                SrsName: "EPSG:4326",
+                typeName: "LandUseBlocks",
+                cql_filter: `intersects(LandUseBlockGeometry, POINT(${latitude} ${longitude}))`,
+            },
+        });
+    }
+
     public getWQMPPreviewImage(waterQualityManagementPlan: WaterQualityManagementPlanDto): Observable<string> {
         const url: string = `${environment.geoserverMapServiceUrl}/wms`;
         // Request the image as a blob and convert to an object URL for use in an <img [src]>.

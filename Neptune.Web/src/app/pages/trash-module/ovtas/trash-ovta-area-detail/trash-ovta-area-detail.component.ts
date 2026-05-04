@@ -111,6 +111,7 @@ export class TrashOvtaAreaDetailComponent {
                 CustomDropdownFilterField: "StormwaterJurisdictionName",
             }),
             this.utilityFunctionsService.createBasicColumnDef("Created By", "CreatedByPersonFullName"),
+            this.utilityFunctionsService.createBasicColumnDef("Second Assessor", "SecondAssessorName"),
             this.utilityFunctionsService.createDateColumnDef("Created On", "CreatedDate", "short"),
         ];
 
