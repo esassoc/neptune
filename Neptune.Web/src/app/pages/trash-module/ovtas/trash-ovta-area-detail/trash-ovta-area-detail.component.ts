@@ -15,6 +15,7 @@ import { NeptuneMapComponent, NeptuneMapInitEvent } from "../../../../shared/com
 import * as L from "leaflet";
 import { TransectLineLayerComponent } from "../../../../shared/components/leaflet/layers/transect-line-layer/transect-line-layer.component";
 import { UpdateOvtaAreaDetailsModalComponent, UpdateOvtaAreaModalContext } from "../update-ovta-area-details-modal/update-ovta-area-details-modal.component";
+import { MoveOvtaAssessmentsModalComponent, MoveOvtaAssessmentsModalContext } from "../move-ovta-assessments-modal/move-ovta-assessments-modal.component";
 import { OnlandVisualTrashAssessmentGridDto } from "src/app/shared/generated/model/onland-visual-trash-assessment-grid-dto";
 import { LoadingDirective } from "src/app/shared/directives/loading.directive";
 import { ConfirmService } from "src/app/shared/services/confirm/confirm.service";
@@ -225,6 +226,43 @@ export class TrashOvtaAreaDetailComponent {
                 this.refreshOVTAAreasTrigger.next();
             }
         });
+    }
+
+    moveOVTAAssessments(ovtaAreaDto: OnlandVisualTrashAssessmentAreaDetailDto, assessments: OnlandVisualTrashAssessmentGridDto[]) {
+        const dialogRef = this.dialogService.open(MoveOvtaAssessmentsModalComponent, {
+            data: {
+                SourceOnlandVisualTrashAssessmentAreaID: ovtaAreaDto.OnlandVisualTrashAssessmentAreaID,
+                SourceOnlandVisualTrashAssessmentAreaName: ovtaAreaDto.OnlandVisualTrashAssessmentAreaName,
+                SourceStormwaterJurisdictionID: ovtaAreaDto.StormwaterJurisdictionID,
+                SourceAssessmentCount: assessments.length,
+            } as MoveOvtaAssessmentsModalContext,
+        });
+
+        dialogRef.afterClosed$.subscribe((result) => {
+            if (result) {
+                this.refreshOVTAAreasTrigger.next();
+                this.refreshOVTAGridTrigger.next();
+            }
+        });
+    }
+
+    deleteOVTAArea(ovtaAreaDto: OnlandVisualTrashAssessmentAreaDetailDto, assessmentCount: number) {
+        const cascadeWarning =
+            assessmentCount > 0
+                ? `<br/><p>This Area has <strong>${assessmentCount} associated assessment${assessmentCount === 1 ? "" : "s"}</strong> which will also be deleted.</p>`
+                : "";
+        const message = `<p>Are you sure you want to delete the OVTA Area <strong>${ovtaAreaDto.OnlandVisualTrashAssessmentAreaName}</strong>? This cannot be undone.</p>${cascadeWarning}`;
+        this.confirmService
+            .confirm({ buttonClassYes: "btn-danger", buttonTextYes: "Delete", buttonTextNo: "Cancel", title: "Delete OVTA Area", message })
+            .then((confirmed) => {
+                if (confirmed) {
+                    this.onlandVisualTrashAssessmentAreaService.deleteOnlandVisualTrashAssessmentArea(ovtaAreaDto.OnlandVisualTrashAssessmentAreaID).subscribe(() => {
+                        this.alertService.clearAlerts();
+                        this.alertService.pushAlert(new Alert("OVTA Area was successfully deleted.", AlertContext.Success));
+                        this.router.navigate(["/trash/onland-visual-trash-assessment-areas"]);
+                    });
+                }
+            });
     }
 
     public getLastAssessmentDate(onlandVisualTrashAssessments: OnlandVisualTrashAssessmentGridDto[]): string {

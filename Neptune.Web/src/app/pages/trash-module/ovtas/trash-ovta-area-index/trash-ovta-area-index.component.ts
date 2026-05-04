@@ -2,7 +2,7 @@ import { Component } from "@angular/core";
 import { PageHeaderComponent } from "../../../../shared/components/page-header/page-header.component";
 import { AlertDisplayComponent } from "../../../../shared/components/alert-display/alert-display.component";
 import { ColDef } from "ag-grid-community";
-import { Observable, tap } from "rxjs";
+import { BehaviorSubject, Observable, switchMap, tap } from "rxjs";
 import { UtilityFunctionsService } from "src/app/services/utility-functions.service";
 import { OnlandVisualTrashAssessmentAreaService } from "src/app/shared/generated/api/onland-visual-trash-assessment-area.service";
 import { OnlandVisualTrashAssessmentAreaGridDto } from "src/app/shared/generated/model/onland-visual-trash-assessment-area-grid-dto";
@@ -45,6 +45,8 @@ export class TrashOvtaAreaIndexComponent {
     public mapIsReady: boolean = false;
     public boundingBox$: Observable<BoundingBoxDto>;
 
+    private refreshGridTrigger$ = new BehaviorSubject<void>(null);
+
     constructor(
         private onlandVisualTrashAssessmentService: OnlandVisualTrashAssessmentService,
         private onlandVisualTrashAssessmentAreaService: OnlandVisualTrashAssessmentAreaService,
@@ -59,6 +61,7 @@ export class TrashOvtaAreaIndexComponent {
     ngOnInit(): void {
         this.ovtaAreaColumnDefs = [
             this.utilityFunctionsService.createActionsColumnDef((params: any) => {
+                const totalAssessments = (params.data.NumberOfAssessmentsInProgress ?? 0) + (params.data.NumberOfAssessmentsCompleted ?? 0);
                 return [
                     {
                         ActionName: "View",
@@ -68,6 +71,11 @@ export class TrashOvtaAreaIndexComponent {
                         ActionName: "Add New OVTA",
                         ActionHandler: () =>
                             this.addNewOVTA(params.data.OnlandVisualTrashAssessmentAreaID, params.data.OnlandVisualTrashAssessmentAreaName, params.data.StormwaterJurisdictionID),
+                    },
+                    {
+                        ActionName: "Delete",
+                        ActionHandler: () =>
+                            this.deleteOVTAArea(params.data.OnlandVisualTrashAssessmentAreaID, params.data.OnlandVisualTrashAssessmentAreaName, totalAssessments),
                     },
                 ];
             }),
@@ -88,7 +96,11 @@ export class TrashOvtaAreaIndexComponent {
             }),
             this.utilityFunctionsService.createBasicColumnDef("Description", "AssessmentAreaDescription"),
         ];
-        this.onlandVisualTrashAssessmentAreas$ = this.onlandVisualTrashAssessmentAreaService.listOnlandVisualTrashAssessmentArea().pipe(tap((x) => (this.isLoading = false)));
+        this.onlandVisualTrashAssessmentAreas$ = this.refreshGridTrigger$.pipe(
+            tap(() => (this.isLoading = true)),
+            switchMap(() => this.onlandVisualTrashAssessmentAreaService.listOnlandVisualTrashAssessmentArea()),
+            tap(() => (this.isLoading = false))
+        );
         this.boundingBox$ = this.stormwaterJurisdictionService.getBoundingBoxStormwaterJurisdiction();
     }
 
@@ -133,6 +145,25 @@ export class TrashOvtaAreaIndexComponent {
                         this.alertService.clearAlerts();
                         this.alertService.pushAlert(new Alert("Your OVTA was successfully created.", AlertContext.Success));
                         this.router.navigate([`/trash/onland-visual-trash-assessments/edit/${response.OnlandVisualTrashAssessmentID}/record-observations`]);
+                    });
+                }
+            });
+    }
+
+    public deleteOVTAArea(onlandVisualTrashAssessmentAreaID: number, onlandVisualTrashAssessmentAreaName: string, assessmentCount: number) {
+        const cascadeWarning =
+            assessmentCount > 0
+                ? `<br/><p>This Area has <strong>${assessmentCount} associated assessment${assessmentCount === 1 ? "" : "s"}</strong> which will also be deleted.</p>`
+                : "";
+        const message = `<p>Are you sure you want to delete the OVTA Area <strong>${onlandVisualTrashAssessmentAreaName}</strong>? This cannot be undone.</p>${cascadeWarning}`;
+        this.confirmService
+            .confirm({ buttonClassYes: "btn-danger", buttonTextYes: "Delete", buttonTextNo: "Cancel", title: "Delete OVTA Area", message })
+            .then((confirmed) => {
+                if (confirmed) {
+                    this.onlandVisualTrashAssessmentAreaService.deleteOnlandVisualTrashAssessmentArea(onlandVisualTrashAssessmentAreaID).subscribe(() => {
+                        this.alertService.clearAlerts();
+                        this.alertService.pushAlert(new Alert("OVTA Area was successfully deleted.", AlertContext.Success));
+                        this.refreshGridTrigger$.next();
                     });
                 }
             });

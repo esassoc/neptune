@@ -112,4 +112,60 @@ public class OnlandVisualTrashAssessmentAreaController(
         return Ok(onlandVisualTrashAssessmentAreaSimpleDtos);
     }
 
+    [HttpPost("{onlandVisualTrashAssessmentAreaID}/move-assessments")]
+    [JurisdictionEditFeature]
+    [EntityNotFound(typeof(OnlandVisualTrashAssessmentArea), "onlandVisualTrashAssessmentAreaID")]
+    public async Task<ActionResult> MoveAssessments([FromRoute] int onlandVisualTrashAssessmentAreaID, [FromBody] OnlandVisualTrashAssessmentAreaMoveAssessmentsDto dto)
+    {
+        if (onlandVisualTrashAssessmentAreaID == dto.TargetOnlandVisualTrashAssessmentAreaID)
+        {
+            return BadRequest("Cannot move an OVTA Area's assessments to itself.");
+        }
+
+        var sourceArea = OnlandVisualTrashAssessmentAreas.GetByID(DbContext, onlandVisualTrashAssessmentAreaID);
+        var targetArea = DbContext.OnlandVisualTrashAssessmentAreas.AsNoTracking()
+            .SingleOrDefault(x => x.OnlandVisualTrashAssessmentAreaID == dto.TargetOnlandVisualTrashAssessmentAreaID);
+        if (targetArea == null)
+        {
+            return BadRequest("Target OVTA Area not found.");
+        }
+
+        if (sourceArea.StormwaterJurisdictionID != targetArea.StormwaterJurisdictionID)
+        {
+            return BadRequest("Source and target OVTA Areas must belong to the same Jurisdiction.");
+        }
+
+        if (!await CallingUser.CanEditJurisdiction(sourceArea.StormwaterJurisdictionID, DbContext))
+        {
+            return Forbid();
+        }
+
+        var hasInProgressAssessment = DbContext.OnlandVisualTrashAssessments.Any(x =>
+            x.OnlandVisualTrashAssessmentAreaID == onlandVisualTrashAssessmentAreaID &&
+            x.OnlandVisualTrashAssessmentStatusID != (int)OnlandVisualTrashAssessmentStatusEnum.Complete);
+        if (hasInProgressAssessment)
+        {
+            return BadRequest("Cannot move assessments: the source OVTA Area has assessments still in progress. Finish or delete those assessments first.");
+        }
+
+        await OnlandVisualTrashAssessmentAreas.MoveAssessmentsAsync(DbContext, onlandVisualTrashAssessmentAreaID, dto.TargetOnlandVisualTrashAssessmentAreaID);
+
+        return Ok();
+    }
+
+    [HttpDelete("{onlandVisualTrashAssessmentAreaID}")]
+    [JurisdictionEditFeature]
+    [EntityNotFound(typeof(OnlandVisualTrashAssessmentArea), "onlandVisualTrashAssessmentAreaID")]
+    public async Task<ActionResult> Delete([FromRoute] int onlandVisualTrashAssessmentAreaID)
+    {
+        var area = OnlandVisualTrashAssessmentAreas.GetByID(DbContext, onlandVisualTrashAssessmentAreaID);
+        if (!await CallingUser.CanEditJurisdiction(area.StormwaterJurisdictionID, DbContext))
+        {
+            return Forbid();
+        }
+
+        await OnlandVisualTrashAssessmentAreas.DeleteAreaAsync(DbContext, onlandVisualTrashAssessmentAreaID);
+        return Ok();
+    }
+
 }

@@ -2324,6 +2324,28 @@
             "description": "OK"
           }
         }
+      },
+      "delete": {
+        "tags": [
+          "OnlandVisualTrashAssessmentArea"
+        ],
+        "operationId": "Delete_OnlandVisualTrashAssessmentArea",
+        "parameters": [
+          {
+            "name": "onlandVisualTrashAssessmentAreaID",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
       }
     },
     "/onland-visual-trash-assessment-areas/{onlandVisualTrashAssessmentAreaID}/onland-visual-trash-assessments": {
@@ -2616,6 +2638,49 @@
           }
         },
         "x-anonymous": true
+      }
+    },
+    "/onland-visual-trash-assessment-areas/{onlandVisualTrashAssessmentAreaID}/move-assessments": {
+      "post": {
+        "tags": [
+          "OnlandVisualTrashAssessmentArea"
+        ],
+        "operationId": "MoveAssessments_OnlandVisualTrashAssessmentArea",
+        "parameters": [
+          {
+            "name": "onlandVisualTrashAssessmentAreaID",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/OnlandVisualTrashAssessmentAreaMoveAssessmentsDto"
+              }
+            },
+            "text/json": {
+              "schema": {
+                "$ref": "#/components/schemas/OnlandVisualTrashAssessmentAreaMoveAssessmentsDto"
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "$ref": "#/components/schemas/OnlandVisualTrashAssessmentAreaMoveAssessmentsDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
       }
     },
     "/onland-visual-trash-assessments/{onlandVisualTrashAssessmentID}/observations": {
@@ -11952,6 +12017,16 @@
             "type": "string",
             "format": "date",
             "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "OnlandVisualTrashAssessmentAreaMoveAssessmentsDto": {
+        "type": "object",
+        "properties": {
+          "TargetOnlandVisualTrashAssessmentAreaID": {
+            "type": "integer",
+            "format": "int32"
           }
         },
         "additionalProperties": false

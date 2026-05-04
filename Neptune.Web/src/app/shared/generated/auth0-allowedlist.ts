@@ -87,6 +87,7 @@ const SECURED_REGEX: RegexMap = {
     new RegExp("^/custom-attribute-types/[^/]+$"),
     new RegExp("^/funding-sources/[^/]+$"),
     new RegExp("^/observation-types/[^/]+$"),
+    new RegExp("^/onland-visual-trash-assessment-areas/[^/]+$"),
     new RegExp("^/onland-visual-trash-assessments/[^/]+$"),
     new RegExp("^/onland-visual-trash-assessments/[^/]+/observations/observation-photos/[^/]+$"),
     new RegExp("^/organizations/[^/]+$"),
@@ -158,6 +159,7 @@ const SECURED_REGEX: RegexMap = {
   'POST': [
     new RegExp("^/ai/water-quality-management-plan-documents/[^/]+/ask$"),
     new RegExp("^/ai/water-quality-management-plan-documents/[^/]+/extract-all$"),
+    new RegExp("^/onland-visual-trash-assessment-areas/[^/]+/move-assessments$"),
     new RegExp("^/onland-visual-trash-assessment-areas/[^/]+/parcel-geometries$"),
     new RegExp("^/onland-visual-trash-assessments/[^/]+/observations$"),
     new RegExp("^/onland-visual-trash-assessments/[^/]+/observations/observation-photo$"),
