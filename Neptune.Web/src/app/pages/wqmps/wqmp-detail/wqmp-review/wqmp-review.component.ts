@@ -117,6 +117,14 @@ export class WqmpReviewComponent implements OnInit, IDeactivateComponent {
     // state can render while still showing the uploaded PDF.
     public pageData$: Observable<{ hasResult: boolean }>;
     public currentResult = signal<WaterQualityManagementPlanExtractionResultDto | null>(null);
+    // NPT-1051 rework: live WQMP record drives the new "WQMP Record" column in Step 4's
+    // review summary. Refreshed via reload$ on wizard load and after every section save so
+    // saved values appear immediately as Accepted in the summary.
+    public liveWqmp = signal<WaterQualityManagementPlanDto | null>(null);
+    // Stable bound reference passed to ReviewSummaryComponent — using a class-field arrow
+    // (vs .bind() in the template) keeps the reference identical across CD passes.
+    public getWqmpFieldValueBound = (field: ExtractedField): string | null =>
+        this.getWqmpFieldValueForRow(field);
     public isExtracting = signal(false);
     private reload$ = new BehaviorSubject<void>(undefined);
 
@@ -255,9 +263,12 @@ export class WqmpReviewComponent implements OnInit, IDeactivateComponent {
                 // Always fetch the uploaded document metadata — we need the FileResourceGUID for the
                 // PDF blob regardless of extraction state.
                 documents: this.wqmpService.listDocumentsWaterQualityManagementPlan(this.waterQualityManagementPlanID),
+                // NPT-1051: live WQMP record drives Step 4's WQMP Record column.
+                wqmp: this.wqmpService.getWaterQualityManagementPlan(this.waterQualityManagementPlanID),
             })),
-            tap(({ extractionResult }) => {
+            tap(({ extractionResult, wqmp }) => {
                 this.currentResult.set(extractionResult);
+                this.liveWqmp.set(wqmp);
                 if (extractionResult?.ExtractionResultJson) {
                     this.parseExtractionResult(extractionResult.ExtractionResultJson);
                 } else {
@@ -941,6 +952,7 @@ export class WqmpReviewComponent implements OnInit, IDeactivateComponent {
                 }
                 this.markSectionFieldsClean(this.locationFields);
                 this.markParcelFieldsClean();
+                this.refreshLiveWqmp();
             },
             error: (err: HttpErrorResponse) => this.handleSectionSaveError(err, "Location"),
         });
@@ -960,6 +972,7 @@ export class WqmpReviewComponent implements OnInit, IDeactivateComponent {
             next: () => {
                 this.alertService.pushAlert(new Alert("Basics saved.", AlertContext.Success));
                 this.markSectionFieldsClean(this.basicsFields);
+                this.refreshLiveWqmp();
             },
             error: (err: HttpErrorResponse) => this.handleSectionSaveError(err, "Basics"),
         });
@@ -977,6 +990,7 @@ export class WqmpReviewComponent implements OnInit, IDeactivateComponent {
                 this.alertService.pushAlert(new Alert("BMPs saved.", AlertContext.Success));
                 this.warnAboutSkippedBMPs(response?.SkippedBMPs);
                 this.markBmpFieldsClean();
+                this.refreshLiveWqmp();
             },
             error: (err: HttpErrorResponse) => this.handleSectionSaveError(err, "BMPs"),
         });
@@ -1128,6 +1142,50 @@ export class WqmpReviewComponent implements OnInit, IDeactivateComponent {
                 : `Could not auto-create BMP "${name}". Add it manually on the WQMP page if needed.`;
             this.alertService.pushAlert(new Alert(msg, AlertContext.Warning));
         }
+    }
+
+    // NPT-1051: refresh just liveWqmp without re-running the full extraction reload pipeline,
+    // which would clobber per-field marks on unsaved sections.
+    private refreshLiveWqmp(): void {
+        this.wqmpService.getWaterQualityManagementPlan(this.waterQualityManagementPlanID)
+            .subscribe((wqmp) => this.liveWqmp.set(wqmp));
+    }
+
+    // NPT-1051: maps a wizard ExtractedField key to the live value persisted on the WQMP
+    // record. Drives Step 4's WQMP Record column. Lookup fields are resolved via their
+    // dropdown options to a human-readable label; date and number fields are formatted to
+    // match how the wizard's Extracted Value column renders them. Returns null when the
+    // mapping doesn't apply (parcel rows, BMP rows) or the live value is empty.
+    public getWqmpFieldValueForRow(field: ExtractedField): string | null {
+        const wqmp = this.liveWqmp();
+        if (!wqmp) return null;
+        // Parcel rows (__PARCEL__-N-...) and BMP rows (__BMP__-N-...) don't map to a single
+        // scalar WQMP field — leave blank.
+        if (field.key.startsWith(this.PARCEL_KEY_PREFIX) || field.key.startsWith(this.BMP_KEY_PREFIX)) {
+            return null;
+        }
+        // Lookup fields: map to the *ID column on the DTO and resolve to the option label.
+        const lookupConfig = this.lookupFieldConfig[field.key];
+        if (lookupConfig) {
+            const id = (wqmp as any)[lookupConfig.dtoField];
+            if (id == null) return null;
+            const match = lookupConfig.options.find((o) => String(o.Value) === String(id));
+            return match?.Label ?? null;
+        }
+        // Direct 1:1 keys: WaterQualityManagementPlanName, RecordNumber, RecordedWQMPAreaInAcres,
+        // ApprovalDate, DateOfConstruction, MaintenanceContact*, etc.
+        const raw = (wqmp as any)[field.key];
+        if (raw == null || raw === "") return null;
+        if (field.key === "ApprovalDate" || field.key === "DateOfConstruction") {
+            // Match the date format the field card uses (MM/dd/yyyy, UTC anchored).
+            const d = new Date(raw);
+            if (isNaN(d.getTime())) return String(raw);
+            const mm = String(d.getUTCMonth() + 1).padStart(2, "0");
+            const dd = String(d.getUTCDate()).padStart(2, "0");
+            const yyyy = d.getUTCFullYear();
+            return `${mm}/${dd}/${yyyy}`;
+        }
+        return String(raw);
     }
 
     // After a successful section save, reset the reviewer's per-field marks so the page

@@ -34,12 +34,13 @@
     }
 
     &__col-label {
-        width: 30%;
+        width: 22%;
         font-weight: 600;
         color: $gray-700;
     }
 
     &__col-value {
+        width: 28%;
         &--empty {
             color: $gray-400;
             font-style: italic;
@@ -47,7 +48,7 @@
     }
 
     &__col-status {
-        width: 18%;
+        width: 16%;
         text-align: right;
     }
 
