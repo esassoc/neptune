@@ -124,7 +124,9 @@ public static class QuickBMPs
             return "Percent Retained needs to be between 0 and 100.";
         }
 
-        if (bmps.Any(x => x.PercentOfSiteTreated.HasValue) && bmps.Sum(x => x.PercentOfSiteTreated ?? 0) > 100)
+        // NPT-1051: round to 2 decimals before comparing so floating-point overshoot
+        // (e.g. 33.3+33.3+33.4 = 100.00000000000001m) doesn't reject valid inputs.
+        if (bmps.Any(x => x.PercentOfSiteTreated.HasValue) && Math.Round(bmps.Sum(x => x.PercentOfSiteTreated ?? 0), 2) > 100)
         {
             return "The Percent of Site Treated exceeds 100 percent, please correct any errors before saving.";
         }

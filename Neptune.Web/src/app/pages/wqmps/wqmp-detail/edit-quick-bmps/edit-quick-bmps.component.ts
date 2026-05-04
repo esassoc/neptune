@@ -122,12 +122,14 @@ export class EditQuickBMPsComponent implements OnInit {
             }
         }
 
-        // Sum of percent of site treated <= 100
+        // Sum of percent of site treated <= 100. NPT-1051: round to 2 decimals before
+        // comparing — three rows of 33.3/33.3/33.4 sum to 100.00000000000001 in floating
+        // point and were tripping the strict > 100 check.
         const totalPercentOfSiteTreated = rows
             .map((r) => r.get("PercentOfSiteTreated").value)
             .filter((v) => v != null)
             .reduce((sum, v) => sum + v, 0);
-        if (totalPercentOfSiteTreated > 100) {
+        if (Math.round(totalPercentOfSiteTreated * 100) / 100 > 100) {
             this.validationErrors.push("The Percent of Site Treated exceeds 100 percent, please correct any errors before saving.");
         }
 
