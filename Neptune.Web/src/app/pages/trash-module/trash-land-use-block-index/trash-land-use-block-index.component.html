@@ -29,7 +29,7 @@
                 [map]="map"
                 [layerControl]="layerControl"
                 [sortOrder]="10"
-                [selectedLandUseBlockIDs]="landUseBlockID ? [landUseBlockID] : []"
+                [selectedLandUseBlockIDs]="selectedLandUseBlockIDs"
                 [zoomToSelectionOnChange]="true"
                 (layerBoundsCalculated)="handleLayerBoundsCalculated($event)"
                 (landUseBlockClicked)="onSelectedLandUseBlockChanged($event)"></selected-land-use-block-layer>
