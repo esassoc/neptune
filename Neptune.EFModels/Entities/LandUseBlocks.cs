@@ -31,10 +31,15 @@ public static class LandUseBlocks
             .Any(x => x.StormwaterJurisdictionID == stormwaterJurisdictionID);
     }
 
-    public static Geometry UnionAggregateByLandUseBlockIDs(NeptuneDbContext dbContext, IEnumerable<int> landUseBlockIDs)
+    public static Geometry UnionAggregateByLandUseBlockIDs(NeptuneDbContext dbContext, IEnumerable<int> landUseBlockIDs, int stormwaterJurisdictionID)
     {
+        // Scoped to the caller's jurisdiction so a client can't drive cross-jurisdiction unions
+        // by posting arbitrary IDs. Trust boundary is enforced here, in the helper, so any
+        // future caller is constrained without re-implementing the filter.
         return dbContext.LandUseBlocks.AsNoTracking()
-            .Where(x => landUseBlockIDs.Contains(x.LandUseBlockID) && x.LandUseBlockGeometry != null)
+            .Where(x => landUseBlockIDs.Contains(x.LandUseBlockID)
+                        && x.StormwaterJurisdictionID == stormwaterJurisdictionID
+                        && x.LandUseBlockGeometry != null)
             .Select(x => x.LandUseBlockGeometry).ToList()
             .UnionListGeometries();
     }

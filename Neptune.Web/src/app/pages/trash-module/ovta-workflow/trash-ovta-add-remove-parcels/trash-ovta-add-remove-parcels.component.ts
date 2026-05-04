@@ -145,6 +145,10 @@ export class TrashOvtaAddRemoveParcelsComponent {
     }
 
     private refreshParcelSelectionLayer(shouldFitBounds: boolean = false) {
+        // Can be invoked from onSourceTypeChange before <neptune-map> finishes initializing —
+        // bail until handleMapReady runs. handleMapReady will call refreshParcelSelectionLayer
+        // itself, so the deferred refresh isn't lost.
+        if (!this.map) return;
         if (this.parcelSelectionLayer) {
             this.map.removeLayer(this.parcelSelectionLayer);
             this.parcelSelectionLayer = null;

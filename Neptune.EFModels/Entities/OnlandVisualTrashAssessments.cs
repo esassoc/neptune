@@ -288,7 +288,7 @@ public static class OnlandVisualTrashAssessments
         {
             var ids = dto.SelectedLandUseBlockIDs ?? new List<int>();
             onlandVisualTrashAssessment.DraftGeometry = ids.Any()
-                ? LandUseBlocks.UnionAggregateByLandUseBlockIDs(dbContext, ids)
+                ? LandUseBlocks.UnionAggregateByLandUseBlockIDs(dbContext, ids, onlandVisualTrashAssessment.StormwaterJurisdictionID)
                 : null;
             onlandVisualTrashAssessment.OvtaAreaSourceTypeID = (int)OvtaAreaSourceTypeEnum.LandUseBlock;
         }
