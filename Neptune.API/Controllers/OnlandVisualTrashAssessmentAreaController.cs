@@ -117,6 +117,11 @@ public class OnlandVisualTrashAssessmentAreaController(
     [EntityNotFound(typeof(OnlandVisualTrashAssessmentArea), "onlandVisualTrashAssessmentAreaID")]
     public async Task<ActionResult> MoveAssessments([FromRoute] int onlandVisualTrashAssessmentAreaID, [FromBody] OnlandVisualTrashAssessmentAreaMoveAssessmentsDto dto)
     {
+        if (dto == null || dto.TargetOnlandVisualTrashAssessmentAreaID <= 0)
+        {
+            return BadRequest("A target OVTA Area must be specified.");
+        }
+
         if (onlandVisualTrashAssessmentAreaID == dto.TargetOnlandVisualTrashAssessmentAreaID)
         {
             return BadRequest("Cannot move an OVTA Area's assessments to itself.");

@@ -24,6 +24,7 @@ import { AlertService } from "src/app/shared/services/alert.service";
 import { AuthenticationService } from "src/app/services/authentication.service";
 import { StormwaterJurisdictionService } from "src/app/shared/generated/api/stormwater-jurisdiction.service";
 import { BoundingBoxDto } from "src/app/shared/generated/model/bounding-box-dto";
+import { escapeHtml } from "src/app/shared/helpers/html-escape";
 
 @Component({
     selector: "trash-ovta-area-index",
@@ -151,11 +152,12 @@ export class TrashOvtaAreaIndexComponent {
     }
 
     public deleteOVTAArea(onlandVisualTrashAssessmentAreaID: number, onlandVisualTrashAssessmentAreaName: string, assessmentCount: number) {
+        const safeAreaName = escapeHtml(onlandVisualTrashAssessmentAreaName ?? "");
         const cascadeWarning =
             assessmentCount > 0
                 ? `<br/><p>This Area has <strong>${assessmentCount} associated assessment${assessmentCount === 1 ? "" : "s"}</strong> which will also be deleted.</p>`
                 : "";
-        const message = `<p>Are you sure you want to delete the OVTA Area <strong>${onlandVisualTrashAssessmentAreaName}</strong>? This cannot be undone.</p>${cascadeWarning}`;
+        const message = `<p>Are you sure you want to delete the OVTA Area <strong>${safeAreaName}</strong>? This cannot be undone.</p>${cascadeWarning}`;
         this.confirmService
             .confirm({ buttonClassYes: "btn-danger", buttonTextYes: "Delete", buttonTextNo: "Cancel", title: "Delete OVTA Area", message })
             .then((confirmed) => {

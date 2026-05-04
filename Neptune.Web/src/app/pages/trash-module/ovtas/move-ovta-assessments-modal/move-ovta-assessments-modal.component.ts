@@ -29,15 +29,21 @@ export class MoveOvtaAssessmentsModalComponent implements OnInit {
 
     ngOnInit(): void {
         this.alertService.clearAlerts();
-        this.onlandVisualTrashAssessmentAreaService.listByJurisdictionIDOnlandVisualTrashAssessmentArea(this.ref.data.SourceStormwaterJurisdictionID).subscribe((areas) => {
-            this.targetAreaOptions = areas
-                .filter((x) => x.OnlandVisualTrashAssessmentAreaID !== this.ref.data.SourceOnlandVisualTrashAssessmentAreaID)
-                .map((x) => ({
-                    Value: x.OnlandVisualTrashAssessmentAreaID,
-                    Label: x.OnlandVisualTrashAssessmentAreaName,
-                    disabled: false,
-                }));
-            this.isLoadingOptions = false;
+        this.onlandVisualTrashAssessmentAreaService.listByJurisdictionIDOnlandVisualTrashAssessmentArea(this.ref.data.SourceStormwaterJurisdictionID).subscribe({
+            next: (areas) => {
+                this.targetAreaOptions = areas
+                    .filter((x) => x.OnlandVisualTrashAssessmentAreaID !== this.ref.data.SourceOnlandVisualTrashAssessmentAreaID)
+                    .map((x) => ({
+                        Value: x.OnlandVisualTrashAssessmentAreaID,
+                        Label: x.OnlandVisualTrashAssessmentAreaName,
+                        disabled: false,
+                    }));
+                this.isLoadingOptions = false;
+            },
+            error: () => {
+                // httpErrorInterceptor surfaces the failure; close so the user can retry.
+                this.ref.close(null);
+            },
         });
     }
 
@@ -45,13 +51,15 @@ export class MoveOvtaAssessmentsModalComponent implements OnInit {
         const dto: OnlandVisualTrashAssessmentAreaMoveAssessmentsDto = {
             TargetOnlandVisualTrashAssessmentAreaID: this.formGroup.controls.TargetOnlandVisualTrashAssessmentAreaID.value!,
         };
-        this.onlandVisualTrashAssessmentAreaService
-            .moveAssessmentsOnlandVisualTrashAssessmentArea(this.ref.data.SourceOnlandVisualTrashAssessmentAreaID, dto)
-            .subscribe(() => {
+        this.onlandVisualTrashAssessmentAreaService.moveAssessmentsOnlandVisualTrashAssessmentArea(this.ref.data.SourceOnlandVisualTrashAssessmentAreaID, dto).subscribe({
+            next: () => {
                 this.alertService.clearAlerts();
                 this.alertService.pushAlert(new Alert("Successfully moved assessments to the selected OVTA Area.", AlertContext.Success));
                 this.ref.close(true);
-            });
+            },
+            // httpErrorInterceptor surfaces the failure alert; modal stays open so the user can retry.
+            error: () => {},
+        });
     }
 
     cancel(): void {

@@ -19,6 +19,7 @@ import { AlertService } from "src/app/shared/services/alert.service";
 import { Alert } from "src/app/shared/models/alert";
 import { AlertContext } from "src/app/shared/models/enums/alert-context.enum";
 import { AuthenticationService } from "src/app/services/authentication.service";
+import { escapeHtml } from "src/app/shared/helpers/html-escape";
 
 @Component({
     selector: "trash-ovta-index",
@@ -116,17 +117,13 @@ export class TrashOvtaIndexComponent {
     }
 
     public deleteOVTA(onlandVisualTrashAssessmentID: number, createdDate: string, statusID: number, completedDate: string) {
+        const safeCreatedDate = escapeHtml(this.datePipe.transform(createdDate, "MM/dd/yyyy") ?? "");
+        const safeCompletedDate = escapeHtml(this.datePipe.transform(completedDate, "MM/dd/yyyy") ?? "");
         const finalizedWarning =
             statusID === OnlandVisualTrashAssessmentStatusEnum.Complete
-                ? `<br/><p>This OVTA was finalized on ${this.datePipe.transform(
-                      completedDate,
-                      "MM/dd/yyyy"
-                  )}. Deleting it will remove its completed score from the OVTA Area.</p>`
+                ? `<br/><p>This OVTA was finalized on ${safeCompletedDate}. Deleting it will remove its completed score from the OVTA Area.</p>`
                 : "";
-        const modalContents = `<p>Are you sure you want to delete the assessment from ${this.datePipe.transform(
-            createdDate,
-            "MM/dd/yyyy"
-        )}? This cannot be undone.</p>${finalizedWarning}`;
+        const modalContents = `<p>Are you sure you want to delete the assessment from ${safeCreatedDate}? This cannot be undone.</p>${finalizedWarning}`;
         this.confirmService
             .confirm({ buttonClassYes: "btn-primary", buttonTextYes: "Delete", buttonTextNo: "Cancel", title: "Delete OVTA", message: modalContents })
             .then((confirmed) => {

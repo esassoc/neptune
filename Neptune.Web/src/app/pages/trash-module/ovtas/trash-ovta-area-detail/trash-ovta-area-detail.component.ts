@@ -27,6 +27,7 @@ import { AlertContext } from "src/app/shared/models/enums/alert-context.enum";
 import { OnlandVisualTrashAssessmentStatusEnum } from "src/app/shared/generated/enum/onland-visual-trash-assessment-status-enum";
 import { OvtaAreaLayerComponent } from "../../../../shared/components/leaflet/layers/ovta-area-layer/ovta-area-layer.component";
 import { DialogService } from "@ngneat/dialog";
+import { escapeHtml } from "src/app/shared/helpers/html-escape";
 
 @Component({
     selector: "trash-ovta-area-detail",
@@ -185,17 +186,13 @@ export class TrashOvtaAreaDetailComponent {
     }
 
     public deleteOVTA(onlandVisualTrashAssessmentID: number, createdDate: string, statusID: number, completedDate: string) {
+        const safeCreatedDate = escapeHtml(this.datePipe.transform(createdDate, "MM/dd/yyyy") ?? "");
+        const safeCompletedDate = escapeHtml(this.datePipe.transform(completedDate, "MM/dd/yyyy") ?? "");
         const finalizedWarning =
             statusID === OnlandVisualTrashAssessmentStatusEnum.Complete
-                ? `<br/><p>This OVTA was finalized on ${this.datePipe.transform(
-                      completedDate,
-                      "MM/dd/yyyy"
-                  )}. Deleting it will remove its completed score from the OVTA Area.</p>`
+                ? `<br/><p>This OVTA was finalized on ${safeCompletedDate}. Deleting it will remove its completed score from the OVTA Area.</p>`
                 : "";
-        const modalContents = `<p>Are you sure you want to delete the assessment from ${this.datePipe.transform(
-            createdDate,
-            "MM/dd/yyyy"
-        )}? This cannot be undone.</p>${finalizedWarning}`;
+        const modalContents = `<p>Are you sure you want to delete the assessment from ${safeCreatedDate}? This cannot be undone.</p>${finalizedWarning}`;
         this.confirmService
             .confirm({ buttonClassYes: "btn-primary", buttonTextYes: "Delete", buttonTextNo: "Cancel", title: "Delete OVTA", message: modalContents })
             .then((confirmed) => {
@@ -261,11 +258,12 @@ export class TrashOvtaAreaDetailComponent {
     }
 
     deleteOVTAArea(ovtaAreaDto: OnlandVisualTrashAssessmentAreaDetailDto, assessmentCount: number) {
+        const safeAreaName = escapeHtml(ovtaAreaDto.OnlandVisualTrashAssessmentAreaName ?? "");
         const cascadeWarning =
             assessmentCount > 0
                 ? `<br/><p>This Area has <strong>${assessmentCount} associated assessment${assessmentCount === 1 ? "" : "s"}</strong> which will also be deleted.</p>`
                 : "";
-        const message = `<p>Are you sure you want to delete the OVTA Area <strong>${ovtaAreaDto.OnlandVisualTrashAssessmentAreaName}</strong>? This cannot be undone.</p>${cascadeWarning}`;
+        const message = `<p>Are you sure you want to delete the OVTA Area <strong>${safeAreaName}</strong>? This cannot be undone.</p>${cascadeWarning}`;
         this.confirmService
             .confirm({ buttonClassYes: "btn-danger", buttonTextYes: "Delete", buttonTextNo: "Cancel", title: "Delete OVTA Area", message })
             .then((confirmed) => {
