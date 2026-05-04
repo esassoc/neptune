@@ -8,6 +8,7 @@ import { NeptuneMapInitEvent, NeptuneMapComponent } from "src/app/shared/compone
 import { WfsService } from "src/app/shared/services/wfs.service";
 import * as L from "leaflet";
 import { AsyncPipe } from "@angular/common";
+import { FormsModule } from "@angular/forms";
 import { OnlandVisualTrashAssessmentService } from "src/app/shared/generated/api/onland-visual-trash-assessment.service";
 import { OvtaObservationLayerComponent } from "../../../../shared/components/leaflet/layers/ovta-observation-layer/ovta-observation-layer.component";
 import {
@@ -18,11 +19,15 @@ import { Alert } from "src/app/shared/models/alert";
 import { AlertContext } from "src/app/shared/models/enums/alert-context.enum";
 import { AlertService } from "src/app/shared/services/alert.service";
 import { OvtaWorkflowProgressService } from "src/app/shared/services/ovta-workflow-progress.service";
-import { LandUseBlockLayerComponent } from "../../../../shared/components/leaflet/layers/land-use-block-layer/land-use-block-layer.component";
+import { SelectedLandUseBlockLayerComponent } from "../../../../shared/components/leaflet/layers/selected-land-use-block-layer/selected-land-use-block-layer.component";
 import { WorkflowBodyComponent } from "../../../../shared/components/workflow-body/workflow-body.component";
 import { TransectLineLayerComponent } from "../../../../shared/components/leaflet/layers/transect-line-layer/transect-line-layer.component";
 import { ParcelLayerComponent } from "../../../../shared/components/leaflet/layers/parcel-layer/parcel-layer.component";
 import { OvtaAreaSourceTypeEnum } from "src/app/shared/generated/enum/ovta-area-source-type-enum";
+import {
+    BtnGroupRadioInputComponent,
+    IBtnGroupRadioInputOption,
+} from "src/app/shared/components/inputs/btn-group-radio-input/btn-group-radio-input.component";
 
 @Component({
     selector: "trash-ovta-add-remove-parcels",
@@ -31,8 +36,10 @@ import { OvtaAreaSourceTypeEnum } from "src/app/shared/generated/enum/ovta-area-
         AlertDisplayComponent,
         NeptuneMapComponent,
         AsyncPipe,
+        FormsModule,
+        BtnGroupRadioInputComponent,
         OvtaObservationLayerComponent,
-        LandUseBlockLayerComponent,
+        SelectedLandUseBlockLayerComponent,
         WorkflowBodyComponent,
         TransectLineLayerComponent,
         ParcelLayerComponent,
@@ -52,9 +59,13 @@ export class TrashOvtaAddRemoveParcelsComponent {
 
     public OvtaAreaSourceTypeEnum = OvtaAreaSourceTypeEnum;
     public sourceTypeID: OvtaAreaSourceTypeEnum = OvtaAreaSourceTypeEnum.Parcel;
+    public sourceTypeOptions: IBtnGroupRadioInputOption[] = [];
     public selectedParcelIDs: number[] = [];
     public selectedLandUseBlockIDs: number[] = [];
-    public selectionLayer: L.GeoJSON<any>;
+    /** Yellow-highlight overlay for selected parcels. The LUB selection is drawn directly by
+     * the vector <selected-land-use-block-layer>; only parcel mode uses this overlay because
+     * the parcel layer is a WMS tile and parcels are too numerous to render as vectors. */
+    public parcelSelectionLayer: L.GeoJSON<any>;
 
     private highlightStyle = {
         color: "#fcfc12",
@@ -88,65 +99,66 @@ export class TrashOvtaAddRemoveParcelsComponent {
         this.sourceTypeID = context.OvtaAreaSourceTypeID as OvtaAreaSourceTypeEnum;
         this.selectedParcelIDs = context.SelectedParcelIDs ?? [];
         this.selectedLandUseBlockIDs = context.SelectedLandUseBlockIDs ?? [];
+        this.sourceTypeOptions = [
+            { label: "Parcels", value: OvtaAreaSourceTypeEnum.Parcel },
+            { label: "Land Use Blocks", value: OvtaAreaSourceTypeEnum.LandUseBlock, disabled: !context.JurisdictionHasLandUseBlocks },
+        ];
     }
 
     public handleMapReady(event: NeptuneMapInitEvent, context: OnlandVisualTrashAssessmentSelectAreaContextDto): void {
         this.map = event.map;
         this.layerControl = event.layerControl;
-        // Initial load: fit to the selection so the user starts zoomed at the right scale.
-        this.refreshSelectionLayer(true);
+        // Initial load: fit to the parcel selection so the user starts zoomed at the right scale.
+        // (LUB selection fitting is handled by the vector layer if needed.)
+        this.refreshParcelSelectionLayer(true);
         this.enableDisableMapClickEvent(context);
         this.mapIsReady = true;
     }
 
     public onSourceTypeChange(newSourceTypeID: OvtaAreaSourceTypeEnum) {
+        // ngModelChange fires with the new value already; keep this guard in case it ever fires
+        // with the same value (idempotent).
         if (this.sourceTypeID === newSourceTypeID) {
             return;
         }
-        const switchingAwayFromExistingSelection =
-            (this.sourceTypeID === OvtaAreaSourceTypeEnum.Parcel && this.selectedParcelIDs.length > 0) ||
-            (this.sourceTypeID === OvtaAreaSourceTypeEnum.LandUseBlock && this.selectedLandUseBlockIDs.length > 0);
-        if (switchingAwayFromExistingSelection) {
-            const ok = window.confirm("Switching the area source will clear your current selection. Continue?");
-            if (!ok) return;
-        }
         // Clear the inactive list so we don't accidentally save a stale union of mixed sources.
+        // The user can still re-pick from the now-active layer; nothing is lost on the server
+        // until they click Save.
         if (newSourceTypeID === OvtaAreaSourceTypeEnum.Parcel) {
             this.selectedLandUseBlockIDs = [];
         } else {
             this.selectedParcelIDs = [];
         }
         this.sourceTypeID = newSourceTypeID;
-        this.refreshSelectionLayer();
+        this.refreshParcelSelectionLayer();
     }
 
-    private refreshSelectionLayer(shouldFitBounds: boolean = false) {
-        if (this.selectionLayer) {
-            this.map.removeLayer(this.selectionLayer);
-            this.selectionLayer = null;
-        }
-
-        if (this.sourceTypeID === OvtaAreaSourceTypeEnum.LandUseBlock) {
-            if (this.selectedLandUseBlockIDs.length === 0) return;
-            const cql = `LandUseBlockID in (${this.selectedLandUseBlockIDs.join(",")})`;
-            this.wfsService.getGeoserverWFSLayerWithCQLFilter("OCStormwater:LandUseBlocks", cql, "LandUseBlockID").subscribe((response) => {
-                this.selectionLayer = L.geoJSON(response as any, { style: this.highlightStyle });
-                this.selectionLayer.addTo(this.map);
-                if (shouldFitBounds) {
-                    this.map.fitBounds(this.selectionLayer.getBounds());
-                }
-            });
+    /** Called by the vector LUB layer when the user clicks a polygon. Toggles membership in
+     * selectedLandUseBlockIDs; we replace the array (rather than mutating) so Angular fires
+     * ngOnChanges on the layer and it can re-style. */
+    public onLandUseBlockClicked(landUseBlockID: number) {
+        if (this.selectedLandUseBlockIDs.includes(landUseBlockID)) {
+            this.selectedLandUseBlockIDs = this.selectedLandUseBlockIDs.filter((id) => id !== landUseBlockID);
         } else {
-            if (this.selectedParcelIDs.length === 0) return;
-            const cql = `ParcelID in (${this.selectedParcelIDs.join(",")})`;
-            this.wfsService.getGeoserverWFSLayerWithCQLFilter("OCStormwater:Parcels", cql, "ParcelID").subscribe((response) => {
-                this.selectionLayer = L.geoJSON(response as any, { style: this.highlightStyle });
-                this.selectionLayer.addTo(this.map);
-                if (shouldFitBounds) {
-                    this.map.fitBounds(this.selectionLayer.getBounds());
-                }
-            });
+            this.selectedLandUseBlockIDs = [...this.selectedLandUseBlockIDs, landUseBlockID];
         }
+    }
+
+    private refreshParcelSelectionLayer(shouldFitBounds: boolean = false) {
+        if (this.parcelSelectionLayer) {
+            this.map.removeLayer(this.parcelSelectionLayer);
+            this.parcelSelectionLayer = null;
+        }
+        if (this.sourceTypeID !== OvtaAreaSourceTypeEnum.Parcel) return;
+        if (this.selectedParcelIDs.length === 0) return;
+        const cql = `ParcelID in (${this.selectedParcelIDs.join(",")})`;
+        this.wfsService.getGeoserverWFSLayerWithCQLFilter("OCStormwater:Parcels", cql, "ParcelID").subscribe((response) => {
+            this.parcelSelectionLayer = L.geoJSON(response as any, { style: this.highlightStyle });
+            this.parcelSelectionLayer.addTo(this.map);
+            if (shouldFitBounds) {
+                this.map.fitBounds(this.parcelSelectionLayer.getBounds());
+            }
+        });
     }
 
     public save(andContinue: boolean = false) {
@@ -179,46 +191,35 @@ export class TrashOvtaAddRemoveParcelsComponent {
                 .getSelectAreaContextOnlandVisualTrashAssessment(this.onlandVisualTrashAssessmentID)
                 .subscribe((context) => {
                     this.applyContext(context);
-                    this.refreshSelectionLayer(true);
+                    this.refreshParcelSelectionLayer(true);
                     this.enableDisableMapClickEvent(context);
                     this.selectAreaContext$ = of(context);
                 });
         });
     }
 
-    private enableDisableMapClickEvent(context: OnlandVisualTrashAssessmentSelectAreaContextDto) {
+    /** Map-level click handler — used only for parcel mode (coordinate-query against WMS). LUB
+     * mode handles per-feature clicks directly on the vector layer. Stays active even when the
+     * area was manually refined: re-picking is a valid way for the user to discard the
+     * refinement (matches the LUB layer's behavior and the Refresh button's intent). */
+    private enableDisableMapClickEvent(_context: OnlandVisualTrashAssessmentSelectAreaContextDto) {
         this.map.off("click");
-        if (context.IsDraftGeometryManuallyRefined) {
-            return;
-        }
         this.map.on("click", (event: L.LeafletMouseEvent): void => {
-            if (this.sourceTypeID === OvtaAreaSourceTypeEnum.LandUseBlock) {
-                this.wfsService.getLandUseBlockByCoordinate(event.latlng.lng, event.latlng.lat).subscribe((featureCollection: GeoJSON.FeatureCollection) => {
-                    featureCollection.features.forEach((feature: GeoJSON.Feature) => {
-                        const id = feature.properties.LandUseBlockID;
-                        const idx = this.selectedLandUseBlockIDs.indexOf(id);
-                        if (idx >= 0) {
-                            this.selectedLandUseBlockIDs.splice(idx, 1);
-                        } else {
-                            this.selectedLandUseBlockIDs.push(id);
-                        }
-                    });
-                    this.refreshSelectionLayer();
-                });
-            } else {
-                this.wfsService.getParcelByCoordinate(event.latlng.lng, event.latlng.lat).subscribe((parcelsFeatureCollection: GeoJSON.FeatureCollection) => {
-                    parcelsFeatureCollection.features.forEach((feature: GeoJSON.Feature) => {
-                        const parcelID = feature.properties.ParcelID;
-                        const idx = this.selectedParcelIDs.indexOf(parcelID);
-                        if (idx >= 0) {
-                            this.selectedParcelIDs.splice(idx, 1);
-                        } else {
-                            this.selectedParcelIDs.push(parcelID);
-                        }
-                    });
-                    this.refreshSelectionLayer();
-                });
+            if (this.sourceTypeID !== OvtaAreaSourceTypeEnum.Parcel) {
+                return;
             }
+            this.wfsService.getParcelByCoordinate(event.latlng.lng, event.latlng.lat).subscribe((parcelsFeatureCollection: GeoJSON.FeatureCollection) => {
+                parcelsFeatureCollection.features.forEach((feature: GeoJSON.Feature) => {
+                    const parcelID = feature.properties.ParcelID;
+                    const idx = this.selectedParcelIDs.indexOf(parcelID);
+                    if (idx >= 0) {
+                        this.selectedParcelIDs.splice(idx, 1);
+                    } else {
+                        this.selectedParcelIDs.push(parcelID);
+                    }
+                });
+                this.refreshParcelSelectionLayer();
+            });
         });
     }
 }

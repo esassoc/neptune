@@ -1,52 +1,48 @@
-<page-header pageTitle="Select Area"></page-header>
+<page-header pageTitle="Select Assessment Area" [templateRight]="templateRight"></page-header>
+<ng-template #templateRight>
+  <button class="btn btn-primary" (click)="refreshParcels()">Refresh Assessment Area Based on Observations</button>
+</ng-template>
 @if (selectAreaContext$ | async; as selectAreaContext) {
   <workflow-body>
     <div class="grid-12">
-      <div class="g-col-8 copy copy-2 mb-3">
-        <i [hidden]="selectAreaContext.IsDraftGeometryManuallyRefined">
+      <div class="g-col-12 copy copy-2 mb-3">
+        <span [hidden]="selectAreaContext.IsDraftGeometryManuallyRefined">
           Click the map to add or remove
           {{ sourceTypeID === OvtaAreaSourceTypeEnum.LandUseBlock ? "land use blocks" : "parcels" }}
           from the Assessment Area. Note that it may be necessary to zoom the map to see features.
-        </i>
-        <i [hidden]="!selectAreaContext.IsDraftGeometryManuallyRefined">
-          The Assessment Area has been manually refined. Click "Continue" to use the manually-refined assessment area, or use the button below to refresh the selection
-          from the assessment transect.
-        </i>
-      </div>
-      <div class="g-col-3">
-        <button class="btn btn-primary" (click)="refreshParcels()">Refresh Assessment Area Based on Observations</button>
+        </span>
+        <span [hidden]="!selectAreaContext.IsDraftGeometryManuallyRefined">
+          The Assessment Area has been manually refined in the Refine Assessment Area step. Adding or removing
+          {{ sourceTypeID === OvtaAreaSourceTypeEnum.LandUseBlock ? "land use blocks" : "parcels" }}
+          here, or using Refresh Assessment Area Based on Observations, will replace the refined shape.
+        </span>
       </div>
     </div>
     <div class="grid-12 mb-2">
-      <div class="g-col-12">
-        <label class="me-3">
-          <input
-            type="radio"
-            name="ovtaAreaSourceType"
-            [checked]="sourceTypeID === OvtaAreaSourceTypeEnum.Parcel"
-            (change)="onSourceTypeChange(OvtaAreaSourceTypeEnum.Parcel)" />
-          Parcels
-        </label>
-        <label>
-          <input
-            type="radio"
-            name="ovtaAreaSourceType"
-            [checked]="sourceTypeID === OvtaAreaSourceTypeEnum.LandUseBlock"
-            [disabled]="!selectAreaContext.JurisdictionHasLandUseBlocks"
-            (change)="onSourceTypeChange(OvtaAreaSourceTypeEnum.LandUseBlock)" />
-          Land Use Blocks
-          @if (!selectAreaContext.JurisdictionHasLandUseBlocks) {
-            <span class="text-muted ms-2"><i>(no land use blocks uploaded for this jurisdiction)</i></span>
-          }
-        </label>
+      <div class="g-col-12 source-type-toggle">
+        <btn-group-radio-input
+          [options]="sourceTypeOptions"
+          [(ngModel)]="sourceTypeID"
+          (ngModelChange)="onSourceTypeChange($event)">
+        </btn-group-radio-input>
+        @if (!selectAreaContext.JurisdictionHasLandUseBlocks) {
+          <div class="text-muted mt-1"><small>No land use blocks uploaded for this jurisdiction.</small></div>
+        }
       </div>
     </div>
     <app-alert-display></app-alert-display>
     <neptune-map (onMapLoad)="handleMapReady($event, selectAreaContext)" mapHeight="600px" [showLegend]="true">
-      @if (mapIsReady) {
-        <land-use-block-layer [displayOnLoad]="true" [map]="map" [layerControl]="layerControl" [sortOrder]="10"></land-use-block-layer>
+      @if (mapIsReady && sourceTypeID === OvtaAreaSourceTypeEnum.LandUseBlock) {
+        <selected-land-use-block-layer
+          [displayOnLoad]="true"
+          [map]="map"
+          [layerControl]="layerControl"
+          [sortOrder]="10"
+          [stormwaterJurisdictionID]="selectAreaContext.StormwaterJurisdictionID"
+          [selectedLandUseBlockIDs]="selectedLandUseBlockIDs"
+          (landUseBlockClicked)="onLandUseBlockClicked($event)"></selected-land-use-block-layer>
       }
-      @if (mapIsReady) {
+      @if (mapIsReady && sourceTypeID === OvtaAreaSourceTypeEnum.Parcel) {
         <parcel-layer [displayOnLoad]="true" [map]="map" [layerControl]="layerControl" [sortOrder]="20"></parcel-layer>
       }
       @if (mapIsReady) {

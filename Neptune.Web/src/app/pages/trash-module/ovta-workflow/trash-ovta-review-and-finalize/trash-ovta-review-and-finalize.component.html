@@ -42,16 +42,16 @@
         </div>
         <form-field
           class="g-col-12"
+          [formControl]="formGroup.controls.SecondAssessorName"
+          fieldLabel="Second Assessor"
+          [required]="false"
+        [type]="FormFieldType.Text"></form-field>
+        <form-field
+          class="g-col-12"
           [formControl]="formGroup.controls.Notes"
           fieldLabel="Comments and Additional Information"
           [required]="false"
         [type]="FormFieldType.Textarea"></form-field>
-        <form-field
-          class="g-col-12"
-          [formControl]="formGroup.controls.SecondAssessorName"
-          fieldLabel="Second Assessor (optional)"
-          [required]="false"
-        [type]="FormFieldType.Text"></form-field>
       </div>
       <h3 class="mt-4">Preliminary Source Identification Type</h3>
       <div class="mt-2 copy copy-3">Stormwater trash sources identified within the assessment area during assessments. Check all sources that apply.</div>
