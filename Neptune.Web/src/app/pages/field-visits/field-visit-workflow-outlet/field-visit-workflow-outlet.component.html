@@ -1,0 +1,76 @@
+@if (workflow$ | async; as workflow) {
+    <div class="dashboard workflow">
+        <aside class="sidebar">
+            <div class="sidebar-header">
+                <h5 class="sidebar-title">
+                    <div>
+                        <a class="back" [routerLink]="['/treatment-bmps', workflow.TreatmentBMPID]">&larr; Back to BMP</a>
+                        <p class="bmp-name">
+                            <strong>{{ workflow.TreatmentBMPName }}</strong>
+                        </p>
+                        <p class="bmp-type">{{ workflow.TreatmentBMPTypeName }}</p>
+                        <p class="visit-meta">
+                            {{ workflow.FieldVisitTypeDisplayName }} &mdash; {{ workflow.VisitDate | date: "MM/dd/yyyy" }}
+                            <button type="button" class="btn-icon" (click)="openChangeDateAndTypeModal(workflow)" title="Change visit date or type">
+                                <i class="fa fa-pencil"></i>
+                            </button>
+                            <button type="button" class="btn-icon btn-icon-danger" (click)="deleteVisit(workflow)" title="Delete visit">
+                                <i class="fa fa-trash"></i>
+                            </button>
+                        </p>
+                        <p class="visit-status">Status: {{ workflow.FieldVisitStatusDisplayName }}</p>
+                    </div>
+                </h5>
+            </div>
+            <workflow-nav>
+                <workflow-nav-item [navRouterLink]="['inventory']" [complete]="workflow.InventoryUpdated" [required]="true" [hasSubNav]="true">
+                    Inventory
+                    <ng-container subnav>
+                        <workflow-nav-sub-item [navRouterLink]="['inventory', 'location']">Location</workflow-nav-sub-item>
+                        <workflow-nav-sub-item [navRouterLink]="['inventory', 'photos']">Photos</workflow-nav-sub-item>
+                        <workflow-nav-sub-item [navRouterLink]="['inventory', 'attributes']" [complete]="workflow.RequiredAttributesEntered">Attributes</workflow-nav-sub-item>
+                    </ng-container>
+                </workflow-nav-item>
+                <workflow-nav-item [navRouterLink]="['assessment']" [complete]="workflow.InitialAssessmentComplete" [required]="false" [hasSubNav]="!!workflow.InitialAssessmentID">
+                    Initial Assessment
+                    <ng-container subnav>
+                        <workflow-nav-sub-item [navRouterLink]="['assessment', 'observations']" [complete]="workflow.InitialAssessmentComplete">Observations</workflow-nav-sub-item>
+                        <workflow-nav-sub-item [navRouterLink]="['assessment', 'photos']">Photos</workflow-nav-sub-item>
+                    </ng-container>
+                </workflow-nav-item>
+                <workflow-nav-item [navRouterLink]="['maintenance']" [complete]="!!workflow.MaintenanceRecordID" [required]="false">
+                    Maintenance
+                </workflow-nav-item>
+                <workflow-nav-item
+                    [navRouterLink]="['post-maintenance-assessment']"
+                    [complete]="workflow.PostMaintenanceAssessmentComplete"
+                    [disabled]="!workflow.MaintenanceRecordID"
+                    [required]="false"
+                    [hasSubNav]="!!workflow.PostMaintenanceAssessmentID">
+                    Post-Maintenance Assessment
+                    <ng-container subnav>
+                        <workflow-nav-sub-item [navRouterLink]="['post-maintenance-assessment', 'observations']" [complete]="workflow.PostMaintenanceAssessmentComplete">
+                            Observations
+                        </workflow-nav-sub-item>
+                        <workflow-nav-sub-item [navRouterLink]="['post-maintenance-assessment', 'photos']">Photos</workflow-nav-sub-item>
+                    </ng-container>
+                </workflow-nav-item>
+                <workflow-nav-item [navRouterLink]="['summary']" [complete]="workflow.IsFieldVisitVerified" [required]="false">
+                    Visit Summary
+                </workflow-nav-item>
+            </workflow-nav>
+
+            <div class="sidebar-actions">
+                <button type="button" class="btn btn-primary" (click)="wrapUpVisit(workflow)">Wrap Up Visit</button>
+            </div>
+        </aside>
+        <main class="main">
+            <div class="outlet-container">
+                <app-alert-display></app-alert-display>
+                <router-outlet></router-outlet>
+            </div>
+        </main>
+    </div>
+} @else {
+    <div class="loading-shell" [loadingSpinner]="{ isLoading: true }"></div>
+}

@@ -591,85 +591,57 @@ namespace Neptune.API.Controllers
             return Ok(dto);
         }
 
-        [HttpPut("{waterQualityManagementPlanID}/extraction-result/draft")]
-        [AdminFeature]
-        [EntityNotFound(typeof(WaterQualityManagementPlan), "waterQualityManagementPlanID")]
-        public async Task<ActionResult> SaveExtractionResultDraft(
-            [FromRoute] int waterQualityManagementPlanID,
-            [FromBody] WaterQualityManagementPlanExtractionDraftUpsertDto dto)
-        {
-            // Validate JSON shape so a malformed payload fails here with a clear error
-            // rather than silently storing garbage that breaks draft restoration on reload.
-            if (!TryParseJson(dto.DraftOverlayJson))
-            {
-                return BadRequest("DraftOverlayJson must be valid JSON.");
-            }
 
-            try
-            {
-                await WaterQualityManagementPlanExtractionResults.SaveDraftAsync(
-                    DbContext, waterQualityManagementPlanID, dto.DraftOverlayJson, CallingUser.PersonID);
-            }
-            catch (InvalidOperationException ex)
-            {
-                return BadRequest(ex.Message);
-            }
-            return NoContent();
-        }
+        // NPT-1051: Section-save endpoints for the AI wizard (Location / Basics / BMPs).
+        //
+        // Reframes the AI flow as another data-entry method peer to the modal CRUD editors —
+        // overwrite semantics, no draft-overlay round-trip, no per-field auto-save. The wizard
+        // builds a complete WaterQualityManagementPlanUpsertDto by overlaying its per-field state
+        // (pending → AI value, accepted → AI value, edited → user value, rejected → live value)
+        // onto the live WQMP. Server-side it's just UpdateAsync (and helpers for parcels / BMPs).
+        //
+        // Status is intentionally pinned server-side to the live entity's current status —
+        // promotion (Draft → Active) goes through the dedicated /promote endpoint, not through
+        // section saves.
 
-        [HttpDelete("{waterQualityManagementPlanID}/extraction-result/draft")]
-        [AdminFeature]
-        [EntityNotFound(typeof(WaterQualityManagementPlan), "waterQualityManagementPlanID")]
-        public async Task<ActionResult> ClearExtractionResultDraft(
-            [FromRoute] int waterQualityManagementPlanID)
-        {
-            await WaterQualityManagementPlanExtractionResults.ClearDraftAsync(DbContext, waterQualityManagementPlanID);
-            return NoContent();
-        }
-
-        [HttpPost("{waterQualityManagementPlanID}/extraction-result/approve")]
+        [HttpPost("{waterQualityManagementPlanID}/save-location")]
         [JurisdictionEditFeature]
         [EntityNotFound(typeof(WaterQualityManagementPlan), "waterQualityManagementPlanID")]
-        public async Task<ActionResult<WaterQualityManagementPlanDto>> ApproveExtractionResult(
+        public async Task<ActionResult<WaterQualityManagementPlanSectionSaveResponseDto>> SaveLocation(
             [FromRoute] int waterQualityManagementPlanID,
-            [FromBody] WaterQualityManagementPlanExtractionApprovalDto dto)
+            [FromBody] WaterQualityManagementPlanSectionSaveLocationDto dto)
         {
             if (dto?.WaterQualityManagementPlan == null)
             {
-                return BadRequest("Approval payload missing the WQMP root upsert.");
+                return BadRequest("Save payload missing the WQMP root upsert.");
             }
 
-            // NPT-1047: validate the QuickBMPs the user accepted on Step 3 of the review
-            // workflow up-front so a bad list doesn't leave the WQMP root fields half-written.
-            // Same rule set the manual MergeQuickBMPs endpoint enforces.
-            var quickBMPValidationError = QuickBMPs.Validate(dto.ApprovedQuickBMPs);
-            if (quickBMPValidationError != null)
-            {
-                return BadRequest(quickBMPValidationError);
-            }
+            var current = WaterQualityManagementPlans.GetByIDWithChangeTracking(DbContext, waterQualityManagementPlanID);
+            dto.WaterQualityManagementPlan.WaterQualityManagementPlanStatusID = current.WaterQualityManagementPlanStatusID;
 
-            // Pre-check the extraction result exists and is not already approved BEFORE touching
-            // the live WQMP, so we fail fast with no partial writes.
-            var existing = await WaterQualityManagementPlanExtractionResults.GetByWqmpIDAsync(DbContext, waterQualityManagementPlanID);
-            if (existing == null) return NotFound("No extraction result found for this WQMP.");
-            if (existing.ApprovedDate.HasValue) return BadRequest("Extraction result has already been approved.");
-
-            // Wrap the live-WQMP update, the QuickBMP merge, and the approval stamp in a single
-            // transaction so a partial failure can't leave the WQMP modified without the approval
-            // being recorded — or the BMPs created without the WQMP-level edits applied.
             await using var transaction = await DbContext.Database.BeginTransactionAsync();
             try
             {
                 var updated = await WaterQualityManagementPlans.UpdateAsync(DbContext, waterQualityManagementPlanID, dto.WaterQualityManagementPlan);
                 if (updated == null) return NotFound();
 
-                // MergeAsync handles re-approval idempotency by matching on (WQMPID, QuickBMPName):
-                // re-running extraction → re-approving the same set produces no duplicates.
-                await QuickBMPs.MergeAsync(DbContext, waterQualityManagementPlanID, dto.ApprovedQuickBMPs ?? new List<QuickBMPUpsertDto>());
+                var oldGeometryNative = await WaterQualityManagementPlanParcels.UpdateParcelsAndRecomputeBoundary(DbContext, waterQualityManagementPlanID, dto.ParcelIDs ?? new List<int>());
 
-                await WaterQualityManagementPlanExtractionResults.MarkApprovedAsync(DbContext, waterQualityManagementPlanID, CallingUser.PersonID);
+                var newBoundary = WaterQualityManagementPlanBoundaries.GetByWaterQualityManagementPlanID(DbContext, waterQualityManagementPlanID);
+                var newGeometryNative = newBoundary?.GeometryNative;
+                if (!(oldGeometryNative == null && newGeometryNative == null))
+                {
+                    await ModelingEngineUtilities.QueueLGURefreshForArea(oldGeometryNative, newGeometryNative, DbContext);
+                }
+
+                var wqmp = WaterQualityManagementPlans.GetByIDWithChangeTracking(DbContext, waterQualityManagementPlanID);
+                await NereidUtilities.MarkWqmpDirty(wqmp, DbContext);
+
                 await transaction.CommitAsync();
-                return Ok(updated);
+                return Ok(new WaterQualityManagementPlanSectionSaveResponseDto
+                {
+                    WaterQualityManagementPlan = updated,
+                });
             }
             catch (InvalidOperationException ex)
             {
@@ -678,18 +650,116 @@ namespace Neptune.API.Controllers
             }
         }
 
-        private static bool TryParseJson(string json)
+        [HttpPost("{waterQualityManagementPlanID}/save-basics")]
+        [JurisdictionEditFeature]
+        [EntityNotFound(typeof(WaterQualityManagementPlan), "waterQualityManagementPlanID")]
+        public async Task<ActionResult<WaterQualityManagementPlanSectionSaveResponseDto>> SaveBasics(
+            [FromRoute] int waterQualityManagementPlanID,
+            [FromBody] WaterQualityManagementPlanUpsertDto dto)
         {
-            if (string.IsNullOrWhiteSpace(json)) return false;
+            if (dto == null)
+            {
+                return BadRequest("Save payload missing the WQMP root upsert.");
+            }
+
+            var current = WaterQualityManagementPlans.GetByIDWithChangeTracking(DbContext, waterQualityManagementPlanID);
+            dto.WaterQualityManagementPlanStatusID = current.WaterQualityManagementPlanStatusID;
+
+            await using var transaction = await DbContext.Database.BeginTransactionAsync();
             try
             {
-                using var doc = System.Text.Json.JsonDocument.Parse(json);
-                return true;
+                var updated = await WaterQualityManagementPlans.UpdateAsync(DbContext, waterQualityManagementPlanID, dto);
+                if (updated == null) return NotFound();
+
+                var wqmp = WaterQualityManagementPlans.GetByIDWithChangeTracking(DbContext, waterQualityManagementPlanID);
+                await NereidUtilities.MarkWqmpDirty(wqmp, DbContext);
+
+                await transaction.CommitAsync();
+                return Ok(new WaterQualityManagementPlanSectionSaveResponseDto
+                {
+                    WaterQualityManagementPlan = updated,
+                });
             }
-            catch (System.Text.Json.JsonException)
+            catch (InvalidOperationException ex)
             {
-                return false;
+                await transaction.RollbackAsync();
+                return BadRequest(ex.Message);
             }
         }
+
+        // NPT-1051: Promote a Draft WQMP to Active. Active is the binding-legal-record state —
+        // promotion is the act of declaring "this transcription faithfully represents the
+        // agreement." Validates required fields up-front; returns 400 with the missing-field
+        // list so the SPA can render an actionable error toast.
+        [HttpPost("{waterQualityManagementPlanID}/promote")]
+        [JurisdictionEditFeature]
+        [EntityNotFound(typeof(WaterQualityManagementPlan), "waterQualityManagementPlanID")]
+        public async Task<ActionResult<WaterQualityManagementPlanDto>> Promote([FromRoute] int waterQualityManagementPlanID)
+        {
+            var entity = WaterQualityManagementPlans.GetByIDWithChangeTracking(DbContext, waterQualityManagementPlanID);
+            if (entity.WaterQualityManagementPlanStatusID != (int)WaterQualityManagementPlanStatusEnum.Draft)
+            {
+                return BadRequest("WQMP must be in Draft status to promote to Active.");
+            }
+
+            var missingFields = WaterQualityManagementPlans.ValidateForPromote(entity);
+            if (missingFields.Count > 0)
+            {
+                return BadRequest(new { MissingFields = missingFields });
+            }
+
+            entity.WaterQualityManagementPlanStatusID = (int)WaterQualityManagementPlanStatusEnum.Active;
+            await DbContext.SaveChangesAsync();
+
+            // Now that the WQMP is Active, it flows into modeling result calculations. Mark it
+            // dirty so the next network solve picks it up rather than waiting for some other
+            // mutation to trigger it.
+            await NereidUtilities.MarkWqmpDirty(entity, DbContext);
+
+            var dto = await WaterQualityManagementPlans.GetByIDAsDtoAsync(DbContext, waterQualityManagementPlanID);
+            return Ok(dto);
+        }
+
+        [HttpPost("{waterQualityManagementPlanID}/save-bmps")]
+        [JurisdictionEditFeature]
+        [EntityNotFound(typeof(WaterQualityManagementPlan), "waterQualityManagementPlanID")]
+        public async Task<ActionResult<WaterQualityManagementPlanSectionSaveResponseDto>> SaveBmps(
+            [FromRoute] int waterQualityManagementPlanID,
+            [FromBody] List<QuickBMPUpsertDto> quickBMPs)
+        {
+            // Mirror ApproveExtractionResult: rows missing required fields land in report.Skipped
+            // and surface as a warning toast on the SPA — they don't hard-fail the section save.
+            // Real validation errors (% out of range, duplicate names, etc.) still reject up-front
+            // so a bad payload doesn't leave the WQMP partially updated.
+            var (quickBMPsForValidation, _) = QuickBMPs.PartitionForMerge(quickBMPs);
+            var quickBMPValidationError = QuickBMPs.Validate(quickBMPsForValidation);
+            if (quickBMPValidationError != null)
+            {
+                return BadRequest(quickBMPValidationError);
+            }
+
+            await using var transaction = await DbContext.Database.BeginTransactionAsync();
+            try
+            {
+                var report = await QuickBMPs.MergeWithReportAsync(DbContext, waterQualityManagementPlanID, quickBMPs ?? new List<QuickBMPUpsertDto>());
+
+                var wqmp = WaterQualityManagementPlans.GetByIDWithChangeTracking(DbContext, waterQualityManagementPlanID);
+                await NereidUtilities.MarkWqmpDirty(wqmp, DbContext);
+                var updated = await WaterQualityManagementPlans.GetByIDAsDtoAsync(DbContext, waterQualityManagementPlanID);
+
+                await transaction.CommitAsync();
+                return Ok(new WaterQualityManagementPlanSectionSaveResponseDto
+                {
+                    WaterQualityManagementPlan = updated,
+                    SkippedBMPs = report.Skipped,
+                });
+            }
+            catch (InvalidOperationException ex)
+            {
+                await transaction.RollbackAsync();
+                return BadRequest(ex.Message);
+            }
+        }
+
     }
 }

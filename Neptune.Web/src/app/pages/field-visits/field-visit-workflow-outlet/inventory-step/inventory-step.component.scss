@@ -1,0 +1,10 @@
+@use "/src/scss/abstracts" as *;
+
+.required-attrs {
+    margin-top: $spacing-400;
+    font-size: $type-size-200;
+
+    .warn {
+        color: $danger;
+    }
+}

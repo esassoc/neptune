@@ -19,6 +19,7 @@ export const routeParams = {
     waterQualityManagementPlanID: "waterQualityManagementPlanID",
     waterQualityManagementPlanVerifyID: "waterQualityManagementPlanVerifyID",
     treatmentBMPTypeID: "treatmentBMPTypeID",
+    fieldVisitID: "fieldVisitID",
 };
 
 export const routes: Routes = [
@@ -436,6 +437,130 @@ export const routes: Routes = [
                 loadComponent: () => import("./pages/field-records/field-records.component").then((m) => m.FieldRecordsComponent),
             },
             {
+                path: `field-visits/:${routeParams.fieldVisitID}`,
+                title: "Field Visit",
+                loadComponent: () =>
+                    import("./pages/field-visits/field-visit-workflow-outlet/field-visit-workflow-outlet.component").then(
+                        (m) => m.FieldVisitWorkflowOutletComponent
+                    ),
+                canActivate: [JurisdictionManagerOrEditorOnlyGuard],
+                children: [
+                    { path: "", redirectTo: "inventory", pathMatch: "full" },
+                    {
+                        path: "inventory",
+                        title: "Inventory",
+                        loadComponent: () =>
+                            import("./pages/field-visits/field-visit-workflow-outlet/inventory-step/inventory-step.component").then(
+                                (m) => m.FieldVisitInventoryStepComponent
+                            ),
+                    },
+                    {
+                        path: "inventory/location",
+                        title: "Inventory — Location",
+                        loadComponent: () =>
+                            import("./pages/field-visits/field-visit-workflow-outlet/inventory-location-step/inventory-location-step.component").then(
+                                (m) => m.FieldVisitInventoryLocationStepComponent
+                            ),
+                    },
+                    {
+                        path: "inventory/photos",
+                        title: "Inventory — Photos",
+                        loadComponent: () =>
+                            import("./pages/field-visits/field-visit-workflow-outlet/inventory-photos-step/inventory-photos-step.component").then(
+                                (m) => m.FieldVisitInventoryPhotosStepComponent
+                            ),
+                    },
+                    {
+                        path: "inventory/attributes",
+                        title: "Inventory — Attributes",
+                        loadComponent: () =>
+                            import("./pages/field-visits/field-visit-workflow-outlet/inventory-attributes-step/inventory-attributes-step.component").then(
+                                (m) => m.FieldVisitInventoryAttributesStepComponent
+                            ),
+                    },
+                    {
+                        path: "assessment",
+                        title: "Initial Assessment",
+                        loadComponent: () =>
+                            import("./pages/field-visits/field-visit-workflow-outlet/assessment-step/assessment-step.component").then(
+                                (m) => m.FieldVisitAssessmentStepComponent
+                            ),
+                        // withComponentInputBinding() overrides @Input defaults with `undefined` when the route has
+                        // no matching data key — must explicitly set `assessmentTypeID: 1` here so the Initial
+                        // assessment landing page (and observations/photos sub-steps) get the right type.
+                        data: { assessmentTypeID: 1 },
+                    },
+                    {
+                        path: "assessment/observations",
+                        title: "Initial Assessment Observations",
+                        loadComponent: () =>
+                            import("./pages/field-visits/field-visit-workflow-outlet/observations-step/observations-step.component").then(
+                                (m) => m.FieldVisitObservationsStepComponent
+                            ),
+                        data: { assessmentTypeID: 1 },
+                    },
+                    {
+                        path: "assessment/photos",
+                        title: "Initial Assessment Photos",
+                        loadComponent: () =>
+                            import("./pages/field-visits/field-visit-workflow-outlet/assessment-photos-step/assessment-photos-step.component").then(
+                                (m) => m.FieldVisitAssessmentPhotosStepComponent
+                            ),
+                        data: { assessmentTypeID: 1 },
+                    },
+                    {
+                        path: "maintenance",
+                        title: "Maintenance",
+                        loadComponent: () =>
+                            import("./pages/field-visits/field-visit-workflow-outlet/maintenance-step/maintenance-step.component").then(
+                                (m) => m.FieldVisitMaintenanceStepComponent
+                            ),
+                    },
+                    {
+                        path: "maintenance/edit",
+                        title: "Edit Maintenance Record",
+                        loadComponent: () =>
+                            import("./pages/field-visits/field-visit-workflow-outlet/maintenance-edit-step/maintenance-edit-step.component").then(
+                                (m) => m.FieldVisitMaintenanceEditStepComponent
+                            ),
+                    },
+                    {
+                        path: "post-maintenance-assessment",
+                        title: "Post-Maintenance Assessment",
+                        loadComponent: () =>
+                            import(
+                                "./pages/field-visits/field-visit-workflow-outlet/post-maintenance-assessment-step/post-maintenance-assessment-step.component"
+                            ).then((m) => m.FieldVisitPostMaintenanceAssessmentStepComponent),
+                    },
+                    {
+                        path: "post-maintenance-assessment/observations",
+                        title: "Post-Maintenance Observations",
+                        loadComponent: () =>
+                            import("./pages/field-visits/field-visit-workflow-outlet/observations-step/observations-step.component").then(
+                                (m) => m.FieldVisitObservationsStepComponent
+                            ),
+                        data: { assessmentTypeID: 2 },
+                    },
+                    {
+                        path: "post-maintenance-assessment/photos",
+                        title: "Post-Maintenance Photos",
+                        loadComponent: () =>
+                            import("./pages/field-visits/field-visit-workflow-outlet/assessment-photos-step/assessment-photos-step.component").then(
+                                (m) => m.FieldVisitAssessmentPhotosStepComponent
+                            ),
+                        data: { assessmentTypeID: 2 },
+                    },
+                    {
+                        path: "summary",
+                        title: "Visit Summary",
+                        loadComponent: () =>
+                            import("./pages/field-visits/field-visit-workflow-outlet/visit-summary-step/visit-summary-step.component").then(
+                                (m) => m.FieldVisitVisitSummaryStepComponent
+                            ),
+                    },
+                ],
+            },
+            {
                 path: "water-quality-management-plans",
                 title: "Water Quality Management Plans",
                 loadComponent: () => import("./pages/wqmps/wqmps.component").then((m) => m.WqmpsComponent),
@@ -476,15 +601,71 @@ export const routes: Routes = [
                 path: `water-quality-management-plans/:${routeParams.waterQualityManagementPlanID}/verifications/new`,
                 title: "New O&M Verification",
                 loadComponent: () =>
-                    import("./pages/wqmps/wqmp-detail/verification-wizard/verification-wizard.component").then((m) => m.VerificationWizardComponent),
+                    import("./pages/wqmps/wqmp-detail/verification-wizard/verification-wizard-outlet.component").then((m) => m.VerificationWizardOutletComponent),
                 canActivate: [authGuardFn],
+                children: [
+                    { path: "", redirectTo: "basics", pathMatch: "full" },
+                    {
+                        path: "basics",
+                        loadComponent: () =>
+                            import("./pages/wqmps/wqmp-detail/verification-wizard/steps/verification-basics-step.component").then((m) => m.VerificationBasicsStepComponent),
+                    },
+                    {
+                        path: "structural-bmps",
+                        loadComponent: () =>
+                            import("./pages/wqmps/wqmp-detail/verification-wizard/steps/structural-bmps-step.component").then((m) => m.StructuralBmpsStepComponent),
+                    },
+                    {
+                        path: "simplified-bmps",
+                        loadComponent: () =>
+                            import("./pages/wqmps/wqmp-detail/verification-wizard/steps/simplified-bmps-step.component").then((m) => m.SimplifiedBmpsStepComponent),
+                    },
+                    {
+                        path: "source-control",
+                        loadComponent: () =>
+                            import("./pages/wqmps/wqmp-detail/verification-wizard/steps/source-control-step.component").then((m) => m.SourceControlStepComponent),
+                    },
+                    {
+                        path: "review-and-finalize",
+                        loadComponent: () =>
+                            import("./pages/wqmps/wqmp-detail/verification-wizard/steps/review-step.component").then((m) => m.ReviewStepComponent),
+                    },
+                ],
             },
             {
                 path: `water-quality-management-plans/:${routeParams.waterQualityManagementPlanID}/verifications/:${routeParams.waterQualityManagementPlanVerifyID}`,
                 title: "O&M Verification",
                 loadComponent: () =>
-                    import("./pages/wqmps/wqmp-detail/verification-wizard/verification-wizard.component").then((m) => m.VerificationWizardComponent),
+                    import("./pages/wqmps/wqmp-detail/verification-wizard/verification-wizard-outlet.component").then((m) => m.VerificationWizardOutletComponent),
                 canActivate: [authGuardFn],
+                children: [
+                    { path: "", redirectTo: "basics", pathMatch: "full" },
+                    {
+                        path: "basics",
+                        loadComponent: () =>
+                            import("./pages/wqmps/wqmp-detail/verification-wizard/steps/verification-basics-step.component").then((m) => m.VerificationBasicsStepComponent),
+                    },
+                    {
+                        path: "structural-bmps",
+                        loadComponent: () =>
+                            import("./pages/wqmps/wqmp-detail/verification-wizard/steps/structural-bmps-step.component").then((m) => m.StructuralBmpsStepComponent),
+                    },
+                    {
+                        path: "simplified-bmps",
+                        loadComponent: () =>
+                            import("./pages/wqmps/wqmp-detail/verification-wizard/steps/simplified-bmps-step.component").then((m) => m.SimplifiedBmpsStepComponent),
+                    },
+                    {
+                        path: "source-control",
+                        loadComponent: () =>
+                            import("./pages/wqmps/wqmp-detail/verification-wizard/steps/source-control-step.component").then((m) => m.SourceControlStepComponent),
+                    },
+                    {
+                        path: "review-and-finalize",
+                        loadComponent: () =>
+                            import("./pages/wqmps/wqmp-detail/verification-wizard/steps/review-step.component").then((m) => m.ReviewStepComponent),
+                    },
+                ],
             },
             {
                 path: `water-quality-management-plans/:${routeParams.waterQualityManagementPlanID}/verifications/:${routeParams.waterQualityManagementPlanVerifyID}/view`,
@@ -525,9 +706,19 @@ export const routes: Routes = [
                 loadComponent: () => import("./pages/program-info/observation-types.component").then((m) => m.ObservationTypesComponent),
             },
             {
+                path: "program-info/observation-types/:observationTypeID",
+                title: "Observation Type Detail",
+                loadComponent: () => import("./pages/program-info/observation-type-detail/observation-type-detail.component").then((m) => m.ObservationTypeDetailComponent),
+            },
+            {
                 path: "program-info/treatment-bmp-types",
                 title: "Treatment BMP Types",
                 loadComponent: () => import("./pages/program-info/treatment-bmp-types.component").then((m) => m.TreatmentBmpTypesComponent),
+            },
+            {
+                path: "program-info/treatment-bmp-types/:treatmentBMPTypeID",
+                title: "Treatment BMP Type Detail",
+                loadComponent: () => import("./pages/program-info/treatment-bmp-type-detail/treatment-bmp-type-detail.component").then((m) => m.TreatmentBmpTypeDetailComponent),
             },
             {
                 path: "funding-sources",
@@ -563,6 +754,11 @@ export const routes: Routes = [
                 path: "manage/custom-attributes",
                 title: "Custom Attributes",
                 loadComponent: () => import("./pages/manage/custom-attributes.component").then((m) => m.CustomAttributesComponent),
+            },
+            {
+                path: "manage/custom-attributes/:customAttributeTypeID",
+                title: "Custom Attribute Type Detail",
+                loadComponent: () => import("./pages/manage/custom-attribute-type-detail/custom-attribute-type-detail.component").then((m) => m.CustomAttributeTypeDetailComponent),
             },
             {
                 path: "manage/observation-types",

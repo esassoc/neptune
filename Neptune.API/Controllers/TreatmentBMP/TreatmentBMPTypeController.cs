@@ -43,6 +43,14 @@ public class TreatmentBMPTypeController(
         return Ok(dtos);
     }
 
+    [HttpGet("cards")]
+    [AllowAnonymous]
+    public async Task<ActionResult<List<TreatmentBMPTypeDetailDto>>> ListAsDetailDto()
+    {
+        var dtos = await TreatmentBMPTypesAdmin.ListAsDetailDtoAsync(DbContext);
+        return Ok(dtos);
+    }
+
     [HttpGet("{treatmentBMPTypeID}/detail")]
     [AllowAnonymous]
     public async Task<ActionResult<TreatmentBMPTypeDetailDto>> GetDetail([FromRoute] int treatmentBMPTypeID)

@@ -1,0 +1,48 @@
+@if (workflow$ | async; as workflow) {
+    <page-header [pageTitle]="headerLabel"></page-header>
+
+    @if (isPostMaintenance) {
+        <p>
+            If maintenance was recently performed on this BMP (e.g. as part of this field visit), you can record a new assessment to quantify the improved condition of the BMP.
+        </p>
+    } @else {
+        <p>
+            The assessment workflow allows input of observations to quantify the BMP's performance. An assessment consists of several rapid observations and/or measurements made at a BMP,
+            which results in a score between 0&ndash;5.
+        </p>
+    }
+
+    <p>
+        Use the navigation on the left to view and enter your assessment details. Be sure to click Save on each page. In order to receive an assessment score you are required to enter
+        observations in each section.
+    </p>
+
+    <p>You will see these icons next to the observation pages &mdash; here's what they mean:</p>
+    <ul class="icon-legend">
+        <li>
+            <icon class="legend-icon incomplete" icon="StepIncomplete"></icon>
+            Required information has not been completely provided (section incomplete)
+        </li>
+        <li>
+            <icon class="legend-icon complete" icon="StepComplete"></icon>
+            Required information has been provided (section complete)
+        </li>
+    </ul>
+
+    <div class="step-footer">
+        @if (!isPostMaintenance) {
+            <button type="button" class="btn btn-primary" (click)="skip(workflow)">
+                Skip to Maintenance <i class="fa fa-forward ml-2"></i>
+            </button>
+        }
+        @if (!hasAssessment(workflow)) {
+            <button type="button" class="btn btn-primary" (click)="beginAssessment(workflow)">
+                Begin {{ isPostMaintenance ? "Post-Maintenance" : "Initial" }} Assessment <i class="fa fa-caret-right ml-2"></i>
+            </button>
+        } @else {
+            <button type="button" class="btn btn-primary" (click)="goToObservations(workflow)">
+                Continue {{ isPostMaintenance ? "Post-Maintenance" : "Initial" }} Assessment <i class="fa fa-caret-right ml-2"></i>
+            </button>
+        }
+    </div>
+}

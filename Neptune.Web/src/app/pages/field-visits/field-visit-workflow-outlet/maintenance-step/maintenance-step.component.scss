@@ -1,0 +1,6 @@
+@use "/src/scss/abstracts" as *;
+
+.required-asterisk {
+    color: $red-default;
+    font-weight: bold;
+}

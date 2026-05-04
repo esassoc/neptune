@@ -7,6 +7,7 @@
  * https://openapi-generator.tech
  * Do not edit the class manually.
  */
+import { TreatmentBMPTypeReferenceDto } from './treatment-bmp-type-reference-dto';
 
 
 import { FormControl, FormControlOptions, FormControlState, Validators } from "@angular/forms";
@@ -18,7 +19,7 @@ export class TreatmentBMPAssessmentObservationTypeDetailDto {
     ObservationTargetTypeDisplayName?: string | null;
     ObservationThresholdTypeDisplayName?: string | null;
     TreatmentBMPAssessmentObservationTypeSchema?: string | null;
-    TreatmentBMPTypeNames?: Array<string> | null;
+    TreatmentBMPTypes?: Array<TreatmentBMPTypeReferenceDto> | null;
     constructor(obj?: any) {
         Object.assign(this, obj);
     }
@@ -32,7 +33,7 @@ export interface TreatmentBMPAssessmentObservationTypeDetailDtoForm {
     ObservationTargetTypeDisplayName?: FormControl<string>;
     ObservationThresholdTypeDisplayName?: FormControl<string>;
     TreatmentBMPAssessmentObservationTypeSchema?: FormControl<string>;
-    TreatmentBMPTypeNames?: FormControl<Array<string>>;
+    TreatmentBMPTypes?: FormControl<Array<TreatmentBMPTypeReferenceDto>>;
 }
 
 export class TreatmentBMPAssessmentObservationTypeDetailDtoFormControls { 
@@ -106,7 +107,7 @@ export class TreatmentBMPAssessmentObservationTypeDetailDtoFormControls {
             ],
         }
     );
-    public static TreatmentBMPTypeNames = (value: FormControlState<Array<string>> | Array<string> = undefined, formControlOptions?: FormControlOptions | null) => new FormControl<Array<string>>(
+    public static TreatmentBMPTypes = (value: FormControlState<Array<TreatmentBMPTypeReferenceDto>> | Array<TreatmentBMPTypeReferenceDto> = undefined, formControlOptions?: FormControlOptions | null) => new FormControl<Array<TreatmentBMPTypeReferenceDto>>(
         value,
         formControlOptions ?? 
         {

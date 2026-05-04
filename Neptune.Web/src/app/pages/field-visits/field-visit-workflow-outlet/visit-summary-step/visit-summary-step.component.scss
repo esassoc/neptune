@@ -1,0 +1,21 @@
+@use "/src/scss/abstracts" as *;
+
+.card + .card {
+    margin-top: $spacing-400;
+}
+
+// Browser default `dd { margin-left: 40px }` and the global `dt { padding-bottom: 0.5rem }`
+// both throw off the grid-row alignment. Zero them out so each dt/dd pair sits flush on the same baseline.
+dl.grid-12 {
+    margin: 0;
+    row-gap: $spacing-300;
+
+    dt {
+        padding-bottom: 0;
+    }
+
+    dd {
+        margin-left: 0;
+        margin-bottom: 0;
+    }
+}

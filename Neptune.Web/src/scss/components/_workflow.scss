@@ -7,4 +7,32 @@ workflow-body {
         border-bottom: 1px solid $gray-light;
         margin-bottom: $spacing-500;
     }
+
+    .page-footer {
+        display: flex;
+        justify-content: flex-end;
+        align-items: center;
+        gap: 0.5rem;
+        margin-top: 1.5rem;
+        padding-top: 1rem;
+        border-top: 1px solid $gray-light;
+    }
+}
+
+// Shared footer used by every Field Visit workflow step page so primary actions
+// land in the same spot with the same spacing.
+// Place destructive / cancel actions before a `<span class="spacer"></span>` to push
+// the primary actions to the right.
+.step-footer {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    gap: $spacing-300;
+    margin-top: $spacing-500;
+    padding-top: $spacing-400;
+    border-top: 1px solid $gray-light;
+
+    .spacer {
+        flex: 1;
+    }
 }

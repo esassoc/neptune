@@ -1,0 +1,24 @@
+@if (workflow$ | async; as workflow) {
+    <page-header pageTitle="Maintenance"></page-header>
+
+    <p>The maintenance workflow allows input of observations to quantify the type and amount of maintenance performed.</p>
+    <p>
+        Some observations are required for the Maintenance Record to be considered complete. The required observations are marked with a
+        <span class="required-asterisk">*</span> on the form.
+    </p>
+
+    <div class="step-footer">
+        <button type="button" class="btn btn-primary" (click)="skipToPostMaintenanceAssessment(workflow)">
+            Skip to Post-Maintenance Assessment <i class="fa fa-forward ml-2"></i>
+        </button>
+        @if (!workflow.MaintenanceRecordID) {
+            <button type="button" class="btn btn-primary" (click)="beginMaintenance(workflow)">
+                Create Maintenance Record <i class="fa fa-caret-right ml-2"></i>
+            </button>
+        } @else {
+            <button type="button" class="btn btn-primary" (click)="editMaintenance(workflow)">
+                Edit Maintenance Record <i class="fa fa-caret-right ml-2"></i>
+            </button>
+        }
+    </div>
+}

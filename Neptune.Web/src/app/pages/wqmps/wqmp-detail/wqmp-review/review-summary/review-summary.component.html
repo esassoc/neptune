@@ -1,0 +1,45 @@
+<div class="review-summary">
+    @for (group of groups; track group.title) {
+        <section class="review-summary__group">
+            <h3 class="review-summary__group-title">{{ group.title }}</h3>
+            <table class="review-summary__table">
+                <thead>
+                    <tr>
+                        <th class="review-summary__col-label">Field</th>
+                        <th class="review-summary__col-value">Current Value</th>
+                        <th class="review-summary__col-status">Status</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @for (row of group.rows; track row.label) {
+                        <tr>
+                            <td class="review-summary__col-label">{{ row.label }}</td>
+                            <td class="review-summary__col-value" [class.review-summary__col-value--empty]="row.displayValue === '(not set)' || row.displayValue === '(rejected)'">
+                                {{ row.displayValue }}
+                            </td>
+                            <td class="review-summary__col-status">
+                                @switch (row.state) {
+                                    @case ("accepted") { <span class="status-pill status-pill--accepted">Accepted</span> }
+                                    @case ("edited") { <span class="status-pill status-pill--edited">Edited</span> }
+                                    @case ("rejected") { <span class="status-pill status-pill--rejected">Rejected</span> }
+                                    @default {
+                                        @if (row.origin === "user") {
+                                            <span class="status-pill status-pill--user">User-entered</span>
+                                        } @else if (row.origin === "blank") {
+                                            <span class="status-pill status-pill--blank">Blank in source</span>
+                                        } @else {
+                                            <span class="status-pill status-pill--pending">AI-pending</span>
+                                        }
+                                    }
+                                }
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </section>
+    }
+    @if (groups.length === 0) {
+        <p class="review-summary__empty">No extracted data to summarize.</p>
+    }
+</div>

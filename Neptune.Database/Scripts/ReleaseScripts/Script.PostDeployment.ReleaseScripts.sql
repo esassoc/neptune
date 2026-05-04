@@ -60,4 +60,6 @@ GO
 GO
 :r ".\026 - Add AnthropicFileID to WaterQualityManagementPlanDocument.sql"
 GO
+:r ".\027 - Backfill WQMP Status to Active for null rows.sql"
+GO
 

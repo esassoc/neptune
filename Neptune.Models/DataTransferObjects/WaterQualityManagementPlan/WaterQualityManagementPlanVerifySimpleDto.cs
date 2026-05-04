@@ -18,6 +18,6 @@ namespace Neptune.Models.DataTransferObjects
         public string EnforcementOrFollowupActions { get; set; }
         public DateTime LastEditedDate { get; set; }
         public bool IsDraft { get; set; }
-        public DateTime VerificationDate { get; set; }
+        public DateOnly VerificationDate { get; set; }
     }
 }

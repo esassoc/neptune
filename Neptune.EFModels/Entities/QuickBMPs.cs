@@ -132,6 +132,144 @@ public static class QuickBMPs
         return null;
     }
 
+    /// <summary>
+    /// NPT-1020: single-row equivalent of <see cref="MergeAsync"/>. Inserts the BMP if no
+    /// row matches by (WQMPID, QuickBMPName); otherwise updates the existing row in place.
+    /// Validates via <see cref="Validate"/> against the full live list with this DTO substituted
+    /// in, so the same rules (unique names, % captured ≥ retained, sum of % site treated ≤ 100)
+    /// apply on a per-row save the same way they do on Approve All.
+    /// </summary>
+    public static async Task UpsertSingleAsync(NeptuneDbContext dbContext, int waterQualityManagementPlanID, QuickBMPUpsertDto dto)
+    {
+        var existingForValidation = await dbContext.QuickBMPs
+            .AsNoTracking()
+            .Where(x => x.WaterQualityManagementPlanID == waterQualityManagementPlanID)
+            .Select(x => new QuickBMPUpsertDto
+            {
+                TreatmentBMPTypeID = x.TreatmentBMPTypeID,
+                QuickBMPName = x.QuickBMPName,
+                QuickBMPNote = x.QuickBMPNote,
+                PercentOfSiteTreated = x.PercentOfSiteTreated,
+                PercentCaptured = x.PercentCaptured,
+                PercentRetained = x.PercentRetained,
+                DryWeatherFlowOverrideID = x.DryWeatherFlowOverrideID,
+                NumberOfIndividualBMPs = x.NumberOfIndividualBMPs,
+            })
+            .ToListAsync();
+
+        var rebuilt = existingForValidation
+            .Where(x => !string.Equals(x.QuickBMPName, dto.QuickBMPName, StringComparison.OrdinalIgnoreCase))
+            .ToList();
+        rebuilt.Add(dto);
+
+        var validationError = Validate(rebuilt);
+        if (validationError != null)
+        {
+            throw new InvalidOperationException(validationError);
+        }
+
+        var existing = await dbContext.QuickBMPs
+            .SingleOrDefaultAsync(x => x.WaterQualityManagementPlanID == waterQualityManagementPlanID && x.QuickBMPName == dto.QuickBMPName);
+
+        if (existing == null)
+        {
+            dbContext.QuickBMPs.Add(new QuickBMP
+            {
+                WaterQualityManagementPlanID = waterQualityManagementPlanID,
+                QuickBMPName = dto.QuickBMPName,
+                TreatmentBMPTypeID = dto.TreatmentBMPTypeID!.Value,
+                QuickBMPNote = dto.QuickBMPNote,
+                DryWeatherFlowOverrideID = dto.DryWeatherFlowOverrideID,
+                PercentOfSiteTreated = dto.PercentOfSiteTreated,
+                PercentCaptured = dto.PercentCaptured,
+                PercentRetained = dto.PercentRetained,
+                NumberOfIndividualBMPs = dto.NumberOfIndividualBMPs!.Value,
+            });
+        }
+        else
+        {
+            existing.TreatmentBMPTypeID = dto.TreatmentBMPTypeID!.Value;
+            existing.QuickBMPNote = dto.QuickBMPNote;
+            existing.DryWeatherFlowOverrideID = dto.DryWeatherFlowOverrideID;
+            existing.PercentOfSiteTreated = dto.PercentOfSiteTreated;
+            existing.PercentCaptured = dto.PercentCaptured;
+            existing.PercentRetained = dto.PercentRetained;
+            existing.NumberOfIndividualBMPs = dto.NumberOfIndividualBMPs!.Value;
+        }
+
+        await dbContext.SaveChangesAsync();
+    }
+
+    /// <summary>
+    /// NPT-1020: removes a single QuickBMP by name (used when the reviewer rejects a BMP
+    /// card in Step 3 of the AI workflow). No-op if no row matches.
+    /// </summary>
+    public static async Task DeleteByNameAsync(NeptuneDbContext dbContext, int waterQualityManagementPlanID, string quickBMPName)
+    {
+        var existing = await dbContext.QuickBMPs
+            .SingleOrDefaultAsync(x => x.WaterQualityManagementPlanID == waterQualityManagementPlanID && x.QuickBMPName == quickBMPName);
+
+        if (existing != null)
+        {
+            dbContext.QuickBMPs.Remove(existing);
+            await dbContext.SaveChangesAsync();
+        }
+    }
+
+    /// <summary>
+    /// NPT-1020 item 3: pure partition that splits a candidate BMP list into a "merge-ready"
+    /// list (all required fields present) and a list of skipped entries naming each missing
+    /// field. Extracted from <see cref="MergeWithReportAsync"/> so it can be unit-tested
+    /// without a database. Required fields: <c>QuickBMPName</c>, <c>TreatmentBMPTypeID</c>,
+    /// <c>NumberOfIndividualBMPs</c>.
+    /// </summary>
+    public static (List<QuickBMPUpsertDto> Mergeable, List<QuickBMPMergeSkipDto> Skipped) PartitionForMerge(
+        IEnumerable<QuickBMPUpsertDto>? dtos)
+    {
+        var mergeable = new List<QuickBMPUpsertDto>();
+        var skipped = new List<QuickBMPMergeSkipDto>();
+
+        foreach (var dto in dtos ?? Enumerable.Empty<QuickBMPUpsertDto>())
+        {
+            var reasons = new List<string>();
+            if (string.IsNullOrWhiteSpace(dto.QuickBMPName)) reasons.Add("Name");
+            if (dto.TreatmentBMPTypeID == null) reasons.Add("Treatment BMP Type");
+            if (dto.NumberOfIndividualBMPs == null) reasons.Add("# of Individual BMPs");
+
+            if (reasons.Count > 0)
+            {
+                skipped.Add(new QuickBMPMergeSkipDto
+                {
+                    ProposedName = string.IsNullOrWhiteSpace(dto.QuickBMPName) ? "(unnamed)" : dto.QuickBMPName!,
+                    Reasons = reasons,
+                });
+                continue;
+            }
+
+            mergeable.Add(dto);
+        }
+
+        return (mergeable, skipped);
+    }
+
+    /// <summary>
+    /// NPT-1020 item 3: variant of <see cref="MergeAsync"/> that returns a report rather
+    /// than throwing on rows missing required fields. Per Kathleen's tester feedback on
+    /// the "Approve All → treatment bmps" AC, one BMP missing a TreatmentBMPType should
+    /// not roll back the whole approval — surface a warning naming the BMP + missing
+    /// fields instead, and merge the rest. Validation rules already enforced by
+    /// <see cref="Validate"/> (out-of-range %, duplicate names, etc.) still hard-fail.
+    /// </summary>
+    public static async Task<QuickBMPMergeReport> MergeWithReportAsync(
+        NeptuneDbContext dbContext,
+        int waterQualityManagementPlanID,
+        List<QuickBMPUpsertDto> dtos)
+    {
+        var (mergeable, skipped) = PartitionForMerge(dtos);
+        await MergeAsync(dbContext, waterQualityManagementPlanID, mergeable);
+        return new QuickBMPMergeReport { Skipped = skipped };
+    }
+
     public static async Task MergeAsync(NeptuneDbContext dbContext, int waterQualityManagementPlanID, List<QuickBMPUpsertDto> dtos)
     {
         var existingQuickBMPs = ListByWaterQualityManagementPlanIDWithChangeTracking(dbContext, waterQualityManagementPlanID);

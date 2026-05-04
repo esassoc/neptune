@@ -1,5 +1,7 @@
 import { DialogService } from "@ngneat/dialog";
 import { FundingEventModalComponent, FundingEventModalContext } from "../funding-event-modal/funding-event-modal.component";
+import { BeginFieldVisitModalComponent, BeginFieldVisitModalContext } from "./begin-field-visit-modal/begin-field-visit-modal.component";
+import { FieldVisitService } from "src/app/shared/generated/api/field-visit.service";
 import { ConfirmService } from "src/app/shared/services/confirm/confirm.service";
 import { Component, OnInit, OnChanges, SimpleChanges, ViewChild, TemplateRef, Input } from "@angular/core";
 import { Router, RouterLink } from "@angular/router";
@@ -193,14 +195,31 @@ export class TreatmentBmpDetailComponent implements OnInit, OnChanges {
         private confirmService: ConfirmService,
         private alertService: AlertService,
         private authenticationService: AuthenticationService,
-        private benchmarkAndThresholdService: TreatmentBMPBenchmarkAndThresholdService
+        private benchmarkAndThresholdService: TreatmentBMPBenchmarkAndThresholdService,
+        private fieldVisitService: FieldVisitService,
+        private router: Router
     ) {}
 
     ngOnInit(): void {
         this.fieldVisitColumnDefs = [
-            // todo: implement action cell renderer, make initial assessment, maintenance occurred, and post-maintenance assessment into link columns
-            // Action columns (delete, view/continue) - implement cellRenderer as needed
-            { headerName: "", field: "actions", cellRenderer: "actionCellRenderer", width: 60, suppressMenu: true, sortable: false, filter: false },
+            this.utilityFunctionsService.createActionsColumnDef((params: any) => {
+                const visit: FieldVisitDto = params.data;
+                const inProgress = visit.FieldVisitStatusID === 1; // FieldVisitStatusEnum.InProgress
+                const actions: { ActionName: string; ActionIcon?: string; ActionHandler: () => void }[] = [
+                    {
+                        ActionName: inProgress ? "Continue" : "View",
+                        ActionHandler: () => this.router.navigate(["/field-visits", visit.FieldVisitID]),
+                    },
+                ];
+                if (this.currentPersonCanManage) {
+                    actions.push({
+                        ActionName: "Delete",
+                        ActionIcon: "fa fa-trash text-danger",
+                        ActionHandler: () => this.deleteFieldVisit(params),
+                    });
+                }
+                return actions;
+            }),
             this.utilityFunctionsService.createDateColumnDef("Visit Date", "VisitDate", "MM/dd/yyyy"),
             this.utilityFunctionsService.createBasicColumnDef("Performed By", "PerformedByPersonName"),
             this.utilityFunctionsService.createBooleanColumnDef("Field Visit Verified", "IsFieldVisitVerified"),
@@ -341,6 +360,43 @@ export class TreatmentBmpDetailComponent implements OnInit, OnChanges {
                     this.alertService.pushAlert(new Alert("Upstream BMP updated successfully.", AlertContext.Success));
                 }
             });
+    }
+
+    private deleteFieldVisit(params: any): void {
+        const visit: FieldVisitDto = params.data;
+        this.confirmService
+            .confirm({
+                title: "Delete Field Visit",
+                message: `<p>You are about to delete the field visit dated ${new Date(visit.VisitDate).toLocaleDateString()}.</p><p>This will also delete the assessment(s) and maintenance record associated with this visit.</p><p>Are you sure you wish to proceed?</p>`,
+                buttonClassYes: "btn btn-danger",
+                buttonTextYes: "Delete",
+                buttonTextNo: "Cancel",
+            })
+            .then((confirmed) => {
+                if (!confirmed) return;
+                this.fieldVisitService.deleteFieldVisit(visit.FieldVisitID).subscribe(() => {
+                    this.alertService.pushAlert(new Alert("Field Visit deleted.", AlertContext.Success));
+                    params.api.applyTransaction({ remove: [visit] });
+                    this.fieldVisits$ = this.treatmentBMPService.fieldVisitGridJsonDataTreatmentBMP(this.treatmentBMPID);
+                });
+            });
+    }
+
+    openBeginFieldVisitModal(): void {
+        this.fieldVisitService.getInProgressForTreatmentBMPFieldVisit(this.treatmentBMPID).subscribe((inProgress) => {
+            this.dialogService
+                .open(BeginFieldVisitModalComponent, {
+                    data: {
+                        treatmentBMPID: this.treatmentBMPID,
+                        inProgressFieldVisit: inProgress ?? null,
+                    } as BeginFieldVisitModalContext,
+                })
+                .afterClosed$.subscribe((result) => {
+                    if (result) {
+                        this.router.navigate(["/field-visits", result.FieldVisitID]);
+                    }
+                });
+        });
     }
 
     openAddFundingEventModal(): void {

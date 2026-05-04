@@ -239,7 +239,7 @@ public static class WaterQualityManagementPlanVerifies
             .Include(x => x.WaterQualityManagementPlanVerifyPhotos)
             .SingleAsync(x => x.WaterQualityManagementPlanVerifyID == waterQualityManagementPlanVerifyID);
 
-        verify.DeleteFull(dbContext);
+        await verify.DeleteFull(dbContext);
         await dbContext.SaveChangesAsync();
     }
 

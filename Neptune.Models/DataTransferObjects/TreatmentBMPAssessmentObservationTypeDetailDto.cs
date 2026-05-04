@@ -9,5 +9,11 @@ public class TreatmentBMPAssessmentObservationTypeDetailDto
     public string ObservationTargetTypeDisplayName { get; set; }
     public string ObservationThresholdTypeDisplayName { get; set; }
     public string TreatmentBMPAssessmentObservationTypeSchema { get; set; }
-    public List<string> TreatmentBMPTypeNames { get; set; } = new();
+    public List<TreatmentBMPTypeReferenceDto> TreatmentBMPTypes { get; set; } = new();
+}
+
+public class TreatmentBMPTypeReferenceDto
+{
+    public int TreatmentBMPTypeID { get; set; }
+    public string TreatmentBMPTypeName { get; set; }
 }

@@ -2,7 +2,8 @@
      [class.field-card--accepted]="state() === 'accepted'"
      [class.field-card--edited]="state() === 'edited'"
      [class.field-card--rejected]="state() === 'rejected'"
-     [class.field-card--read-only]="readOnly">
+     [class.field-card--read-only]="readOnly"
+     [class.field-card--selected]="selected">
     <div class="field-card__header">
         <span class="field-card__label">
             {{ fieldLabel }}

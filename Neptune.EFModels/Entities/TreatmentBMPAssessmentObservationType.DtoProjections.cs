@@ -21,7 +21,13 @@ public static class TreatmentBMPAssessmentObservationTypeProjections
             TreatmentBMPAssessmentObservationTypeName = x.TreatmentBMPAssessmentObservationTypeName,
             ObservationTypeSpecificationID = x.ObservationTypeSpecificationID,
             TreatmentBMPAssessmentObservationTypeSchema = x.TreatmentBMPAssessmentObservationTypeSchema,
-            TreatmentBMPTypeNames = x.TreatmentBMPTypeAssessmentObservationTypes
-                .Select(y => y.TreatmentBMPType.TreatmentBMPTypeName).ToList(),
+            TreatmentBMPTypes = x.TreatmentBMPTypeAssessmentObservationTypes
+                .OrderBy(y => y.TreatmentBMPType.TreatmentBMPTypeName)
+                .Select(y => new TreatmentBMPTypeReferenceDto
+                {
+                    TreatmentBMPTypeID = y.TreatmentBMPTypeID,
+                    TreatmentBMPTypeName = y.TreatmentBMPType.TreatmentBMPTypeName,
+                })
+                .ToList(),
         };
 }

@@ -16,12 +16,23 @@
 
     <app-alert-display></app-alert-display>
 
-    @if (currentPersonCanEdit && wqmp.WaterQualityManagementPlanStatusID === WaterQualityManagementPlanStatusEnum.Draft) {
+    @if (currentPersonCanEdit) {
         <div class="draft-banner mb-3">
-            <span>This WQMP is in <strong>Draft</strong> status.</span>
-            <a [routerLink]="['/water-quality-management-plans', waterQualityManagementPlanID, 'review']" class="btn btn-primary-outline btn-sm">
-                Review AI Extraction
-            </a>
+            @if (wqmp.WaterQualityManagementPlanStatusID === WaterQualityManagementPlanStatusEnum.Draft) {
+                <span>This WQMP is in <strong>Draft</strong> status — it's a transcription, not yet the binding legal record. Draft WQMPs are excluded from modeling and trash result calculations until promoted to Active.</span>
+            } @else {
+                <span>AI extraction is also available for this WQMP.</span>
+            }
+            <div class="draft-banner__actions">
+                <a [routerLink]="['/water-quality-management-plans', waterQualityManagementPlanID, 'review']" class="btn btn-primary-outline btn-sm">
+                    Review AI Extraction
+                </a>
+                @if (wqmp.WaterQualityManagementPlanStatusID === WaterQualityManagementPlanStatusEnum.Draft) {
+                    <button type="button" class="btn btn-primary btn-sm" (click)="confirmPromote(wqmp)" [disabled]="isPromoting()">
+                        @if (isPromoting()) { <i class="fa fa-spinner fa-spin"></i> Promoting... } @else { Promote to Active }
+                    </button>
+                }
+            </div>
         </div>
     }
 
@@ -396,6 +407,12 @@
         <div class="card g-col-12 mt-3">
             <div class="card-header">
                 <span class="card-title">WQMP O&amp;M Verification</span>
+                @if (currentPersonCanEdit) {
+                    <a class="btn btn-white-outline btn-sm"
+                       [routerLink]="['/water-quality-management-plans', waterQualityManagementPlanID, 'verifications', 'new']">
+                        <i class="fa fa-plus"></i> Begin O&amp;M Verification
+                    </a>
+                }
             </div>
             <div class="card-body">
                 @if (verifications$ | async; as verifications) {

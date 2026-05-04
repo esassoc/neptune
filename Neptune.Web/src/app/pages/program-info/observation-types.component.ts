@@ -7,13 +7,14 @@ import { NeptuneGridComponent } from "src/app/shared/components/neptune-grid/nep
 import { UtilityFunctionsService } from "src/app/services/utility-functions.service";
 import { TreatmentBMPAssessmentObservationTypeService } from "src/app/shared/generated/api/treatment-bmp-assessment-observation-type.service";
 import { TreatmentBMPAssessmentObservationTypeGridDto } from "src/app/shared/generated/model/treatment-bmp-assessment-observation-type-grid-dto";
+import { NeptunePageTypeEnum } from "src/app/shared/generated/enum/neptune-page-type-enum";
 
 @Component({
     selector: "observation-types",
     standalone: true,
     imports: [PageHeaderComponent, NeptuneGridComponent, AsyncPipe],
     template: `
-        <page-header pageTitle="Observation Types"></page-header>
+        <page-header pageTitle="Observation Types" [customRichTextTypeID]="NeptunePageTypeEnum.ManageObservationTypesList"></page-header>
         <div class="page-body">
             @if (observationTypes$ | async; as data) {
                 <neptune-grid
@@ -33,10 +34,13 @@ export class ObservationTypesComponent implements OnInit {
 
     public observationTypes$: Observable<TreatmentBMPAssessmentObservationTypeGridDto[]>;
     public columnDefs: ColDef[];
+    public NeptunePageTypeEnum = NeptunePageTypeEnum;
 
     ngOnInit(): void {
         this.columnDefs = [
-            this.utilityFunctionsService.createBasicColumnDef("Name", "TreatmentBMPAssessmentObservationTypeName"),
+            this.utilityFunctionsService.createLinkColumnDef("Name", "TreatmentBMPAssessmentObservationTypeName", "TreatmentBMPAssessmentObservationTypeID", {
+                InRouterLink: "/program-info/observation-types/",
+            }),
             this.utilityFunctionsService.createBasicColumnDef("Collection Method", "ObservationTypeCollectionMethodDisplayName", { UseCustomDropdownFilter: true }),
             this.utilityFunctionsService.createBasicColumnDef("Target Type", "ObservationTargetTypeDisplayName", { UseCustomDropdownFilter: true }),
             this.utilityFunctionsService.createBasicColumnDef("Threshold Type", "ObservationThresholdTypeDisplayName", { UseCustomDropdownFilter: true }),

@@ -1,10 +1,13 @@
 @use "/src/scss/abstracts" as *;
 
-.card-tag {
-    margin-left: auto;
-    font-size: $type-size-200;
-    font-weight: 500;
-    text-transform: uppercase;
+// NPT-995 rework: italic subtitle under the page title showing
+// O&M Verification — Draft / Finalized. Replaces the card-tag pill that
+// previously sat in the panel header alongside "Verification Basics".
+.verification-status {
+    display: block;
+    color: $gray-600;
+    font-size: $type-size-300;
+    margin-top: 0.15rem;
 }
 
 .source-control-group {

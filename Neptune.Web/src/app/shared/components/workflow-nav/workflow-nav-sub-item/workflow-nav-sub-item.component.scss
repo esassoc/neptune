@@ -1,0 +1,44 @@
+@use "/src/scss/abstracts" as *;
+
+.sidebar-sub-item {
+
+    .sidebar-sub-link {
+        display: flex;
+        align-items: center;
+        gap: $spacing-200;
+        // Reserve space for the active-state left border so the label doesn't shift on selection.
+        border-left: 3px solid transparent;
+
+        icon {
+            width: 1rem;
+            display: inline-flex;
+        }
+
+        .complete {
+            color: $green-default;
+        }
+
+        .fade {
+            color: $gray-400;
+        }
+
+        // Subtle active treatment: teal left rail + primary-colored bold label, no background flood.
+        &.active,
+        &.active:hover {
+            background: transparent;
+            border-left-color: $primary;
+            color: $primary;
+            font-weight: 600;
+        }
+
+        &:hover {
+            background: rgba($primary, 0.08);
+            color: $primary;
+        }
+
+        &.disabled {
+            pointer-events: none;
+            cursor: default;
+        }
+    }
+}

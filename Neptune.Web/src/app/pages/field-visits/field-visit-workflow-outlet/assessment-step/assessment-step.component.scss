@@ -1,0 +1,28 @@
+@use "/src/scss/abstracts" as *;
+
+.icon-legend {
+    list-style: none;
+    padding-left: 0;
+    margin: 0 0 $spacing-400;
+
+    li {
+        display: flex;
+        align-items: center;
+        gap: $spacing-200;
+        margin-bottom: $spacing-200;
+    }
+
+    .legend-icon {
+        display: inline-flex;
+        width: 1rem;
+        flex: 0 0 auto;
+
+        &.complete {
+            color: $green-default;
+        }
+
+        &.incomplete {
+            color: $orange-default;
+        }
+    }
+}
