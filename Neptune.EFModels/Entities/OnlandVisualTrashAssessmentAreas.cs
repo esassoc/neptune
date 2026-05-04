@@ -162,4 +162,62 @@ public static class OnlandVisualTrashAssessmentAreas
         return null;
     }
 
+    public static async Task MoveAssessmentsAsync(NeptuneDbContext dbContext, int sourceOnlandVisualTrashAssessmentAreaID, int targetOnlandVisualTrashAssessmentAreaID)
+    {
+        Check.Require(sourceOnlandVisualTrashAssessmentAreaID != targetOnlandVisualTrashAssessmentAreaID,
+            "Cannot move an OVTA Area's assessments to itself.");
+
+        var sourceArea = GetByIDWithChangeTracking(dbContext, sourceOnlandVisualTrashAssessmentAreaID);
+        var targetArea = GetByIDWithChangeTracking(dbContext, targetOnlandVisualTrashAssessmentAreaID);
+
+        Check.Require(sourceArea.StormwaterJurisdictionID == targetArea.StormwaterJurisdictionID,
+            "Source and target OVTA Areas must belong to the same Jurisdiction.");
+
+        var hasInProgressAssessment = sourceArea.OnlandVisualTrashAssessments
+            .Any(x => x.OnlandVisualTrashAssessmentStatusID != (int)OnlandVisualTrashAssessmentStatusEnum.Complete);
+        Check.Require(!hasInProgressAssessment,
+            "Cannot move assessments: the source OVTA Area has assessments still in progress. Finish or delete those assessments first.");
+
+        await dbContext.OnlandVisualTrashAssessments
+            .Where(x => x.OnlandVisualTrashAssessmentAreaID == sourceOnlandVisualTrashAssessmentAreaID)
+            .ExecuteUpdateAsync(s => s
+                .SetProperty(a => a.OnlandVisualTrashAssessmentAreaID, targetOnlandVisualTrashAssessmentAreaID)
+                .SetProperty(a => a.IsTransectBackingAssessment, false));
+
+        var refreshedTargetAssessments = await dbContext.OnlandVisualTrashAssessments
+            .Include(x => x.OnlandVisualTrashAssessmentObservations)
+            .Where(x => x.OnlandVisualTrashAssessmentAreaID == targetOnlandVisualTrashAssessmentAreaID)
+            .ToListAsync();
+
+        foreach (var assessment in refreshedTargetAssessments)
+        {
+            assessment.IsTransectBackingAssessment = false;
+        }
+
+        var newTransect = RecomputeTransectLine(refreshedTargetAssessments);
+        targetArea.TransectLine = newTransect;
+        targetArea.TransectLine4326 = newTransect?.ProjectTo4326();
+
+        targetArea.OnlandVisualTrashAssessmentBaselineScoreID =
+            CalculateBaselineScoreFromBackingData(refreshedTargetAssessments)?.OnlandVisualTrashAssessmentScoreID;
+        targetArea.OnlandVisualTrashAssessmentProgressScoreID =
+            OnlandVisualTrashAssessments.CalculateProgressScore(refreshedTargetAssessments)?.OnlandVisualTrashAssessmentScoreID;
+
+        await dbContext.SaveChangesAsync();
+    }
+
+    public static async Task DeleteAreaAsync(NeptuneDbContext dbContext, int onlandVisualTrashAssessmentAreaID)
+    {
+        var area = GetByIDWithChangeTracking(dbContext, onlandVisualTrashAssessmentAreaID);
+
+        await dbContext.TrashGeneratingUnits
+            .Where(t => t.OnlandVisualTrashAssessmentAreaID == onlandVisualTrashAssessmentAreaID)
+            .ExecuteUpdateAsync(s => s.SetProperty(t => t.OnlandVisualTrashAssessmentAreaID, (int?)null));
+        await dbContext.TrashGeneratingUnit4326s
+            .Where(t => t.OnlandVisualTrashAssessmentAreaID == onlandVisualTrashAssessmentAreaID)
+            .ExecuteUpdateAsync(s => s.SetProperty(t => t.OnlandVisualTrashAssessmentAreaID, (int?)null));
+
+        await area.DeleteFull(dbContext);
+    }
+
 }

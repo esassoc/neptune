@@ -23,6 +23,8 @@ import { OnlandVisualTrashAssessmentAreaGeometryDto } from '../model/onland-visu
 // @ts-ignore
 import { OnlandVisualTrashAssessmentAreaGridDto } from '../model/onland-visual-trash-assessment-area-grid-dto';
 // @ts-ignore
+import { OnlandVisualTrashAssessmentAreaMoveAssessmentsDto } from '../model/onland-visual-trash-assessment-area-move-assessments-dto';
+// @ts-ignore
 import { OnlandVisualTrashAssessmentAreaSimpleDto } from '../model/onland-visual-trash-assessment-area-simple-dto';
 // @ts-ignore
 import { OnlandVisualTrashAssessmentGridDto } from '../model/onland-visual-trash-assessment-grid-dto';
@@ -43,6 +45,58 @@ export class OnlandVisualTrashAssessmentAreaService extends BaseService {
 
     constructor(protected httpClient: HttpClient, @Optional() @Inject(BASE_PATH) basePath: string|string[], @Optional() configuration?: Configuration) {
         super(basePath, configuration);
+    }
+
+    /**
+     * @param onlandVisualTrashAssessmentAreaID 
+     * @param observe set whether or not to return the data Observable as the body, response or events. defaults to returning the body.
+     * @param reportProgress flag to report request and response progress.
+     */
+    public deleteOnlandVisualTrashAssessmentArea(onlandVisualTrashAssessmentAreaID: number, observe?: 'body', reportProgress?: boolean, options?: {httpHeaderAccept?: undefined, context?: HttpContext, transferCache?: boolean}): Observable<any>;
+    public deleteOnlandVisualTrashAssessmentArea(onlandVisualTrashAssessmentAreaID: number, observe?: 'response', reportProgress?: boolean, options?: {httpHeaderAccept?: undefined, context?: HttpContext, transferCache?: boolean}): Observable<HttpResponse<any>>;
+    public deleteOnlandVisualTrashAssessmentArea(onlandVisualTrashAssessmentAreaID: number, observe?: 'events', reportProgress?: boolean, options?: {httpHeaderAccept?: undefined, context?: HttpContext, transferCache?: boolean}): Observable<HttpEvent<any>>;
+    public deleteOnlandVisualTrashAssessmentArea(onlandVisualTrashAssessmentAreaID: number, observe: any = 'body', reportProgress: boolean = false, options?: {httpHeaderAccept?: undefined, context?: HttpContext, transferCache?: boolean}): Observable<any> {
+        if (onlandVisualTrashAssessmentAreaID === null || onlandVisualTrashAssessmentAreaID === undefined) {
+            throw new Error('Required parameter onlandVisualTrashAssessmentAreaID was null or undefined when calling deleteOnlandVisualTrashAssessmentArea.');
+        }
+
+        let localVarHeaders = this.defaultHeaders;
+
+        const localVarHttpHeaderAcceptSelected: string | undefined = options?.httpHeaderAccept ?? this.configuration.selectHeaderAccept([
+        ]);
+        if (localVarHttpHeaderAcceptSelected !== undefined) {
+            localVarHeaders = localVarHeaders.set('Accept', localVarHttpHeaderAcceptSelected);
+        }
+
+        const localVarHttpContext: HttpContext = options?.context ?? new HttpContext();
+
+        const localVarTransferCache: boolean = options?.transferCache ?? true;
+
+
+        let responseType_: 'text' | 'json' | 'blob' = 'json';
+        if (localVarHttpHeaderAcceptSelected) {
+            if (localVarHttpHeaderAcceptSelected.startsWith('text')) {
+                responseType_ = 'text';
+            } else if (this.configuration.isJsonMime(localVarHttpHeaderAcceptSelected)) {
+                responseType_ = 'json';
+            } else {
+                responseType_ = 'blob';
+            }
+        }
+
+        let localVarPath = `/onland-visual-trash-assessment-areas/${this.configuration.encodeParam({name: "onlandVisualTrashAssessmentAreaID", value: onlandVisualTrashAssessmentAreaID, in: "path", style: "simple", explode: false, dataType: "number", dataFormat: "int32"})}`;
+        const { basePath, withCredentials } = this.configuration;
+        return this.httpClient.request<any>('delete', `${basePath}${localVarPath}`,
+            {
+                context: localVarHttpContext,
+                responseType: <any>responseType_,
+                ...(withCredentials ? { withCredentials } : {}),
+                headers: localVarHeaders,
+                observe: observe,
+                transferCache: localVarTransferCache,
+                reportProgress: reportProgress
+            }
+        );
     }
 
     /**
@@ -416,6 +470,71 @@ export class OnlandVisualTrashAssessmentAreaService extends BaseService {
         return this.httpClient.request<Array<OnlandVisualTrashAssessmentAreaGridDto>>('get', `${basePath}${localVarPath}`,
             {
                 context: localVarHttpContext,
+                responseType: <any>responseType_,
+                ...(withCredentials ? { withCredentials } : {}),
+                headers: localVarHeaders,
+                observe: observe,
+                transferCache: localVarTransferCache,
+                reportProgress: reportProgress
+            }
+        );
+    }
+
+    /**
+     * @param onlandVisualTrashAssessmentAreaID 
+     * @param onlandVisualTrashAssessmentAreaMoveAssessmentsDto 
+     * @param observe set whether or not to return the data Observable as the body, response or events. defaults to returning the body.
+     * @param reportProgress flag to report request and response progress.
+     */
+    public moveAssessmentsOnlandVisualTrashAssessmentArea(onlandVisualTrashAssessmentAreaID: number, onlandVisualTrashAssessmentAreaMoveAssessmentsDto?: OnlandVisualTrashAssessmentAreaMoveAssessmentsDto, observe?: 'body', reportProgress?: boolean, options?: {httpHeaderAccept?: undefined, context?: HttpContext, transferCache?: boolean}): Observable<any>;
+    public moveAssessmentsOnlandVisualTrashAssessmentArea(onlandVisualTrashAssessmentAreaID: number, onlandVisualTrashAssessmentAreaMoveAssessmentsDto?: OnlandVisualTrashAssessmentAreaMoveAssessmentsDto, observe?: 'response', reportProgress?: boolean, options?: {httpHeaderAccept?: undefined, context?: HttpContext, transferCache?: boolean}): Observable<HttpResponse<any>>;
+    public moveAssessmentsOnlandVisualTrashAssessmentArea(onlandVisualTrashAssessmentAreaID: number, onlandVisualTrashAssessmentAreaMoveAssessmentsDto?: OnlandVisualTrashAssessmentAreaMoveAssessmentsDto, observe?: 'events', reportProgress?: boolean, options?: {httpHeaderAccept?: undefined, context?: HttpContext, transferCache?: boolean}): Observable<HttpEvent<any>>;
+    public moveAssessmentsOnlandVisualTrashAssessmentArea(onlandVisualTrashAssessmentAreaID: number, onlandVisualTrashAssessmentAreaMoveAssessmentsDto?: OnlandVisualTrashAssessmentAreaMoveAssessmentsDto, observe: any = 'body', reportProgress: boolean = false, options?: {httpHeaderAccept?: undefined, context?: HttpContext, transferCache?: boolean}): Observable<any> {
+        if (onlandVisualTrashAssessmentAreaID === null || onlandVisualTrashAssessmentAreaID === undefined) {
+            throw new Error('Required parameter onlandVisualTrashAssessmentAreaID was null or undefined when calling moveAssessmentsOnlandVisualTrashAssessmentArea.');
+        }
+
+        let localVarHeaders = this.defaultHeaders;
+
+        const localVarHttpHeaderAcceptSelected: string | undefined = options?.httpHeaderAccept ?? this.configuration.selectHeaderAccept([
+        ]);
+        if (localVarHttpHeaderAcceptSelected !== undefined) {
+            localVarHeaders = localVarHeaders.set('Accept', localVarHttpHeaderAcceptSelected);
+        }
+
+        const localVarHttpContext: HttpContext = options?.context ?? new HttpContext();
+
+        const localVarTransferCache: boolean = options?.transferCache ?? true;
+
+
+        // to determine the Content-Type header
+        const consumes: string[] = [
+            'application/json',
+            'text/json',
+            'application/*+json'
+        ];
+        const httpContentTypeSelected: string | undefined = this.configuration.selectHeaderContentType(consumes);
+        if (httpContentTypeSelected !== undefined) {
+            localVarHeaders = localVarHeaders.set('Content-Type', httpContentTypeSelected);
+        }
+
+        let responseType_: 'text' | 'json' | 'blob' = 'json';
+        if (localVarHttpHeaderAcceptSelected) {
+            if (localVarHttpHeaderAcceptSelected.startsWith('text')) {
+                responseType_ = 'text';
+            } else if (this.configuration.isJsonMime(localVarHttpHeaderAcceptSelected)) {
+                responseType_ = 'json';
+            } else {
+                responseType_ = 'blob';
+            }
+        }
+
+        let localVarPath = `/onland-visual-trash-assessment-areas/${this.configuration.encodeParam({name: "onlandVisualTrashAssessmentAreaID", value: onlandVisualTrashAssessmentAreaID, in: "path", style: "simple", explode: false, dataType: "number", dataFormat: "int32"})}/move-assessments`;
+        const { basePath, withCredentials } = this.configuration;
+        return this.httpClient.request<any>('post', `${basePath}${localVarPath}`,
+            {
+                context: localVarHttpContext,
+                body: onlandVisualTrashAssessmentAreaMoveAssessmentsDto,
                 responseType: <any>responseType_,
                 ...(withCredentials ? { withCredentials } : {}),
                 headers: localVarHeaders,

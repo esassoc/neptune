@@ -107,6 +107,7 @@ model/onland-visual-trash-assessment-add-remove-parcels-dto.ts
 model/onland-visual-trash-assessment-area-detail-dto.ts
 model/onland-visual-trash-assessment-area-geometry-dto.ts
 model/onland-visual-trash-assessment-area-grid-dto.ts
+model/onland-visual-trash-assessment-area-move-assessments-dto.ts
 model/onland-visual-trash-assessment-area-simple-dto.ts
 model/onland-visual-trash-assessment-detail-dto.ts
 model/onland-visual-trash-assessment-grid-dto.ts
@@ -235,4 +236,6 @@ model/watershed-dto.ts
 model/workflow-step-status.ts
 model/wqmp-upload-result-dto.ts
 param.ts
+provide-api.ts
+query.params.ts
 variables.ts
