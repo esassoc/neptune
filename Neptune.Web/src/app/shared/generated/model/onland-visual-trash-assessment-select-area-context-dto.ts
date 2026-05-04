@@ -10,12 +10,12 @@
 
 
 import { FormControl, FormControlOptions, FormControlState, Validators } from "@angular/forms";
-export class OnlandVisualTrashAssessmentAddRemoveParcelsDto { 
+export class OnlandVisualTrashAssessmentSelectAreaContextDto { 
     OnlandVisualTrashAssessmentID?: number;
-    OnlandVisualTrashAssessmentAreaID?: number | null;
     StormwaterJurisdictionID?: number;
-    IsDraftGeometryManuallyRefined?: boolean;
+    JurisdictionHasLandUseBlocks?: boolean;
     OvtaAreaSourceTypeID?: number;
+    IsDraftGeometryManuallyRefined?: boolean;
     SelectedParcelIDs?: Array<number> | null;
     SelectedLandUseBlockIDs?: Array<number> | null;
     constructor(obj?: any) {
@@ -23,28 +23,18 @@ export class OnlandVisualTrashAssessmentAddRemoveParcelsDto {
     }
 }
 
-export interface OnlandVisualTrashAssessmentAddRemoveParcelsDtoForm { 
+export interface OnlandVisualTrashAssessmentSelectAreaContextDtoForm { 
     OnlandVisualTrashAssessmentID?: FormControl<number>;
-    OnlandVisualTrashAssessmentAreaID?: FormControl<number>;
     StormwaterJurisdictionID?: FormControl<number>;
-    IsDraftGeometryManuallyRefined?: FormControl<boolean>;
+    JurisdictionHasLandUseBlocks?: FormControl<boolean>;
     OvtaAreaSourceTypeID?: FormControl<number>;
+    IsDraftGeometryManuallyRefined?: FormControl<boolean>;
     SelectedParcelIDs?: FormControl<Array<number>>;
     SelectedLandUseBlockIDs?: FormControl<Array<number>>;
 }
 
-export class OnlandVisualTrashAssessmentAddRemoveParcelsDtoFormControls { 
+export class OnlandVisualTrashAssessmentSelectAreaContextDtoFormControls { 
     public static OnlandVisualTrashAssessmentID = (value: FormControlState<number> | number = undefined, formControlOptions?: FormControlOptions | null) => new FormControl<number>(
-        value,
-        formControlOptions ?? 
-        {
-            nonNullable: false,
-            validators: 
-            [
-            ],
-        }
-    );
-    public static OnlandVisualTrashAssessmentAreaID = (value: FormControlState<number> | number = undefined, formControlOptions?: FormControlOptions | null) => new FormControl<number>(
         value,
         formControlOptions ?? 
         {
@@ -64,7 +54,7 @@ export class OnlandVisualTrashAssessmentAddRemoveParcelsDtoFormControls {
             ],
         }
     );
-    public static IsDraftGeometryManuallyRefined = (value: FormControlState<boolean> | boolean = undefined, formControlOptions?: FormControlOptions | null) => new FormControl<boolean>(
+    public static JurisdictionHasLandUseBlocks = (value: FormControlState<boolean> | boolean = undefined, formControlOptions?: FormControlOptions | null) => new FormControl<boolean>(
         value,
         formControlOptions ?? 
         {
@@ -75,6 +65,16 @@ export class OnlandVisualTrashAssessmentAddRemoveParcelsDtoFormControls {
         }
     );
     public static OvtaAreaSourceTypeID = (value: FormControlState<number> | number = undefined, formControlOptions?: FormControlOptions | null) => new FormControl<number>(
+        value,
+        formControlOptions ?? 
+        {
+            nonNullable: false,
+            validators: 
+            [
+            ],
+        }
+    );
+    public static IsDraftGeometryManuallyRefined = (value: FormControlState<boolean> | boolean = undefined, formControlOptions?: FormControlOptions | null) => new FormControl<boolean>(
         value,
         formControlOptions ?? 
         {

@@ -182,6 +182,7 @@ public static class OnlandVisualTrashAssessments
 
             onlandVisualTrashAssessment.OnlandVisualTrashAssessmentScoreID = dto.OnlandVisualTrashAssessmentScoreID;
             onlandVisualTrashAssessment.Notes = dto.Notes;
+            onlandVisualTrashAssessment.SecondAssessorName = string.IsNullOrWhiteSpace(dto.SecondAssessorName) ? null : dto.SecondAssessorName.Trim();
             onlandVisualTrashAssessment.OnlandVisualTrashAssessmentStatusID = dto.OnlandVisualTrashAssessmentStatusID;
 
             await dbContext.SaveChangesAsync();
@@ -229,6 +230,7 @@ public static class OnlandVisualTrashAssessments
         {
             onlandVisualTrashAssessment.OnlandVisualTrashAssessmentScoreID = dto.OnlandVisualTrashAssessmentScoreID;
             onlandVisualTrashAssessment.Notes = dto.Notes;
+            onlandVisualTrashAssessment.SecondAssessorName = string.IsNullOrWhiteSpace(dto.SecondAssessorName) ? null : dto.SecondAssessorName.Trim();
             onlandVisualTrashAssessment.OnlandVisualTrashAssessmentStatusID = dto.OnlandVisualTrashAssessmentStatusID;
             if (onlandVisualTrashAssessment.AssessingNewArea ?? false)
             {
@@ -272,6 +274,36 @@ public static class OnlandVisualTrashAssessments
         var onlandVisualTrashAssessment = dbContext.OnlandVisualTrashAssessments.Single(x =>
             x.OnlandVisualTrashAssessmentID == onlandVisualTrashAssessmentID);
         onlandVisualTrashAssessment.DraftGeometry = ParcelGeometries.UnionAggregateByParcelIDs(dbContext, parcelIDs);
+        onlandVisualTrashAssessment.OvtaAreaSourceTypeID = (int)OvtaAreaSourceTypeEnum.Parcel;
+
+        await dbContext.SaveChangesAsync();
+    }
+
+    public static async Task UpdateDraftGeometryFromSelection(NeptuneDbContext dbContext, int onlandVisualTrashAssessmentID, OnlandVisualTrashAssessmentAddRemoveParcelsDto dto)
+    {
+        var onlandVisualTrashAssessment = dbContext.OnlandVisualTrashAssessments.Single(x =>
+            x.OnlandVisualTrashAssessmentID == onlandVisualTrashAssessmentID);
+
+        if (dto.OvtaAreaSourceTypeID == (int)OvtaAreaSourceTypeEnum.LandUseBlock)
+        {
+            var ids = dto.SelectedLandUseBlockIDs ?? new List<int>();
+            onlandVisualTrashAssessment.DraftGeometry = ids.Any()
+                ? LandUseBlocks.UnionAggregateByLandUseBlockIDs(dbContext, ids)
+                : null;
+            onlandVisualTrashAssessment.OvtaAreaSourceTypeID = (int)OvtaAreaSourceTypeEnum.LandUseBlock;
+        }
+        else
+        {
+            var ids = dto.SelectedParcelIDs ?? new List<int>();
+            onlandVisualTrashAssessment.DraftGeometry = ids.Any()
+                ? ParcelGeometries.UnionAggregateByParcelIDs(dbContext, ids)
+                : null;
+            onlandVisualTrashAssessment.OvtaAreaSourceTypeID = (int)OvtaAreaSourceTypeEnum.Parcel;
+        }
+
+        // The user just rebuilt the area from a selection list; any prior manual refinement is
+        // discarded so the next visit to Refine starts from the unioned shape.
+        onlandVisualTrashAssessment.IsDraftGeometryManuallyRefined = false;
 
         await dbContext.SaveChangesAsync();
     }
@@ -386,13 +418,50 @@ public static class OnlandVisualTrashAssessments
         // NP 8/22 these are supposed to be in 2771 already, but due to a b*g somewhere, some of them have 4326 as their SRID even though the coords are 2771...
         var draftGeometry = onlandVisualTrashAssessment.DraftGeometry;//.FixSrid(CoordinateSystemHelper.NAD_83_HARN_CA_ZONE_VI_SRID);
 
-        // ... and the wrong SRID would cause this next lookup to fail bigly 
+        // ... and the wrong SRID would cause this next lookup to fail bigly
         var parcelIDs = draftGeometry == null
             ? onlandVisualTrashAssessment.GetParcelsViaTransect(dbContext).Select(x => x.ParcelID)
             : dbContext.ParcelGeometries.AsNoTracking()
                 .Where(x => draftGeometry.Contains(x.GeometryNative)).Select(x => x.ParcelID);
 
         return parcelIDs.ToList();
+    }
+
+    public static List<int> GetLandUseBlockIDsForSelectArea(
+        this OnlandVisualTrashAssessment onlandVisualTrashAssessment, NeptuneDbContext dbContext)
+    {
+        if (onlandVisualTrashAssessment.IsDraftGeometryManuallyRefined.GetValueOrDefault())
+        {
+            return new List<int>();
+        }
+
+        var draftGeometry = onlandVisualTrashAssessment.DraftGeometry;
+
+        // No saved geometry yet → seed from blocks intersecting the transect line, scoped to
+        // this OVTA's jurisdiction so we don't pull in blocks the user can't edit.
+        if (draftGeometry == null)
+        {
+            if (!onlandVisualTrashAssessment.OnlandVisualTrashAssessmentObservations.Any())
+            {
+                return new List<int>();
+            }
+
+            var transect = onlandVisualTrashAssessment.OnlandVisualTrashAssessmentObservations.Count == 1
+                ? onlandVisualTrashAssessment.OnlandVisualTrashAssessmentObservations.Single().LocationPoint
+                : GetTransectLine(onlandVisualTrashAssessment.OnlandVisualTrashAssessmentObservations);
+
+            return transect == null
+                ? new List<int>()
+                : LandUseBlocks
+                    .GetIntersected(dbContext, transect, onlandVisualTrashAssessment.StormwaterJurisdictionID)
+                    .Select(x => x.LandUseBlockID).ToList();
+        }
+
+        // DraftGeometry exists → return blocks fully contained in it (mirrors the parcel logic).
+        return dbContext.LandUseBlocks.AsNoTracking()
+            .Where(x => x.StormwaterJurisdictionID == onlandVisualTrashAssessment.StormwaterJurisdictionID
+                        && draftGeometry.Contains(x.LandUseBlockGeometry))
+            .Select(x => x.LandUseBlockID).ToList();
     }
 
     public static OnlandVisualTrashAssessmentScore? CalculateProgressScore(List<OnlandVisualTrashAssessment> onlandVisualTrashAssessments)

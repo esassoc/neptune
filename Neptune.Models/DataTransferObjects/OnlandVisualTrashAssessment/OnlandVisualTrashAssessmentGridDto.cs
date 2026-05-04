@@ -4,6 +4,7 @@ public class OnlandVisualTrashAssessmentGridDto
 {
     public int OnlandVisualTrashAssessmentID { get; set; }
     public string CreatedByPersonFullName { get; set; }
+    public string? SecondAssessorName { get; set; }
     public DateTime CreatedDate { get; set; }
     public int? OnlandVisualTrashAssessmentAreaID { get; set; }
     public string? OnlandVisualTrashAssessmentAreaName { get; set; }

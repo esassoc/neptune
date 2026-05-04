@@ -52,6 +52,12 @@ public partial class OnlandVisualTrashAssessment
 
     public bool IsProgressAssessment { get; set; }
 
+    [StringLength(200)]
+    [Unicode(false)]
+    public string? SecondAssessorName { get; set; }
+
+    public int? OvtaAreaSourceTypeID { get; set; }
+
     [ForeignKey("CreatedByPersonID")]
     [InverseProperty("OnlandVisualTrashAssessments")]
     public virtual Person CreatedByPerson { get; set; } = null!;

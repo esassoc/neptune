@@ -68,6 +68,7 @@ export * from './onland-visual-trash-assessment-observations-upsert-dto';
 export * from './onland-visual-trash-assessment-preliminary-source-identification-upsert-dto';
 export * from './onland-visual-trash-assessment-refine-area-dto';
 export * from './onland-visual-trash-assessment-review-and-finalize-dto';
+export * from './onland-visual-trash-assessment-select-area-context-dto';
 export * from './onland-visual-trash-assessment-simple-dto';
 export * from './onland-visual-trash-assessment-status-simple-dto';
 export * from './onland-visual-trash-assessment-workflow-progress-dto';
