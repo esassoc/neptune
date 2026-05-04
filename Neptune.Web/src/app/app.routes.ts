@@ -735,7 +735,7 @@ export const routes: Routes = [
             {
                 path: "delineation/delineation-map",
                 title: "Delineation Map",
-                loadComponent: () => import("./pages/delineation/delineation-map.component").then((m) => m.DelineationMapComponent),
+                loadComponent: () => import("./pages/delineation/delineation-map/delineation-map.component").then((m) => m.DelineationMapComponent),
             },
             {
                 path: "delineation/delineation-reconciliation-report",

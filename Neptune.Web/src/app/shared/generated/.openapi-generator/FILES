@@ -60,10 +60,13 @@ model/custom-attribute-type-upsert-dto.ts
 model/custom-attribute-type-with-treatment-bmp-type-ids-dto.ts
 model/custom-attribute-upsert-dto.ts
 model/delineation-dto.ts
+model/delineation-set-verified-dto.ts
 model/delineation-upsert-dto.ts
+model/delineation-upsert-geo-json-dto.ts
 model/dimension.ts
 model/elevation-model.ts
 model/envelope.ts
+model/feature.ts
 model/field-definition-dto.ts
 model/field-definition-type-simple-dto.ts
 model/field-visit-create-dto.ts
@@ -179,6 +182,7 @@ model/treatment-bmp-benchmark-and-threshold-dto.ts
 model/treatment-bmp-benchmark-and-threshold-upsert-dto.ts
 model/treatment-bmp-create-dto.ts
 model/treatment-bmp-delineation-errors-dto.ts
+model/treatment-bmp-delineation-map-dto.ts
 model/treatment-bmp-display-dto.ts
 model/treatment-bmp-document-dto.ts
 model/treatment-bmp-document-update-dto.ts
@@ -236,6 +240,4 @@ model/watershed-dto.ts
 model/workflow-step-status.ts
 model/wqmp-upload-result-dto.ts
 param.ts
-provide-api.ts
-query.params.ts
 variables.ts

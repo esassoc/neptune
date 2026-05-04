@@ -77,4 +77,15 @@ public class RegionalSubbasinController : SitkaController<RegionalSubbasinContro
         var featureCollection = RegionalSubbasins.GetRegionalSubbasinGraphTraceAsFeatureCollection(DbContext, coordinateDto);
         return Ok(featureCollection);
     }
+
+    [HttpGet("upstream-delineation-for-bmp/{treatmentBMPID}")]
+    [TreatmentBMPEditFeature]
+    [EntityNotFound(typeof(TreatmentBMP), "treatmentBMPID")]
+    public ActionResult<Feature> GetUpstreamDelineationForBMP([FromRoute] int treatmentBMPID)
+    {
+        var treatmentBMP = TreatmentBMPs.GetByIDWithChangeTracking(DbContext, treatmentBMPID);
+        var geometry = treatmentBMP.GetCentralizedDelineationGeometry4326(DbContext);
+        var feature = new Feature(geometry, new AttributesTable());
+        return Ok(feature);
+    }
 }
