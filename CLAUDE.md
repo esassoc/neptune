@@ -182,3 +182,27 @@ Services are containerized with multi-stage Dockerfiles (aspnet:10.0 runtime / s
 | geoserver | 8780 |
 
 CI/CD is Azure Pipelines (`Build/azure-pipelines.yml`) deploying to Azure Kubernetes via Helm. Infrastructure managed by Terraform (`neptune.tf/`).
+
+## Local Dev: Trusting the Corp SSL-Inspection Root
+
+ESA corp-managed laptops route outbound HTTPS through the Cato SASE agent, which terminates TLS and re-issues certs signed by `CN=Cato Networks Root CA`. The Linux .NET base image inside Docker only trusts public CAs, so any in-container outbound HTTPS that Cato intercepts (notably `api.anthropic.com` for AI extraction) fails with `UntrustedRoot`. Symptom: 500 from `POST /water-quality-management-plans/{id}/extract` with a `System.Security.Authentication.AuthenticationException` in the API logs. Windows host (browser, native `dotnet run`) trusts Cato via `LocalMachine\Root` so this is invisible outside the container. **QA/prod are unaffected** — AKS pods don't route through Cato.
+
+Fix locally (do **not** commit any of this — each dev does it on their own machine):
+
+1. Export the Cato root from your Windows trust store to `docker-compose/corp-root.crt`:
+   ```powershell
+   $cert = Get-ChildItem Cert:\LocalMachine\Root | Where-Object { $_.Subject -match "Cato Networks" }
+   $pem = "-----BEGIN CERTIFICATE-----`n" + [Convert]::ToBase64String($cert.RawData, 'InsertLineBreaks') + "`n-----END CERTIFICATE-----`n"
+   Set-Content -Path "docker-compose\corp-root.crt" -Value $pem -Encoding ascii
+   ```
+2. Add to `.dockerignore` after the `**/docker-compose*` line: `!docker-compose/corp-root.crt`
+3. Add to `Neptune.API/Dockerfile` before the existing `WORKDIR /app` in the final stage:
+   ```
+   USER root
+   COPY docker-compose/corp-root.crt /usr/local/share/ca-certificates/corp-root.crt
+   RUN update-ca-certificates
+   USER app
+   ```
+4. Rebuild from Visual Studio. Outbound HTTPS to Cato-intercepted endpoints now resolves cleanly inside the container.
+
+The cert is valid until 2034 — re-export only if Cato rotates it. If `api.anthropic.com` starts working without the patch (Cato bypass added by IT), drop the local edits.
