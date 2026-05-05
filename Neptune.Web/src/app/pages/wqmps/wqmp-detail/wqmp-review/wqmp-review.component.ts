@@ -321,20 +321,23 @@ export class WqmpReviewComponent implements OnInit, IDeactivateComponent {
                     this.reload$.next();
                 },
                 error: (err: HttpErrorResponse) => {
-                    // 400s carry our friendly { message } payload (PDF too large / Claude 4xx);
-                    // anything else falls through to the generic HttpErrorInterceptor alert.
-                    const rawMsg = err.status === 400
-                        ? (err.error?.message ?? "Extraction failed.")
-                        : "Extraction failed. Please try again.";
+                    // 400s carry our friendly { message } payload (PDF too large / Claude 4xx).
+                    // The global HttpErrorInterceptor already pushes a plain-text alert from the
+                    // body. We only need to override it when we want to enrich with the
+                    // PDF-rejection hint — clear and replace so the user sees one alert, not two.
                     if (err.status === 400) {
-                        // NPT-1051: Anthropic returns a generic "Could not process PDF" with no
-                        // reason. Append the most common causes so the user has somewhere to start.
-                        const baseMsg = rawMsg.trim().replace(/\.?$/, ".");
-                        const msg = /could not process pdf/i.test(rawMsg)
-                            ? `${baseMsg} Common reasons: more than 100 pages, over 200 MB, or password-protected.`
-                            : baseMsg;
-                        this.alertService.pushAlert(new Alert(msg, AlertContext.Danger));
+                        const rawMsg = err.error?.message ?? "";
+                        if (/could not process pdf/i.test(rawMsg)) {
+                            this.alertService.clearAlerts();
+                            const baseMsg = rawMsg.trim().replace(/\.?$/, ".");
+                            this.alertService.pushAlert(new Alert(
+                                `${baseMsg} Common reasons: more than 100 pages, over 200 MB, or password-protected.`,
+                                AlertContext.Danger,
+                            ));
+                        }
+                        // For other 400 messages (e.g. size-cap), the interceptor's alert is fine.
                     }
+                    // Non-400s also fall through to the interceptor's generic handling.
                 },
             });
     }

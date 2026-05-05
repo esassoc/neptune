@@ -162,15 +162,18 @@ export class AiHomeComponent implements OnInit, OnDestroy {
             }),
             catchError((error: HttpErrorResponse) => {
                 this.isExtracting = false;
-                // NPT-1051: don't swallow extraction failures — surface them so the user knows
-                // the run errored instead of seeing the spinner stop with no feedback. Append
-                // a hint when Anthropic returns the generic "Could not process PDF" message.
-                const rawMsg = error?.error?.message ?? "Extraction failed. Please try again or contact support.";
-                const baseMsg = rawMsg.trim().replace(/\.?$/, ".");
-                const msg = /could not process pdf/i.test(rawMsg)
-                    ? `${baseMsg} Common reasons: more than 100 pages, over 200 MB, or password-protected.`
-                    : baseMsg;
-                this.alertService.pushAlert(new Alert(msg, AlertContext.Danger));
+                // The global HttpErrorInterceptor handles 4xx alerts. We only intervene to
+                // enrich the "Could not process PDF" message with a hint about common causes,
+                // clearing the interceptor's plain alert first so the user sees one, not two.
+                const rawMsg = error?.error?.message ?? "";
+                if (/could not process pdf/i.test(rawMsg)) {
+                    this.alertService.clearAlerts();
+                    const baseMsg = rawMsg.trim().replace(/\.?$/, ".");
+                    this.alertService.pushAlert(new Alert(
+                        `${baseMsg} Common reasons: more than 100 pages, over 200 MB, or password-protected.`,
+                        AlertContext.Danger,
+                    ));
+                }
                 return of(null);
             })
         );
