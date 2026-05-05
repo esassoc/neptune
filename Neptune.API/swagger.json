@@ -2716,29 +2716,17 @@
           "content": {
             "application/json": {
               "schema": {
-                "type": "array",
-                "items": {
-                  "type": "integer",
-                  "format": "int32"
-                }
+                "$ref": "#/components/schemas/OnlandVisualTrashAssessmentAddRemoveParcelsDto"
               }
             },
             "text/json": {
               "schema": {
-                "type": "array",
-                "items": {
-                  "type": "integer",
-                  "format": "int32"
-                }
+                "$ref": "#/components/schemas/OnlandVisualTrashAssessmentAddRemoveParcelsDto"
               }
             },
             "application/*+json": {
               "schema": {
-                "type": "array",
-                "items": {
-                  "type": "integer",
-                  "format": "int32"
-                }
+                "$ref": "#/components/schemas/OnlandVisualTrashAssessmentAddRemoveParcelsDto"
               }
             }
           }
@@ -2746,6 +2734,47 @@
         "responses": {
           "200": {
             "description": "OK"
+          }
+        }
+      }
+    },
+    "/onland-visual-trash-assessments/{onlandVisualTrashAssessmentID}/select-area-context": {
+      "get": {
+        "tags": [
+          "OnlandVisualTrashAssessment"
+        ],
+        "operationId": "GetSelectAreaContext_OnlandVisualTrashAssessment",
+        "parameters": [
+          {
+            "name": "onlandVisualTrashAssessmentID",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/OnlandVisualTrashAssessmentSelectAreaContextDto"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OnlandVisualTrashAssessmentSelectAreaContextDto"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OnlandVisualTrashAssessmentSelectAreaContextDto"
+                }
+              }
+            }
           }
         }
       }
@@ -13696,7 +13725,19 @@
           "IsDraftGeometryManuallyRefined": {
             "type": "boolean"
           },
+          "OvtaAreaSourceTypeID": {
+            "type": "integer",
+            "format": "int32"
+          },
           "SelectedParcelIDs": {
+            "type": "array",
+            "items": {
+              "type": "integer",
+              "format": "int32"
+            },
+            "nullable": true
+          },
+          "SelectedLandUseBlockIDs": {
             "type": "array",
             "items": {
               "type": "integer",
@@ -13898,6 +13939,10 @@
             "type": "string",
             "nullable": true
           },
+          "SecondAssessorName": {
+            "type": "string",
+            "nullable": true
+          },
           "CreatedDate": {
             "type": "string",
             "format": "date-time"
@@ -13965,6 +14010,10 @@
             "format": "int32"
           },
           "CreatedByPersonFullName": {
+            "type": "string",
+            "nullable": true
+          },
+          "SecondAssessorName": {
             "type": "string",
             "nullable": true
           },
@@ -14180,6 +14229,10 @@
             "type": "string",
             "nullable": true
           },
+          "SecondAssessorName": {
+            "type": "string",
+            "nullable": true
+          },
           "AssessmentDate": {
             "type": "string",
             "format": "date",
@@ -14189,6 +14242,46 @@
             "type": "array",
             "items": {
               "$ref": "#/components/schemas/OnlandVisualTrashAssessmentPreliminarySourceIdentificationUpsertDto"
+            },
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "OnlandVisualTrashAssessmentSelectAreaContextDto": {
+        "type": "object",
+        "properties": {
+          "OnlandVisualTrashAssessmentID": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "StormwaterJurisdictionID": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "JurisdictionHasLandUseBlocks": {
+            "type": "boolean"
+          },
+          "OvtaAreaSourceTypeID": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "IsDraftGeometryManuallyRefined": {
+            "type": "boolean"
+          },
+          "SelectedParcelIDs": {
+            "type": "array",
+            "items": {
+              "type": "integer",
+              "format": "int32"
+            },
+            "nullable": true
+          },
+          "SelectedLandUseBlockIDs": {
+            "type": "array",
+            "items": {
+              "type": "integer",
+              "format": "int32"
             },
             "nullable": true
           }
@@ -14258,6 +14351,15 @@
           },
           "IsProgressAssessment": {
             "type": "boolean"
+          },
+          "SecondAssessorName": {
+            "type": "string",
+            "nullable": true
+          },
+          "OvtaAreaSourceTypeID": {
+            "type": "integer",
+            "format": "int32",
+            "nullable": true
           }
         },
         "additionalProperties": false

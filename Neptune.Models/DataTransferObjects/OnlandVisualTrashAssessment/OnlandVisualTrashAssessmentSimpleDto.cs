@@ -22,5 +22,7 @@ namespace Neptune.Models.DataTransferObjects
         public string DraftAreaDescription { get; set; }
         public bool IsTransectBackingAssessment { get; set; }
         public bool IsProgressAssessment { get; set; }
+        public string SecondAssessorName { get; set; }
+        public int? OvtaAreaSourceTypeID { get; set; }
     }
 }

@@ -260,7 +260,7 @@ export const routes: Routes = [
                     },
                     {
                         path: "add-or-remove-parcels",
-                        title: "Add or Remove Parcels",
+                        title: "Select Assessment Area",
                         loadComponent: () =>
                             import("./pages/trash-module/ovta-workflow/trash-ovta-add-remove-parcels/trash-ovta-add-remove-parcels.component").then(
                                 (m) => m.TrashOvtaAddRemoveParcelsComponent

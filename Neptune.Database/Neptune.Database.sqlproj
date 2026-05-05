@@ -148,6 +148,7 @@
     <Build Include="dbo\Tables\dbo.OnlandVisualTrashAssessmentPreliminarySourceIdentificationType.sql" />
     <Build Include="dbo\Tables\dbo.OnlandVisualTrashAssessmentScore.sql" />
     <Build Include="dbo\Tables\dbo.OnlandVisualTrashAssessmentStatus.sql" />
+    <Build Include="dbo\Tables\dbo.OvtaAreaSourceType.sql" />
     <Build Include="dbo\Tables\dbo.Organization.sql" />
     <Build Include="dbo\Tables\dbo.OrganizationType.sql" />
     <Build Include="dbo\Tables\dbo.Parcel.sql" />
@@ -265,6 +266,7 @@
     <None Include="Scripts\LookupTables\dbo.ObservationTypeSpecification.sql" />
     <None Include="Scripts\LookupTables\dbo.OnlandVisualTrashAssessmentScore.sql" />
     <None Include="Scripts\LookupTables\dbo.OnlandVisualTrashAssessmentStatus.sql" />
+    <None Include="Scripts\LookupTables\dbo.OvtaAreaSourceType.sql" />
     <None Include="Scripts\LookupTables\dbo.PermitType.sql" />
     <None Include="Scripts\LookupTables\dbo.PreliminarySourceIdentificationCategory.sql" />
     <None Include="Scripts\LookupTables\dbo.PreliminarySourceIdentificationType.sql" />
