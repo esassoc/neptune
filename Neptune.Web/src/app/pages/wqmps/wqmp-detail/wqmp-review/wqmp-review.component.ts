@@ -361,7 +361,11 @@ export class WqmpReviewComponent implements OnInit, IDeactivateComponent {
             message: `<p class="mb-3">${intro}</p>${PDF_EXTRACTION_LIMITS_HTML_PANEL}`,
             buttonTextYes: isReRun ? "Re-run" : "Run Extraction",
             buttonTextNo: "Cancel",
-            buttonClassYes: isReRun ? "btn-danger" : "btn-primary",
+            // btn-primary in both states — re-run replaces AI suggestions but saved
+            // sections on the WQMP are preserved by construction, so it's not actually
+            // destructive enough to warrant the red treatment (which also flips the
+            // confirm-modal panel red).
+            buttonClassYes: "btn-primary",
         }, this.viewContainerRef);
         if (confirmed) this.runExtraction();
     }

@@ -24,6 +24,13 @@
             color: $gray-500;
             padding: 0.4rem 0.5rem;
             border-bottom: 1px solid $gray-200;
+
+            // Status header needs to align with the right-aligned status pill below.
+            // The bare `th` rule's text-align beats the &__col-status class on its own
+            // (higher specificity), so re-assert it inside the th selector.
+            &.review-summary__col-status {
+                text-align: right;
+            }
         }
 
         td {
