@@ -8,6 +8,16 @@
         Upload a WQMP PDF to create a Draft WQMP. You'll be able to run AI extraction against the PDF from the review page.
     </p>
 
+    <div class="alert alert-info">
+        <strong>PDF requirements for AI extraction:</strong>
+        <ul class="mb-0 mt-1">
+            <li><strong>100 pages or fewer.</strong> Longer PDFs are rejected by the AI service — split the document and run extraction on each section separately.</li>
+            <li><strong>Up to 200&nbsp;MB.</strong> Larger files are rejected at upload.</li>
+            <li><strong>No password protection or encryption.</strong> Re-export an unprotected copy first.</li>
+            <li>Scanned / image-only PDFs are fine — the AI reads both text and visual content.</li>
+        </ul>
+    </div>
+
     <div class="mb-3">
         <strong>File:</strong> {{ file.name }}
     </div>

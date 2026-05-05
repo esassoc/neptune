@@ -121,6 +121,9 @@
                     <i class="fa fa-magic review-panel__extract-cta-icon"></i>
                     <h3>Not yet extracted</h3>
                     <p>Review the uploaded PDF on the right, then click below to run AI extraction against the document.</p>
+                    <p class="copy copy-3 review-panel__extract-cta-limits">
+                        Limits: ≤&nbsp;100 pages, ≤&nbsp;200&nbsp;MB, no password protection. Scanned PDFs are supported.
+                    </p>
                     <button class="btn btn-primary" (click)="runExtraction()" [disabled]="isExtracting()">
                         @if (isExtracting()) { <i class="fa fa-spinner fa-spin"></i> Extracting... } @else { <i class="fa fa-magic"></i> Extract with AI }
                     </button>
