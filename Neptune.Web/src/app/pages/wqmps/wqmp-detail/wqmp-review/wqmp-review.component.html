@@ -161,7 +161,7 @@
                         </field-card>
                     }
                     @if (currentStep() === 1) {
-                        <button class="btn btn-primary-outline btn-sm review-panel__add-parcel" (click)="addParcel()">
+                        <button class="btn btn-primary-outline btn-sm review-panel__add-parcel" (click)="addParcel()" [disabled]="isExtracting()">
                             <i class="fa fa-plus"></i> Add Parcel
                         </button>
                     }
