@@ -92,6 +92,11 @@ export class WqmpDetailComponent implements OnInit, OnChanges {
     // robust against AsyncPipe re-subscription quirks that can leave the page showing
     // stale Status / Modeling Approach values when wqmp$ is reassigned mid-stream.
     private reload$ = new BehaviorSubject<void>(undefined);
+    // NPT-995 round 5: separate signal for verifications$ so a row-delete only refreshes
+    // the verifications grid — pushing reload$ would also refetch wqmp$ + rebuild the
+    // map layers, which is unnecessary work and a potential source of UI flicker on a
+    // verification mutation.
+    private verificationsReload$ = new BehaviorSubject<void>(undefined);
     wqmp$: Observable<WaterQualityManagementPlanDto>;
     quickBMPs$: Observable<QuickBMPDto[]>;
     quickBMPTotalRow: any[] = [];
@@ -232,14 +237,12 @@ export class WqmpDetailComponent implements OnInit, OnChanges {
                 }));
             })
         );
-        // NPT-995 round 5: verifications$ rides the same reload$ pipeline as wqmp$ so
-        // mutations (e.g. delete from the row-actions menu) refresh the grid via
-        // reload$.next() rather than inline observable reassignment, which the AsyncPipe
-        // didn't reliably re-subscribe to (same anti-pattern NPT-1051 PR #488 fixed for
-        // wqmp$). Initialized once; subsequent loadData() calls inherit wqmp$'s
-        // reload$.next() above.
+        // NPT-995 round 5: stable observable driven by verificationsReload$. Delete
+        // mutations push the dedicated reload signal rather than inline-reassigning
+        // verifications$ — same AsyncPipe re-subscription fix as wqmp$ (NPT-1051 PR #488),
+        // scoped narrowly so unrelated wqmp$ refreshes don't drag the grid along.
         if (!this.verifications$) {
-            this.verifications$ = this.reload$.pipe(
+            this.verifications$ = this.verificationsReload$.pipe(
                 switchMap(() => this.wqmpService.listVerificationsWaterQualityManagementPlan(this.waterQualityManagementPlanID)),
                 shareReplay(1)
             );
@@ -546,9 +549,9 @@ export class WqmpDetailComponent implements OnInit, OnChanges {
                 this.wqmpService.deleteVerificationWaterQualityManagementPlan(this.waterQualityManagementPlanID, verifyID).subscribe({
                     next: () => {
                         this.alertService.pushAlert(new Alert("Verification deleted.", AlertContext.Success));
-                        // NPT-995 round 5: push reload$ instead of reassigning verifications$
-                        // — the inline reassign wasn't reliably re-triggering the AsyncPipe.
-                        this.reload$.next();
+                        // NPT-995 round 5: scoped reload — refresh only the verifications grid,
+                        // not wqmp$ + map layers (delete doesn't affect WQMP fields/geometry).
+                        this.verificationsReload$.next();
                     },
                     error: () => {
                         this.alertService.pushAlert(new Alert("An error occurred while deleting the verification.", AlertContext.Danger));
