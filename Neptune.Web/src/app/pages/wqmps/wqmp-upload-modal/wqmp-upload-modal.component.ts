@@ -22,7 +22,9 @@ import { environment } from "src/environments/environment";
     styleUrl: "./wqmp-upload-modal.component.scss",
 })
 export class WqmpUploadModalComponent implements OnInit {
-    public ref: DialogRef<{ file: File }, { wqmpID: number; documentID: number }> = inject(DialogRef);
+    // NPT-1051 rework: the modal owns file selection internally so the user sees
+    // upload requirements before committing to a file. No `data: { file }` input.
+    public ref: DialogRef<unknown, { wqmpID: number; documentID: number }> = inject(DialogRef);
     public FormFieldType = FormFieldType;
     public wqmpNameControl = new FormControl<string>("", {
         nonNullable: true,
@@ -31,7 +33,7 @@ export class WqmpUploadModalComponent implements OnInit {
     public jurisdictionControl = new FormControl<number | null>(null, { validators: [Validators.required] });
     public jurisdictionOptions$: Observable<FormInputOption[]>;
     public isUploading = signal(false);
-    public file: File;
+    public selectedFile = signal<File | null>(null);
     public pdfLimitsBullets = PDF_EXTRACTION_LIMITS_BULLETS;
 
     constructor(
@@ -44,7 +46,6 @@ export class WqmpUploadModalComponent implements OnInit {
 
     ngOnInit(): void {
         this.alertService.clearAlerts();
-        this.file = this.ref.data.file;
 
         this.jurisdictionOptions$ = this.stormwaterJurisdictionService.listStormwaterJurisdiction().pipe(
             map((jurisdictions) =>
@@ -55,8 +56,26 @@ export class WqmpUploadModalComponent implements OnInit {
         );
     }
 
+    onPdfSelected(event: Event): void {
+        const input = event.target as HTMLInputElement;
+        if (!input.files?.length) return;
+        const file = input.files[0];
+        // Reset the input so re-selecting the same file (after Change) still fires (change).
+        input.value = "";
+
+        if (!file.name.toLowerCase().endsWith(".pdf")) {
+            this.alertService.pushAlert(new Alert("Only PDF files are accepted.", AlertContext.Danger));
+            return;
+        }
+        this.selectedFile.set(file);
+    }
+
+    clearFile(): void {
+        this.selectedFile.set(null);
+    }
+
     upload(overwrite = false): void {
-        if (this.jurisdictionControl.invalid || this.wqmpNameControl.invalid) return;
+        if (!this.selectedFile() || this.jurisdictionControl.invalid || this.wqmpNameControl.invalid) return;
         this.isUploading.set(true);
         this.alertService.clearAlerts();
 
@@ -87,13 +106,10 @@ export class WqmpUploadModalComponent implements OnInit {
                 }
 
                 if (err.status === 409) {
-                    // 409 isn't handled by HttpErrorInterceptor — surface the DTO's Message here
                     this.alertService.pushAlert(new Alert(err.error?.Message ?? "A conflict occurred.", AlertContext.Danger));
                     return;
                 }
 
-                // 400/401/403/404 are handled by HttpErrorInterceptor. Only push a fallback for
-                // statuses the interceptor doesn't cover (e.g., 500).
                 if (err.status < 400 || err.status >= 500) {
                     this.alertService.pushAlert(new Alert("An unexpected error occurred during upload.", AlertContext.Danger));
                 }
@@ -103,14 +119,12 @@ export class WqmpUploadModalComponent implements OnInit {
 
     private postUpload(overwrite: boolean): Observable<any> {
         const formData = new FormData();
-        formData.append("file", this.file);
+        formData.append("file", this.selectedFile()!);
         formData.append("stormwaterJurisdictionID", this.jurisdictionControl.value.toString());
         formData.append("wqmpName", this.wqmpNameControl.value.trim());
         if (overwrite) {
             formData.append("overwrite", "true");
         }
-        // Upload only — AI extraction is now a second, explicit step triggered from the
-        // review page so users can confirm the PDF before spending tokens.
         return this.http.post<any>(`${environment.mainAppApiUrl}/water-quality-management-plans/upload`, formData);
     }
 

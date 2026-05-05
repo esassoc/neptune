@@ -34,15 +34,22 @@
             <!-- NPT-1051: Approve All removed. Each step's Save button now writes that
                  section's accepted/edited fields straight through to the live WQMP — overwrite
                  semantics matching the modal CRUD editors. The Save buttons live alongside
-                 their step's content. Re-run Extraction sits below the steps here, where it's
-                 close to the navigation but doesn't compete with the per-field action area. -->
-            @if (pageData.hasResult) {
-                <div class="review-sidebar__rerun">
-                    <button class="btn btn-secondary-outline btn-block" (click)="confirmReExtract()" [disabled]="isExtracting()" title="Replace the AI-extracted suggestions with a fresh run. Saved sections on the WQMP are preserved.">
-                        @if (isExtracting()) { <i class="fa fa-spinner fa-spin"></i> Extracting... } @else { <i class="fa fa-magic"></i> Re-run Extraction }
-                    </button>
-                </div>
-            }
+                 their step's content.
+                 The Extract / Re-run button always anchors here (left sidebar) so it doesn't
+                 jump between right-panel CTA and sidebar between states. The label and confirm
+                 dialog text change with state but the click target stays put. -->
+            <div class="review-sidebar__rerun">
+                <button class="btn btn-secondary-outline btn-block" (click)="confirmExtract()" [disabled]="isExtracting()"
+                        [title]="pageData.hasResult ? 'Replace the AI-extracted suggestions with a fresh run. Saved sections on the WQMP are preserved.' : 'Run AI extraction against the uploaded PDF.'">
+                    @if (isExtracting()) {
+                        <i class="fa fa-spinner fa-spin"></i> Extracting...
+                    } @else if (pageData.hasResult) {
+                        <i class="fa fa-magic"></i> Re-run Extraction
+                    } @else {
+                        <i class="fa fa-magic"></i> Extract with AI
+                    }
+                </button>
+            </div>
         </aside>
 
         <!-- PDF Panel — hidden on Step 4 (Final review) since the summary view doesn't
@@ -120,13 +127,7 @@
                 <div class="review-panel__extract-cta">
                     <i class="fa fa-magic review-panel__extract-cta-icon"></i>
                     <h3>Not yet extracted</h3>
-                    <p>Review the uploaded PDF on the right, then click below to run AI extraction against the document.</p>
-                    <p class="copy copy-3 review-panel__extract-cta-limits">
-                        {{ pdfLimitsSummary }}
-                    </p>
-                    <button class="btn btn-primary" (click)="runExtraction()" [disabled]="isExtracting()">
-                        @if (isExtracting()) { <i class="fa fa-spinner fa-spin"></i> Extracting... } @else { <i class="fa fa-magic"></i> Extract with AI }
-                    </button>
+                    <p>Review the uploaded PDF, then click <strong>Extract with AI</strong> in the sidebar to run AI extraction against the document.</p>
                 </div>
             }
 

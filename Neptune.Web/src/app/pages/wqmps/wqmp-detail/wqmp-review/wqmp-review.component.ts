@@ -34,7 +34,7 @@ import { TrashCaptureStatusTypesAsSelectDropdownOptions } from "src/app/shared/g
 import { US_STATES } from "src/app/shared/constants/us-states";
 import {
     PDF_EXTRACTION_FAILURE_HINT,
-    PDF_EXTRACTION_LIMITS_SUMMARY,
+    PDF_EXTRACTION_LIMITS_HTML_PANEL,
 } from "src/app/shared/constants/pdf-extraction-limits";
 import { environment } from "src/environments/environment";
 
@@ -125,7 +125,6 @@ export class WqmpReviewComponent implements OnInit, IDeactivateComponent {
     // review summary. Refreshed via reload$ on wizard load and after every section save so
     // saved values appear immediately as Accepted in the summary.
     public liveWqmp = signal<WaterQualityManagementPlanDto | null>(null);
-    public pdfLimitsSummary = PDF_EXTRACTION_LIMITS_SUMMARY;
     // Stable bound reference passed to ReviewSummaryComponent — using a class-field arrow
     // (vs .bind() in the template) keeps the reference identical across CD passes.
     public getWqmpFieldValueBound = (field: ExtractedField): string | null =>
@@ -347,18 +346,22 @@ export class WqmpReviewComponent implements OnInit, IDeactivateComponent {
             });
     }
 
-    async confirmReExtract(): Promise<void> {
-        // NPT-1051: Re-run is always available — saved sections in the live WQMP survive a
-        // re-extract by construction (extraction overwrites the AI suggestion, not the WQMP).
-        // Surface the AI-extraction limits in the confirm dialog because by this point the
-        // user is past the upload-modal instructions and may be re-running after a failure;
-        // it's the closest we can put a reminder to the actual click that costs tokens.
+    async confirmExtract(): Promise<void> {
+        // NPT-1051: single confirm-and-extract entry point used by the sidebar button in
+        // both the not-yet-extracted and already-extracted states. The dialog wording and
+        // confirm-button color shift between "fresh run" and "re-run" framing, but the
+        // bullet panel of constraints is identical so the user has the rules in front of
+        // them right before the click that spends tokens.
+        const isReRun = !!this.currentResult();
+        const intro = isReRun
+            ? "This will replace the AI-extracted suggestions with a fresh run. Sections you've already saved are preserved on the WQMP."
+            : "Run AI extraction against the uploaded PDF. The wizard will populate with the AI's suggestions for you to review.";
         const confirmed = await this.confirmService.confirm({
-            title: "Re-run extraction?",
-            message: `This will replace the AI-extracted suggestions with a fresh run. Sections you've already saved are preserved on the WQMP. <br/><br/>${PDF_EXTRACTION_LIMITS_SUMMARY}`,
-            buttonTextYes: "Re-run",
+            title: isReRun ? "Re-run extraction?" : "Run AI extraction?",
+            message: `${intro} <br/>${PDF_EXTRACTION_LIMITS_HTML_PANEL}`,
+            buttonTextYes: isReRun ? "Re-run" : "Run Extraction",
             buttonTextNo: "Cancel",
-            buttonClassYes: "btn-danger",
+            buttonClassYes: isReRun ? "btn-danger" : "btn-primary",
         }, this.viewContainerRef);
         if (confirmed) this.runExtraction();
     }
