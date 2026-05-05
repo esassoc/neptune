@@ -18872,6 +18872,14 @@
           "FileResourceGuid": {
             "type": "string",
             "nullable": true
+          },
+          "ErrorMessage": {
+            "type": "string",
+            "nullable": true
+          },
+          "ErrorCode": {
+            "type": "string",
+            "nullable": true
           }
         },
         "additionalProperties": false

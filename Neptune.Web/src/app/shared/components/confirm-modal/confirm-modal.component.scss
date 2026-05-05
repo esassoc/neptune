@@ -3,8 +3,15 @@
 .modal-body__content {
     padding: $spacing-200;
     border-radius: $spacing-100;
-    border: 1px solid $red-light;
-    background-color: $red-lighter;
+
+    // NPT-1051: red panel only when the confirm action is destructive
+    // (buttonClassYes contains btn-danger). Benign confirms (btn-primary,
+    // btn-secondary) get a neutral panel — the red wash was misleading
+    // when the confirmation wasn't actually dangerous.
+    &--danger {
+        border: 1px solid $red-light;
+        background-color: $red-lighter;
+    }
 }
 
 .confirmation-icon {

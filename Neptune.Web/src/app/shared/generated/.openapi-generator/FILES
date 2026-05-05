@@ -237,6 +237,4 @@ model/watershed-dto.ts
 model/workflow-step-status.ts
 model/wqmp-upload-result-dto.ts
 param.ts
-provide-api.ts
-query.params.ts
 variables.ts
