@@ -5793,6 +5793,230 @@
         }
       }
     },
+    "/regional-subbasin-revision-requests": {
+      "get": {
+        "tags": [
+          "RegionalSubbasinRevisionRequest"
+        ],
+        "operationId": "List_RegionalSubbasinRevisionRequest",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/RegionalSubbasinRevisionRequestDto"
+                  }
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/RegionalSubbasinRevisionRequestDto"
+                  }
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/RegionalSubbasinRevisionRequestDto"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/regional-subbasin-revision-requests/{regionalSubbasinRevisionRequestID}": {
+      "get": {
+        "tags": [
+          "RegionalSubbasinRevisionRequest"
+        ],
+        "operationId": "Get_RegionalSubbasinRevisionRequest",
+        "parameters": [
+          {
+            "name": "regionalSubbasinRevisionRequestID",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/RegionalSubbasinRevisionRequestDto"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RegionalSubbasinRevisionRequestDto"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RegionalSubbasinRevisionRequestDto"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/regional-subbasin-revision-requests/for-treatment-bmp/{treatmentBMPID}": {
+      "post": {
+        "tags": [
+          "RegionalSubbasinRevisionRequest"
+        ],
+        "operationId": "Create_RegionalSubbasinRevisionRequest",
+        "parameters": [
+          {
+            "name": "treatmentBMPID",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RegionalSubbasinRevisionRequestUpsertDto"
+              }
+            },
+            "text/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RegionalSubbasinRevisionRequestUpsertDto"
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "$ref": "#/components/schemas/RegionalSubbasinRevisionRequestUpsertDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/RegionalSubbasinRevisionRequestDto"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RegionalSubbasinRevisionRequestDto"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RegionalSubbasinRevisionRequestDto"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/regional-subbasin-revision-requests/{regionalSubbasinRevisionRequestID}/close": {
+      "post": {
+        "tags": [
+          "RegionalSubbasinRevisionRequest"
+        ],
+        "operationId": "Close_RegionalSubbasinRevisionRequest",
+        "parameters": [
+          {
+            "name": "regionalSubbasinRevisionRequestID",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RegionalSubbasinRevisionRequestCloseDto"
+              }
+            },
+            "text/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RegionalSubbasinRevisionRequestCloseDto"
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "$ref": "#/components/schemas/RegionalSubbasinRevisionRequestCloseDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/RegionalSubbasinRevisionRequestDto"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RegionalSubbasinRevisionRequestDto"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RegionalSubbasinRevisionRequestDto"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/regional-subbasin-revision-requests/{regionalSubbasinRevisionRequestID}/gdb": {
+      "get": {
+        "tags": [
+          "RegionalSubbasinRevisionRequest"
+        ],
+        "operationId": "Download_RegionalSubbasinRevisionRequest",
+        "parameters": [
+          {
+            "name": "regionalSubbasinRevisionRequestID",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
     "/jurisdictions": {
       "get": {
         "tags": [
@@ -16343,6 +16567,16 @@
         },
         "additionalProperties": false
       },
+      "RegionalSubbasinRevisionRequestCloseDto": {
+        "type": "object",
+        "properties": {
+          "CloseNotes": {
+            "type": "string",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
       "RegionalSubbasinRevisionRequestDto": {
         "type": "object",
         "properties": {
@@ -16353,6 +16587,70 @@
           "RegionalSubbasinRevisionRequestStatusID": {
             "type": "integer",
             "format": "int32"
+          },
+          "RegionalSubbasinRevisionRequestStatusDisplayName": {
+            "type": "string",
+            "nullable": true
+          },
+          "TreatmentBMPID": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "TreatmentBMPName": {
+            "type": "string",
+            "nullable": true
+          },
+          "RequestPersonID": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "RequestPersonName": {
+            "type": "string",
+            "nullable": true
+          },
+          "RequestDate": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "ClosedByPersonID": {
+            "type": "integer",
+            "format": "int32",
+            "nullable": true
+          },
+          "ClosedByPersonName": {
+            "type": "string",
+            "nullable": true
+          },
+          "ClosedDate": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          },
+          "Notes": {
+            "type": "string",
+            "nullable": true
+          },
+          "CloseNotes": {
+            "type": "string",
+            "nullable": true
+          },
+          "GeometryGeoJson": {
+            "type": "string",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "RegionalSubbasinRevisionRequestUpsertDto": {
+        "type": "object",
+        "properties": {
+          "GeoJson": {
+            "type": "string",
+            "nullable": true
+          },
+          "Notes": {
+            "type": "string",
+            "nullable": true
           }
         },
         "additionalProperties": false
@@ -20208,6 +20506,9 @@
     },
     {
       "name": "RegionalSubbasin"
+    },
+    {
+      "name": "RegionalSubbasinRevisionRequest"
     },
     {
       "name": "StormwaterJurisdiction"

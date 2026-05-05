@@ -23,6 +23,7 @@ api/organization.service.ts
 api/parcel.service.ts
 api/project-document.service.ts
 api/project.service.ts
+api/regional-subbasin-revision-request.service.ts
 api/regional-subbasin.service.ts
 api/stormwater-jurisdiction.service.ts
 api/system-info.service.ts
@@ -158,7 +159,9 @@ model/quick-bmp-dto.ts
 model/quick-bmp-merge-skip-dto.ts
 model/quick-bmp-upsert-dto.ts
 model/regional-subbasin-dto.ts
+model/regional-subbasin-revision-request-close-dto.ts
 model/regional-subbasin-revision-request-dto.ts
+model/regional-subbasin-revision-request-upsert-dto.ts
 model/sizing-basis-type-dto.ts
 model/source-control-bmp-dto.ts
 model/source-control-bmp-upsert-dto.ts

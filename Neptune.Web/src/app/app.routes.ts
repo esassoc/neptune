@@ -742,6 +742,27 @@ export const routes: Routes = [
                 title: "Delineation Reconciliation Report",
                 loadComponent: () => import("./pages/delineation/delineation-reconciliation-report.component").then((m) => m.DelineationReconciliationReportComponent),
             },
+            {
+                path: "delineation/revision-requests",
+                title: "Regional Subbasin Revision Requests",
+                loadComponent: () =>
+                    import("./pages/delineation/revision-requests/revision-requests.component").then((m) => m.RevisionRequestsComponent),
+                canActivate: [JurisdictionManagerOrEditorOnlyGuard],
+            },
+            {
+                path: "delineation/revision-requests/new/:treatmentBMPID",
+                title: "New Revision Request",
+                loadComponent: () =>
+                    import("./pages/delineation/revision-requests/revision-request-new.component").then((m) => m.RevisionRequestNewComponent),
+                canActivate: [JurisdictionManagerOrEditorOnlyGuard],
+            },
+            {
+                path: "delineation/revision-requests/:regionalSubbasinRevisionRequestID",
+                title: "Revision Request Detail",
+                loadComponent: () =>
+                    import("./pages/delineation/revision-requests/revision-request-detail.component").then((m) => m.RevisionRequestDetailComponent),
+                canActivate: [JurisdictionManagerOrEditorOnlyGuard],
+            },
             // Data Hub
             { path: "data-hub", title: "Data Hub", loadComponent: () => import("./pages/data-hub/data-hub.component").then((m) => m.DataHubComponent) },
             // Manage

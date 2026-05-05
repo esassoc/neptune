@@ -16,26 +16,13 @@
 }
 
 .kv {
-    margin: 0 0 $spacing-200;
-    display: grid;
-    grid-template-columns: auto 1fr;
-    column-gap: $spacing-200;
-    row-gap: $spacing-100;
-    align-items: baseline;
+    margin-bottom: $spacing-200;
 
-    dt {
-        font-weight: 600;
-    }
-
-    dd {
-        margin: 0;
-
-        a icon {
-            display: inline-block;
-            width: 0.85rem;
-            margin-left: $spacing-050;
-            vertical-align: middle;
-        }
+    dd a icon {
+        display: inline-block;
+        width: 0.85rem;
+        margin-left: $spacing-050;
+        vertical-align: middle;
     }
 }
 
@@ -105,10 +92,9 @@
     margin: 0 0 $spacing-200;
 }
 
-.request-revision-link {
-    display: inline-block;
+.request-revision-btn {
     margin-top: $spacing-200;
-    font-size: $type-size-200;
+    text-align: center;
 }
 
 .edit-hint {

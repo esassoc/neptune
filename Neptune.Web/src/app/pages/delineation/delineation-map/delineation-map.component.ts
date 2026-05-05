@@ -6,7 +6,6 @@ import { BehaviorSubject, forkJoin, map, Observable, shareReplay, tap } from "rx
 import * as L from "leaflet";
 import "@geoman-io/leaflet-geoman-free";
 import "leaflet.markercluster";
-import { environment } from "src/environments/environment";
 
 import { BoundingBoxDto } from "src/app/shared/generated/model/bounding-box-dto";
 import { DelineationDto } from "src/app/shared/generated/model/delineation-dto";
@@ -519,7 +518,7 @@ export class DelineationMapComponent implements OnInit {
         if (!bmp) {
             return "#";
         }
-        return `${environment.ocStormwaterToolsBaseUrl}/RegionalSubbasinRevisionRequest/New/${bmp.TreatmentBMPID}`;
+        return `/delineation/revision-requests/new/${bmp.TreatmentBMPID}`;
     }
 
     public bmpDetailUrl(): string {

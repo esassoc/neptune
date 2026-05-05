@@ -52,7 +52,7 @@
                                     </button>
                                 </div>
                                 @if (delineation.DelineationTypeID === DelineationTypeEnum.Centralized) {
-                                    <a class="request-revision-link" [href]="requestRevisionUrl()" target="_blank" rel="noopener">Request Revision</a>
+                                    <a class="btn btn-sm btn-primary action-btn request-revision-btn" [routerLink]="requestRevisionUrl()">Request Revision</a>
                                 }
                             } @else {
                                 <p class="explanatory">

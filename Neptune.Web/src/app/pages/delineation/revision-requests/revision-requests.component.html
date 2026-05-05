@@ -1,0 +1,16 @@
+<page-header pageTitle="Regional Subbasin Revision Requests"></page-header>
+
+<app-alert-display></app-alert-display>
+
+<div class="page-body" [loadingSpinner]="{ isLoading, loadingHeight: 100 }">
+  @if (revisionRequests$ | async; as requests) {
+    <neptune-grid
+      height="800px"
+      [rowData]="requests"
+      [columnDefs]="columnDefs"
+      downloadFileName="regional-subbasin-revision-requests"
+      [pagination]="true"
+      [sizeColumnsToFitGrid]="true"
+    ></neptune-grid>
+  }
+</div>
