@@ -26,6 +26,7 @@ export class WqmpUploadModalComponent implements OnInit {
     // upload requirements before committing to a file. No `data: { file }` input.
     public ref: DialogRef<unknown, { wqmpID: number; documentID: number }> = inject(DialogRef);
     public FormFieldType = FormFieldType;
+    public fileControl = new FormControl<File | null>(null, { validators: [Validators.required] });
     public wqmpNameControl = new FormControl<string>("", {
         nonNullable: true,
         validators: [Validators.required, Validators.maxLength(100)],
@@ -33,7 +34,6 @@ export class WqmpUploadModalComponent implements OnInit {
     public jurisdictionControl = new FormControl<number | null>(null, { validators: [Validators.required] });
     public jurisdictionOptions$: Observable<FormInputOption[]>;
     public isUploading = signal(false);
-    public selectedFile = signal<File | null>(null);
     public pdfLimitsBullets = PDF_EXTRACTION_LIMITS_BULLETS;
 
     constructor(
@@ -56,26 +56,18 @@ export class WqmpUploadModalComponent implements OnInit {
         );
     }
 
-    onPdfSelected(event: Event): void {
-        const input = event.target as HTMLInputElement;
-        if (!input.files?.length) return;
-        const file = input.files[0];
-        // Reset the input so re-selecting the same file (after Change) still fires (change).
-        input.value = "";
-
+    // form-field's accept=".pdf" only filters the file picker; users can still pick a
+    // non-PDF via "All files". Defensively reject and clear the control.
+    onFileChange(file: File | null): void {
+        if (!file) return;
         if (!file.name.toLowerCase().endsWith(".pdf")) {
             this.alertService.pushAlert(new Alert("Only PDF files are accepted.", AlertContext.Danger));
-            return;
+            this.fileControl.setValue(null);
         }
-        this.selectedFile.set(file);
-    }
-
-    clearFile(): void {
-        this.selectedFile.set(null);
     }
 
     upload(overwrite = false): void {
-        if (!this.selectedFile() || this.jurisdictionControl.invalid || this.wqmpNameControl.invalid) return;
+        if (this.fileControl.invalid || this.jurisdictionControl.invalid || this.wqmpNameControl.invalid) return;
         this.isUploading.set(true);
         this.alertService.clearAlerts();
 
@@ -119,7 +111,7 @@ export class WqmpUploadModalComponent implements OnInit {
 
     private postUpload(overwrite: boolean): Observable<any> {
         const formData = new FormData();
-        formData.append("file", this.selectedFile()!);
+        formData.append("file", this.fileControl.value!);
         formData.append("stormwaterJurisdictionID", this.jurisdictionControl.value.toString());
         formData.append("wqmpName", this.wqmpNameControl.value.trim());
         if (overwrite) {

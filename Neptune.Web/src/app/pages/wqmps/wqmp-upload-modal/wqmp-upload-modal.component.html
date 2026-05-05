@@ -17,19 +17,13 @@
         </ul>
     </div>
 
-    <div class="mb-3">
-        @if (selectedFile()) {
-            <div class="upload-modal__file">
-                <strong>File:</strong> {{ selectedFile().name }}
-                <button type="button" class="btn btn-link btn-sm upload-modal__file-clear" (click)="clearFile()" [disabled]="isUploading()">Change</button>
-            </div>
-        } @else {
-            <button type="button" class="btn btn-primary-outline" (click)="pdfFileInput.click()" [disabled]="isUploading()">
-                <i class="fa fa-file-pdf-o"></i> Choose PDF…
-            </button>
-            <input #pdfFileInput type="file" accept=".pdf" style="display:none" (change)="onPdfSelected($event)" />
-        }
-    </div>
+    <form-field
+        fieldLabel="PDF"
+        [type]="FormFieldType.File"
+        [formControl]="fileControl"
+        uploadFileAccepts=".pdf"
+        (change)="onFileChange($event)">
+    </form-field>
 
     <form-field
         fieldLabel="WQMP Name"
@@ -55,6 +49,6 @@
     }
 </div>
 <div class="modal-footer">
-    <button class="btn btn-primary" (click)="upload()" [disabled]="!selectedFile() || jurisdictionControl.invalid || wqmpNameControl.invalid || isUploading()">Upload</button>
+    <button class="btn btn-primary" (click)="upload()" [disabled]="fileControl.invalid || jurisdictionControl.invalid || wqmpNameControl.invalid || isUploading()">Upload</button>
     <button class="btn btn-secondary-outline" (click)="cancel()" [disabled]="isUploading()">Cancel</button>
 </div>

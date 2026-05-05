@@ -1,13 +1,1 @@
 @use "/src/scss/abstracts" as *;
-
-.upload-modal {
-    &__file {
-        display: flex;
-        align-items: center;
-        gap: 0.75rem;
-    }
-
-    &__file-clear {
-        padding: 0;
-    }
-}
