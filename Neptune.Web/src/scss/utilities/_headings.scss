@@ -11,12 +11,12 @@ h6 {
 
 .page-title {
     font-weight: 400;
-    font-size: $type-size-600;
+    font-size: $type-size-500;
     padding-bottom: 0.5rem;
     color: $primary;
 
     @include desktop-small {
-        font-size: $type-size-700;
+        font-size: $type-size-600;
     }
 
     .water-account-name {
