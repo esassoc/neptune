@@ -185,7 +185,9 @@ CI/CD is Azure Pipelines (`Build/azure-pipelines.yml`) deploying to Azure Kubern
 
 ## Local Dev: Trusting the Corp SSL-Inspection Root
 
-ESA corp-managed laptops route outbound HTTPS through the Cato SASE agent, which terminates TLS and re-issues certs signed by `CN=Cato Networks Root CA`. The Linux .NET base image inside Docker only trusts public CAs, so any in-container outbound HTTPS that Cato intercepts (notably `api.anthropic.com` for AI extraction) fails with `UntrustedRoot`. Symptom: 500 from `POST /water-quality-management-plans/{id}/extract` with a `System.Security.Authentication.AuthenticationException` in the API logs. Windows host (browser, native `dotnet run`) trusts Cato via `LocalMachine\Root` so this is invisible outside the container. **QA/prod are unaffected** — AKS pods don't route through Cato.
+> **Status (2026-05-05):** ESA IT added `api.anthropic.com` to the Cato TLS-inspection bypass list, so the AI-extraction path no longer needs this patch. Keep the recipe documented anyway — Cato intercepts traffic by category, and a future policy change or a different intercepted endpoint (Azure Blob, SendGrid, OCGIS, Auth0, etc.) will reproduce the same `UntrustedRoot` symptom. Apply the steps below if and when that happens.
+
+ESA corp-managed laptops route outbound HTTPS through the Cato SASE agent, which terminates TLS and re-issues certs signed by `CN=Cato Networks Root CA`. The Linux .NET base image inside Docker only trusts public CAs, so any in-container outbound HTTPS that Cato intercepts (historically `api.anthropic.com` for AI extraction) fails with `UntrustedRoot`. Symptom: 500 from the offending endpoint with a `System.Security.Authentication.AuthenticationException` in the API logs. Windows host (browser, native `dotnet run`) trusts Cato via `LocalMachine\Root` so this is invisible outside the container. **QA/prod are unaffected** — AKS pods don't route through Cato.
 
 Fix locally (do **not** commit any of this — each dev does it on their own machine):
 
