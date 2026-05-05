@@ -276,8 +276,11 @@ export class WqmpReviewComponent implements OnInit, IDeactivateComponent {
                     // ErrorMessage/ErrorCode but null JSON). Surface the error if present.
                     this.fields.set([]);
                     if (extractionResult?.ErrorMessage) {
+                        const hint = /could not process pdf/i.test(extractionResult.ErrorMessage)
+                            ? " Common reasons: more than 100 pages, over 200 MB, or password-protected."
+                            : "";
                         this.alertService.pushAlert(new Alert(
-                            `Last extraction failed: ${extractionResult.ErrorMessage}`,
+                            `Last extraction failed: ${extractionResult.ErrorMessage}${hint}`,
                             AlertContext.Danger));
                     }
                 }
@@ -337,9 +340,12 @@ export class WqmpReviewComponent implements OnInit, IDeactivateComponent {
     async confirmReExtract(): Promise<void> {
         // NPT-1051: Re-run is always available — saved sections in the live WQMP survive a
         // re-extract by construction (extraction overwrites the AI suggestion, not the WQMP).
+        // Surface the AI-extraction limits in the confirm dialog because by this point the
+        // user is past the upload-modal instructions and may be re-running after a failure;
+        // it's the closest we can put a reminder to the actual click that costs tokens.
         const confirmed = await this.confirmService.confirm({
             title: "Re-run extraction?",
-            message: "This will replace the AI-extracted suggestions with a fresh run. Sections you've already saved are preserved on the WQMP.",
+            message: "This will replace the AI-extracted suggestions with a fresh run. Sections you've already saved are preserved on the WQMP. <br/><br/><strong>AI extraction supports:</strong> PDFs ≤ 100 pages, ≤ 200 MB, no password protection. Scanned PDFs are fine.",
             buttonTextYes: "Re-run",
             buttonTextNo: "Cancel",
             buttonClassYes: "btn-danger",

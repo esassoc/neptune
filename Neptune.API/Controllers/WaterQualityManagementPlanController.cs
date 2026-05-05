@@ -553,19 +553,23 @@ namespace Neptune.API.Controllers
                 // failure leaves a diagnostic trail and the wizard can show why on next load.
                 Logger.LogError(ex, "WQMP extraction failed for WQMP={WaterQualityManagementPlanID}", waterQualityManagementPlanID);
 
+                // Store the readable form of the error rather than the raw exception message
+                // (Anthropic SDK exceptions embed full JSON dumps in .Message). The toast and
+                // the persistent "Last extraction failed: ..." alert both render this directly.
+                var readableMessage = ExtractReadableErrorMessage(ex.Message);
                 var failureRow = new WaterQualityManagementPlanExtractionResult
                 {
                     WaterQualityManagementPlanID = waterQualityManagementPlanID,
                     WaterQualityManagementPlanDocumentID = document.WaterQualityManagementPlanDocumentID,
                     ExtractionResultJson = null,
                     ExtractedAt = DateTime.UtcNow,
-                    ErrorMessage = ex.Message,
+                    ErrorMessage = readableMessage,
                     ErrorCode = ex.GetType().Name,
                 };
                 DbContext.WaterQualityManagementPlanExtractionResults.Add(failureRow);
                 await DbContext.SaveChangesAsync();
 
-                return BadRequest(new { message = ExtractReadableErrorMessage(ex.Message) });
+                return BadRequest(new { message = readableMessage });
             }
         }
 
