@@ -196,13 +196,13 @@ Fix locally (do **not** commit any of this — each dev does it on their own mac
    Set-Content -Path "docker-compose\corp-root.crt" -Value $pem -Encoding ascii
    ```
 2. Add to `.dockerignore` after the `**/docker-compose*` line: `!docker-compose/corp-root.crt`
-3. Add to `Neptune.API/Dockerfile` before the existing `WORKDIR /app` in the final stage:
+3. Add to `Neptune.API/Dockerfile` in the **base stage** (right after `FROM mcr.microsoft.com/dotnet/aspnet:10.0 AS base`, before `USER app`):
    ```
    USER root
    COPY docker-compose/corp-root.crt /usr/local/share/ca-certificates/corp-root.crt
    RUN update-ca-certificates
-   USER app
    ```
-4. Rebuild from Visual Studio. Outbound HTTPS to Cato-intercepted endpoints now resolves cleanly inside the container.
+   It must go in `base` (not `final`) because Visual Studio's Fast Mode only builds the `base` stage and bind-mounts `/src` over it — the `final` stage isn't used for debug runs.
+4. Rebuild from Visual Studio (Build → Rebuild forces VS to discard the cached base image). Outbound HTTPS to Cato-intercepted endpoints now resolves cleanly inside the container.
 
 The cert is valid until 2034 — re-export only if Cato rotates it. If `api.anthropic.com` starts working without the patch (Cato bypass added by IT), drop the local edits.
