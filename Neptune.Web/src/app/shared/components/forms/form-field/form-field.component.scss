@@ -24,11 +24,39 @@
     height: $spacing-700;
 }
 
+.field--sm .radio-options {
+    gap: $spacing-300;
+    height: $spacing-500;
+    font-size: $type-size-200;
+}
+
+.field--md .radio-options {
+    gap: $spacing-300;
+    height: $spacing-600;
+    font-size: $type-size-300;
+}
+
 .check-label {
     display: flex;
     gap: $spacing-400;
     input {
         transform: scale(150%);
+    }
+}
+
+.field--sm .check-label {
+    font-size: $type-size-200;
+    gap: $spacing-300;
+    input {
+        transform: scale(100%);
+    }
+}
+
+.field--md .check-label {
+    font-size: $type-size-300;
+    gap: $spacing-300;
+    input {
+        transform: scale(125%);
     }
 }
 

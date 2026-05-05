@@ -1,4 +1,4 @@
-<div class="field">
+<div class="field" [class.field--sm]="size === 'sm'" [class.field--md]="size === 'md'">
     @if (fieldDefinitionName) {
         <field-definition [fieldDefinitionType]="fieldDefinitionName"></field-definition>
     }

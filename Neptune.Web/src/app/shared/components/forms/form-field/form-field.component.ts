@@ -32,6 +32,7 @@ export class FormFieldComponent {
     @Output() change = new EventEmitter<any>();
     @Input() formControl: FormControl;
     @Input() fieldLabel: string = "";
+    @Input() size: "sm" | "md" | "lg" = "lg";
     @Input() placeholder: string = "";
     @Input() type: FormFieldType = FormFieldType.Text;
     @Input() toggleTrue: string = "On";
