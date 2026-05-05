@@ -6,7 +6,9 @@
     </div>
 
     <div class="modal-body">
-        <div class="modal-body__content" [innerHtml]="modalContext.message | trustHtml"></div>
+        <div class="modal-body__content"
+             [class.modal-body__content--danger]="(modalContext.buttonClassYes ?? '').includes('btn-danger')"
+             [innerHtml]="modalContext.message | trustHtml"></div>
     </div>
 
     <div class="modal-footer">
