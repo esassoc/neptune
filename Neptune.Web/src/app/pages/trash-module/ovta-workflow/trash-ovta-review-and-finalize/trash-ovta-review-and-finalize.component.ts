@@ -58,6 +58,7 @@ export class TrashOvtaReviewAndFinalizeComponent {
         OnlandVisualTrashAssessmentScoreID: OnlandVisualTrashAssessmentReviewAndFinalizeDtoFormControls.OnlandVisualTrashAssessmentScoreID(),
         IsProgressAssessment: OnlandVisualTrashAssessmentReviewAndFinalizeDtoFormControls.IsProgressAssessment(),
         Notes: OnlandVisualTrashAssessmentReviewAndFinalizeDtoFormControls.Notes(),
+        SecondAssessorName: OnlandVisualTrashAssessmentReviewAndFinalizeDtoFormControls.SecondAssessorName(),
         PreliminarySourceIdentifications: new FormArray<FormGroup<OnlandVisualTrashAssessmentPreliminarySourceIdentificationUpsertDtoForm>>([]),
         OnlandVisualTrashAssessmentStatusID: OnlandVisualTrashAssessmentReviewAndFinalizeDtoFormControls.OnlandVisualTrashAssessmentStatusID(),
     });
@@ -87,6 +88,7 @@ export class TrashOvtaReviewAndFinalizeComponent {
                 this.formGroup.controls.OnlandVisualTrashAssessmentScoreID.setValue(ovta.OnlandVisualTrashAssessmentScoreID);
                 this.formGroup.controls.IsProgressAssessment.setValue(ovta.IsProgressAssessment);
                 this.formGroup.controls.Notes.setValue(ovta.Notes);
+                this.formGroup.controls.SecondAssessorName.setValue(ovta.SecondAssessorName);
                 const formArray = this.formGroup.controls.PreliminarySourceIdentifications as FormArray;
                 ovta.PreliminarySourceIdentifications.forEach((x) => {
                     let preliminarySourceIdenitfication = this.formBuilder.group<OnlandVisualTrashAssessmentPreliminarySourceIdentificationUpsertDtoForm>({
@@ -164,6 +166,7 @@ export class OnlandVisualTrashAssessmentReviewAndFinalizeDtoCustomForm {
     OnlandVisualTrashAssessmentScoreID: FormControl<number>;
     IsProgressAssessment: FormControl<boolean>;
     Notes: FormControl<string>;
+    SecondAssessorName: FormControl<string>;
     OnlandVisualTrashAssessmentStatusID: FormControl<number>;
     PreliminarySourceIdentifications: FormArray<FormGroup<OnlandVisualTrashAssessmentPreliminarySourceIdentificationUpsertDtoForm>>;
 }

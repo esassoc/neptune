@@ -138,7 +138,17 @@
                     <span class="card-title"><field-definition fieldDefinitionType="ModeledPerformance"></field-definition></span>
                 </div>
                 <div class="card-body">
-                    @if (wqmp.WaterQualityManagementPlanModelingApproachID === WaterQualityManagementPlanModelingApproachEnum.Detailed && !wqmp.TreatmentBMPs?.length) {
+                    @if (wqmp.WaterQualityManagementPlanStatusID === WaterQualityManagementPlanStatusEnum.Draft) {
+                        <p class="system-text">Model results will not be calculated until the status is promoted to active.</p>
+                        @if (wqmp.WaterQualityManagementPlanModelingApproachID === WaterQualityManagementPlanModelingApproachEnum.Detailed) {
+                            <p class="system-text">View results for Verified Inventoried BMPs on their detail page.</p>
+                        }
+                    } @else if (wqmp.WaterQualityManagementPlanStatusID === WaterQualityManagementPlanStatusEnum.Inactive) {
+                        <p class="system-text">Model results will not be calculated because this WQMP is inactive.</p>
+                        @if (wqmp.WaterQualityManagementPlanModelingApproachID === WaterQualityManagementPlanModelingApproachEnum.Detailed) {
+                            <p class="system-text">View results for Verified Inventoried BMPs on their detail page.</p>
+                        }
+                    } @else if (wqmp.WaterQualityManagementPlanModelingApproachID === WaterQualityManagementPlanModelingApproachEnum.Detailed && !wqmp.TreatmentBMPs?.length) {
                         <p class="system-text">This WQMP is modeled using the detailed approach, but no structural BMPs have been inventoried, so no results are available.</p>
                     } @else if (wqmp.WaterQualityManagementPlanModelingApproachID === WaterQualityManagementPlanModelingApproachEnum.Simplified && !wqmp.WaterQualityManagementPlanBoundaryBBox) {
                         <p class="system-text">No treatment area has been defined for this Water Quality Management Plan. Add parcels to define the treatment area.</p>
@@ -210,7 +220,11 @@
                     <span class="card-title">Land Use Statistics</span>
                 </div>
                 <div class="card-body">
-                    @if (hasHRUData && wqmp.WaterQualityManagementPlanBoundaryBBox) {
+                    @if (wqmp.WaterQualityManagementPlanStatusID === WaterQualityManagementPlanStatusEnum.Draft) {
+                        <p class="system-text">Model results will not be calculated until the status is promoted to active.</p>
+                    } @else if (wqmp.WaterQualityManagementPlanStatusID === WaterQualityManagementPlanStatusEnum.Inactive) {
+                        <p class="system-text">Model results will not be calculated because this WQMP is inactive.</p>
+                    } @else if (hasHRUData && wqmp.WaterQualityManagementPlanBoundaryBBox) {
                         <land-use-table [hruCharacteristics]="hruCharacteristicsSummaries"></land-use-table>
                         @if (wqmp.WaterQualityManagementPlanModelingApproachID === WaterQualityManagementPlanModelingApproachEnum.Detailed) {
                             <p class="system-text">Land Use Statistics are derived from the inventoried structural BMPs and may not exactly match the Calculated Parcel Area shown above.</p>

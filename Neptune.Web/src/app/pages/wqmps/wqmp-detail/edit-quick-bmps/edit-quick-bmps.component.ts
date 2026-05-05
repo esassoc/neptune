@@ -93,9 +93,12 @@ export class EditQuickBMPsComponent implements OnInit {
     }
 
     public calculateUntreatedPercentage(): number {
+        // Coerce to Number — the FormFieldType.Number field can hand back string values
+        // depending on how the user edits the cell, which silently turns + into string
+        // concat ("33.3" + "33.3" + "33.4" = "33.333.333.4") and renders NaN%.
         const total = this.quickBMPRows.controls
-            .map((r) => r.get("PercentOfSiteTreated").value)
-            .filter((v) => v != null)
+            .map((r) => Number(r.get("PercentOfSiteTreated").value))
+            .filter((v) => !isNaN(v))
             .reduce((sum, v) => sum + v, 0);
         return Math.round((100 - total) * 100) / 100;
     }
@@ -122,12 +125,15 @@ export class EditQuickBMPsComponent implements OnInit {
             }
         }
 
-        // Sum of percent of site treated <= 100
+        // Sum of percent of site treated <= 100. NPT-1051: coerce values to Number (the
+        // form field can yield strings, which would silently string-concat instead of sum)
+        // and round to 2 decimals before comparing so floating-point overshoot like
+        // 33.3 + 33.3 + 33.4 = 100.00000000000001 doesn't reject valid inputs.
         const totalPercentOfSiteTreated = rows
-            .map((r) => r.get("PercentOfSiteTreated").value)
-            .filter((v) => v != null)
+            .map((r) => Number(r.get("PercentOfSiteTreated").value))
+            .filter((v) => !isNaN(v))
             .reduce((sum, v) => sum + v, 0);
-        if (totalPercentOfSiteTreated > 100) {
+        if (Math.round(totalPercentOfSiteTreated * 100) / 100 > 100) {
             this.validationErrors.push("The Percent of Site Treated exceeds 100 percent, please correct any errors before saving.");
         }
 
@@ -153,8 +159,13 @@ export class EditQuickBMPsComponent implements OnInit {
         });
 
         this.wqmpService.mergeQuickBMPsWaterQualityManagementPlan(this.waterQualityManagementPlanID, dtos).subscribe(() => {
-            this.alertService.pushAlert(new Alert("Simplified structural BMPs updated successfully.", AlertContext.Success));
-            this.router.navigate(["/water-quality-management-plans", this.waterQualityManagementPlanID]);
+            // Push the success alert *after* navigation completes — the alert-display on
+            // the source page calls clearAlerts() in ngOnDestroy, which wipes anything
+            // pushed before the route transition. Pushing post-navigate lands the alert
+            // on the destination page after its alert-display has mounted and subscribed.
+            this.router.navigate(["/water-quality-management-plans", this.waterQualityManagementPlanID]).then(() => {
+                this.alertService.pushAlert(new Alert("Simplified structural BMPs updated successfully.", AlertContext.Success));
+            });
         });
     }
 

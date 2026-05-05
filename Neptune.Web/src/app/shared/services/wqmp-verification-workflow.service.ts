@@ -317,8 +317,6 @@ export class WqmpVerificationWorkflowService {
         save$.subscribe({
             next: (saved) => {
                 this.isSaving.set(false);
-                this.alertService.pushAlert(new Alert(opts.isDraft ? "Verification saved." : "Verification finalized.", AlertContext.Success));
-
                 this.isFinalized.set(!saved?.IsDraft);
 
                 if (saved?.WaterQualityManagementPlanVerifyID && this.waterQualityManagementPlanVerifyID() == null) {
@@ -326,17 +324,23 @@ export class WqmpVerificationWorkflowService {
                     this.mode.set("edit");
                 }
 
-                if (opts.returnToDetail) {
-                    this.router.navigate(["/water-quality-management-plans", wqmpID]);
-                    return;
-                }
-
-                const targetKey = opts.andContinue ? this.nextStepKey(opts.currentStepKey) ?? opts.currentStepKey : opts.currentStepKey;
-                this.router.navigate([
-                    "/water-quality-management-plans", wqmpID, "verifications",
-                    ...this.verifyIDPathSegment(),
-                    targetKey,
-                ], { replaceUrl: isCreate });
+                // Push the success alert *after* navigation completes — the alert-display on
+                // the source page calls clearAlerts() in ngOnDestroy, so a pre-navigate push
+                // gets wiped during route teardown (notably on initial create where the URL
+                // changes from .../new/... to .../{id}/... and on returnToDetail). Pushing
+                // post-navigate lands the alert on the destination page after its
+                // alert-display has mounted and subscribed.
+                const successMsg = opts.isDraft ? "Verification saved." : "Verification finalized.";
+                const navigation$ = opts.returnToDetail
+                    ? this.router.navigate(["/water-quality-management-plans", wqmpID])
+                    : this.router.navigate([
+                        "/water-quality-management-plans", wqmpID, "verifications",
+                        ...this.verifyIDPathSegment(),
+                        opts.andContinue ? this.nextStepKey(opts.currentStepKey) ?? opts.currentStepKey : opts.currentStepKey,
+                    ], { replaceUrl: isCreate });
+                navigation$.then(() => {
+                    this.alertService.pushAlert(new Alert(successMsg, AlertContext.Success));
+                });
             },
             error: () => {
                 this.isSaving.set(false);

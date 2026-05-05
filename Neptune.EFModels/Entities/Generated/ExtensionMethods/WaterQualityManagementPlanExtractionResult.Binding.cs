@@ -11,7 +11,7 @@ namespace Neptune.EFModels.Entities
 
         public static class FieldLengths
         {
-
+            public const int ErrorCode = 100;
         }
     }
 }

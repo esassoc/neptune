@@ -29,9 +29,10 @@
                 [map]="map"
                 [layerControl]="layerControl"
                 [sortOrder]="10"
-                [selectedLandUseBlockID]="landUseBlockID"
+                [selectedLandUseBlockIDs]="selectedLandUseBlockIDs"
+                [zoomToSelectionOnChange]="true"
                 (layerBoundsCalculated)="handleLayerBoundsCalculated($event)"
-                (landUseBlockSelected)="onSelectedLandUseBlockChanged($event)"></selected-land-use-block-layer>
+                (landUseBlockClicked)="onSelectedLandUseBlockChanged($event)"></selected-land-use-block-layer>
             } @if (mapIsReady) {
             <jurisdictions-layer [mode]="OverlayMode.ReferenceWithInteractivity" [map]="map" [layerControl]="layerControl" [sortOrder]="10"></jurisdictions-layer>
             } @if (mapIsReady) {

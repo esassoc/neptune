@@ -280,27 +280,16 @@ public static class WaterQualityManagementPlans
         }
     }
 
-    // NPT-1051: Promotion (Draft → Active) makes the WQMP the binding legal record. The
-    // gate is data-completeness for legal-record purposes, distinct from the looser "did
-    // model binding succeed?" check that section saves rely on. Returns the human-readable
-    // names of any required fields that aren't populated; an empty list means promotion is
-    // safe to proceed.
+    // NPT-1051: Promotion (Draft → Active) makes the WQMP the binding legal record.
+    // Validation mirrors the Basics editor modal's required-field set — only Name needs
+    // an explicit check. Jurisdiction, ModelingApproach, and TrashCaptureStatus are also
+    // modal-required but are NOT NULL on the entity, so they're guaranteed to be populated
+    // by the time we get here. Anything else (record numbers, dates, contact info, hydromod,
+    // etc.) is optional in the modal and therefore optional at Promote time.
     public static List<string> ValidateForPromote(WaterQualityManagementPlan entity)
     {
         var missing = new List<string>();
         if (string.IsNullOrWhiteSpace(entity.WaterQualityManagementPlanName)) missing.Add("WQMP Name");
-        if (entity.HydrologicSubareaID == null) missing.Add("Hydrologic Subarea");
-        if (entity.WaterQualityManagementPlanLandUseID == null) missing.Add("Land Use");
-        if (entity.WaterQualityManagementPlanPriorityID == null) missing.Add("Priority");
-        if (entity.WaterQualityManagementPlanDevelopmentTypeID == null) missing.Add("Development Type");
-        if (entity.WaterQualityManagementPlanPermitTermID == null) missing.Add("Permit Term");
-        if (entity.HydromodificationAppliesTypeID == null) missing.Add("Hydromodification Applies");
-        if (string.IsNullOrWhiteSpace(entity.RecordNumber)) missing.Add("Record Number");
-        if (entity.RecordedWQMPAreaInAcres == null) missing.Add("Recorded WQMP Area (Acres)");
-        if (entity.ApprovalDate == null) missing.Add("Approval Date");
-        if (entity.DateOfConstruction == null) missing.Add("Date of Construction");
-        if (string.IsNullOrWhiteSpace(entity.MaintenanceContactName)) missing.Add("Maintenance Contact Name");
-        if (string.IsNullOrWhiteSpace(entity.MaintenanceContactOrganization)) missing.Add("Maintenance Contact Organization");
         return missing;
     }
 }

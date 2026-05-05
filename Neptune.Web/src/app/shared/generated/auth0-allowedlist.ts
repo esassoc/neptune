@@ -134,6 +134,7 @@ const SECURED_REGEX: RegexMap = {
     new RegExp("^/onland-visual-trash-assessments/[^/]+/parcels$"),
     new RegExp("^/onland-visual-trash-assessments/[^/]+/progress$"),
     new RegExp("^/onland-visual-trash-assessments/[^/]+/review-and-finalize$"),
+    new RegExp("^/onland-visual-trash-assessments/[^/]+/select-area-context$"),
     new RegExp("^/onland-visual-trash-assessments/[^/]+/transect-line-as-feature-collection$"),
     new RegExp("^/organizations/[^/]+$"),
     new RegExp("^/project-documents/[^/]+$"),
