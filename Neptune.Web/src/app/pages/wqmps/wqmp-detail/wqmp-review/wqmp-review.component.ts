@@ -1187,9 +1187,17 @@ export class WqmpReviewComponent implements OnInit, IDeactivateComponent {
     public getWqmpFieldValueForRow(field: ExtractedField): string | null {
         const wqmp = this.liveWqmp();
         if (!wqmp) return null;
-        // Parcel rows (__PARCEL__-N-...) and BMP rows (__BMP__-N-...) don't map to a single
-        // scalar WQMP field — leave blank.
-        if (field.key.startsWith(this.PARCEL_KEY_PREFIX) || field.key.startsWith(this.BMP_KEY_PREFIX)) {
+        // Parcel rows (__Parcel__-N-...) — the field value is the APN; look it up against
+        // the live WQMP's Parcels[] and echo the saved ParcelNumber so the status pill
+        // flips to Accepted once the row is persisted.
+        if (field.key.startsWith(this.PARCEL_KEY_PREFIX)) {
+            const apn = (field.acceptedValue ?? field.value ?? "").toString().trim();
+            if (!apn) return null;
+            const match = wqmp.Parcels?.find((p) => (p.ParcelNumber ?? "").trim() === apn);
+            return match?.ParcelNumber ?? null;
+        }
+        // BMP rows (__BMP__-N-...) don't map to a single scalar WQMP field — leave blank.
+        if (field.key.startsWith(this.BMP_KEY_PREFIX)) {
             return null;
         }
         // Lookup fields: map to the *ID column on the DTO and resolve to the option label.
