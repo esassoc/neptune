@@ -11,6 +11,7 @@ import { AlertContext } from "src/app/shared/models/enums/alert-context.enum";
 import { AlertService } from "src/app/shared/services/alert.service";
 import { ConfirmService } from "src/app/shared/services/confirm/confirm.service";
 import { StormwaterJurisdictionService } from "src/app/shared/generated/api/stormwater-jurisdiction.service";
+import { PDF_EXTRACTION_LIMITS_BULLETS } from "src/app/shared/constants/pdf-extraction-limits";
 import { environment } from "src/environments/environment";
 
 @Component({
@@ -31,6 +32,7 @@ export class WqmpUploadModalComponent implements OnInit {
     public jurisdictionOptions$: Observable<FormInputOption[]>;
     public isUploading = signal(false);
     public file: File;
+    public pdfLimitsBullets = PDF_EXTRACTION_LIMITS_BULLETS;
 
     constructor(
         private alertService: AlertService,

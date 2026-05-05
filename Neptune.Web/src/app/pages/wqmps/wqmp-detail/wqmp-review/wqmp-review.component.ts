@@ -32,6 +32,10 @@ import { WaterQualityManagementPlanPermitTermsAsSelectDropdownOptions } from "sr
 import { HydromodificationAppliesTypesAsSelectDropdownOptions } from "src/app/shared/generated/enum/hydromodification-applies-type-enum";
 import { TrashCaptureStatusTypesAsSelectDropdownOptions } from "src/app/shared/generated/enum/trash-capture-status-type-enum";
 import { US_STATES } from "src/app/shared/constants/us-states";
+import {
+    PDF_EXTRACTION_FAILURE_HINT,
+    PDF_EXTRACTION_LIMITS_SUMMARY,
+} from "src/app/shared/constants/pdf-extraction-limits";
 import { environment } from "src/environments/environment";
 
 export type ConfidenceLevel = "high" | "medium" | "low" | "none";
@@ -121,6 +125,7 @@ export class WqmpReviewComponent implements OnInit, IDeactivateComponent {
     // review summary. Refreshed via reload$ on wizard load and after every section save so
     // saved values appear immediately as Accepted in the summary.
     public liveWqmp = signal<WaterQualityManagementPlanDto | null>(null);
+    public pdfLimitsSummary = PDF_EXTRACTION_LIMITS_SUMMARY;
     // Stable bound reference passed to ReviewSummaryComponent — using a class-field arrow
     // (vs .bind() in the template) keeps the reference identical across CD passes.
     public getWqmpFieldValueBound = (field: ExtractedField): string | null =>
@@ -278,7 +283,7 @@ export class WqmpReviewComponent implements OnInit, IDeactivateComponent {
                     if (extractionResult?.ErrorMessage) {
                         const baseMsg = extractionResult.ErrorMessage.trim().replace(/\.?$/, ".");
                         const hint = /could not process pdf/i.test(extractionResult.ErrorMessage)
-                            ? " Common reasons: more than 100 pages, over 200 MB, or password-protected."
+                            ? ` ${PDF_EXTRACTION_FAILURE_HINT}`
                             : "";
                         this.alertService.pushAlert(new Alert(
                             `Last extraction failed: ${baseMsg}${hint}`,
@@ -331,7 +336,7 @@ export class WqmpReviewComponent implements OnInit, IDeactivateComponent {
                             this.alertService.clearAlerts();
                             const baseMsg = rawMsg.trim().replace(/\.?$/, ".");
                             this.alertService.pushAlert(new Alert(
-                                `${baseMsg} Common reasons: more than 100 pages, over 200 MB, or password-protected.`,
+                                `${baseMsg} ${PDF_EXTRACTION_FAILURE_HINT}`,
                                 AlertContext.Danger,
                             ));
                         }
@@ -350,7 +355,7 @@ export class WqmpReviewComponent implements OnInit, IDeactivateComponent {
         // it's the closest we can put a reminder to the actual click that costs tokens.
         const confirmed = await this.confirmService.confirm({
             title: "Re-run extraction?",
-            message: "This will replace the AI-extracted suggestions with a fresh run. Sections you've already saved are preserved on the WQMP. <br/><br/><strong>AI extraction supports:</strong> PDFs ≤ 100 pages, ≤ 200 MB, no password protection. Scanned PDFs are fine.",
+            message: `This will replace the AI-extracted suggestions with a fresh run. Sections you've already saved are preserved on the WQMP. <br/><br/>${PDF_EXTRACTION_LIMITS_SUMMARY}`,
             buttonTextYes: "Re-run",
             buttonTextNo: "Cancel",
             buttonClassYes: "btn-danger",

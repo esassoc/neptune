@@ -3,6 +3,7 @@ import { HttpErrorResponse } from "@angular/common/http";
 import { AlertService } from "src/app/shared/services/alert.service";
 import { Alert } from "src/app/shared/models/alert";
 import { AlertContext } from "src/app/shared/models/enums/alert-context.enum";
+import { PDF_EXTRACTION_FAILURE_HINT } from "src/app/shared/constants/pdf-extraction-limits";
 import { filter, map, Observable, of, switchMap, tap, catchError, shareReplay, BehaviorSubject, interval, takeUntil, Subject, share } from "rxjs";
 import { CommonModule } from "@angular/common";
 import { ReactiveFormsModule, FormControl } from "@angular/forms";
@@ -170,7 +171,7 @@ export class AiHomeComponent implements OnInit, OnDestroy {
                     this.alertService.clearAlerts();
                     const baseMsg = rawMsg.trim().replace(/\.?$/, ".");
                     this.alertService.pushAlert(new Alert(
-                        `${baseMsg} Common reasons: more than 100 pages, over 200 MB, or password-protected.`,
+                        `${baseMsg} ${PDF_EXTRACTION_FAILURE_HINT}`,
                         AlertContext.Danger,
                     ));
                 }

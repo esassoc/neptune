@@ -11,10 +11,9 @@
     <div class="alert alert-info">
         <strong>PDF requirements for AI extraction:</strong>
         <ul class="mb-0 mt-1">
-            <li><strong>100 pages or fewer.</strong> Longer PDFs are rejected by the AI service — split the document and run extraction on each section separately.</li>
-            <li><strong>Up to 200&nbsp;MB.</strong> Larger files are rejected at upload.</li>
-            <li><strong>No password protection or encryption.</strong> Re-export an unprotected copy first.</li>
-            <li>Scanned / image-only PDFs are fine — the AI reads both text and visual content.</li>
+            @for (item of pdfLimitsBullets; track $index) {
+                <li>{{ item }}</li>
+            }
         </ul>
     </div>
 
