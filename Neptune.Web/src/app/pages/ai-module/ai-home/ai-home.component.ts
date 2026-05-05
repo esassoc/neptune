@@ -166,9 +166,10 @@ export class AiHomeComponent implements OnInit, OnDestroy {
                 // the run errored instead of seeing the spinner stop with no feedback. Append
                 // a hint when Anthropic returns the generic "Could not process PDF" message.
                 const rawMsg = error?.error?.message ?? "Extraction failed. Please try again or contact support.";
+                const baseMsg = rawMsg.trim().replace(/\.?$/, ".");
                 const msg = /could not process pdf/i.test(rawMsg)
-                    ? `${rawMsg} Common reasons: more than 100 pages, over 200 MB, or password-protected.`
-                    : rawMsg;
+                    ? `${baseMsg} Common reasons: more than 100 pages, over 200 MB, or password-protected.`
+                    : baseMsg;
                 this.alertService.pushAlert(new Alert(msg, AlertContext.Danger));
                 return of(null);
             })

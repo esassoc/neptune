@@ -276,11 +276,12 @@ export class WqmpReviewComponent implements OnInit, IDeactivateComponent {
                     // ErrorMessage/ErrorCode but null JSON). Surface the error if present.
                     this.fields.set([]);
                     if (extractionResult?.ErrorMessage) {
+                        const baseMsg = extractionResult.ErrorMessage.trim().replace(/\.?$/, ".");
                         const hint = /could not process pdf/i.test(extractionResult.ErrorMessage)
                             ? " Common reasons: more than 100 pages, over 200 MB, or password-protected."
                             : "";
                         this.alertService.pushAlert(new Alert(
-                            `Last extraction failed: ${extractionResult.ErrorMessage}${hint}`,
+                            `Last extraction failed: ${baseMsg}${hint}`,
                             AlertContext.Danger));
                     }
                 }
@@ -328,9 +329,10 @@ export class WqmpReviewComponent implements OnInit, IDeactivateComponent {
                     if (err.status === 400) {
                         // NPT-1051: Anthropic returns a generic "Could not process PDF" with no
                         // reason. Append the most common causes so the user has somewhere to start.
+                        const baseMsg = rawMsg.trim().replace(/\.?$/, ".");
                         const msg = /could not process pdf/i.test(rawMsg)
-                            ? `${rawMsg} Common reasons: more than 100 pages, over 200 MB, or password-protected.`
-                            : rawMsg;
+                            ? `${baseMsg} Common reasons: more than 100 pages, over 200 MB, or password-protected.`
+                            : baseMsg;
                         this.alertService.pushAlert(new Alert(msg, AlertContext.Danger));
                     }
                 },
