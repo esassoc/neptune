@@ -358,7 +358,7 @@ export class WqmpReviewComponent implements OnInit, IDeactivateComponent {
             : "Run AI extraction against the uploaded PDF. The wizard will populate with the AI's suggestions for you to review.";
         const confirmed = await this.confirmService.confirm({
             title: isReRun ? "Re-run extraction?" : "Run AI extraction?",
-            message: `${intro} <br/>${PDF_EXTRACTION_LIMITS_HTML_PANEL}`,
+            message: `<p class="mb-3">${intro}</p>${PDF_EXTRACTION_LIMITS_HTML_PANEL}`,
             buttonTextYes: isReRun ? "Re-run" : "Run Extraction",
             buttonTextNo: "Cancel",
             buttonClassYes: isReRun ? "btn-danger" : "btn-primary",
