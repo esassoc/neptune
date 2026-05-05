@@ -232,7 +232,18 @@ export class WqmpDetailComponent implements OnInit, OnChanges {
                 }));
             })
         );
-        this.verifications$ = this.wqmpService.listVerificationsWaterQualityManagementPlan(this.waterQualityManagementPlanID);
+        // NPT-995 round 5: verifications$ rides the same reload$ pipeline as wqmp$ so
+        // mutations (e.g. delete from the row-actions menu) refresh the grid via
+        // reload$.next() rather than inline observable reassignment, which the AsyncPipe
+        // didn't reliably re-subscribe to (same anti-pattern NPT-1051 PR #488 fixed for
+        // wqmp$). Initialized once; subsequent loadData() calls inherit wqmp$'s
+        // reload$.next() above.
+        if (!this.verifications$) {
+            this.verifications$ = this.reload$.pipe(
+                switchMap(() => this.wqmpService.listVerificationsWaterQualityManagementPlan(this.waterQualityManagementPlanID)),
+                shareReplay(1)
+            );
+        }
 
         this.modeledPerformance$ = this.wqmpService.getModeledPerformanceWaterQualityManagementPlan(this.waterQualityManagementPlanID);
 
@@ -535,8 +546,9 @@ export class WqmpDetailComponent implements OnInit, OnChanges {
                 this.wqmpService.deleteVerificationWaterQualityManagementPlan(this.waterQualityManagementPlanID, verifyID).subscribe({
                     next: () => {
                         this.alertService.pushAlert(new Alert("Verification deleted.", AlertContext.Success));
-                        // Re-assign the observable so the async pipe re-subscribes and the grid refreshes.
-                        this.verifications$ = this.wqmpService.listVerificationsWaterQualityManagementPlan(this.waterQualityManagementPlanID);
+                        // NPT-995 round 5: push reload$ instead of reassigning verifications$
+                        // — the inline reassign wasn't reliably re-triggering the AsyncPipe.
+                        this.reload$.next();
                     },
                     error: () => {
                         this.alertService.pushAlert(new Alert("An error occurred while deleting the verification.", AlertContext.Danger));
