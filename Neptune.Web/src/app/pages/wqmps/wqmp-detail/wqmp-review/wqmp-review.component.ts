@@ -319,10 +319,15 @@ export class WqmpReviewComponent implements OnInit, IDeactivateComponent {
                 error: (err: HttpErrorResponse) => {
                     // 400s carry our friendly { message } payload (PDF too large / Claude 4xx);
                     // anything else falls through to the generic HttpErrorInterceptor alert.
-                    const msg = err.status === 400
+                    const rawMsg = err.status === 400
                         ? (err.error?.message ?? "Extraction failed.")
                         : "Extraction failed. Please try again.";
                     if (err.status === 400) {
+                        // NPT-1051: Anthropic returns a generic "Could not process PDF" with no
+                        // reason. Append the most common causes so the user has somewhere to start.
+                        const msg = /could not process pdf/i.test(rawMsg)
+                            ? `${rawMsg} Common reasons: more than 100 pages, over 200 MB, or password-protected.`
+                            : rawMsg;
                         this.alertService.pushAlert(new Alert(msg, AlertContext.Danger));
                     }
                 },

@@ -163,8 +163,12 @@ export class AiHomeComponent implements OnInit, OnDestroy {
             catchError((error: HttpErrorResponse) => {
                 this.isExtracting = false;
                 // NPT-1051: don't swallow extraction failures — surface them so the user knows
-                // the run errored instead of seeing the spinner stop with no feedback.
-                const msg = error?.error?.message ?? "Extraction failed. Please try again or contact support.";
+                // the run errored instead of seeing the spinner stop with no feedback. Append
+                // a hint when Anthropic returns the generic "Could not process PDF" message.
+                const rawMsg = error?.error?.message ?? "Extraction failed. Please try again or contact support.";
+                const msg = /could not process pdf/i.test(rawMsg)
+                    ? `${rawMsg} Common reasons: more than 100 pages, over 200 MB, or password-protected.`
+                    : rawMsg;
                 this.alertService.pushAlert(new Alert(msg, AlertContext.Danger));
                 return of(null);
             })
