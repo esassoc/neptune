@@ -8,13 +8,13 @@
         grid-size: 0.25rem,
         cell-horizontal-padding: 0.625rem,
         balham-active-color: $primary,
-        header-height: 3rem,
+        header-height: 2.25rem,
         header-background-color: $primary,
         header-foreground-color: $white,
         header-column-separator-color: color.adjust($primary, $lightness: -5%),
         header-cell-hover-background-color: color.adjust($primary, $lightness: 3%),
         header-cell-moving-background-color: color.adjust($primary, $lightness: 3%),
-        row-height: 2.75rem,
+        row-height: 2.25rem,
         row-hover-color: rgba($primary, 0.05),
         font-size: 0.75rem,
     )
@@ -66,11 +66,11 @@
         }
 
         &-selected {
-            background: rgba($yellow-selected, 0.25);
+            background: $blue-100;
             border-bottom: 1px solid rgba($black, 0.15);
 
             &::before {
-                background: rgba($yellow-selected, 0.25);
+                background: $blue-100;
             }
         }
     }
