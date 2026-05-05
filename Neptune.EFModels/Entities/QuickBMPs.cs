@@ -124,8 +124,13 @@ public static class QuickBMPs
             return "Percent Retained needs to be between 0 and 100.";
         }
 
-        // NPT-1051: round to 2 decimals before comparing so floating-point overshoot
-        // (e.g. 33.3+33.3+33.4 = 100.00000000000001m) doesn't reject valid inputs.
+        // NPT-1051: round to 2 decimals before comparing. The actual floating-point
+        // overshoot (33.3+33.3+33.4 = 100.00000000000001) only happens client-side in
+        // JS Number arithmetic; on the server these are decimals and sum exactly to 100.
+        // Mirror the rounding here so the client and server agree on the comparison
+        // boundary at the API edge — otherwise a payload that the client trims to 100.00
+        // and accepts could in principle be rejected by a stricter server check, or vice
+        // versa across decimal-precision changes.
         if (bmps.Any(x => x.PercentOfSiteTreated.HasValue) && Math.Round(bmps.Sum(x => x.PercentOfSiteTreated ?? 0), 2) > 100)
         {
             return "The Percent of Site Treated exceeds 100 percent, please correct any errors before saving.";

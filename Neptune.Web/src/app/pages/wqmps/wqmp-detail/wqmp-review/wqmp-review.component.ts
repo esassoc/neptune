@@ -280,7 +280,10 @@ export class WqmpReviewComponent implements OnInit, IDeactivateComponent {
                     // ErrorMessage/ErrorCode but null JSON). Surface the error if present.
                     this.fields.set([]);
                     if (extractionResult?.ErrorMessage) {
-                        const baseMsg = extractionResult.ErrorMessage.trim().replace(/\.?$/, ".");
+                        // ErrorMessage echoes server-side data (Anthropic SDK errors include the
+                        // upstream JSON body). Alerts render via [innerHTML] so HTML-escape the
+                        // server-provided fragment before concatenating; the static hint is safe.
+                        const baseMsg = escapeHtml(extractionResult.ErrorMessage.trim().replace(/\.?$/, "."));
                         const hint = /could not process pdf/i.test(extractionResult.ErrorMessage)
                             ? ` ${PDF_EXTRACTION_FAILURE_HINT}`
                             : "";
@@ -325,23 +328,28 @@ export class WqmpReviewComponent implements OnInit, IDeactivateComponent {
                     this.reload$.next();
                 },
                 error: (err: HttpErrorResponse) => {
-                    // 400s carry our friendly { message } payload (PDF too large / Claude 4xx).
-                    // The global HttpErrorInterceptor already pushes a plain-text alert from the
-                    // body. We only need to override it when we want to enrich with the
-                    // PDF-rejection hint — clear and replace so the user sees one alert, not two.
-                    if (err.status === 400) {
-                        const rawMsg = err.error?.message ?? "";
-                        if (/could not process pdf/i.test(rawMsg)) {
-                            this.alertService.clearAlerts();
-                            const baseMsg = rawMsg.trim().replace(/\.?$/, ".");
-                            this.alertService.pushAlert(new Alert(
-                                `${baseMsg} ${PDF_EXTRACTION_FAILURE_HINT}`,
-                                AlertContext.Danger,
-                            ));
-                        }
-                        // For other 400 messages (e.g. size-cap), the interceptor's alert is fine.
+                    // 400s carry user-actionable messages (PDF too large, Anthropic 4xx);
+                    // 500s carry transient/server messages (timeouts, upstream 5xx, SSL).
+                    // The global HttpErrorInterceptor pushes a plain-text alert for 400 only,
+                    // so for 500 we always push our own; for 400 we only override when we
+                    // want to enrich the PDF-rejection message with the constraint hint.
+                    const rawMsg = err.error?.message ?? "Extraction failed. Please try again.";
+                    const isPdfRejection = /could not process pdf/i.test(rawMsg);
+                    if (err.status === 500) {
+                        // Alerts render via [innerHTML]; escape the server-provided message.
+                        const baseMsg = escapeHtml(rawMsg.trim().replace(/\.?$/, "."));
+                        const msg = isPdfRejection ? `${baseMsg} ${PDF_EXTRACTION_FAILURE_HINT}` : baseMsg;
+                        this.alertService.pushAlert(new Alert(msg, AlertContext.Danger));
+                    } else if (err.status === 400 && isPdfRejection) {
+                        // Replace the interceptor's plain alert with our hinted version.
+                        this.alertService.clearAlerts();
+                        const baseMsg = escapeHtml(rawMsg.trim().replace(/\.?$/, "."));
+                        this.alertService.pushAlert(new Alert(
+                            `${baseMsg} ${PDF_EXTRACTION_FAILURE_HINT}`,
+                            AlertContext.Danger,
+                        ));
                     }
-                    // Non-400s also fall through to the interceptor's generic handling.
+                    // Other 400s (size-cap etc.): interceptor's alert is sufficient.
                 },
             });
     }

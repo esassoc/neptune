@@ -2,7 +2,9 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Threading;
 using System.Threading.Tasks;
+using Anthropic.Exceptions;
 using Hangfire;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
@@ -546,11 +548,22 @@ namespace Neptune.API.Controllers
                 var dto = await WaterQualityManagementPlanExtractionResults.GetByWqmpIDAsDtoAsync(DbContext, waterQualityManagementPlanID);
                 return Ok(dto);
             }
+            catch (OperationCanceledException) when (HttpContext.RequestAborted.IsCancellationRequested)
+            {
+                // The client disconnected mid-extraction. No diagnostic value in persisting a
+                // failure row (the "failure" is the user navigating away), and no response
+                // shape matters because the caller is gone. Rethrow so the framework returns
+                // ClientClosedRequest semantics.
+                throw;
+            }
             catch (Exception ex)
             {
-                // NPT-1051 rework: catch everything (timeouts, 5xx, 404 file-gone, JSON parse,
-                // anything else). Persist a failure row with ErrorMessage/ErrorCode so the
-                // failure leaves a diagnostic trail and the wizard can show why on next load.
+                // NPT-1051 rework: catch broadly so any failure leaves a diagnostic trail —
+                // the wizard's "Last extraction failed: ..." alert reads this row on next load.
+                // Map known user-actionable failures (Anthropic 4xx, our InvalidOperationException
+                // pre-checks) to 400; everything else (timeouts, upstream 5xx, network/SSL,
+                // JSON parse) is a server-side problem and returns 500 so monitoring/clients
+                // don't conflate transient infra issues with validation errors.
                 Logger.LogError(ex, "WQMP extraction failed for WQMP={WaterQualityManagementPlanID}", waterQualityManagementPlanID);
 
                 // Store the readable form of the error rather than the raw exception message
@@ -569,7 +582,10 @@ namespace Neptune.API.Controllers
                 DbContext.WaterQualityManagementPlanExtractionResults.Add(failureRow);
                 await DbContext.SaveChangesAsync();
 
-                return BadRequest(new { message = readableMessage });
+                var isUserActionable = ex is InvalidOperationException or Anthropic4xxException;
+                return isUserActionable
+                    ? BadRequest(new { message = readableMessage })
+                    : StatusCode(StatusCodes.Status500InternalServerError, new { message = readableMessage });
             }
         }
 

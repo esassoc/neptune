@@ -4,6 +4,7 @@ import { AlertService } from "src/app/shared/services/alert.service";
 import { Alert } from "src/app/shared/models/alert";
 import { AlertContext } from "src/app/shared/models/enums/alert-context.enum";
 import { PDF_EXTRACTION_FAILURE_HINT } from "src/app/shared/constants/pdf-extraction-limits";
+import { escapeHtml } from "src/app/shared/helpers/html-escape";
 import { filter, map, Observable, of, switchMap, tap, catchError, shareReplay, BehaviorSubject, interval, takeUntil, Subject, share } from "rxjs";
 import { CommonModule } from "@angular/common";
 import { ReactiveFormsModule, FormControl } from "@angular/forms";
@@ -163,13 +164,19 @@ export class AiHomeComponent implements OnInit, OnDestroy {
             }),
             catchError((error: HttpErrorResponse) => {
                 this.isExtracting = false;
-                // The global HttpErrorInterceptor handles 4xx alerts. We only intervene to
-                // enrich the "Could not process PDF" message with a hint about common causes,
-                // clearing the interceptor's plain alert first so the user sees one, not two.
-                const rawMsg = error?.error?.message ?? "";
-                if (/could not process pdf/i.test(rawMsg)) {
+                // The global HttpErrorInterceptor handles 4xx alerts; 5xx pass through.
+                // Enrich the "Could not process PDF" message with a hint about common causes.
+                // For 500s we always push our own alert; for 400s we only intervene to replace
+                // the interceptor's plain alert with the hinted version.
+                const rawMsg = error?.error?.message ?? "Extraction failed. Please try again.";
+                const isPdfRejection = /could not process pdf/i.test(rawMsg);
+                if (error?.status === 500) {
+                    const baseMsg = escapeHtml(rawMsg.trim().replace(/\.?$/, "."));
+                    const msg = isPdfRejection ? `${baseMsg} ${PDF_EXTRACTION_FAILURE_HINT}` : baseMsg;
+                    this.alertService.pushAlert(new Alert(msg, AlertContext.Danger));
+                } else if (error?.status === 400 && isPdfRejection) {
                     this.alertService.clearAlerts();
-                    const baseMsg = rawMsg.trim().replace(/\.?$/, ".");
+                    const baseMsg = escapeHtml(rawMsg.trim().replace(/\.?$/, "."));
                     this.alertService.pushAlert(new Alert(
                         `${baseMsg} ${PDF_EXTRACTION_FAILURE_HINT}`,
                         AlertContext.Danger,
