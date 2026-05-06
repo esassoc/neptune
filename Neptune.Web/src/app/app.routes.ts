@@ -788,6 +788,18 @@ export const routes: Routes = [
                 loadComponent: () => import("./pages/data-hub/data-hub.component").then((m) => m.DataHubComponent),
                 canActivate: [JurisdictionManagerOrEditorOnlyGuard],
             },
+            {
+                path: "data-hub/treatment-bmp-upload",
+                title: "Upload Treatment BMPs",
+                loadComponent: () => import("./pages/data-hub/treatment-bmp-upload/treatment-bmp-upload.component").then((m) => m.TreatmentBMPUploadComponent),
+                canActivate: [ManagerOnlyGuard],
+            },
+            {
+                path: "data-hub/treatment-bmp-download",
+                title: "Download Treatment BMPs",
+                loadComponent: () => import("./pages/data-hub/treatment-bmp-download/treatment-bmp-download.component").then((m) => m.TreatmentBMPDownloadComponent),
+                canActivate: [JurisdictionManagerOrEditorOnlyGuard],
+            },
             // Manage
             {
                 path: "manage/homepage-configuration",

@@ -1,4 +1,6 @@
-﻿using Microsoft.AspNetCore.Mvc;
+﻿using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
@@ -6,19 +8,23 @@ using Neptune.API.Common;
 using Neptune.API.Services;
 using Neptune.API.Services.Attributes;
 using Neptune.API.Services.Authorization;
+using Neptune.Common.Services.GDAL;
 using Neptune.EFModels.Entities;
 using Neptune.Models.DataTransferObjects;
 using NetTopologySuite.Features;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
-using Microsoft.AspNetCore.Authorization;
 
 namespace Neptune.API.Controllers;
 
 [ApiController]
 [Route("treatment-bmps")]
-public class TreatmentBMPController(NeptuneDbContext dbContext, ILogger<TreatmentBMPController> logger, IOptions<NeptuneConfiguration> neptuneConfiguration)
+public class TreatmentBMPController(
+    NeptuneDbContext dbContext,
+    ILogger<TreatmentBMPController> logger,
+    IOptions<NeptuneConfiguration> neptuneConfiguration,
+    GDALAPIService gdalApiService)
     : SitkaController<TreatmentBMPController>(dbContext, logger, neptuneConfiguration)
 {
     [HttpPost]
@@ -426,5 +432,64 @@ public class TreatmentBMPController(NeptuneDbContext dbContext, ILogger<Treatmen
         await ModelingEngineUtilities.QueueLGURefreshForArea(delineation.DelineationGeometry, null, DbContext);
 
         return Ok();
+    }
+
+    [HttpPost("bulk-upload")]
+    [AdminFeature]
+    [RequestSizeLimit(100_000_000)]
+    [RequestFormLimits(MultipartBodyLengthLimit = 100_000_000)]
+    [Consumes("multipart/form-data")]
+    public async Task<ActionResult<TreatmentBMPCsvUploadResultDto>> BulkUpload([FromForm] TreatmentBMPCsvUploadFormDto form)
+    {
+        var result = new TreatmentBMPCsvUploadResultDto();
+
+        if (form.File == null || form.File.Length == 0)
+        {
+            result.Errors.Add("Please select a CSV file to upload.");
+            return Ok(result);
+        }
+
+        var treatmentBMPType = TreatmentBMPTypes.GetByID(DbContext, form.TreatmentBMPTypeID);
+        if (treatmentBMPType == null)
+        {
+            result.Errors.Add("The selected Treatment BMP Type was not found.");
+            return Ok(result);
+        }
+
+        await using var stream = form.File.OpenReadStream();
+        var treatmentBMPs = TreatmentBMPCsvParserHelper.CSVUpload(DbContext, stream, treatmentBMPType,
+            out var errorList, out var customAttributes, out var customAttributeValues);
+
+        if (errorList.Any())
+        {
+            result.Errors = errorList;
+            return Ok(result);
+        }
+
+        var treatmentBmpsAdded = treatmentBMPs.Where(x => x.TreatmentBMPID <= 0).ToList();
+        var treatmentBmpsUpdated = treatmentBMPs.Where(x => x.TreatmentBMPID > 0).ToList();
+
+        await DbContext.TreatmentBMPs.AddRangeAsync(treatmentBmpsAdded);
+        await DbContext.CustomAttributes.AddRangeAsync(customAttributes.Where(x => x.CustomAttributeID <= 0));
+        await DbContext.CustomAttributeValues.AddRangeAsync(customAttributeValues.Where(x => x.CustomAttributeValueID <= 0));
+        await DbContext.SaveChangesAsync();
+
+        // Re-execute model for updated BMPs since they may have been re-parameterized;
+        // new BMPs are skipped because they don't have delineations yet.
+        await EFModels.Nereid.NereidUtilities.MarkTreatmentBMPDirty(treatmentBmpsUpdated, DbContext);
+
+        result.AddedCount = treatmentBmpsAdded.Count;
+        result.UpdatedCount = treatmentBmpsUpdated.Count;
+        return Ok(result);
+    }
+
+    [HttpGet("download-gdb")]
+    [UserViewFeature]
+    [Produces("application/zip")]
+    public async Task<FileResult> DownloadGdb()
+    {
+        var currentPerson = People.GetByID(DbContext, CallingUser.PersonID);
+        var (bytes, fileName) = await TreatmentBMPGdbExport.BuildBMPInventoryGdbExportAsync(DbContext, gdalApiService, currentPerson);
+        return File(bytes, "application/zip", fileName);
     }
 }

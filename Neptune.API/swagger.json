@@ -7991,6 +7991,76 @@
         }
       }
     },
+    "/treatment-bmps/bulk-upload": {
+      "post": {
+        "tags": [
+          "TreatmentBMP"
+        ],
+        "operationId": "BulkUpload_TreatmentBMP",
+        "requestBody": {
+          "content": {
+            "multipart/form-data": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "File": {
+                    "type": "string",
+                    "format": "binary"
+                  },
+                  "TreatmentBMPTypeID": {
+                    "type": "integer",
+                    "format": "int32"
+                  }
+                }
+              },
+              "encoding": {
+                "File": {
+                  "style": "form"
+                },
+                "TreatmentBMPTypeID": {
+                  "style": "form"
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/TreatmentBMPCsvUploadResultDto"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TreatmentBMPCsvUploadResultDto"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TreatmentBMPCsvUploadResultDto"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/treatment-bmps/download-gdb": {
+      "get": {
+        "tags": [
+          "TreatmentBMP"
+        ],
+        "operationId": "DownloadGdb_TreatmentBMP",
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
     "/treatment-bmp-assessments": {
       "get": {
         "tags": [
@@ -17970,6 +18040,27 @@
           "Longitude": {
             "type": "number",
             "format": "double"
+          }
+        },
+        "additionalProperties": false
+      },
+      "TreatmentBMPCsvUploadResultDto": {
+        "type": "object",
+        "properties": {
+          "Errors": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "nullable": true
+          },
+          "AddedCount": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "UpdatedCount": {
+            "type": "integer",
+            "format": "int32"
           }
         },
         "additionalProperties": false

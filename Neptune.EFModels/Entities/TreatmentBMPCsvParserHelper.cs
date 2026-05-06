@@ -2,16 +2,20 @@
 using System.Reflection;
 using Microsoft.EntityFrameworkCore;
 using Neptune.Common.GeoSpatial;
-using Neptune.EFModels;
-using Neptune.EFModels.Entities;
-using Neptune.WebMvc.Common.Models;
 using NetTopologySuite.Geometries;
 using Neptune.Models.DataTransferObjects;
 
-namespace Neptune.WebMvc.Common
+namespace Neptune.EFModels.Entities
 {
     public static class TreatmentBMPCsvParserHelper
     {
+        // Inlined from the legacy Neptune.WebMvc.Common.Models.ModelObjectHelpers so this helper
+        // can live in Neptune.EFModels without depending on the WebMvc project.
+        private static bool IsRealPrimaryKeyValue(int? primaryKeyValueToCheck)
+        {
+            return primaryKeyValueToCheck.HasValue && primaryKeyValueToCheck.Value > 0;
+        }
+
         public static List<TreatmentBMP> CSVUpload(NeptuneDbContext dbContext, Stream fileStream, TreatmentBMPType treatmentBMPType,
             out List<string> errorList, out List<CustomAttribute> customAttributes,
             out List<CustomAttributeValue> customAttributeValues)
@@ -138,7 +142,7 @@ namespace Neptune.WebMvc.Common
                 };
             }
 
-            var isNew = !ModelObjectHelpers.IsRealPrimaryKeyValue(treatmentBMP.TreatmentBMPID);
+            var isNew = !IsRealPrimaryKeyValue(treatmentBMP.TreatmentBMPID);
             var treatmentBMPLatitude = row[fieldsDict["Latitude"]];
             var treatmentBMPLongitude = row[fieldsDict["Longitude"]];
             var locationPoint4326 = ParseLocation(treatmentBMPLatitude, treatmentBMPLongitude, rowNumber, errorList,
@@ -404,7 +408,7 @@ namespace Neptune.WebMvc.Common
             currentErrorList = new List<string>();
             customAttributeValues = new List<CustomAttributeValue>();
             var customAttributes = new List<CustomAttribute>();
-            var isNew = !ModelObjectHelpers.IsRealPrimaryKeyValue(treatmentBMP.TreatmentBMPID);
+            var isNew = !IsRealPrimaryKeyValue(treatmentBMP.TreatmentBMPID);
             foreach (var customAttributeType in customAttributeTypes)
             {
                 var treatmentBMPTypeCustomAttributeType = customAttributeType.TreatmentBMPTypeCustomAttributeTypes.Single(x => x.TreatmentBMPTypeID == treatmentBMPType.TreatmentBMPTypeID);

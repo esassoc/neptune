@@ -2,8 +2,14 @@
     <div class="tab-main">
         <h3>Treatment BMPs</h3>
         <p>Bulk-manage Treatment BMPs and their associated data.</p>
-        <data-hub-action-button label="Upload" icon="upload" [disabled]="true" [disabledTooltip]="comingSoonTooltip"></data-hub-action-button>
-        <data-hub-action-button label="Download" icon="download" [disabled]="true" [disabledTooltip]="comingSoonTooltip"></data-hub-action-button>
+        <data-hub-action-button
+            label="Upload"
+            icon="upload"
+            [routerLink]="['/data-hub', 'treatment-bmp-upload']"
+            [disabled]="!isAdmin()"
+            [disabledTooltip]="adminOnlyTooltip"
+        ></data-hub-action-button>
+        <data-hub-action-button label="Download" icon="download" [routerLink]="['/data-hub', 'treatment-bmp-download']"></data-hub-action-button>
 
         <h3>Delineations</h3>
         <p>Bulk-upload, review, and download Treatment BMP Delineations.</p>

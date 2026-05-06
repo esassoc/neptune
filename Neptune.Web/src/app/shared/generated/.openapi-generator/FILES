@@ -190,6 +190,7 @@ model/treatment-bmp-basic-info-update-dto.ts
 model/treatment-bmp-benchmark-and-threshold-dto.ts
 model/treatment-bmp-benchmark-and-threshold-upsert-dto.ts
 model/treatment-bmp-create-dto.ts
+model/treatment-bmp-csv-upload-result-dto.ts
 model/treatment-bmp-delineation-errors-dto.ts
 model/treatment-bmp-delineation-map-dto.ts
 model/treatment-bmp-display-dto.ts
