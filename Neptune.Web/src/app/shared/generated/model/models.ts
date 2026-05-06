@@ -11,6 +11,7 @@ export * from './custom-attribute-type-dto';
 export * from './custom-attribute-type-upsert-dto';
 export * from './custom-attribute-type-with-treatment-bmp-type-ids-dto';
 export * from './custom-attribute-upsert-dto';
+export * from './data-hub-last-updated-dto';
 export * from './delineation-dto';
 export * from './delineation-gdb-download-request-dto';
 export * from './delineation-gdb-upload-validation-dto';

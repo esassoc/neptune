@@ -1,0 +1,13 @@
+@use "/src/scss/abstracts" as *;
+
+:host {
+    display: inline-block;
+    margin-right: 0.5rem;
+}
+
+.is-disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+    pointer-events: auto;
+    border: 1px solid #aaa;
+}

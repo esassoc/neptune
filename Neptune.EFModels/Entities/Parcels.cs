@@ -127,6 +127,11 @@ namespace Neptune.EFModels.Entities
                 .ToList();
         }
 
+        public static async Task<DateTime?> GetLatestUpdateAsync(NeptuneDbContext dbContext)
+        {
+            return await dbContext.Parcels.AsNoTracking().MaxAsync(x => (DateTime?)x.LastUpdate);
+        }
+
         public static List<ParcelDisplayDto> Search(NeptuneDbContext dbContext, string term)
         {
             var searchString = term.Trim();

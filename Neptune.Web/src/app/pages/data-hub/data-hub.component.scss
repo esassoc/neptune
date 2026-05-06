@@ -1,0 +1,72 @@
+@use "/src/scss/abstracts" as *;
+
+.data-hub-tabs {
+    list-style: none;
+    margin: 0 0 -1px 0;
+    padding: 0;
+    display: flex;
+    border-bottom: 1px solid #ccc;
+
+    li {
+        margin: 0;
+    }
+
+    button {
+        background: transparent;
+        border: 1px solid transparent;
+        border-bottom: none;
+        padding: 0.5rem 1.25rem;
+        font-size: $type-size-300;
+        cursor: pointer;
+        color: $primary;
+
+        &:hover {
+            color: darken($primary, 10%);
+        }
+
+        &.active {
+            background: #fff;
+            border-color: #ccc;
+            color: #333;
+            font-weight: 600;
+            border-bottom: 1px solid #fff;
+            position: relative;
+            top: 1px;
+        }
+    }
+}
+
+.data-hub-tab-content {
+    border: 1px solid #ccc;
+    background: #fff;
+    padding: 1.5rem;
+    margin-bottom: 2rem;
+}
+
+.tab-body {
+    display: grid;
+    grid-template-columns: minmax(0, 3fr) minmax(0, 1fr);
+    gap: 1.5rem;
+}
+
+.tab-main {
+    h3 {
+        font-size: $type-size-400;
+        margin-top: 1.5rem;
+
+        &:first-child {
+            margin-top: 0;
+        }
+    }
+
+    p {
+        margin-bottom: 0.5rem;
+    }
+
+    .last-updated {
+        display: inline-block;
+        color: #464646;
+        font-style: italic;
+        padding-right: 1rem;
+    }
+}

@@ -449,6 +449,36 @@
         }
       }
     },
+    "/data-hub/last-updated": {
+      "get": {
+        "tags": [
+          "DataHub"
+        ],
+        "operationId": "GetLastUpdated_DataHub",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/DataHubLastUpdatedDto"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DataHubLastUpdatedDto"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DataHubLastUpdatedDto"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/delineations": {
       "get": {
         "tags": [
@@ -12698,6 +12728,37 @@
         },
         "additionalProperties": false
       },
+      "DataHubLastUpdatedDto": {
+        "type": "object",
+        "properties": {
+          "Parcels": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          },
+          "RegionalSubbasins": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          },
+          "HRUCharacteristics": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          },
+          "ModelBasins": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          },
+          "PrecipitationZones": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
       "DelineationDto": {
         "type": "object",
         "properties": {
@@ -20663,6 +20724,9 @@
     },
     {
       "name": "CustomRichText"
+    },
+    {
+      "name": "DataHub"
     },
     {
       "name": "Delineation"

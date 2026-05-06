@@ -1,0 +1,36 @@
+<page-header pageTitle="Data Hub"></page-header>
+
+<section class="content-section">
+    <ul class="data-hub-tabs" role="tablist">
+        @for (tab of tabs; track tab.key) {
+            <li role="presentation">
+                <button
+                    type="button"
+                    role="tab"
+                    [attr.aria-selected]="activeTab() === tab.key"
+                    [class.active]="activeTab() === tab.key"
+                    (click)="selectTab(tab.key)"
+                >
+                    {{ tab.label }}
+                </button>
+            </li>
+        }
+    </ul>
+
+    <div class="data-hub-tab-content">
+        @switch (activeTab()) {
+            @case ("bmps") {
+                <bmps-and-delineations-tab></bmps-and-delineations-tab>
+            }
+            @case ("wqmps") {
+                <wqmps-tab></wqmps-tab>
+            }
+            @case ("trash") {
+                <trash-module-tab></trash-module-tab>
+            }
+            @case ("county") {
+                <county-gis-tab></county-gis-tab>
+            }
+        }
+    </div>
+</section>

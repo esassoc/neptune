@@ -1,0 +1,9 @@
+@if (disabled || !routerLink) {
+    <span class="btn btn-neptune is-disabled" [title]="disabled ? disabledTooltip : ''">
+        <i [class]="iconClass"></i> {{ label }}
+    </span>
+} @else {
+    <a class="btn btn-neptune" [routerLink]="routerLink">
+        <i [class]="iconClass"></i> {{ label }}
+    </a>
+}

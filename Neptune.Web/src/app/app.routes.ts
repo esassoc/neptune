@@ -782,7 +782,12 @@ export const routes: Routes = [
                 canActivate: [JurisdictionManagerOrEditorOnlyGuard],
             },
             // Data Hub
-            { path: "data-hub", title: "Data Hub", loadComponent: () => import("./pages/data-hub/data-hub.component").then((m) => m.DataHubComponent) },
+            {
+                path: "data-hub",
+                title: "Data Hub",
+                loadComponent: () => import("./pages/data-hub/data-hub.component").then((m) => m.DataHubComponent),
+                canActivate: [JurisdictionManagerOrEditorOnlyGuard],
+            },
             // Manage
             {
                 path: "manage/homepage-configuration",
