@@ -652,6 +652,183 @@
         }
       }
     },
+    "/delineations/gdb/upload": {
+      "post": {
+        "tags": [
+          "DelineationGeometry"
+        ],
+        "operationId": "Upload_DelineationGeometry",
+        "requestBody": {
+          "content": {
+            "multipart/form-data": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "File": {
+                    "type": "string",
+                    "format": "binary"
+                  },
+                  "StormwaterJurisdictionID": {
+                    "type": "integer",
+                    "format": "int32"
+                  },
+                  "TreatmentBMPNameField": {
+                    "type": "string"
+                  },
+                  "DelineationStatusField": {
+                    "type": "string"
+                  }
+                }
+              },
+              "encoding": {
+                "File": {
+                  "style": "form"
+                },
+                "StormwaterJurisdictionID": {
+                  "style": "form"
+                },
+                "TreatmentBMPNameField": {
+                  "style": "form"
+                },
+                "DelineationStatusField": {
+                  "style": "form"
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/DelineationGdbUploadValidationDto"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DelineationGdbUploadValidationDto"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DelineationGdbUploadValidationDto"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/delineations/gdb/staging-report": {
+      "get": {
+        "tags": [
+          "DelineationGeometry"
+        ],
+        "operationId": "StagingReport_DelineationGeometry",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/DelineationGdbUploadValidationDto"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DelineationGdbUploadValidationDto"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DelineationGdbUploadValidationDto"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/delineations/gdb/approve": {
+      "post": {
+        "tags": [
+          "DelineationGeometry"
+        ],
+        "operationId": "Approve_DelineationGeometry",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "type": "integer",
+                  "format": "int32"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "type": "integer",
+                  "format": "int32"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "type": "integer",
+                  "format": "int32"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/delineations/gdb/staging": {
+      "delete": {
+        "tags": [
+          "DelineationGeometry"
+        ],
+        "operationId": "DiscardStaging_DelineationGeometry",
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/delineations/gdb/download": {
+      "post": {
+        "tags": [
+          "DelineationGeometry"
+        ],
+        "operationId": "Download_DelineationGeometry",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/DelineationGdbDownloadRequestDto"
+              }
+            },
+            "text/json": {
+              "schema": {
+                "$ref": "#/components/schemas/DelineationGdbDownloadRequestDto"
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "$ref": "#/components/schemas/DelineationGdbDownloadRequestDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
     "/field-definitions": {
       "get": {
         "tags": [
@@ -12572,6 +12749,53 @@
         },
         "additionalProperties": false
       },
+      "DelineationGdbDownloadRequestDto": {
+        "type": "object",
+        "properties": {
+          "StormwaterJurisdictionID": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "DelineationTypeID": {
+            "type": "integer",
+            "format": "int32"
+          }
+        },
+        "additionalProperties": false
+      },
+      "DelineationGdbUploadValidationDto": {
+        "type": "object",
+        "properties": {
+          "StormwaterJurisdictionID": {
+            "type": "integer",
+            "format": "int32",
+            "nullable": true
+          },
+          "NumberOfDelineations": {
+            "type": "integer",
+            "format": "int32",
+            "nullable": true
+          },
+          "NumberOfDelineationsToBeUpdated": {
+            "type": "integer",
+            "format": "int32",
+            "nullable": true
+          },
+          "NumberOfDelineationsToBeCreated": {
+            "type": "integer",
+            "format": "int32",
+            "nullable": true
+          },
+          "Errors": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
       "DelineationSetVerifiedDto": {
         "type": "object",
         "properties": {
@@ -20446,6 +20670,9 @@
     },
     {
       "name": "Delineation"
+    },
+    {
+      "name": "DelineationGeometry"
     },
     {
       "name": "FieldDefinition"

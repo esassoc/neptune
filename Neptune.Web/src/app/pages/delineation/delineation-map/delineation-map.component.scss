@@ -113,6 +113,10 @@ hr {
     margin: $spacing-300 0;
 }
 
+.header-action {
+    margin-left: $spacing-200;
+}
+
 ::ng-deep .treatment-bmp-cluster {
     background: rgba($primary, 0.6);
     border-radius: 50%;

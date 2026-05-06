@@ -4,6 +4,7 @@ api.module.ts
 api/ai.service.ts
 api/custom-attribute-type.service.ts
 api/custom-rich-text.service.ts
+api/delineation-geometry.service.ts
 api/delineation.service.ts
 api/field-definition.service.ts
 api/field-visit.service.ts
@@ -61,6 +62,8 @@ model/custom-attribute-type-upsert-dto.ts
 model/custom-attribute-type-with-treatment-bmp-type-ids-dto.ts
 model/custom-attribute-upsert-dto.ts
 model/delineation-dto.ts
+model/delineation-gdb-download-request-dto.ts
+model/delineation-gdb-upload-validation-dto.ts
 model/delineation-set-verified-dto.ts
 model/delineation-upsert-dto.ts
 model/delineation-upsert-geo-json-dto.ts

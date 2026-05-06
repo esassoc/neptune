@@ -763,6 +763,24 @@ export const routes: Routes = [
                     import("./pages/delineation/revision-requests/revision-request-detail.component").then((m) => m.RevisionRequestDetailComponent),
                 canActivate: [JurisdictionManagerOrEditorOnlyGuard],
             },
+            {
+                path: "delineation/gdb-upload",
+                title: "Upload Delineations",
+                loadComponent: () => import("./pages/delineation/gdb-upload/gdb-upload.component").then((m) => m.GdbUploadComponent),
+                canActivate: [JurisdictionManagerOrEditorOnlyGuard],
+            },
+            {
+                path: "delineation/gdb-approve",
+                title: "Approve Uploaded Delineations",
+                loadComponent: () => import("./pages/delineation/gdb-approve/gdb-approve.component").then((m) => m.GdbApproveComponent),
+                canActivate: [JurisdictionManagerOrEditorOnlyGuard],
+            },
+            {
+                path: "delineation/gdb-download",
+                title: "Download Delineations",
+                loadComponent: () => import("./pages/delineation/gdb-download/gdb-download.component").then((m) => m.GdbDownloadComponent),
+                canActivate: [JurisdictionManagerOrEditorOnlyGuard],
+            },
             // Data Hub
             { path: "data-hub", title: "Data Hub", loadComponent: () => import("./pages/data-hub/data-hub.component").then((m) => m.DataHubComponent) },
             // Manage

@@ -1,4 +1,9 @@
-<page-header [customRichTextTypeID]="customRichTextTypeID" pageTitle="Delineation Map"></page-header>
+<page-header [customRichTextTypeID]="customRichTextTypeID" pageTitle="Delineation Map" [templateRight]="headerActions"></page-header>
+
+<ng-template #headerActions>
+    <a class="btn btn-primary header-action" [routerLink]="['/delineation', 'gdb-upload']"><i class="fa fa-upload"></i> Bulk Upload Treatment BMP Delineations</a>
+    <a class="btn btn-primary header-action" [routerLink]="['/delineation', 'gdb-download']"><i class="fa fa-download"></i> Download GDB</a>
+</ng-template>
 
 <section class="content-section">
     <app-alert-display></app-alert-display>

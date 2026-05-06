@@ -12,6 +12,8 @@ export * from './custom-attribute-type-upsert-dto';
 export * from './custom-attribute-type-with-treatment-bmp-type-ids-dto';
 export * from './custom-attribute-upsert-dto';
 export * from './delineation-dto';
+export * from './delineation-gdb-download-request-dto';
+export * from './delineation-gdb-upload-validation-dto';
 export * from './delineation-set-verified-dto';
 export * from './delineation-upsert-dto';
 export * from './delineation-upsert-geo-json-dto';

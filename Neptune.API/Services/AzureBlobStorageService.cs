@@ -12,6 +12,7 @@ namespace Neptune.API.Services;
 
 public class AzureBlobStorageService
 {
+    public const string BlobContainerName = "file-resource";
     private readonly NeptuneConfiguration _neptuneConfiguration;
     private readonly BlobContainerClient _fileResourceContainerClient;
     private readonly Dictionary<string, string> _contentTypes = new Dictionary<string, string>()
@@ -704,7 +705,7 @@ public class AzureBlobStorageService
     public AzureBlobStorageService(IOptions<NeptuneConfiguration> configuration)
     {
         _neptuneConfiguration = configuration.Value;
-        _fileResourceContainerClient = new BlobServiceClient(_neptuneConfiguration.AzureBlobStorageConnectionString).GetBlobContainerClient("file-resource");
+        _fileResourceContainerClient = new BlobServiceClient(_neptuneConfiguration.AzureBlobStorageConnectionString).GetBlobContainerClient(BlobContainerName);
     }
 
     public async Task<bool> UploadFileResource(FileResource fileResource, byte[] fileBytes)
@@ -720,6 +721,29 @@ public class AzureBlobStorageService
         }
 
         return await blobClient.ExistsAsync();
+    }
+
+    public async Task<bool> UploadToBlobStorage(byte[] fileBytes, string blobName, string extension)
+    {
+        using var ms = new MemoryStream(fileBytes);
+        var blobClient = _fileResourceContainerClient.GetBlobClient(blobName);
+        var exists = await blobClient.ExistsAsync();
+
+        if (!exists.Value)
+        {
+            await blobClient.UploadAsync(ms, new BlobHttpHeaders { ContentType = GetContentTypeFromExtension(extension) });
+        }
+
+        return await blobClient.ExistsAsync();
+    }
+
+    private string GetContentTypeFromExtension(string extension)
+    {
+        if (!extension.StartsWith("."))
+        {
+            extension = $".{extension}";
+        }
+        return _contentTypes.ContainsKey(extension) ? _contentTypes[extension] : "application/octet-stream";
     }
 
     public async Task<bool> DeleteFileResourceBlob(FileResource fileResource)
