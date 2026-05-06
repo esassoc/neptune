@@ -33,7 +33,7 @@
                     }
                 </ul>
                 <div>
-                    <a class="btn btn-sm btn-primary" [routerLink]="['/delineation', 'delineation-map']">Review and Edit on the Delineation Map</a>
+                    <a class="btn btn-sm btn-primary" [routerLink]="['/delineation', 'delineation-map']" [queryParams]="{ treatmentBMPID: treatmentBMP.TreatmentBMPID }">Review and Edit on the Delineation Map</a>
                 </div>
             </div>
         }
@@ -52,7 +52,7 @@
                                 <a [routerLink]="['/treatment-bmps', treatmentBMP.UpstreamBMPID]">Upstream BMP</a>
                                 on the Delineation Map or remove the Upstream BMP and add a BMP delineation for this Treatment BMP.
                             } @else {
-                                <a [routerLink]="['/delineation', 'delineation-map']"> Please add a BMP delineation on the Delineation Map</a>.
+                                <a [routerLink]="['/delineation', 'delineation-map']" [queryParams]="{ treatmentBMPID: treatmentBMP.TreatmentBMPID }"> Please add a BMP delineation on the Delineation Map</a>.
                             }
                         </li>
                     }
@@ -69,7 +69,7 @@
         <div class="alert alert-info">
             <span>
                 There is an open
-                <a [routerLink]="['/regional-subbasin-revision-requests', openRevisionRequest.RegionalSubbasinRevisionRequestID]">Regional Subbasin Revision Request</a> relating to
+                <a [routerLink]="['/delineation/revision-requests', openRevisionRequest.RegionalSubbasinRevisionRequestID]">Regional Subbasin Revision Request</a> relating to
                 this BMP.
             </span>
         </div>
@@ -297,7 +297,7 @@
                             </div>
                             <div class="g-col-3">
                                 @if (!upstreamestBMPErrors.UpstreamestBMP && canEditStormwaterJurisdiction) {
-                                    <a [routerLink]="['/treatment-bmps', treatmentBMP.TreatmentBMPID, 'delineation-map']" class="btn btn-primary">Edit</a>
+                                    <a [routerLink]="['/delineation', 'delineation-map']" [queryParams]="{ treatmentBMPID: treatmentBMP.TreatmentBMPID }" class="btn btn-primary">Edit</a>
                                 }
                             </div>
                         </div>

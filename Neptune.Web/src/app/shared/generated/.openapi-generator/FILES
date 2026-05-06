@@ -4,6 +4,7 @@ api.module.ts
 api/ai.service.ts
 api/custom-attribute-type.service.ts
 api/custom-rich-text.service.ts
+api/delineation-geometry.service.ts
 api/delineation.service.ts
 api/field-definition.service.ts
 api/field-visit.service.ts
@@ -23,6 +24,7 @@ api/organization.service.ts
 api/parcel.service.ts
 api/project-document.service.ts
 api/project.service.ts
+api/regional-subbasin-revision-request.service.ts
 api/regional-subbasin.service.ts
 api/stormwater-jurisdiction.service.ts
 api/system-info.service.ts
@@ -60,10 +62,15 @@ model/custom-attribute-type-upsert-dto.ts
 model/custom-attribute-type-with-treatment-bmp-type-ids-dto.ts
 model/custom-attribute-upsert-dto.ts
 model/delineation-dto.ts
+model/delineation-gdb-download-request-dto.ts
+model/delineation-gdb-upload-validation-dto.ts
+model/delineation-set-verified-dto.ts
 model/delineation-upsert-dto.ts
+model/delineation-upsert-geo-json-dto.ts
 model/dimension.ts
 model/elevation-model.ts
 model/envelope.ts
+model/feature.ts
 model/field-definition-dto.ts
 model/field-definition-type-simple-dto.ts
 model/field-visit-create-dto.ts
@@ -155,7 +162,9 @@ model/quick-bmp-dto.ts
 model/quick-bmp-merge-skip-dto.ts
 model/quick-bmp-upsert-dto.ts
 model/regional-subbasin-dto.ts
+model/regional-subbasin-revision-request-close-dto.ts
 model/regional-subbasin-revision-request-dto.ts
+model/regional-subbasin-revision-request-upsert-dto.ts
 model/sizing-basis-type-dto.ts
 model/source-control-bmp-dto.ts
 model/source-control-bmp-upsert-dto.ts
@@ -180,6 +189,7 @@ model/treatment-bmp-benchmark-and-threshold-dto.ts
 model/treatment-bmp-benchmark-and-threshold-upsert-dto.ts
 model/treatment-bmp-create-dto.ts
 model/treatment-bmp-delineation-errors-dto.ts
+model/treatment-bmp-delineation-map-dto.ts
 model/treatment-bmp-display-dto.ts
 model/treatment-bmp-document-dto.ts
 model/treatment-bmp-document-update-dto.ts

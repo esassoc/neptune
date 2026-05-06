@@ -1,0 +1,92 @@
+<page-header pageTitle="Regional Subbasin Revision Request">
+  <a class="back-link" [routerLink]="['/delineation', 'revision-requests']">&laquo; Back to Revision Requests</a>
+</page-header>
+
+<section class="content-section">
+  <app-alert-display></app-alert-display>
+
+  <div class="grid-12">
+    <div class="g-col-8">
+      <neptune-map (onMapLoad)="handleMapReady($event)" [mapHeight]="mapHeight" [showLegend]="true">
+        @if (mapIsReady) {
+          <regional-subbasins-layer [mode]="OverlayMode.ReferenceOnly" [map]="map" [layerControl]="layerControl" [sortOrder]="10"></regional-subbasins-layer>
+          <jurisdictions-layer [mode]="OverlayMode.ReferenceOnly" [displayOnLoad]="true" [map]="map" [layerControl]="layerControl" [sortOrder]="20"></jurisdictions-layer>
+        }
+      </neptune-map>
+      @if (initData$ | async) {}
+    </div>
+
+    <div class="g-col-4 side-panel">
+      @let dto = request();
+      @if (dto) {
+        <div class="card">
+          <div class="card-header">
+            <h3 class="card-title">BMP</h3>
+          </div>
+          <div class="card-body">
+            <dl class="kv">
+              <dt>Name</dt>
+              <dd>
+                <a [routerLink]="bmpDetailUrl()" target="_blank" rel="noopener">{{ dto.TreatmentBMPName }}</a>
+              </dd>
+            </dl>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="card-header">
+            <h3 class="card-title">Request Details</h3>
+          </div>
+          <div class="card-body">
+            <dl class="kv">
+              <dt>Status</dt>
+              <dd>{{ dto.RegionalSubbasinRevisionRequestStatusDisplayName }}</dd>
+              <dt>Submitted</dt>
+              <dd>{{ dto.RequestDate | date: "shortDate" }}</dd>
+              <dt>Requested By</dt>
+              <dd>{{ dto.RequestPersonName }}</dd>
+              @if (dto.Notes) {
+                <dt>Notes</dt>
+                <dd>{{ dto.Notes }}</dd>
+              }
+              @if (dto.RegionalSubbasinRevisionRequestStatusID === StatusEnum.Closed) {
+                <dt>Closed</dt>
+                <dd>{{ dto.ClosedDate | date: "shortDate" }}</dd>
+                <dt>Closed By</dt>
+                <dd>{{ dto.ClosedByPersonName }}</dd>
+                @if (dto.CloseNotes) {
+                  <dt>Close Notes</dt>
+                  <dd>{{ dto.CloseNotes }}</dd>
+                }
+              }
+            </dl>
+          </div>
+        </div>
+
+        <div class="actions">
+          @if (canClose() && !showCloseForm()) {
+            <button type="button" class="btn btn-primary" (click)="openCloseForm()">Close Request</button>
+          }
+          @if (canDownload()) {
+            <button type="button" class="btn btn-primary" (click)="download()">Download GDB</button>
+          }
+        </div>
+
+        @if (showCloseForm()) {
+          <div class="card close-form">
+            <div class="card-header">
+              <h3 class="card-title">Close Revision Request</h3>
+            </div>
+            <div class="card-body">
+              <form-field [formControl]="closeNotesControl" [type]="FormFieldType.Textarea" fieldLabel="Close Notes"></form-field>
+              <div class="actions">
+                <button type="button" class="btn btn-primary" [disabled]="saving$ | async" (click)="submitClose()">Save</button>
+                <button type="button" class="btn btn-secondary" (click)="cancelClose()">Cancel</button>
+              </div>
+            </div>
+          </div>
+        }
+      }
+    </div>
+  </div>
+</section>

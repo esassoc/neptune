@@ -1,0 +1,30 @@
+@use "/src/scss/abstracts" as *;
+
+.back-link {
+  font-size: $type-size-200;
+}
+
+.header-action {
+  margin-left: $spacing-200;
+}
+
+.instructions {
+  ul {
+    margin-top: $spacing-100;
+    padding-left: 1.25rem;
+  }
+  li + li {
+    margin-top: $spacing-100;
+  }
+}
+
+form-field {
+  display: block;
+  margin-bottom: $spacing-300;
+}
+
+.actions {
+  display: flex;
+  gap: 0.5rem;
+  justify-content: flex-end;
+}

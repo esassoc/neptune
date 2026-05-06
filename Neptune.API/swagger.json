@@ -488,6 +488,347 @@
         }
       }
     },
+    "/delineations/for-treatment-bmp/{treatmentBMPID}": {
+      "get": {
+        "tags": [
+          "Delineation"
+        ],
+        "operationId": "GetForTreatmentBMP_Delineation",
+        "parameters": [
+          {
+            "name": "treatmentBMPID",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/DelineationDto"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DelineationDto"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DelineationDto"
+                }
+              }
+            }
+          }
+        }
+      },
+      "put": {
+        "tags": [
+          "Delineation"
+        ],
+        "operationId": "UpsertForTreatmentBMP_Delineation",
+        "parameters": [
+          {
+            "name": "treatmentBMPID",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/DelineationUpsertGeoJsonDto"
+              }
+            },
+            "text/json": {
+              "schema": {
+                "$ref": "#/components/schemas/DelineationUpsertGeoJsonDto"
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "$ref": "#/components/schemas/DelineationUpsertGeoJsonDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/DelineationDto"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DelineationDto"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DelineationDto"
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "Delineation"
+        ],
+        "operationId": "DeleteForTreatmentBMP_Delineation",
+        "parameters": [
+          {
+            "name": "treatmentBMPID",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/delineations/{delineationID}/set-verified": {
+      "post": {
+        "tags": [
+          "Delineation"
+        ],
+        "operationId": "SetVerified_Delineation",
+        "parameters": [
+          {
+            "name": "delineationID",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/DelineationSetVerifiedDto"
+              }
+            },
+            "text/json": {
+              "schema": {
+                "$ref": "#/components/schemas/DelineationSetVerifiedDto"
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "$ref": "#/components/schemas/DelineationSetVerifiedDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/delineations/gdb/upload": {
+      "post": {
+        "tags": [
+          "DelineationGeometry"
+        ],
+        "operationId": "Upload_DelineationGeometry",
+        "requestBody": {
+          "content": {
+            "multipart/form-data": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "File": {
+                    "type": "string",
+                    "format": "binary"
+                  },
+                  "StormwaterJurisdictionID": {
+                    "type": "integer",
+                    "format": "int32"
+                  },
+                  "TreatmentBMPNameField": {
+                    "type": "string"
+                  },
+                  "DelineationStatusField": {
+                    "type": "string"
+                  }
+                }
+              },
+              "encoding": {
+                "File": {
+                  "style": "form"
+                },
+                "StormwaterJurisdictionID": {
+                  "style": "form"
+                },
+                "TreatmentBMPNameField": {
+                  "style": "form"
+                },
+                "DelineationStatusField": {
+                  "style": "form"
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/DelineationGdbUploadValidationDto"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DelineationGdbUploadValidationDto"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DelineationGdbUploadValidationDto"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/delineations/gdb/staging-report": {
+      "get": {
+        "tags": [
+          "DelineationGeometry"
+        ],
+        "operationId": "StagingReport_DelineationGeometry",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/DelineationGdbUploadValidationDto"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DelineationGdbUploadValidationDto"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DelineationGdbUploadValidationDto"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/delineations/gdb/approve": {
+      "post": {
+        "tags": [
+          "DelineationGeometry"
+        ],
+        "operationId": "Approve_DelineationGeometry",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "type": "integer",
+                  "format": "int32"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "type": "integer",
+                  "format": "int32"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "type": "integer",
+                  "format": "int32"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/delineations/gdb/staging": {
+      "delete": {
+        "tags": [
+          "DelineationGeometry"
+        ],
+        "operationId": "DiscardStaging_DelineationGeometry",
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/delineations/gdb/download": {
+      "post": {
+        "tags": [
+          "DelineationGeometry"
+        ],
+        "operationId": "Download_DelineationGeometry",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/DelineationGdbDownloadRequestDto"
+              }
+            },
+            "text/json": {
+              "schema": {
+                "$ref": "#/components/schemas/DelineationGdbDownloadRequestDto"
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "$ref": "#/components/schemas/DelineationGdbDownloadRequestDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
     "/field-definitions": {
       "get": {
         "tags": [
@@ -5588,6 +5929,271 @@
         }
       }
     },
+    "/regional-subbasins/upstream-delineation-for-bmp/{treatmentBMPID}": {
+      "get": {
+        "tags": [
+          "RegionalSubbasin"
+        ],
+        "operationId": "GetUpstreamDelineationForBMP_RegionalSubbasin",
+        "parameters": [
+          {
+            "name": "treatmentBMPID",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/Feature"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Feature"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Feature"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/regional-subbasin-revision-requests": {
+      "get": {
+        "tags": [
+          "RegionalSubbasinRevisionRequest"
+        ],
+        "operationId": "List_RegionalSubbasinRevisionRequest",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/RegionalSubbasinRevisionRequestDto"
+                  }
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/RegionalSubbasinRevisionRequestDto"
+                  }
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/RegionalSubbasinRevisionRequestDto"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/regional-subbasin-revision-requests/{regionalSubbasinRevisionRequestID}": {
+      "get": {
+        "tags": [
+          "RegionalSubbasinRevisionRequest"
+        ],
+        "operationId": "Get_RegionalSubbasinRevisionRequest",
+        "parameters": [
+          {
+            "name": "regionalSubbasinRevisionRequestID",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/RegionalSubbasinRevisionRequestDto"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RegionalSubbasinRevisionRequestDto"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RegionalSubbasinRevisionRequestDto"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/regional-subbasin-revision-requests/for-treatment-bmp/{treatmentBMPID}": {
+      "post": {
+        "tags": [
+          "RegionalSubbasinRevisionRequest"
+        ],
+        "operationId": "Create_RegionalSubbasinRevisionRequest",
+        "parameters": [
+          {
+            "name": "treatmentBMPID",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RegionalSubbasinRevisionRequestUpsertDto"
+              }
+            },
+            "text/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RegionalSubbasinRevisionRequestUpsertDto"
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "$ref": "#/components/schemas/RegionalSubbasinRevisionRequestUpsertDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/RegionalSubbasinRevisionRequestDto"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RegionalSubbasinRevisionRequestDto"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RegionalSubbasinRevisionRequestDto"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/regional-subbasin-revision-requests/{regionalSubbasinRevisionRequestID}/close": {
+      "post": {
+        "tags": [
+          "RegionalSubbasinRevisionRequest"
+        ],
+        "operationId": "Close_RegionalSubbasinRevisionRequest",
+        "parameters": [
+          {
+            "name": "regionalSubbasinRevisionRequestID",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RegionalSubbasinRevisionRequestCloseDto"
+              }
+            },
+            "text/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RegionalSubbasinRevisionRequestCloseDto"
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "$ref": "#/components/schemas/RegionalSubbasinRevisionRequestCloseDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/RegionalSubbasinRevisionRequestDto"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RegionalSubbasinRevisionRequestDto"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RegionalSubbasinRevisionRequestDto"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/regional-subbasin-revision-requests/{regionalSubbasinRevisionRequestID}/gdb": {
+      "get": {
+        "tags": [
+          "RegionalSubbasinRevisionRequest"
+        ],
+        "operationId": "Download_RegionalSubbasinRevisionRequest",
+        "parameters": [
+          {
+            "name": "regionalSubbasinRevisionRequestID",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
     "/jurisdictions": {
       "get": {
         "tags": [
@@ -6417,6 +7023,45 @@
                   "type": "array",
                   "items": {
                     "$ref": "#/components/schemas/TreatmentBMPDisplayDto"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/treatment-bmps/for-delineation-map": {
+      "get": {
+        "tags": [
+          "TreatmentBMP"
+        ],
+        "operationId": "ListForDelineationMap_TreatmentBMP",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/TreatmentBMPDelineationMapDto"
+                  }
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/TreatmentBMPDelineationMapDto"
+                  }
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/TreatmentBMPDelineationMapDto"
                   }
                 }
               }
@@ -12104,6 +12749,62 @@
         },
         "additionalProperties": false
       },
+      "DelineationGdbDownloadRequestDto": {
+        "type": "object",
+        "properties": {
+          "StormwaterJurisdictionID": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "DelineationTypeID": {
+            "type": "integer",
+            "format": "int32"
+          }
+        },
+        "additionalProperties": false
+      },
+      "DelineationGdbUploadValidationDto": {
+        "type": "object",
+        "properties": {
+          "StormwaterJurisdictionID": {
+            "type": "integer",
+            "format": "int32",
+            "nullable": true
+          },
+          "NumberOfDelineations": {
+            "type": "integer",
+            "format": "int32",
+            "nullable": true
+          },
+          "NumberOfDelineationsToBeUpdated": {
+            "type": "integer",
+            "format": "int32",
+            "nullable": true
+          },
+          "NumberOfDelineationsToBeCreated": {
+            "type": "integer",
+            "format": "int32",
+            "nullable": true
+          },
+          "Errors": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "DelineationSetVerifiedDto": {
+        "type": "object",
+        "properties": {
+          "IsVerified": {
+            "type": "boolean"
+          }
+        },
+        "additionalProperties": false
+      },
       "DelineationUpsertDto": {
         "type": "object",
         "properties": {
@@ -12130,6 +12831,20 @@
           },
           "HasDiscrepancies": {
             "type": "boolean"
+          }
+        },
+        "additionalProperties": false
+      },
+      "DelineationUpsertGeoJsonDto": {
+        "type": "object",
+        "properties": {
+          "DelineationTypeID": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "GeoJson": {
+            "type": "string",
+            "nullable": true
           }
         },
         "additionalProperties": false
@@ -12214,6 +12929,21 @@
           },
           "Centre": {
             "$ref": "#/components/schemas/Coordinate"
+          }
+        },
+        "additionalProperties": false
+      },
+      "Feature": {
+        "type": "object",
+        "properties": {
+          "Geometry": {
+            "$ref": "#/components/schemas/Geometry"
+          },
+          "Attributes": {
+            "$ref": "#/components/schemas/IAttributesTable"
+          },
+          "BoundingBox": {
+            "$ref": "#/components/schemas/Envelope"
           }
         },
         "additionalProperties": false
@@ -16057,6 +16787,16 @@
         },
         "additionalProperties": false
       },
+      "RegionalSubbasinRevisionRequestCloseDto": {
+        "type": "object",
+        "properties": {
+          "CloseNotes": {
+            "type": "string",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
       "RegionalSubbasinRevisionRequestDto": {
         "type": "object",
         "properties": {
@@ -16067,6 +16807,70 @@
           "RegionalSubbasinRevisionRequestStatusID": {
             "type": "integer",
             "format": "int32"
+          },
+          "RegionalSubbasinRevisionRequestStatusDisplayName": {
+            "type": "string",
+            "nullable": true
+          },
+          "TreatmentBMPID": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "TreatmentBMPName": {
+            "type": "string",
+            "nullable": true
+          },
+          "RequestPersonID": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "RequestPersonName": {
+            "type": "string",
+            "nullable": true
+          },
+          "RequestDate": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "ClosedByPersonID": {
+            "type": "integer",
+            "format": "int32",
+            "nullable": true
+          },
+          "ClosedByPersonName": {
+            "type": "string",
+            "nullable": true
+          },
+          "ClosedDate": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          },
+          "Notes": {
+            "type": "string",
+            "nullable": true
+          },
+          "CloseNotes": {
+            "type": "string",
+            "nullable": true
+          },
+          "GeometryGeoJson": {
+            "type": "string",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "RegionalSubbasinRevisionRequestUpsertDto": {
+        "type": "object",
+        "properties": {
+          "GeoJson": {
+            "type": "string",
+            "nullable": true
+          },
+          "Notes": {
+            "type": "string",
+            "nullable": true
           }
         },
         "additionalProperties": false
@@ -17120,6 +17924,53 @@
             "items": {
               "$ref": "#/components/schemas/TreatmentBMPDisplayDto"
             },
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "TreatmentBMPDelineationMapDto": {
+        "type": "object",
+        "properties": {
+          "TreatmentBMPID": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "TreatmentBMPName": {
+            "type": "string",
+            "nullable": true
+          },
+          "TreatmentBMPTypeName": {
+            "type": "string",
+            "nullable": true
+          },
+          "StormwaterJurisdictionID": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "Latitude": {
+            "type": "number",
+            "format": "double"
+          },
+          "Longitude": {
+            "type": "number",
+            "format": "double"
+          },
+          "HasDelineation": {
+            "type": "boolean"
+          },
+          "DelineationID": {
+            "type": "integer",
+            "format": "int32",
+            "nullable": true
+          },
+          "DelineationTypeID": {
+            "type": "integer",
+            "format": "int32",
+            "nullable": true
+          },
+          "IsVerified": {
+            "type": "boolean",
             "nullable": true
           }
         },
@@ -19817,6 +20668,9 @@
       "name": "Delineation"
     },
     {
+      "name": "DelineationGeometry"
+    },
+    {
       "name": "FieldDefinition"
     },
     {
@@ -19875,6 +20729,9 @@
     },
     {
       "name": "RegionalSubbasin"
+    },
+    {
+      "name": "RegionalSubbasinRevisionRequest"
     },
     {
       "name": "StormwaterJurisdiction"
