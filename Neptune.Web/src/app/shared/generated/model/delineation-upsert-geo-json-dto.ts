@@ -11,7 +11,6 @@
 
 import { FormControl, FormControlOptions, FormControlState, Validators } from "@angular/forms";
 export class DelineationUpsertGeoJsonDto { 
-    TreatmentBMPID?: number;
     DelineationTypeID?: number;
     GeoJson?: string | null;
     constructor(obj?: any) {
@@ -20,22 +19,11 @@ export class DelineationUpsertGeoJsonDto {
 }
 
 export interface DelineationUpsertGeoJsonDtoForm { 
-    TreatmentBMPID?: FormControl<number>;
     DelineationTypeID?: FormControl<number>;
     GeoJson?: FormControl<string>;
 }
 
 export class DelineationUpsertGeoJsonDtoFormControls { 
-    public static TreatmentBMPID = (value: FormControlState<number> | number = undefined, formControlOptions?: FormControlOptions | null) => new FormControl<number>(
-        value,
-        formControlOptions ?? 
-        {
-            nonNullable: false,
-            validators: 
-            [
-            ],
-        }
-    );
     public static DelineationTypeID = (value: FormControlState<number> | number = undefined, formControlOptions?: FormControlOptions | null) => new FormControl<number>(
         value,
         formControlOptions ?? 

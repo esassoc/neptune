@@ -37,7 +37,7 @@ public static class DelineationStagings
             .ToList();
 
         var centralizedConflicts = validDelineationStagings.Select(x => x.TreatmentBMPName)
-            .Intersect(centralizedDelineations)
+            .Intersect(centralizedDelineations, StringComparer.InvariantCultureIgnoreCase)
             .ToList();
         if (centralizedConflicts.Count > 0)
         {
@@ -142,9 +142,13 @@ public static class DelineationStagings
         var stagedNames = stagings.Select(x => x.TreatmentBMPName).ToList();
         var stormwaterJurisdictionID = stagings.Select(x => x.StormwaterJurisdictionID).Distinct().Single();
 
+        // Scope to the staging's jurisdiction AND distributed type so a same-named BMP in another jurisdiction
+        // (or a centralized delineation in this one) doesn't get deleted by a Distributed-only upload.
         var delineationsToDelete = dbContext.Delineations.AsNoTracking()
             .Include(x => x.TreatmentBMP)
-            .Where(x => stagedNames.Contains(x.TreatmentBMP.TreatmentBMPName))
+            .Where(x => x.TreatmentBMP.StormwaterJurisdictionID == stormwaterJurisdictionID
+                        && x.DelineationTypeID == (int)DelineationTypeEnum.Distributed
+                        && stagedNames.Contains(x.TreatmentBMP.TreatmentBMPName))
             .Select(x => x.DelineationID)
             .ToList();
         foreach (var delineationID in delineationsToDelete)

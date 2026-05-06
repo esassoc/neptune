@@ -1,5 +1,5 @@
 import { Component, OnInit } from "@angular/core";
-import { Observable } from "rxjs";
+import { finalize, Observable } from "rxjs";
 import { ColDef } from "ag-grid-community";
 import { AsyncPipe } from "@angular/common";
 import { Router } from "@angular/router";
@@ -38,7 +38,7 @@ export class RevisionRequestsComponent implements OnInit {
                 },
             ]),
             this.utilityFunctionsService.createLinkColumnDef("BMP Name", "TreatmentBMPName", "TreatmentBMPID", {
-                InRouterLink: "/treatment-bmp/",
+                InRouterLink: "/treatment-bmps/",
             }),
             this.utilityFunctionsService.createDateColumnDef("Date Submitted", "RequestDate", "shortDate"),
             this.utilityFunctionsService.createBasicColumnDef("Requested By", "RequestPersonName"),
@@ -51,7 +51,8 @@ export class RevisionRequestsComponent implements OnInit {
             this.utilityFunctionsService.createBasicColumnDef("Close Notes", "CloseNotes"),
         ];
 
-        this.revisionRequests$ = this.regionalSubbasinRevisionRequestService.listRegionalSubbasinRevisionRequest();
-        this.revisionRequests$.subscribe(() => (this.isLoading = false));
+        this.revisionRequests$ = this.regionalSubbasinRevisionRequestService
+            .listRegionalSubbasinRevisionRequest()
+            .pipe(finalize(() => (this.isLoading = false)));
     }
 }

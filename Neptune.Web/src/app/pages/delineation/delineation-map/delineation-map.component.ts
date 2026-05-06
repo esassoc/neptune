@@ -25,6 +25,7 @@ import { ConfirmService } from "src/app/shared/services/confirm/confirm.service"
 import { LeafletHelperService } from "src/app/shared/services/leaflet-helper.service";
 import { MarkerHelper } from "src/app/shared/helpers/marker-helper";
 
+import { escapeHtml } from "src/app/shared/helpers/html-escape";
 import { NeptuneMapComponent, NeptuneMapInitEvent } from "src/app/shared/components/leaflet/neptune-map/neptune-map.component";
 import { RegionalSubbasinsLayerComponent } from "src/app/shared/components/leaflet/layers/regional-subbasins-layer/regional-subbasins-layer.component";
 import { DelineationsLayerComponent } from "src/app/shared/components/leaflet/layers/delineations-layer/delineations-layer.component";
@@ -272,7 +273,7 @@ export class DelineationMapComponent implements OnInit {
         this.confirmService
             .confirm({
                 title: "Delete Delineation",
-                message: `<p>You are about to delete the delineation for <strong>${bmp.TreatmentBMPName}</strong>.</p><p>This action cannot be undone. Are you sure you wish to proceed?</p>`,
+                message: `<p>You are about to delete the delineation for <strong>${escapeHtml(bmp.TreatmentBMPName)}</strong>.</p><p>This action cannot be undone. Are you sure you wish to proceed?</p>`,
                 buttonClassYes: "btn btn-danger",
                 buttonTextYes: "Delete",
                 buttonTextNo: "Cancel",
@@ -426,7 +427,6 @@ export class DelineationMapComponent implements OnInit {
             this.savingSubject.next(true);
             this.delineationService
                 .upsertForTreatmentBMPDelineation(bmp.TreatmentBMPID, {
-                    TreatmentBMPID: bmp.TreatmentBMPID,
                     DelineationTypeID: this.pendingDelineationType,
                     GeoJson: JSON.stringify(geoJson),
                 })

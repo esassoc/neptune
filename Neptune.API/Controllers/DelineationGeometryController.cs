@@ -51,9 +51,8 @@ namespace Neptune.API.Controllers
                 return Ok(dto);
             }
 
-            var blobName = Guid.NewGuid().ToString();
-            await azureBlobStorageService.UploadToBlobStorage(await FileStreamHelpers.StreamToBytes(file), blobName, ".gdb");
-
+            // Validate the GDB feature-class shape BEFORE uploading to blob storage so a malformed file
+            // doesn't leave an orphan blob behind.
             var featureClasses = await gdalApiService.OgrInfoGdbToFeatureClassInfo(file);
             if (featureClasses.Count == 0)
             {
@@ -68,6 +67,9 @@ namespace Neptune.API.Controllers
 
             var featureClassName = featureClasses.Single().LayerName;
             var currentPerson = People.GetByID(DbContext, CallingUser.PersonID);
+
+            var blobName = Guid.NewGuid().ToString();
+            await azureBlobStorageService.UploadToBlobStorage(await FileStreamHelpers.StreamToBytes(file), blobName, ".gdb");
 
             try
             {

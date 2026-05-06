@@ -12838,10 +12838,6 @@
       "DelineationUpsertGeoJsonDto": {
         "type": "object",
         "properties": {
-          "TreatmentBMPID": {
-            "type": "integer",
-            "format": "int32"
-          },
           "DelineationTypeID": {
             "type": "integer",
             "format": "int32"
