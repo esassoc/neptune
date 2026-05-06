@@ -7,6 +7,7 @@
     <form class="form grid-12" [formGroup]="formGroup">
         <form-field
             class="g-col-12"
+            size="md"
             [formControl]="formGroup.controls.TreatmentBMPTypeID"
             fieldLabel="Type"
             placeholder="Type"
@@ -17,6 +18,6 @@
 </div>
 
 <div class="modal-footer">
-    <button class="btn btn-primary" (click)="save()" [disabled]="formGroup.invalid">Convert</button>
+    <button class="btn btn-primary" (click)="save()">Save</button>
     <button class="btn btn-primary-outline" (click)="cancel()">Cancel</button>
 </div>

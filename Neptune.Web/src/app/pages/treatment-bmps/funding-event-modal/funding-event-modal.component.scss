@@ -1,3 +1,5 @@
+@use "/src/scss/abstracts" as *;
+
 /* Funding Event Modal Styles */
 .section-title {
     font-size: 1.25rem;
@@ -13,4 +15,37 @@
     display: flex;
     justify-content: flex-end;
     gap: 1rem;
+}
+
+.funding-source-row {
+    display: flex;
+    gap: 0.5rem;
+    align-items: flex-end;
+    margin-bottom: 1rem;
+}
+
+.funding-source-name {
+    flex: 2 1 0;
+    min-width: 120px;
+}
+
+.funding-source-amount {
+    flex: 1 1 0;
+    min-width: 80px;
+}
+
+.funding-source-delete {
+    cursor: pointer;
+    flex: 0 0 auto;
+    margin-bottom: 0.5rem;
+    ::ng-deep svg {
+        width: 1.2rem;
+        height: 1.2rem;
+        path {
+            fill: $gray-400;
+        }
+    }
+    &:hover ::ng-deep svg path {
+        fill: $red-default;
+    }
 }

@@ -60,8 +60,9 @@ export class EditParcelsComponent implements OnInit {
 
     // Search
     public searchControl = new FormControl("");
-    public searchResults: ParcelDisplayDto[] = [];
-    public showSearchResults = false;
+    public searchResults = signal<ParcelDisplayDto[]>([]);
+    public showSearchResults = signal(false);
+    public pickedParcel = signal<ParcelDisplayDto | null>(null);
 
     public selectedParcelRows = signal<ParcelDisplayDto[]>([]);
 
@@ -94,14 +95,18 @@ export class EditParcelsComponent implements OnInit {
             debounceTime(300),
             distinctUntilChanged(),
             switchMap((term) => {
+                const picked = this.pickedParcel();
+                if (picked && term !== picked.ParcelNumber) {
+                    this.pickedParcel.set(null);
+                }
                 if (!term || term.length < 2) {
                     return of([]);
                 }
                 return this.parcelService.searchParcel(term);
             })
         ).subscribe((results) => {
-            this.searchResults = results;
-            this.showSearchResults = results.length > 0;
+            this.searchResults.set(results);
+            this.showSearchResults.set(results.length > 0);
         });
     }
 
@@ -115,15 +120,23 @@ export class EditParcelsComponent implements OnInit {
         }
     }
 
-    public selectSearchResult(parcel: ParcelDisplayDto): void {
-        if (!this.selectedParcelIDs.includes(parcel.ParcelID)) {
-            this.selectedParcelIDs.push(parcel.ParcelID);
-            this.selectedParcelRows.update((rows) => [...rows, parcel]);
+    public pickSearchResult(parcel: ParcelDisplayDto): void {
+        this.pickedParcel.set(parcel);
+        this.searchControl.setValue(parcel.ParcelNumber, { emitEvent: false });
+        this.searchResults.set([]);
+        this.showSearchResults.set(false);
+    }
+
+    public addPickedParcel(): void {
+        const picked = this.pickedParcel();
+        if (!picked) return;
+        if (!this.selectedParcelIDs.includes(picked.ParcelID)) {
+            this.selectedParcelIDs.push(picked.ParcelID);
+            this.selectedParcelRows.update((rows) => [...rows, picked]);
             this.addSelectedParcelsToMap();
         }
+        this.pickedParcel.set(null);
         this.searchControl.setValue("", { emitEvent: false });
-        this.searchResults = [];
-        this.showSearchResults = false;
     }
 
     public removeParcel(parcelID: number): void {
@@ -158,7 +171,7 @@ export class EditParcelsComponent implements OnInit {
     }
 
     public hideSearchResults(): void {
-        setTimeout(() => (this.showSearchResults = false), 200);
+        setTimeout(() => this.showSearchResults.set(false), 200);
     }
 
     private addSelectedParcelsToMap(): void {

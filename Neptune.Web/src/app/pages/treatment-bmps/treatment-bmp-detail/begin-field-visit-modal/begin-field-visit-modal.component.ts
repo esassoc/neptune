@@ -59,7 +59,10 @@ export class BeginFieldVisitModalComponent implements OnInit {
     }
 
     save(): void {
-        if (this.formGroup.invalid) return;
+        if (this.formGroup.invalid) {
+            this.formGroup.markAllAsTouched();
+            return;
+        }
         const dto = new FieldVisitCreateDto({
             VisitDate: this.formGroup.controls.VisitDate.value,
             FieldVisitTypeID: this.formGroup.controls.FieldVisitTypeID.value,

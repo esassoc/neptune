@@ -135,6 +135,11 @@ export class EditQuickBMPsComponent implements OnInit {
     }
 
     public save(): void {
+        if (this.quickBMPRows.invalid) {
+            this.quickBMPRows.markAllAsTouched();
+            this.alertService.pushAlert(new Alert("Please complete the highlighted required fields before saving.", AlertContext.Danger));
+            return;
+        }
         if (!this.validate()) {
             return;
         }

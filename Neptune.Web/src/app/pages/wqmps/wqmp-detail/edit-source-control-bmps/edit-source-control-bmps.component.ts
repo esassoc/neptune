@@ -84,6 +84,11 @@ export class EditSourceControlBMPsComponent implements OnInit {
     }
 
     public save(): void {
+        if (this.sourceControlRows.invalid) {
+            this.sourceControlRows.markAllAsTouched();
+            this.alertService.pushAlert(new Alert("Please complete the highlighted required fields before saving.", AlertContext.Danger));
+            return;
+        }
         this.validationErrors = [];
         const noteMaxLength = 200;
 

@@ -10,7 +10,7 @@
     <app-alert-display></app-alert-display>
 
     <form [formGroup]="formGroup" class="grid-12">
-        <form-field class="g-col-6" [formControl]="formGroup.controls.TreatmentBMPName" fieldLabel="BMP Name" [type]="FormFieldType.Text" placeholder="Name"></form-field>
+        <form-field class="g-col-6" size="md" [formControl]="formGroup.controls.TreatmentBMPName" fieldLabel="BMP Name" [type]="FormFieldType.Text" placeholder="Name"></form-field>
 
         <div class="g-col-6">
             <label class="field-label required">BMP Type</label>
@@ -24,6 +24,7 @@
 
         <form-field
             class="g-col-6"
+            size="md"
             [formControl]="formGroup.controls.OwnerOrganizationID"
             fieldLabel="Owner Organization"
             [type]="FormFieldType.Select"
@@ -31,10 +32,11 @@
             placeholder="Select Organization">
         </form-field>
 
-        <form-field class="g-col-6" [formControl]="formGroup.controls.YearBuilt" fieldLabel="Year Built" [type]="FormFieldType.Number" placeholder="Year built"> </form-field>
+        <form-field class="g-col-6" size="md" [formControl]="formGroup.controls.YearBuilt" fieldLabel="Year Built" [type]="FormFieldType.Number" placeholder="Year built"> </form-field>
 
         <form-field
             class="g-col-6"
+            size="md"
             [formControl]="formGroup.controls.SystemOfRecordID"
             fieldLabel="System Of Record ID"
             [type]="FormFieldType.Text"
@@ -43,6 +45,7 @@
 
         <form-field
             class="g-col-6"
+            size="md"
             [formControl]="formGroup.controls.WaterQualityManagementPlanID"
             fieldLabel="Water Quality Management Plan"
             [type]="FormFieldType.Select"
@@ -52,6 +55,7 @@
 
         <form-field
             class="g-col-6"
+            size="md"
             [formControl]="formGroup.controls.TreatmentBMPLifespanTypeID"
             fieldLabel="Lifespan Type"
             [type]="FormFieldType.Select"
@@ -63,6 +67,7 @@
             <div class="g-col-6"><!-- Empty for spacing--></div>
             <form-field
                 class="g-col-6"
+                size="md"
                 [formControl]="formGroup.controls.TreatmentBMPLifespanEndDate"
                 fieldLabel="Lifespan End Date"
                 [type]="FormFieldType.Date"
@@ -72,6 +77,7 @@
 
         <form-field
             class="g-col-6"
+            size="md"
             [formControl]="formGroup.controls.SizingBasisTypeID"
             fieldLabel="Sizing Basis"
             [type]="FormFieldType.Select"
@@ -81,6 +87,7 @@
 
         <form-field
             class="g-col-6"
+            size="md"
             [formControl]="formGroup.controls.TrashCaptureStatusTypeID"
             fieldLabel="Trash Capture Status"
             [type]="FormFieldType.Select"
@@ -92,6 +99,7 @@
             <div class="g-col-6"><!-- Empty for spacing--></div>
             <form-field
                 class="g-col-6"
+                size="md"
                 [formControl]="formGroup.controls.TrashCaptureEffectiveness"
                 fieldLabel="Trash Capture Effectiveness (%)"
                 [type]="FormFieldType.Number"
@@ -102,6 +110,7 @@
 
         <form-field
             class="g-col-6"
+            size="md"
             [formControl]="formGroup.controls.RequiredFieldVisitsPerYear"
             fieldLabel="Required Field Visits Per Year"
             [type]="FormFieldType.Number"
@@ -110,17 +119,18 @@
 
         <form-field
             class="g-col-6"
+            size="md"
             [formControl]="formGroup.controls.RequiredPostStormFieldVisitsPerYear"
             fieldLabel="Required Post-Storm Field Visits Per Year"
             [type]="FormFieldType.Number"
             placeholder="Required post-storm visits per year">
         </form-field>
 
-        <form-field [formControl]="formGroup.controls.Notes" fieldLabel="Notes" [type]="FormFieldType.Textarea" placeholder="Notes"> </form-field>
+        <form-field size="md" [formControl]="formGroup.controls.Notes" fieldLabel="Notes" [type]="FormFieldType.Textarea" placeholder="Notes"> </form-field>
     </form>
 
     <div class="page-footer">
-        <button class="btn btn-primary mr-2" (click)="save()" [disabled]="isLoadingSubmit || formGroup.invalid">Save</button>
+        <button class="btn btn-primary mr-2" (click)="save()" [disabled]="isLoadingSubmit">Save</button>
         <button class="btn btn-secondary" (click)="cancel()">Cancel</button>
     </div>
 }

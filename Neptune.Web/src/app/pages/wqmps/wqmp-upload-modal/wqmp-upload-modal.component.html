@@ -13,6 +13,7 @@
     </div>
 
     <form-field
+        size="md"
         fieldLabel="WQMP Name"
         [type]="FormFieldType.Text"
         [formControl]="wqmpNameControl"
@@ -21,6 +22,7 @@
 
     @if (jurisdictionOptions$ | async; as opts) {
         <form-field
+            size="md"
             fieldLabel="Jurisdiction"
             [type]="FormFieldType.Select"
             [formControl]="jurisdictionControl"
@@ -36,6 +38,6 @@
     }
 </div>
 <div class="modal-footer">
-    <button class="btn btn-primary" (click)="upload()" [disabled]="jurisdictionControl.invalid || wqmpNameControl.invalid || isUploading()">Upload</button>
+    <button class="btn btn-primary" (click)="upload()" [disabled]="isUploading()">Upload</button>
     <button class="btn btn-secondary-outline" (click)="cancel()" [disabled]="isUploading()">Cancel</button>
 </div>

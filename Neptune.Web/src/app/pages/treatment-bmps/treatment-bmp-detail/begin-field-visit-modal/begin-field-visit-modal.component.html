@@ -15,6 +15,7 @@
             @if (hasInProgressVisit) {
                 <form-field
                     class="g-col-12"
+                    size="md"
                     [formControl]="formGroup.controls.ContinueExistingInProgress"
                     fieldLabel="Action"
                     [type]="FormFieldType.Radio"
@@ -23,12 +24,14 @@
             }
             <form-field
                 class="g-col-12"
+                size="md"
                 [formControl]="formGroup.controls.VisitDate"
                 fieldLabel="Visit Date"
                 [type]="FormFieldType.Date"
                 [required]="true"></form-field>
             <form-field
                 class="g-col-12"
+                size="md"
                 [formControl]="formGroup.controls.FieldVisitTypeID"
                 fieldLabel="Field Visit Type"
                 [type]="FormFieldType.Select"

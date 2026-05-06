@@ -47,6 +47,7 @@
                                     </td>
                                     <td class="col-present">
                                         <form-field
+                                            size="md"
                                             [formControl]="$any(row.controls['IsPresent'])"
                                             [type]="FormFieldType.Radio"
                                             [name]="'isPresent_' + row.get('SourceControlBMPAttributeID').value"
@@ -54,6 +55,7 @@
                                     </td>
                                     <td class="col-notes">
                                         <form-field
+                                            size="md"
                                             [formControl]="$any(row.controls['SourceControlBMPNote'])"
                                             [type]="FormFieldType.Text"
                                             placeholder=""></form-field>

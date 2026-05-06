@@ -10,15 +10,17 @@
         <form class="form grid-12" [formGroup]="formGroup">
             <form-field
                 class="g-col-12"
+                size="md"
                 [formControl]="formGroup.controls.FundingEventTypeID"
                 fieldLabel="Funding Event Type"
                 placeholder="Type"
                 [required]="true"
                 [type]="FormFieldType.Select"
                 [formInputOptions]="fundingEventTypeOptions"></form-field>
-            <form-field class="g-col-12" [formControl]="formGroup.controls.Year" fieldLabel="Year" placeholder="Year" [required]="true" [type]="FormFieldType.Number"></form-field>
+            <form-field class="g-col-12" size="md" [formControl]="formGroup.controls.Year" fieldLabel="Year" placeholder="Year" [required]="true" [type]="FormFieldType.Number"></form-field>
             <form-field
                 class="g-col-12"
+                size="md"
                 [formControl]="formGroup.controls.Description"
                 fieldLabel="Description"
                 placeholder="Description"
@@ -29,34 +31,34 @@
                     <div class="alert alert-danger mb-2">Duplicate funding sources are not allowed. Please select unique sources for each row.</div>
                 }
                 @let fundingSourceOptions = fundingSourceOptions$ | async;
-                <label class="form-label">Funding Sources</label>
+                <h3 class="section-title underline sm blue">Funding Sources</h3>
                 @for (source of getFundingSourceGroups(); track $index) {
-                    <div style="display: flex; gap: 0.5rem; align-items: center; margin-bottom: 0.5rem">
+                    <div class="funding-source-row">
                         <form-field
-                            style="flex: 2 1 0; min-width: 120px"
+                            class="funding-source-name"
+                            size="md"
                             [formControl]="getFundingSourceIDControl(source)"
                             fieldLabel="Source Name"
                             [type]="FormFieldType.Select"
                             [formInputOptions]="fundingSourceOptions"
                             placeholder="Select Source"></form-field>
                         <form-field
-                            style="flex: 1 1 0; min-width: 80px"
+                            class="funding-source-amount"
+                            size="md"
                             [formControl]="getFundingSourceAmountControl(source)"
                             fieldLabel="Amount"
                             placeholder="Amount"
                             [type]="FormFieldType.Number"></form-field>
-                        <button type="button" class="btn btn-danger btn-sm mt-3" (click)="removeFundingSource($index)" style="flex: 0 0 auto">
-                            <icon icon="Delete"></icon>
-                        </button>
+                        <i class="fa fa-trash fa-lg funding-source-delete" style="color: #7c7c7c; cursor: pointer" title="Remove" (click)="removeFundingSource($index)"></i>
                     </div>
                 }
-                <button type="button" class="btn btn-primary-outline btn-sm ml-2" (click)="addFundingSource()">Add Funding Source</button>
+                <button type="button" class="btn btn-primary-outline btn-sm" (click)="addFundingSource()">+ Add Funding Source</button>
             </div>
         </form>
     </div>
 
     <div class="modal-footer">
-        <button class="btn btn-primary" (click)="save()" [disabled]="formGroup.invalid || hasDuplicateFundingSources">
+        <button class="btn btn-primary" (click)="save()" [disabled]="hasDuplicateFundingSources">
             {{ ref.data?.editData ? "Save Changes" : "Add Funding Event" }}
         </button>
         <button class="btn btn-primary-outline" (click)="cancel()">Cancel</button>
