@@ -1,4 +1,4 @@
-import { Component, Input } from "@angular/core";
+import { Component, EventEmitter, Input, Output } from "@angular/core";
 import { RouterLink } from "@angular/router";
 
 @Component({
@@ -15,6 +15,8 @@ export class DataHubActionButtonComponent {
     @Input() disabled = false;
     @Input() disabledTooltip = "";
 
+    @Output() action = new EventEmitter<void>();
+
     get iconClass(): string {
         switch (this.icon) {
             case "upload":
@@ -23,6 +25,12 @@ export class DataHubActionButtonComponent {
                 return "fa fa-download";
             case "refresh":
                 return "fa fa-refresh";
+        }
+    }
+
+    public onClick(): void {
+        if (!this.disabled) {
+            this.action.emit();
         }
     }
 }

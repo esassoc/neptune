@@ -16,6 +16,7 @@ api/hru-characteristic.service.ts
 api/land-use-block.service.ts
 api/load-generating-unit.service.ts
 api/maintenance-record.service.ts
+api/model-basin.service.ts
 api/nereid.service.ts
 api/onland-visual-trash-assessment-area.service.ts
 api/onland-visual-trash-assessment-observation.service.ts
@@ -23,6 +24,7 @@ api/onland-visual-trash-assessment.service.ts
 api/organization-type.service.ts
 api/organization.service.ts
 api/parcel.service.ts
+api/precipitation-zone.service.ts
 api/project-document.service.ts
 api/project.service.ts
 api/regional-subbasin-revision-request.service.ts

@@ -2685,6 +2685,19 @@
         }
       }
     },
+    "/model-basins/enqueue-refresh": {
+      "post": {
+        "tags": [
+          "ModelBasin"
+        ],
+        "operationId": "EnqueueRefresh_ModelBasin",
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
     "/nereid/delta-solve": {
       "get": {
         "tags": [
@@ -4850,6 +4863,32 @@
                 }
               }
             }
+          }
+        }
+      }
+    },
+    "/parcels/enqueue-refresh": {
+      "post": {
+        "tags": [
+          "Parcel"
+        ],
+        "operationId": "EnqueueRefresh_Parcel",
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/precipitation-zones/enqueue-refresh": {
+      "post": {
+        "tags": [
+          "PrecipitationZone"
+        ],
+        "operationId": "EnqueueRefresh_PrecipitationZone",
+        "responses": {
+          "200": {
+            "description": "OK"
           }
         }
       }
@@ -21543,6 +21582,9 @@
       "name": "MaintenanceRecord"
     },
     {
+      "name": "ModelBasin"
+    },
+    {
       "name": "Nereid"
     },
     {
@@ -21562,6 +21604,9 @@
     },
     {
       "name": "Parcel"
+    },
+    {
+      "name": "PrecipitationZone"
     },
     {
       "name": "Project"

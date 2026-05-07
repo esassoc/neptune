@@ -5,35 +5,65 @@
         @if (lastUpdated()) {
             <span class="last-updated">Last Updated: {{ lastUpdated().Parcels | date: 'medium' }}</span>
         }
-        <data-hub-action-button label="Refresh" icon="refresh" [disabled]="true" [disabledTooltip]="comingSoonTooltip"></data-hub-action-button>
+        <data-hub-action-button
+            label="Refresh"
+            icon="refresh"
+            [disabled]="!isAdmin() || refreshing() !== null"
+            [disabledTooltip]="adminOnlyTooltip"
+            (action)="refresh('parcels', 'Parcels')"
+        ></data-hub-action-button>
 
         <h3>Regional Subbasins</h3>
         <p>Refresh Regional Subbasins from OC Survey.</p>
         @if (lastUpdated()) {
             <span class="last-updated">Last Updated: {{ lastUpdated().RegionalSubbasins | date: 'medium' }}</span>
         }
-        <data-hub-action-button label="Refresh" icon="refresh" [disabled]="true" [disabledTooltip]="comingSoonTooltip"></data-hub-action-button>
+        <data-hub-action-button
+            label="Refresh"
+            icon="refresh"
+            [disabled]="!isAdmin() || refreshing() !== null"
+            [disabledTooltip]="adminOnlyTooltip"
+            (action)="refresh('regional-subbasins', 'Regional Subbasins')"
+        ></data-hub-action-button>
 
         <h3>HRU Characteristics</h3>
         <p>Refresh HRU Characteristics from OC Survey.</p>
         @if (lastUpdated()) {
             <span class="last-updated">Last Updated: {{ lastUpdated().HRUCharacteristics | date: 'medium' }}</span>
         }
-        <data-hub-action-button label="Refresh" icon="refresh" [disabled]="true" [disabledTooltip]="comingSoonTooltip"></data-hub-action-button>
+        <data-hub-action-button
+            label="Refresh"
+            icon="refresh"
+            [disabled]="!isAdmin() || refreshing() !== null"
+            [disabledTooltip]="adminOnlyTooltip"
+            (action)="refresh('hru-characteristics', 'HRU Characteristics')"
+        ></data-hub-action-button>
 
         <h3>Model Basins</h3>
         <p>Refresh Model Basins from OC Survey.</p>
         @if (lastUpdated()) {
             <span class="last-updated">Last Updated: {{ lastUpdated().ModelBasins | date: 'medium' }}</span>
         }
-        <data-hub-action-button label="Refresh" icon="refresh" [disabled]="true" [disabledTooltip]="comingSoonTooltip"></data-hub-action-button>
+        <data-hub-action-button
+            label="Refresh"
+            icon="refresh"
+            [disabled]="!isAdmin() || refreshing() !== null"
+            [disabledTooltip]="adminOnlyTooltip"
+            (action)="refresh('model-basins', 'Model Basins')"
+        ></data-hub-action-button>
 
         <h3>Precipitation Zones</h3>
         <p>Refresh Precipitation Zones from OC Survey.</p>
         @if (lastUpdated()) {
             <span class="last-updated">Last Updated: {{ lastUpdated().PrecipitationZones | date: 'medium' }}</span>
         }
-        <data-hub-action-button label="Refresh" icon="refresh" [disabled]="true" [disabledTooltip]="comingSoonTooltip"></data-hub-action-button>
+        <data-hub-action-button
+            label="Refresh"
+            icon="refresh"
+            [disabled]="!isAdmin() || refreshing() !== null"
+            [disabledTooltip]="adminOnlyTooltip"
+            (action)="refresh('precipitation-zones', 'Precipitation Zones')"
+        ></data-hub-action-button>
     </div>
     <data-hub-quick-links tab="county"></data-hub-quick-links>
 </div>
