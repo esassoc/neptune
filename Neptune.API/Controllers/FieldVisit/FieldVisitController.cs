@@ -1,5 +1,6 @@
 using System.Collections.Generic;
 using System.Threading.Tasks;
+using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
@@ -113,5 +114,23 @@ public class FieldVisitController(NeptuneDbContext dbContext, ILogger<FieldVisit
     {
         await FieldVisits.DeleteAsync(DbContext, fieldVisitID);
         return NoContent();
+    }
+
+    [HttpPost("bulk-upload-trash-screen")]
+    [JurisdictionEditFeature]
+    [RequestSizeLimit(100_000_000)]
+    [RequestFormLimits(MultipartBodyLengthLimit = 100_000_000)]
+    [Consumes("multipart/form-data")]
+    public async Task<ActionResult<TrashScreenFieldVisitUploadResultDto>> BulkUploadTrashScreen([FromForm] TrashScreenFieldVisitUploadFormDto form)
+    {
+        if (form.File == null || form.File.Length == 0)
+        {
+            return Ok(new TrashScreenFieldVisitUploadResultDto { Errors = new List<string> { "Please select an XLSX file to upload." } });
+        }
+
+        var currentPerson = People.GetByID(DbContext, CallingUser.PersonID);
+        await using var stream = form.File.OpenReadStream();
+        var result = await TrashScreenFieldVisitImporter.BulkUploadAsync(DbContext, stream, currentPerson);
+        return Ok(result);
     }
 }

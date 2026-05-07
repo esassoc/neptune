@@ -28,9 +28,15 @@
             [disabledTooltip]="managerEditorTooltip"
         ></data-hub-action-button>
 
-        <h3>Field Visits</h3>
-        <p>Bulk-upload Trash Screen field visits.</p>
-        <data-hub-action-button label="Upload" icon="upload" [disabled]="true" [disabledTooltip]="comingSoonTooltip"></data-hub-action-button>
+        <h3>Trash Screen Field Visits</h3>
+        <p>Bulk-upload Trash Screen field visit assessments and maintenance records.</p>
+        <data-hub-action-button
+            label="Upload"
+            icon="upload"
+            [routerLink]="['/data-hub', 'trash-screen-field-visit-upload']"
+            [disabled]="!isAdminOrEditor()"
+            [disabledTooltip]="managerEditorTooltip"
+        ></data-hub-action-button>
     </div>
     <data-hub-quick-links tab="bmps"></data-hub-quick-links>
 </div>

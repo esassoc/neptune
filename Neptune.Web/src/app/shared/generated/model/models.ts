@@ -125,6 +125,7 @@ export * from './training-video-dto';
 export * from './trash-capture-status-type-dto';
 export * from './trash-generating-unit-dto';
 export * from './trash-generating-unit-grid-dto';
+export * from './trash-screen-field-visit-upload-result-dto';
 export * from './treatment-bmp-assessment-detail-dto';
 export * from './treatment-bmp-assessment-grid-dto';
 export * from './treatment-bmp-assessment-observation-type-detail-dto';

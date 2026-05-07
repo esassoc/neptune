@@ -800,6 +800,13 @@ export const routes: Routes = [
                 loadComponent: () => import("./pages/data-hub/treatment-bmp-download/treatment-bmp-download.component").then((m) => m.TreatmentBMPDownloadComponent),
                 canActivate: [JurisdictionManagerOrEditorOnlyGuard],
             },
+            {
+                path: "data-hub/trash-screen-field-visit-upload",
+                title: "Upload Trash Screen Field Visits",
+                loadComponent: () =>
+                    import("./pages/data-hub/trash-screen-field-visit-upload/trash-screen-field-visit-upload.component").then((m) => m.TrashScreenFieldVisitUploadComponent),
+                canActivate: [JurisdictionManagerOrEditorOnlyGuard],
+            },
             // Manage
             {
                 path: "manage/homepage-configuration",

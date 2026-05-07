@@ -1,4 +1,4 @@
-namespace Neptune.WebMvc.Models;
+namespace Neptune.EFModels.Entities;
 
 public enum ObservationTypeDataTypeEnum
 {

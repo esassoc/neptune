@@ -1535,6 +1535,56 @@
         }
       }
     },
+    "/field-visits/bulk-upload-trash-screen": {
+      "post": {
+        "tags": [
+          "FieldVisit"
+        ],
+        "operationId": "BulkUploadTrashScreen_FieldVisit",
+        "requestBody": {
+          "content": {
+            "multipart/form-data": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "File": {
+                    "type": "string",
+                    "format": "binary"
+                  }
+                }
+              },
+              "encoding": {
+                "File": {
+                  "style": "form"
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/TrashScreenFieldVisitUploadResultDto"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TrashScreenFieldVisitUploadResultDto"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TrashScreenFieldVisitUploadResultDto"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/file-resources/{fileResourceGuidAsString}": {
       "get": {
         "tags": [
@@ -17480,6 +17530,23 @@
             "type": "number",
             "format": "double",
             "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "TrashScreenFieldVisitUploadResultDto": {
+        "type": "object",
+        "properties": {
+          "Errors": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "nullable": true
+          },
+          "RowsProcessed": {
+            "type": "integer",
+            "format": "int32"
           }
         },
         "additionalProperties": false
