@@ -4,17 +4,15 @@
 
     &__link {
         display: inline-block;
-        text-transform: uppercase;
-        letter-spacing: 0.05em;
         font-size: $type-size-150;
-        color: $primary;
+        color: $gray-600;
 
         .fa-arrow-left {
             margin-right: 0.25rem;
         }
 
         &:hover {
-            text-decoration: underline;
+            color: $primary;
         }
     }
 }
