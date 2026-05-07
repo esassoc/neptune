@@ -1,0 +1,27 @@
+<div class="modal">
+    <div class="modal-header">
+        <h3>Edit Assigned Jurisdictions for {{ ref.data.detail.FirstName }} {{ ref.data.detail.LastName }}</h3>
+    </div>
+    <div class="modal-body">
+        <app-alert-display></app-alert-display>
+        <p>Select the stormwater jurisdictions this user should be able to manage.</p>
+        @if (options$ | async; as options) {
+            <ul class="jurisdiction-list">
+                @for (option of options; track option.StormwaterJurisdictionID) {
+                    <li>
+                        <label>
+                            <input type="checkbox" [checked]="option.selected" (change)="toggle(option)" />
+                            {{ option.StormwaterJurisdictionName }}
+                        </label>
+                    </li>
+                }
+            </ul>
+        }
+    </div>
+    <div class="modal-footer">
+        <button type="button" class="btn btn-primary" [disabled]="isSaving()" (click)="save()">
+            @if (isSaving()) { <i class="fa fa-spinner fa-spin"></i> Saving... } @else { Save }
+        </button>
+        <button type="button" class="btn btn-secondary" [disabled]="isSaving()" (click)="cancel()">Cancel</button>
+    </div>
+</div>

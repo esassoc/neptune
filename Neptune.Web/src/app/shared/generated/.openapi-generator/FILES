@@ -140,9 +140,14 @@ model/parcel-display-dto.ts
 model/parcel-geometry-simple-dto.ts
 model/parcel-grid-dto.ts
 model/parcel-lookup-result-dto.ts
+model/person-active-status-update-dto.ts
 model/person-create-dto.ts
+model/person-detail-dto.ts
 model/person-display-dto.ts
 model/person-dto.ts
+model/person-jurisdictions-update-dto.ts
+model/person-notification-dto.ts
+model/person-role-update-dto.ts
 model/person-simple-dto.ts
 model/person-upsert-dto.ts
 model/point.ts

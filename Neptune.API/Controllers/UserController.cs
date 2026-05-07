@@ -10,6 +10,7 @@ using Neptune.Models.DataTransferObjects;
 using Neptune.Models.DataTransferObjects.Person;
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Net.Mail;
 using System.Threading.Tasks;
 
@@ -95,6 +96,95 @@ namespace Neptune.API.Controllers
             var deleted = await People.DeleteAsync(DbContext, personID);
             if (!deleted) return NotFound();
             return NoContent();
+        }
+
+        [HttpGet("{personID}/detail")]
+        [UserViewFeature]
+        [EntityNotFoundAttribute(typeof(Person), "personID")]
+        public async Task<ActionResult<PersonDetailDto>> GetDetail([FromRoute] int personID)
+        {
+            // Caller must be the user themselves OR an Administrator. UserViewFeature already gates
+            // anonymous/unassigned users; this just narrows further so an authenticated non-admin
+            // cannot view someone else's profile.
+            if (CallingUser.PersonID != personID && CallingUser.RoleID != (int)RoleEnum.Admin && CallingUser.RoleID != (int)RoleEnum.SitkaAdmin)
+            {
+                return Forbid();
+            }
+
+            var dto = await People.GetByIDAsDetailDtoAsync(DbContext, personID);
+            if (dto == null) return NotFound();
+            return Ok(dto);
+        }
+
+        [HttpPut("{personID}/role")]
+        [AdminFeature]
+        [EntityNotFoundAttribute(typeof(Person), "personID")]
+        public async Task<ActionResult<PersonDto>> UpdateRole([FromRoute] int personID, [FromBody] PersonRoleUpdateDto dto)
+        {
+            // Admins (non-Sitka) cannot promote anyone above JurisdictionManager. SitkaAdmins may assign any role.
+            if (CallingUser.RoleID != (int)RoleEnum.SitkaAdmin)
+            {
+                var allowedRoleIDs = new[]
+                {
+                    (int)RoleEnum.Admin,
+                    (int)RoleEnum.JurisdictionManager,
+                    (int)RoleEnum.JurisdictionEditor,
+                    (int)RoleEnum.Unassigned,
+                };
+                if (!allowedRoleIDs.Contains(dto.RoleID))
+                {
+                    return BadRequest("You are not allowed to assign the SitkaAdmin role.");
+                }
+            }
+
+            var updated = await People.UpdateRoleAsync(DbContext, personID, dto);
+            if (updated == null) return NotFound();
+            return Ok(updated);
+        }
+
+        [HttpPut("{personID}/jurisdictions")]
+        [AdminFeature]
+        [EntityNotFoundAttribute(typeof(Person), "personID")]
+        public async Task<ActionResult<PersonDetailDto>> UpdateJurisdictions([FromRoute] int personID, [FromBody] PersonJurisdictionsUpdateDto dto)
+        {
+            var updated = await People.UpdateJurisdictionsAsync(DbContext, personID, dto.StormwaterJurisdictionIDs);
+            if (updated == null) return NotFound();
+            return Ok(updated);
+        }
+
+        [HttpPut("{personID}/active-status")]
+        [AdminFeature]
+        [EntityNotFoundAttribute(typeof(Person), "personID")]
+        public async Task<ActionResult<PersonDetailDto>> UpdateActiveStatus([FromRoute] int personID, [FromBody] PersonActiveStatusUpdateDto dto)
+        {
+            // Block inactivation when the user is a primary contact for one or more organizations;
+            // surface the org names so the caller can reassign before retrying.
+            if (!dto.IsActive)
+            {
+                var primaryContactOrganizations = Organizations.ListByPrimaryContactPersonID(DbContext, personID);
+                if (primaryContactOrganizations.Count > 0)
+                {
+                    var names = string.Join(", ", primaryContactOrganizations.Select(x => x.OrganizationName));
+                    return BadRequest($"This user is the primary contact for: {names}. Reassign the primary contact for those organizations before deactivating.");
+                }
+            }
+
+            var updated = await People.UpdateActiveStatusAsync(DbContext, personID, dto.IsActive);
+            if (updated == null) return NotFound();
+            return Ok(updated);
+        }
+
+        [HttpGet("{personID}/notifications")]
+        [UserViewFeature]
+        [EntityNotFoundAttribute(typeof(Person), "personID")]
+        public async Task<ActionResult<List<PersonNotificationDto>>> GetNotifications([FromRoute] int personID)
+        {
+            if (CallingUser.PersonID != personID && CallingUser.RoleID != (int)RoleEnum.Admin && CallingUser.RoleID != (int)RoleEnum.SitkaAdmin)
+            {
+                return Forbid();
+            }
+            var notifications = await People.ListNotificationsByPersonIDAsync(DbContext, personID);
+            return Ok(notifications);
         }
 
         private MailMessage GenerateUserCreatedEmail(PersonDto person)

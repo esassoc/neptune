@@ -1,10 +1,11 @@
-import { Component, OnInit } from "@angular/core";
+import { Component, computed, inject, OnInit, Signal } from "@angular/core";
 import { PageHeaderComponent } from "src/app/shared/components/page-header/page-header.component";
 import { AlertDisplayComponent } from "src/app/shared/components/alert-display/alert-display.component";
 import { NeptuneGridComponent } from "src/app/shared/components/neptune-grid/neptune-grid.component";
 import { AsyncPipe } from "@angular/common";
 import { ColDef } from "ag-grid-community";
-import { Observable } from "rxjs";
+import { map, Observable } from "rxjs";
+import { toSignal } from "@angular/core/rxjs-interop";
 import { UserService } from "src/app/shared/generated/api/user.service";
 import { UtilityFunctionsService } from "src/app/services/utility-functions.service";
 import { AlertService } from "src/app/shared/services/alert.service";
@@ -12,6 +13,8 @@ import { ConfirmService } from "src/app/shared/services/confirm/confirm.service"
 import { Alert } from "src/app/shared/models/alert";
 import { AlertContext } from "src/app/shared/models/enums/alert-context.enum";
 import { PersonSimpleDto } from "src/app/shared/generated/model/person-simple-dto";
+import { AuthenticationService } from "src/app/services/authentication.service";
+import { RoleEnum } from "src/app/shared/generated/enum/role-enum";
 
 @Component({
     selector: "users",
@@ -24,24 +27,32 @@ export class UsersComponent implements OnInit {
     public users$: Observable<PersonSimpleDto[]>;
     public columnDefs: ColDef[];
 
-    constructor(
-        private utilityFunctions: UtilityFunctionsService,
-        private alertService: AlertService,
-        private confirmService: ConfirmService,
-        private userService: UserService
-    ) {}
+    private utilityFunctions = inject(UtilityFunctionsService);
+    private alertService = inject(AlertService);
+    private confirmService = inject(ConfirmService);
+    private userService = inject(UserService);
+    private authenticationService = inject(AuthenticationService);
+
+    private currentUser = toSignal(this.authenticationService.currentUserSetObservable.pipe(map((u) => u ?? null)), { initialValue: null });
+    public isAdmin: Signal<boolean> = computed(() => {
+        const u = this.currentUser();
+        return !!u && (u.RoleID === RoleEnum.Admin || u.RoleID === RoleEnum.SitkaAdmin);
+    });
 
     ngOnInit(): void {
         this.columnDefs = [
-            this.utilityFunctions.createActionsColumnDef((params: any) => [
-                {
-                    ActionName: "Delete",
-                    ActionIcon: "fa fa-trash text-danger",
-                    ActionHandler: () => this.deleteUser(params.data),
-                },
-            ]),
-            this.utilityFunctions.createBasicColumnDef("First Name", "FirstName"),
-            this.utilityFunctions.createBasicColumnDef("Last Name", "LastName"),
+            {
+                ...this.utilityFunctions.createActionsColumnDef((params: any) => [
+                    {
+                        ActionName: "Delete",
+                        ActionIcon: "fa fa-trash text-danger",
+                        ActionHandler: () => this.deleteUser(params.data),
+                    },
+                ]),
+                hide: !this.isAdmin(),
+            },
+            this.utilityFunctions.createLinkColumnDef("First Name", "FirstName", "PersonID", { InRouterLink: "/users/" }),
+            this.utilityFunctions.createLinkColumnDef("Last Name", "LastName", "PersonID", { InRouterLink: "/users/" }),
             this.utilityFunctions.createBasicColumnDef("Email", "Email"),
             this.utilityFunctions.createBasicColumnDef("Phone", "Phone"),
             this.utilityFunctions.createBasicColumnDef("Role", "RoleName", {

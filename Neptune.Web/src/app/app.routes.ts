@@ -20,6 +20,7 @@ export const routeParams = {
     waterQualityManagementPlanVerifyID: "waterQualityManagementPlanVerifyID",
     treatmentBMPTypeID: "treatmentBMPTypeID",
     fieldVisitID: "fieldVisitID",
+    personID: "personID",
 };
 
 export const routes: Routes = [
@@ -343,6 +344,12 @@ export const routes: Routes = [
                 canActivate: [authGuardFn, ManagerOnlyGuard],
             },
             { path: "users", title: "Users", loadComponent: () => import("./pages/users/users.component").then((m) => m.UsersComponent) },
+            {
+                path: `users/:${routeParams.personID}`,
+                title: "User Detail",
+                loadComponent: () => import("./pages/users/user-detail/user-detail.component").then((m) => m.UserDetailComponent),
+                canActivate: [authGuardFn],
+            },
             {
                 path: "organizations",
                 title: "Organizations",

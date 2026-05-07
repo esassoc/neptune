@@ -244,6 +244,121 @@ public static class People
         return await GetByIDAsDtoAsync(dbContext, person.PersonID);
     }
 
+    public static async Task<PersonDetailDto?> GetByIDAsDetailDtoAsync(NeptuneDbContext dbContext, int personID)
+    {
+        var person = await dbContext.People.AsNoTracking()
+            .Include(x => x.Organization)
+            .Include(x => x.StormwaterJurisdictionPeople).ThenInclude(x => x.StormwaterJurisdiction).ThenInclude(x => x.Organization)
+            .SingleOrDefaultAsync(x => x.PersonID == personID);
+        if (person == null) return null;
+
+        var role = Role.AllLookupDictionary[person.RoleID];
+        var primaryContactOrgs = Organizations.ListByPrimaryContactPersonID(dbContext, personID)
+            .Select(x => x.AsSimpleDto())
+            .ToList();
+
+        return new PersonDetailDto
+        {
+            PersonID = person.PersonID,
+            FirstName = person.FirstName,
+            LastName = person.LastName,
+            Email = person.Email,
+            Phone = person.Phone,
+            CreateDate = person.CreateDate,
+            UpdateDate = person.UpdateDate,
+            LastActivityDate = person.LastActivityDate,
+            IsActive = person.IsActive,
+            RoleID = person.RoleID,
+            RoleName = role.RoleName,
+            RoleDisplayName = role.RoleDisplayName,
+            Organization = person.Organization?.AsSimpleDto(),
+            IsOCTAGrantReviewer = person.IsOCTAGrantReviewer,
+            ReceiveSupportEmails = person.ReceiveSupportEmails,
+            ReceiveRSBRevisionRequestEmails = person.ReceiveRSBRevisionRequestEmails,
+            AssignedStormwaterJurisdictions = person.StormwaterJurisdictionPeople
+                .Select(x => new StormwaterJurisdictionDisplayDto
+                {
+                    StormwaterJurisdictionID = x.StormwaterJurisdiction.StormwaterJurisdictionID,
+                    StormwaterJurisdictionName = x.StormwaterJurisdiction.GetOrganizationDisplayName(),
+                })
+                .OrderBy(x => x.StormwaterJurisdictionName)
+                .ToList(),
+            PrimaryContactOrganizations = primaryContactOrgs,
+        };
+    }
+
+    public static async Task<PersonDto?> UpdateRoleAsync(NeptuneDbContext dbContext, int personID, PersonRoleUpdateDto dto)
+    {
+        var person = await dbContext.People.FirstOrDefaultAsync(x => x.PersonID == personID);
+        if (person == null) return null;
+
+        person.RoleID = dto.RoleID;
+        person.OrganizationID = dto.OrganizationID;
+        person.IsOCTAGrantReviewer = dto.IsOCTAGrantReviewer;
+        person.ReceiveSupportEmails = dto.ReceiveSupportEmails;
+        person.ReceiveRSBRevisionRequestEmails = dto.ReceiveRSBRevisionRequestEmails;
+        person.UpdateDate = DateTime.UtcNow;
+
+        await dbContext.SaveChangesAsync();
+        return await GetByIDAsDtoAsync(dbContext, personID);
+    }
+
+    public static async Task<PersonDetailDto?> UpdateJurisdictionsAsync(NeptuneDbContext dbContext, int personID, List<int> stormwaterJurisdictionIDs)
+    {
+        var person = await dbContext.People.FirstOrDefaultAsync(x => x.PersonID == personID);
+        if (person == null) return null;
+
+        // Replace the user's StormwaterJurisdictionPerson rows wholesale: delete what's there, insert the new set.
+        await dbContext.StormwaterJurisdictionPeople
+            .Where(x => x.PersonID == personID)
+            .ExecuteDeleteAsync();
+
+        foreach (var stormwaterJurisdictionID in stormwaterJurisdictionIDs.Distinct())
+        {
+            dbContext.StormwaterJurisdictionPeople.Add(new StormwaterJurisdictionPerson
+            {
+                PersonID = personID,
+                StormwaterJurisdictionID = stormwaterJurisdictionID,
+            });
+        }
+
+        person.UpdateDate = DateTime.UtcNow;
+        await dbContext.SaveChangesAsync();
+        return await GetByIDAsDetailDtoAsync(dbContext, personID);
+    }
+
+    public static async Task<PersonDetailDto?> UpdateActiveStatusAsync(NeptuneDbContext dbContext, int personID, bool isActive)
+    {
+        var person = await dbContext.People.FirstOrDefaultAsync(x => x.PersonID == personID);
+        if (person == null) return null;
+
+        person.IsActive = isActive;
+        person.UpdateDate = DateTime.UtcNow;
+        await dbContext.SaveChangesAsync();
+        return await GetByIDAsDetailDtoAsync(dbContext, personID);
+    }
+
+    public static async Task<List<PersonNotificationDto>> ListNotificationsByPersonIDAsync(NeptuneDbContext dbContext, int personID)
+    {
+        var notifications = await dbContext.Notifications.AsNoTracking()
+            .Where(x => x.PersonID == personID)
+            .OrderByDescending(x => x.NotificationDate)
+            .Select(x => new { x.NotificationID, x.NotificationDate, x.NotificationTypeID })
+            .ToListAsync();
+
+        return notifications
+            .Select(x => new PersonNotificationDto
+            {
+                NotificationID = x.NotificationID,
+                NotificationDate = x.NotificationDate,
+                NotificationTypeID = x.NotificationTypeID,
+                NotificationTypeDisplayName = NotificationType.AllLookupDictionary.TryGetValue(x.NotificationTypeID, out var nt)
+                    ? nt.NotificationTypeDisplayName
+                    : null,
+            })
+            .ToList();
+    }
+
     public static async Task<bool> DeleteAsync(NeptuneDbContext dbContext, int personID)
     {
         var person = await dbContext.People.FirstOrDefaultAsync(x => x.PersonID == personID);

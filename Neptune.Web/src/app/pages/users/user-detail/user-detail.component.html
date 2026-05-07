@@ -1,0 +1,100 @@
+@if (detail$ | async; as detail) {
+    <page-header [pageTitle]="detail.FirstName + ' ' + detail.LastName" [templateRight]="headerActions">
+        <a class="back-link" [routerLink]="['/users']">&laquo; Back to Users</a>
+    </page-header>
+
+    <ng-template #headerActions>
+        @if (isAdmin()) {
+            <button type="button" class="btn" [class.btn-danger]="detail.IsActive" [class.btn-primary]="!detail.IsActive" [disabled]="isWorking()" (click)="toggleActive(detail)">
+                @if (detail.IsActive) {
+                    <i class="fa fa-ban"></i> Inactivate
+                } @else {
+                    <i class="fa fa-check"></i> Activate
+                }
+            </button>
+        }
+    </ng-template>
+
+    <section class="content-section">
+        <app-alert-display></app-alert-display>
+
+        @if (!detail.IsActive) {
+            <div class="alert alert-warning">This user is currently inactive.</div>
+        }
+
+        <h3>Basics</h3>
+        <dl class="detail-list">
+            <dt>First Name</dt><dd>{{ detail.FirstName }}</dd>
+            <dt>Last Name</dt><dd>{{ detail.LastName }}</dd>
+            <dt>Email</dt><dd>{{ detail.Email }}</dd>
+            <dt>Phone</dt><dd>{{ detail.Phone || "—" }}</dd>
+            <dt>Last Activity</dt><dd>{{ detail.LastActivityDate ? (detail.LastActivityDate | date: "medium") : "—" }}</dd>
+            @if (isAdmin()) {
+                <dt>Created</dt><dd>{{ detail.CreateDate | date: "medium" }}</dd>
+            }
+        </dl>
+
+        <div class="section-header">
+            <h3>Role / Organization</h3>
+            @if (isAdmin()) {
+                <button type="button" class="btn btn-secondary btn-sm" (click)="openEditRolesModal(detail)">
+                    <i class="fa fa-pencil"></i> Edit Roles
+                </button>
+            }
+        </div>
+        <dl class="detail-list">
+            <dt>Organization</dt>
+            <dd>
+                @if (detail.Organization) {
+                    <a [routerLink]="['/organizations']">{{ detail.Organization.OrganizationName }}</a>
+                } @else {
+                    —
+                }
+            </dd>
+            <dt>Role</dt><dd>{{ detail.RoleDisplayName }}</dd>
+            <dt>OCTA Grant Reviewer</dt><dd>{{ detail.IsOCTAGrantReviewer ? "Yes" : "No" }}</dd>
+            <dt>Receives System Communications</dt><dd>{{ detail.ReceiveSupportEmails ? "Yes" : "No" }}</dd>
+            <dt>Receives RSB Revision Requests</dt><dd>{{ detail.ReceiveRSBRevisionRequestEmails ? "Yes" : "No" }}</dd>
+        </dl>
+
+        <div class="section-header">
+            <h3>Assigned Jurisdictions</h3>
+            @if (isAdmin()) {
+                <button type="button" class="btn btn-secondary btn-sm" (click)="openEditJurisdictionsModal(detail)">
+                    <i class="fa fa-pencil"></i> Edit Jurisdictions
+                </button>
+            }
+        </div>
+        @if (detail.AssignedStormwaterJurisdictions && detail.AssignedStormwaterJurisdictions.length > 0) {
+            <ul>
+                @for (jurisdiction of detail.AssignedStormwaterJurisdictions; track jurisdiction.StormwaterJurisdictionID) {
+                    <li>
+                        <a [routerLink]="['/jurisdictions', jurisdiction.StormwaterJurisdictionID]">{{ jurisdiction.StormwaterJurisdictionName }}</a>
+                    </li>
+                }
+            </ul>
+        } @else {
+            <p>This user is not assigned to any stormwater jurisdictions.</p>
+        }
+
+        <h3>Primary Contact Organizations</h3>
+        @if (detail.PrimaryContactOrganizations && detail.PrimaryContactOrganizations.length > 0) {
+            <ul>
+                @for (org of detail.PrimaryContactOrganizations; track org.OrganizationID) {
+                    <li>{{ org.OrganizationName }}</li>
+                }
+            </ul>
+        } @else {
+            <p>This user is not the primary contact for any organizations.</p>
+        }
+
+        <h3>System Communications</h3>
+        @if (notifications$ | async; as notifications) {
+            @if (notifications.length > 0) {
+                <neptune-grid [rowData]="notifications" [columnDefs]="notificationColumnDefs"></neptune-grid>
+            } @else {
+                <p>No system communications recorded for this user.</p>
+            }
+        }
+    </section>
+}
