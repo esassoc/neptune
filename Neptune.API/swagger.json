@@ -6489,6 +6489,87 @@
         }
       }
     },
+    "/support-requests/site-key": {
+      "get": {
+        "tags": [
+          "SupportRequest"
+        ],
+        "operationId": "GetRecaptchaSiteKey_SupportRequest",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "type": "string"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "type": "string"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        },
+        "x-anonymous": true
+      }
+    },
+    "/support-requests": {
+      "post": {
+        "tags": [
+          "SupportRequest"
+        ],
+        "operationId": "Submit_SupportRequest",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SupportRequestSubmissionDto"
+              }
+            },
+            "text/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SupportRequestSubmissionDto"
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "$ref": "#/components/schemas/SupportRequestSubmissionDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/SupportRequestSubmissionResultDto"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SupportRequestSubmissionResultDto"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SupportRequestSubmissionResultDto"
+                }
+              }
+            }
+          }
+        },
+        "x-anonymous": true
+      }
+    },
     "/": {
       "get": {
         "tags": [
@@ -17430,6 +17511,57 @@
         },
         "additionalProperties": false
       },
+      "SupportRequestSubmissionDto": {
+        "type": "object",
+        "properties": {
+          "Name": {
+            "type": "string",
+            "nullable": true
+          },
+          "Email": {
+            "type": "string",
+            "nullable": true
+          },
+          "Organization": {
+            "type": "string",
+            "nullable": true
+          },
+          "Phone": {
+            "type": "string",
+            "nullable": true
+          },
+          "SupportRequestTypeID": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "Description": {
+            "type": "string",
+            "nullable": true
+          },
+          "CurrentPageUrl": {
+            "type": "string",
+            "nullable": true
+          },
+          "RecaptchaToken": {
+            "type": "string",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "SupportRequestSubmissionResultDto": {
+        "type": "object",
+        "properties": {
+          "Success": {
+            "type": "boolean"
+          },
+          "Message": {
+            "type": "string",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
       "SystemInfoDto": {
         "type": "object",
         "properties": {
@@ -21155,6 +21287,9 @@
     },
     {
       "name": "StormwaterJurisdiction"
+    },
+    {
+      "name": "SupportRequest"
     },
     {
       "name": "SystemInfo"

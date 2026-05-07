@@ -19,7 +19,9 @@ Source code is available upon request via <support@sitkatech.com>.
 </license>
 -----------------------------------------------------------------------*/
 
-namespace Neptune.WebMvc.Common
+using System.Net.Http.Json;
+
+namespace Neptune.Common.Recaptcha
 {
     public class RecaptchaValidator
     {

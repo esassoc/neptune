@@ -124,6 +124,8 @@ export * from './source-control-bmp-dto';
 export * from './source-control-bmp-upsert-dto';
 export * from './stormwater-jurisdiction-display-dto';
 export * from './stormwater-jurisdiction-grid-dto';
+export * from './support-request-submission-dto';
+export * from './support-request-submission-result-dto';
 export * from './system-info-dto';
 export * from './training-video-dto';
 export * from './trash-capture-status-type-dto';
