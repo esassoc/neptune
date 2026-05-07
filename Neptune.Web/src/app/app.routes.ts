@@ -825,6 +825,42 @@ export const routes: Routes = [
                 loadComponent: () => import("./pages/data-hub/wqmp-locations-upload/wqmp-locations-upload.component").then((m) => m.WqmpLocationsUploadComponent),
                 canActivate: [JurisdictionManagerOrEditorOnlyGuard],
             },
+            {
+                path: "data-hub/ovta-area-upload",
+                title: "Upload OVTA Areas",
+                loadComponent: () => import("./pages/data-hub/ovta-area-upload/ovta-area-upload.component").then((m) => m.OvtaAreaUploadComponent),
+                canActivate: [JurisdictionManagerOrEditorOnlyGuard],
+            },
+            {
+                path: "data-hub/ovta-area-approve",
+                title: "Approve OVTA Areas",
+                loadComponent: () => import("./pages/data-hub/ovta-area-approve/ovta-area-approve.component").then((m) => m.OvtaAreaApproveComponent),
+                canActivate: [JurisdictionManagerOrEditorOnlyGuard],
+            },
+            {
+                path: "data-hub/ovta-area-download",
+                title: "Download OVTA Areas",
+                loadComponent: () => import("./pages/data-hub/ovta-area-download/ovta-area-download.component").then((m) => m.OvtaAreaDownloadComponent),
+                canActivate: [JurisdictionManagerOrEditorOnlyGuard],
+            },
+            {
+                path: "data-hub/ovta-upload",
+                title: "Upload OVTAs",
+                loadComponent: () => import("./pages/data-hub/ovta-upload/ovta-upload.component").then((m) => m.OvtaUploadComponent),
+                canActivate: [JurisdictionManagerOrEditorOnlyGuard],
+            },
+            {
+                path: "data-hub/land-use-block-upload",
+                title: "Upload Land Use Blocks",
+                loadComponent: () => import("./pages/data-hub/land-use-block-upload/land-use-block-upload.component").then((m) => m.LandUseBlockUploadComponent),
+                canActivate: [JurisdictionManagerOrEditorOnlyGuard],
+            },
+            {
+                path: "data-hub/land-use-block-download",
+                title: "Download Land Use Blocks",
+                loadComponent: () => import("./pages/data-hub/land-use-block-download/land-use-block-download.component").then((m) => m.LandUseBlockDownloadComponent),
+                canActivate: [JurisdictionManagerOrEditorOnlyGuard],
+            },
             // Manage
             {
                 path: "manage/homepage-configuration",

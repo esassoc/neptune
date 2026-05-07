@@ -96,6 +96,8 @@ model/hru-log-dto.ts
 model/hydrologic-subarea-simple-dto.ts
 model/i-attributes-table.ts
 model/i-feature.ts
+model/land-use-block-gdb-download-request-dto.ts
+model/land-use-block-gdb-upload-result-dto.ts
 model/land-use-block-grid-dto.ts
 model/land-use-block-upsert-dto.ts
 model/load-generating-unit-dto.ts
@@ -137,6 +139,9 @@ model/organization-dto.ts
 model/organization-simple-dto.ts
 model/organization-type-simple-dto.ts
 model/organization-upsert-dto.ts
+model/ovta-area-gdb-download-request-dto.ts
+model/ovta-area-gdb-staging-report-dto.ts
+model/ovta-bulk-upload-result-dto.ts
 model/ovta-results-dto.ts
 model/parcel-display-dto.ts
 model/parcel-geometry-simple-dto.ts

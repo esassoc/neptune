@@ -2,17 +2,41 @@
     <div class="tab-main">
         <h3>Assessment Areas</h3>
         <p>Bulk-upload and download OVTA assessment areas.</p>
-        <data-hub-action-button label="Upload" icon="upload" [disabled]="true" [disabledTooltip]="comingSoonTooltip"></data-hub-action-button>
-        <data-hub-action-button label="Download" icon="download" [disabled]="true" [disabledTooltip]="comingSoonTooltip"></data-hub-action-button>
+        <data-hub-action-button
+            label="Upload"
+            icon="upload"
+            [routerLink]="['/data-hub', 'ovta-area-upload']"
+            [disabled]="!isManager()"
+            [disabledTooltip]="managerOnlyTooltip"
+        ></data-hub-action-button>
+        <data-hub-action-button label="Download" icon="download" [routerLink]="['/data-hub', 'ovta-area-download']"></data-hub-action-button>
 
         <h3>On-land Visual Trash Assessments (OVTAs)</h3>
         <p>Bulk-upload OVTA assessments.</p>
-        <data-hub-action-button label="Upload" icon="upload" [disabled]="true" [disabledTooltip]="comingSoonTooltip"></data-hub-action-button>
+        <data-hub-action-button
+            label="Upload"
+            icon="upload"
+            [routerLink]="['/data-hub', 'ovta-upload']"
+            [disabled]="!isManager()"
+            [disabledTooltip]="managerOnlyTooltip"
+        ></data-hub-action-button>
 
         <h3>Land Use Blocks</h3>
         <p>Bulk-upload and download land use block geometries.</p>
-        <data-hub-action-button label="Upload" icon="upload" [disabled]="true" [disabledTooltip]="comingSoonTooltip"></data-hub-action-button>
-        <data-hub-action-button label="Download" icon="download" [disabled]="true" [disabledTooltip]="comingSoonTooltip"></data-hub-action-button>
+        <data-hub-action-button
+            label="Upload"
+            icon="upload"
+            [routerLink]="['/data-hub', 'land-use-block-upload']"
+            [disabled]="!isAdminOrEditor()"
+            [disabledTooltip]="managerEditorTooltip"
+        ></data-hub-action-button>
+        <data-hub-action-button
+            label="Download"
+            icon="download"
+            [routerLink]="['/data-hub', 'land-use-block-download']"
+            [disabled]="!isAdminOrEditor()"
+            [disabledTooltip]="managerEditorTooltip"
+        ></data-hub-action-button>
     </div>
     <data-hub-quick-links tab="trash"></data-hub-quick-links>
 </div>

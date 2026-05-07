@@ -1,0 +1,44 @@
+<page-header pageTitle="Upload OVTA Assessment Areas">
+    <a class="back-link" [routerLink]="['/data-hub']" [queryParams]="{ tab: 'trash' }">&laquo; Back to Data Hub</a>
+</page-header>
+
+<section class="content-section">
+    <app-alert-display></app-alert-display>
+
+    <div class="grid-12">
+        <div class="g-col-6 instructions">
+            <p>Use this form to bulk upload OVTA assessment areas from a zipped File Geodatabase. Requirements:</p>
+            <ul>
+                <li>A single ArcGIS file geodatabase containing only OVTA Area features (.gdb inside a .zip).</li>
+                <li>The feature class must contain a unique area-name attribute and an optional Description attribute.</li>
+                <li>The default area-name field is <code>OVTAAreaName</code> &mdash; supply the field name your GDB uses if different.</li>
+                <li>Areas with names that already exist in the selected jurisdiction will have their geometry and description updated; new names are created.</li>
+                <li>After upload you'll be taken to a review page to confirm before any changes commit.</li>
+            </ul>
+        </div>
+        <div class="g-col-6">
+            @if (jurisdictionOptions$ | async; as opts) {
+                <form-field fieldLabel="Stormwater Jurisdiction" [type]="FormFieldType.Select" [formControl]="jurisdictionControl" [formInputOptions]="opts" placeholder="Select a jurisdiction"></form-field>
+            }
+            <form-field fieldLabel="Area Name Field" [type]="FormFieldType.Text" [formControl]="areaNameFieldControl" placeholder="OVTAAreaName"></form-field>
+            <form-field fieldLabel="Zipped File Geodatabase" [type]="FormFieldType.File" [formControl]="fileControl" uploadFileAccepts=".zip" (change)="onFileChange($event)"></form-field>
+
+            @if (errors().length > 0) {
+                <div class="alert alert-danger upload-errors">
+                    <strong>Upload could not be staged:</strong>
+                    <ul>
+                        @for (err of errors(); track $index) {
+                            <li>{{ err }}</li>
+                        }
+                    </ul>
+                </div>
+            }
+
+            <div class="actions">
+                <button type="button" class="btn btn-primary" [disabled]="isUploading() || fileControl.invalid || jurisdictionControl.invalid || areaNameFieldControl.invalid" (click)="submit()">
+                    @if (isUploading()) { <i class="fa fa-spinner fa-spin"></i> Uploading... } @else { <i class="fa fa-upload"></i> Upload }
+                </button>
+            </div>
+        </div>
+    </div>
+</section>

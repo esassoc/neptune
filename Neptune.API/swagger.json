@@ -2226,6 +2226,95 @@
         }
       }
     },
+    "/land-use-blocks/upload-gdb": {
+      "post": {
+        "tags": [
+          "LandUseBlock"
+        ],
+        "operationId": "UploadGdb_LandUseBlock",
+        "requestBody": {
+          "content": {
+            "multipart/form-data": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "File": {
+                    "type": "string",
+                    "format": "binary"
+                  },
+                  "StormwaterJurisdictionID": {
+                    "type": "integer",
+                    "format": "int32"
+                  }
+                }
+              },
+              "encoding": {
+                "File": {
+                  "style": "form"
+                },
+                "StormwaterJurisdictionID": {
+                  "style": "form"
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/LandUseBlockGdbUploadResultDto"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LandUseBlockGdbUploadResultDto"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LandUseBlockGdbUploadResultDto"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/land-use-blocks/download-gdb": {
+      "post": {
+        "tags": [
+          "LandUseBlock"
+        ],
+        "operationId": "DownloadGdb_LandUseBlock",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/LandUseBlockGdbDownloadRequestDto"
+              }
+            },
+            "text/json": {
+              "schema": {
+                "$ref": "#/components/schemas/LandUseBlockGdbDownloadRequestDto"
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "$ref": "#/components/schemas/LandUseBlockGdbDownloadRequestDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
     "/load-generating-units": {
       "get": {
         "tags": [
@@ -3431,6 +3520,56 @@
         }
       }
     },
+    "/onland-visual-trash-assessments/bulk-upload": {
+      "post": {
+        "tags": [
+          "OnlandVisualTrashAssessment"
+        ],
+        "operationId": "BulkUpload_OnlandVisualTrashAssessment",
+        "requestBody": {
+          "content": {
+            "multipart/form-data": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "File": {
+                    "type": "string",
+                    "format": "binary"
+                  }
+                }
+              },
+              "encoding": {
+                "File": {
+                  "style": "form"
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/OvtaBulkUploadResultDto"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OvtaBulkUploadResultDto"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OvtaBulkUploadResultDto"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/onland-visual-trash-assessment-areas": {
       "get": {
         "tags": [
@@ -3898,6 +4037,177 @@
             "application/*+json": {
               "schema": {
                 "$ref": "#/components/schemas/OnlandVisualTrashAssessmentAreaMoveAssessmentsDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/onland-visual-trash-assessment-areas/gdb-upload": {
+      "post": {
+        "tags": [
+          "OnlandVisualTrashAssessmentArea"
+        ],
+        "operationId": "GdbUpload_OnlandVisualTrashAssessmentArea",
+        "requestBody": {
+          "content": {
+            "multipart/form-data": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "File": {
+                    "type": "string",
+                    "format": "binary"
+                  },
+                  "StormwaterJurisdictionID": {
+                    "type": "integer",
+                    "format": "int32"
+                  },
+                  "AreaNameField": {
+                    "type": "string"
+                  }
+                }
+              },
+              "encoding": {
+                "File": {
+                  "style": "form"
+                },
+                "StormwaterJurisdictionID": {
+                  "style": "form"
+                },
+                "AreaNameField": {
+                  "style": "form"
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/OvtaAreaGdbStagingReportDto"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OvtaAreaGdbStagingReportDto"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OvtaAreaGdbStagingReportDto"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/onland-visual-trash-assessment-areas/gdb-staging-report": {
+      "get": {
+        "tags": [
+          "OnlandVisualTrashAssessmentArea"
+        ],
+        "operationId": "GdbStagingReport_OnlandVisualTrashAssessmentArea",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/OvtaAreaGdbStagingReportDto"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OvtaAreaGdbStagingReportDto"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OvtaAreaGdbStagingReportDto"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/onland-visual-trash-assessment-areas/gdb-approve": {
+      "post": {
+        "tags": [
+          "OnlandVisualTrashAssessmentArea"
+        ],
+        "operationId": "GdbApprove_OnlandVisualTrashAssessmentArea",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "type": "integer",
+                  "format": "int32"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "type": "integer",
+                  "format": "int32"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "type": "integer",
+                  "format": "int32"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/onland-visual-trash-assessment-areas/gdb-staging": {
+      "delete": {
+        "tags": [
+          "OnlandVisualTrashAssessmentArea"
+        ],
+        "operationId": "GdbDiscardStaging_OnlandVisualTrashAssessmentArea",
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/onland-visual-trash-assessment-areas/download-gdb": {
+      "post": {
+        "tags": [
+          "OnlandVisualTrashAssessmentArea"
+        ],
+        "operationId": "DownloadGdb_OnlandVisualTrashAssessmentArea",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/OvtaAreaGdbDownloadRequestDto"
+              }
+            },
+            "text/json": {
+              "schema": {
+                "$ref": "#/components/schemas/OvtaAreaGdbDownloadRequestDto"
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "$ref": "#/components/schemas/OvtaAreaGdbDownloadRequestDto"
               }
             }
           }
@@ -14162,6 +14472,36 @@
         },
         "additionalProperties": false
       },
+      "LandUseBlockGdbDownloadRequestDto": {
+        "type": "object",
+        "properties": {
+          "StormwaterJurisdictionID": {
+            "type": "integer",
+            "format": "int32"
+          }
+        },
+        "additionalProperties": false
+      },
+      "LandUseBlockGdbUploadResultDto": {
+        "type": "object",
+        "properties": {
+          "Errors": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "nullable": true
+          },
+          "StagedRowCount": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "BackgroundJobEnqueued": {
+            "type": "boolean"
+          }
+        },
+        "additionalProperties": false
+      },
       "LandUseBlockGridDto": {
         "type": "object",
         "properties": {
@@ -15720,6 +16060,66 @@
             "nullable": true
           },
           "OrganizationTypeID": {
+            "type": "integer",
+            "format": "int32"
+          }
+        },
+        "additionalProperties": false
+      },
+      "OvtaAreaGdbDownloadRequestDto": {
+        "type": "object",
+        "properties": {
+          "StormwaterJurisdictionID": {
+            "type": "integer",
+            "format": "int32"
+          }
+        },
+        "additionalProperties": false
+      },
+      "OvtaAreaGdbStagingReportDto": {
+        "type": "object",
+        "properties": {
+          "Errors": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "nullable": true
+          },
+          "StormwaterJurisdictionID": {
+            "type": "integer",
+            "format": "int32",
+            "nullable": true
+          },
+          "NumberOfOvtaAreas": {
+            "type": "integer",
+            "format": "int32",
+            "nullable": true
+          },
+          "NumberOfOvtaAreasToBeUpdated": {
+            "type": "integer",
+            "format": "int32",
+            "nullable": true
+          },
+          "NumberOfOvtaAreasToBeCreated": {
+            "type": "integer",
+            "format": "int32",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "OvtaBulkUploadResultDto": {
+        "type": "object",
+        "properties": {
+          "Errors": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "nullable": true
+          },
+          "RowsProcessed": {
             "type": "integer",
             "format": "int32"
           }

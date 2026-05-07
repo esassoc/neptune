@@ -1,0 +1,45 @@
+<page-header pageTitle="Upload Land Use Blocks">
+    <a class="back-link" [routerLink]="['/data-hub']" [queryParams]="{ tab: 'trash' }">&laquo; Back to Data Hub</a>
+</page-header>
+
+<section class="content-section">
+    <app-alert-display></app-alert-display>
+
+    <div class="grid-12">
+        <div class="g-col-6 instructions">
+            <p>Use this form to bulk upload Land Use Blocks for a jurisdiction from a zipped File Geodatabase. Requirements:</p>
+            <ul>
+                <li>A single ArcGIS file geodatabase (.gdb inside a .zip) containing exactly one Land Use Block feature class.</li>
+                <li>The feature class must include attributes: PriorityLandUseType, LandUseDescription, TrashGenerationRate, LandUseForTGR, MedianHouseholdIncomeResidential, MedianHouseholdIncomeRetail, PermitType.</li>
+                <li>Validated rows are written to the staging table; a background job then processes them and emails the result to you. You can close this page once the upload is staged.</li>
+            </ul>
+        </div>
+        <div class="g-col-6">
+            @if (jurisdictionOptions$ | async; as opts) {
+                <form-field fieldLabel="Stormwater Jurisdiction" [type]="FormFieldType.Select" [formControl]="jurisdictionControl" [formInputOptions]="opts" placeholder="Select a jurisdiction"></form-field>
+            }
+            <form-field fieldLabel="Zipped File Geodatabase" [type]="FormFieldType.File" [formControl]="fileControl" uploadFileAccepts=".zip" (change)="onFileChange($event)"></form-field>
+
+            @if (errors().length > 0) {
+                <div class="alert alert-danger upload-errors">
+                    <strong>Upload could not be staged:</strong>
+                    <ul>
+                        @for (err of errors(); track $index) {
+                            <li>{{ err }}</li>
+                        }
+                    </ul>
+                </div>
+            }
+
+            @if (successMessage()) {
+                <div class="alert alert-success">{{ successMessage() }}</div>
+            }
+
+            <div class="actions">
+                <button type="button" class="btn btn-primary" [disabled]="isUploading() || fileControl.invalid || jurisdictionControl.invalid" (click)="submit()">
+                    @if (isUploading()) { <i class="fa fa-spinner fa-spin"></i> Uploading... } @else { <i class="fa fa-upload"></i> Upload }
+                </button>
+            </div>
+        </div>
+    </div>
+</section>
