@@ -6,11 +6,11 @@
         display: inline-block;
         text-transform: uppercase;
         letter-spacing: 0.05em;
-        font-size: $type-size-100;
+        font-size: $type-size-150;
         color: $primary;
 
-        &:before {
-            content: "← ";
+        .fa-arrow-left {
+            margin-right: 0.25rem;
         }
 
         &:hover {

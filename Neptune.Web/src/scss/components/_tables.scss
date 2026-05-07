@@ -57,6 +57,19 @@
         font-weight: bold;
     }
 
+    // Apply with `<table class="table condensed">` to halve the vertical
+    // row padding for denser tables. Combine with `simple` as needed.
+    &.condensed {
+        thead th {
+            padding-top: 0.5rem;
+            padding-bottom: 0.5rem;
+        }
+        tbody td {
+            padding-top: 0.5rem;
+            padding-bottom: 0.5rem;
+        }
+    }
+
     // Apply with `<table class="table simple">` for a frameless variant: no
     // outer border, no header background, just a thicker rule under the header
     // and the inherited thin rules between rows.

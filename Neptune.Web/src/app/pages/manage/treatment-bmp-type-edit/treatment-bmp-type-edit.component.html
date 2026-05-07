@@ -2,9 +2,9 @@
     <ng-template #templateAbove>
         <div class="back">
             @if (isCreate) {
-                <a [routerLink]="['/manage/treatment-bmp-types']" class="back__link">Back to Treatment BMP Types</a>
+                <a [routerLink]="['/manage/treatment-bmp-types']" class="back__link"><i class="fa fa-arrow-left"></i> Back to Treatment BMP Types</a>
             } @else {
-                <a [routerLink]="['/program-info/treatment-bmp-types', treatmentBMPTypeID]" class="back__link">Back to {{ nameControl.value || "Treatment BMP Type" }}</a>
+                <a [routerLink]="['/program-info/treatment-bmp-types', treatmentBMPTypeID]" class="back__link"><i class="fa fa-arrow-left"></i> Back to {{ nameControl.value || "Treatment BMP Type" }}</a>
             }
         </div>
     </ng-template>
