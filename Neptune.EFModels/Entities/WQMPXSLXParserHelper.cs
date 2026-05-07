@@ -1,9 +1,9 @@
 ﻿using Microsoft.EntityFrameworkCore;
-using Neptune.EFModels.Entities;
 using System.Data;
 using Neptune.Common;
+using Neptune.WebMvc.Common;
 
-namespace Neptune.WebMvc.Common
+namespace Neptune.EFModels.Entities
 {
     public static class WQMPXSLXParserHelper
     {

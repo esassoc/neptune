@@ -1,9 +1,8 @@
 ﻿using System.Data;
 using ClosedXML.Excel;
 using Neptune.Common;
-using Neptune.EFModels.Entities;
 
-namespace Neptune.WebMvc.Common;
+namespace Neptune.EFModels.Entities;
 
 public static class SimplifiedBMPsExcelParserHelper
 {

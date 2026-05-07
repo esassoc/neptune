@@ -807,6 +807,24 @@ export const routes: Routes = [
                     import("./pages/data-hub/trash-screen-field-visit-upload/trash-screen-field-visit-upload.component").then((m) => m.TrashScreenFieldVisitUploadComponent),
                 canActivate: [JurisdictionManagerOrEditorOnlyGuard],
             },
+            {
+                path: "data-hub/wqmp-upload",
+                title: "Upload Water Quality Management Plans",
+                loadComponent: () => import("./pages/data-hub/wqmp-upload/wqmp-upload.component").then((m) => m.WqmpUploadComponent),
+                canActivate: [JurisdictionManagerOrEditorOnlyGuard],
+            },
+            {
+                path: "data-hub/simplified-bmp-upload",
+                title: "Upload Simplified BMPs",
+                loadComponent: () => import("./pages/data-hub/simplified-bmp-upload/simplified-bmp-upload.component").then((m) => m.SimplifiedBmpUploadComponent),
+                canActivate: [JurisdictionManagerOrEditorOnlyGuard],
+            },
+            {
+                path: "data-hub/wqmp-locations-upload",
+                title: "Upload WQMP Locations",
+                loadComponent: () => import("./pages/data-hub/wqmp-locations-upload/wqmp-locations-upload.component").then((m) => m.WqmpLocationsUploadComponent),
+                canActivate: [JurisdictionManagerOrEditorOnlyGuard],
+            },
             // Manage
             {
                 path: "manage/homepage-configuration",

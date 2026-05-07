@@ -249,6 +249,8 @@ model/water-quality-management-plan-verify-treatment-bmp-simple-dto.ts
 model/water-quality-management-plan-verify-upsert-dto.ts
 model/watershed-dto.ts
 model/workflow-step-status.ts
+model/wqmp-boundary-upload-result-dto.ts
+model/wqmp-bulk-upload-result-dto.ts
 model/wqmp-upload-result-dto.ts
 param.ts
 variables.ts

@@ -2,10 +2,9 @@
 using Microsoft.VisualBasic.FileIO;
 using Neptune.Common;
 using Neptune.Common.GeoSpatial;
-using Neptune.EFModels.Entities;
 using NetTopologySuite.Geometries;
 
-namespace Neptune.WebMvc.Common;
+namespace Neptune.EFModels.Entities;
 
 public static class WQMPAPNsCsvParserHelper
 {
