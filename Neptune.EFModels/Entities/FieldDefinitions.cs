@@ -53,15 +53,37 @@ namespace Neptune.EFModels.Entities
 
         public static List<FieldDefinitionDto> List(NeptuneDbContext dbContext)
         {
-            return GetImpl(dbContext).AsNoTracking().Select(x => x.AsDto()).ToList();
+            var dtos = GetImpl(dbContext).AsNoTracking()
+                .Select(FieldDefinitionProjections.AsDto)
+                .ToList();
+            PopulateFieldDefinitionTypeNames(dtos);
+            return dtos;
         }
 
         public static FieldDefinitionDto? GetByFieldDefinitionTypeID(NeptuneDbContext dbContext, int fieldDefinitionTypeID)
         {
-            var fieldDefinition = GetImpl(dbContext).AsNoTracking()
-                .SingleOrDefault(x => x.FieldDefinitionTypeID == fieldDefinitionTypeID);
+            var dto = GetImpl(dbContext).AsNoTracking()
+                .Where(x => x.FieldDefinitionTypeID == fieldDefinitionTypeID)
+                .Select(FieldDefinitionProjections.AsDto)
+                .SingleOrDefault();
+            if (dto != null)
+            {
+                PopulateFieldDefinitionTypeNames(new[] { dto });
+            }
+            return dto;
+        }
 
-            return fieldDefinition?.AsDto();
+        private static void PopulateFieldDefinitionTypeNames(IEnumerable<FieldDefinitionDto> dtos)
+        {
+            foreach (var dto in dtos)
+            {
+                if (dto.FieldDefinitionType != null
+                    && FieldDefinitionType.AllLookupDictionary.TryGetValue(dto.FieldDefinitionType.FieldDefinitionTypeID, out var fdt))
+                {
+                    dto.FieldDefinitionType.FieldDefinitionTypeName = fdt.FieldDefinitionTypeName;
+                    dto.FieldDefinitionType.FieldDefinitionTypeDisplayName = fdt.FieldDefinitionTypeDisplayName;
+                }
+            }
         }
 
         public static async Task<FieldDefinitionDto> Update(NeptuneDbContext dbContext, int fieldDefinitionTypeID,
