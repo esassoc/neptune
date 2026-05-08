@@ -67,8 +67,11 @@
                     </ul>
                 </li>
                 <!-- Help -->
-                <li class="nav-item" routerLinkActive="active">
-                    <a [routerLink]="['/support']" class="nav-link">Request Support</a>
+                <li class="nav-item dropdown" routerLinkActive="active">
+                    <a href="javascript:void(0);" [dropdownToggle]="helpMenu" class="nav-link dropdown-toggle"> Help <icon icon="AngleDown"></icon> </a>
+                    <ul #helpMenu class="dropdown-menu">
+                        <li><a [routerLink]="['/support']" class="dropdown-item">Request Support</a></li>
+                    </ul>
                 </li>
             </ul>
         </div>
