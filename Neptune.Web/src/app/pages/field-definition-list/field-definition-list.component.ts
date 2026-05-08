@@ -68,14 +68,11 @@ export class FieldDefinitionListComponent implements OnInit {
                 {
                     headerName: "Definition",
                     field: "FieldDefinitionValue",
-                    cellRenderer: function (params: any) {
-                        return params.data.FieldDefinitionValue ? params.data.FieldDefinitionValue : "";
-                    },
-                    autoHeight: true,
+                    valueGetter: (params: any) => htmlToExcerpt(params.data.FieldDefinitionValue),
                     sortable: true,
                     filter: true,
                     width: 900,
-                    cellStyle: { "white-space": "normal" },
+                    tooltipValueGetter: (params: any) => htmlToExcerpt(params.data.FieldDefinitionValue),
                 },
             ];
 
@@ -88,4 +85,11 @@ export class FieldDefinitionListComponent implements OnInit {
     ngOnDestroy(): void {
         this.cdr.detach();
     }
+}
+
+function htmlToExcerpt(html: string | null | undefined): string {
+    if (!html) return "";
+    const temp = document.createElement("div");
+    temp.innerHTML = html;
+    return (temp.textContent || temp.innerText || "").replace(/\s+/g, " ").trim();
 }
