@@ -46,6 +46,7 @@ export class FieldDefinitionListComponent implements OnInit {
                         return { LinkValue: params.data.FieldDefinitionType.FieldDefinitionTypeID, LinkDisplay: params.data.FieldDefinitionType.FieldDefinitionTypeDisplayName };
                     },
                     cellRenderer: LinkRendererComponent,
+                    cellRendererParams: { inRouterLink: "/labels-and-definitions/" },
                     filterValueGetter: function (params: any) {
                         return params.data.FieldDefinitionType.FieldDefinitionTypeDisplayName;
                     },
