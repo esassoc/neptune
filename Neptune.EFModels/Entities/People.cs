@@ -246,45 +246,43 @@ public static class People
 
     public static async Task<PersonDetailDto?> GetByIDAsDetailDtoAsync(NeptuneDbContext dbContext, int personID)
     {
-        var person = await dbContext.People.AsNoTracking()
-            .Include(x => x.Organization)
-            .Include(x => x.StormwaterJurisdictionPeople).ThenInclude(x => x.StormwaterJurisdiction).ThenInclude(x => x.Organization)
-            .SingleOrDefaultAsync(x => x.PersonID == personID);
-        if (person == null) return null;
+        // Focused projection — emits a single SELECT covering only the columns PersonDetailDto
+        // needs. Avoids the heavy Organizations.GetImpl() Include chain (FundingSources, People,
+        // PrimaryContactPerson, OrganizationType, etc.) that the previous Include-based
+        // implementation pulled in for each primary-contact org.
+        var dto = await dbContext.People.AsNoTracking()
+            .Where(x => x.PersonID == personID)
+            .Select(PersonProjections.AsDetailDto)
+            .SingleOrDefaultAsync();
+        if (dto == null) return null;
 
-        var role = Role.AllLookupDictionary[person.RoleID];
-        var primaryContactOrgs = Organizations.ListByPrimaryContactPersonID(dbContext, personID)
-            .Select(x => x.AsSimpleDto())
-            .ToList();
-
-        return new PersonDetailDto
+        // Role static lookup is resolved post-materialize.
+        if (Role.AllLookupDictionary.TryGetValue(dto.RoleID, out var role))
         {
-            PersonID = person.PersonID,
-            FirstName = person.FirstName,
-            LastName = person.LastName,
-            Email = person.Email,
-            Phone = person.Phone,
-            CreateDate = person.CreateDate,
-            UpdateDate = person.UpdateDate,
-            LastActivityDate = person.LastActivityDate,
-            IsActive = person.IsActive,
-            RoleID = person.RoleID,
-            RoleName = role.RoleName,
-            RoleDisplayName = role.RoleDisplayName,
-            Organization = person.Organization?.AsSimpleDto(),
-            IsOCTAGrantReviewer = person.IsOCTAGrantReviewer,
-            ReceiveSupportEmails = person.ReceiveSupportEmails,
-            ReceiveRSBRevisionRequestEmails = person.ReceiveRSBRevisionRequestEmails,
-            AssignedStormwaterJurisdictions = person.StormwaterJurisdictionPeople
-                .Select(x => new StormwaterJurisdictionDisplayDto
-                {
-                    StormwaterJurisdictionID = x.StormwaterJurisdiction.StormwaterJurisdictionID,
-                    StormwaterJurisdictionName = x.StormwaterJurisdiction.GetOrganizationDisplayName(),
-                })
-                .OrderBy(x => x.StormwaterJurisdictionName)
-                .ToList(),
-            PrimaryContactOrganizations = primaryContactOrgs,
-        };
+            dto.RoleName = role.RoleName;
+            dto.RoleDisplayName = role.RoleDisplayName;
+        }
+
+        // Separate focused query for primary-contact organizations: only the OrganizationSimpleDto
+        // columns, no entity hydration of OrganizationType / FundingSources / People.
+        dto.PrimaryContactOrganizations = await dbContext.Organizations.AsNoTracking()
+            .Where(o => o.PrimaryContactPersonID == personID)
+            .OrderBy(o => o.OrganizationName)
+            .Select(o => new OrganizationSimpleDto
+            {
+                OrganizationID = o.OrganizationID,
+                OrganizationGuid = o.OrganizationGuid,
+                OrganizationName = o.OrganizationName,
+                OrganizationShortName = o.OrganizationShortName,
+                PrimaryContactPersonID = o.PrimaryContactPersonID,
+                IsActive = o.IsActive,
+                OrganizationUrl = o.OrganizationUrl,
+                LogoFileResourceID = o.LogoFileResourceID,
+                OrganizationTypeID = o.OrganizationTypeID,
+            })
+            .ToListAsync();
+
+        return dto;
     }
 
     public static async Task<PersonDto?> UpdateRoleAsync(NeptuneDbContext dbContext, int personID, PersonRoleUpdateDto dto)
