@@ -1,47 +1,11 @@
 @use "/src/scss/abstracts" as *;
 
-.section-header {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    margin-top: 2rem;
+.plain-list {
+    list-style: none;
+    padding: 0;
+    margin: 0;
 
-    h3 {
-        margin: 0;
+    li + li {
+        margin-top: 0.25rem;
     }
-
-    .btn-sm {
-        padding: 0.25rem 0.75rem;
-        font-size: 0.875rem;
-    }
-}
-
-h3 {
-    font-size: $type-size-400;
-    margin-top: 2rem;
-    margin-bottom: 0.5rem;
-
-    &:first-of-type {
-        margin-top: 0;
-    }
-}
-
-.detail-list {
-    display: grid;
-    grid-template-columns: minmax(200px, max-content) 1fr;
-    gap: 0.5rem 1.5rem;
-    margin: 0 0 1rem 0;
-
-    dt {
-        font-weight: 600;
-        color: #555;
-    }
-
-    dd {
-        margin: 0;
-    }
-}
-
-ul {
-    margin: 0 0 1rem 1.25rem;
 }
