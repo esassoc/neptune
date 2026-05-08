@@ -21,8 +21,8 @@ function stripBase(apiBaseUrl: string, uri: string): string | null {
 
 const ANON_EXACT: ExactMap = {
   'DELETE': [],
-  'GET': ["/","/custom-attribute-types","/field-definitions","/jurisdictions/bounding-box","/jurisdictions/user-viewable","/land-use-blocks","/observation-types","/training-videos","/trash-generating-units/last-update-date","/treatment-bmp-type-custom-attribute-types","/treatment-bmp-types","/treatment-bmp-types/cards","/treatment-bmps","/treatment-bmps/modeling-attributes","/treatment-bmps/verified/feature-collection","/water-quality-management-plans/grid"],
-  'POST': [],
+  'GET': ["/","/custom-attribute-types","/field-definitions","/jurisdictions/bounding-box","/jurisdictions/user-viewable","/land-use-blocks","/observation-types","/support-requests/site-key","/training-videos","/trash-generating-units/last-update-date","/treatment-bmp-type-custom-attribute-types","/treatment-bmp-types","/treatment-bmp-types/cards","/treatment-bmps","/treatment-bmps/modeling-attributes","/treatment-bmps/verified/feature-collection","/water-quality-management-plans/grid"],
+  'POST': ["/support-requests"],
   'PUT': [],
 };
 
@@ -165,6 +165,8 @@ const SECURED_REGEX: RegexMap = {
     new RegExp("^/treatment-bmps/[^/]+/upstreamest-errors$"),
     new RegExp("^/user-claims/[^/]+$"),
     new RegExp("^/users/[^/]+$"),
+    new RegExp("^/users/[^/]+/detail$"),
+    new RegExp("^/users/[^/]+/notifications$"),
     new RegExp("^/water-quality-management-plan-documents/[^/]+$"),
     new RegExp("^/water-quality-management-plans/[^/]+/available-treatment-bmps$"),
     new RegExp("^/water-quality-management-plans/[^/]+/boundary$"),
@@ -241,6 +243,9 @@ const SECURED_REGEX: RegexMap = {
     new RegExp("^/treatment-bmps/[^/]+/type$"),
     new RegExp("^/treatment-bmps/[^/]+/upstream-bmp$"),
     new RegExp("^/users/[^/]+$"),
+    new RegExp("^/users/[^/]+/active-status$"),
+    new RegExp("^/users/[^/]+/jurisdictions$"),
+    new RegExp("^/users/[^/]+/role$"),
     new RegExp("^/water-quality-management-plan-documents/[^/]+$"),
     new RegExp("^/water-quality-management-plans/[^/]+$"),
     new RegExp("^/water-quality-management-plans/[^/]+/boundary$"),

@@ -6489,6 +6489,87 @@
         }
       }
     },
+    "/support-requests/site-key": {
+      "get": {
+        "tags": [
+          "SupportRequest"
+        ],
+        "operationId": "GetRecaptchaSiteKey_SupportRequest",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "type": "string"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "type": "string"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        },
+        "x-anonymous": true
+      }
+    },
+    "/support-requests": {
+      "post": {
+        "tags": [
+          "SupportRequest"
+        ],
+        "operationId": "Submit_SupportRequest",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SupportRequestSubmissionDto"
+              }
+            },
+            "text/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SupportRequestSubmissionDto"
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "$ref": "#/components/schemas/SupportRequestSubmissionDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/SupportRequestSubmissionResultDto"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SupportRequestSubmissionResultDto"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SupportRequestSubmissionResultDto"
+                }
+              }
+            }
+          }
+        },
+        "x-anonymous": true
+      }
+    },
     "/": {
       "get": {
         "tags": [
@@ -10126,6 +10207,277 @@
         "responses": {
           "200": {
             "description": "OK"
+          }
+        }
+      }
+    },
+    "/users/{personID}/detail": {
+      "get": {
+        "tags": [
+          "User"
+        ],
+        "operationId": "GetDetail_User",
+        "parameters": [
+          {
+            "name": "personID",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/PersonDetailDto"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PersonDetailDto"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PersonDetailDto"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/users/{personID}/role": {
+      "put": {
+        "tags": [
+          "User"
+        ],
+        "operationId": "UpdateRole_User",
+        "parameters": [
+          {
+            "name": "personID",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PersonRoleUpdateDto"
+              }
+            },
+            "text/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PersonRoleUpdateDto"
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "$ref": "#/components/schemas/PersonRoleUpdateDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/PersonDto"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PersonDto"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PersonDto"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/users/{personID}/jurisdictions": {
+      "put": {
+        "tags": [
+          "User"
+        ],
+        "operationId": "UpdateJurisdictions_User",
+        "parameters": [
+          {
+            "name": "personID",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PersonJurisdictionsUpdateDto"
+              }
+            },
+            "text/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PersonJurisdictionsUpdateDto"
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "$ref": "#/components/schemas/PersonJurisdictionsUpdateDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/PersonDetailDto"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PersonDetailDto"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PersonDetailDto"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/users/{personID}/active-status": {
+      "put": {
+        "tags": [
+          "User"
+        ],
+        "operationId": "UpdateActiveStatus_User",
+        "parameters": [
+          {
+            "name": "personID",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PersonActiveStatusUpdateDto"
+              }
+            },
+            "text/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PersonActiveStatusUpdateDto"
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "$ref": "#/components/schemas/PersonActiveStatusUpdateDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/PersonDetailDto"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PersonDetailDto"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PersonDetailDto"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/users/{personID}/notifications": {
+      "get": {
+        "tags": [
+          "User"
+        ],
+        "operationId": "GetNotifications_User",
+        "parameters": [
+          {
+            "name": "personID",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/PersonNotificationDto"
+                  }
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/PersonNotificationDto"
+                  }
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/PersonNotificationDto"
+                  }
+                }
+              }
+            }
           }
         }
       }
@@ -15451,6 +15803,15 @@
         },
         "additionalProperties": false
       },
+      "PersonActiveStatusUpdateDto": {
+        "type": "object",
+        "properties": {
+          "IsActive": {
+            "type": "boolean"
+          }
+        },
+        "additionalProperties": false
+      },
       "PersonCreateDto": {
         "required": [
           "Email",
@@ -15474,6 +15835,87 @@
           "Email": {
             "minLength": 1,
             "type": "string"
+          }
+        },
+        "additionalProperties": false
+      },
+      "PersonDetailDto": {
+        "type": "object",
+        "properties": {
+          "PersonID": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "FirstName": {
+            "type": "string",
+            "nullable": true
+          },
+          "LastName": {
+            "type": "string",
+            "nullable": true
+          },
+          "Email": {
+            "type": "string",
+            "nullable": true
+          },
+          "Phone": {
+            "type": "string",
+            "nullable": true
+          },
+          "CreateDate": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "UpdateDate": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          },
+          "LastActivityDate": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          },
+          "IsActive": {
+            "type": "boolean"
+          },
+          "RoleID": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "RoleName": {
+            "type": "string",
+            "nullable": true
+          },
+          "RoleDisplayName": {
+            "type": "string",
+            "nullable": true
+          },
+          "Organization": {
+            "$ref": "#/components/schemas/OrganizationSimpleDto"
+          },
+          "IsOCTAGrantReviewer": {
+            "type": "boolean"
+          },
+          "ReceiveSupportEmails": {
+            "type": "boolean"
+          },
+          "ReceiveRSBRevisionRequestEmails": {
+            "type": "boolean"
+          },
+          "AssignedStormwaterJurisdictions": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/StormwaterJurisdictionDisplayDto"
+            },
+            "nullable": true
+          },
+          "PrimaryContactOrganizations": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/OrganizationSimpleDto"
+            },
+            "nullable": true
           }
         },
         "additionalProperties": false
@@ -15583,6 +16025,65 @@
             "type": "boolean"
           },
           "HasAssignedStormwaterJurisdiction": {
+            "type": "boolean"
+          }
+        },
+        "additionalProperties": false
+      },
+      "PersonJurisdictionsUpdateDto": {
+        "type": "object",
+        "properties": {
+          "StormwaterJurisdictionIDs": {
+            "type": "array",
+            "items": {
+              "type": "integer",
+              "format": "int32"
+            },
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "PersonNotificationDto": {
+        "type": "object",
+        "properties": {
+          "NotificationID": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "NotificationDate": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "NotificationTypeID": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "NotificationTypeDisplayName": {
+            "type": "string",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "PersonRoleUpdateDto": {
+        "type": "object",
+        "properties": {
+          "RoleID": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "OrganizationID": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "IsOCTAGrantReviewer": {
+            "type": "boolean"
+          },
+          "ReceiveSupportEmails": {
+            "type": "boolean"
+          },
+          "ReceiveRSBRevisionRequestEmails": {
             "type": "boolean"
           }
         },
@@ -17006,6 +17507,57 @@
           "NumberOfBMPs": {
             "type": "integer",
             "format": "int32"
+          }
+        },
+        "additionalProperties": false
+      },
+      "SupportRequestSubmissionDto": {
+        "type": "object",
+        "properties": {
+          "Name": {
+            "type": "string",
+            "nullable": true
+          },
+          "Email": {
+            "type": "string",
+            "nullable": true
+          },
+          "Organization": {
+            "type": "string",
+            "nullable": true
+          },
+          "Phone": {
+            "type": "string",
+            "nullable": true
+          },
+          "SupportRequestTypeID": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "Description": {
+            "type": "string",
+            "nullable": true
+          },
+          "CurrentPageUrl": {
+            "type": "string",
+            "nullable": true
+          },
+          "RecaptchaToken": {
+            "type": "string",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "SupportRequestSubmissionResultDto": {
+        "type": "object",
+        "properties": {
+          "Success": {
+            "type": "boolean"
+          },
+          "Message": {
+            "type": "string",
+            "nullable": true
           }
         },
         "additionalProperties": false
@@ -20735,6 +21287,9 @@
     },
     {
       "name": "StormwaterJurisdiction"
+    },
+    {
+      "name": "SupportRequest"
     },
     {
       "name": "SystemInfo"

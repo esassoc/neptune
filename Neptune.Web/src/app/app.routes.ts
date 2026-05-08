@@ -20,7 +20,11 @@ export const routeParams = {
     waterQualityManagementPlanVerifyID: "waterQualityManagementPlanVerifyID",
     treatmentBMPTypeID: "treatmentBMPTypeID",
     fieldVisitID: "fieldVisitID",
+    personID: "personID",
 };
+
+// Anonymous-friendly routes (e.g., /support) live under the public site layout below alongside
+// auth'd ones; they intentionally have no canActivate so unauthenticated visitors can reach them.
 
 export const routes: Routes = [
     {
@@ -343,6 +347,17 @@ export const routes: Routes = [
                 canActivate: [authGuardFn, ManagerOnlyGuard],
             },
             { path: "users", title: "Users", loadComponent: () => import("./pages/users/users.component").then((m) => m.UsersComponent) },
+            {
+                path: `users/:${routeParams.personID}`,
+                title: "User Detail",
+                loadComponent: () => import("./pages/users/user-detail/user-detail.component").then((m) => m.UserDetailComponent),
+                canActivate: [authGuardFn],
+            },
+            {
+                path: "support",
+                title: "Request Support",
+                loadComponent: () => import("./pages/support/request-support/request-support.component").then((m) => m.RequestSupportComponent),
+            },
             {
                 path: "organizations",
                 title: "Organizations",
