@@ -3,7 +3,9 @@
         <h3>Edit Assigned Jurisdictions for {{ ref.data.detail.FirstName }} {{ ref.data.detail.LastName }}</h3>
     </div>
     <div class="modal-body">
-        <app-alert-display></app-alert-display>
+        @if (errorMessage(); as msg) {
+            <div class="alert alert-danger">{{ msg }}</div>
+        }
         <p>Select the stormwater jurisdictions this user should be able to manage.</p>
         @if (options$ | async; as options) {
             <ul class="jurisdiction-list">

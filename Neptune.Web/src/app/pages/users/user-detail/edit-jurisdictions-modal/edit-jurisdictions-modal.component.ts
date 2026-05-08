@@ -6,10 +6,6 @@ import { map, Observable } from "rxjs";
 import { StormwaterJurisdictionService } from "src/app/shared/generated/api/stormwater-jurisdiction.service";
 import { UserService } from "src/app/shared/generated/api/user.service";
 import { PersonDetailDto } from "src/app/shared/generated/model/person-detail-dto";
-import { AlertDisplayComponent } from "src/app/shared/components/alert-display/alert-display.component";
-import { Alert } from "src/app/shared/models/alert";
-import { AlertContext } from "src/app/shared/models/enums/alert-context.enum";
-import { AlertService } from "src/app/shared/services/alert.service";
 
 interface EditJurisdictionsModalContext {
     detail: PersonDetailDto;
@@ -24,19 +20,19 @@ interface JurisdictionOption {
 @Component({
     selector: "edit-jurisdictions-modal",
     standalone: true,
-    imports: [AsyncPipe, FormsModule, ReactiveFormsModule, AlertDisplayComponent],
+    imports: [AsyncPipe, FormsModule, ReactiveFormsModule],
     templateUrl: "./edit-jurisdictions-modal.component.html",
     styleUrl: "./edit-jurisdictions-modal.component.scss",
 })
 export class EditJurisdictionsModalComponent implements OnInit {
     public ref: DialogRef<EditJurisdictionsModalContext, boolean> = inject(DialogRef);
-    private alertService = inject(AlertService);
     private userService = inject(UserService);
     private stormwaterJurisdictionService = inject(StormwaterJurisdictionService);
 
     public options$: Observable<JurisdictionOption[]>;
     public selectedIDs = new Set<number>();
     public isSaving = signal(false);
+    public errorMessage = signal<string | null>(null);
 
     ngOnInit(): void {
         const assignedIDs = new Set(this.ref.data.detail.AssignedStormwaterJurisdictions?.map((j) => j.StormwaterJurisdictionID) ?? []);
@@ -66,6 +62,7 @@ export class EditJurisdictionsModalComponent implements OnInit {
 
     public save(): void {
         this.isSaving.set(true);
+        this.errorMessage.set(null);
         this.userService
             .updateJurisdictionsUser(this.ref.data.detail.PersonID, { StormwaterJurisdictionIDs: Array.from(this.selectedIDs) })
             .subscribe({
@@ -76,7 +73,7 @@ export class EditJurisdictionsModalComponent implements OnInit {
                 error: (err) => {
                     this.isSaving.set(false);
                     const message = typeof err?.error === "string" ? err.error : "Failed to update jurisdictions.";
-                    this.alertService.pushAlert(new Alert(message, AlertContext.Danger, true));
+                    this.errorMessage.set(message);
                 },
             });
     }
