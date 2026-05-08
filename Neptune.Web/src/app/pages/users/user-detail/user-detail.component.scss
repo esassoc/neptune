@@ -1,5 +1,15 @@
 @use "/src/scss/abstracts" as *;
 
+.card-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+
+    .icon-button {
+        cursor: pointer;
+    }
+}
+
 .plain-list {
     list-style: none;
     padding: 0;
