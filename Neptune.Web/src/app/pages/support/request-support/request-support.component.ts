@@ -12,6 +12,7 @@ import { PageHeaderComponent } from "src/app/shared/components/page-header/page-
 import { Alert } from "src/app/shared/models/alert";
 import { AlertContext } from "src/app/shared/models/enums/alert-context.enum";
 import { AlertService } from "src/app/shared/services/alert.service";
+import { escapeHtml } from "src/app/shared/helpers/html-escape";
 
 declare const grecaptcha: { ready: (cb: () => void) => void; execute: (siteKey: string, opts: { action: string }) => Promise<string> };
 
@@ -100,7 +101,7 @@ export class RequestSupportComponent implements OnInit {
                 });
             } catch (err: any) {
                 this.isSubmitting.set(false);
-                this.alertService.pushAlert(new Alert(err?.message ?? "reCAPTCHA failed.", AlertContext.Danger, true));
+                this.alertService.pushAlert(new Alert(escapeHtml(err?.message ?? "reCAPTCHA failed."), AlertContext.Danger, true));
                 return;
             }
         }
@@ -123,13 +124,13 @@ export class RequestSupportComponent implements OnInit {
                     this.successMessage.set(result.Message ?? "Support request sent.");
                     this.formGroup.reset();
                 } else {
-                    this.alertService.pushAlert(new Alert(result.Message ?? "Failed to send support request.", AlertContext.Danger, true));
+                    this.alertService.pushAlert(new Alert(escapeHtml(result.Message ?? "Failed to send support request."), AlertContext.Danger, true));
                 }
             },
             error: (err) => {
                 this.isSubmitting.set(false);
                 const message = typeof err?.error?.Message === "string" ? err.error.Message : "Failed to send support request.";
-                this.alertService.pushAlert(new Alert(message, AlertContext.Danger, true));
+                this.alertService.pushAlert(new Alert(escapeHtml(message), AlertContext.Danger, true));
             },
         });
     }

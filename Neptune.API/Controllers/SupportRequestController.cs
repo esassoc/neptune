@@ -1,4 +1,5 @@
 using System;
+using System.Net.Mail;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -42,6 +43,13 @@ public class SupportRequestController(
             || submission.SupportRequestTypeID <= 0)
         {
             return BadRequest(new SupportRequestSubmissionResultDto { Success = false, Message = "Please fill out all required fields." });
+        }
+
+        // Validate email format server-side. The address ends up in the mail Reply-To header, so we don't
+        // want to hand a malformed value (or a header-injection attempt) to MailAddress later.
+        if (!MailAddress.TryCreate(submission.Email, out _))
+        {
+            return BadRequest(new SupportRequestSubmissionResultDto { Success = false, Message = "Please provide a valid email address." });
         }
 
         var caller = await People.GetByIDAsDtoAsync(DbContext, CallingUser.PersonID);

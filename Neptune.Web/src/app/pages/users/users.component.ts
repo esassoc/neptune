@@ -15,6 +15,7 @@ import { AlertContext } from "src/app/shared/models/enums/alert-context.enum";
 import { PersonSimpleDto } from "src/app/shared/generated/model/person-simple-dto";
 import { AuthenticationService } from "src/app/services/authentication.service";
 import { RoleEnum } from "src/app/shared/generated/enum/role-enum";
+import { escapeHtml } from "src/app/shared/helpers/html-escape";
 
 @Component({
     selector: "users",
@@ -25,7 +26,7 @@ import { RoleEnum } from "src/app/shared/generated/enum/role-enum";
 })
 export class UsersComponent implements OnInit {
     public users$: Observable<PersonSimpleDto[]>;
-    public columnDefs: ColDef[];
+    public columnDefs: Signal<ColDef[]>;
 
     private utilityFunctions = inject(UtilityFunctionsService);
     private alertService = inject(AlertService);
@@ -40,7 +41,7 @@ export class UsersComponent implements OnInit {
     });
 
     ngOnInit(): void {
-        this.columnDefs = [
+        this.columnDefs = computed<ColDef[]>(() => [
             {
                 ...this.utilityFunctions.createActionsColumnDef((params: any) => [
                     {
@@ -79,7 +80,7 @@ export class UsersComponent implements OnInit {
             this.utilityFunctions.createDateColumnDef("Created", "CreateDate", "short"),
             this.utilityFunctions.createDateColumnDef("Updated", "UpdateDate", "short"),
             this.utilityFunctions.createDateColumnDef("Last Activity", "LastActivityDate", "short"),
-        ];
+        ]);
         this.users$ = this.userService.listUser();
     }
 
@@ -87,7 +88,7 @@ export class UsersComponent implements OnInit {
         this.confirmService
             .confirm({
                 title: "Delete User",
-                message: `Are you sure you want to delete user '<strong>${user.FirstName} ${user.LastName}</strong>'?`,
+                message: `Are you sure you want to delete user '<strong>${escapeHtml(`${user.FirstName} ${user.LastName}`)}</strong>'?`,
                 buttonTextYes: "Delete",
                 buttonTextNo: "Cancel",
                 buttonClassYes: "btn-danger",

@@ -8,6 +8,14 @@
     .icon-button {
         cursor: pointer;
     }
+
+    .icon-button-button {
+        background: none;
+        border: none;
+        padding: 0;
+        cursor: pointer;
+        line-height: 0;
+    }
 }
 
 .plain-list {

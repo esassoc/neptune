@@ -63,9 +63,9 @@
                 <div class="card-header">
                     <span class="card-title">Role / Organization</span>
                     @if (isAdmin()) {
-                        <a (click)="openEditRolesModal(detail)" style="cursor: pointer" title="Edit Roles">
+                        <button type="button" class="icon-button-button" (click)="openEditRolesModal(detail)" title="Edit Roles" aria-label="Edit Roles">
                             <icon class="icon-button" icon="CirclePencil"></icon>
-                        </a>
+                        </button>
                     }
                 </div>
                 <div class="card-body">
@@ -101,9 +101,9 @@
                 <div class="card-header">
                     <span class="card-title">Assigned Jurisdictions</span>
                     @if (isAdmin()) {
-                        <a (click)="openEditJurisdictionsModal(detail)" style="cursor: pointer" title="Edit Jurisdictions">
+                        <button type="button" class="icon-button-button" (click)="openEditJurisdictionsModal(detail)" title="Edit Jurisdictions" aria-label="Edit Jurisdictions">
                             <icon class="icon-button" icon="CirclePencil"></icon>
-                        </a>
+                        </button>
                     }
                 </div>
                 <div class="card-body">

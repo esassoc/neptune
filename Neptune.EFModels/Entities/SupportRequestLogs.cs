@@ -25,6 +25,7 @@ using Neptune.Common.Email;
 using Neptune.Models.DataTransferObjects;
 using Neptune.WebMvc.Common;
 using System.Net.Mail;
+using System.Web;
 
 namespace Neptune.EFModels.Entities
 {
@@ -82,15 +83,28 @@ namespace Neptune.EFModels.Entities
                 : SupportRequestType.Other;
 
             var subject = $"Support Request for Neptune - {DateTime.UtcNow.ToStringDateTime()}";
+            // Every interpolated value below originates from untrusted input (form fields, request headers,
+            // submitter identity), so each goes through HtmlEncode before landing in the rendered email body.
+            var fromName = HttpUtility.HtmlEncode(supportRequestLog.RequestPersonName ?? string.Empty);
+            var fromOrg = HttpUtility.HtmlEncode(supportRequestLog.RequestPersonOrganization ?? "(not provided)");
+            var fromEmail = HttpUtility.HtmlEncode(supportRequestLog.RequestPersonEmail ?? string.Empty);
+            var fromPhone = HttpUtility.HtmlEncode(supportRequestLog.RequestPersonPhone ?? "(not provided)");
+            var typeDisplayName = HttpUtility.HtmlEncode(supportRequestType.SupportRequestTypeDisplayName);
+            var loginLine = caller != null && !caller.IsAnonymousUser()
+                ? HttpUtility.HtmlEncode($"{caller.GetFullNameFirstLast()} (UserID {caller.PersonID})")
+                : "(anonymous user)";
+            var encodedIpAddress = HttpUtility.HtmlEncode(ipAddress ?? string.Empty);
+            var encodedUserAgent = HttpUtility.HtmlEncode(userAgent ?? string.Empty);
+            var encodedCurrentPageUrl = HttpUtility.HtmlEncode(submission.CurrentPageUrl ?? string.Empty);
             var body = $@"
 <div style='font-size: 12px; font-family: Arial'>
     <strong>{subject}</strong><br />
     <br />
-    <strong>From:</strong> {supportRequestLog.RequestPersonName} - {supportRequestLog.RequestPersonOrganization ?? "(not provided)"}<br />
-    <strong>Email:</strong> {supportRequestLog.RequestPersonEmail}<br />
-    <strong>Phone:</strong> {supportRequestLog.RequestPersonPhone ?? "(not provided)"}<br />
+    <strong>From:</strong> {fromName} - {fromOrg}<br />
+    <strong>Email:</strong> {fromEmail}<br />
+    <strong>Phone:</strong> {fromPhone}<br />
     <br />
-    <strong>Subject:</strong> {supportRequestType.SupportRequestTypeDisplayName}<br />
+    <strong>Subject:</strong> {typeDisplayName}<br />
     <br />
     <strong>Description:</strong><br />
     {supportRequestLog.RequestDescription.HtmlEncodeWithBreaks()}
@@ -99,13 +113,13 @@ namespace Neptune.EFModels.Entities
     <br />
     <div style='font-size: 10px; color: gray'>
     OTHER DETAILS:<br />
-    LOGIN: {(caller != null && !caller.IsAnonymousUser() ? $"{caller.GetFullNameFirstLast()} (UserID {caller.PersonID})" : "(anonymous user)")}<br />
-    IP ADDRESS: {ipAddress}<br />
-    USERAGENT: {userAgent}<br />
-    URL FROM: {submission.CurrentPageUrl}<br />
+    LOGIN: {loginLine}<br />
+    IP ADDRESS: {encodedIpAddress}<br />
+    USERAGENT: {encodedUserAgent}<br />
+    URL FROM: {encodedCurrentPageUrl}<br />
     <br />
     </div>
-    <div>You received this email because you are set up as a point of contact for support - if that's not correct, let us know: support@sitkatech.com</div>.
+    <div>You received this email because you are set up as a point of contact for support - if that's not correct, let us know: support@sitkatech.com</div>
 </div>";
 
             var mailMessage = new MailMessage

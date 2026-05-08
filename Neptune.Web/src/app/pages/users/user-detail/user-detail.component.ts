@@ -19,6 +19,7 @@ import { Alert } from "src/app/shared/models/alert";
 import { AlertContext } from "src/app/shared/models/enums/alert-context.enum";
 import { AlertService } from "src/app/shared/services/alert.service";
 import { ConfirmService } from "src/app/shared/services/confirm/confirm.service";
+import { escapeHtml } from "src/app/shared/helpers/html-escape";
 import { EditRolesModalComponent } from "./edit-roles-modal/edit-roles-modal.component";
 import { EditJurisdictionsModalComponent } from "./edit-jurisdictions-modal/edit-jurisdictions-modal.component";
 
@@ -111,7 +112,7 @@ export class UserDetailComponent implements OnInit {
         this.confirmService
             .confirm({
                 title: goingInactive ? "Inactivate User" : "Activate User",
-                message: `Are you sure you want to ${goingInactive ? "inactivate" : "activate"} <strong>${detail.FirstName} ${detail.LastName}</strong>?`,
+                message: `Are you sure you want to ${goingInactive ? "inactivate" : "activate"} <strong>${escapeHtml(`${detail.FirstName} ${detail.LastName}`)}</strong>?`,
                 buttonTextYes: goingInactive ? "Inactivate" : "Activate",
                 buttonTextNo: "Cancel",
                 buttonClassYes: goingInactive ? "btn-danger" : "btn-primary",
@@ -129,7 +130,7 @@ export class UserDetailComponent implements OnInit {
                         this.isWorking.set(false);
                         // Server returns a plain string in 400 responses (primary-contact violation, etc.).
                         const message = typeof err?.error === "string" ? err.error : "Failed to update active status.";
-                        this.alertService.pushAlert(new Alert(message, AlertContext.Danger, true));
+                        this.alertService.pushAlert(new Alert(escapeHtml(message), AlertContext.Danger, true));
                     },
                 });
             });
