@@ -1,5 +1,9 @@
-<page-header pageTitle="Request Support">
-    <a class="back-link" [routerLink]="['/']">&laquo; Back to Home</a>
+<page-header pageTitle="Request Support" [templateAbove]="templateAbove">
+    <ng-template #templateAbove>
+        <div class="back">
+            <a [routerLink]="['/']" class="back__link">Back to Home</a>
+        </div>
+    </ng-template>
 </page-header>
 
 <section class="content-section">

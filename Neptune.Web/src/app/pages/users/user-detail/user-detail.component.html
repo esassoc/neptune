@@ -1,19 +1,22 @@
 @if (detail$ | async; as detail) {
-    <page-header [pageTitle]="detail.FirstName + ' ' + detail.LastName" [templateRight]="headerActions">
-        <a class="back-link" [routerLink]="['/users']">&laquo; Back to Users</a>
+    <page-header [pageTitle]="detail.FirstName + ' ' + detail.LastName" [templateAbove]="templateAbove" [templateRight]="headerActions">
+        <ng-template #templateAbove>
+            <div class="back">
+                <a [routerLink]="['/users']" class="back__link">Back to Users</a>
+            </div>
+        </ng-template>
+        <ng-template #headerActions>
+            @if (isAdmin()) {
+                <button type="button" class="btn" [class.btn-danger]="detail.IsActive" [class.btn-primary]="!detail.IsActive" [disabled]="isWorking()" (click)="toggleActive(detail)">
+                    @if (detail.IsActive) {
+                        <i class="fa fa-ban"></i> Inactivate
+                    } @else {
+                        <i class="fa fa-check"></i> Activate
+                    }
+                </button>
+            }
+        </ng-template>
     </page-header>
-
-    <ng-template #headerActions>
-        @if (isAdmin()) {
-            <button type="button" class="btn" [class.btn-danger]="detail.IsActive" [class.btn-primary]="!detail.IsActive" [disabled]="isWorking()" (click)="toggleActive(detail)">
-                @if (detail.IsActive) {
-                    <i class="fa fa-ban"></i> Inactivate
-                } @else {
-                    <i class="fa fa-check"></i> Activate
-                }
-            </button>
-        }
-    </ng-template>
 
     <app-alert-display></app-alert-display>
 
