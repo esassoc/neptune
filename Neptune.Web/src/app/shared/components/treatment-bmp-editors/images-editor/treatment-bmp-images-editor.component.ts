@@ -1,11 +1,17 @@
 import { Component, EventEmitter, inject, Input, OnInit, Output } from "@angular/core";
 import { FormGroup } from "@angular/forms";
 import { AsyncPipe } from "@angular/common";
+import { DialogService } from "@ngneat/dialog";
 import { BehaviorSubject, combineLatest, map, Observable, switchMap } from "rxjs";
 
 import { TreatmentBMPImageByTreatmentBMPService } from "src/app/shared/generated/api/treatment-bmp-image-by-treatment-bmp.service";
+import { FileResourceService } from "src/app/shared/generated/api/file-resource.service";
 import { TreatmentBMPImageDto } from "src/app/shared/generated/model/treatment-bmp-image-dto";
 import { ImageEditorComponent, ImageEditorItem } from "src/app/shared/components/image-editor/image-editor.component";
+import {
+    EditPhotoCaptionModalComponent,
+    EditPhotoCaptionModalContext,
+} from "src/app/shared/components/edit-photo-caption-modal/edit-photo-caption-modal.component";
 import { LoadingDirective } from "src/app/shared/directives/loading.directive";
 import { AlertService } from "src/app/shared/services/alert.service";
 import { Alert } from "src/app/shared/models/alert";
@@ -26,9 +32,14 @@ import { AlertContext } from "src/app/shared/models/enums/alert-context.enum";
 })
 export class TreatmentBmpImagesEditorComponent implements OnInit {
     private treatmentBMPImageService = inject(TreatmentBMPImageByTreatmentBMPService);
+    private fileResourceService = inject(FileResourceService);
     private alertService = inject(AlertService);
+    private dialogService = inject(DialogService);
 
     @Input() treatmentBMPID!: number;
+    /** Opt-in modal-based caption editing — replaces the inline caption form + page-level Save with
+     * a per-photo pencil button that opens a modal and persists immediately. */
+    @Input() useCaptionModal: boolean = false;
 
     @Output() saved = new EventEmitter<void>();
     @Output() cancelled = new EventEmitter<void>();
@@ -36,6 +47,8 @@ export class TreatmentBmpImagesEditorComponent implements OnInit {
     @Output() uploaded = new EventEmitter<void>();
     /** Fired after a successful image delete — distinct from `(saved)` (caption save click). */
     @Output() deleted = new EventEmitter<void>();
+    /** Fired after a successful caption update via the modal pattern. */
+    @Output() captionUpdated = new EventEmitter<void>();
 
     public treatmentBMPImages$!: Observable<TreatmentBMPImageDto[]>;
     public reloadTrigger$ = new BehaviorSubject<void>(undefined);
@@ -109,5 +122,43 @@ export class TreatmentBmpImagesEditorComponent implements OnInit {
 
     public onCancelClicked(): void {
         this.cancelled.emit();
+    }
+
+    public onCaptionEditRequested(item: ImageEditorItem): void {
+        if (!item.PrimaryKey || !item.FileResourceGUID) return;
+        // Pre-load the photo blob into an object URL so the modal preview matches what's on the page.
+        this.fileResourceService.displayResourceFileResource(item.FileResourceGUID, "body", false, { httpHeaderAccept: undefined }).subscribe((blob: Blob) => {
+            const previewUrl = URL.createObjectURL(blob);
+            this.dialogService
+                .open(EditPhotoCaptionModalComponent, {
+                    data: {
+                        currentCaption: item.Caption ?? "",
+                        previewUrl,
+                        title: "Edit Photo Caption",
+                    } as EditPhotoCaptionModalContext,
+                })
+                .afterClosed$.subscribe((newCaption: string | null | undefined) => {
+                    URL.revokeObjectURL(previewUrl);
+                    if (newCaption == null) return;
+                    if ((newCaption ?? "") === (item.Caption ?? "")) return;
+                    this.isLoadingSubmit = true;
+                    this.treatmentBMPImageService
+                        .updateTreatmentBMPImageByTreatmentBMP(this.treatmentBMPID, [
+                            { TreatmentBMPImageID: item.PrimaryKey!, Caption: newCaption },
+                        ])
+                        .subscribe({
+                            next: () => {
+                                this.isLoadingSubmit = false;
+                                this.alertService.pushAlert(new Alert("Caption saved.", AlertContext.Success));
+                                this.reloadTrigger$.next();
+                                this.captionUpdated.emit();
+                            },
+                            error: () => {
+                                this.isLoadingSubmit = false;
+                                this.alertService.pushAlert(new Alert("Failed to save caption.", AlertContext.Danger));
+                            },
+                        });
+                });
+        });
     }
 }

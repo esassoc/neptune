@@ -19,11 +19,18 @@ export class ImageEditorComponent implements OnInit, OnChanges, OnDestroy {
     @Input() images: ImageEditorItem[] = [];
     @Input() isLoadingSubmit: boolean = false;
     @Input() captionControlForm: FormGroup;
+    /** When true, captions are read-only inline; clicking the pencil opens a modal owned by the host
+     * that persists immediately. The page-level Save/Cancel footer is suppressed in this mode since
+     * uploads/deletes already auto-save and captions are no longer batched. */
+    @Input() useCaptionModal: boolean = false;
 
     @Output() newImageAdded = new EventEmitter<{ file: File; caption: string }>();
     @Output() imageDeleted = new EventEmitter<ImageEditorItem>();
     @Output() saveClicked = new EventEmitter<ImageEditorItem[]>();
     @Output() cancelClicked = new EventEmitter<void>();
+    /** Emitted when the user clicks the pencil on a photo in modal mode. Host opens its modal
+     * and persists via its own service. */
+    @Output() captionEditRequested = new EventEmitter<ImageEditorItem>();
 
     // reactive form: newPhoto and existing photos array
     public newPhotoFormGroup: FormGroup<{ newPhoto: FormControl<File | null>; newPhotoCaption: FormControl<string> }> = new FormGroup<{ newPhoto; newPhotoCaption }>({
@@ -48,15 +55,27 @@ export class ImageEditorComponent implements OnInit, OnChanges, OnDestroy {
         if (changes.images && changes.images.currentValue !== changes.images.previousValue) {
             this.imagePreviewUrls.set({});
             this.captionControls = {};
-            this.captionControlForm.controls = {};
+            // Skip wiring the per-photo caption FormControls when the host is using the modal pattern;
+            // captions persist via the modal's own save, not via this component's batch Save.
+            if (!this.useCaptionModal) {
+                this.captionControlForm.controls = {};
+            }
 
             for (const img of this.images) {
                 this.loadImagePreview(img);
-                this.captionControls[img.FileResourceGUID] = new FormControl<string>(img.Caption || "");
-                this.captionControlForm.addControl(img.FileResourceGUID, this.captionControls[img.FileResourceGUID]);
+                if (!this.useCaptionModal) {
+                    this.captionControls[img.FileResourceGUID] = new FormControl<string>(img.Caption || "");
+                    this.captionControlForm.addControl(img.FileResourceGUID, this.captionControls[img.FileResourceGUID]);
+                }
             }
-            this.captionControlForm.markAsPristine();
+            if (!this.useCaptionModal) {
+                this.captionControlForm.markAsPristine();
+            }
         }
+    }
+
+    public requestEditCaption(image: ImageEditorItem): void {
+        this.captionEditRequested.emit(image);
     }
 
     public addNewImage(): void {

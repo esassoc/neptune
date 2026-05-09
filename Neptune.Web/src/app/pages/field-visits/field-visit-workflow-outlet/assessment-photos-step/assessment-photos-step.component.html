@@ -11,10 +11,10 @@
                 <image-editor
                     [images]="photos()"
                     [captionControlForm]="captionControlForm"
+                    [useCaptionModal]="true"
                     (newImageAdded)="onPhotoUpload($event)"
                     (imageDeleted)="onPhotoDelete($any($event))"
-                    (saveClicked)="onSaveCaptions($any($event))"
-                    (cancelClicked)="cancel(workflow)"></image-editor>
+                    (captionEditRequested)="onCaptionEditRequested($event)"></image-editor>
             </div>
         </div>
     }

@@ -2,8 +2,8 @@
     <page-header pageTitle="Photos"></page-header>
     <treatment-bmp-images-editor
         [treatmentBMPID]="workflow.TreatmentBMPID"
+        [useCaptionModal]="true"
         (uploaded)="onPhotosChanged(workflow)"
         (deleted)="onPhotosChanged(workflow)"
-        (saved)="onContinue(workflow)"
-        (cancelled)="onCancelled(workflow)"></treatment-bmp-images-editor>
+        (captionUpdated)="onPhotosChanged(workflow)"></treatment-bmp-images-editor>
 }
