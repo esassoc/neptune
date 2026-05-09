@@ -6,6 +6,7 @@ import { DialogService } from "@ngneat/dialog";
 import { Observable, of, switchMap, take } from "rxjs";
 
 import { ImageEditorComponent, ImageEditorItem } from "src/app/shared/components/image-editor/image-editor.component";
+import { ImageCarouselComponent, ImageCarouselItem } from "src/app/shared/components/image-carousel/image-carousel.component";
 import {
     EditPhotoCaptionModalComponent,
     EditPhotoCaptionModalContext,
@@ -33,7 +34,7 @@ interface AssessmentPhotoEditorItem extends ImageEditorItem {
 @Component({
     selector: "field-visit-assessment-photos-step",
     standalone: true,
-    imports: [AsyncPipe, ImageEditorComponent, LoadingDirective, PageHeaderComponent],
+    imports: [AsyncPipe, ImageEditorComponent, ImageCarouselComponent, LoadingDirective, PageHeaderComponent],
     templateUrl: "./assessment-photos-step.component.html",
     styleUrl: "./assessment-photos-step.component.scss",
 })
@@ -48,6 +49,7 @@ export class FieldVisitAssessmentPhotosStepComponent implements OnInit {
     public photos = signal<AssessmentPhotoEditorItem[]>([]);
     public captionControlForm = new FormGroup({});
     public isLoading = signal(true);
+    public isReadOnly = signal(false);
 
     constructor(
         private workflowService: FieldVisitWorkflowService,
@@ -76,6 +78,7 @@ export class FieldVisitAssessmentPhotosStepComponent implements OnInit {
             .pipe(
                 take(1),
                 switchMap((workflow) => {
+                    this.isReadOnly.set(this.workflowService.isReadOnly(workflow));
                     if (!workflow) return of(null);
                     return this.assessmentByFieldVisitService.getByTypeTreatmentBMPAssessmentByFieldVisit(workflow.FieldVisitID, this.assessmentTypeID);
                 })

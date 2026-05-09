@@ -32,6 +32,8 @@ interface ObservationField {
     isRequired: boolean;
     sortOrder: number;
     dataTypeID: number;
+    /** Configured unit label (e.g. "sq ft", "cu yd") shown to the right of numeric inputs. */
+    unitLabel: string;
     /** Per-data-type display info — drives which input the template renders. */
     dataTypeKind: "text" | "integer" | "decimal" | "date" | "pick-one" | "multi-select";
     options: SelectDropdownOption[];
@@ -55,6 +57,8 @@ export class FieldVisitMaintenanceEditStepComponent implements OnInit {
     public maintenanceRecord = signal<MaintenanceRecordDetailDto | null>(null);
     public observationFields = signal<ObservationField[]>([]);
     public isLoading = signal(true);
+    public isReadOnly = signal(false);
+    public isSaving = signal(false);
     public FormFieldType = FormFieldType;
     public maintenanceRecordTypeOptions: SelectDropdownOption[] = MaintenanceRecordTypesAsSelectDropdownOptions;
 
@@ -90,8 +94,9 @@ export class FieldVisitMaintenanceEditStepComponent implements OnInit {
                     }).pipe(map((r) => ({ workflow, ...r })));
                 })
             )
-            .subscribe(({ record, attributeTypes }) => {
+            .subscribe(({ workflow, record, attributeTypes }) => {
                 this.maintenanceRecord.set(record);
+                this.isReadOnly.set(this.workflowService.isReadOnly(workflow));
                 this.formGroup.patchValue({
                     MaintenanceRecordTypeID: record?.MaintenanceRecordTypeID ?? null,
                     MaintenanceRecordDescription: record?.MaintenanceRecordDescription ?? "",
@@ -113,6 +118,9 @@ export class FieldVisitMaintenanceEditStepComponent implements OnInit {
                 for (const field of fields) {
                     const active = field.dataTypeKind === "multi-select" ? field.multiControl : field.control;
                     observationsGroup.addControl(`${field.customAttributeTypeID}`, active);
+                }
+                if (this.isReadOnly()) {
+                    this.formGroup.disable();
                 }
                 this.isLoading.set(false);
             });
@@ -138,6 +146,7 @@ export class FieldVisitMaintenanceEditStepComponent implements OnInit {
             isRequired,
             sortOrder: typeAttr.SortOrder ?? 0,
             dataTypeID,
+            unitLabel: attr?.MeasurementUnitDisplayName ?? "",
             dataTypeKind,
             options,
             control: new FormControl<string | null>(initialSingle, { validators: required }),
@@ -175,10 +184,15 @@ export class FieldVisitMaintenanceEditStepComponent implements OnInit {
     }
 
     save(workflow: FieldVisitWorkflowDto, nextAction: "stay" | "continue" | "wrap-up" = "continue"): void {
+        // Defensive double-submit guard. The previous version had no in-flight check, so a fast
+        // second click during the (visible) Save & Continue → navigate window could push the
+        // success alert twice — Kathleen flagged this as the duplicate-alert symptom.
+        if (this.isSaving()) return;
         const record = this.maintenanceRecord();
         if (this.formGroup.invalid || !record) return;
 
         this.workflowService.clearStepAlerts();
+        this.isSaving.set(true);
 
         const observations: MaintenanceRecordObservationUpsertDto[] = this.observationFields()
             .map((field) => ({
@@ -193,15 +207,21 @@ export class FieldVisitMaintenanceEditStepComponent implements OnInit {
             Observations: observations,
         });
 
-        this.maintenanceRecordService.updateMaintenanceRecord(record.MaintenanceRecordID, dto).subscribe(() => {
-            this.alertService.pushAlert(new Alert("Maintenance Record saved.", AlertContext.Success));
-            this.workflowService.refresh().subscribe(() => {
-                if (nextAction === "continue") {
-                    this.router.navigate(["/field-visits", workflow.FieldVisitID, "post-maintenance-assessment"]);
-                } else if (nextAction === "wrap-up") {
-                    this.workflowService.wrapUpVisit(workflow.FieldVisitID);
-                }
-            });
+        this.maintenanceRecordService.updateMaintenanceRecord(record.MaintenanceRecordID, dto).subscribe({
+            next: () => {
+                this.alertService.pushAlert(new Alert("Maintenance Record saved.", AlertContext.Success));
+                this.workflowService.refresh().subscribe(() => {
+                    this.isSaving.set(false);
+                    if (nextAction === "continue") {
+                        this.router.navigate(["/field-visits", workflow.FieldVisitID, "post-maintenance-assessment"]);
+                    } else if (nextAction === "wrap-up") {
+                        this.workflowService.wrapUpVisit(workflow.FieldVisitID);
+                    }
+                });
+            },
+            error: () => {
+                this.isSaving.set(false);
+            },
         });
     }
 

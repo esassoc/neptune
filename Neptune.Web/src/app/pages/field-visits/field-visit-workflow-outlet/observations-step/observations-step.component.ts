@@ -76,6 +76,7 @@ export class FieldVisitObservationsStepComponent implements OnInit {
     public assessment = signal<TreatmentBMPAssessmentDetailDto | null>(null);
     public panels = signal<ObservationTypePanel[]>([]);
     public isLoading = signal(true);
+    public isReadOnly = signal(false);
     public FormFieldType = FormFieldType;
 
     constructor(
@@ -104,17 +105,25 @@ export class FieldVisitObservationsStepComponent implements OnInit {
             .pipe(
                 take(1),
                 switchMap((workflow) => {
+                    this.isReadOnly.set(this.workflowService.isReadOnly(workflow));
                     if (!workflow) return of(null);
                     return this.assessmentByFieldVisitService.getByTypeTreatmentBMPAssessmentByFieldVisit(workflow.FieldVisitID, this.assessmentTypeID);
                 })
             )
             .subscribe((assessment) => {
                 this.assessment.set(assessment);
-                this.panels.set(
-                    (assessment?.ObservationTypes ?? [])
-                        .map((t) => this.buildPanel(t, assessment?.Observations ?? []))
-                        .filter((p): p is ObservationTypePanel => p != null)
-                );
+                const panels = (assessment?.ObservationTypes ?? [])
+                    .map((t) => this.buildPanel(t, assessment?.Observations ?? []))
+                    .filter((p): p is ObservationTypePanel => p != null);
+                if (this.isReadOnly()) {
+                    for (const panel of panels) {
+                        for (const prop of panel.properties) {
+                            prop.valueControl.disable();
+                            prop.notesControl.disable();
+                        }
+                    }
+                }
+                this.panels.set(panels);
                 this.isLoading.set(false);
             });
     }

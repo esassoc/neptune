@@ -10,7 +10,11 @@
             <p>No observation types are configured for this BMP type.</p>
         }
 
-        @if (isPostMaintenance && assessmentDetail.ObservationTypes.length > 0) {
+        @if (isReadOnly()) {
+            <p class="alert alert-info">This visit is no longer editable; observations are shown in read-only view.</p>
+        }
+
+        @if (isPostMaintenance && assessmentDetail.ObservationTypes.length > 0 && !isReadOnly()) {
             <div class="copy-from-initial">
                 <button type="button" class="btn btn-secondary" (click)="copyFromInitial(workflow)">
                     Copy data from Initial Assessment
@@ -54,9 +58,9 @@
                                         class="g-col-12 g-col-md-6"
                                         [formControl]="property.valueControl"
                                         [fieldLabel]="property.propertyObserved"
-                                        [type]="FormFieldType.Select"
-                                        [formInputOptions]="property.passFailOptions || []"
-                                        placeholder="— select —"></form-field>
+                                        [type]="FormFieldType.Radio"
+                                        [name]="'passfail-' + panel.observationTypeID + '-' + $index"
+                                        [formInputOptions]="property.passFailOptions || []"></form-field>
                                 }
                                 @case ("Percentage") {
                                     <form-field
@@ -86,14 +90,16 @@
             </div>
         }
 
-        <div class="step-footer">
-            <button type="button" class="btn btn-secondary" (click)="save(workflow, 'wrap-up')">
-                Save &amp; Wrap Up Visit <i class="fa fa-flag-checkered ml-2"></i>
-            </button>
-            <button type="button" class="btn btn-secondary" (click)="save(workflow, 'stay')">Save</button>
-            <button type="button" class="btn btn-primary" (click)="save(workflow, 'continue')">
-                Save &amp; Continue <i class="fa fa-caret-right ml-2"></i>
-            </button>
-        </div>
+        @if (!isReadOnly()) {
+            <div class="step-footer">
+                <button type="button" class="btn btn-secondary" (click)="save(workflow, 'wrap-up')">
+                    Save &amp; Wrap Up Visit <i class="fa fa-flag-checkered ml-2"></i>
+                </button>
+                <button type="button" class="btn btn-secondary" (click)="save(workflow, 'stay')">Save</button>
+                <button type="button" class="btn btn-primary" (click)="save(workflow, 'continue')">
+                    Save &amp; Continue <i class="fa fa-caret-right ml-2"></i>
+                </button>
+            </div>
+        }
     }
 }

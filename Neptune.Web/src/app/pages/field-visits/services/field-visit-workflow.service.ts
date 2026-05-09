@@ -66,4 +66,13 @@ export class FieldVisitWorkflowService {
     public wrapUpVisit(fieldVisitID: number): void {
         this.router.navigate(["/field-visits", fieldVisitID, "summary"]);
     }
+
+    /** True when the field visit is no longer editable — anything past the InProgress (1) status.
+     * Step components branch on this to render read-only views (no inputs, no Save buttons) so the
+     * "View" action from /field-records and Visit Summary cards lands on a sensible page instead of
+     * leaving the user in an edit form. */
+    public isReadOnly(workflow: FieldVisitWorkflowDto | null): boolean {
+        if (!workflow) return false;
+        return workflow.FieldVisitStatusID !== 1;
+    }
 }
