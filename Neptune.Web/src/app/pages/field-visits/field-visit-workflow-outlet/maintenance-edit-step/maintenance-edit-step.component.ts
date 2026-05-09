@@ -78,6 +78,7 @@ export class FieldVisitMaintenanceEditStepComponent implements OnInit {
 
     ngOnInit(): void {
         this.workflow$ = this.workflowService.workflow$;
+        this.workflowService.clearStepAlerts();
         this.workflowService.workflow$
             .pipe(
                 take(1),
@@ -173,9 +174,11 @@ export class FieldVisitMaintenanceEditStepComponent implements OnInit {
         }
     }
 
-    save(workflow: FieldVisitWorkflowDto): void {
+    save(workflow: FieldVisitWorkflowDto, nextAction: "stay" | "continue" | "wrap-up" = "continue"): void {
         const record = this.maintenanceRecord();
         if (this.formGroup.invalid || !record) return;
+
+        this.workflowService.clearStepAlerts();
 
         const observations: MaintenanceRecordObservationUpsertDto[] = this.observationFields()
             .map((field) => ({
@@ -193,7 +196,11 @@ export class FieldVisitMaintenanceEditStepComponent implements OnInit {
         this.maintenanceRecordService.updateMaintenanceRecord(record.MaintenanceRecordID, dto).subscribe(() => {
             this.alertService.pushAlert(new Alert("Maintenance Record saved.", AlertContext.Success));
             this.workflowService.refresh().subscribe(() => {
-                this.router.navigate(["/field-visits", workflow.FieldVisitID, "post-maintenance-assessment"]);
+                if (nextAction === "continue") {
+                    this.router.navigate(["/field-visits", workflow.FieldVisitID, "post-maintenance-assessment"]);
+                } else if (nextAction === "wrap-up") {
+                    this.workflowService.wrapUpVisit(workflow.FieldVisitID);
+                }
             });
         });
     }

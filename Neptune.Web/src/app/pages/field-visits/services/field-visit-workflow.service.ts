@@ -1,15 +1,20 @@
-import { Injectable } from "@angular/core";
+import { inject, Injectable } from "@angular/core";
+import { Router } from "@angular/router";
 import { BehaviorSubject, Observable, of, switchMap } from "rxjs";
 import { tap } from "rxjs/operators";
 
 import { FieldVisitService } from "src/app/shared/generated/api/field-visit.service";
 import { FieldVisitWorkflowDto } from "src/app/shared/generated/model/field-visit-workflow-dto";
 import { FieldVisitInventoryUpdatedDto } from "src/app/shared/generated/model/field-visit-inventory-updated-dto";
+import { AlertService } from "src/app/shared/services/alert.service";
 
 @Injectable({ providedIn: "root" })
 export class FieldVisitWorkflowService {
     private workflowSubject = new BehaviorSubject<FieldVisitWorkflowDto | null>(null);
     public workflow$: Observable<FieldVisitWorkflowDto | null> = this.workflowSubject.asObservable();
+
+    private router = inject(Router);
+    private alertService = inject(AlertService);
 
     constructor(private fieldVisitService: FieldVisitService) {}
 
@@ -48,5 +53,17 @@ export class FieldVisitWorkflowService {
         }
         const dto = new FieldVisitInventoryUpdatedDto({ InventoryUpdated: true });
         return this.fieldVisitService.updateInventoryUpdatedFieldVisit(fieldVisitID, dto).pipe(switchMap(() => this.refresh()));
+    }
+
+    /** Clear any lingering AlertService alerts. Call from each workflow step's ngOnInit and at the start
+     * of each save handler so success/error toasts from the prior step don't carry over. */
+    public clearStepAlerts(): void {
+        this.alertService.clearAlerts();
+    }
+
+    /** Navigate to the Visit Summary for the current field visit. Used by the "Wrap Up Visit" buttons
+     * on gateway/edit pages and by the "Save & Wrap Up Visit" save targets. */
+    public wrapUpVisit(fieldVisitID: number): void {
+        this.router.navigate(["/field-visits", fieldVisitID, "summary"]);
     }
 }

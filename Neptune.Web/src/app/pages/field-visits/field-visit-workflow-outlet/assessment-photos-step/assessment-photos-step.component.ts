@@ -63,6 +63,7 @@ export class FieldVisitAssessmentPhotosStepComponent implements OnInit {
 
     ngOnInit(): void {
         this.workflow$ = this.workflowService.workflow$;
+        this.workflowService.clearStepAlerts();
         this.workflow$
             .pipe(
                 take(1),

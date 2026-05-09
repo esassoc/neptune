@@ -35,6 +35,9 @@ export class TreatmentBmpCustomAttributesFormComponent implements OnInit {
 
     @Input() treatmentBMPID!: number;
     @Input() customAttributePurposeID!: number;
+    /** When true, suppresses the built-in Save/Cancel footer so a host (e.g. the field-visit
+     * workflow) can render its own button row and drive saves via @ViewChild + saveFromHost(). */
+    @Input() hideFooter = false;
 
     @Output() saved = new EventEmitter<void>();
     @Output() cancelled = new EventEmitter<void>();
@@ -47,6 +50,10 @@ export class TreatmentBmpCustomAttributesFormComponent implements OnInit {
     public formGroup = new FormGroup({});
     public isLoadingSubmit = false;
 
+    /** Cached attribute-types last emitted by the observable, populated via tap(). The host calls
+     * saveFromHost() without needing to thread the types in; saveFromHost() uses this cache. */
+    private cachedAttributeTypes: TreatmentBMPTypeCustomAttributeTypeDto[] = [];
+
     ngOnInit(): void {
         this.customAttributePurposeName = CustomAttributeTypePurposes.find((x) => x.Value == this.customAttributePurposeID)?.DisplayName;
         this.treatmentBMP$ = this.treatmentBMPService.getByIDTreatmentBMP(this.treatmentBMPID).pipe(shareReplay(1));
@@ -55,6 +62,7 @@ export class TreatmentBmpCustomAttributesFormComponent implements OnInit {
             switchMap((bmp) =>
                 this.treatmentBMPTypeService.listCustomAttributeTypesTreatmentBMPType(bmp.TreatmentBMPTypeID).pipe(
                     tap((attributes) => {
+                        this.cachedAttributeTypes = attributes ?? [];
                         this.hasAttributes =
                             Array.isArray(attributes) &&
                             attributes.some((attr) => attr.CustomAttributeType?.CustomAttributeTypePurposeID === this.customAttributePurposeID);
@@ -103,5 +111,12 @@ export class TreatmentBmpCustomAttributesFormComponent implements OnInit {
 
     public cancel(): void {
         this.cancelled.emit();
+    }
+
+    /** Imperative save trigger for hosts using `[hideFooter]`. Uses the cached attribute-types
+     * captured during the load pipeline so the host doesn't need to pass them in. */
+    public saveFromHost(): void {
+        if (this.cachedAttributeTypes.length === 0) return;
+        this.save(this.cachedAttributeTypes);
     }
 }

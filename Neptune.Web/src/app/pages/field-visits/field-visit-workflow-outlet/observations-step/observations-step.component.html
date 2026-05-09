@@ -87,8 +87,11 @@
         }
 
         <div class="step-footer">
-            <button type="button" class="btn btn-secondary" (click)="save(workflow, false)">Save</button>
-            <button type="button" class="btn btn-primary" (click)="save(workflow, true)">
+            <button type="button" class="btn btn-secondary" (click)="save(workflow, 'wrap-up')">
+                Save &amp; Wrap Up Visit <i class="fa fa-flag-checkered ml-2"></i>
+            </button>
+            <button type="button" class="btn btn-secondary" (click)="save(workflow, 'stay')">Save</button>
+            <button type="button" class="btn btn-primary" (click)="save(workflow, 'continue')">
                 Save &amp; Continue <i class="fa fa-caret-right ml-2"></i>
             </button>
         </div>

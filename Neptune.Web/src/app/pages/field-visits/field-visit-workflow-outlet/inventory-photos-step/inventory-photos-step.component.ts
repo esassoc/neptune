@@ -23,6 +23,7 @@ export class FieldVisitInventoryPhotosStepComponent implements OnInit {
 
     ngOnInit(): void {
         this.workflow$ = this.workflowService.workflow$;
+        this.workflowService.clearStepAlerts();
     }
 
     /**

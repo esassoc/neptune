@@ -39,6 +39,9 @@ export class TreatmentBmpLocationEditorComponent implements OnInit {
     @Input() treatmentBMPID!: number;
     /** Optional override for the lat-lon-picker instructions template. */
     @Input() instructionsTemplate?: TemplateRef<unknown>;
+    /** When true, suppresses the built-in Save/Cancel footer so a host (e.g. the field-visit
+     * workflow) can render its own button row and drive saves via @ViewChild + save(). */
+    @Input() hideFooter = false;
 
     @Output() saved = new EventEmitter<TreatmentBMPDto>();
     @Output() cancelled = new EventEmitter<void>();

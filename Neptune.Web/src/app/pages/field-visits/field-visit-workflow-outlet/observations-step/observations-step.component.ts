@@ -99,6 +99,7 @@ export class FieldVisitObservationsStepComponent implements OnInit {
 
     ngOnInit(): void {
         this.workflow$ = this.workflowService.workflow$;
+        this.workflowService.clearStepAlerts();
         this.workflow$
             .pipe(
                 take(1),
@@ -210,9 +211,11 @@ export class FieldVisitObservationsStepComponent implements OnInit {
         return String(value);
     }
 
-    save(workflow: FieldVisitWorkflowDto, andContinue: boolean): void {
+    save(workflow: FieldVisitWorkflowDto, nextAction: "stay" | "continue" | "wrap-up"): void {
         const assessment = this.assessment();
         if (!assessment) return;
+
+        this.workflowService.clearStepAlerts();
 
         // Touch every value control so out-of-range / range-validator errors surface in form-field
         // before we bail out. Notes have no validators, so no need to touch them.
@@ -247,9 +250,11 @@ export class FieldVisitObservationsStepComponent implements OnInit {
         this.assessmentService.upsertObservationsTreatmentBMPAssessment(assessment.TreatmentBMPAssessmentID, dto).subscribe(() => {
             this.alertService.pushAlert(new Alert("Observations saved.", AlertContext.Success));
             this.workflowService.refresh().subscribe(() => {
-                if (andContinue) {
+                if (nextAction === "continue") {
                     const next = this.isPostMaintenance ? "summary" : "maintenance";
                     this.router.navigate(["/field-visits", workflow.FieldVisitID, next]);
+                } else if (nextAction === "wrap-up") {
+                    this.workflowService.wrapUpVisit(workflow.FieldVisitID);
                 }
             });
         });
