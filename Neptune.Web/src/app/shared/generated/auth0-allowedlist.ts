@@ -65,6 +65,7 @@ const ANON_REGEX: RegexMap = {
     new RegExp("^/treatment-bmps/[^/]+/treatment-bmp-documents/[^/]+$"),
     new RegExp("^/treatment-bmps/[^/]+/treatment-bmp-images$"),
     new RegExp("^/treatment-bmps/[^/]+/treatment-bmp-images/[^/]+$"),
+    new RegExp("^/treatment-bmps/[^/]+/treatment-bmp-images/carousel$"),
     new RegExp("^/treatment-bmps/jurisdictions/[^/]+/verified/feature-collection$"),
     new RegExp("^/water-quality-management-plans/[^/]+$"),
     new RegExp("^/water-quality-management-plans/[^/]+/documents$"),

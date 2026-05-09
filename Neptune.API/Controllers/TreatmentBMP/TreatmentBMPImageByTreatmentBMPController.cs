@@ -45,6 +45,21 @@ public class TreatmentBMPImageByTreatmentBMPController(NeptuneDbContext dbContex
         return Ok(treatmentBMPImageDtos);
     }
 
+    /// <summary>
+    /// Carousel feed for the BMP detail page — inventory images plus assessment photos from
+    /// verified field visits. Edit/delete affordances should keep using <see cref="List"/> since
+    /// the assessment-photo rows here carry synthetic IDs and aren't routable back through the
+    /// TreatmentBMPImage delete/update endpoints.
+    /// </summary>
+    [HttpGet("carousel")]
+    [AllowAnonymous]
+    [EntityNotFound(typeof(TreatmentBMP), "treatmentBMPID")]
+    public async Task<ActionResult<IEnumerable<TreatmentBMPImageDto>>> ListForCarousel([FromRoute] int treatmentBMPID)
+    {
+        var dtos = await TreatmentBMPImages.ListForCarouselAsync(DbContext, treatmentBMPID);
+        return Ok(dtos);
+    }
+
     [HttpGet("{treatmentBMPImageID}")]
     [AllowAnonymous]
     [EntityNotFound(typeof(TreatmentBMP), "treatmentBMPID")]
