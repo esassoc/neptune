@@ -6,7 +6,7 @@
         <div class="card-body">
             <dl class="grid-12">
                 <dt class="g-col-3">Visit Date</dt>
-                <dd class="g-col-3">{{ workflow.VisitDate | date: "MM/dd/yyyy" }}</dd>
+                <dd class="g-col-3">{{ workflow.VisitDate | date: "MM/dd/yyyy" : "UTC" }}</dd>
                 <dt class="g-col-3">Status</dt>
                 <dd class="g-col-3">{{ workflow.FieldVisitStatusDisplayName }}</dd>
 
