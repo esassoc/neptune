@@ -1,5 +1,6 @@
 import { Component, DestroyRef, inject } from "@angular/core";
 import { Router, RouterModule } from "@angular/router";
+import { DialogService } from "@ngneat/dialog";
 import { ConfirmService } from "src/app/shared/services/confirm/confirm.service";
 import { AlertService } from "src/app/shared/services/alert.service";
 import { Alert } from "src/app/shared/models/alert";
@@ -12,14 +13,19 @@ import * as L from "leaflet";
 import { ColDef } from "ag-grid-community";
 import { Observable, shareReplay, tap } from "rxjs";
 import { TreatmentBMPService } from "src/app/shared/generated/api/treatment-bmp.service";
+import { FieldVisitService } from "src/app/shared/generated/api/field-visit.service";
 import { UtilityFunctionsService } from "src/app/services/utility-functions.service";
+import { AuthenticationService } from "src/app/services/authentication.service";
 import { AsyncPipe } from "@angular/common";
 import { LoadingDirective } from "src/app/shared/directives/loading.directive";
 import { BoundingBoxDto } from "src/app/shared/generated/model/bounding-box-dto";
 import { StormwaterJurisdictionService } from "src/app/shared/generated/api/stormwater-jurisdiction.service";
 import { NeptunePageTypeEnum } from "src/app/shared/generated/enum/neptune-page-type-enum";
 import { TreatmentBMPGridDto } from "src/app/shared/generated/model/treatment-bmp-grid-dto";
-import { IconComponent } from "src/app/shared/components/icon/icon.component";
+import {
+    BeginFieldVisitModalComponent,
+    BeginFieldVisitModalContext,
+} from "./treatment-bmp-detail/begin-field-visit-modal/begin-field-visit-modal.component";
 import { takeUntilDestroyed } from "@angular/core/rxjs-interop";
 
 @Component({
@@ -45,26 +51,39 @@ export class TreatmentBmpsComponent {
 
     constructor(
         private treatmentBMPService: TreatmentBMPService,
+        private fieldVisitService: FieldVisitService,
         private utilityFunctionsService: UtilityFunctionsService,
         private stormwaterJurisdictionService: StormwaterJurisdictionService,
+        private authenticationService: AuthenticationService,
+        private dialogService: DialogService,
         private router: Router,
         private confirmService: ConfirmService,
         private alertService: AlertService
     ) {}
 
     ngOnInit(): void {
+        const canEdit = this.authenticationService.doesCurrentUserHaveJurisdictionEditPermission();
         this.columnDefs = [
-            this.utilityFunctionsService.createActionsColumnDef((params: any) => [
-                {
-                    ActionName: "View",
-                    ActionHandler: () => this.router.navigate(["/treatment-bmps", params.data.TreatmentBMPID]),
-                },
-                {
-                    ActionName: "Delete",
-                    ActionIcon: "fa fa-trash text-danger",
-                    ActionHandler: () => this.deleteModal(params),
-                },
-            ]),
+            this.utilityFunctionsService.createActionsColumnDef((params: any) => {
+                const actions: { ActionName: string; ActionIcon?: string; ActionHandler: () => void }[] = [
+                    {
+                        ActionName: "View",
+                        ActionHandler: () => this.router.navigate(["/treatment-bmps", params.data.TreatmentBMPID]),
+                    },
+                ];
+                if (canEdit) {
+                    actions.push({
+                        ActionName: "Start Field Visit",
+                        ActionHandler: () => this.openBeginFieldVisitModal(params.data.TreatmentBMPID),
+                    });
+                    actions.push({
+                        ActionName: "Delete",
+                        ActionIcon: "fa fa-trash text-danger",
+                        ActionHandler: () => this.deleteModal(params),
+                    });
+                }
+                return actions;
+            }),
             this.utilityFunctionsService.createLinkColumnDef("Name", "TreatmentBMPName", "TreatmentBMPID", {
                 InRouterLink: "/treatment-bmps/",
                 FieldDefinitionType: "TreatmentBMP",
@@ -178,6 +197,25 @@ export class TreatmentBmpsComponent {
                 }
             }
         }
+    }
+
+    private openBeginFieldVisitModal(treatmentBMPID: number): void {
+        // Mirror treatment-bmp-detail.openBeginFieldVisitModal: pre-fetch the in-progress visit so
+        // the modal renders the Continue/New radio when one already exists.
+        this.fieldVisitService.getInProgressForTreatmentBMPFieldVisit(treatmentBMPID).subscribe((inProgress) => {
+            this.dialogService
+                .open(BeginFieldVisitModalComponent, {
+                    data: {
+                        treatmentBMPID,
+                        inProgressFieldVisit: inProgress ?? null,
+                    } as BeginFieldVisitModalContext,
+                })
+                .afterClosed$.subscribe((result) => {
+                    if (result) {
+                        this.router.navigate(["/field-visits", result.FieldVisitID]);
+                    }
+                });
+        });
     }
 
     private deleteModal(params: any) {
