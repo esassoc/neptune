@@ -26,9 +26,12 @@ public static class TreatmentBMPImages
 
     public static async Task<List<TreatmentBMPImageDto>> ListAsync(NeptuneDbContext dbContext, int treatmentBMPID)
     {
+        // Caption-asc order matches the legacy MVC BMP detail carousel
+        // (TreatmentBMPImages.ListByTreatmentBMPID, used by TreatmentBMPController.Detail).
         var treatmentBMPImages = await dbContext.TreatmentBMPImages.AsNoTracking()
             .Include(x => x.FileResource)
             .Where(x => x.TreatmentBMPID == treatmentBMPID)
+            .OrderBy(x => x.Caption)
             .ToListAsync();
 
         var treatmentBMPImageDtos = treatmentBMPImages.Select(x => x.AsDto()).ToList();
