@@ -35,13 +35,18 @@ export class FieldVisitInventoryPhotosStepComponent implements OnInit {
         this.workflowService.markInventoryUpdatedAndRefresh(workflow.FieldVisitID).subscribe();
     }
 
-    onContinue(workflow: FieldVisitWorkflowDto): void {
+    /** Photos auto-save on upload/delete/caption-save, so there's no per-page Save here — just a
+     * Continue button to advance to Attributes. Wrap Up Visit lets the user exit the workflow at
+     * this step without going through Attributes, matching the gateway/edit pattern elsewhere. */
+    continueToAttributes(workflow: FieldVisitWorkflowDto): void {
         this.workflowService.markInventoryUpdatedAndRefresh(workflow.FieldVisitID).subscribe(() => {
             this.router.navigate(["/field-visits", workflow.FieldVisitID, "inventory", "attributes"]);
         });
     }
 
-    onCancelled(workflow: FieldVisitWorkflowDto): void {
-        this.router.navigate(["/field-visits", workflow.FieldVisitID, "inventory"]);
+    wrapUpVisit(workflow: FieldVisitWorkflowDto): void {
+        this.workflowService.markInventoryUpdatedAndRefresh(workflow.FieldVisitID).subscribe(() => {
+            this.workflowService.wrapUpVisit(workflow.FieldVisitID);
+        });
     }
 }

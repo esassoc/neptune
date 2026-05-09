@@ -50,6 +50,14 @@ export class FieldVisitInventoryAttributesStepComponent implements OnInit {
     }
 
     private triggerSave(): void {
+        // Validity gate: required attribute controls aren't checked by saveFromHost, so without
+        // this guard the host would flip isSaving on, fire a doomed HTTP request, and stay stuck
+        // disabled until the user navigates away. Mark touched so validation messages render.
+        if (this.editor.formGroup.invalid) {
+            this.editor.formGroup.markAllAsTouched();
+            this.nextAction = "stay";
+            return;
+        }
         this.workflowService.clearStepAlerts();
         this.isSaving = true;
         this.editor.saveFromHost();
@@ -66,5 +74,12 @@ export class FieldVisitInventoryAttributesStepComponent implements OnInit {
                 this.workflowService.wrapUpVisit(workflow.FieldVisitID);
             }
         });
+    }
+
+    onSaveError(): void {
+        // Editor's HTTP save errored — clear the in-flight state so the host buttons don't stay
+        // permanently disabled. Errors are already surfaced via AlertService inside the editor.
+        this.isSaving = false;
+        this.nextAction = "stay";
     }
 }

@@ -4,14 +4,15 @@
         [treatmentBMPID]="workflow.TreatmentBMPID"
         [customAttributePurposeID]="OtherDesignAttributesPurposeID"
         [hideFooter]="true"
-        (saved)="onSaved(workflow)"></treatment-bmp-custom-attributes-form>
+        (saved)="onSaved(workflow)"
+        (saveError)="onSaveError()"></treatment-bmp-custom-attributes-form>
 
     <div class="step-footer">
-        <button type="button" class="btn btn-secondary" [disabled]="isSaving" (click)="saveAndWrapUp()">
+        <button type="button" class="btn btn-secondary" [disabled]="isSaving || editor?.formGroup?.invalid" (click)="saveAndWrapUp()">
             Save &amp; Wrap Up Visit <i class="fa fa-flag-checkered ml-2"></i>
         </button>
-        <button type="button" class="btn btn-secondary" [disabled]="isSaving" (click)="save()">Save</button>
-        <button type="button" class="btn btn-primary" [disabled]="isSaving" (click)="saveAndContinue()">
+        <button type="button" class="btn btn-secondary" [disabled]="isSaving || editor?.formGroup?.invalid" (click)="save()">Save</button>
+        <button type="button" class="btn btn-primary" [disabled]="isSaving || editor?.formGroup?.invalid" (click)="saveAndContinue()">
             Save &amp; Continue <i class="fa fa-caret-right ml-2"></i>
         </button>
     </div>

@@ -127,38 +127,50 @@ export class TreatmentBmpImagesEditorComponent implements OnInit {
     public onCaptionEditRequested(item: ImageEditorItem): void {
         if (!item.PrimaryKey || !item.FileResourceGUID) return;
         // Pre-load the photo blob into an object URL so the modal preview matches what's on the page.
-        this.fileResourceService.displayResourceFileResource(item.FileResourceGUID, "body", false, { httpHeaderAccept: undefined }).subscribe((blob: Blob) => {
-            const previewUrl = URL.createObjectURL(blob);
-            this.dialogService
-                .open(EditPhotoCaptionModalComponent, {
-                    data: {
-                        currentCaption: item.Caption ?? "",
-                        previewUrl,
-                        title: "Edit Photo Caption",
-                    } as EditPhotoCaptionModalContext,
-                })
-                .afterClosed$.subscribe((newCaption: string | null | undefined) => {
-                    URL.revokeObjectURL(previewUrl);
-                    if (newCaption == null) return;
-                    if ((newCaption ?? "") === (item.Caption ?? "")) return;
-                    this.isLoadingSubmit = true;
-                    this.treatmentBMPImageService
-                        .updateTreatmentBMPImageByTreatmentBMP(this.treatmentBMPID, [
-                            { TreatmentBMPImageID: item.PrimaryKey!, Caption: newCaption },
-                        ])
-                        .subscribe({
-                            next: () => {
-                                this.isLoadingSubmit = false;
-                                this.alertService.pushAlert(new Alert("Caption saved.", AlertContext.Success));
-                                this.reloadTrigger$.next();
-                                this.captionUpdated.emit();
-                            },
-                            error: () => {
-                                this.isLoadingSubmit = false;
-                                this.alertService.pushAlert(new Alert("Failed to save caption.", AlertContext.Danger));
-                            },
-                        });
-                });
+        this.fileResourceService.displayResourceFileResource(item.FileResourceGUID, "body", false, { httpHeaderAccept: undefined }).subscribe({
+            next: (blob: Blob) => {
+                const previewUrl = URL.createObjectURL(blob);
+                this.openCaptionModal(item, previewUrl);
+            },
+            error: () => {
+                // Open the modal anyway without a preview — the user can still edit the caption.
+                // Surface a soft warning so the missing thumbnail isn't mysterious.
+                this.alertService.pushAlert(new Alert("Could not load the photo preview; caption editor is still available.", AlertContext.Warning));
+                this.openCaptionModal(item, null);
+            },
         });
+    }
+
+    private openCaptionModal(item: ImageEditorItem, previewUrl: string | null): void {
+        this.dialogService
+            .open(EditPhotoCaptionModalComponent, {
+                data: {
+                    currentCaption: item.Caption ?? "",
+                    previewUrl,
+                    title: "Edit Photo Caption",
+                } as EditPhotoCaptionModalContext,
+            })
+            .afterClosed$.subscribe((newCaption: string | null | undefined) => {
+                if (previewUrl) URL.revokeObjectURL(previewUrl);
+                if (newCaption == null) return;
+                if ((newCaption ?? "") === (item.Caption ?? "")) return;
+                this.isLoadingSubmit = true;
+                this.treatmentBMPImageService
+                    .updateTreatmentBMPImageByTreatmentBMP(this.treatmentBMPID, [
+                        { TreatmentBMPImageID: item.PrimaryKey!, Caption: newCaption },
+                    ])
+                    .subscribe({
+                        next: () => {
+                            this.isLoadingSubmit = false;
+                            this.alertService.pushAlert(new Alert("Caption saved.", AlertContext.Success));
+                            this.reloadTrigger$.next();
+                            this.captionUpdated.emit();
+                        },
+                        error: () => {
+                            this.isLoadingSubmit = false;
+                            this.alertService.pushAlert(new Alert("Failed to save caption.", AlertContext.Danger));
+                        },
+                    });
+            });
     }
 }

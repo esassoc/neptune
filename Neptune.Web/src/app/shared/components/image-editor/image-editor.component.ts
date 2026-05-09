@@ -55,10 +55,12 @@ export class ImageEditorComponent implements OnInit, OnChanges, OnDestroy {
         if (changes.images && changes.images.currentValue !== changes.images.previousValue) {
             this.imagePreviewUrls.set({});
             this.captionControls = {};
-            // Skip wiring the per-photo caption FormControls when the host is using the modal pattern;
-            // captions persist via the modal's own save, not via this component's batch Save.
-            if (!this.useCaptionModal) {
-                this.captionControlForm.controls = {};
+            // Always remove any controls we previously added — even in modal mode — so a host that
+            // toggles between modes (or re-uses the same captionControlForm reference across page
+            // reloads) doesn't accumulate stale FormControls. removeControl() is the supported API;
+            // setting `.controls = {}` mutates the FormGroup's internal state directly.
+            for (const guid of Object.keys(this.captionControlForm.controls)) {
+                this.captionControlForm.removeControl(guid, { emitEvent: false });
             }
 
             for (const img of this.images) {

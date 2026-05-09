@@ -48,6 +48,15 @@ export class FieldVisitInventoryLocationStepComponent implements OnInit {
     }
 
     private triggerSave(): void {
+        // Validity gate: the embedded editor's save() doesn't pre-check the formGroup, so without
+        // this guard the host would flip isSaving on, fire an HTTP request with empty lat/lon,
+        // and surface a server-side error. Mark the controls touched so the user sees the
+        // validation message and bail without entering the saving state.
+        if (this.editor.formGroup.invalid) {
+            this.editor.formGroup.markAllAsTouched();
+            this.nextAction = "stay";
+            return;
+        }
         this.workflowService.clearStepAlerts();
         this.isSaving = true;
         this.editor.save();
@@ -64,5 +73,13 @@ export class FieldVisitInventoryLocationStepComponent implements OnInit {
                 this.workflowService.wrapUpVisit(workflow.FieldVisitID);
             }
         });
+    }
+
+    onSaveError(): void {
+        // Editor's HTTP save errored — clear the in-flight state so the host buttons don't stay
+        // permanently disabled. Errors are already surfaced to the user via AlertService inside
+        // the editor.
+        this.isSaving = false;
+        this.nextAction = "stay";
     }
 }

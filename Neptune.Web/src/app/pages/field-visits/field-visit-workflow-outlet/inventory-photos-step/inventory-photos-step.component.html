@@ -6,4 +6,13 @@
         (uploaded)="onPhotosChanged(workflow)"
         (deleted)="onPhotosChanged(workflow)"
         (captionUpdated)="onPhotosChanged(workflow)"></treatment-bmp-images-editor>
+
+    <div class="step-footer">
+        <button type="button" class="btn btn-secondary" (click)="wrapUpVisit(workflow)">
+            Wrap Up Visit <i class="fa fa-flag-checkered ml-2"></i>
+        </button>
+        <button type="button" class="btn btn-primary" (click)="continueToAttributes(workflow)">
+            Continue <i class="fa fa-caret-right ml-2"></i>
+        </button>
+    </div>
 }

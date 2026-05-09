@@ -45,6 +45,9 @@ export class TreatmentBmpLocationEditorComponent implements OnInit {
 
     @Output() saved = new EventEmitter<TreatmentBMPDto>();
     @Output() cancelled = new EventEmitter<void>();
+    /** Emitted when a save attempt fails. Hosts driving saves via @ViewChild listen here to
+     * clear their own in-flight UI state on the error path. */
+    @Output() saveError = new EventEmitter<void>();
 
     public formGroup: FormGroup<TreatmentBMPLocationUpdateDtoForm> = new FormGroup<TreatmentBMPLocationUpdateDtoForm>({
         Latitude: TreatmentBMPLocationUpdateDtoFormControls.Latitude(undefined),
@@ -82,6 +85,7 @@ export class TreatmentBmpLocationEditorComponent implements OnInit {
             },
             error: () => {
                 this.isLoadingSubmit = false;
+                this.saveError.emit();
             },
         });
     }

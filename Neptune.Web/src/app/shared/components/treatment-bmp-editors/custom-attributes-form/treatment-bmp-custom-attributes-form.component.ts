@@ -41,6 +41,10 @@ export class TreatmentBmpCustomAttributesFormComponent implements OnInit {
 
     @Output() saved = new EventEmitter<void>();
     @Output() cancelled = new EventEmitter<void>();
+    /** Emitted when a save attempt fails or is rejected before it can fire (e.g. attribute types
+     * not yet loaded). Hosts driving saves via @ViewChild should listen here to clear their
+     * own in-flight UI state on error/no-op paths. */
+    @Output() saveError = new EventEmitter<void>();
 
     public customAttributePurposeName?: string;
     public treatmentBMP$!: Observable<TreatmentBMPDto>;
@@ -105,7 +109,10 @@ export class TreatmentBmpCustomAttributesFormComponent implements OnInit {
                     this.alertService.pushAlert(new Alert(`Treatment BMP ${this.customAttributePurposeName} attributes updated successfully.`, AlertContext.Success));
                     this.saved.emit();
                 },
-                error: () => (this.isLoadingSubmit = false),
+                error: () => {
+                    this.isLoadingSubmit = false;
+                    this.saveError.emit();
+                },
             });
     }
 
@@ -114,9 +121,15 @@ export class TreatmentBmpCustomAttributesFormComponent implements OnInit {
     }
 
     /** Imperative save trigger for hosts using `[hideFooter]`. Uses the cached attribute-types
-     * captured during the load pipeline so the host doesn't need to pass them in. */
+     * captured during the load pipeline so the host doesn't need to pass them in. When the BMP
+     * type has no custom attributes (legitimate empty case) we still want to give the host a
+     * `(saved)` signal so its 3-button footer can advance — there's nothing to persist, so the
+     * empty case is effectively a no-op success. */
     public saveFromHost(): void {
-        if (this.cachedAttributeTypes.length === 0) return;
+        if (this.cachedAttributeTypes.length === 0) {
+            this.saved.emit();
+            return;
+        }
         this.save(this.cachedAttributeTypes);
     }
 }

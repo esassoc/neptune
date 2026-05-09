@@ -137,36 +137,47 @@ export class FieldVisitAssessmentPhotosStepComponent implements OnInit {
         if (!photoID || !item.FileResourceGUID) return;
 
         // Pre-load the photo blob into an object URL so the modal preview matches the on-page thumbnail.
-        this.fileResourceService.displayResourceFileResource(item.FileResourceGUID, "body", false, { httpHeaderAccept: undefined }).subscribe((blob: Blob) => {
-            const previewUrl = URL.createObjectURL(blob);
-            this.dialogService
-                .open(EditPhotoCaptionModalComponent, {
-                    data: {
-                        currentCaption: item.Caption ?? "",
-                        previewUrl,
-                        title: "Edit Photo Caption",
-                    } as EditPhotoCaptionModalContext,
-                })
-                .afterClosed$.subscribe((newCaption: string | null | undefined) => {
-                    URL.revokeObjectURL(previewUrl);
-                    if (newCaption == null) return;
-                    if ((newCaption ?? "") === (item.Caption ?? "")) return;
-                    this.photoService
-                        .updateCaptionTreatmentBMPAssessmentPhoto(assessment.TreatmentBMPAssessmentID, photoID, {
-                            TreatmentBMPAssessmentPhotoID: photoID,
-                            Caption: newCaption,
-                        })
-                        .subscribe({
-                            next: () => {
-                                this.alertService.pushAlert(new Alert("Caption saved.", AlertContext.Success));
-                                this.refreshPhotos();
-                            },
-                            error: () => {
-                                this.alertService.pushAlert(new Alert("Failed to save caption.", AlertContext.Danger));
-                            },
-                        });
-                });
+        this.fileResourceService.displayResourceFileResource(item.FileResourceGUID, "body", false, { httpHeaderAccept: undefined }).subscribe({
+            next: (blob: Blob) => {
+                const previewUrl = URL.createObjectURL(blob);
+                this.openCaptionModal(assessment.TreatmentBMPAssessmentID, photoID, item, previewUrl);
+            },
+            error: () => {
+                // Open without a preview — caption editor still works, just without a thumbnail.
+                this.alertService.pushAlert(new Alert("Could not load the photo preview; caption editor is still available.", AlertContext.Warning));
+                this.openCaptionModal(assessment.TreatmentBMPAssessmentID, photoID, item, null);
+            },
         });
+    }
+
+    private openCaptionModal(assessmentID: number, photoID: number, item: ImageEditorItem, previewUrl: string | null): void {
+        this.dialogService
+            .open(EditPhotoCaptionModalComponent, {
+                data: {
+                    currentCaption: item.Caption ?? "",
+                    previewUrl,
+                    title: "Edit Photo Caption",
+                } as EditPhotoCaptionModalContext,
+            })
+            .afterClosed$.subscribe((newCaption: string | null | undefined) => {
+                if (previewUrl) URL.revokeObjectURL(previewUrl);
+                if (newCaption == null) return;
+                if ((newCaption ?? "") === (item.Caption ?? "")) return;
+                this.photoService
+                    .updateCaptionTreatmentBMPAssessmentPhoto(assessmentID, photoID, {
+                        TreatmentBMPAssessmentPhotoID: photoID,
+                        Caption: newCaption,
+                    })
+                    .subscribe({
+                        next: () => {
+                            this.alertService.pushAlert(new Alert("Caption saved.", AlertContext.Success));
+                            this.refreshPhotos();
+                        },
+                        error: () => {
+                            this.alertService.pushAlert(new Alert("Failed to save caption.", AlertContext.Danger));
+                        },
+                    });
+            });
     }
 
     cancel(workflow: FieldVisitWorkflowDto): void {
