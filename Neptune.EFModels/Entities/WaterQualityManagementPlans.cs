@@ -157,6 +157,19 @@ public static class WaterQualityManagementPlans
         return await GetByIDAsDtoAsync(dbContext, entity.WaterQualityManagementPlanID);
     }
 
+    // NPT-1051: Classifies a Status transition's effect on the modeling pipeline. Pure function,
+    // hermetically unit-testable. Same-status saves and Draft <-> Inactive flips are no-ops
+    // because neither state participates in the modeling graph. Crossing the Active boundary in
+    // either direction requires DB-side cleanup or re-dirtying.
+    public static StatusTransitionEffect ClassifyStatusTransition(int? oldStatusID, int? newStatusID)
+    {
+        if (oldStatusID == newStatusID) return StatusTransitionEffect.None;
+        var active = (int)WaterQualityManagementPlanStatusEnum.Active;
+        if (oldStatusID == active) return StatusTransitionEffect.LeavingActive;
+        if (newStatusID == active) return StatusTransitionEffect.EnteringActive;
+        return StatusTransitionEffect.None;
+    }
+
     // NPT-1051: Side effects of a WQMP Status transition. Read-time gating (NereidService graph
     // filter, vTrashGeneratingUnitLoadStatistic CASE, TrashGeneratingUnitHelper) hides non-Active
     // WQMPs from results going forward, but the DB still carries the WQMP's previously-cached
@@ -171,41 +184,35 @@ public static class WaterQualityManagementPlans
             .Select(x => x.WaterQualityManagementPlanStatusID)
             .FirstAsync();
 
-        if (oldStatusID == newStatusID) return false;
-
-        var activeStatusID = (int)WaterQualityManagementPlanStatusEnum.Active;
-        var wasActive = oldStatusID == activeStatusID;
-        var isActive = newStatusID == activeStatusID;
-
-        // Draft <-> Inactive flips don't change result calculations either way.
-        if (!wasActive && !isActive) return false;
-
-        if (wasActive)
+        switch (ClassifyStatusTransition(oldStatusID, newStatusID))
         {
-            // Active -> non-Active: WQMP leaves the modeling graph. Dirty the downstream regional
-            // subbasins / centralized BMPs that previously folded this WQMP into their solves so
-            // they get recomputed without it; then delete the WQMP's own (now stale) result rows.
-            var wqmp = await dbContext.WaterQualityManagementPlans
-                .Include(x => x.LoadGeneratingUnits)
-                .FirstAsync(x => x.WaterQualityManagementPlanID == waterQualityManagementPlanID);
-            await NereidUtilities.MarkDownstreamNodeDirty(wqmp, dbContext);
-            await dbContext.NereidResults
-                .Where(x => x.WaterQualityManagementPlanID == waterQualityManagementPlanID)
-                .ExecuteDeleteAsync();
-            await dbContext.ProjectNereidResults
-                .Where(x => x.WaterQualityManagementPlanID == waterQualityManagementPlanID)
-                .ExecuteDeleteAsync();
-        }
-        else
-        {
-            // non-Active -> Active: WQMP enters the graph. Dirty it directly so DeltaSolve picks
-            // up the new node on its next run.
-            var wqmp = await dbContext.WaterQualityManagementPlans
-                .FirstAsync(x => x.WaterQualityManagementPlanID == waterQualityManagementPlanID);
-            await NereidUtilities.MarkWqmpDirty(wqmp, dbContext);
-        }
+            case StatusTransitionEffect.LeavingActive:
+                // WQMP leaves the modeling graph. Dirty the downstream regional subbasins /
+                // centralized BMPs that previously folded this WQMP into their solves so they
+                // get recomputed without it; then delete the WQMP's own (now stale) result rows.
+                var leavingWqmp = await dbContext.WaterQualityManagementPlans
+                    .Include(x => x.LoadGeneratingUnits)
+                    .FirstAsync(x => x.WaterQualityManagementPlanID == waterQualityManagementPlanID);
+                await NereidUtilities.MarkDownstreamNodeDirty(leavingWqmp, dbContext);
+                await dbContext.NereidResults
+                    .Where(x => x.WaterQualityManagementPlanID == waterQualityManagementPlanID)
+                    .ExecuteDeleteAsync();
+                await dbContext.ProjectNereidResults
+                    .Where(x => x.WaterQualityManagementPlanID == waterQualityManagementPlanID)
+                    .ExecuteDeleteAsync();
+                return true;
 
-        return true;
+            case StatusTransitionEffect.EnteringActive:
+                // WQMP enters the graph. Dirty it directly so DeltaSolve picks up the new node
+                // on its next run.
+                var enteringWqmp = await dbContext.WaterQualityManagementPlans
+                    .FirstAsync(x => x.WaterQualityManagementPlanID == waterQualityManagementPlanID);
+                await NereidUtilities.MarkWqmpDirty(enteringWqmp, dbContext);
+                return true;
+
+            default:
+                return false;
+        }
     }
 
     public static async Task<bool> DeleteAsync(NeptuneDbContext dbContext, int waterQualityManagementPlanID)
@@ -344,4 +351,11 @@ public static class WaterQualityManagementPlans
         if (string.IsNullOrWhiteSpace(entity.WaterQualityManagementPlanName)) missing.Add("WQMP Name");
         return missing;
     }
+}
+
+public enum StatusTransitionEffect
+{
+    None,
+    LeavingActive,
+    EnteringActive,
 }
