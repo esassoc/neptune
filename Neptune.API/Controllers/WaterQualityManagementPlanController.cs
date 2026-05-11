@@ -90,8 +90,18 @@ namespace Neptune.API.Controllers
         [EntityNotFound(typeof(WaterQualityManagementPlan), "waterQualityManagementPlanID")]
         public async Task<ActionResult<WaterQualityManagementPlanDto>> Update([FromRoute] int waterQualityManagementPlanID, [FromBody] WaterQualityManagementPlanUpsertDto dto)
         {
+            // NPT-1051: Status transitions across the Active boundary need cleanup + re-solve; the
+            // SPA Basics modal hits this endpoint and can flip Active <-> Inactive.
+            var oldStatusID = await DbContext.WaterQualityManagementPlans.AsNoTracking()
+                .Where(x => x.WaterQualityManagementPlanID == waterQualityManagementPlanID)
+                .Select(x => x.WaterQualityManagementPlanStatusID)
+                .FirstAsync();
             var updated = await WaterQualityManagementPlans.UpdateAsync(DbContext, waterQualityManagementPlanID, dto);
             if (updated == null) return NotFound();
+            if (await WaterQualityManagementPlans.HandleStatusTransitionAsync(DbContext, waterQualityManagementPlanID, oldStatusID))
+            {
+                BackgroundJob.Enqueue<DeltaSolveJob>(x => x.RunJob());
+            }
             return Ok(updated);
         }
 
@@ -743,18 +753,18 @@ namespace Neptune.API.Controllers
                 return BadRequest(new { MissingFields = missingFields });
             }
 
+            var oldStatusID = entity.WaterQualityManagementPlanStatusID;
             entity.WaterQualityManagementPlanStatusID = (int)WaterQualityManagementPlanStatusEnum.Active;
             await DbContext.SaveChangesAsync();
 
-            // Now that the WQMP is Active, it flows into modeling result calculations. Mark it
-            // dirty so the next network solve picks it up rather than waiting for some other
-            // mutation to trigger it.
-            await NereidUtilities.MarkWqmpDirty(entity, DbContext);
-
-            // NPT-1051 rework: kick off the incremental solve immediately. Without this, the
-            // dirty marker only gets consumed when HRURefreshJob next runs (hours away on the
-            // schedule), so a freshly-promoted WQMP shows no modeling results until then.
-            BackgroundJob.Enqueue<DeltaSolveJob>(x => x.RunJob());
+            // Mark the WQMP dirty + kick off the incremental solve immediately. Without the
+            // enqueue, the dirty marker would only be consumed when HRURefreshJob next runs
+            // (hours away on the schedule), so a freshly-promoted WQMP would show no modeling
+            // results until then.
+            if (await WaterQualityManagementPlans.HandleStatusTransitionAsync(DbContext, waterQualityManagementPlanID, oldStatusID))
+            {
+                BackgroundJob.Enqueue<DeltaSolveJob>(x => x.RunJob());
+            }
 
             var dto = await WaterQualityManagementPlans.GetByIDAsDtoAsync(DbContext, waterQualityManagementPlanID);
             return Ok(dto);
