@@ -315,7 +315,7 @@ export class TreatmentBmpDetailComponent implements OnInit, OnChanges {
             )
         );
 
-        this.treatmentBMPImages$ = this.treatmentBMPImageByTreatmentBMPService.listTreatmentBMPImageByTreatmentBMP(this.treatmentBMPID).pipe(
+        this.treatmentBMPImages$ = this.treatmentBMPImageByTreatmentBMPService.listForCarouselTreatmentBMPImageByTreatmentBMP(this.treatmentBMPID).pipe(
             tap({
                 next: () => {
                     this.imagesLoading = false;

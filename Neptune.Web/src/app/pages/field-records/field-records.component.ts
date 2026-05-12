@@ -1,12 +1,16 @@
 import { Component, OnInit } from "@angular/core";
 import { AsyncPipe } from "@angular/common";
-import { Router, RouterModule } from "@angular/router";
+import { ActivatedRoute, Router, RouterModule } from "@angular/router";
 import { ColDef } from "ag-grid-community";
 import { Observable } from "rxjs";
 
 import { PageHeaderComponent } from "src/app/shared/components/page-header/page-header.component";
 import { AlertDisplayComponent } from "src/app/shared/components/alert-display/alert-display.component";
 import { NeptuneGridComponent } from "src/app/shared/components/neptune-grid/neptune-grid.component";
+import {
+    BtnGroupRadioInputComponent,
+    IBtnGroupRadioInputOption,
+} from "src/app/shared/components/inputs/btn-group-radio-input/btn-group-radio-input.component";
 
 import { FieldVisitService } from "src/app/shared/generated/api/field-visit.service";
 import { TreatmentBMPAssessmentService } from "src/app/shared/generated/api/treatment-bmp-assessment.service";
@@ -23,10 +27,12 @@ import { Alert } from "src/app/shared/models/alert";
 import { AlertContext } from "src/app/shared/models/enums/alert-context.enum";
 import { AuthenticationService } from "src/app/services/authentication.service";
 
+type ActiveTab = "field-visits" | "assessments" | "maintenance-records";
+
 @Component({
     selector: "field-records",
     standalone: true,
-    imports: [PageHeaderComponent, AlertDisplayComponent, NeptuneGridComponent, AsyncPipe, RouterModule],
+    imports: [PageHeaderComponent, AlertDisplayComponent, NeptuneGridComponent, AsyncPipe, RouterModule, BtnGroupRadioInputComponent],
     templateUrl: "./field-records.component.html",
     styleUrl: "./field-records.component.scss",
 })
@@ -41,6 +47,14 @@ export class FieldRecordsComponent implements OnInit {
 
     public canManage = false;
 
+    /** Tabs are sync'd to a `?tab=` query param so refresh and back-button preserve the user's view. */
+    public activeTab: ActiveTab = "field-visits";
+    public tabOptions: IBtnGroupRadioInputOption[] = [
+        { label: "Field Visits", value: "field-visits" },
+        { label: "Assessment Records", value: "assessments" },
+        { label: "Maintenance Records", value: "maintenance-records" },
+    ];
+
     constructor(
         private fieldVisitService: FieldVisitService,
         private assessmentService: TreatmentBMPAssessmentService,
@@ -49,17 +63,35 @@ export class FieldRecordsComponent implements OnInit {
         private confirmService: ConfirmService,
         private alertService: AlertService,
         private authenticationService: AuthenticationService,
-        private router: Router
+        private router: Router,
+        private route: ActivatedRoute
     ) {}
 
     ngOnInit(): void {
         this.canManage = this.authenticationService.doesCurrentUserHaveJurisdictionManagePermission();
+
+        const initialTab = this.route.snapshot.queryParamMap.get("tab") as ActiveTab | null;
+        if (initialTab && this.tabOptions.some((o) => o.value === initialTab)) {
+            this.activeTab = initialTab;
+        }
 
         this.fieldVisitColumnDefs = this.buildFieldVisitColumnDefs();
         this.assessmentColumnDefs = this.buildAssessmentColumnDefs();
         this.maintenanceRecordColumnDefs = this.buildMaintenanceRecordColumnDefs();
 
         this.refresh();
+    }
+
+    public onTabChange(value: string): void {
+        const next = value as ActiveTab;
+        if (this.activeTab === next) return;
+        this.activeTab = next;
+        this.router.navigate([], {
+            relativeTo: this.route,
+            queryParams: { tab: next },
+            queryParamsHandling: "merge",
+            replaceUrl: true,
+        });
     }
 
     private refresh(): void {
@@ -97,18 +129,18 @@ export class FieldRecordsComponent implements OnInit {
                 FieldDefinitionType: "TreatmentBMP",
             }),
             this.utility.createDateColumnDef("Visit Date", "VisitDate", "MM/dd/yyyy"),
-            this.utility.createBasicColumnDef("Jurisdiction", "OrganizationName"),
+            this.utility.createBasicColumnDef("Jurisdiction", "OrganizationName", { UseCustomDropdownFilter: true }),
             this.utility.createBasicColumnDef("WQMP", "WaterQualityManagementPlanName"),
             this.utility.createBasicColumnDef("Performed By", "PerformedByPersonName"),
-            this.utility.createBooleanColumnDef("Field Visit Verified", "IsFieldVisitVerified"),
-            this.utility.createBasicColumnDef("Status", "FieldVisitStatusDisplayName"),
-            this.utility.createBasicColumnDef("Visit Type", "FieldVisitTypeDisplayName"),
-            this.utility.createBooleanColumnDef("Inventory Updated?", "InventoryUpdated"),
-            this.utility.createBooleanColumnDef("Required Attributes Entered?", "RequiredAttributesEntered"),
-            this.utility.createBasicColumnDef("Initial Assessment?", "InitialAssessmentStatus"),
+            this.utility.createBooleanColumnDef("Field Visit Verified", "IsFieldVisitVerified", { UseCustomDropdownFilter: true }),
+            this.utility.createBasicColumnDef("Status", "FieldVisitStatusDisplayName", { UseCustomDropdownFilter: true }),
+            this.utility.createBasicColumnDef("Visit Type", "FieldVisitTypeDisplayName", { UseCustomDropdownFilter: true }),
+            this.utility.createBooleanColumnDef("Inventory Updated?", "InventoryUpdated", { UseCustomDropdownFilter: true }),
+            this.utility.createBooleanColumnDef("Required Attributes Entered?", "RequiredAttributesEntered", { UseCustomDropdownFilter: true }),
+            this.utility.createBasicColumnDef("Initial Assessment?", "InitialAssessmentStatus", { UseCustomDropdownFilter: true }),
             this.utility.createDecimalColumnDef("Initial Assessment Score", "AssessmentScoreInitial"),
-            this.utility.createBasicColumnDef("Maintenance Occurred?", "MaintenanceOccurred"),
-            this.utility.createBasicColumnDef("Post-Maintenance Assessment?", "PostMaintenanceAssessmentStatus"),
+            this.utility.createBasicColumnDef("Maintenance Occurred?", "MaintenanceOccurred", { UseCustomDropdownFilter: true }),
+            this.utility.createBasicColumnDef("Post-Maintenance Assessment?", "PostMaintenanceAssessmentStatus", { UseCustomDropdownFilter: true }),
             this.utility.createDecimalColumnDef("Post-Maintenance Assessment Score", "AssessmentScorePM")
         );
         return cols;
@@ -131,14 +163,14 @@ export class FieldRecordsComponent implements OnInit {
                 InRouterLink: "/treatment-bmps/",
                 FieldDefinitionType: "TreatmentBMP",
             }),
-            this.utility.createBasicColumnDef("BMP Type", "TreatmentBMPTypeName"),
+            this.utility.createBasicColumnDef("BMP Type", "TreatmentBMPTypeName", { UseCustomDropdownFilter: true }),
             this.utility.createDateColumnDef("Date", "VisitDate", "MM/dd/yyyy"),
-            this.utility.createBasicColumnDef("Jurisdiction", "StormwaterJurisdictionName"),
+            this.utility.createBasicColumnDef("Jurisdiction", "StormwaterJurisdictionName", { UseCustomDropdownFilter: true }),
             this.utility.createBasicColumnDef("WQMP", "WaterQualityManagementPlanName"),
             this.utility.createBasicColumnDef("Performed By", "PerformedByPersonName"),
-            this.utility.createBasicColumnDef("Field Visit Type", "FieldVisitTypeDisplayName"),
-            this.utility.createBasicColumnDef("Assessment Type", "TreatmentBMPAssessmentTypeDisplayName"),
-            this.utility.createBasicColumnDef("Status", "Status"),
+            this.utility.createBasicColumnDef("Field Visit Type", "FieldVisitTypeDisplayName", { UseCustomDropdownFilter: true }),
+            this.utility.createBasicColumnDef("Assessment Type", "TreatmentBMPAssessmentTypeDisplayName", { UseCustomDropdownFilter: true }),
+            this.utility.createBasicColumnDef("Status", "Status", { UseCustomDropdownFilter: true }),
             this.utility.createDecimalColumnDef("Score", "AssessmentScore"),
         ];
     }
@@ -159,10 +191,10 @@ export class FieldRecordsComponent implements OnInit {
                 FieldDefinitionType: "TreatmentBMP",
             }),
             this.utility.createDateColumnDef("Date", "VisitDate", "MM/dd/yyyy"),
-            this.utility.createBasicColumnDef("Jurisdiction", "StormwaterJurisdictionName"),
+            this.utility.createBasicColumnDef("Jurisdiction", "StormwaterJurisdictionName", { UseCustomDropdownFilter: true }),
             this.utility.createBasicColumnDef("WQMP", "WaterQualityManagementPlanName"),
             this.utility.createBasicColumnDef("Performed By", "PerformedByPersonName"),
-            this.utility.createBasicColumnDef("Maintenance Type", "MaintenanceRecordTypeDisplayName"),
+            this.utility.createBasicColumnDef("Maintenance Type", "MaintenanceRecordTypeDisplayName", { UseCustomDropdownFilter: true }),
             this.utility.createBasicColumnDef("Description", "MaintenanceRecordDescription"),
             this.utility.createBasicColumnDef("Structural Repair", "StructuralRepairConducted"),
             this.utility.createBasicColumnDef("Mechanical Repair", "MechanicalRepairConducted"),

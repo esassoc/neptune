@@ -1,6 +1,17 @@
 @if (workflow$ | async; as workflow) {
-    <page-header pageTitle="Edit Maintenance Record"></page-header>
-    <p>Capture the maintenance type, a description of what was done, and observations for the applicable maintenance attributes.</p>
+    <page-header [pageTitle]="isReadOnly() ? 'View Maintenance Record' : 'Edit Maintenance Record'" [templateRight]="headerActions"></page-header>
+    <ng-template #headerActions>
+        @if (maintenanceRecord() && !isReadOnly()) {
+            <button type="button" class="btn btn-danger btn-sm" (click)="deleteRecord(workflow)">
+                <i class="fa fa-trash mr-1"></i> Delete Record
+            </button>
+        }
+    </ng-template>
+    @if (isReadOnly()) {
+        <p class="alert alert-info">This visit is no longer editable; the maintenance record is shown in read-only view.</p>
+    } @else {
+        <p>Capture the maintenance type, a description of what was done, and observations for the applicable maintenance attributes.</p>
+    }
 
     @if (isLoading()) {
         <div [loadingSpinner]="{ isLoading: true }"></div>
@@ -40,6 +51,7 @@
                                             [fieldLabel]="field.name"
                                             [type]="FormFieldType.Number"
                                             [required]="field.isRequired"
+                                            [units]="field.unitLabel"
                                             [placeholder]="field.description || ''"></form-field>
                                     }
                                     @case ("decimal") {
@@ -49,6 +61,7 @@
                                             [fieldLabel]="field.name"
                                             [type]="FormFieldType.Number"
                                             [required]="field.isRequired"
+                                            [units]="field.unitLabel"
                                             [placeholder]="field.description || ''"></form-field>
                                     }
                                     @case ("date") {
@@ -108,12 +121,16 @@
             }
         </form>
 
-        <div class="step-footer">
-            <button type="button" class="btn btn-danger" (click)="deleteRecord(workflow)">Delete Record</button>
-            <span class="spacer"></span>
-            <button type="button" class="btn btn-primary" [disabled]="formGroup.invalid" (click)="save(workflow)">
-                Save &amp; Continue <i class="fa fa-caret-right ml-2"></i>
-            </button>
-        </div>
+        @if (!isReadOnly()) {
+            <div class="step-footer">
+                <button type="button" class="btn btn-secondary" [disabled]="formGroup.invalid || isSaving()" (click)="save(workflow, 'wrap-up')">
+                    Save &amp; Wrap Up Visit <i class="fa fa-flag-checkered ml-2"></i>
+                </button>
+                <button type="button" class="btn btn-secondary" [disabled]="formGroup.invalid || isSaving()" (click)="save(workflow, 'stay')">Save</button>
+                <button type="button" class="btn btn-primary" [disabled]="formGroup.invalid || isSaving()" (click)="save(workflow, 'continue')">
+                    Save &amp; Continue <i class="fa fa-caret-right ml-2"></i>
+                </button>
+            </div>
+        }
     }
 }

@@ -6,7 +6,7 @@
         <div class="card-body">
             <dl class="grid-12">
                 <dt class="g-col-3">Visit Date</dt>
-                <dd class="g-col-3">{{ workflow.VisitDate | date: "MM/dd/yyyy" }}</dd>
+                <dd class="g-col-3">{{ workflow.VisitDate | date: "MM/dd/yyyy" : "UTC" }}</dd>
                 <dt class="g-col-3">Status</dt>
                 <dd class="g-col-3">{{ workflow.FieldVisitStatusDisplayName }}</dd>
 
@@ -24,36 +24,58 @@
     </div>
 
     <div class="card mt-3">
-        <div class="card-header"><span class="card-title">Assessments &amp; Maintenance</span></div>
+        <div class="card-header summary-card-header">
+            <span class="card-title">Initial Assessment</span>
+            @if (workflow.InitialAssessmentID) {
+                <button type="button" class="btn btn-danger btn-sm" (click)="deleteAssessment(workflow, 'Initial')">
+                    <i class="fa fa-trash mr-1"></i> Delete
+                </button>
+            }
+        </div>
         <div class="card-body">
-            <dl class="grid-12">
-                <dt class="g-col-3">Initial Assessment</dt>
-                <dd class="g-col-9">
-                    @if (workflow.InitialAssessmentID) {
-                        {{ workflow.InitialAssessmentComplete ? "Complete" : "In Progress" }}
-                        @if (workflow.InitialAssessmentScore != null) {
-                            &mdash; Score {{ workflow.InitialAssessmentScore | number: "1.1-1" }}
-                        }
-                    } @else {
-                        Not Performed
-                    }
-                </dd>
+            @if (workflow.InitialAssessmentID) {
+                {{ workflow.InitialAssessmentComplete ? "Complete" : "In Progress" }}
+                @if (workflow.InitialAssessmentScore != null) {
+                    &mdash; Score {{ workflow.InitialAssessmentScore | number: "1.1-1" }}
+                }
+            } @else {
+                Not Performed
+            }
+        </div>
+    </div>
 
-                <dt class="g-col-3">Maintenance</dt>
-                <dd class="g-col-9">{{ workflow.MaintenanceRecordID ? "Performed" : "Not Performed" }}</dd>
+    <div class="card mt-3">
+        <div class="card-header summary-card-header">
+            <span class="card-title">Maintenance</span>
+            @if (workflow.MaintenanceRecordID) {
+                <button type="button" class="btn btn-danger btn-sm" (click)="deleteMaintenanceRecord(workflow)">
+                    <i class="fa fa-trash mr-1"></i> Delete
+                </button>
+            }
+        </div>
+        <div class="card-body">
+            {{ workflow.MaintenanceRecordID ? "Performed" : "Not Performed" }}
+        </div>
+    </div>
 
-                <dt class="g-col-3">Post-Maintenance Assessment</dt>
-                <dd class="g-col-9">
-                    @if (workflow.PostMaintenanceAssessmentID) {
-                        {{ workflow.PostMaintenanceAssessmentComplete ? "Complete" : "In Progress" }}
-                        @if (workflow.PostMaintenanceAssessmentScore != null) {
-                            &mdash; Score {{ workflow.PostMaintenanceAssessmentScore | number: "1.1-1" }}
-                        }
-                    } @else {
-                        Not Performed
-                    }
-                </dd>
-            </dl>
+    <div class="card mt-3">
+        <div class="card-header summary-card-header">
+            <span class="card-title">Post-Maintenance Assessment</span>
+            @if (workflow.PostMaintenanceAssessmentID) {
+                <button type="button" class="btn btn-danger btn-sm" (click)="deleteAssessment(workflow, 'Post-Maintenance')">
+                    <i class="fa fa-trash mr-1"></i> Delete
+                </button>
+            }
+        </div>
+        <div class="card-body">
+            @if (workflow.PostMaintenanceAssessmentID) {
+                {{ workflow.PostMaintenanceAssessmentComplete ? "Complete" : "In Progress" }}
+                @if (workflow.PostMaintenanceAssessmentScore != null) {
+                    &mdash; Score {{ workflow.PostMaintenanceAssessmentScore | number: "1.1-1" }}
+                }
+            } @else {
+                Not Performed
+            }
         </div>
     </div>
 
@@ -63,7 +85,6 @@
                 <button type="button" class="btn btn-secondary" (click)="markProvisional(workflow)">Mark Provisional</button>
                 <button type="button" class="btn btn-secondary" (click)="returnToEdit(workflow)">Return to Edit</button>
             } @else {
-                <button type="button" class="btn btn-secondary" (click)="finalize(workflow)">Mark Complete</button>
                 <button type="button" class="btn btn-primary" (click)="verify(workflow)">Verify Field Visit</button>
             }
         </div>

@@ -43,16 +43,30 @@
                 </div>
             }
         </div>
-        <div class="g-col-8">
-            <form-field [formControl]="captionControls[image.FileResourceGUID]" fieldLabel="Caption" [type]="FormFieldType.Textarea" placeholder="Caption"></form-field>
-        </div>
+        @if (useCaptionModal) {
+            <div class="g-col-8 caption-readonly">
+                <label class="field-label">Caption</label>
+                <div class="caption-row">
+                    <span class="caption-text">{{ image.Caption || "(no caption)" }}</span>
+                    <button type="button" class="btn-icon" [disabled]="isLoadingSubmit" (click)="requestEditCaption(image)" title="Edit caption" aria-label="Edit caption">
+                        <i class="fa fa-pencil"></i>
+                    </button>
+                </div>
+            </div>
+        } @else {
+            <div class="g-col-8">
+                <form-field [formControl]="captionControls[image.FileResourceGUID]" fieldLabel="Caption" [type]="FormFieldType.Textarea" placeholder="Caption"></form-field>
+            </div>
+        }
         <div class="g-col-2">
             <button class="btn btn-danger mt-4" [disabled]="isLoadingSubmit" (click)="deleteImage(image)">Delete Photo</button>
         </div>
     }
 </div>
 
-<div class="page-footer">
-    <button class="btn btn-primary mr-2" [disabled]="isLoadingSubmit || captionControlForm.pristine" (click)="save()">Save</button>
-    <button class="btn btn-secondary" [disabled]="isLoadingSubmit" (click)="cancel()">Cancel</button>
-</div>
+@if (!useCaptionModal) {
+    <div class="page-footer">
+        <button class="btn btn-primary mr-2" [disabled]="isLoadingSubmit || captionControlForm.pristine" (click)="save()">Save</button>
+        <button class="btn btn-secondary" [disabled]="isLoadingSubmit" (click)="cancel()">Cancel</button>
+    </div>
+}

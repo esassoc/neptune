@@ -31,3 +31,37 @@
 .existing-image-preview {
     max-height: $spacing-1000;
 }
+
+.caption-readonly {
+    .field-label {
+        font-weight: 600;
+        margin-bottom: $spacing-200;
+        display: block;
+    }
+
+    .caption-row {
+        display: flex;
+        align-items: flex-start;
+        gap: $spacing-200;
+
+        .caption-text {
+            flex: 1;
+            white-space: pre-wrap;
+            word-break: break-word;
+        }
+
+        .btn-icon {
+            background: none;
+            border: none;
+            padding: 0;
+            color: $primary;
+            cursor: pointer;
+            line-height: 1;
+
+            &:disabled {
+                opacity: 0.5;
+                cursor: not-allowed;
+            }
+        }
+    }
+}

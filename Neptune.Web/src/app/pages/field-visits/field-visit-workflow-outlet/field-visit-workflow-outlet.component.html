@@ -10,7 +10,7 @@
                         </p>
                         <p class="bmp-type">{{ workflow.TreatmentBMPTypeName }}</p>
                         <p class="visit-meta">
-                            {{ workflow.FieldVisitTypeDisplayName }} &mdash; {{ workflow.VisitDate | date: "MM/dd/yyyy" }}
+                            {{ workflow.FieldVisitTypeDisplayName }} &mdash; {{ workflow.VisitDate | date: "MM/dd/yyyy" : "UTC" }}
                             <button type="button" class="btn-icon" (click)="openChangeDateAndTypeModal(workflow)" title="Change visit date or type">
                                 <i class="fa fa-pencil"></i>
                             </button>
@@ -44,7 +44,6 @@
                 <workflow-nav-item
                     [navRouterLink]="['post-maintenance-assessment']"
                     [complete]="workflow.PostMaintenanceAssessmentComplete"
-                    [disabled]="!workflow.MaintenanceRecordID"
                     [required]="false"
                     [hasSubNav]="!!workflow.PostMaintenanceAssessmentID">
                     Post-Maintenance Assessment

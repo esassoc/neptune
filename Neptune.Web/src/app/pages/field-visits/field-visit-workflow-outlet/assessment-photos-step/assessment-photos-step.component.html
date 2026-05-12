@@ -8,13 +8,17 @@
     } @else {
         <div class="card">
             <div class="card-body">
-                <image-editor
-                    [images]="photos()"
-                    [captionControlForm]="captionControlForm"
-                    (newImageAdded)="onPhotoUpload($event)"
-                    (imageDeleted)="onPhotoDelete($any($event))"
-                    (saveClicked)="onSaveCaptions($any($event))"
-                    (cancelClicked)="cancel(workflow)"></image-editor>
+                @if (isReadOnly()) {
+                    <image-carousel [images]="$any(photos())" noImagesMessage="No photos for this assessment."></image-carousel>
+                } @else {
+                    <image-editor
+                        [images]="photos()"
+                        [captionControlForm]="captionControlForm"
+                        [useCaptionModal]="true"
+                        (newImageAdded)="onPhotoUpload($event)"
+                        (imageDeleted)="onPhotoDelete($any($event))"
+                        (captionEditRequested)="onCaptionEditRequested($event)"></image-editor>
+                }
             </div>
         </div>
     }

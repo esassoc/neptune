@@ -9448,6 +9448,57 @@
         }
       }
     },
+    "/treatment-bmps/{treatmentBMPID}/treatment-bmp-images/carousel": {
+      "get": {
+        "tags": [
+          "TreatmentBMPImageByTreatmentBMP"
+        ],
+        "operationId": "ListForCarousel_TreatmentBMPImageByTreatmentBMP",
+        "parameters": [
+          {
+            "name": "treatmentBMPID",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/TreatmentBMPImageDto"
+                  }
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/TreatmentBMPImageDto"
+                  }
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/TreatmentBMPImageDto"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "x-anonymous": true
+      }
+    },
     "/treatment-bmps/{treatmentBMPID}/treatment-bmp-images/{treatmentBMPImageID}": {
       "get": {
         "tags": [

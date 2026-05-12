@@ -31,6 +31,7 @@ export class FieldVisitMaintenanceStepComponent implements OnInit {
 
     ngOnInit(): void {
         this.workflow$ = this.workflowService.workflow$;
+        this.workflowService.clearStepAlerts();
     }
 
     beginMaintenance(workflow: FieldVisitWorkflowDto): void {
@@ -48,5 +49,9 @@ export class FieldVisitMaintenanceStepComponent implements OnInit {
 
     skipToPostMaintenanceAssessment(workflow: FieldVisitWorkflowDto): void {
         this.router.navigate(["/field-visits", workflow.FieldVisitID, "post-maintenance-assessment"]);
+    }
+
+    wrapUpVisit(workflow: FieldVisitWorkflowDto): void {
+        this.workflowService.wrapUpVisit(workflow.FieldVisitID);
     }
 }
