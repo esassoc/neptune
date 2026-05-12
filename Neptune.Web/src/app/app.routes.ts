@@ -19,6 +19,7 @@ export const routeParams = {
     waterQualityManagementPlanID: "waterQualityManagementPlanID",
     waterQualityManagementPlanVerifyID: "waterQualityManagementPlanVerifyID",
     treatmentBMPTypeID: "treatmentBMPTypeID",
+    observationTypeID: "observationTypeID",
 };
 
 export const routes: Routes = [
@@ -578,6 +579,16 @@ export const routes: Routes = [
                 path: "manage/observation-types",
                 title: "Observation Types",
                 loadComponent: () => import("./pages/manage/observation-types-manage.component").then((m) => m.ObservationTypesManageComponent),
+            },
+            {
+                path: "manage/observation-types/new",
+                title: "New Observation Type",
+                loadComponent: () => import("./pages/manage/observation-type-edit/observation-type-edit.component").then((m) => m.ObservationTypeEditComponent),
+            },
+            {
+                path: `manage/observation-types/:${routeParams.observationTypeID}/edit`,
+                title: "Edit Observation Type",
+                loadComponent: () => import("./pages/manage/observation-type-edit/observation-type-edit.component").then((m) => m.ObservationTypeEditComponent),
             },
             {
                 path: "manage/treatment-bmp-types",

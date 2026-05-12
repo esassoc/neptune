@@ -1,9 +1,8 @@
 import { Component, inject, OnInit } from "@angular/core";
 import { AsyncPipe } from "@angular/common";
-import { Router } from "@angular/router";
+import { Router, RouterLink } from "@angular/router";
 import { ColDef } from "ag-grid-community";
 import { BehaviorSubject, Observable, shareReplay, switchMap } from "rxjs";
-import { DialogService } from "@ngneat/dialog";
 import { PageHeaderComponent } from "src/app/shared/components/page-header/page-header.component";
 import { AlertDisplayComponent } from "src/app/shared/components/alert-display/alert-display.component";
 import { NeptuneGridComponent } from "src/app/shared/components/neptune-grid/neptune-grid.component";
@@ -15,18 +14,17 @@ import { ConfirmService } from "src/app/shared/services/confirm/confirm.service"
 import { TreatmentBMPAssessmentObservationTypeService } from "src/app/shared/generated/api/treatment-bmp-assessment-observation-type.service";
 import { TreatmentBMPAssessmentObservationTypeGridDto } from "src/app/shared/generated/model/treatment-bmp-assessment-observation-type-grid-dto";
 import { NeptunePageTypeEnum } from "src/app/shared/generated/enum/neptune-page-type-enum";
-import { ObservationTypeModalComponent } from "src/app/pages/manage/observation-type-modal/observation-type-modal.component";
 
 @Component({
     selector: "observation-types-manage",
     standalone: true,
-    imports: [PageHeaderComponent, AlertDisplayComponent, NeptuneGridComponent, AsyncPipe],
+    imports: [PageHeaderComponent, AlertDisplayComponent, NeptuneGridComponent, AsyncPipe, RouterLink],
     template: `
         <page-header pageTitle="Observation Types" [templateRight]="addButton" [customRichTextTypeID]="NeptunePageTypeEnum.ManageObservationTypesList"></page-header>
         <ng-template #addButton>
-            <button class="btn btn-primary" (click)="openAddModal()">
+            <a class="btn btn-primary" [routerLink]="['/manage/observation-types/new']">
                 <i class="fa fa-plus"></i> Add Observation Type
-            </button>
+            </a>
         </ng-template>
 
         <app-alert-display></app-alert-display>
@@ -47,7 +45,6 @@ import { ObservationTypeModalComponent } from "src/app/pages/manage/observation-
 export class ObservationTypesManageComponent implements OnInit {
     private observationTypeService = inject(TreatmentBMPAssessmentObservationTypeService);
     private utilityFunctionsService = inject(UtilityFunctionsService);
-    private dialogService = inject(DialogService);
     private alertService = inject(AlertService);
     private confirmService = inject(ConfirmService);
     private router = inject(Router);
@@ -77,7 +74,7 @@ export class ObservationTypesManageComponent implements OnInit {
                     {
                         ActionName: "Edit",
                         ActionIcon: "fas fa-edit",
-                        ActionHandler: () => this.openEditModal(row),
+                        ActionHandler: () => this.router.navigate(["/manage/observation-types", id, "edit"]),
                     },
                     {
                         ActionName: "Delete",
@@ -94,32 +91,6 @@ export class ObservationTypesManageComponent implements OnInit {
             this.utilityFunctionsService.createBasicColumnDef("Threshold Type", "ObservationThresholdTypeDisplayName", { UseCustomDropdownFilter: true }),
             this.utilityFunctionsService.createDecimalColumnDef("# BMP Types", "TreatmentBMPTypeCount", { DecimalPlacesToDisplay: 0 }),
         ];
-    }
-
-    openAddModal(): void {
-        const dialogRef = this.dialogService.open(ObservationTypeModalComponent, {
-            data: { mode: "add" },
-            width: "800px",
-        });
-        dialogRef.afterClosed$.subscribe((result) => {
-            if (result) {
-                this.alertService.pushAlert(new Alert("Observation type created.", AlertContext.Success));
-                this.reload$.next();
-            }
-        });
-    }
-
-    private openEditModal(row: TreatmentBMPAssessmentObservationTypeGridDto): void {
-        const dialogRef = this.dialogService.open(ObservationTypeModalComponent, {
-            data: { mode: "edit", observationTypeID: row.TreatmentBMPAssessmentObservationTypeID },
-            width: "800px",
-        });
-        dialogRef.afterClosed$.subscribe((result) => {
-            if (result) {
-                this.alertService.pushAlert(new Alert("Observation type updated.", AlertContext.Success));
-                this.reload$.next();
-            }
-        });
     }
 
     private confirmDelete(row: TreatmentBMPAssessmentObservationTypeGridDto): void {

@@ -1,8 +1,9 @@
-import { Component, computed, inject, OnInit, signal } from "@angular/core";
+import { Component, computed, inject, Input, numberAttribute, OnInit, signal } from "@angular/core";
+import { Router, RouterLink } from "@angular/router";
 import { FormControl, FormGroup, ReactiveFormsModule, Validators } from "@angular/forms";
-import { DialogRef } from "@ngneat/dialog";
-import { FormFieldComponent, FormFieldType, SelectDropdownOption } from "src/app/shared/components/forms/form-field/form-field.component";
+import { PageHeaderComponent } from "src/app/shared/components/page-header/page-header.component";
 import { AlertDisplayComponent } from "src/app/shared/components/alert-display/alert-display.component";
+import { FormFieldComponent, FormFieldType, SelectDropdownOption } from "src/app/shared/components/forms/form-field/form-field.component";
 import { AlertService } from "src/app/shared/services/alert.service";
 import { Alert } from "src/app/shared/models/alert";
 import { AlertContext } from "src/app/shared/models/enums/alert-context.enum";
@@ -22,26 +23,35 @@ import { PassFailSchemaBuilderComponent } from "./schema-builders/pass-fail-sche
 import { DiscreteSchemaBuilderComponent } from "./schema-builders/discrete-schema-builder.component";
 import { PercentageSchemaBuilderComponent } from "./schema-builders/percentage-schema-builder.component";
 
+/**
+ * Routed full-page editor for a TreatmentBMPAssessmentObservationType, mirroring the legacy MVC
+ * Edit.cshtml layout (three card sections: Name & Collection, Data Collection Instructions, Labels
+ * and Units). Backs both /manage/observation-types/new (create) and
+ * /manage/observation-types/:observationTypeID/edit. Replaces the prior modal-based editor that
+ * compressed all three sections into a 800px-wide dialog.
+ */
 @Component({
-    selector: "observation-type-modal",
+    selector: "observation-type-edit",
     standalone: true,
     imports: [
-        ReactiveFormsModule, FormFieldComponent, AlertDisplayComponent,
-        PassFailSchemaBuilderComponent, DiscreteSchemaBuilderComponent,
-        PercentageSchemaBuilderComponent, SchemaPreviewComponent,
+        RouterLink, ReactiveFormsModule, PageHeaderComponent, AlertDisplayComponent, FormFieldComponent,
+        PassFailSchemaBuilderComponent, DiscreteSchemaBuilderComponent, PercentageSchemaBuilderComponent,
+        SchemaPreviewComponent,
     ],
-    templateUrl: "./observation-type-modal.component.html",
-    styles: [`.preview-toggle { display: flex; justify-content: flex-end; margin-bottom: 0.5rem; }`],
+    templateUrl: "./observation-type-edit.component.html",
+    styleUrl: "./observation-type-edit.component.scss",
 })
-export class ObservationTypeModalComponent implements OnInit {
-    public ref: DialogRef<{ mode: "add" | "edit"; observationTypeID?: number }, boolean> = inject(DialogRef);
+export class ObservationTypeEditComponent implements OnInit {
+    @Input({ transform: numberAttribute }) observationTypeID?: number;
+
     private observationTypeService = inject(TreatmentBMPAssessmentObservationTypeService);
     private alertService = inject(AlertService);
+    private router = inject(Router);
 
     public FormFieldType = FormFieldType;
-    public mode: "add" | "edit";
     public isEdit = false;
     public isLoading = signal(false);
+    public isSaving = signal(false);
     public showPreview = signal(false);
 
     public formGroup = new FormGroup({
@@ -51,11 +61,10 @@ export class ObservationTypeModalComponent implements OnInit {
         ThresholdTypeID: new FormControl<number>(undefined, { validators: [Validators.required], nonNullable: true }),
     });
 
-    // Top-level Collection Method drives whether Target/Threshold are visible and which schema builder renders.
     public collectionMethodOptions: SelectDropdownOption[] = ObservationTypeCollectionMethods.map((x) => ({ Value: x.Value, Label: x.DisplayName, disabled: false }));
 
-    // Target/Threshold options exclude the PassFail/None pseudo-values (those only apply to PassFail collection method,
-    // which we handle by collapsing the dropdowns rather than offering them).
+    // Filter the PassFail/None pseudo-values out of the Target / Threshold dropdowns — those only
+    // apply to PassFail collection method, which we handle by collapsing the dropdowns.
     public targetTypeOptions: SelectDropdownOption[] = ObservationTargetTypes
         .filter((x) => x.Value !== ObservationTargetTypeEnum.PassFail)
         .map((x) => ({ Value: x.Value, Label: x.DisplayName, disabled: false }));
@@ -67,15 +76,19 @@ export class ObservationTypeModalComponent implements OnInit {
     public collectionMethod = computed<CollectionMethodType | null>(() => collectionMethodIDToName(this.collectionMethodID()));
     public isPassFail = computed(() => this.collectionMethodID() === ObservationTypeCollectionMethodEnum.PassFail);
 
-    // Schema state per collection method
     public passFailSchema = signal<PassFailSchema>(emptyPassFailSchema());
     public discreteSchema = signal<DiscreteValueSchema>(emptyDiscreteValueSchema());
     public percentageSchema = signal<PercentageSchema>(emptyPercentageSchema());
 
+    public derivedSpecID = computed(() => tripleToSpec({
+        CollectionMethodID: this.formGroup.controls.CollectionMethodID.value,
+        TargetTypeID: this.formGroup.controls.TargetTypeID.value,
+        ThresholdTypeID: this.formGroup.controls.ThresholdTypeID.value,
+    }));
+
     ngOnInit(): void {
         this.alertService.clearAlerts();
-        this.mode = this.ref.data.mode;
-        this.isEdit = this.mode === "edit";
+        this.isEdit = this.observationTypeID != null;
 
         // Track collection method changes — when switching, reset schemas and snap Target/Threshold
         // to the only valid pair for PassFail.
@@ -100,9 +113,9 @@ export class ObservationTypeModalComponent implements OnInit {
             }
         });
 
-        if (this.isEdit && this.ref.data.observationTypeID) {
+        if (this.isEdit) {
             this.isLoading.set(true);
-            this.observationTypeService.getTreatmentBMPAssessmentObservationType(this.ref.data.observationTypeID).subscribe({
+            this.observationTypeService.getTreatmentBMPAssessmentObservationType(this.observationTypeID).subscribe({
                 next: (detail: TreatmentBMPAssessmentObservationTypeDetailDto) => {
                     const triple = specToTriple(detail.ObservationTypeSpecificationID);
                     this.formGroup.patchValue({
@@ -140,14 +153,11 @@ export class ObservationTypeModalComponent implements OnInit {
         return undefined;
     }
 
-    public derivedSpecID = computed(() => tripleToSpec({
-        CollectionMethodID: this.formGroup.controls.CollectionMethodID.value,
-        TargetTypeID: this.formGroup.controls.TargetTypeID.value,
-        ThresholdTypeID: this.formGroup.controls.ThresholdTypeID.value,
-    }));
-
     save(): void {
-        if (this.formGroup.invalid) return;
+        if (this.formGroup.invalid) {
+            this.formGroup.markAllAsTouched();
+            return;
+        }
         const raw = this.formGroup.getRawValue();
         const specID = tripleToSpec({
             CollectionMethodID: raw.CollectionMethodID,
@@ -163,19 +173,30 @@ export class ObservationTypeModalComponent implements OnInit {
             TreatmentBMPAssessmentObservationTypeSchema: schema,
         };
 
+        this.isSaving.set(true);
+        this.alertService.clearAlerts();
         const save$ = this.isEdit
-            ? this.observationTypeService.updateTreatmentBMPAssessmentObservationType(this.ref.data.observationTypeID, dto)
+            ? this.observationTypeService.updateTreatmentBMPAssessmentObservationType(this.observationTypeID, dto)
             : this.observationTypeService.createTreatmentBMPAssessmentObservationType(dto);
 
         save$.subscribe({
-            next: () => this.ref.close(true),
+            next: () => {
+                this.isSaving.set(false);
+                this.alertService.pushAlert(new Alert(`Observation type ${this.isEdit ? "updated" : "created"}.`, AlertContext.Success));
+                this.router.navigate(["/manage/observation-types"]);
+            },
             error: () => {
+                this.isSaving.set(false);
                 this.alertService.pushAlert(new Alert(`Failed to ${this.isEdit ? "update" : "create"} observation type.`, AlertContext.Danger));
             },
         });
     }
 
     cancel(): void {
-        this.ref.close(null);
+        this.router.navigate(["/manage/observation-types"]);
+    }
+
+    togglePreview(): void {
+        this.showPreview.set(!this.showPreview());
     }
 }

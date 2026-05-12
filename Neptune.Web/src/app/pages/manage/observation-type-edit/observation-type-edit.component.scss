@@ -1,0 +1,14 @@
+@use "/src/scss/abstracts" as *;
+
+.page-footer {
+    display: flex;
+    align-items: center;
+    gap: $spacing-300;
+    margin-top: $spacing-500;
+    padding-top: $spacing-400;
+    border-top: 1px solid $gray-light;
+}
+
+.ms-auto {
+    margin-left: auto;
+}
