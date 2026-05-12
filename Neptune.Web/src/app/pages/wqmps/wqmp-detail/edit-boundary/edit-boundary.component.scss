@@ -21,13 +21,3 @@
 neptune-map ::ng-deep .map-wrapper {
     margin-bottom: 0;
 }
-
-.page-footer {
-    display: flex;
-    justify-content: flex-end;
-    align-items: center;
-    gap: 0.5rem;
-    margin-top: 1.5rem;
-    padding-top: 1rem;
-    border-top: 1px solid $gray-light;
-}
