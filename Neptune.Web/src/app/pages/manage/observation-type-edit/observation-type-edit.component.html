@@ -1,8 +1,15 @@
-<page-header [pageTitle]="isEdit ? 'Edit Observation Type' : 'Add Observation Type'" [templateAbove]="templateAbove">
+<page-header [pageTitle]="isEdit ? 'Edit Observation Type' : 'Add Observation Type'" [templateAbove]="templateAbove" [templateRight]="templateRight">
     <ng-template #templateAbove>
         <div class="back">
             <a [routerLink]="['/manage/observation-types']" class="back__link">Back to Observation Types</a>
         </div>
+    </ng-template>
+    <ng-template #templateRight>
+        @if (collectionMethod() && derivedSpecID()) {
+            <button type="button" class="btn btn-secondary-outline" (click)="togglePreview()">
+                <i class="fa fa-eye"></i> {{ showPreview() ? "Hide Preview" : "Show Preview" }}
+            </button>
+        }
     </ng-template>
 </page-header>
 
@@ -99,11 +106,6 @@
         <div class="page-footer">
             <button type="button" class="btn btn-primary" (click)="save()" [disabled]="isSaving() || formGroup.invalid || !derivedSpecID() || (activeSchemaGroup() && activeSchemaGroup()!.invalid)">Save</button>
             <button type="button" class="btn btn-secondary-outline" (click)="cancel()" [disabled]="isSaving()">Cancel</button>
-            @if (collectionMethod() && derivedSpecID()) {
-                <button type="button" class="btn btn-secondary-outline ms-auto" (click)="togglePreview()">
-                    {{ showPreview() ? "Hide Preview" : "Show Preview" }}
-                </button>
-            }
         </div>
     </div>
 } @else {

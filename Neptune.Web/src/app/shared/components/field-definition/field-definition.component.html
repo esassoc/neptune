@@ -44,7 +44,14 @@
         </div>
       }
     </ng-template>
-    @if (!inline) {
+    @if (iconOnly) {
+      <i
+        class="fas fa-question-circle small field-definition-icon"
+        style="cursor: help"
+        [popper]="popContent"
+        [useBodyContainer]="useBodyContainer"
+        [popperTitle]="showEditButton() ? popTitle : fieldDefinition.FieldDefinitionType.FieldDefinitionTypeDisplayName"></i>
+    } @else if (!inline) {
       @if (showEditButton()) {
         <span style="overflow: hidden; text-overflow: ellipsis">
           {{ getLabelText() }}

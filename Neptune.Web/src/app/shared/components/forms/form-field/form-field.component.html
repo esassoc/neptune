@@ -1,5 +1,8 @@
 <div class="field">
-    @if (fieldDefinitionName) {
+    @if (fieldDefinitionName && !fieldLabel) {
+        <!-- No fieldLabel supplied — let field-definition render its own DisplayName as the label.
+             When BOTH are set the help-icon is appended inline inside each case's field-label div
+             below, so the two label texts don't double up next to each other. -->
         <field-definition [fieldDefinitionType]="fieldDefinitionName"></field-definition>
     }
     @if (!readOnly) {
@@ -8,6 +11,9 @@
             @case (FormFieldType.Text) {
                 <div class="field-label" [class.required]="formControl | isRequired">
                     {{ fieldLabel }}
+                    @if (fieldDefinitionName && fieldLabel) {
+                        <field-definition [fieldDefinitionType]="fieldDefinitionName" [iconOnly]="true"></field-definition>
+                    }
                 </div>
                 <div class="units-wrapper">
                     <input [mask]="mask" type="text" [placeholder]="placeholder" [formControl]="formControl" [name]="name" />
@@ -21,6 +27,9 @@
                 @if (fieldLabel) {
                     <div class="field-label" [class.required]="formControl | isRequired">
                         {{ fieldLabel }}
+                        @if (fieldDefinitionName) {
+                            <field-definition [fieldDefinitionType]="fieldDefinitionName" [iconOnly]="true"></field-definition>
+                        }
                     </div>
                 }
                 <div class="units-wrapper">
@@ -34,6 +43,9 @@
             @case (FormFieldType.Textarea) {
                 <div class="field-label" [class.required]="formControl | isRequired">
                     {{ fieldLabel }}
+                    @if (fieldDefinitionName && fieldLabel) {
+                        <field-definition [fieldDefinitionType]="fieldDefinitionName" [iconOnly]="true"></field-definition>
+                    }
                 </div>
                 <textarea [placeholder]="placeholder" [formControl]="formControl" [name]="name"></textarea>
             }
@@ -41,6 +53,9 @@
             @case (FormFieldType.RTE) {
                 <div class="field-label" [class.required]="formControl | isRequired">
                     {{ fieldLabel }}
+                    @if (fieldDefinitionName && fieldLabel) {
+                        <field-definition [fieldDefinitionType]="fieldDefinitionName" [iconOnly]="true"></field-definition>
+                    }
                 </div>
                 <editor #tinyMceEditor [init]="tinyMceEditor | tinyMceConfig" [formControl]="formControl"></editor>
             }
@@ -48,6 +63,9 @@
             @case (FormFieldType.Toggle) {
                 <label class="field-label" [class.required]="formControl | isRequired">
                     {{ fieldLabel }}
+                    @if (fieldDefinitionName && fieldLabel) {
+                        <field-definition [fieldDefinitionType]="fieldDefinitionName" [iconOnly]="true"></field-definition>
+                    }
                 </label>
                 <div class="switch-container" [style.minHeight]="toggleHeight">
                     <label class="switch">
@@ -60,6 +78,9 @@
             @case (FormFieldType.Check) {
                 <label class="field-label" [class.required]="formControl | isRequired">
                     {{ fieldLabel }}
+                    @if (fieldDefinitionName && fieldLabel) {
+                        <field-definition [fieldDefinitionType]="fieldDefinitionName" [iconOnly]="true"></field-definition>
+                    }
                 </label>
                 <label class="check-label">
                     <input type="checkbox" [formControl]="formControl" [name]="name" />
@@ -70,6 +91,9 @@
             @case (FormFieldType.Date) {
                 <label class="field-label" [class.required]="formControl | isRequired">
                     {{ fieldLabel }}
+                    @if (fieldDefinitionName && fieldLabel) {
+                        <field-definition [fieldDefinitionType]="fieldDefinitionName" [iconOnly]="true"></field-definition>
+                    }
                 </label>
                 <input type="date" [formControl]="formControl" [name]="name" />
             }
@@ -78,6 +102,9 @@
                 @if (fieldLabel) {
                     <label class="field-label" [class.required]="formControl | isRequired">
                         {{ fieldLabel }}
+                        @if (fieldDefinitionName) {
+                            <field-definition [fieldDefinitionType]="fieldDefinitionName" [iconOnly]="true"></field-definition>
+                        }
                     </label>
                 }
                 @if (formInputOptions) {
@@ -99,6 +126,9 @@
             @case (FormFieldType.Radio) {
                 <label class="field-label" [class.required]="formControl | isRequired">
                     {{ fieldLabel }}
+                    @if (fieldDefinitionName && fieldLabel) {
+                        <field-definition [fieldDefinitionType]="fieldDefinitionName" [iconOnly]="true"></field-definition>
+                    }
                 </label>
                 <div class="radio-options">
                     @for (formInputOption of formInputOptions; track formInputOption) {
@@ -114,6 +144,9 @@
             @case (FormFieldType.File) {
                 <div class="field-label" [class.required]="formControl | isRequired">
                     {{ fieldLabel }}
+                    @if (fieldDefinitionName && fieldLabel) {
+                        <field-definition [fieldDefinitionType]="fieldDefinitionName" [iconOnly]="true"></field-definition>
+                    }
                 </div>
                 <div class="custom-file-upload">
                     <input

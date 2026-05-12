@@ -23,6 +23,9 @@ export class FieldDefinitionComponent implements OnInit, AfterViewInit, OnDestro
     @Input() labelOverride: string;
     @Input() inline: boolean = false;
     @Input() useBodyContainer: boolean = false;
+    /** Render only the help-icon with popover, no label text. Used by <form-field> when it owns
+     * the label rendering (fieldLabel) so we don't double-render labels next to each other. */
+    @Input() iconOnly: boolean = false;
 
     @ViewChild("tinyMceEditor") tinyMceEditor: EditorComponent;
     public tinyMceConfig: object;
