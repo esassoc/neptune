@@ -7,16 +7,12 @@
 @if (!isLoading) {
   <div class="field-definition-wrapper">
     <ng-template #popTitle>
-      <div class="field-definition-title flex-between">
-        <div class="mt-1">
-          {{ fieldDefinition.FieldDefinitionType.FieldDefinitionTypeDisplayName }}
-        </div>
-        @if (showEditButton()) {
-          <button type="button" class="btn btn-link" style="margin-left: auto" [hidden]="isEditing" (click)="enterEdit($event)">
-            <i class="fa fa-pencil-square-o" attr.aria-label="Edit the definition for {{ fieldDefinition.FieldDefinitionType.FieldDefinitionTypeDisplayName }}"></i>
-          </button>
-        }
-      </div>
+      <span>{{ fieldDefinition.FieldDefinitionType.FieldDefinitionTypeDisplayName }}</span>
+      @if (showEditButton()) {
+        <button type="button" class="btn btn-text" [hidden]="isEditing" (click)="enterEdit($event)">
+          <i class="fa fa-pencil-square-o" attr.aria-label="Edit the definition for {{ fieldDefinition.FieldDefinitionType.FieldDefinitionTypeDisplayName }}"></i>
+        </button>
+      }
     </ng-template>
     <ng-template #popContent>
       @if (!isEditing) {

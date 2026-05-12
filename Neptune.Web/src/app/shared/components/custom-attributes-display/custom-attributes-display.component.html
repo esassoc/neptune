@@ -13,15 +13,30 @@
             @for (attrType of filteredAttributeTypes; track attrType.CustomAttributeType.CustomAttributeTypeID) {
                 <tr>
                     <td>
-                        @if (isAdmin) {
-                            <a [routerLink]="['/manage/custom-attributes', attrType.CustomAttributeType.CustomAttributeTypeID]" style="text-decoration: none">
-                                {{ attrType.CustomAttributeType.CustomAttributeTypeName }}
-                            </a>
-                        } @else {
-                            {{ attrType.CustomAttributeType.CustomAttributeTypeName }}
-                        }
+                        {{ attrType.CustomAttributeType.CustomAttributeTypeName }}
                         @if (attrType.CustomAttributeType.CustomAttributeTypeDescription) {
-                            <br /><span class="help-block extra-small">{{ attrType.CustomAttributeType.CustomAttributeTypeDescription }}</span>
+                            <ng-template #popTitle>
+                                <span>{{ attrType.CustomAttributeType.CustomAttributeTypeName }}</span>
+                                @if (isAdmin) {
+                                    <a
+                                        class="btn btn-text"
+                                        [routerLink]="['/manage/custom-attributes', attrType.CustomAttributeType.CustomAttributeTypeID]"
+                                        target="_blank"
+                                        rel="noopener"
+                                        title="View attribute details">
+                                        <i class="fas fa-external-link-alt"></i>
+                                    </a>
+                                }
+                            </ng-template>
+                            <ng-template #popContent>
+                                <div>{{ attrType.CustomAttributeType.CustomAttributeTypeDescription }}</div>
+                            </ng-template>
+                            <i
+                                class="fas fa-question-circle small"
+                                style="cursor: help; margin-left: 0.25rem"
+                                [popper]="popContent"
+                                [popperTitle]="popTitle"
+                                [useBodyContainer]="true"></i>
                         }
                     </td>
                     <td class="text-right" style="min-width: 150px">

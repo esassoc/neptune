@@ -299,7 +299,7 @@
     }
 }
 
-button.btn:not(.btn-sm) {
+button.btn:not(.btn-sm):not(.btn-text) {
     padding-bottom: 0.75rem;
 }
 
