@@ -94,28 +94,26 @@ export class ObservationTypesManageComponent implements OnInit {
     }
 
     private confirmDelete(row: TreatmentBMPAssessmentObservationTypeGridDto): void {
-        // Pull the detail to surface the affected BMP types in the cascade warning, mirroring
-        // the Custom Attribute Type delete flow. Falls back to a plain warning if the fetch fails.
+        // Pull the detail to surface the affected BMP type count in the cascade warning, mirroring
+        // the legacy MVC delete dialog (TreatmentBMPAssessmentObservationTypeController.Delete:184).
         this.observationTypeService.getTreatmentBMPAssessmentObservationType(row.TreatmentBMPAssessmentObservationTypeID).subscribe({
-            next: (detail) => this.promptDelete(row, (detail.TreatmentBMPTypes ?? [])
-                .map((t) => t.TreatmentBMPTypeName)
-                .filter((n): n is string => !!n)),
-            error: () => this.promptDelete(row, []),
+            next: (detail) => this.promptDelete(row, detail.TreatmentBMPTypes?.length ?? 0),
+            error: () => this.promptDelete(row, 0),
         });
     }
 
-    private promptDelete(row: TreatmentBMPAssessmentObservationTypeGridDto, affectedBmpTypes: string[]): void {
+    private promptDelete(row: TreatmentBMPAssessmentObservationTypeGridDto, affectedBmpTypeCount: number): void {
+        // Phrasing mirrors the legacy MVC ConfirmDialogFormViewData built in
+        // TreatmentBMPAssessmentObservationTypeController.ViewDeleteObservationType. Use proper
+        // <p> wrappers (not concatenated <br/>) so the confirm-modal's paragraph spacing applies.
         const name = this.escapeHtml(row.TreatmentBMPAssessmentObservationTypeName ?? "this observation type");
-        const cascadeBlock = affectedBmpTypes.length > 0
-            ? `<p>This will remove this observation type from the following Treatment BMP Types:</p><ul>${affectedBmpTypes.map((n) => `<li>${this.escapeHtml(n)}</li>`).join("")}</ul>`
-            : `<p>This observation type is not currently assigned to any Treatment BMP Types.</p>`;
+        const bmpTypeLabel = affectedBmpTypeCount === 1 ? "Treatment BMP Type" : "Treatment BMP Types";
         this.confirmService
             .confirm({
                 title: "Delete Observation Type",
-                message: `<p>You are about to delete <strong>${name}</strong>.</p>` +
-                    cascadeBlock +
-                    `<p>Any saved observations of this type, and its associations to BMP types, will be removed too. This cannot be undone.</p>` +
-                    `<p>Are you sure you wish to proceed?</p>`,
+                message:
+                    `<p>Observation Type <strong>${name}</strong> is related to ${affectedBmpTypeCount} ${bmpTypeLabel}.</p>` +
+                    `<p>Are you sure you want to delete this Observation Type?</p>`,
                 buttonClassYes: "btn btn-danger",
                 buttonTextYes: "Delete",
                 buttonTextNo: "Cancel",
