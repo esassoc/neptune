@@ -48,9 +48,9 @@
                         <div class="card-body">
                             <schema-preview
                                 [collectionMethod]="collectionMethod()"
-                                [passFailSchema]="passFailSchema()"
-                                [discreteSchema]="discreteSchema()"
-                                [percentageSchema]="percentageSchema()">
+                                [passFailSchema]="passFailSchemaPreview()"
+                                [discreteSchema]="discreteSchemaPreview()"
+                                [percentageSchema]="percentageSchemaPreview()">
                             </schema-preview>
                         </div>
                     </div>
@@ -61,13 +61,13 @@
                         <div class="card-body">
                             @switch (collectionMethod()) {
                                 @case ("PassFail") {
-                                    <pass-fail-schema-builder section="instructions" [schema]="passFailSchema()" (schemaChange)="passFailSchema.set($event)"></pass-fail-schema-builder>
+                                    <pass-fail-schema-builder section="instructions" [formGroup]="passFailSchemaGroup"></pass-fail-schema-builder>
                                 }
                                 @case ("DiscreteValue") {
-                                    <discrete-schema-builder section="instructions" [schema]="discreteSchema()" (schemaChange)="discreteSchema.set($event)"></discrete-schema-builder>
+                                    <discrete-schema-builder section="instructions" [formGroup]="discreteSchemaGroup"></discrete-schema-builder>
                                 }
                                 @case ("Percentage") {
-                                    <percentage-schema-builder section="instructions" [schema]="percentageSchema()" (schemaChange)="percentageSchema.set($event)"></percentage-schema-builder>
+                                    <percentage-schema-builder section="instructions" [formGroup]="percentageSchemaGroup"></percentage-schema-builder>
                                 }
                             }
                         </div>
@@ -79,13 +79,13 @@
                         <div class="card-body">
                             @switch (collectionMethod()) {
                                 @case ("PassFail") {
-                                    <pass-fail-schema-builder section="labelsUnits" [schema]="passFailSchema()" (schemaChange)="passFailSchema.set($event)"></pass-fail-schema-builder>
+                                    <pass-fail-schema-builder section="labelsUnits" [formGroup]="passFailSchemaGroup"></pass-fail-schema-builder>
                                 }
                                 @case ("DiscreteValue") {
-                                    <discrete-schema-builder section="labelsUnits" [schema]="discreteSchema()" (schemaChange)="discreteSchema.set($event)"></discrete-schema-builder>
+                                    <discrete-schema-builder section="labelsUnits" [formGroup]="discreteSchemaGroup"></discrete-schema-builder>
                                 }
                                 @case ("Percentage") {
-                                    <percentage-schema-builder section="labelsUnits" [schema]="percentageSchema()" (schemaChange)="percentageSchema.set($event)"></percentage-schema-builder>
+                                    <percentage-schema-builder section="labelsUnits" [formGroup]="percentageSchemaGroup"></percentage-schema-builder>
                                 }
                             }
                         </div>
@@ -97,7 +97,7 @@
         </form>
 
         <div class="page-footer">
-            <button type="button" class="btn btn-primary" (click)="save()" [disabled]="isSaving() || formGroup.invalid || !derivedSpecID()">Save</button>
+            <button type="button" class="btn btn-primary" (click)="save()" [disabled]="isSaving() || formGroup.invalid || !derivedSpecID() || (activeSchemaGroup() && activeSchemaGroup()!.invalid)">Save</button>
             <button type="button" class="btn btn-secondary-outline" (click)="cancel()" [disabled]="isSaving()">Cancel</button>
             @if (collectionMethod() && derivedSpecID()) {
                 <button type="button" class="btn btn-secondary-outline ms-auto" (click)="togglePreview()">

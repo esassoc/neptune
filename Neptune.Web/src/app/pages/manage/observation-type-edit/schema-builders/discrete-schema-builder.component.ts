@@ -1,75 +1,118 @@
-import { Component, EventEmitter, Input, Output } from "@angular/core";
-import { FormsModule } from "@angular/forms";
-import { FieldDefinitionComponent } from "src/app/shared/components/field-definition/field-definition.component";
+import { Component, Input } from "@angular/core";
+import { FormControl, FormGroup, ReactiveFormsModule, Validators } from "@angular/forms";
 import { FormFieldComponent, FormFieldType } from "src/app/shared/components/forms/form-field/form-field.component";
 import { DiscreteValueSchema } from "src/app/shared/observation-types/schema-types";
 import { MeasurementUnitTypesAsSelectDropdownOptions } from "src/app/shared/generated/enum/measurement-unit-type-enum";
 import { PropertiesToObserveEditorComponent } from "./properties-to-observe-editor.component";
 import { SchemaBuilderSection } from "./pass-fail-schema-builder.component";
 
+export type DiscreteSchemaFormGroup = FormGroup<{
+    BenchmarkDescription: FormControl<string>;
+    ThresholdDescription: FormControl<string>;
+    AssessmentDescription: FormControl<string>;
+    MeasurementUnitLabel: FormControl<string>;
+    MeasurementUnitTypeID: FormControl<number | null>;
+    MinimumNumberOfObservations: FormControl<number>;
+    MaximumNumberOfObservations: FormControl<number | null>;
+    MinimumValueOfObservations: FormControl<number>;
+    MaximumValueOfObservations: FormControl<number | null>;
+    PropertiesToObserve: FormControl<string[]>;
+}>;
+
+/** Build a reactive FormGroup that matches the DiscreteValueSchema shape. */
+export function buildDiscreteSchemaFormGroup(initial: DiscreteValueSchema): DiscreteSchemaFormGroup {
+    return new FormGroup({
+        BenchmarkDescription: new FormControl<string>(initial.BenchmarkDescription ?? "", { nonNullable: true, validators: [Validators.required, Validators.maxLength(300)] }),
+        ThresholdDescription: new FormControl<string>(initial.ThresholdDescription ?? "", { nonNullable: true, validators: [Validators.required, Validators.maxLength(300)] }),
+        AssessmentDescription: new FormControl<string>(initial.AssessmentDescription ?? "", { nonNullable: true, validators: [Validators.required, Validators.maxLength(300)] }),
+        MeasurementUnitLabel: new FormControl<string>(initial.MeasurementUnitLabel ?? "", { nonNullable: true, validators: [Validators.required] }),
+        MeasurementUnitTypeID: new FormControl<number | null>(initial.MeasurementUnitTypeID ?? null, { validators: [Validators.required] }),
+        MinimumNumberOfObservations: new FormControl<number>(initial.MinimumNumberOfObservations ?? 1, { nonNullable: true, validators: [Validators.required, Validators.min(0)] }),
+        MaximumNumberOfObservations: new FormControl<number | null>(initial.MaximumNumberOfObservations ?? null),
+        MinimumValueOfObservations: new FormControl<number>(initial.MinimumValueOfObservations ?? 0, { nonNullable: true, validators: [Validators.required] }),
+        MaximumValueOfObservations: new FormControl<number | null>(initial.MaximumValueOfObservations ?? null),
+        PropertiesToObserve: new FormControl<string[]>(initial.PropertiesToObserve ?? [], { nonNullable: true, validators: [Validators.required] }),
+    });
+}
+
 @Component({
     selector: "discrete-schema-builder",
     standalone: true,
-    imports: [FormsModule, FormFieldComponent, FieldDefinitionComponent, PropertiesToObserveEditorComponent],
+    imports: [ReactiveFormsModule, FormFieldComponent, PropertiesToObserveEditorComponent],
     template: `
         @switch (section) {
             @case ("instructions") {
                 <div class="grid-12">
-                    <div class="g-col-12">
-                        <label class="field-label">Benchmark Instruction</label>
-                        <textarea class="form-control" rows="2" [(ngModel)]="schema.BenchmarkDescription" (ngModelChange)="emit()" placeholder="Benchmark instructions"></textarea>
-                    </div>
-                    <div class="g-col-12">
-                        <label class="field-label">Threshold Instruction</label>
-                        <textarea class="form-control" rows="2" [(ngModel)]="schema.ThresholdDescription" (ngModelChange)="emit()" placeholder="Threshold instructions"></textarea>
-                    </div>
-                    <div class="g-col-12">
-                        <label class="field-label">Assessment Instruction</label>
-                        <textarea class="form-control" rows="2" [(ngModel)]="schema.AssessmentDescription" (ngModelChange)="emit()" placeholder="General assessment instructions"></textarea>
-                    </div>
+                    <form-field class="g-col-12"
+                        fieldLabel="Benchmark Instruction"
+                        [type]="FormFieldType.Textarea"
+                        [formControl]="formGroup.controls.BenchmarkDescription"
+                        [required]="true"
+                        placeholder="Benchmark instructions"></form-field>
+                    <form-field class="g-col-12"
+                        fieldLabel="Threshold Instruction"
+                        [type]="FormFieldType.Textarea"
+                        [formControl]="formGroup.controls.ThresholdDescription"
+                        [required]="true"
+                        placeholder="Threshold instructions"></form-field>
+                    <form-field class="g-col-12"
+                        fieldLabel="Assessment Instruction"
+                        [type]="FormFieldType.Textarea"
+                        [formControl]="formGroup.controls.AssessmentDescription"
+                        [required]="true"
+                        placeholder="General assessment instructions"></form-field>
                 </div>
             }
             @case ("labelsUnits") {
                 <div class="grid-12">
-                    <div class="g-col-6">
-                        <field-definition fieldDefinitionType="MeasurementUnitLabel" labelOverride="Measurement Unit Label" [inline]="true"></field-definition>
-                        <input type="text" class="form-control" [(ngModel)]="schema.MeasurementUnitLabel" (ngModelChange)="emit()" placeholder="e.g. Sediment Depth">
-                    </div>
-                    <div class="g-col-6">
-                        <form-field [formInputOptions]="unitOptions" [type]="FormFieldType.Select"
-                            fieldLabel="Measurement Unit Type" fieldDefinitionName="MeasurementUnit"
-                            [(ngModel)]="schema.MeasurementUnitTypeID" (ngModelChange)="emit()" placeholder="Select Unit"></form-field>
-                    </div>
-                    <div class="g-col-3">
-                        <field-definition fieldDefinitionType="MinimumNumberOfObservations" labelOverride="Min # Observations" [inline]="true"></field-definition>
-                        <input type="number" class="form-control" [(ngModel)]="schema.MinimumNumberOfObservations" (ngModelChange)="emit()" min="1">
-                    </div>
-                    <div class="g-col-3">
-                        <field-definition fieldDefinitionType="MaximumNumberOfObservations" labelOverride="Max # Observations" [inline]="true"></field-definition>
-                        <input type="number" class="form-control" [(ngModel)]="schema.MaximumNumberOfObservations" (ngModelChange)="emit()">
-                    </div>
-                    <div class="g-col-3">
-                        <field-definition fieldDefinitionType="MinimumValueOfEachObservation" labelOverride="Min Value" [inline]="true"></field-definition>
-                        <input type="number" class="form-control" [(ngModel)]="schema.MinimumValueOfObservations" (ngModelChange)="emit()">
-                    </div>
-                    <div class="g-col-3">
-                        <field-definition fieldDefinitionType="MaximumValueOfEachObservation" labelOverride="Max Value" [inline]="true"></field-definition>
-                        <input type="number" class="form-control" [(ngModel)]="schema.MaximumValueOfObservations" (ngModelChange)="emit()">
-                    </div>
+                    <form-field class="g-col-6"
+                        fieldLabel="Measurement Unit Label"
+                        fieldDefinitionName="MeasurementUnitLabel"
+                        [type]="FormFieldType.Text"
+                        [formControl]="formGroup.controls.MeasurementUnitLabel"
+                        [required]="true"
+                        placeholder="e.g. Sediment Depth"></form-field>
+                    <form-field class="g-col-6"
+                        fieldLabel="Measurement Unit Type"
+                        fieldDefinitionName="MeasurementUnit"
+                        [type]="FormFieldType.Select"
+                        [formInputOptions]="unitOptions"
+                        [formControl]="formGroup.controls.MeasurementUnitTypeID"
+                        [required]="true"
+                        placeholder="Select Unit"></form-field>
+                    <form-field class="g-col-3"
+                        fieldLabel="Min # Observations"
+                        fieldDefinitionName="MinimumNumberOfObservations"
+                        [type]="FormFieldType.Number"
+                        [formControl]="formGroup.controls.MinimumNumberOfObservations"
+                        [required]="true"></form-field>
+                    <form-field class="g-col-3"
+                        fieldLabel="Max # Observations"
+                        fieldDefinitionName="MaximumNumberOfObservations"
+                        [type]="FormFieldType.Number"
+                        [formControl]="formGroup.controls.MaximumNumberOfObservations"></form-field>
+                    <form-field class="g-col-3"
+                        fieldLabel="Min Value"
+                        fieldDefinitionName="MinimumValueOfEachObservation"
+                        [type]="FormFieldType.Number"
+                        [formControl]="formGroup.controls.MinimumValueOfObservations"
+                        [required]="true"></form-field>
+                    <form-field class="g-col-3"
+                        fieldLabel="Max Value"
+                        fieldDefinitionName="MaximumValueOfEachObservation"
+                        [type]="FormFieldType.Number"
+                        [formControl]="formGroup.controls.MaximumValueOfObservations"></form-field>
                     <div class="g-col-12">
-                        <properties-to-observe-editor [properties]="schema.PropertiesToObserve" (propertiesChange)="schema.PropertiesToObserve = $event; emit()"></properties-to-observe-editor>
+                        <properties-to-observe-editor [control]="formGroup.controls.PropertiesToObserve"></properties-to-observe-editor>
                     </div>
                 </div>
             }
         }
     `,
-    styles: [`.field-label { font-weight: 600; font-size: 0.875rem; display: block; margin-bottom: 0.25rem; }`],
 })
 export class DiscreteSchemaBuilderComponent {
-    @Input() schema: DiscreteValueSchema;
+    @Input({ required: true }) formGroup!: DiscreteSchemaFormGroup;
     @Input() section: SchemaBuilderSection = "instructions";
-    @Output() schemaChange = new EventEmitter<DiscreteValueSchema>();
     public FormFieldType = FormFieldType;
     public unitOptions = MeasurementUnitTypesAsSelectDropdownOptions;
-    emit(): void { this.schemaChange.emit({ ...this.schema }); }
 }

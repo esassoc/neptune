@@ -19,16 +19,19 @@ import {
     emptyDiscreteValueSchema, emptyPassFailSchema, emptyPercentageSchema,
 } from "src/app/shared/observation-types/schema-types";
 import { SchemaPreviewComponent } from "src/app/shared/observation-types/schema-preview.component";
-import { PassFailSchemaBuilderComponent } from "./schema-builders/pass-fail-schema-builder.component";
-import { DiscreteSchemaBuilderComponent } from "./schema-builders/discrete-schema-builder.component";
-import { PercentageSchemaBuilderComponent } from "./schema-builders/percentage-schema-builder.component";
+import { PassFailSchemaBuilderComponent, PassFailSchemaFormGroup, buildPassFailSchemaFormGroup } from "./schema-builders/pass-fail-schema-builder.component";
+import { DiscreteSchemaBuilderComponent, DiscreteSchemaFormGroup, buildDiscreteSchemaFormGroup } from "./schema-builders/discrete-schema-builder.component";
+import { PercentageSchemaBuilderComponent, PercentageSchemaFormGroup, buildPercentageSchemaFormGroup } from "./schema-builders/percentage-schema-builder.component";
 
 /**
  * Routed full-page editor for a TreatmentBMPAssessmentObservationType, mirroring the legacy MVC
  * Edit.cshtml layout (three card sections: Name & Collection, Data Collection Instructions, Labels
  * and Units). Backs both /manage/observation-types/new (create) and
- * /manage/observation-types/:observationTypeID/edit. Replaces the prior modal-based editor that
- * compressed all three sections into a 800px-wide dialog.
+ * /manage/observation-types/:observationTypeID/edit.
+ *
+ * Each collection method owns its own reactive FormGroup for the schema fields — those groups are
+ * built by the schema-builder modules and passed back into them via [formGroup]. The active group
+ * (selected by the current Collection Method) is what gets serialized on Save.
  */
 @Component({
     selector: "observation-type-edit",
@@ -76,9 +79,12 @@ export class ObservationTypeEditComponent implements OnInit {
     public collectionMethod = computed<CollectionMethodType | null>(() => collectionMethodIDToName(this.collectionMethodID()));
     public isPassFail = computed(() => this.collectionMethodID() === ObservationTypeCollectionMethodEnum.PassFail);
 
-    public passFailSchema = signal<PassFailSchema>(emptyPassFailSchema());
-    public discreteSchema = signal<DiscreteValueSchema>(emptyDiscreteValueSchema());
-    public percentageSchema = signal<PercentageSchema>(emptyPercentageSchema());
+    // Per-collection-method schema FormGroups; the schema-builder children bind their <form-field>
+    // [formControl]s into these groups so PropertiesToObserve and instruction text are reactive
+    // alongside the top-level Name / Collection Method form controls.
+    public passFailSchemaGroup: PassFailSchemaFormGroup = buildPassFailSchemaFormGroup(emptyPassFailSchema());
+    public discreteSchemaGroup: DiscreteSchemaFormGroup = buildDiscreteSchemaFormGroup(emptyDiscreteValueSchema());
+    public percentageSchemaGroup: PercentageSchemaFormGroup = buildPercentageSchemaFormGroup(emptyPercentageSchema());
 
     public derivedSpecID = computed(() => tripleToSpec({
         CollectionMethodID: this.formGroup.controls.CollectionMethodID.value,
@@ -96,9 +102,9 @@ export class ObservationTypeEditComponent implements OnInit {
             const previous = this.collectionMethodID();
             this.collectionMethodID.set(cmID ?? null);
             if (previous !== cmID) {
-                this.passFailSchema.set(emptyPassFailSchema());
-                this.discreteSchema.set(emptyDiscreteValueSchema());
-                this.percentageSchema.set(emptyPercentageSchema());
+                this.passFailSchemaGroup.reset(emptyPassFailSchema());
+                this.discreteSchemaGroup.reset(emptyDiscreteValueSchema());
+                this.percentageSchemaGroup.reset(emptyPercentageSchema());
             }
             if (cmID === ObservationTypeCollectionMethodEnum.PassFail) {
                 this.formGroup.controls.TargetTypeID.setValue(ObservationTargetTypeEnum.PassFail, { emitEvent: false });
@@ -130,9 +136,9 @@ export class ObservationTypeEditComponent implements OnInit {
                     if (detail.TreatmentBMPAssessmentObservationTypeSchema) {
                         try {
                             const parsed = JSON.parse(detail.TreatmentBMPAssessmentObservationTypeSchema);
-                            if (cm === "PassFail") this.passFailSchema.set(parsed);
-                            else if (cm === "DiscreteValue") this.discreteSchema.set(parsed);
-                            else if (cm === "Percentage") this.percentageSchema.set(parsed);
+                            if (cm === "PassFail") this.passFailSchemaGroup.reset(parsed);
+                            else if (cm === "DiscreteValue") this.discreteSchemaGroup.reset(parsed);
+                            else if (cm === "Percentage") this.percentageSchemaGroup.reset(parsed);
                         } catch { /* invalid JSON — keep defaults */ }
                     }
                     this.isLoading.set(false);
@@ -147,15 +153,27 @@ export class ObservationTypeEditComponent implements OnInit {
 
     private serializeSchema(): string | undefined {
         const cm = this.collectionMethod();
-        if (cm === "PassFail") return JSON.stringify(this.passFailSchema());
-        if (cm === "DiscreteValue") return JSON.stringify(this.discreteSchema());
-        if (cm === "Percentage") return JSON.stringify(this.percentageSchema());
+        if (cm === "PassFail") return JSON.stringify(this.passFailSchemaGroup.getRawValue() as PassFailSchema);
+        if (cm === "DiscreteValue") return JSON.stringify(this.discreteSchemaGroup.getRawValue() as DiscreteValueSchema);
+        if (cm === "Percentage") return JSON.stringify(this.percentageSchemaGroup.getRawValue() as PercentageSchema);
         return undefined;
     }
 
+    /** Currently-active schema form group, used by the template for `[disabled]` validity gating
+     * on the Save button so the user can't submit with an invalid schema half-filled in. */
+    public activeSchemaGroup(): FormGroup | null {
+        const cm = this.collectionMethod();
+        if (cm === "PassFail") return this.passFailSchemaGroup;
+        if (cm === "DiscreteValue") return this.discreteSchemaGroup;
+        if (cm === "Percentage") return this.percentageSchemaGroup;
+        return null;
+    }
+
     save(): void {
-        if (this.formGroup.invalid) {
+        const active = this.activeSchemaGroup();
+        if (this.formGroup.invalid || (active && active.invalid)) {
             this.formGroup.markAllAsTouched();
+            active?.markAllAsTouched();
             return;
         }
         const raw = this.formGroup.getRawValue();
@@ -198,5 +216,16 @@ export class ObservationTypeEditComponent implements OnInit {
 
     togglePreview(): void {
         this.showPreview.set(!this.showPreview());
+    }
+
+    /** Snapshot of the live schema-builder values, used by the Schema Preview pane while editing. */
+    public passFailSchemaPreview(): PassFailSchema {
+        return this.passFailSchemaGroup.getRawValue() as PassFailSchema;
+    }
+    public discreteSchemaPreview(): DiscreteValueSchema {
+        return this.discreteSchemaGroup.getRawValue() as DiscreteValueSchema;
+    }
+    public percentageSchemaPreview(): PercentageSchema {
+        return this.percentageSchemaGroup.getRawValue() as PercentageSchema;
     }
 }

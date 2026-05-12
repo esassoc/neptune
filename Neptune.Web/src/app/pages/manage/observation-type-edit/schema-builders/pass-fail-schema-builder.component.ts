@@ -1,46 +1,70 @@
-import { Component, EventEmitter, Input, Output } from "@angular/core";
-import { FormsModule } from "@angular/forms";
+import { Component, Input } from "@angular/core";
+import { FormControl, FormGroup, ReactiveFormsModule, Validators } from "@angular/forms";
+import { FormFieldComponent, FormFieldType } from "src/app/shared/components/forms/form-field/form-field.component";
 import { PassFailSchema } from "src/app/shared/observation-types/schema-types";
 import { PropertiesToObserveEditorComponent } from "./properties-to-observe-editor.component";
 
 export type SchemaBuilderSection = "instructions" | "labelsUnits";
 
+export type PassFailSchemaFormGroup = FormGroup<{
+    AssessmentDescription: FormControl<string>;
+    PassingScoreLabel: FormControl<string>;
+    FailingScoreLabel: FormControl<string>;
+    PropertiesToObserve: FormControl<string[]>;
+}>;
+
+/** Build a reactive FormGroup that matches the PassFailSchema shape. The parent observation-type
+ * editor owns the group; the schema-builder template binds each <form-field> to a control in this
+ * group. Validators mirror the legacy MVC required-field markers. */
+export function buildPassFailSchemaFormGroup(initial: PassFailSchema): PassFailSchemaFormGroup {
+    return new FormGroup({
+        AssessmentDescription: new FormControl<string>(initial.AssessmentDescription ?? "", { nonNullable: true, validators: [Validators.required, Validators.maxLength(300)] }),
+        PassingScoreLabel: new FormControl<string>(initial.PassingScoreLabel ?? "Passes", { nonNullable: true, validators: [Validators.required] }),
+        FailingScoreLabel: new FormControl<string>(initial.FailingScoreLabel ?? "Fails", { nonNullable: true, validators: [Validators.required] }),
+        PropertiesToObserve: new FormControl<string[]>(initial.PropertiesToObserve ?? [], { nonNullable: true, validators: [Validators.required] }),
+    });
+}
+
 @Component({
     selector: "pass-fail-schema-builder",
     standalone: true,
-    imports: [FormsModule, PropertiesToObserveEditorComponent],
+    imports: [ReactiveFormsModule, FormFieldComponent, PropertiesToObserveEditorComponent],
     template: `
         @switch (section) {
             @case ("instructions") {
                 <div class="grid-12">
-                    <div class="g-col-12">
-                        <label class="field-label">Assessment Instruction</label>
-                        <textarea class="form-control" rows="3" [(ngModel)]="schema.AssessmentDescription" (ngModelChange)="emit()" placeholder="Instructions for the assessor"></textarea>
-                    </div>
+                    <form-field class="g-col-12"
+                        fieldLabel="Assessment Instruction"
+                        [type]="FormFieldType.Textarea"
+                        [formControl]="formGroup.controls.AssessmentDescription"
+                        [required]="true"
+                        placeholder="Instructions for the assessor"></form-field>
                 </div>
             }
             @case ("labelsUnits") {
                 <div class="grid-12">
-                    <div class="g-col-6">
-                        <label class="field-label">Passing Score Label</label>
-                        <input type="text" class="form-control" [(ngModel)]="schema.PassingScoreLabel" (ngModelChange)="emit()" placeholder="e.g. Passes">
-                    </div>
-                    <div class="g-col-6">
-                        <label class="field-label">Failing Score Label</label>
-                        <input type="text" class="form-control" [(ngModel)]="schema.FailingScoreLabel" (ngModelChange)="emit()" placeholder="e.g. Fails">
-                    </div>
+                    <form-field class="g-col-6"
+                        fieldLabel="Passing Score Label"
+                        [type]="FormFieldType.Text"
+                        [formControl]="formGroup.controls.PassingScoreLabel"
+                        [required]="true"
+                        placeholder="e.g. Passes"></form-field>
+                    <form-field class="g-col-6"
+                        fieldLabel="Failing Score Label"
+                        [type]="FormFieldType.Text"
+                        [formControl]="formGroup.controls.FailingScoreLabel"
+                        [required]="true"
+                        placeholder="e.g. Fails"></form-field>
                     <div class="g-col-12">
-                        <properties-to-observe-editor [properties]="schema.PropertiesToObserve" (propertiesChange)="schema.PropertiesToObserve = $event; emit()"></properties-to-observe-editor>
+                        <properties-to-observe-editor [control]="formGroup.controls.PropertiesToObserve"></properties-to-observe-editor>
                     </div>
                 </div>
             }
         }
     `,
-    styles: [`.field-label { font-weight: 600; font-size: 0.875rem; display: block; margin-bottom: 0.25rem; }`],
 })
 export class PassFailSchemaBuilderComponent {
-    @Input() schema: PassFailSchema;
+    @Input({ required: true }) formGroup!: PassFailSchemaFormGroup;
     @Input() section: SchemaBuilderSection = "instructions";
-    @Output() schemaChange = new EventEmitter<PassFailSchema>();
-    emit(): void { this.schemaChange.emit({ ...this.schema }); }
+    public FormFieldType = FormFieldType;
 }

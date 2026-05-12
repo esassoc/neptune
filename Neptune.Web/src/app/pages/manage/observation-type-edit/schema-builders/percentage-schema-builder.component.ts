@@ -1,50 +1,76 @@
-import { Component, EventEmitter, Input, Output } from "@angular/core";
-import { FormsModule } from "@angular/forms";
-import { FieldDefinitionComponent } from "src/app/shared/components/field-definition/field-definition.component";
+import { Component, Input } from "@angular/core";
+import { FormControl, FormGroup, ReactiveFormsModule, Validators } from "@angular/forms";
+import { FormFieldComponent, FormFieldType } from "src/app/shared/components/forms/form-field/form-field.component";
 import { PercentageSchema } from "src/app/shared/observation-types/schema-types";
 import { PropertiesToObserveEditorComponent } from "./properties-to-observe-editor.component";
 import { SchemaBuilderSection } from "./pass-fail-schema-builder.component";
 
+export type PercentageSchemaFormGroup = FormGroup<{
+    BenchmarkDescription: FormControl<string>;
+    ThresholdDescription: FormControl<string>;
+    AssessmentDescription: FormControl<string>;
+    MeasurementUnitLabel: FormControl<string>;
+    PropertiesToObserve: FormControl<string[]>;
+}>;
+
+/** Build a reactive FormGroup that matches the PercentageSchema shape. */
+export function buildPercentageSchemaFormGroup(initial: PercentageSchema): PercentageSchemaFormGroup {
+    return new FormGroup({
+        BenchmarkDescription: new FormControl<string>(initial.BenchmarkDescription ?? "", { nonNullable: true, validators: [Validators.required, Validators.maxLength(300)] }),
+        ThresholdDescription: new FormControl<string>(initial.ThresholdDescription ?? "", { nonNullable: true, validators: [Validators.required, Validators.maxLength(300)] }),
+        AssessmentDescription: new FormControl<string>(initial.AssessmentDescription ?? "", { nonNullable: true, validators: [Validators.required, Validators.maxLength(300)] }),
+        MeasurementUnitLabel: new FormControl<string>(initial.MeasurementUnitLabel ?? "", { nonNullable: true, validators: [Validators.required] }),
+        PropertiesToObserve: new FormControl<string[]>(initial.PropertiesToObserve ?? [], { nonNullable: true, validators: [Validators.required] }),
+    });
+}
+
 @Component({
     selector: "percentage-schema-builder",
     standalone: true,
-    imports: [FormsModule, FieldDefinitionComponent, PropertiesToObserveEditorComponent],
+    imports: [ReactiveFormsModule, FormFieldComponent, PropertiesToObserveEditorComponent],
     template: `
         @switch (section) {
             @case ("instructions") {
                 <div class="grid-12">
-                    <div class="g-col-12">
-                        <label class="field-label">Benchmark Instruction</label>
-                        <textarea class="form-control" rows="2" [(ngModel)]="schema.BenchmarkDescription" (ngModelChange)="emit()" placeholder="Benchmark instructions"></textarea>
-                    </div>
-                    <div class="g-col-12">
-                        <label class="field-label">Threshold Instruction</label>
-                        <textarea class="form-control" rows="2" [(ngModel)]="schema.ThresholdDescription" (ngModelChange)="emit()" placeholder="Threshold instructions"></textarea>
-                    </div>
-                    <div class="g-col-12">
-                        <label class="field-label">Assessment Instruction</label>
-                        <textarea class="form-control" rows="2" [(ngModel)]="schema.AssessmentDescription" (ngModelChange)="emit()" placeholder="General assessment instructions"></textarea>
-                    </div>
+                    <form-field class="g-col-12"
+                        fieldLabel="Benchmark Instruction"
+                        [type]="FormFieldType.Textarea"
+                        [formControl]="formGroup.controls.BenchmarkDescription"
+                        [required]="true"
+                        placeholder="Benchmark instructions"></form-field>
+                    <form-field class="g-col-12"
+                        fieldLabel="Threshold Instruction"
+                        [type]="FormFieldType.Textarea"
+                        [formControl]="formGroup.controls.ThresholdDescription"
+                        [required]="true"
+                        placeholder="Threshold instructions"></form-field>
+                    <form-field class="g-col-12"
+                        fieldLabel="Assessment Instruction"
+                        [type]="FormFieldType.Textarea"
+                        [formControl]="formGroup.controls.AssessmentDescription"
+                        [required]="true"
+                        placeholder="General assessment instructions"></form-field>
                 </div>
             }
             @case ("labelsUnits") {
                 <div class="grid-12">
+                    <form-field class="g-col-12"
+                        fieldLabel="Measurement Unit Label"
+                        fieldDefinitionName="MeasurementUnitLabel"
+                        [type]="FormFieldType.Text"
+                        [formControl]="formGroup.controls.MeasurementUnitLabel"
+                        [required]="true"
+                        placeholder="e.g. Percent Cover"></form-field>
                     <div class="g-col-12">
-                        <field-definition fieldDefinitionType="MeasurementUnitLabel" labelOverride="Measurement Unit Label" [inline]="true"></field-definition>
-                        <input type="text" class="form-control" [(ngModel)]="schema.MeasurementUnitLabel" (ngModelChange)="emit()" placeholder="e.g. Percent Cover">
-                    </div>
-                    <div class="g-col-12">
-                        <properties-to-observe-editor [properties]="schema.PropertiesToObserve" (propertiesChange)="schema.PropertiesToObserve = $event; emit()"></properties-to-observe-editor>
+                        <properties-to-observe-editor [control]="formGroup.controls.PropertiesToObserve"></properties-to-observe-editor>
                     </div>
                 </div>
             }
         }
     `,
-    styles: [`.field-label { font-weight: 600; font-size: 0.875rem; display: block; margin-bottom: 0.25rem; }`],
 })
 export class PercentageSchemaBuilderComponent {
-    @Input() schema: PercentageSchema;
+    @Input({ required: true }) formGroup!: PercentageSchemaFormGroup;
     @Input() section: SchemaBuilderSection = "instructions";
-    @Output() schemaChange = new EventEmitter<PercentageSchema>();
-    emit(): void { this.schemaChange.emit({ ...this.schema }); }
+    public FormFieldType = FormFieldType;
 }

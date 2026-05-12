@@ -1,4 +1,5 @@
-import { Component, EventEmitter, Input, Output, signal } from "@angular/core";
+import { Component, Input, signal } from "@angular/core";
+import { FormControl } from "@angular/forms";
 import { FieldDefinitionComponent } from "src/app/shared/components/field-definition/field-definition.component";
 
 @Component({
@@ -7,7 +8,7 @@ import { FieldDefinitionComponent } from "src/app/shared/components/field-defini
     imports: [FieldDefinitionComponent],
     template: `
         <field-definition fieldDefinitionType="PropertiesToObserve" labelOverride="Properties to Observe" [inline]="true"></field-definition>
-        @for (prop of properties; track $index) {
+        @for (prop of control.value; track $index) {
             <div class="prop-row">
                 <span>{{ prop }}</span>
                 <button type="button" class="btn btn-sm btn-danger-outline" (click)="remove($index)"><i class="fa fa-trash"></i></button>
@@ -27,19 +28,22 @@ import { FieldDefinitionComponent } from "src/app/shared/components/field-defini
     `],
 })
 export class PropertiesToObserveEditorComponent {
-    @Input() properties: string[] = [];
-    @Output() propertiesChange = new EventEmitter<string[]>();
+    @Input({ required: true }) control!: FormControl<string[]>;
     public newProp = signal("");
 
     add(): void {
         const text = this.newProp().trim();
-        if (text && !this.properties.includes(text)) {
-            this.propertiesChange.emit([...this.properties, text]);
+        const current = this.control.value ?? [];
+        if (text && !current.includes(text)) {
+            this.control.setValue([...current, text]);
+            this.control.markAsDirty();
             this.newProp.set("");
         }
     }
 
     remove(index: number): void {
-        this.propertiesChange.emit(this.properties.filter((_, i) => i !== index));
+        const current = this.control.value ?? [];
+        this.control.setValue(current.filter((_, i) => i !== index));
+        this.control.markAsDirty();
     }
 }
