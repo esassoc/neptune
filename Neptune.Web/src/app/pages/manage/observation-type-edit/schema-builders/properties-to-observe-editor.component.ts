@@ -7,29 +7,41 @@ import { FormFieldComponent, FormFieldType } from "src/app/shared/components/for
     standalone: true,
     imports: [ReactiveFormsModule, FormFieldComponent],
     template: `
-        <div class="grid-12">
-            @for (prop of control.value; track $index) {
-                <div class="g-col-12 prop-row">
-                    <span>{{ prop }}</span>
-                    <button type="button" class="btn btn-sm btn-danger-outline" (click)="remove($index)" aria-label="Remove property"><i class="fa fa-trash"></i></button>
-                </div>
-            }
-            <form-field class="g-col-10"
-                fieldLabel="Properties to Observe"
-                fieldDefinitionName="PropertiesToObserve"
-                [type]="FormFieldType.Text"
-                [formControl]="newPropControl"
-                placeholder="New property..."
-                (keydown.enter)="add(); $event.preventDefault()"></form-field>
-            <div class="g-col-2 add-btn-cell">
-                <button type="button" class="btn btn-sm btn-primary-outline" (click)="add()"><i class="fa fa-plus"></i> Add</button>
-            </div>
+        <form-field
+            fieldLabel="Properties to Observe"
+            fieldDefinitionName="PropertiesToObserve"
+            [type]="FormFieldType.Text"
+            [formControl]="newPropControl"
+            placeholder="New property..."
+            (keydown.enter)="add(); $event.preventDefault()"></form-field>
+        <div class="picker-row">
+            <button type="button" class="btn btn-primary-outline btn-sm" (click)="add()">
+                <i class="fa fa-plus"></i> Add
+            </button>
         </div>
+
+        @for (prop of control.value; track $index) {
+            <div class="prop-row">
+                <button type="button" class="btn btn-sm btn-danger-outline" (click)="remove($index)" aria-label="Remove property">
+                    <i class="fa fa-trash"></i>
+                </button>
+                <span>{{ prop }}</span>
+            </div>
+        }
     `,
     styles: [`
-        .prop-row { display: flex; gap: 0.5rem; align-items: center; }
+        .picker-row {
+            display: flex;
+            justify-content: flex-end;
+            margin-top: 0.5rem;
+        }
+        .prop-row {
+            display: flex;
+            gap: 0.5rem;
+            align-items: center;
+            margin-top: 0.5rem;
+        }
         .prop-row span { flex: 1; }
-        .add-btn-cell { display: flex; align-items: flex-end; padding-bottom: 0.25rem; }
     `],
 })
 export class PropertiesToObserveEditorComponent {
