@@ -9,12 +9,14 @@
         @switch (type) {
             <!-- Text -->
             @case (FormFieldType.Text) {
-                <div class="field-label" [class.required]="formControl | isRequired">
-                    {{ fieldLabel }}
-                    @if (fieldDefinitionName && fieldLabel) {
-                        <field-definition [fieldDefinitionType]="fieldDefinitionName" [iconOnly]="true"></field-definition>
-                    }
-                </div>
+                @if (fieldLabel) {
+                    <div class="field-label" [class.required]="formControl | isRequired">
+                        {{ fieldLabel }}
+                        @if (fieldDefinitionName) {
+                            <field-definition [fieldDefinitionType]="fieldDefinitionName" [iconOnly]="true"></field-definition>
+                        }
+                    </div>
+                }
                 <div class="units-wrapper">
                     <input [mask]="mask" type="text" [placeholder]="placeholder" [formControl]="formControl" [name]="name" />
                     @if (units) {

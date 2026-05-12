@@ -1,12 +1,17 @@
 import { Component, Input } from "@angular/core";
 import { FormControl, ReactiveFormsModule } from "@angular/forms";
 import { FormFieldComponent, FormFieldType } from "src/app/shared/components/forms/form-field/form-field.component";
+import { FieldDefinitionComponent } from "src/app/shared/components/field-definition/field-definition.component";
 
 @Component({
     selector: "properties-to-observe-editor",
     standalone: true,
-    imports: [ReactiveFormsModule, FormFieldComponent],
+    imports: [ReactiveFormsModule, FormFieldComponent, FieldDefinitionComponent],
     template: `
+        <div class="field-label">
+            <field-definition fieldDefinitionType="PropertiesToObserve" labelOverride="Properties to Observe"></field-definition>
+        </div>
+
         @for (prop of control.value; track $index) {
             <div class="prop-row">
                 <button type="button" class="btn btn-sm btn-danger-outline" (click)="remove($index)" aria-label="Remove property">
@@ -17,8 +22,6 @@ import { FormFieldComponent, FormFieldType } from "src/app/shared/components/for
         }
 
         <form-field
-            fieldLabel="Properties to Observe"
-            fieldDefinitionName="PropertiesToObserve"
             [type]="FormFieldType.Text"
             [formControl]="newPropControl"
             placeholder="New property..."
@@ -30,6 +33,10 @@ import { FormFieldComponent, FormFieldType } from "src/app/shared/components/for
         </div>
     `,
     styles: [`
+        .field-label {
+            font-weight: 600;
+            margin-bottom: 0.5rem;
+        }
         .picker-row {
             display: flex;
             justify-content: flex-end;
