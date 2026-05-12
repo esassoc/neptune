@@ -1,6 +1,6 @@
 ﻿using System.Text.Json.Serialization;
 
-namespace Neptune.WebMvc.Common;
+namespace Neptune.Common.Recaptcha;
 
 public class GoogleRecaptchaV3Response
 {

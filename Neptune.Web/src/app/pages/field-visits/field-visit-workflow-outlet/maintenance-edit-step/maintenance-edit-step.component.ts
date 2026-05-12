@@ -2,7 +2,7 @@ import { Component, OnInit, signal } from "@angular/core";
 import { Router } from "@angular/router";
 import { AsyncPipe } from "@angular/common";
 import { FormControl, FormGroup, ReactiveFormsModule, Validators } from "@angular/forms";
-import { combineLatest, map, Observable, switchMap, take } from "rxjs";
+import { combineLatest, finalize, map, Observable, switchMap, take } from "rxjs";
 
 import { FormFieldComponent, FormFieldType, SelectDropdownOption } from "src/app/shared/components/forms/form-field/form-field.component";
 import { LoadingDirective } from "src/app/shared/directives/loading.directive";
@@ -32,6 +32,8 @@ interface ObservationField {
     isRequired: boolean;
     sortOrder: number;
     dataTypeID: number;
+    /** Configured unit label (e.g. "sq ft", "cu yd") shown to the right of numeric inputs. */
+    unitLabel: string;
     /** Per-data-type display info — drives which input the template renders. */
     dataTypeKind: "text" | "integer" | "decimal" | "date" | "pick-one" | "multi-select";
     options: SelectDropdownOption[];
@@ -55,6 +57,8 @@ export class FieldVisitMaintenanceEditStepComponent implements OnInit {
     public maintenanceRecord = signal<MaintenanceRecordDetailDto | null>(null);
     public observationFields = signal<ObservationField[]>([]);
     public isLoading = signal(true);
+    public isReadOnly = signal(false);
+    public isSaving = signal(false);
     public FormFieldType = FormFieldType;
     public maintenanceRecordTypeOptions: SelectDropdownOption[] = MaintenanceRecordTypesAsSelectDropdownOptions;
 
@@ -78,6 +82,7 @@ export class FieldVisitMaintenanceEditStepComponent implements OnInit {
 
     ngOnInit(): void {
         this.workflow$ = this.workflowService.workflow$;
+        this.workflowService.clearStepAlerts();
         this.workflowService.workflow$
             .pipe(
                 take(1),
@@ -89,8 +94,9 @@ export class FieldVisitMaintenanceEditStepComponent implements OnInit {
                     }).pipe(map((r) => ({ workflow, ...r })));
                 })
             )
-            .subscribe(({ record, attributeTypes }) => {
+            .subscribe(({ workflow, record, attributeTypes }) => {
                 this.maintenanceRecord.set(record);
+                this.isReadOnly.set(this.workflowService.isReadOnly(workflow));
                 this.formGroup.patchValue({
                     MaintenanceRecordTypeID: record?.MaintenanceRecordTypeID ?? null,
                     MaintenanceRecordDescription: record?.MaintenanceRecordDescription ?? "",
@@ -112,6 +118,9 @@ export class FieldVisitMaintenanceEditStepComponent implements OnInit {
                 for (const field of fields) {
                     const active = field.dataTypeKind === "multi-select" ? field.multiControl : field.control;
                     observationsGroup.addControl(`${field.customAttributeTypeID}`, active);
+                }
+                if (this.isReadOnly()) {
+                    this.formGroup.disable();
                 }
                 this.isLoading.set(false);
             });
@@ -137,6 +146,7 @@ export class FieldVisitMaintenanceEditStepComponent implements OnInit {
             isRequired,
             sortOrder: typeAttr.SortOrder ?? 0,
             dataTypeID,
+            unitLabel: attr?.MeasurementUnitDisplayName ?? "",
             dataTypeKind,
             options,
             control: new FormControl<string | null>(initialSingle, { validators: required }),
@@ -173,9 +183,16 @@ export class FieldVisitMaintenanceEditStepComponent implements OnInit {
         }
     }
 
-    save(workflow: FieldVisitWorkflowDto): void {
+    save(workflow: FieldVisitWorkflowDto, nextAction: "stay" | "continue" | "wrap-up" = "continue"): void {
+        // Defensive double-submit guard. The previous version had no in-flight check, so a fast
+        // second click during the (visible) Save & Continue → navigate window could push the
+        // success alert twice — Kathleen flagged this as the duplicate-alert symptom.
+        if (this.isSaving()) return;
         const record = this.maintenanceRecord();
         if (this.formGroup.invalid || !record) return;
+
+        this.workflowService.clearStepAlerts();
+        this.isSaving.set(true);
 
         const observations: MaintenanceRecordObservationUpsertDto[] = this.observationFields()
             .map((field) => ({
@@ -190,12 +207,28 @@ export class FieldVisitMaintenanceEditStepComponent implements OnInit {
             Observations: observations,
         });
 
-        this.maintenanceRecordService.updateMaintenanceRecord(record.MaintenanceRecordID, dto).subscribe(() => {
-            this.alertService.pushAlert(new Alert("Maintenance Record saved.", AlertContext.Success));
-            this.workflowService.refresh().subscribe(() => {
-                this.router.navigate(["/field-visits", workflow.FieldVisitID, "post-maintenance-assessment"]);
+        // Chain update -> refresh and use finalize so isSaving always resets, regardless of whether
+        // the refresh leg errors out (transient network / 401 / etc.). Previously isSaving was only
+        // cleared in the success branch of refresh().subscribe(), so a failed refresh after a
+        // successful save left the footer permanently disabled.
+        this.maintenanceRecordService
+            .updateMaintenanceRecord(record.MaintenanceRecordID, dto)
+            .pipe(
+                switchMap(() => {
+                    this.alertService.pushAlert(new Alert("Maintenance Record saved.", AlertContext.Success));
+                    return this.workflowService.refresh();
+                }),
+                finalize(() => this.isSaving.set(false))
+            )
+            .subscribe({
+                next: () => {
+                    if (nextAction === "continue") {
+                        this.router.navigate(["/field-visits", workflow.FieldVisitID, "post-maintenance-assessment"]);
+                    } else if (nextAction === "wrap-up") {
+                        this.workflowService.wrapUpVisit(workflow.FieldVisitID);
+                    }
+                },
             });
-        });
     }
 
     onMultiSelectToggle(field: ObservationField, value: string, checked: boolean): void {

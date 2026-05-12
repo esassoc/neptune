@@ -374,15 +374,25 @@ export class UtilityFunctionsService {
             suppressQuotes: false,
             fileName: fileName,
             processCellCallback: function (p) {
-                if (p.column.getColDef().cellRenderer) {
-                    if (p.value.downloadDisplay) {
-                        return p.value.downloadDisplay;
-                    } else {
-                        return p.value.LinkDisplay;
-                    }
-                } else {
-                    return p.value;
+                const colDef = p.column.getColDef();
+                if (colDef.cellRenderer && p.value && typeof p.value === "object") {
+                    if ((p.value as any).downloadDisplay !== undefined) return (p.value as any).downloadDisplay;
+                    if ((p.value as any).LinkDisplay !== undefined) return (p.value as any).LinkDisplay;
                 }
+                // Fall through to the column's valueFormatter so booleans render as "Yes"/"No",
+                // dates render in the configured format, etc., instead of raw true/false / ISO strings.
+                if (typeof colDef.valueFormatter === "function") {
+                    return colDef.valueFormatter({
+                        value: p.value,
+                        data: p.node?.data,
+                        node: p.node,
+                        colDef,
+                        column: p.column,
+                        api: p.api,
+                        context: p.context,
+                    } as any);
+                }
+                return p.value;
             },
         } as CsvExportParams;
         if (columnKeys) {

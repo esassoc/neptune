@@ -1,4 +1,5 @@
-﻿using Neptune.Jobs;
+﻿using Neptune.Common.Recaptcha;
+using Neptune.Jobs;
 
 namespace Neptune.API.Services;
 
@@ -8,6 +9,7 @@ public class NeptuneConfiguration : NeptuneJobConfiguration
     public string AzureBlobStorageConnectionString { get; set; }
     public string OcStormwaterToolsBaseUrl { get; set; }
     public string NereidUrl { get; set; }
+    public GoogleRecaptchaV3Config GoogleRecaptchaV3Config { get; set; }
 
     public string GDALAPIBaseUrl { get; set; }
     public string QGISAPIBaseUrl { get; set; }

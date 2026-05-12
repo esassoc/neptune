@@ -17,10 +17,15 @@ public partial class WaterQualityManagementPlanExtractionResult
 
     public int WaterQualityManagementPlanDocumentID { get; set; }
 
-    public string ExtractionResultJson { get; set; } = null!;
+    public string? ExtractionResultJson { get; set; }
 
     [Column(TypeName = "datetime")]
     public DateTime ExtractedAt { get; set; }
+
+    public string? ErrorMessage { get; set; }
+
+    [StringLength(100)]
+    public string? ErrorCode { get; set; }
 
     [ForeignKey("WaterQualityManagementPlanID")]
     [InverseProperty("WaterQualityManagementPlanExtractionResult")]

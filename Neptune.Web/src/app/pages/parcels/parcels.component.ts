@@ -4,6 +4,7 @@ import { ColDef } from "ag-grid-community";
 import { Observable, shareReplay } from "rxjs";
 import { UtilityFunctionsService } from "src/app/services/utility-functions.service";
 import { AlertDisplayComponent } from "src/app/shared/components/alert-display/alert-display.component";
+import { CustomRichTextComponent } from "src/app/shared/components/custom-rich-text/custom-rich-text.component";
 import { HybridMapGridComponent } from "src/app/shared/components/hybrid-map-grid/hybrid-map-grid.component";
 import { OverlayMode } from "src/app/shared/components/leaflet/layers/generic-wms-wfs-layer/overlay-mode.enum";
 import { ParcelsLayerComponent } from "src/app/shared/components/leaflet/layers/parcels-layer/parcels-layer.component";
@@ -11,13 +12,14 @@ import { NeptuneMapInitEvent } from "src/app/shared/components/leaflet/neptune-m
 import { PageHeaderComponent } from "src/app/shared/components/page-header/page-header.component";
 import { ParcelService } from "src/app/shared/generated/api/parcel.service";
 import { StormwaterJurisdictionService } from "src/app/shared/generated/api/stormwater-jurisdiction.service";
+import { NeptunePageTypeEnum } from "src/app/shared/generated/enum/neptune-page-type-enum";
 import { BoundingBoxDto } from "src/app/shared/generated/model/bounding-box-dto";
 import { ParcelGridDto } from "src/app/shared/generated/model/parcel-grid-dto";
 
 @Component({
     selector: "parcels",
     standalone: true,
-    imports: [PageHeaderComponent, AlertDisplayComponent, HybridMapGridComponent, ParcelsLayerComponent, AsyncPipe],
+    imports: [PageHeaderComponent, AlertDisplayComponent, CustomRichTextComponent, HybridMapGridComponent, ParcelsLayerComponent, AsyncPipe],
     templateUrl: "./parcels.component.html",
 })
 export class ParcelsComponent {
@@ -29,6 +31,7 @@ export class ParcelsComponent {
     public layerControl: L.Control.Layers;
     public selectedParcelID: number;
     public zoomOnNextSelection = true;
+    public customRichTextTypeID: number = NeptunePageTypeEnum.ParcelList;
 
     constructor(
         private parcelService: ParcelService,

@@ -240,19 +240,12 @@ export class WqmpsComponent {
         });
     }
 
-    public onPdfSelected(event: Event): void {
-        const input = event.target as HTMLInputElement;
-        if (!input.files?.length) return;
-        const file = input.files[0];
-        input.value = "";
-
-        if (!file.name.toLowerCase().endsWith(".pdf")) {
-            this.alertService.pushAlert(new Alert("Only PDF files are accepted.", AlertContext.Danger));
-            return;
-        }
-
+    // NPT-1051 rework: the modal now owns file selection so the user sees the upload
+    // requirements before committing to a file. Previously a hidden <input type="file">
+    // fired on Create-from-PDF click, which meant the OS file picker opened before the
+    // user saw any constraints — out-of-order UX.
+    public openCreateFromPdfModal(): void {
         const dialogRef = this.dialogService.open(WqmpUploadModalComponent, {
-            data: { file },
             width: "600px",
         });
         dialogRef.afterClosed$.subscribe((result) => {

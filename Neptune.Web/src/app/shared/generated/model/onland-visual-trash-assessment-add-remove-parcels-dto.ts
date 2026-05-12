@@ -15,7 +15,9 @@ export class OnlandVisualTrashAssessmentAddRemoveParcelsDto {
     OnlandVisualTrashAssessmentAreaID?: number | null;
     StormwaterJurisdictionID?: number;
     IsDraftGeometryManuallyRefined?: boolean;
+    OvtaAreaSourceTypeID?: number;
     SelectedParcelIDs?: Array<number> | null;
+    SelectedLandUseBlockIDs?: Array<number> | null;
     constructor(obj?: any) {
         Object.assign(this, obj);
     }
@@ -26,7 +28,9 @@ export interface OnlandVisualTrashAssessmentAddRemoveParcelsDtoForm {
     OnlandVisualTrashAssessmentAreaID?: FormControl<number>;
     StormwaterJurisdictionID?: FormControl<number>;
     IsDraftGeometryManuallyRefined?: FormControl<boolean>;
+    OvtaAreaSourceTypeID?: FormControl<number>;
     SelectedParcelIDs?: FormControl<Array<number>>;
+    SelectedLandUseBlockIDs?: FormControl<Array<number>>;
 }
 
 export class OnlandVisualTrashAssessmentAddRemoveParcelsDtoFormControls { 
@@ -70,7 +74,27 @@ export class OnlandVisualTrashAssessmentAddRemoveParcelsDtoFormControls {
             ],
         }
     );
+    public static OvtaAreaSourceTypeID = (value: FormControlState<number> | number = undefined, formControlOptions?: FormControlOptions | null) => new FormControl<number>(
+        value,
+        formControlOptions ?? 
+        {
+            nonNullable: false,
+            validators: 
+            [
+            ],
+        }
+    );
     public static SelectedParcelIDs = (value: FormControlState<Array<number>> | Array<number> = undefined, formControlOptions?: FormControlOptions | null) => new FormControl<Array<number>>(
+        value,
+        formControlOptions ?? 
+        {
+            nonNullable: false,
+            validators: 
+            [
+            ],
+        }
+    );
+    public static SelectedLandUseBlockIDs = (value: FormControlState<Array<number>> | Array<number> = undefined, formControlOptions?: FormControlOptions | null) => new FormControl<Array<number>>(
         value,
         formControlOptions ?? 
         {

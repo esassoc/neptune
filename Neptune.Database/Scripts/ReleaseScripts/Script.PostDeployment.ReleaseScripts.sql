@@ -62,4 +62,6 @@ GO
 GO
 :r ".\027 - Backfill WQMP Status to Active for null rows.sql"
 GO
+:r ".\028 - Seed gt_pk_metadata for vGeoServerLandUseBlock.sql"
+GO
 

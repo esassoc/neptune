@@ -78,6 +78,15 @@ public class TreatmentBMPController(NeptuneDbContext dbContext, ILogger<Treatmen
         return Ok(treatmentBMPDisplayDtos);
     }
 
+    [HttpGet("for-delineation-map")]
+    [UserViewFeature]
+    public async Task<ActionResult<List<TreatmentBMPDelineationMapDto>>> ListForDelineationMap()
+    {
+        var currentPerson = People.GetByID(DbContext, CallingUser.PersonID);
+        var dtos = await TreatmentBMPs.ListForDelineationMapAsync(DbContext, currentPerson);
+        return Ok(dtos);
+    }
+
     [HttpGet("octa-m2-tier2-grant-program")]
     [JurisdictionEditFeature]
     public async Task<ActionResult<List<TreatmentBMPDisplayDto>>> ListOCTAM2Tier2GrantProgramTreatmentBMPs()

@@ -1,0 +1,40 @@
+@use "/src/scss/abstracts" as *;
+
+// Override the shared <btn-group-radio-input> styling for the Select Assessment Area page.
+// The default appearance from `_button-group.scss` is a tab-strip; here we want a centered,
+// light-gray-bordered pill with internal padding, where the active option is filled in primary
+// and inactive options reveal the same fill on hover. Scoped under .source-type-toggle so the
+// global default still applies elsewhere.
+.source-type-toggle {
+    text-align: center;
+
+    ::ng-deep .button-group {
+        display: inline-flex;
+        border: 1px solid $gray-200;
+        border-radius: 0.25rem;
+        padding: 4px;
+        margin-bottom: 0;
+        gap: 4px;
+    }
+
+    ::ng-deep .button-group__item {
+        background-color: transparent;
+        color: $primary;
+        border: none;
+        border-radius: 0.25rem;
+        font-weight: 600;
+        padding: 0.5rem 1.25rem;
+        transition: background-color 200ms ease, color 200ms ease;
+
+        &:hover:not(:disabled),
+        &.active {
+            background-color: $primary;
+            color: $white;
+        }
+
+        &:disabled {
+            opacity: 0.5;
+            pointer-events: none;
+        }
+    }
+}

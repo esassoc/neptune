@@ -2,11 +2,13 @@
 <app-alert-display></app-alert-display>
 
 <div class="page-body">
-    <neptune-grid
-        height="800px"
-        [rowData]="fieldDefinitions"
-        [columnDefs]="columnDefs"
-        downloadFileName="field-definitions"
-        [pagination]="true"
-        [sizeColumnsToFitGrid]="true"></neptune-grid>
+    @if (fieldDefinitions$ | async; as fieldDefinitions) {
+        <neptune-grid
+            height="800px"
+            [rowData]="fieldDefinitions"
+            [columnDefs]="columnDefs"
+            downloadFileName="field-definitions"
+            [pagination]="true"
+            [sizeColumnsToFitGrid]="true"></neptune-grid>
+    }
 </div>

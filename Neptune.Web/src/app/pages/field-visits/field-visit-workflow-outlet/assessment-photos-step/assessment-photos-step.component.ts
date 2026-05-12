@@ -2,14 +2,21 @@ import { Component, Input, OnInit, signal } from "@angular/core";
 import { Router } from "@angular/router";
 import { AsyncPipe } from "@angular/common";
 import { FormGroup } from "@angular/forms";
-import { forkJoin, Observable, of, switchMap, take } from "rxjs";
+import { DialogService } from "@ngneat/dialog";
+import { Observable, of, switchMap, take } from "rxjs";
 
 import { ImageEditorComponent, ImageEditorItem } from "src/app/shared/components/image-editor/image-editor.component";
+import { ImageCarouselComponent, ImageCarouselItem } from "src/app/shared/components/image-carousel/image-carousel.component";
+import {
+    EditPhotoCaptionModalComponent,
+    EditPhotoCaptionModalContext,
+} from "src/app/shared/components/edit-photo-caption-modal/edit-photo-caption-modal.component";
 import { LoadingDirective } from "src/app/shared/directives/loading.directive";
 import { PageHeaderComponent } from "src/app/shared/components/page-header/page-header.component";
 
 import { TreatmentBMPAssessmentByFieldVisitService } from "src/app/shared/generated/api/treatment-bmp-assessment-by-field-visit.service";
 import { TreatmentBMPAssessmentPhotoService } from "src/app/shared/generated/api/treatment-bmp-assessment-photo.service";
+import { FileResourceService } from "src/app/shared/generated/api/file-resource.service";
 import { TreatmentBMPAssessmentDetailDto } from "src/app/shared/generated/model/treatment-bmp-assessment-detail-dto";
 import { TreatmentBMPAssessmentPhotoDto } from "src/app/shared/generated/model/treatment-bmp-assessment-photo-dto";
 import { FieldVisitWorkflowDto } from "src/app/shared/generated/model/field-visit-workflow-dto";
@@ -27,7 +34,7 @@ interface AssessmentPhotoEditorItem extends ImageEditorItem {
 @Component({
     selector: "field-visit-assessment-photos-step",
     standalone: true,
-    imports: [AsyncPipe, ImageEditorComponent, LoadingDirective, PageHeaderComponent],
+    imports: [AsyncPipe, ImageEditorComponent, ImageCarouselComponent, LoadingDirective, PageHeaderComponent],
     templateUrl: "./assessment-photos-step.component.html",
     styleUrl: "./assessment-photos-step.component.scss",
 })
@@ -42,12 +49,15 @@ export class FieldVisitAssessmentPhotosStepComponent implements OnInit {
     public photos = signal<AssessmentPhotoEditorItem[]>([]);
     public captionControlForm = new FormGroup({});
     public isLoading = signal(true);
+    public isReadOnly = signal(false);
 
     constructor(
         private workflowService: FieldVisitWorkflowService,
         private assessmentByFieldVisitService: TreatmentBMPAssessmentByFieldVisitService,
         private photoService: TreatmentBMPAssessmentPhotoService,
+        private fileResourceService: FileResourceService,
         private alertService: AlertService,
+        private dialogService: DialogService,
         private router: Router
     ) {}
 
@@ -63,10 +73,12 @@ export class FieldVisitAssessmentPhotosStepComponent implements OnInit {
 
     ngOnInit(): void {
         this.workflow$ = this.workflowService.workflow$;
+        this.workflowService.clearStepAlerts();
         this.workflow$
             .pipe(
                 take(1),
                 switchMap((workflow) => {
+                    this.isReadOnly.set(this.workflowService.isReadOnly(workflow));
                     if (!workflow) return of(null);
                     return this.assessmentByFieldVisitService.getByTypeTreatmentBMPAssessmentByFieldVisit(workflow.FieldVisitID, this.assessmentTypeID);
                 })
@@ -118,32 +130,54 @@ export class FieldVisitAssessmentPhotosStepComponent implements OnInit {
         });
     }
 
-    onSaveCaptions(updated: AssessmentPhotoEditorItem[]): void {
+    onCaptionEditRequested(item: ImageEditorItem): void {
         const assessment = this.assessment();
         if (!assessment) return;
-        if (updated.length === 0) {
-            this.alertService.pushAlert(new Alert("No caption changes to save.", AlertContext.Info));
-            return;
-        }
+        const photoID = (item as AssessmentPhotoEditorItem).TreatmentBMPAssessmentPhotoID;
+        if (!photoID || !item.FileResourceGUID) return;
 
-        const requests = updated
-            .filter((item) => item.TreatmentBMPAssessmentPhotoID != null)
-            .map((item) =>
-                this.photoService.updateCaptionTreatmentBMPAssessmentPhoto(assessment.TreatmentBMPAssessmentID, item.TreatmentBMPAssessmentPhotoID!, {
-                    TreatmentBMPAssessmentPhotoID: item.TreatmentBMPAssessmentPhotoID!,
-                    Caption: item.Caption ?? null,
-                })
-            );
-
-        forkJoin(requests).subscribe({
-            next: () => {
-                this.alertService.pushAlert(new Alert("Captions saved.", AlertContext.Success));
-                this.refreshPhotos();
+        // Pre-load the photo blob into an object URL so the modal preview matches the on-page thumbnail.
+        this.fileResourceService.displayResourceFileResource(item.FileResourceGUID, "body", false, { httpHeaderAccept: undefined }).subscribe({
+            next: (blob: Blob) => {
+                const previewUrl = URL.createObjectURL(blob);
+                this.openCaptionModal(assessment.TreatmentBMPAssessmentID, photoID, item, previewUrl);
             },
             error: () => {
-                this.alertService.pushAlert(new Alert("An error occurred saving captions.", AlertContext.Danger));
+                // Open without a preview — caption editor still works, just without a thumbnail.
+                this.alertService.pushAlert(new Alert("Could not load the photo preview; caption editor is still available.", AlertContext.Warning));
+                this.openCaptionModal(assessment.TreatmentBMPAssessmentID, photoID, item, null);
             },
         });
+    }
+
+    private openCaptionModal(assessmentID: number, photoID: number, item: ImageEditorItem, previewUrl: string | null): void {
+        this.dialogService
+            .open(EditPhotoCaptionModalComponent, {
+                data: {
+                    currentCaption: item.Caption ?? "",
+                    previewUrl,
+                    title: "Edit Photo Caption",
+                } as EditPhotoCaptionModalContext,
+            })
+            .afterClosed$.subscribe((newCaption: string | null | undefined) => {
+                if (previewUrl) URL.revokeObjectURL(previewUrl);
+                if (newCaption == null) return;
+                if ((newCaption ?? "") === (item.Caption ?? "")) return;
+                this.photoService
+                    .updateCaptionTreatmentBMPAssessmentPhoto(assessmentID, photoID, {
+                        TreatmentBMPAssessmentPhotoID: photoID,
+                        Caption: newCaption,
+                    })
+                    .subscribe({
+                        next: () => {
+                            this.alertService.pushAlert(new Alert("Caption saved.", AlertContext.Success));
+                            this.refreshPhotos();
+                        },
+                        error: () => {
+                            this.alertService.pushAlert(new Alert("Failed to save caption.", AlertContext.Danger));
+                        },
+                    });
+            });
     }
 
     cancel(workflow: FieldVisitWorkflowDto): void {

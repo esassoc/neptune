@@ -3,7 +3,7 @@
         <!-- NPT-1051: Create from PDF promoted to a primary action — AI extraction is the
              expected entry point for new WQMPs going forward. The new WQMP lands in Draft
              status; the reviewer wizard auto-opens for transcription review. -->
-        <button type="button" class="btn btn-primary" (click)="pdfFileInput.click()">
+        <button type="button" class="btn btn-primary" style="margin-right: 0.5rem" (click)="openCreateFromPdfModal()">
             <i class="fa fa-magic"></i> Create from PDF
         </button>
         <a href="javascript:void(0);" [dropdownToggle]="actionsMenu" class="btn btn-primary-outline dropdown-toggle ml-2" role="button" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
@@ -15,7 +15,6 @@
             <a class="dropdown-item" [href]="siteUrl + '/WaterQualityManagementPlan/UploadSimplifiedBMPs'">Bulk Upload Simplified BMPs</a>
             <a class="dropdown-item" [href]="siteUrl + '/WaterQualityManagementPlan/UploadWqmpBoundaryFromAPNs'">Bulk Upload WQMP Boundaries From APNs</a>
         </div>
-        <input #pdfFileInput type="file" accept=".pdf" style="display:none" (change)="onPdfSelected($event)" />
     }
 </ng-template>
 <page-header pageTitle="Water Quality Management Plans" [templateRight]="addButton"></page-header>

@@ -76,6 +76,7 @@ export class FieldVisitObservationsStepComponent implements OnInit {
     public assessment = signal<TreatmentBMPAssessmentDetailDto | null>(null);
     public panels = signal<ObservationTypePanel[]>([]);
     public isLoading = signal(true);
+    public isReadOnly = signal(false);
     public FormFieldType = FormFieldType;
 
     constructor(
@@ -99,21 +100,30 @@ export class FieldVisitObservationsStepComponent implements OnInit {
 
     ngOnInit(): void {
         this.workflow$ = this.workflowService.workflow$;
+        this.workflowService.clearStepAlerts();
         this.workflow$
             .pipe(
                 take(1),
                 switchMap((workflow) => {
+                    this.isReadOnly.set(this.workflowService.isReadOnly(workflow));
                     if (!workflow) return of(null);
                     return this.assessmentByFieldVisitService.getByTypeTreatmentBMPAssessmentByFieldVisit(workflow.FieldVisitID, this.assessmentTypeID);
                 })
             )
             .subscribe((assessment) => {
                 this.assessment.set(assessment);
-                this.panels.set(
-                    (assessment?.ObservationTypes ?? [])
-                        .map((t) => this.buildPanel(t, assessment?.Observations ?? []))
-                        .filter((p): p is ObservationTypePanel => p != null)
-                );
+                const panels = (assessment?.ObservationTypes ?? [])
+                    .map((t) => this.buildPanel(t, assessment?.Observations ?? []))
+                    .filter((p): p is ObservationTypePanel => p != null);
+                if (this.isReadOnly()) {
+                    for (const panel of panels) {
+                        for (const prop of panel.properties) {
+                            prop.valueControl.disable();
+                            prop.notesControl.disable();
+                        }
+                    }
+                }
+                this.panels.set(panels);
                 this.isLoading.set(false);
             });
     }
@@ -210,9 +220,11 @@ export class FieldVisitObservationsStepComponent implements OnInit {
         return String(value);
     }
 
-    save(workflow: FieldVisitWorkflowDto, andContinue: boolean): void {
+    save(workflow: FieldVisitWorkflowDto, nextAction: "stay" | "continue" | "wrap-up"): void {
         const assessment = this.assessment();
         if (!assessment) return;
+
+        this.workflowService.clearStepAlerts();
 
         // Touch every value control so out-of-range / range-validator errors surface in form-field
         // before we bail out. Notes have no validators, so no need to touch them.
@@ -247,9 +259,11 @@ export class FieldVisitObservationsStepComponent implements OnInit {
         this.assessmentService.upsertObservationsTreatmentBMPAssessment(assessment.TreatmentBMPAssessmentID, dto).subscribe(() => {
             this.alertService.pushAlert(new Alert("Observations saved.", AlertContext.Success));
             this.workflowService.refresh().subscribe(() => {
-                if (andContinue) {
+                if (nextAction === "continue") {
                     const next = this.isPostMaintenance ? "summary" : "maintenance";
                     this.router.navigate(["/field-visits", workflow.FieldVisitID, next]);
+                } else if (nextAction === "wrap-up") {
+                    this.workflowService.wrapUpVisit(workflow.FieldVisitID);
                 }
             });
         });

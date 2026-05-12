@@ -22,7 +22,9 @@ public static class OnlandVisualTrashAssessmentExtensionMethods
             DraftAreaName = onlandVisualTrashAssessment.DraftAreaName,
             DraftAreaDescription = onlandVisualTrashAssessment.DraftAreaDescription,
             IsTransectBackingAssessment = onlandVisualTrashAssessment.IsTransectBackingAssessment,
-            IsProgressAssessment = onlandVisualTrashAssessment.IsProgressAssessment
+            IsProgressAssessment = onlandVisualTrashAssessment.IsProgressAssessment,
+            SecondAssessorName = onlandVisualTrashAssessment.SecondAssessorName,
+            OvtaAreaSourceTypeID = onlandVisualTrashAssessment.OvtaAreaSourceTypeID
         };
         return dto;
     }
@@ -33,6 +35,7 @@ public static class OnlandVisualTrashAssessmentExtensionMethods
         {
             OnlandVisualTrashAssessmentID = onlandVisualTrashAssessment.OnlandVisualTrashAssessmentID,
             CreatedByPersonFullName = onlandVisualTrashAssessment.CreatedByPerson.GetFullNameFirstLast(),
+            SecondAssessorName = onlandVisualTrashAssessment.SecondAssessorName,
             CreatedDate = onlandVisualTrashAssessment.CreatedDate,
             OnlandVisualTrashAssessmentAreaID = onlandVisualTrashAssessment.OnlandVisualTrashAssessmentAreaID,
             OnlandVisualTrashAssessmentAreaName = onlandVisualTrashAssessment.OnlandVisualTrashAssessmentArea?.OnlandVisualTrashAssessmentAreaName,
@@ -54,6 +57,7 @@ public static class OnlandVisualTrashAssessmentExtensionMethods
         {
             OnlandVisualTrashAssessmentID = onlandVisualTrashAssessment.OnlandVisualTrashAssessmentID,
             CreatedByPersonFullName = onlandVisualTrashAssessment.CreatedByPerson.GetFullNameFirstLast(),
+            SecondAssessorName = onlandVisualTrashAssessment.SecondAssessorName,
             CreatedDate = onlandVisualTrashAssessment.CreatedDate,
             OnlandVisualTrashAssessmentAreaID = onlandVisualTrashAssessment.OnlandVisualTrashAssessmentAreaID,
             OnlandVisualTrashAssessmentAreaName = onlandVisualTrashAssessment.OnlandVisualTrashAssessmentArea?.OnlandVisualTrashAssessmentAreaName,
@@ -76,15 +80,48 @@ public static class OnlandVisualTrashAssessmentExtensionMethods
     public static OnlandVisualTrashAssessmentAddRemoveParcelsDto AsAddRemoveParcelDto(
         this OnlandVisualTrashAssessment onlandVisualTrashAssessment, NeptuneDbContext dbContext)
     {
+        var sourceTypeID = onlandVisualTrashAssessment.OvtaAreaSourceTypeID
+                           ?? (int)OvtaAreaSourceTypeEnum.Parcel;
         var dto = new OnlandVisualTrashAssessmentAddRemoveParcelsDto()
         {
             OnlandVisualTrashAssessmentID = onlandVisualTrashAssessment.OnlandVisualTrashAssessmentID,
             OnlandVisualTrashAssessmentAreaID = onlandVisualTrashAssessment.OnlandVisualTrashAssessmentAreaID,
             StormwaterJurisdictionID = onlandVisualTrashAssessment.StormwaterJurisdictionID,
             IsDraftGeometryManuallyRefined = onlandVisualTrashAssessment.IsDraftGeometryManuallyRefined ?? false,
-            SelectedParcelIDs = onlandVisualTrashAssessment.GetParcelIDsForAddOrRemoveParcels(dbContext)
+            OvtaAreaSourceTypeID = sourceTypeID,
+            SelectedParcelIDs = sourceTypeID == (int)OvtaAreaSourceTypeEnum.Parcel
+                ? onlandVisualTrashAssessment.GetParcelIDsForAddOrRemoveParcels(dbContext)
+                : new List<int>(),
+            SelectedLandUseBlockIDs = sourceTypeID == (int)OvtaAreaSourceTypeEnum.LandUseBlock
+                ? onlandVisualTrashAssessment.GetLandUseBlockIDsForSelectArea(dbContext)
+                : new List<int>()
         };
         return dto;
+    }
+
+    public static OnlandVisualTrashAssessmentSelectAreaContextDto AsSelectAreaContextDto(
+        this OnlandVisualTrashAssessment onlandVisualTrashAssessment, NeptuneDbContext dbContext)
+    {
+        var jurisdictionHasLandUseBlocks =
+            LandUseBlocks.JurisdictionHasLandUseBlocks(dbContext, onlandVisualTrashAssessment.StormwaterJurisdictionID);
+        var sourceTypeID = onlandVisualTrashAssessment.OvtaAreaSourceTypeID
+                           ?? (jurisdictionHasLandUseBlocks
+                               ? (int)OvtaAreaSourceTypeEnum.LandUseBlock
+                               : (int)OvtaAreaSourceTypeEnum.Parcel);
+        return new OnlandVisualTrashAssessmentSelectAreaContextDto
+        {
+            OnlandVisualTrashAssessmentID = onlandVisualTrashAssessment.OnlandVisualTrashAssessmentID,
+            StormwaterJurisdictionID = onlandVisualTrashAssessment.StormwaterJurisdictionID,
+            JurisdictionHasLandUseBlocks = jurisdictionHasLandUseBlocks,
+            OvtaAreaSourceTypeID = sourceTypeID,
+            IsDraftGeometryManuallyRefined = onlandVisualTrashAssessment.IsDraftGeometryManuallyRefined ?? false,
+            SelectedParcelIDs = sourceTypeID == (int)OvtaAreaSourceTypeEnum.Parcel
+                ? onlandVisualTrashAssessment.GetParcelIDsForAddOrRemoveParcels(dbContext)
+                : new List<int>(),
+            SelectedLandUseBlockIDs = sourceTypeID == (int)OvtaAreaSourceTypeEnum.LandUseBlock
+                ? onlandVisualTrashAssessment.GetLandUseBlockIDsForSelectArea(dbContext)
+                : new List<int>()
+        };
     }
 
     public static OnlandVisualTrashAssessmentReviewAndFinalizeDto AsReviewAndFinalizeDto(this OnlandVisualTrashAssessment onlandVisualTrashAssessment)
@@ -100,6 +137,7 @@ public static class OnlandVisualTrashAssessmentExtensionMethods
             AssessmentAreaDescription = onlandVisualTrashAssessment.OnlandVisualTrashAssessmentArea != null ? onlandVisualTrashAssessment.OnlandVisualTrashAssessmentArea.AssessmentAreaDescription : onlandVisualTrashAssessment.DraftAreaDescription,
             AssessingNewArea = onlandVisualTrashAssessment.AssessingNewArea ?? false,
             IsProgressAssessment = onlandVisualTrashAssessment.IsProgressAssessment,
+            SecondAssessorName = onlandVisualTrashAssessment.SecondAssessorName,
             // Preserve the originally-finalized Assessment Date on return-to-edit. Fall back to
             // today only when CompletedDate has never been set (initial finalize of a new OVTA),
             // so the form still pre-fills a reasonable default for brand-new records.

@@ -1,0 +1,112 @@
+<page-header [customRichTextTypeID]="customRichTextTypeID" pageTitle="Delineation Map" [templateRight]="headerActions"></page-header>
+
+<ng-template #headerActions>
+    <a class="btn btn-primary header-action" [routerLink]="['/delineation', 'gdb-upload']"><i class="fa fa-upload"></i> Bulk Upload Treatment BMP Delineations</a>
+    <a class="btn btn-primary header-action" [routerLink]="['/delineation', 'gdb-download']"><i class="fa fa-download"></i> Download GDB</a>
+</ng-template>
+
+<section class="content-section">
+    <app-alert-display></app-alert-display>
+
+    <div class="grid-12">
+        <div class="g-col-3 selected-bmp-panel" [style.height]="mapHeight">
+            <div class="card">
+                <div class="card-header">
+                    <h3 class="card-title">Selected Treatment BMP</h3>
+                </div>
+                <div class="card-body">
+                    @let bmp = selectedBMP();
+                    @let delineation = selectedDelineation();
+                    @let mode = editMode();
+                    @if (bmp) {
+                        <h4 class="panel-section-header">Selected BMP</h4>
+                        <dl class="kv">
+                            <dt>Name</dt>
+                            <dd>
+                                <a [routerLink]="bmpDetailUrl()" target="_blank" rel="noopener">
+                                    {{ bmp.TreatmentBMPName }}
+                                    <icon icon="ExternalLink"></icon>
+                                </a>
+                            </dd>
+                            <dt>Type</dt>
+                            <dd>{{ bmp.TreatmentBMPTypeName }}</dd>
+                        </dl>
+
+                        <h4 class="panel-section-header">Selected Delineation</h4>
+                        <dl class="kv">
+                            <dt>Type</dt>
+                            <dd>{{ delineationTypeName() }}</dd>
+                            <dt>Area</dt>
+                            <dd>{{ delineationAreaLabel() }}</dd>
+                            @if (delineation) {
+                                <dt>Status</dt>
+                                <dd>
+                                    <div class="status-switch">
+                                        <form-field [formControl]="verifiedControl" [type]="FormFieldType.Toggle" toggleTrue="Verified" toggleFalse="Provisional"></form-field>
+                                    </div>
+                                </dd>
+                            }
+                        </dl>
+
+                        @if (mode === "idle") {
+                            @if (delineation) {
+                                <div class="inline-actions">
+                                    <button type="button" class="btn btn-sm btn-primary" (click)="editExistingDelineation()">Edit</button>
+                                    <button type="button" class="btn btn-sm btn-danger icon-btn" [disabled]="saving$ | async" (click)="deleteDelineation()" title="Delete Delineation">
+                                        <i class="fa fa-trash"></i>
+                                    </button>
+                                </div>
+                                @if (delineation.DelineationTypeID === DelineationTypeEnum.Centralized) {
+                                    <a class="btn btn-sm btn-primary action-btn request-revision-btn" [routerLink]="requestRevisionUrl()">Request Revision</a>
+                                }
+                            } @else {
+                                <p class="explanatory">
+                                    <strong>Distributed</strong> BMPs receive only local surface flow — draw the drainage area on the map.<br />
+                                    <strong>Centralized</strong> BMPs also receive piped flow — we'll trace the regional subbasin network for you.
+                                </p>
+                                <div class="stacked-actions">
+                                    <button type="button" class="btn btn-sm btn-primary" (click)="startEditDistributed()">Add Distributed Delineation</button>
+                                    <button type="button" class="btn btn-sm btn-primary" (click)="startEditCentralized()">Add Centralized Delineation</button>
+                                </div>
+                            }
+
+                            <hr />
+
+                            <button type="button" class="btn btn-sm btn-primary action-btn" (click)="startEditLocation()">Edit BMP Location</button>
+                        } @else {
+                            <hr />
+                            <p class="edit-hint">
+                                @switch (mode) {
+                                    @case ("editingDistributed") { Use the map tools to draw or edit the polygon, then save. }
+                                    @case ("editingCentralized") { Loaded upstream catchment. Adjust vertices if needed, then save. }
+                                    @case ("editingLocation") { Click on the map to place the new BMP location, then save. }
+                                }
+                            </p>
+                            <div class="inline-actions">
+                                <button type="button" class="btn btn-sm btn-primary" [disabled]="saving$ | async" (click)="saveEdit()">Save</button>
+                                <button type="button" class="btn btn-sm btn-secondary" (click)="cancelEdit()">Cancel</button>
+                            </div>
+                        }
+                    } @else {
+                        <p class="empty-hint">Click a Treatment BMP marker on the map to view details and actions.</p>
+                    }
+                </div>
+            </div>
+        </div>
+
+        <div class="g-col-9">
+            @if (boundingBox$ | async; as boundingBox) {
+                <neptune-map (onMapLoad)="handleMapReady($event)" [mapHeight]="mapHeight" [showLegend]="true" [boundingBox]="boundingBox">
+                    @if (mapIsReady) {
+                        <regional-subbasins-layer [mode]="OverlayMode.ReferenceOnly" [map]="map" [layerControl]="layerControl" [sortOrder]="10"></regional-subbasins-layer>
+                        <stormwater-network-layer [displayOnLoad]="false" [map]="map" [layerControl]="layerControl" [sortOrder]="20"></stormwater-network-layer>
+                        <jurisdictions-layer [mode]="OverlayMode.ReferenceOnly" [displayOnLoad]="true" [map]="map" [layerControl]="layerControl" [sortOrder]="30"></jurisdictions-layer>
+                        <wqmps-layer [displayOnLoad]="false" [map]="map" [layerControl]="layerControl" [sortOrder]="40"></wqmps-layer>
+                        <delineations-layer [displayOnLoad]="true" [map]="map" [layerControl]="layerControl" [sortOrder]="50"></delineations-layer>
+                    }
+                </neptune-map>
+            }
+            @if (initData$ | async) {}
+        </div>
+    </div>
+</section>

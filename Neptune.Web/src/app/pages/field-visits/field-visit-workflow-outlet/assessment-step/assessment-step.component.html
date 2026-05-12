@@ -30,6 +30,9 @@
     </ul>
 
     <div class="step-footer">
+        <button type="button" class="btn btn-secondary" (click)="wrapUpVisit(workflow)">
+            Wrap Up Visit <i class="fa fa-flag-checkered ml-2"></i>
+        </button>
         @if (!isPostMaintenance) {
             <button type="button" class="btn btn-primary" (click)="skip(workflow)">
                 Skip to Maintenance <i class="fa fa-forward ml-2"></i>

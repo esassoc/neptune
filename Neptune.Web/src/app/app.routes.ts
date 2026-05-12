@@ -20,7 +20,11 @@ export const routeParams = {
     waterQualityManagementPlanVerifyID: "waterQualityManagementPlanVerifyID",
     treatmentBMPTypeID: "treatmentBMPTypeID",
     fieldVisitID: "fieldVisitID",
+    personID: "personID",
 };
+
+// Anonymous-friendly routes (e.g., /support) live under the public site layout below alongside
+// auth'd ones; they intentionally have no canActivate so unauthenticated visitors can reach them.
 
 export const routes: Routes = [
     {
@@ -260,7 +264,7 @@ export const routes: Routes = [
                     },
                     {
                         path: "add-or-remove-parcels",
-                        title: "Add or Remove Parcels",
+                        title: "Select Assessment Area",
                         loadComponent: () =>
                             import("./pages/trash-module/ovta-workflow/trash-ovta-add-remove-parcels/trash-ovta-add-remove-parcels.component").then(
                                 (m) => m.TrashOvtaAddRemoveParcelsComponent
@@ -343,6 +347,17 @@ export const routes: Routes = [
                 canActivate: [authGuardFn, ManagerOnlyGuard],
             },
             { path: "users", title: "Users", loadComponent: () => import("./pages/users/users.component").then((m) => m.UsersComponent) },
+            {
+                path: `users/:${routeParams.personID}`,
+                title: "User Detail",
+                loadComponent: () => import("./pages/users/user-detail/user-detail.component").then((m) => m.UserDetailComponent),
+                canActivate: [authGuardFn],
+            },
+            {
+                path: "support",
+                title: "Request Support",
+                loadComponent: () => import("./pages/support/request-support/request-support.component").then((m) => m.RequestSupportComponent),
+            },
             {
                 path: "organizations",
                 title: "Organizations",
@@ -735,12 +750,51 @@ export const routes: Routes = [
             {
                 path: "delineation/delineation-map",
                 title: "Delineation Map",
-                loadComponent: () => import("./pages/delineation/delineation-map.component").then((m) => m.DelineationMapComponent),
+                loadComponent: () => import("./pages/delineation/delineation-map/delineation-map.component").then((m) => m.DelineationMapComponent),
             },
             {
                 path: "delineation/delineation-reconciliation-report",
                 title: "Delineation Reconciliation Report",
                 loadComponent: () => import("./pages/delineation/delineation-reconciliation-report.component").then((m) => m.DelineationReconciliationReportComponent),
+            },
+            {
+                path: "delineation/revision-requests",
+                title: "Regional Subbasin Revision Requests",
+                loadComponent: () =>
+                    import("./pages/delineation/revision-requests/revision-requests.component").then((m) => m.RevisionRequestsComponent),
+                canActivate: [JurisdictionManagerOrEditorOnlyGuard],
+            },
+            {
+                path: "delineation/revision-requests/new/:treatmentBMPID",
+                title: "New Revision Request",
+                loadComponent: () =>
+                    import("./pages/delineation/revision-requests/revision-request-new.component").then((m) => m.RevisionRequestNewComponent),
+                canActivate: [JurisdictionManagerOrEditorOnlyGuard],
+            },
+            {
+                path: "delineation/revision-requests/:regionalSubbasinRevisionRequestID",
+                title: "Revision Request Detail",
+                loadComponent: () =>
+                    import("./pages/delineation/revision-requests/revision-request-detail.component").then((m) => m.RevisionRequestDetailComponent),
+                canActivate: [JurisdictionManagerOrEditorOnlyGuard],
+            },
+            {
+                path: "delineation/gdb-upload",
+                title: "Upload Delineations",
+                loadComponent: () => import("./pages/delineation/gdb-upload/gdb-upload.component").then((m) => m.GdbUploadComponent),
+                canActivate: [JurisdictionManagerOrEditorOnlyGuard],
+            },
+            {
+                path: "delineation/gdb-approve",
+                title: "Approve Uploaded Delineations",
+                loadComponent: () => import("./pages/delineation/gdb-approve/gdb-approve.component").then((m) => m.GdbApproveComponent),
+                canActivate: [JurisdictionManagerOrEditorOnlyGuard],
+            },
+            {
+                path: "delineation/gdb-download",
+                title: "Download Delineations",
+                loadComponent: () => import("./pages/delineation/gdb-download/gdb-download.component").then((m) => m.GdbDownloadComponent),
+                canActivate: [JurisdictionManagerOrEditorOnlyGuard],
             },
             // Data Hub
             { path: "data-hub", title: "Data Hub", loadComponent: () => import("./pages/data-hub/data-hub.component").then((m) => m.DataHubComponent) },

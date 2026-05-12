@@ -2,8 +2,10 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Threading;
 using System.Threading.Tasks;
 using Anthropic.Exceptions;
+using Hangfire;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
@@ -17,6 +19,7 @@ using Neptune.API.Services.Authorization;
 using Neptune.EFModels.Entities;
 using Neptune.API.Services.AI;
 using Neptune.EFModels.Nereid;
+using Neptune.Jobs.Hangfire;
 using Neptune.Models.DataTransferObjects;
 
 namespace Neptune.API.Controllers
@@ -87,8 +90,18 @@ namespace Neptune.API.Controllers
         [EntityNotFound(typeof(WaterQualityManagementPlan), "waterQualityManagementPlanID")]
         public async Task<ActionResult<WaterQualityManagementPlanDto>> Update([FromRoute] int waterQualityManagementPlanID, [FromBody] WaterQualityManagementPlanUpsertDto dto)
         {
+            // NPT-1051: Status transitions across the Active boundary need cleanup + re-solve; the
+            // SPA Basics modal hits this endpoint and can flip Active <-> Inactive.
+            var oldStatusID = await DbContext.WaterQualityManagementPlans.AsNoTracking()
+                .Where(x => x.WaterQualityManagementPlanID == waterQualityManagementPlanID)
+                .Select(x => x.WaterQualityManagementPlanStatusID)
+                .FirstAsync();
             var updated = await WaterQualityManagementPlans.UpdateAsync(DbContext, waterQualityManagementPlanID, dto);
             if (updated == null) return NotFound();
+            if (await WaterQualityManagementPlans.HandleStatusTransitionAsync(DbContext, waterQualityManagementPlanID, oldStatusID))
+            {
+                BackgroundJob.Enqueue<DeltaSolveJob>(x => x.RunJob());
+            }
             return Ok(updated);
         }
 
@@ -545,12 +558,44 @@ namespace Neptune.API.Controllers
                 var dto = await WaterQualityManagementPlanExtractionResults.GetByWqmpIDAsDtoAsync(DbContext, waterQualityManagementPlanID);
                 return Ok(dto);
             }
-            catch (Exception ex) when (ex is InvalidOperationException or Anthropic4xxException)
+            catch (OperationCanceledException) when (HttpContext.RequestAborted.IsCancellationRequested)
             {
-                // Surface actionable Claude / validation errors as 400s. The WQMP + document
-                // stay intact so the reviewer can retry once the underlying issue is addressed
-                // (smaller re-scan, different file, etc.).
-                return BadRequest(new { message = ExtractReadableErrorMessage(ex.Message) });
+                // The client disconnected mid-extraction. No diagnostic value in persisting a
+                // failure row (the "failure" is the user navigating away), and no response
+                // shape matters because the caller is gone. Rethrow so the framework returns
+                // ClientClosedRequest semantics.
+                throw;
+            }
+            catch (Exception ex)
+            {
+                // NPT-1051 rework: catch broadly so any failure leaves a diagnostic trail —
+                // the wizard's "Last extraction failed: ..." alert reads this row on next load.
+                // Map known user-actionable failures (Anthropic 4xx, our InvalidOperationException
+                // pre-checks) to 400; everything else (timeouts, upstream 5xx, network/SSL,
+                // JSON parse) is a server-side problem and returns 500 so monitoring/clients
+                // don't conflate transient infra issues with validation errors.
+                Logger.LogError(ex, "WQMP extraction failed for WQMP={WaterQualityManagementPlanID}", waterQualityManagementPlanID);
+
+                // Store the readable form of the error rather than the raw exception message
+                // (Anthropic SDK exceptions embed full JSON dumps in .Message). The toast and
+                // the persistent "Last extraction failed: ..." alert both render this directly.
+                var readableMessage = ExtractReadableErrorMessage(ex.Message);
+                var failureRow = new WaterQualityManagementPlanExtractionResult
+                {
+                    WaterQualityManagementPlanID = waterQualityManagementPlanID,
+                    WaterQualityManagementPlanDocumentID = document.WaterQualityManagementPlanDocumentID,
+                    ExtractionResultJson = null,
+                    ExtractedAt = DateTime.UtcNow,
+                    ErrorMessage = readableMessage,
+                    ErrorCode = ex.GetType().Name,
+                };
+                DbContext.WaterQualityManagementPlanExtractionResults.Add(failureRow);
+                await DbContext.SaveChangesAsync();
+
+                var isUserActionable = ex is InvalidOperationException or Anthropic4xxException;
+                return isUserActionable
+                    ? BadRequest(new { message = readableMessage })
+                    : StatusCode(StatusCodes.Status500InternalServerError, new { message = readableMessage });
             }
         }
 
@@ -708,13 +753,18 @@ namespace Neptune.API.Controllers
                 return BadRequest(new { MissingFields = missingFields });
             }
 
+            var oldStatusID = entity.WaterQualityManagementPlanStatusID;
             entity.WaterQualityManagementPlanStatusID = (int)WaterQualityManagementPlanStatusEnum.Active;
             await DbContext.SaveChangesAsync();
 
-            // Now that the WQMP is Active, it flows into modeling result calculations. Mark it
-            // dirty so the next network solve picks it up rather than waiting for some other
-            // mutation to trigger it.
-            await NereidUtilities.MarkWqmpDirty(entity, DbContext);
+            // Mark the WQMP dirty + kick off the incremental solve immediately. Without the
+            // enqueue, the dirty marker would only be consumed when HRURefreshJob next runs
+            // (hours away on the schedule), so a freshly-promoted WQMP would show no modeling
+            // results until then.
+            if (await WaterQualityManagementPlans.HandleStatusTransitionAsync(DbContext, waterQualityManagementPlanID, oldStatusID))
+            {
+                BackgroundJob.Enqueue<DeltaSolveJob>(x => x.RunJob());
+            }
 
             var dto = await WaterQualityManagementPlans.GetByIDAsDtoAsync(DbContext, waterQualityManagementPlanID);
             return Ok(dto);

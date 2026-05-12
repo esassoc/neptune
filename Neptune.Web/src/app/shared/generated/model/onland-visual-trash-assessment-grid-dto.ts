@@ -13,6 +13,7 @@ import { FormControl, FormControlOptions, FormControlState, Validators } from "@
 export class OnlandVisualTrashAssessmentGridDto { 
     OnlandVisualTrashAssessmentID?: number;
     CreatedByPersonFullName?: string | null;
+    SecondAssessorName?: string | null;
     CreatedDate?: string;
     OnlandVisualTrashAssessmentAreaID?: number | null;
     OnlandVisualTrashAssessmentAreaName?: string | null;
@@ -32,6 +33,7 @@ export class OnlandVisualTrashAssessmentGridDto {
 export interface OnlandVisualTrashAssessmentGridDtoForm { 
     OnlandVisualTrashAssessmentID?: FormControl<number>;
     CreatedByPersonFullName?: FormControl<string>;
+    SecondAssessorName?: FormControl<string>;
     CreatedDate?: FormControl<string>;
     OnlandVisualTrashAssessmentAreaID?: FormControl<number>;
     OnlandVisualTrashAssessmentAreaName?: FormControl<string>;
@@ -57,6 +59,16 @@ export class OnlandVisualTrashAssessmentGridDtoFormControls {
         }
     );
     public static CreatedByPersonFullName = (value: FormControlState<string> | string = undefined, formControlOptions?: FormControlOptions | null) => new FormControl<string>(
+        value,
+        formControlOptions ?? 
+        {
+            nonNullable: false,
+            validators: 
+            [
+            ],
+        }
+    );
+    public static SecondAssessorName = (value: FormControlState<string> | string = undefined, formControlOptions?: FormControlOptions | null) => new FormControl<string>(
         value,
         formControlOptions ?? 
         {
