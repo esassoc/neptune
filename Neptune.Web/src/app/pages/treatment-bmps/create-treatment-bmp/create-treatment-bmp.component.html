@@ -129,7 +129,8 @@
         placeholder="Required post-storm visits per year">
     </form-field>
 
-    <div class="g-col-12 mt-4">
+    <div class="g-col-12 mt-3">
+        <h3 class="section-title sm blue">Location</h3>
         <lat-lon-picker [latControl]="formGroup.controls.Latitude" [lonControl]="formGroup.controls.Longitude" [instructionsTemplate]="latLonInstructions">
             <ng-template #latLonInstructions>
                 <div class="lat-lon-instructions">

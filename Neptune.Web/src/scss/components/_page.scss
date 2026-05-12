@@ -47,9 +47,12 @@
     }
 
     &-footer {
-        padding-top: 2rem;
+        display: flex;
+        justify-content: flex-end;
+        gap: 1rem;
+        padding-top: 1rem;
         border-top: 1px solid rgba(27, 47, 54, 0.25);
-        margin-top: 2rem;
+        margin-top: 1.5rem;
         text-align: right;
     }
 }

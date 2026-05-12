@@ -20,8 +20,8 @@
         </div>
     </form>
 
-    <div class="editor-footer">
-        <button type="button" class="btn btn-primary mr-2" (click)="save()" [disabled]="isLoadingSubmit || formGroup.invalid">Save</button>
-        <button type="button" class="btn btn-secondary" (click)="cancel()">Cancel</button>
+    <div class="page-footer">
+        <button type="button" class="btn btn-primary" (click)="save()" [disabled]="isLoadingSubmit">Save</button>
+        <button type="button" class="btn btn-secondary-outline" (click)="cancel()" [disabled]="isLoadingSubmit">Cancel</button>
     </div>
 }

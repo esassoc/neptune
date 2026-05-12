@@ -1,0 +1,9 @@
+@use "/src/scss/abstracts" as *;
+
+.page-footer {
+    display: flex;
+    justify-content: flex-end;
+    align-items: center;
+    gap: 0.5rem;
+    border-top: 1px solid $gray-light;
+}
