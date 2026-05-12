@@ -7,6 +7,15 @@ import { FormFieldComponent, FormFieldType } from "src/app/shared/components/for
     standalone: true,
     imports: [ReactiveFormsModule, FormFieldComponent],
     template: `
+        @for (prop of control.value; track $index) {
+            <div class="prop-row">
+                <button type="button" class="btn btn-sm btn-danger-outline" (click)="remove($index)" aria-label="Remove property">
+                    <i class="fa fa-trash"></i>
+                </button>
+                <span>{{ prop }}</span>
+            </div>
+        }
+
         <form-field
             fieldLabel="Properties to Observe"
             fieldDefinitionName="PropertiesToObserve"
@@ -19,15 +28,6 @@ import { FormFieldComponent, FormFieldType } from "src/app/shared/components/for
                 <i class="fa fa-plus"></i> Add
             </button>
         </div>
-
-        @for (prop of control.value; track $index) {
-            <div class="prop-row">
-                <button type="button" class="btn btn-sm btn-danger-outline" (click)="remove($index)" aria-label="Remove property">
-                    <i class="fa fa-trash"></i>
-                </button>
-                <span>{{ prop }}</span>
-            </div>
-        }
     `,
     styles: [`
         .picker-row {
