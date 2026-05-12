@@ -1,0 +1,7 @@
+// The embedded editor sits directly under the map and lat-lon picker, so suppress
+// the global .page-footer's top spacing — the map's bottom margin already separates
+// the action row from the map.
+.page-footer {
+    margin-top: 0;
+    padding-top: 0;
+}

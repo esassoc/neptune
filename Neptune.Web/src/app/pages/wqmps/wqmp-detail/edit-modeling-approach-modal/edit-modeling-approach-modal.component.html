@@ -7,6 +7,7 @@
     <form class="form grid-12">
         <form-field
             class="g-col-12"
+            size="md"
             [formControl]="modelingApproachControl"
             fieldLabel="Modeling Approach"
             placeholder="Select a modeling approach"
@@ -14,14 +15,14 @@
             [type]="FormFieldType.Select"
             [formInputOptions]="modelingApproachOptions"></form-field>
         @if (modelingApproachControl.value) {
-            <p class="g-col-12 text-muted">
+            <note noteType="info" class="g-col-12">
                 {{ modelingApproachDescriptions[modelingApproachControl.value] }}
-            </p>
+            </note>
         }
     </form>
 </div>
 
 <div class="modal-footer">
-    <button class="btn btn-primary" (click)="save()" [disabled]="!modelingApproachControl.value">Save</button>
+    <button class="btn btn-primary" (click)="save()">Save</button>
     <button class="btn btn-primary-outline" (click)="cancel()">Cancel</button>
 </div>

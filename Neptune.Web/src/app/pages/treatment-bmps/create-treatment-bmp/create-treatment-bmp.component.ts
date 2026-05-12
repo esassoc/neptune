@@ -18,6 +18,8 @@ import { TrashCaptureStatusTypeEnum, TrashCaptureStatusTypesAsSelectDropdownOpti
 import { IDeactivateComponent } from "src/app/shared/guards/unsaved-changes.guard";
 import { TreatmentBMPService } from "src/app/shared/generated/api/treatment-bmp.service";
 import { TreatmentBMPDto } from "src/app/shared/generated/model/treatment-bmp-dto";
+import { AlertService } from "src/app/shared/services/alert.service";
+import { validateFormOrAlert } from "src/app/shared/helpers/form-validation-helper";
 
 @Component({
     selector: "create-treatment-bmp",
@@ -32,6 +34,7 @@ export class CreateTreatmentBmpComponent implements OnInit, IDeactivateComponent
     private organizationService = inject(OrganizationService);
     private wqmpService = inject(WaterQualityManagementPlanService);
     private router = inject(Router);
+    private alertService = inject(AlertService);
 
     public treatmentBMPTypeSelectOptions$: Observable<SelectDropdownOption[]>;
     public stormwaterJurisdictionSelectOptions$: Observable<SelectDropdownOption[]>;
@@ -122,6 +125,8 @@ export class CreateTreatmentBmpComponent implements OnInit, IDeactivateComponent
     }
 
     public save(): void {
+        if (!validateFormOrAlert(this.formGroup, this.alertService)) return;
+
         this.isLoadingSubmit = true;
 
         let createDto = this.formGroup.value as TreatmentBMPCreateDto;

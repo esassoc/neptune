@@ -50,6 +50,52 @@
         text-decoration: underline;
     }
 
+    // Apply `<tr class="total">` for a summary/total row: thick top rule and
+    // bold text, matching the header divider weight.
+    tr.total > td {
+        border-top: 3px solid $gray-300;
+        font-weight: bold;
+    }
+
+    // Apply with `<table class="table condensed">` to halve the vertical
+    // row padding for denser tables. Combine with `simple` as needed.
+    &.condensed {
+        thead th {
+            padding-top: 0.5rem;
+            padding-bottom: 0.5rem;
+        }
+        tbody td {
+            padding-top: 0.5rem;
+            padding-bottom: 0.5rem;
+        }
+    }
+
+    // Apply with `<table class="table simple">` for a frameless variant: no
+    // outer border, no header background, just a thicker rule under the header
+    // and the inherited thin rules between rows.
+    &.simple {
+        border: none;
+        border-radius: 0;
+
+        thead th {
+            background: transparent;
+            border-radius: 0;
+            border-bottom: 3px solid $gray-300;
+        }
+
+        tbody {
+            tr > td:first-of-type {
+                font-weight: normal;
+            }
+            tr.total > td {
+                font-weight: bold;
+            }
+            tr:nth-of-type(even) {
+                background: transparent;
+            }
+        }
+    }
+
     &-responsive {
         overflow-x: auto;
         box-shadow: 0px 2px 8px 0px #0000001a;

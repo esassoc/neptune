@@ -4,7 +4,6 @@
     display: grid;
     grid-template-columns: 1fr 1fr;
     gap: 1rem;
-    align-items: start;
 
     .left-col {
         display: flex;
@@ -24,6 +23,7 @@
             display: flex;
             gap: 0.5rem;
             align-items: center;
+            justify-content: flex-end;
         }
 
         .instructions {
@@ -34,6 +34,13 @@
 
     .right-col {
         min-height: 400px;
+
+        // Cancel the 2rem bottom margin _maps.scss puts on every .map-wrapper,
+        // which is meant for standalone maps and creates dead space here where
+        // the map shares a grid row with the left column's buttons.
+        ::ng-deep .map-wrapper {
+            margin-bottom: 0;
+        }
     }
 
     @media (max-width: 900px) {

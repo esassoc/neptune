@@ -1,4 +1,5 @@
 import { Component, EventEmitter, Input, Output, ViewChild } from "@angular/core";
+import { NgTemplateOutlet } from "@angular/common";
 import { FormControl, NG_VALUE_ACCESSOR, FormsModule, ReactiveFormsModule, FormArray } from "@angular/forms";
 import { TinyMceConfigPipe } from "src/app/shared/pipes/tiny-mce-config.pipe";
 import { RequiredPipe } from "src/app/shared/pipes/required.pipe";
@@ -25,13 +26,14 @@ import { NgSelectModule } from "@ng-select/ng-select";
         },
         provideNgxMask(),
     ],
-    imports: [NgxMaskDirective, FormsModule, ReactiveFormsModule, EditorComponent, FieldDefinitionComponent, InputErrorsComponent, RequiredPipe, TinyMceConfigPipe, NgSelectModule],
+    imports: [NgTemplateOutlet, NgxMaskDirective, FormsModule, ReactiveFormsModule, EditorComponent, FieldDefinitionComponent, InputErrorsComponent, RequiredPipe, TinyMceConfigPipe, NgSelectModule],
 })
 export class FormFieldComponent {
     public FormFieldType = FormFieldType;
     @Output() change = new EventEmitter<any>();
     @Input() formControl: FormControl;
     @Input() fieldLabel: string = "";
+    @Input() size: "sm" | "md" | "lg" = "lg";
     @Input() placeholder: string = "";
     @Input() type: FormFieldType = FormFieldType.Text;
     @Input() toggleTrue: string = "On";

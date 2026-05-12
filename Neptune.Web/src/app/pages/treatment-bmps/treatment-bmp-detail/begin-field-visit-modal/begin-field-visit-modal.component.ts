@@ -74,12 +74,11 @@ export class BeginFieldVisitModalComponent implements OnInit {
     }
 
     save(): void {
-        // Explicit invalid surface: the previous silent return on formGroup.invalid produced the
-        // "click does nothing" symptom Kathleen flagged when the in-progress visit's pre-fill left
-        // the form invalid (e.g. type was null on the source visit). Flag the user instead of no-op.
+        // Surface the invalid state so required-field errors light up (Kathleen's "click does
+        // nothing" report). Per NPT-1029, modals rely on field-level highlights rather than
+        // pushing a global danger alert, so just markAllAsTouched and return.
         if (this.formGroup.invalid) {
             this.formGroup.markAllAsTouched();
-            this.alertService.pushAlert(new Alert("Please fill out all required fields before saving.", AlertContext.Danger));
             return;
         }
 

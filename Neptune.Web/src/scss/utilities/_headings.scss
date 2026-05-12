@@ -11,12 +11,12 @@ h6 {
 
 .page-title {
     font-weight: 400;
-    font-size: $type-size-600;
+    font-size: $type-size-500;
     padding-bottom: 0.5rem;
     color: $primary;
 
     @include desktop-small {
-        font-size: $type-size-700;
+        font-size: $type-size-600;
     }
 
     .water-account-name {
@@ -76,7 +76,11 @@ h6 {
         font-size: $type-size-500;
     }
 
-    &.small {
+    &.md {
+        font-size: $type-size-400;
+    }
+
+    &.sm {
         font-size: $type-size-300;
 
         @include desktop-small {
@@ -84,8 +88,8 @@ h6 {
         }
     }
 
-    &.primary {
-        color: $primary;
+    &.blue {
+        color: $teal-800;
     }
     &.underline {
         border-bottom: 2px solid $tan;

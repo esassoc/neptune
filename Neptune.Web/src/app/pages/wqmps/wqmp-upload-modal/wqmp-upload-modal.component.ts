@@ -67,7 +67,12 @@ export class WqmpUploadModalComponent implements OnInit {
     }
 
     upload(overwrite = false): void {
-        if (this.fileControl.invalid || this.jurisdictionControl.invalid || this.wqmpNameControl.invalid) return;
+        if (this.fileControl.invalid || this.jurisdictionControl.invalid || this.wqmpNameControl.invalid) {
+            this.fileControl.markAsTouched();
+            this.jurisdictionControl.markAsTouched();
+            this.wqmpNameControl.markAsTouched();
+            return;
+        }
         this.isUploading.set(true);
         this.alertService.clearAlerts();
 

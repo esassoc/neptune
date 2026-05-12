@@ -21,6 +21,7 @@ import { TreatmentBMPDto } from "src/app/shared/generated/model/treatment-bmp-dt
 import { AlertService } from "src/app/shared/services/alert.service";
 import { Alert } from "src/app/shared/models/alert";
 import { AlertContext } from "src/app/shared/models/enums/alert-context.enum";
+import { validateFormOrAlert } from "src/app/shared/helpers/form-validation-helper";
 
 @Component({
     selector: "treatment-bmp-update-basic-info",
@@ -133,6 +134,7 @@ export class TreatmentBmpUpdateBasicInfoComponent implements OnInit {
 
     public save(): void {
         if (!this.treatmentBMPID) return;
+        if (!validateFormOrAlert(this.formGroup, this.alertService)) return;
 
         this.isLoadingSubmit = true;
         const updateDto = this.formGroup.value as TreatmentBMPBasicInfoUpdateDto;

@@ -114,6 +114,12 @@ export class FundingEventModalComponent implements OnInit {
     }
 
     save(): void {
+        if (this.formGroup.invalid) {
+            this.formGroup.markAllAsTouched();
+            return;
+        }
+        if (this.hasDuplicateFundingSources) return;
+
         const treatmentBMPID = this.ref.data.treatmentBMPID;
         const dto = this.formGroup.value;
         if (this.ref.data?.editData) {

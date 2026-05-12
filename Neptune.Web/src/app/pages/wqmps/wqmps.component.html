@@ -6,11 +6,11 @@
         <button type="button" class="btn btn-primary" style="margin-right: 0.5rem" (click)="openCreateFromPdfModal()">
             <i class="fa fa-magic"></i> Create from PDF
         </button>
-        <a href="javascript:void(0);" [dropdownToggle]="actionsMenu" class="btn btn-primary-outline dropdown-toggle" role="button" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+        <a href="javascript:void(0);" [dropdownToggle]="actionsMenu" class="btn btn-primary-outline dropdown-toggle ml-2" role="button" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
             Actions <i class="fas fa-chevron-down"></i>
         </a>
         <div #actionsMenu class="dropdown-menu dropdown-menu-right">
-            <a href="javascript:void(0);" class="dropdown-item" (click)="openAddModal()">Add Plan</a>
+            <a href="javascript:void(0);" class="dropdown-item" (click)="openAddModal()">Add WQMP</a>
             <a class="dropdown-item" [href]="siteUrl + '/WaterQualityManagementPlan/UploadWqmps'">Bulk Upload WQMPs</a>
             <a class="dropdown-item" [href]="siteUrl + '/WaterQualityManagementPlan/UploadSimplifiedBMPs'">Bulk Upload Simplified BMPs</a>
             <a class="dropdown-item" [href]="siteUrl + '/WaterQualityManagementPlan/UploadWqmpBoundaryFromAPNs'">Bulk Upload WQMP Boundaries From APNs</a>
