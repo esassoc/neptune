@@ -48,7 +48,15 @@ public static class WaterQualityManagementPlanVerifyProjections
         SourceControlCondition = x.SourceControlCondition,
         EnforcementOrFollowupActions = x.EnforcementOrFollowupActions,
         IsDraft = x.IsDraft,
+        FileResourceID = x.FileResourceID,
         FileResourceGUID = x.FileResource != null ? x.FileResource.FileResourceGUID.ToString() : null,
+        // NPT-995 Round 5: surface filename so the wizard + detail page can render a
+        // human-readable download link (matches legacy MVC supporting-documentation panel).
+        FileResourceFileName = x.FileResource != null
+            ? (string.IsNullOrEmpty(x.FileResource.OriginalFileExtension)
+                ? x.FileResource.OriginalBaseFilename
+                : x.FileResource.OriginalBaseFilename + "." + x.FileResource.OriginalFileExtension)
+            : null,
         TreatmentBMPs = x.WaterQualityManagementPlanVerifyTreatmentBMPs.Select(y => new WaterQualityManagementPlanVerifyTreatmentBMPSimpleDto
         {
             WaterQualityManagementPlanVerifyTreatmentBMPID = y.WaterQualityManagementPlanVerifyTreatmentBMPID,

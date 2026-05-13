@@ -204,6 +204,56 @@ namespace Neptune.API.Controllers
             return NoContent();
         }
 
+        // NPT-995 Round 5: Supporting Documentation upload/delete on a verification. Mirrors the
+        // legacy MVC SupportingDocumentation panel (single FileResource per verify). Draft-only —
+        // finalized verifications are locked.
+        [HttpPost("{waterQualityManagementPlanID}/verifications/{waterQualityManagementPlanVerifyID}/supporting-documentation")]
+        [JurisdictionEditFeature]
+        [Consumes("multipart/form-data")]
+        [RequestSizeLimit(500 * 1024 * 1024)]
+        [RequestFormLimits(MultipartBodyLengthLimit = 500 * 1024 * 1024)]
+        [EntityNotFound(typeof(WaterQualityManagementPlan), "waterQualityManagementPlanID")]
+        [EntityNotFound(typeof(WaterQualityManagementPlanVerify), "waterQualityManagementPlanVerifyID")]
+        public async Task<ActionResult<WaterQualityManagementPlanVerifyDetailDto>> UploadVerificationSupportingDocumentation(
+            [FromRoute] int waterQualityManagementPlanID, [FromRoute] int waterQualityManagementPlanVerifyID, IFormFile file)
+        {
+            var verify = WaterQualityManagementPlanVerifies.GetByID(DbContext, waterQualityManagementPlanVerifyID);
+            if (!verify.IsDraft)
+            {
+                return BadRequest("Supporting Documentation cannot be modified after the verification has been finalized.");
+            }
+            if (file == null || file.Length == 0)
+            {
+                return BadRequest("No file was supplied.");
+            }
+            var validationErrors = FileResources.ValidateFileUpload(file);
+            if (validationErrors.Any())
+            {
+                return BadRequest(string.Join(" ", validationErrors.Select(x => x.Message)));
+            }
+
+            var fileResource = await HttpUtilities.MakeFileResourceFromFormFileAsync(DbContext, HttpContext, azureBlobStorageService, file);
+            var dto = await WaterQualityManagementPlanVerifies.SetSupportingDocumentationFileResourceAsync(
+                DbContext, waterQualityManagementPlanVerifyID, fileResource.FileResourceID);
+            return Ok(dto);
+        }
+
+        [HttpDelete("{waterQualityManagementPlanID}/verifications/{waterQualityManagementPlanVerifyID}/supporting-documentation")]
+        [JurisdictionEditFeature]
+        [EntityNotFound(typeof(WaterQualityManagementPlan), "waterQualityManagementPlanID")]
+        [EntityNotFound(typeof(WaterQualityManagementPlanVerify), "waterQualityManagementPlanVerifyID")]
+        public async Task<IActionResult> DeleteVerificationSupportingDocumentation(
+            [FromRoute] int waterQualityManagementPlanID, [FromRoute] int waterQualityManagementPlanVerifyID)
+        {
+            var verify = WaterQualityManagementPlanVerifies.GetByID(DbContext, waterQualityManagementPlanVerifyID);
+            if (!verify.IsDraft)
+            {
+                return BadRequest("Supporting Documentation cannot be modified after the verification has been finalized.");
+            }
+            await WaterQualityManagementPlanVerifies.ClearSupportingDocumentationAsync(DbContext, waterQualityManagementPlanVerifyID);
+            return NoContent();
+        }
+
         [HttpGet("{waterQualityManagementPlanID}/modeled-performance")]
         [AllowAnonymous]
         [OptionalAuth]
