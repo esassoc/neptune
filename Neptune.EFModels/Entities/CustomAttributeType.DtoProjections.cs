@@ -17,8 +17,18 @@ public static class CustomAttributeTypeProjections
             CustomAttributeTypePurposeID = x.CustomAttributeTypePurposeID,
             CustomAttributeTypeOptionsSchema = x.CustomAttributeTypeOptionsSchema,
             CustomAttributeTypeDefaultValue = x.CustomAttributeTypeDefaultValue,
-            TreatmentBMPTypeNames = x.TreatmentBMPTypeCustomAttributeTypes
-                .Select(y => y.TreatmentBMPType.TreatmentBMPTypeName)
+            // NPT-1038: mirror the legacy detail page grid which shows the BMP Type name
+            // alongside the total BMPs of that type (not specifically BMPs using this
+            // attribute — that matches the legacy semantics).
+            TreatmentBMPTypeUsages = x.TreatmentBMPTypeCustomAttributeTypes
+                .Select(y => new TreatmentBMPTypeUsageDto
+                {
+                    TreatmentBMPTypeID = y.TreatmentBMPTypeID,
+                    TreatmentBMPTypeName = y.TreatmentBMPType.TreatmentBMPTypeName,
+                    ObservationTypeCount = y.TreatmentBMPType.TreatmentBMPTypeAssessmentObservationTypes.Count,
+                    TreatmentBMPCount = y.TreatmentBMPType.TreatmentBMPs.Count,
+                })
+                .OrderBy(z => z.TreatmentBMPTypeName)
                 .ToList(),
         };
 }

@@ -6,7 +6,7 @@
             </div>
         </ng-template>
         <ng-template #templateRight>
-            <button class="btn btn-primary-outline" (click)="openEditModal(attribute)">
+            <button class="btn btn-primary-outline" (click)="openEdit(attribute)">
                 <i class="fa fa-pencil"></i> Edit
             </button>
             @if (attribute.CustomAttributeTypePurposeID !== CustomAttributeTypePurposeEnum.Modeling) {
@@ -72,15 +72,28 @@
 
         <div class="card g-col-12 mt-3">
             <div class="card-header">
-                <span class="card-title">Used by Treatment BMP Types</span>
+                <span class="card-title">Treatment BMP Types Using this Attribute</span>
             </div>
             <div class="card-body">
-                @if (attribute.TreatmentBMPTypeNames?.length) {
-                    <ul>
-                        @for (name of attribute.TreatmentBMPTypeNames; track $index) {
-                            <li>{{ name }}</li>
-                        }
-                    </ul>
+                @if (attribute.TreatmentBMPTypeUsages?.length) {
+                    <table class="table table-sm">
+                        <thead>
+                            <tr>
+                                <th>Treatment BMP Type</th>
+                                <th class="text-right">Number of Observation Types</th>
+                                <th class="text-right">Number of Treatment BMPs</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @for (usage of attribute.TreatmentBMPTypeUsages; track usage.TreatmentBMPTypeID) {
+                                <tr>
+                                    <td>{{ usage.TreatmentBMPTypeName }}</td>
+                                    <td class="text-right">{{ usage.ObservationTypeCount | number }}</td>
+                                    <td class="text-right">{{ usage.TreatmentBMPCount | number }}</td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
                 } @else {
                     <p class="system-text">This attribute is not assigned to any Treatment BMP Types.</p>
                 }

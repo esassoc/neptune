@@ -12930,10 +12930,10 @@
             "type": "string",
             "nullable": true
           },
-          "TreatmentBMPTypeNames": {
+          "TreatmentBMPTypeUsages": {
             "type": "array",
             "items": {
-              "type": "string"
+              "$ref": "#/components/schemas/TreatmentBMPTypeUsageDto"
             },
             "nullable": true
           }
@@ -13047,10 +13047,10 @@
             "type": "string",
             "nullable": true
           },
-          "TreatmentBMPTypeNames": {
+          "TreatmentBMPTypeUsages": {
             "type": "array",
             "items": {
-              "type": "string"
+              "$ref": "#/components/schemas/TreatmentBMPTypeUsageDto"
             },
             "nullable": true
           },
@@ -19772,6 +19772,28 @@
               "$ref": "#/components/schemas/TreatmentBMPTypeCustomAttributeTypeUpsertDto"
             },
             "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "TreatmentBMPTypeUsageDto": {
+        "type": "object",
+        "properties": {
+          "TreatmentBMPTypeID": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "TreatmentBMPTypeName": {
+            "type": "string",
+            "nullable": true
+          },
+          "ObservationTypeCount": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "TreatmentBMPCount": {
+            "type": "integer",
+            "format": "int32"
           }
         },
         "additionalProperties": false

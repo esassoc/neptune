@@ -16,7 +16,15 @@ public class CustomAttributeTypeDto
     public string Purpose { get; set; }
     public int? CustomAttributeTypeSortOrder { get; set; }
     public string CustomAttributeTypeDefaultValue { get; set; }
-    public List<string> TreatmentBMPTypeNames { get; set; }
+    public List<TreatmentBMPTypeUsageDto> TreatmentBMPTypeUsages { get; set; }
+}
+
+public class TreatmentBMPTypeUsageDto
+{
+    public int TreatmentBMPTypeID { get; set; }
+    public string TreatmentBMPTypeName { get; set; }
+    public int ObservationTypeCount { get; set; }
+    public int TreatmentBMPCount { get; set; }
 }
 
 public class CustomAttributeTypeWithTreatmentBMPTypeIDsDto : CustomAttributeTypeDto
