@@ -1,0 +1,35 @@
+<page-header pageTitle="Source Control" [customRichTextTypeID]="service.stepHelpID('source-control')"></page-header>
+
+@if (service.sourceControlRows().length) {
+    <table class="table table-condensed table-bordered">
+        <thead>
+            <tr>
+                <th>Category</th>
+                <th>Attribute</th>
+                <th style="width: 80px">Present?</th>
+                <th style="width: 350px">Condition</th>
+            </tr>
+        </thead>
+        <tbody>
+            @for (row of service.sourceControlRows(); track row.sourceControlBMPID) {
+                <tr>
+                    <td>{{ row.categoryName }}</td>
+                    <td>{{ row.attributeName }}</td>
+                    <td>{{ row.isPresent === true ? "Yes" : row.isPresent === false ? "No" : "" }}</td>
+                    <td>
+                        <textarea class="form-control form-control-sm" rows="3" [(ngModel)]="row.condition" [disabled]="readonly" maxlength="1000" (ngModelChange)="touched()"></textarea>
+                    </td>
+                </tr>
+            }
+        </tbody>
+    </table>
+} @else {
+    <p class="system-text">No source control BMPs are associated with this WQMP.</p>
+}
+
+@if (!readonly) {
+    <div class="page-footer">
+        <button class="btn btn-primary-outline" (click)="service.save('source-control', false)" [disabled]="service.isSaving()">Save</button>
+        <button class="btn btn-primary" (click)="service.save('source-control', true)" [disabled]="service.isSaving()">Save and Continue</button>
+    </div>
+}

@@ -1,0 +1,21 @@
+@use "/src/scss/abstracts" as *;
+
+:host { display: block; }
+
+.review-section {
+    margin-bottom: 1.5rem;
+
+    h4 { margin-bottom: 0.5rem; }
+}
+
+.review-item { padding: 0.25rem 0; }
+
+.page-footer {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    gap: $spacing-300;
+    margin-top: $spacing-500;
+    padding-top: $spacing-400;
+    border-top: 1px solid $gray-light;
+}

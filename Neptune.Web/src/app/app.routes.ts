@@ -643,6 +643,11 @@ export const routes: Routes = [
                             import("./pages/wqmps/wqmp-detail/verification-wizard/steps/source-control-step.component").then((m) => m.SourceControlStepComponent),
                     },
                     {
+                        path: "supporting-documentation",
+                        loadComponent: () =>
+                            import("./pages/wqmps/wqmp-detail/verification-wizard/steps/supporting-documentation-step.component").then((m) => m.SupportingDocumentationStepComponent),
+                    },
+                    {
                         path: "review-and-finalize",
                         loadComponent: () =>
                             import("./pages/wqmps/wqmp-detail/verification-wizard/steps/review-step.component").then((m) => m.ReviewStepComponent),
@@ -676,6 +681,11 @@ export const routes: Routes = [
                         path: "source-control",
                         loadComponent: () =>
                             import("./pages/wqmps/wqmp-detail/verification-wizard/steps/source-control-step.component").then((m) => m.SourceControlStepComponent),
+                    },
+                    {
+                        path: "supporting-documentation",
+                        loadComponent: () =>
+                            import("./pages/wqmps/wqmp-detail/verification-wizard/steps/supporting-documentation-step.component").then((m) => m.SupportingDocumentationStepComponent),
                     },
                     {
                         path: "review-and-finalize",
