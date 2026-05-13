@@ -3,11 +3,16 @@
 .review-layout {
     display: flex;
     // Pin to viewport height minus the site header stack so the three panels always fit on
-    // one screen. min-height keeps the PDF panel large enough to render a readable page on
-    // short viewports; any overflow is absorbed by the field-list's internal scroll rather
-    // than by scrolling the whole review page.
+    // one screen. Any overflow is absorbed by the field-list's internal scroll rather than
+    // by scrolling the whole review page.
+    //
+    // NPT-1054: dropped min-height from 640px → 480px so the page-level scroll never
+    // engages on viewports ~700-820px tall. The previous 640px floor pushed `.review-layout`
+    // taller than the remaining viewport when extended, breaking the internal scroll of
+    // `.review-panel__fields`. 480 keeps the PDF readable on short viewports while letting
+    // the layout shrink to fit normal ones.
     height: calc(100dvh - 180px);
-    min-height: 640px;
+    min-height: 480px;
     overflow: hidden;
 }
 
@@ -220,7 +225,10 @@
 
 // Review Panel
 .review-panel {
-    width: 420px;
+    // NPT-1054: bumped from 420 to 720 so Step 4's 3-column Source Control table has room
+    // for long attribute names (e.g. "Design Outdoor Hazardous Material Storage Areas...")
+    // without wrapping. Other steps absorb the extra space cleanly (fields are flex anyway).
+    width: 720px;
     flex-shrink: 0;
     display: flex;
     flex-direction: column;
@@ -391,4 +399,109 @@
         flex: 0 0 auto;
         white-space: nowrap;
     }
+}
+
+// NPT-1054: Step 4 (Source Control BMPs) — mirrors edit-source-control-bmps's table layout
+// inside collapsible category panels.
+.review-panel__sc-intro {
+    margin: 0 0 0.75rem;
+    font-size: $type-size-200;
+    color: $gray-700;
+
+    i.fa-magic { color: $primary; }
+}
+
+// NPT-1054: simplified category styling — bold header + bottom border, no card/panel
+// chrome. Body keeps a max-height + internal scroll so users can keep all 3 categories
+// expanded and scroll within each to see all rows.
+.sc-category-panel {
+    margin-bottom: 0.75rem;
+
+    &__heading {
+        padding: 0.4rem 0 0.3rem;
+        cursor: pointer;
+        user-select: none;
+        border-bottom: 1px solid $gray-200;
+
+        h5 {
+            margin: 0;
+            font-size: $type-size-300;
+            font-weight: 700;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+    }
+
+    &__body {
+        padding: 0.25rem 0 0.5rem;
+        max-height: 28vh;
+        overflow-y: auto;
+    }
+}
+
+// NPT-1054: minimal table styling — no Bootstrap .table chrome, no outer border, no
+// row striping. Just bold uppercase column headers with a subtle underline, then plain
+// rows. Form-fields inside also inherit the compact size.
+.source-control-review-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: $type-size-150;
+
+    th, td {
+        vertical-align: middle;
+        padding: 0.3rem 0.4rem;
+        border: 0;
+        background: transparent;
+    }
+
+    thead th {
+        font-size: $type-size-100;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 0.02em;
+        color: $gray-700;
+        border-bottom: 1px solid $gray-200;
+        text-align: left;
+    }
+
+    .col-attribute { width: auto; }
+    .col-present   { width: 130px; }
+    .col-notes     { width: 180px; }
+
+    label { font-weight: normal; margin: 0; }
+
+    form-field {
+        display: block;
+        font-size: $type-size-150;
+        ::ng-deep input, ::ng-deep .radio-group label { font-size: $type-size-150; }
+    }
+}
+
+.sc-cell {
+    display: flex;
+    align-items: center;
+    gap: 0.35rem;
+
+    form-field { flex: 1 1 auto; }
+}
+
+.sc-ai-badge {
+    flex: 0 0 auto;
+    background: transparent;
+    border: 1px solid $primary;
+    color: $primary;
+    border-radius: 50%;
+    width: 1.4rem;
+    height: 1.4rem;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    transition: background-color 0.15s ease;
+    padding: 0;
+
+    &:hover { background: rgba($primary, 0.08); }
+
+    i { font-size: 0.7rem; }
 }

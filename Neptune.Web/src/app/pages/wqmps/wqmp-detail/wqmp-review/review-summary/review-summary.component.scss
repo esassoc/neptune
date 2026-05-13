@@ -83,3 +83,39 @@
     &--user { background: $gray-100; color: $gray-700; }
     &--blank { background: $gray-100; color: $gray-500; }
 }
+
+// NPT-1054: collapsible category sections (Source Control BMPs).
+.review-summary__group--collapsible {
+    details {
+        > summary {
+            cursor: pointer;
+            user-select: none;
+            list-style: none;
+            display: flex;
+            align-items: center;
+            padding: 0.25rem 0;
+
+            &::-webkit-details-marker { display: none; }
+            &::before {
+                content: "\25B6";
+                margin-right: 0.5rem;
+                font-size: 0.7rem;
+                color: $gray-600;
+                transition: transform 0.15s ease;
+            }
+        }
+
+        &[open] > summary::before { transform: rotate(90deg); }
+    }
+}
+
+.review-summary__count {
+    font-weight: normal;
+    color: $gray-600;
+    margin-left: 0.4rem;
+    font-size: 0.85em;
+}
+
+.review-summary__group-summary {
+    .review-summary__group-title { margin: 0; }
+}

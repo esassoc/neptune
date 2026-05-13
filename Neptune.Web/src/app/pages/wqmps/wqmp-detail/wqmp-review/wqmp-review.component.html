@@ -56,7 +56,7 @@
              reference evidence on the PDF. Use [hidden] rather than @if so the iframe
              stays mounted across step navigation; otherwise pdfLoaded / pendingNavigation /
              pdfTextCache get out of sync with the new iframe instance on return. -->
-        <div class="pdf-panel" [hidden]="currentStep() === 4">
+        <div class="pdf-panel" [hidden]="currentStep() === 5">
             @if (isNavigating()) {
                 <div class="pdf-panel__loading">
                     <i class="fa fa-spinner fa-spin"></i> Finding in document...
@@ -83,7 +83,7 @@
         </div>
 
         <!-- Review Panel -->
-        <div class="review-panel" [class.review-panel--full-width]="currentStep() === 4">
+        <div class="review-panel" [class.review-panel--full-width]="currentStep() === 5">
             <div class="review-panel__header">
                 <div class="review-panel__header-text">
                     <h2>{{ steps[currentStep() - 1].title }}</h2>
@@ -105,6 +105,10 @@
                 } @else if (pageData.hasResult && currentStep() === 3) {
                     <button class="btn btn-primary review-panel__header-action" (click)="saveBmps()" [disabled]="savingSection() !== null || isExtracting()">
                         @if (savingSection() === "bmps") { <i class="fa fa-spinner fa-spin"></i> Saving... } @else { Save }
+                    </button>
+                } @else if (pageData.hasResult && currentStep() === 4) {
+                    <button class="btn btn-primary review-panel__header-action" (click)="saveSourceControlBmps()" [disabled]="savingSection() !== null || isExtracting()">
+                        @if (savingSection() === "source-control") { <i class="fa fa-spinner fa-spin"></i> Saving... } @else { Save }
                     </button>
                 }
             </div>
@@ -167,12 +171,13 @@
                         </button>
                     }
 
-                    @if (currentStep() === 4) {
+                    @if (currentStep() === 5) {
                         <review-summary
                             [locationFields]="summaryLocationFields"
                             [basicsFields]="summaryBasicsFields"
                             [parcelFields]="summaryParcelFields"
                             [bmpGroups]="summaryBmpGroups"
+                            [sourceControlRows]="summarySourceControlRows"
                             [lookupOptionsByKey]="summaryLookupOptionsByKey"
                             [getWqmpFieldValue]="getWqmpFieldValueBound">
                         </review-summary>
@@ -197,6 +202,82 @@
                         @if (bmpGroupsForCurrentStep.length === 0) {
                             <div class="review-panel__empty-state">
                                 No Simple BMPs were detected in this document. You can proceed to the next step.
+                            </div>
+                        }
+                    }
+
+                    @if (currentStep() === 4) {
+                        <p class="review-panel__sc-intro">
+                            All Source Control BMP attributes are listed below, grouped by category. AI-extracted suggestions are pre-filled and marked with <i class="fa fa-magic"></i>. Click the icon to jump to the supporting evidence in the PDF.
+                        </p>
+                        @for (group of sourceControlGroups; track group.category) {
+                            <div class="sc-category-panel">
+                                <div class="sc-category-panel__heading" (click)="toggleSourceControlCategory(group)">
+                                    <h5>
+                                        {{ group.category }}
+                                        <i class="fa" [class.fa-chevron-down]="!group.collapsed" [class.fa-chevron-right]="group.collapsed"></i>
+                                    </h5>
+                                </div>
+                                @if (!group.collapsed) {
+                                    <div class="sc-category-panel__body">
+                                        <table class="source-control-review-table">
+                                            <thead>
+                                                <tr>
+                                                    <th class="col-attribute">Source Control Attribute</th>
+                                                    <th class="col-present">Present?</th>
+                                                    <th class="col-notes">Note</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody>
+                                                @for (row of group.rows; track row.get("SourceControlBMPAttributeID")!.value) {
+                                                    <tr [formGroup]="row">
+                                                        <td class="col-attribute">
+                                                            <label>{{ row.get("SourceControlBMPAttributeName")!.value }}</label>
+                                                        </td>
+                                                        <td class="col-present">
+                                                            <div class="sc-cell">
+                                                                <form-field
+                                                                    size="sm"
+                                                                    [formControl]="$any(row.controls['IsPresent'])"
+                                                                    [type]="FormFieldType.Radio"
+                                                                    [name]="'isPresent_' + row.get('SourceControlBMPAttributeID')!.value"
+                                                                    [formInputOptions]="isPresentOptions"></form-field>
+                                                                @if (sourceControlIsPresentEvidence.get(row.get("SourceControlBMPAttributeID")!.value); as ev) {
+                                                                    <button type="button" class="sc-ai-badge"
+                                                                        [title]="ev.evidence ?? 'AI-extracted from the uploaded PDF'"
+                                                                        (click)="navigateToSourceControlEvidence(row.get('SourceControlBMPAttributeID')!.value, 'isPresent')">
+                                                                        <i class="fa fa-magic"></i>
+                                                                    </button>
+                                                                }
+                                                            </div>
+                                                        </td>
+                                                        <td class="col-notes">
+                                                            <div class="sc-cell">
+                                                                <form-field
+                                                                    size="sm"
+                                                                    [formControl]="$any(row.controls['SourceControlBMPNote'])"
+                                                                    [type]="FormFieldType.Text"
+                                                                    placeholder=""></form-field>
+                                                                @if (sourceControlNoteEvidence.get(row.get("SourceControlBMPAttributeID")!.value); as ev) {
+                                                                    <button type="button" class="sc-ai-badge"
+                                                                        [title]="ev.evidence ?? 'AI-extracted from the uploaded PDF'"
+                                                                        (click)="navigateToSourceControlEvidence(row.get('SourceControlBMPAttributeID')!.value, 'note')">
+                                                                        <i class="fa fa-magic"></i>
+                                                                    </button>
+                                                                }
+                                                            </div>
+                                                        </td>
+                                                    </tr>
+                                                }
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                }
+                            </div>
+                        }
+                        @if (sourceControlGroups.length === 0) {
+                            <div class="review-panel__empty-state">
+                                No Source Control BMP attributes are configured. You can proceed to the next step.
                             </div>
                         }
                     }
