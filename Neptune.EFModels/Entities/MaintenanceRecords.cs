@@ -118,6 +118,7 @@ public static class MaintenanceRecords
                 MaintenanceRecordTypeID = x.MaintenanceRecordTypeID,
                 MaintenanceRecordTypeDisplayName = x.MaintenanceRecordTypeDisplayName,
                 MaintenanceRecordDescription = x.MaintenanceRecordDescription,
+                IsFieldVisitVerified = x.IsFieldVisitVerified,
                 StructuralRepairConducted = x.Structural_Repair_Conducted,
                 MechanicalRepairConducted = x.Mechanical_Repair_Conducted,
                 InfiltrationSurfaceRestored = x.Infiltration_Surface_Restored,

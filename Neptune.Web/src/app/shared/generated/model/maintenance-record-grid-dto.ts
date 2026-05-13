@@ -26,6 +26,7 @@ export class MaintenanceRecordGridDto {
     MaintenanceRecordTypeID?: number | null;
     MaintenanceRecordTypeDisplayName?: string | null;
     MaintenanceRecordDescription?: string | null;
+    IsFieldVisitVerified?: boolean;
     StructuralRepairConducted?: string | null;
     MechanicalRepairConducted?: string | null;
     InfiltrationSurfaceRestored?: string | null;
@@ -61,6 +62,7 @@ export interface MaintenanceRecordGridDtoForm {
     MaintenanceRecordTypeID?: FormControl<number>;
     MaintenanceRecordTypeDisplayName?: FormControl<string>;
     MaintenanceRecordDescription?: FormControl<string>;
+    IsFieldVisitVerified?: FormControl<boolean>;
     StructuralRepairConducted?: FormControl<string>;
     MechanicalRepairConducted?: FormControl<string>;
     InfiltrationSurfaceRestored?: FormControl<string>;
@@ -219,6 +221,16 @@ export class MaintenanceRecordGridDtoFormControls {
         }
     );
     public static MaintenanceRecordDescription = (value: FormControlState<string> | string = undefined, formControlOptions?: FormControlOptions | null) => new FormControl<string>(
+        value,
+        formControlOptions ?? 
+        {
+            nonNullable: false,
+            validators: 
+            [
+            ],
+        }
+    );
+    public static IsFieldVisitVerified = (value: FormControlState<boolean> | boolean = undefined, formControlOptions?: FormControlOptions | null) => new FormControl<boolean>(
         value,
         formControlOptions ?? 
         {

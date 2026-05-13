@@ -19,6 +19,7 @@ public class MaintenanceRecordGridDto
     public int? MaintenanceRecordTypeID { get; set; }
     public string? MaintenanceRecordTypeDisplayName { get; set; }
     public string? MaintenanceRecordDescription { get; set; }
+    public bool IsFieldVisitVerified { get; set; }
 
     // Maintenance observation columns mirroring vMaintenanceRecordDetailed
     public string? StructuralRepairConducted { get; set; }

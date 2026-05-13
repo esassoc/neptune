@@ -154,7 +154,7 @@ export class FieldRecordsComponent implements OnInit {
                 const branch = row.TreatmentBMPAssessmentTypeDisplayName?.toLowerCase().includes("post") ? "post-maintenance-assessment" : "assessment";
                 return [
                     {
-                        ActionName: "View Observations",
+                        ActionName: row.IsFieldVisitVerified ? "View Observations" : "Edit Observations",
                         ActionHandler: () => this.router.navigate(["/field-visits", row.FieldVisitID, branch, "observations"]),
                     },
                 ];
@@ -181,7 +181,7 @@ export class FieldRecordsComponent implements OnInit {
                 const row: MaintenanceRecordGridDto = params.data;
                 return [
                     {
-                        ActionName: "Edit",
+                        ActionName: row.IsFieldVisitVerified ? "View" : "Edit",
                         ActionHandler: () => this.router.navigate(["/field-visits", row.FieldVisitID, "maintenance", "edit"]),
                     },
                 ];

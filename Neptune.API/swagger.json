@@ -14576,6 +14576,9 @@
             "type": "string",
             "nullable": true
           },
+          "IsFieldVisitVerified": {
+            "type": "boolean"
+          },
           "StructuralRepairConducted": {
             "type": "string",
             "nullable": true
@@ -18083,6 +18086,9 @@
             "type": "number",
             "format": "double",
             "nullable": true
+          },
+          "IsFieldVisitVerified": {
+            "type": "boolean"
           },
           "Status": {
             "type": "string",
