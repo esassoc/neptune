@@ -1,4 +1,4 @@
-import { Component, computed, inject, Input, numberAttribute, OnInit, signal } from "@angular/core";
+import { Component, computed, inject, Input, OnInit, signal } from "@angular/core";
 import { Router, RouterLink } from "@angular/router";
 import { FormControl, FormGroup, ReactiveFormsModule, Validators } from "@angular/forms";
 import { PageHeaderComponent } from "src/app/shared/components/page-header/page-header.component";
@@ -45,7 +45,7 @@ import { PercentageSchemaBuilderComponent, PercentageSchemaFormGroup, buildPerce
     styleUrl: "./observation-type-edit.component.scss",
 })
 export class ObservationTypeEditComponent implements OnInit {
-    @Input({ transform: numberAttribute }) observationTypeID?: number;
+    @Input() observationTypeID?: number;
 
     private observationTypeService = inject(TreatmentBMPAssessmentObservationTypeService);
     private alertService = inject(AlertService);
@@ -94,6 +94,12 @@ export class ObservationTypeEditComponent implements OnInit {
 
     ngOnInit(): void {
         this.alertService.clearAlerts();
+        // Coerce the route-string param to a real number before any equality / Falsy checks —
+        // withComponentInputBinding passes route params as strings, and the "/new" route binds no
+        // observationTypeID at all (was previously becoming NaN via numberAttribute and falsely
+        // tripping isEdit + a doomed GET).
+        const id = this.observationTypeID != null ? Number(this.observationTypeID) : undefined;
+        this.observationTypeID = Number.isFinite(id) ? id : undefined;
         this.isEdit = this.observationTypeID != null;
 
         // Track collection method changes — when switching, reset schemas and snap Target/Threshold
