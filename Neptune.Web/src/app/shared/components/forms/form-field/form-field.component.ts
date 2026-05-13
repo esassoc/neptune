@@ -43,7 +43,7 @@ export class FormFieldComponent {
     @Input() units: string;
     @Input() name: string;
     @Input() fieldDefinitionName: string;
-    /** Free-text description that renders as a hoverable/clickable help-icon next to the label,
+    /** Free-text description that renders as a click-to-open help-icon next to the label,
      * matching the pattern used on the BMP detail page's custom-attributes-display table for
      * attributes that have a description but no backing FieldDefinitionType row. Leave unset to
      * skip the icon entirely. */
