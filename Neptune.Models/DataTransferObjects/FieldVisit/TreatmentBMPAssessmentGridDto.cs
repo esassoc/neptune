@@ -21,5 +21,6 @@ public class TreatmentBMPAssessmentGridDto
     public string? TreatmentBMPAssessmentTypeDisplayName { get; set; }
     public bool IsAssessmentComplete { get; set; }
     public double? AssessmentScore { get; set; }
+    public bool IsFieldVisitVerified { get; set; }
     public string Status => IsAssessmentComplete ? "Complete" : "In Progress";
 }

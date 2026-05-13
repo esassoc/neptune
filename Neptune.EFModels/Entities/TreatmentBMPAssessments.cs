@@ -150,6 +150,7 @@ public static class TreatmentBMPAssessments
                 TreatmentBMPAssessmentTypeDisplayName = x.TreatmentBMPAssessmentTypeDisplayName,
                 IsAssessmentComplete = x.IsAssessmentComplete,
                 AssessmentScore = x.AssessmentScore,
+                IsFieldVisitVerified = x.IsFieldVisitVerified,
             })
             .ToList();
     }

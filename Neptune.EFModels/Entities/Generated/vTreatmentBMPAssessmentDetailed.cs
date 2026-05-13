@@ -40,6 +40,8 @@ public partial class vTreatmentBMPAssessmentDetailed
     [Column(TypeName = "datetime")]
     public DateTime VisitDate { get; set; }
 
+    public bool IsFieldVisitVerified { get; set; }
+
     public int PerformedByPersonID { get; set; }
 
     [StringLength(201)]

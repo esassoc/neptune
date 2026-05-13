@@ -28,6 +28,7 @@ export class TreatmentBMPAssessmentGridDto {
     TreatmentBMPAssessmentTypeDisplayName?: string | null;
     IsAssessmentComplete?: boolean;
     AssessmentScore?: number | null;
+    IsFieldVisitVerified?: boolean;
     readonly Status?: string | null;
     constructor(obj?: any) {
         Object.assign(this, obj);
@@ -52,6 +53,7 @@ export interface TreatmentBMPAssessmentGridDtoForm {
     TreatmentBMPAssessmentTypeDisplayName?: FormControl<string>;
     IsAssessmentComplete?: FormControl<boolean>;
     AssessmentScore?: FormControl<number>;
+    IsFieldVisitVerified?: FormControl<boolean>;
     Status?: FormControl<string>;
 }
 
@@ -217,6 +219,16 @@ export class TreatmentBMPAssessmentGridDtoFormControls {
         }
     );
     public static AssessmentScore = (value: FormControlState<number> | number = undefined, formControlOptions?: FormControlOptions | null) => new FormControl<number>(
+        value,
+        formControlOptions ?? 
+        {
+            nonNullable: false,
+            validators: 
+            [
+            ],
+        }
+    );
+    public static IsFieldVisitVerified = (value: FormControlState<boolean> | boolean = undefined, formControlOptions?: FormControlOptions | null) => new FormControl<boolean>(
         value,
         formControlOptions ?? 
         {
