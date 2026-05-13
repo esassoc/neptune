@@ -5,6 +5,7 @@ import { TinyMceConfigPipe } from "src/app/shared/pipes/tiny-mce-config.pipe";
 import { RequiredPipe } from "src/app/shared/pipes/required.pipe";
 import { InputErrorsComponent } from "src/app/shared/components/inputs/input-errors/input-errors.component";
 import { FieldDefinitionComponent } from "src/app/shared/components/field-definition/field-definition.component";
+import { PopperDirective } from "src/app/shared/directives/popper.directive";
 import { EditorComponent, TINYMCE_SCRIPT_SRC } from "@tinymce/tinymce-angular";
 
 import { NgxMaskDirective, provideNgxMask } from "ngx-mask";
@@ -26,7 +27,7 @@ import { NgSelectModule } from "@ng-select/ng-select";
         },
         provideNgxMask(),
     ],
-    imports: [NgTemplateOutlet, NgxMaskDirective, FormsModule, ReactiveFormsModule, EditorComponent, FieldDefinitionComponent, InputErrorsComponent, RequiredPipe, TinyMceConfigPipe, NgSelectModule],
+    imports: [NgTemplateOutlet, NgxMaskDirective, FormsModule, ReactiveFormsModule, EditorComponent, FieldDefinitionComponent, PopperDirective, InputErrorsComponent, RequiredPipe, TinyMceConfigPipe, NgSelectModule],
 })
 export class FormFieldComponent {
     public FormFieldType = FormFieldType;
@@ -42,6 +43,13 @@ export class FormFieldComponent {
     @Input() units: string;
     @Input() name: string;
     @Input() fieldDefinitionName: string;
+    /** Free-text description that renders as a hoverable/clickable help-icon next to the label,
+     * matching the pattern used on the BMP detail page's custom-attributes-display table for
+     * attributes that have a description but no backing FieldDefinitionType row. Leave unset to
+     * skip the icon entirely. */
+    @Input() popoverDescription: string;
+    /** Optional popover title; defaults to fieldLabel. */
+    @Input() popoverTitle: string;
     @Input() toggleHeight: string = "";
     @Input() mask: string;
 

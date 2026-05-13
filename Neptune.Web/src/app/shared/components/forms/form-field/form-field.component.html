@@ -5,6 +5,17 @@
         } @else {
             {{ fieldLabel }}
         }
+        @if (popoverDescription) {
+            <i
+                class="fas fa-question-circle small"
+                style="cursor: help; margin-left: 0.25rem"
+                [popper]="popoverContentTpl"
+                [popperTitle]="popoverTitle || fieldLabel"
+                [useBodyContainer]="true"></i>
+            <ng-template #popoverContentTpl>
+                <div>{{ popoverDescription }}</div>
+            </ng-template>
+        }
     </ng-template>
     @if (!readOnly) {
         @switch (type) {

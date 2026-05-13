@@ -8,6 +8,7 @@
                 <form-field
                     [formControl]="attributeValuesByTypeIDFormControls[attrType.CustomAttributeType.CustomAttributeTypeID]"
                     [fieldLabel]="attrType.CustomAttributeType.CustomAttributeTypeName"
+                    [popoverDescription]="attrType.CustomAttributeType.CustomAttributeTypeDescription"
                     [type]="attributeFormTypeByTypeID[attrType.CustomAttributeType.CustomAttributeTypeID]"
                     [formInputOptions]="selectOptionsByTypeID[attrType.CustomAttributeType.CustomAttributeTypeID]"
                     [placeholder]="'Enter ' + attrType.CustomAttributeType.CustomAttributeTypeName"
