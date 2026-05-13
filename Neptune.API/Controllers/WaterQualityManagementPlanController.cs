@@ -544,7 +544,8 @@ namespace Neptune.API.Controllers
                 WaterQualityManagementPlanName = wqmpName,
                 StormwaterJurisdictionID = stormwaterJurisdictionID,
                 WaterQualityManagementPlanStatusID = (int)WaterQualityManagementPlanStatusEnum.Draft,
-                WaterQualityManagementPlanModelingApproachID = (int)WaterQualityManagementPlanModelingApproachEnum.Detailed,
+                // KE 5/13/26 decision: default to Simplified — see wqmp-modal.component.ts for context.
+                WaterQualityManagementPlanModelingApproachID = (int)WaterQualityManagementPlanModelingApproachEnum.Simplified,
                 TrashCaptureStatusTypeID = (int)TrashCaptureStatusTypeEnum.NotProvided,
             };
             var wqmpDto = await WaterQualityManagementPlans.CreateAsync(DbContext, dto);

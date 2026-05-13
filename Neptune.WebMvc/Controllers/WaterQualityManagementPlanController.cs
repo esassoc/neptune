@@ -323,7 +323,9 @@ namespace Neptune.WebMvc.Controllers
             var waterQualityManagementPlan = new WaterQualityManagementPlan
             {
                 TrashCaptureStatusTypeID = TrashCaptureStatusType.NotProvided.TrashCaptureStatusTypeID,
-                WaterQualityManagementPlanModelingApproachID = WaterQualityManagementPlanModelingApproach.Detailed
+                // KE 5/13/26 decision: default to Simplified rather than Detailed when creating a
+                // new WQMP — most new entries don't justify a full detailed-modeling parameterization.
+                WaterQualityManagementPlanModelingApproachID = WaterQualityManagementPlanModelingApproach.Simplified
                     .WaterQualityManagementPlanModelingApproachID
             };
 

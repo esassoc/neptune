@@ -100,7 +100,8 @@ namespace Neptune.WebMvc.Common
                 {
                     StormwaterJurisdictionID = stormwaterJurisdictionID.Value,
                     WaterQualityManagementPlanName = wqmpName,
-                    WaterQualityManagementPlanModelingApproachID = (int)WaterQualityManagementPlanModelingApproachEnum.Detailed
+                    // KE 5/13/26 decision: default new WQMPs to Simplified modeling approach.
+                    WaterQualityManagementPlanModelingApproachID = (int)WaterQualityManagementPlanModelingApproachEnum.Simplified
                 };
             }
 
