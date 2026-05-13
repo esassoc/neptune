@@ -15,6 +15,7 @@ import { CustomAttributeTypeService } from "src/app/shared/generated/api/custom-
 import { CustomAttributeTypeDto } from "src/app/shared/generated/model/custom-attribute-type-dto";
 import { CustomAttributeTypePurposeEnum } from "src/app/shared/generated/enum/custom-attribute-type-purpose-enum";
 import { NeptunePageTypeEnum } from "src/app/shared/generated/enum/neptune-page-type-enum";
+import { escapeHtml } from "src/app/shared/helpers/html-escape";
 
 @Component({
     selector: "custom-attributes",
@@ -120,7 +121,7 @@ export class CustomAttributesComponent implements OnInit {
     }
 
     private confirmDelete(row: CustomAttributeTypeDto): void {
-        const name = this.escapeHtml(row.CustomAttributeTypeName ?? "this attribute");
+        const name = escapeHtml(row.CustomAttributeTypeName ?? "this attribute");
         this.confirmService
             .confirm({
                 title: "Delete Custom Attribute Type",
@@ -141,25 +142,15 @@ export class CustomAttributesComponent implements OnInit {
                     error: (err) => {
                         // Surface the backend's ProblemDetails message when available so PO/dev
                         // can diagnose a failed delete (FK conflict, permission, etc.) instead
-                        // of seeing the generic toast we used to show.
-                        const detail = err?.error?.detail ?? err?.error?.title
+                        // of seeing the generic toast we used to show. AlertDisplayComponent
+                        // renders via [innerHTML] + bypassSecurityTrustHtml, so escape the
+                        // server-supplied text before interpolating.
+                        const raw = err?.error?.detail ?? err?.error?.title
                             ?? "An error occurred while deleting the custom attribute type.";
-                        this.alertService.pushAlert(new Alert(detail, AlertContext.Danger));
+                        this.alertService.pushAlert(new Alert(escapeHtml(raw), AlertContext.Danger));
                     },
                 });
             })
             .catch(() => { /* dismissed via X/Escape — no-op */ });
-    }
-
-    // ConfirmModalComponent renders message via [innerHtml] + bypassSecurityTrustHtml,
-    // so any user-controlled string interpolated into the template must be HTML-escaped
-    // first. Custom attribute names come from admin input — treated as untrusted.
-    private escapeHtml(s: string): string {
-        return s
-            .replace(/&/g, "&amp;")
-            .replace(/</g, "&lt;")
-            .replace(/>/g, "&gt;")
-            .replace(/"/g, "&quot;")
-            .replace(/'/g, "&#39;");
     }
 }

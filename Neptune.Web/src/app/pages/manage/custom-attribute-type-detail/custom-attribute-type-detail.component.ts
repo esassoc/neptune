@@ -13,6 +13,7 @@ import { CustomAttributeTypeService } from "src/app/shared/generated/api/custom-
 import { CustomAttributeTypeDto } from "src/app/shared/generated/model/custom-attribute-type-dto";
 import { CustomAttributeTypePurposeEnum } from "src/app/shared/generated/enum/custom-attribute-type-purpose-enum";
 import { CustomAttributeDataTypeEnum } from "src/app/shared/generated/enum/custom-attribute-data-type-enum";
+import { escapeHtml } from "src/app/shared/helpers/html-escape";
 
 /**
  * NPT-1038 rework: read-only detail page for a single Custom Attribute Type.
@@ -81,7 +82,7 @@ export class CustomAttributeTypeDetailComponent implements OnInit {
     }
 
     confirmDelete(attribute: CustomAttributeTypeDto): void {
-        const name = this.escapeHtml(attribute.CustomAttributeTypeName ?? "this attribute");
+        const name = escapeHtml(attribute.CustomAttributeTypeName ?? "this attribute");
         this.confirmService
             .confirm({
                 title: "Delete Custom Attribute Type",
@@ -101,21 +102,15 @@ export class CustomAttributeTypeDetailComponent implements OnInit {
                         });
                     },
                     error: (err) => {
-                        const detail = err?.error?.detail ?? err?.error?.title
+                        // AlertDisplayComponent renders message via [innerHTML] +
+                        // bypassSecurityTrustHtml, so escape server-supplied text before
+                        // interpolating to avoid XSS if a ProblemDetails ever includes markup.
+                        const raw = err?.error?.detail ?? err?.error?.title
                             ?? "An error occurred while deleting the custom attribute type.";
-                        this.alertService.pushAlert(new Alert(detail, AlertContext.Danger));
+                        this.alertService.pushAlert(new Alert(escapeHtml(raw), AlertContext.Danger));
                     },
                 });
             })
             .catch(() => { /* dismissed via X/Escape — no-op */ });
-    }
-
-    private escapeHtml(s: string): string {
-        return s
-            .replace(/&/g, "&amp;")
-            .replace(/</g, "&lt;")
-            .replace(/>/g, "&gt;")
-            .replace(/"/g, "&quot;")
-            .replace(/'/g, "&#39;");
     }
 }
