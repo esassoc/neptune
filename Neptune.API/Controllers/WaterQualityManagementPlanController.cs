@@ -218,6 +218,13 @@ namespace Neptune.API.Controllers
             [FromRoute] int waterQualityManagementPlanID, [FromRoute] int waterQualityManagementPlanVerifyID, IFormFile file)
         {
             var verify = WaterQualityManagementPlanVerifies.GetByID(DbContext, waterQualityManagementPlanVerifyID);
+            // Guard against cross-WQMP modification — a caller with edit rights on WQMP A
+            // shouldn't be able to mutate WQMP B's verifications by smuggling B's verify ID
+            // through A's route. Copilot review on PR #502.
+            if (verify.WaterQualityManagementPlanID != waterQualityManagementPlanID)
+            {
+                return NotFound();
+            }
             if (!verify.IsDraft)
             {
                 return BadRequest("Supporting Documentation cannot be modified after the verification has been finalized.");
@@ -246,6 +253,11 @@ namespace Neptune.API.Controllers
             [FromRoute] int waterQualityManagementPlanID, [FromRoute] int waterQualityManagementPlanVerifyID)
         {
             var verify = WaterQualityManagementPlanVerifies.GetByID(DbContext, waterQualityManagementPlanVerifyID);
+            // Guard against cross-WQMP modification — see upload endpoint above.
+            if (verify.WaterQualityManagementPlanID != waterQualityManagementPlanID)
+            {
+                return NotFound();
+            }
             if (!verify.IsDraft)
             {
                 return BadRequest("Supporting Documentation cannot be modified after the verification has been finalized.");

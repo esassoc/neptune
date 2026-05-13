@@ -60,12 +60,10 @@ GO
 GO
 :r ".\026 - Add AnthropicFileID to WaterQualityManagementPlanDocument.sql"
 GO
-:r ".\026 - WQMP Verification Supporting Documentation help text.sql"
-GO
 :r ".\027 - Backfill WQMP Status to Active for null rows.sql"
 GO
-:r ".\027 - Update WQMP Verification Supporting Documentation file size limit.sql"
-GO
 :r ".\028 - Seed gt_pk_metadata for vGeoServerLandUseBlock.sql"
+GO
+:r ".\029 - WQMP Verification Supporting Documentation help text.sql"
 GO
 
