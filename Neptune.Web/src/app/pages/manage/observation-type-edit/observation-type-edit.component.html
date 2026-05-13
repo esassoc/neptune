@@ -17,7 +17,7 @@
 
 @if (!isLoading()) {
     <div class="page-body">
-        <form [formGroup]="formGroup">
+        <div class="editor-body" (keydown.enter)="$event.preventDefault()">
             <!-- Section 1: Name & Collection -->
             <div class="card mb-3">
                 <div class="card-header"><span class="card-title">Name &amp; Collection</span></div>
@@ -101,7 +101,7 @@
             } @else if (collectionMethod() && !derivedSpecID() && !isPassFail()) {
                 <p class="system-text mt-3">Select a Target Type and Threshold Type to configure the schema.</p>
             }
-        </form>
+        </div>
 
         <div class="page-footer">
             <button type="button" class="btn btn-primary" (click)="save()" [disabled]="isSaving() || formGroup.invalid || !derivedSpecID() || (activeSchemaGroup() && activeSchemaGroup()!.invalid)">Save</button>

@@ -185,6 +185,7 @@ export class ObservationTypeEditComponent implements OnInit {
         if (this.formGroup.invalid || (active && active.invalid)) {
             this.formGroup.markAllAsTouched();
             active?.markAllAsTouched();
+            this.alertService.pushAlert(new Alert("Please complete the highlighted required fields before saving.", AlertContext.Danger));
             return;
         }
         const raw = this.formGroup.getRawValue();
@@ -193,7 +194,10 @@ export class ObservationTypeEditComponent implements OnInit {
             TargetTypeID: raw.TargetTypeID,
             ThresholdTypeID: raw.ThresholdTypeID,
         });
-        if (!specID) return;
+        if (!specID) {
+            this.alertService.pushAlert(new Alert("Pick a Collection Method, Target Type, and Threshold Type before saving.", AlertContext.Danger));
+            return;
+        }
         const schema = this.serializeSchema();
 
         const dto: TreatmentBMPAssessmentObservationTypeUpsertDto = {
