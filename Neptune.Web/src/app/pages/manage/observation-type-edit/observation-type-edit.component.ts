@@ -212,11 +212,15 @@ export class ObservationTypeEditComponent implements OnInit {
             ? this.observationTypeService.updateTreatmentBMPAssessmentObservationType(this.observationTypeID, dto)
             : this.observationTypeService.createTreatmentBMPAssessmentObservationType(dto);
 
+        const successMessage = `Observation type ${this.isEdit ? "updated" : "created"}.`;
         save$.subscribe({
             next: () => {
                 this.isSaving.set(false);
-                this.alertService.pushAlert(new Alert(`Observation type ${this.isEdit ? "updated" : "created"}.`, AlertContext.Success));
-                this.router.navigate(["/manage/observation-types"]);
+                // Push the alert AFTER navigation completes so it survives the editor's
+                // <app-alert-display>.ngOnDestroy (which clears alerts on unmount by default).
+                this.router.navigate(["/manage/observation-types"]).then(() => {
+                    this.alertService.pushAlert(new Alert(successMessage, AlertContext.Success));
+                });
             },
             error: () => {
                 this.isSaving.set(false);
