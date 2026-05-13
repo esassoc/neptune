@@ -28,6 +28,8 @@ namespace Neptune.EFModels.Entities
         public static readonly FileResourceMimeTypexExcelXLSX xExcelXLSX = FileResourceMimeTypexExcelXLSX.Instance;
         public static readonly FileResourceMimeTypeCSS CSS = FileResourceMimeTypeCSS.Instance;
         public static readonly FileResourceMimeTypeZIP ZIP = FileResourceMimeTypeZIP.Instance;
+        public static readonly FileResourceMimeTypeCSV CSV = FileResourceMimeTypeCSV.Instance;
+        public static readonly FileResourceMimeTypeText Text = FileResourceMimeTypeText.Instance;
 
         public static readonly List<FileResourceMimeType> All;
         public static readonly ReadOnlyDictionary<int, FileResourceMimeType> AllLookupDictionary;
@@ -37,7 +39,7 @@ namespace Neptune.EFModels.Entities
         /// </summary>
         static FileResourceMimeType()
         {
-            All = new List<FileResourceMimeType> { PDF, WordDOCX, ExcelXLSX, XPNG, PNG, TIFF, BMP, GIF, JPEG, PJPEG, PowerpointPPTX, PowerpointPPT, ExcelXLS, WordDOC, xExcelXLSX, CSS, ZIP };
+            All = new List<FileResourceMimeType> { PDF, WordDOCX, ExcelXLSX, XPNG, PNG, TIFF, BMP, GIF, JPEG, PJPEG, PowerpointPPTX, PowerpointPPT, ExcelXLS, WordDOC, xExcelXLSX, CSS, ZIP, CSV, Text };
             AllLookupDictionary = new ReadOnlyDictionary<int, FileResourceMimeType>(All.ToDictionary(x => x.FileResourceMimeTypeID));
         }
 
@@ -117,6 +119,8 @@ namespace Neptune.EFModels.Entities
                     return BMP;
                 case FileResourceMimeTypeEnum.CSS:
                     return CSS;
+                case FileResourceMimeTypeEnum.CSV:
+                    return CSV;
                 case FileResourceMimeTypeEnum.ExcelXLS:
                     return ExcelXLS;
                 case FileResourceMimeTypeEnum.ExcelXLSX:
@@ -135,6 +139,8 @@ namespace Neptune.EFModels.Entities
                     return PowerpointPPT;
                 case FileResourceMimeTypeEnum.PowerpointPPTX:
                     return PowerpointPPTX;
+                case FileResourceMimeTypeEnum.Text:
+                    return Text;
                 case FileResourceMimeTypeEnum.TIFF:
                     return TIFF;
                 case FileResourceMimeTypeEnum.WordDOC:
@@ -171,7 +177,9 @@ namespace Neptune.EFModels.Entities
         WordDOC = 14,
         xExcelXLSX = 15,
         CSS = 16,
-        ZIP = 17
+        ZIP = 17,
+        CSV = 18,
+        Text = 19
     }
 
     public partial class FileResourceMimeTypePDF : FileResourceMimeType
@@ -274,5 +282,17 @@ namespace Neptune.EFModels.Entities
     {
         private FileResourceMimeTypeZIP(int fileResourceMimeTypeID, string fileResourceMimeTypeName, string fileResourceMimeTypeDisplayName, string fileResourceMimeTypeContentTypeName, string fileResourceMimeTypeIconSmallFilename, string fileResourceMimeTypeIconNormalFilename) : base(fileResourceMimeTypeID, fileResourceMimeTypeName, fileResourceMimeTypeDisplayName, fileResourceMimeTypeContentTypeName, fileResourceMimeTypeIconSmallFilename, fileResourceMimeTypeIconNormalFilename) {}
         public static readonly FileResourceMimeTypeZIP Instance = new FileResourceMimeTypeZIP(17, @"ZIP", @"ZIP", @"application/x-zip-compressed", null, null);
+    }
+
+    public partial class FileResourceMimeTypeCSV : FileResourceMimeType
+    {
+        private FileResourceMimeTypeCSV(int fileResourceMimeTypeID, string fileResourceMimeTypeName, string fileResourceMimeTypeDisplayName, string fileResourceMimeTypeContentTypeName, string fileResourceMimeTypeIconSmallFilename, string fileResourceMimeTypeIconNormalFilename) : base(fileResourceMimeTypeID, fileResourceMimeTypeName, fileResourceMimeTypeDisplayName, fileResourceMimeTypeContentTypeName, fileResourceMimeTypeIconSmallFilename, fileResourceMimeTypeIconNormalFilename) {}
+        public static readonly FileResourceMimeTypeCSV Instance = new FileResourceMimeTypeCSV(18, @"CSV", @"CSV", @"text/csv", null, null);
+    }
+
+    public partial class FileResourceMimeTypeText : FileResourceMimeType
+    {
+        private FileResourceMimeTypeText(int fileResourceMimeTypeID, string fileResourceMimeTypeName, string fileResourceMimeTypeDisplayName, string fileResourceMimeTypeContentTypeName, string fileResourceMimeTypeIconSmallFilename, string fileResourceMimeTypeIconNormalFilename) : base(fileResourceMimeTypeID, fileResourceMimeTypeName, fileResourceMimeTypeDisplayName, fileResourceMimeTypeContentTypeName, fileResourceMimeTypeIconSmallFilename, fileResourceMimeTypeIconNormalFilename) {}
+        public static readonly FileResourceMimeTypeText Instance = new FileResourceMimeTypeText(19, @"Text", @"Text", @"text/plain", null, null);
     }
 }

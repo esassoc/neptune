@@ -22,7 +22,9 @@ export enum FileResourceMimeTypeEnum {
   WordDOC = 14,
   xExcelXLSX = 15,
   CSS = 16,
-  ZIP = 17
+  ZIP = 17,
+  CSV = 18,
+  Text = 19
 }
 
 export const FileResourceMimeTypes: LookupTableEntry[]  = [
@@ -42,6 +44,8 @@ export const FileResourceMimeTypes: LookupTableEntry[]  = [
   { Name: "Word (DOC)", DisplayName: "Word (DOC)", Value: 14 },
   { Name: "x-Excel (XLSX)", DisplayName: "x-Excel (XLSX)", Value: 15 },
   { Name: "CSS", DisplayName: "CSS", Value: 16 },
-  { Name: "ZIP", DisplayName: "ZIP", Value: 17 }
+  { Name: "ZIP", DisplayName: "ZIP", Value: 17 },
+  { Name: "CSV", DisplayName: "CSV", Value: 18 },
+  { Name: "Text", DisplayName: "Text", Value: 19 }
 ];
 export const FileResourceMimeTypesAsSelectDropdownOptions = FileResourceMimeTypes.map((x) => ({ Value: x.Value, Label: x.DisplayName } as SelectDropdownOption));
