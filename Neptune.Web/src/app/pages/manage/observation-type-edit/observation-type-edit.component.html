@@ -1,12 +1,23 @@
-<div class="modal">
-<div class="modal-header">
-    <h3>{{ isEdit ? "Edit" : "Add" }} Observation Type</h3>
-</div>
-<div class="modal-body">
-    <app-alert-display></app-alert-display>
-    @if (!isLoading()) {
-        <form [formGroup]="formGroup">
+<page-header [pageTitle]="isEdit ? 'Edit Observation Type' : 'Add Observation Type'" [templateAbove]="templateAbove" [templateRight]="templateRight">
+    <ng-template #templateAbove>
+        <div class="back">
+            <a [routerLink]="['/manage/observation-types']" class="back__link">Back to Observation Types</a>
+        </div>
+    </ng-template>
+    <ng-template #templateRight>
+        @if (collectionMethod() && derivedSpecID()) {
+            <button type="button" class="btn btn-secondary-outline" (click)="togglePreview()">
+                <i class="fa fa-eye"></i> {{ showPreview() ? "Hide Preview" : "Show Preview" }}
+            </button>
+        }
+    </ng-template>
+</page-header>
 
+<app-alert-display></app-alert-display>
+
+@if (!isLoading()) {
+    <div class="page-body">
+        <div class="editor-body" (keydown.enter)="$event.preventDefault()">
             <!-- Section 1: Name & Collection -->
             <div class="card mb-3">
                 <div class="card-header"><span class="card-title">Name &amp; Collection</span></div>
@@ -22,12 +33,12 @@
                             placeholder="Select Collection Method" [formInputOptions]="collectionMethodOptions">
                         </form-field>
                         @if (collectionMethod() && !isPassFail()) {
-                            <form-field class="g-col-6" [formControl]="formGroup.controls.TargetTypeID"
+                            <form-field class="g-col-12" [formControl]="formGroup.controls.TargetTypeID"
                                 fieldLabel="Target Type" fieldDefinitionName="ObservationTargetType"
                                 [type]="FormFieldType.Select" [required]="true"
                                 placeholder="Select Target Type" [formInputOptions]="targetTypeOptions">
                             </form-field>
-                            <form-field class="g-col-6" [formControl]="formGroup.controls.ThresholdTypeID"
+                            <form-field class="g-col-12" [formControl]="formGroup.controls.ThresholdTypeID"
                                 fieldLabel="Threshold Type" fieldDefinitionName="ObservationThresholdType"
                                 [type]="FormFieldType.Select" [required]="true"
                                 placeholder="Select Threshold Type" [formInputOptions]="thresholdTypeOptions">
@@ -38,21 +49,15 @@
             </div>
 
             @if (collectionMethod() && derivedSpecID()) {
-                <div class="preview-toggle">
-                    <button type="button" class="btn btn-sm btn-secondary-outline" (click)="showPreview.set(!showPreview())">
-                        {{ showPreview() ? "Hide Preview" : "Show Preview" }}
-                    </button>
-                </div>
-
                 @if (showPreview()) {
                     <div class="card mb-3">
                         <div class="card-header"><span class="card-title">Schema Preview</span></div>
                         <div class="card-body">
                             <schema-preview
                                 [collectionMethod]="collectionMethod()"
-                                [passFailSchema]="passFailSchema()"
-                                [discreteSchema]="discreteSchema()"
-                                [percentageSchema]="percentageSchema()">
+                                [passFailSchema]="passFailSchemaPreview()"
+                                [discreteSchema]="discreteSchemaPreview()"
+                                [percentageSchema]="percentageSchemaPreview()">
                             </schema-preview>
                         </div>
                     </div>
@@ -63,13 +68,13 @@
                         <div class="card-body">
                             @switch (collectionMethod()) {
                                 @case ("PassFail") {
-                                    <pass-fail-schema-builder section="instructions" [schema]="passFailSchema()" (schemaChange)="passFailSchema.set($event)"></pass-fail-schema-builder>
+                                    <pass-fail-schema-builder section="instructions" [formGroup]="passFailSchemaGroup"></pass-fail-schema-builder>
                                 }
                                 @case ("DiscreteValue") {
-                                    <discrete-schema-builder section="instructions" [schema]="discreteSchema()" (schemaChange)="discreteSchema.set($event)"></discrete-schema-builder>
+                                    <discrete-schema-builder section="instructions" [formGroup]="discreteSchemaGroup"></discrete-schema-builder>
                                 }
                                 @case ("Percentage") {
-                                    <percentage-schema-builder section="instructions" [schema]="percentageSchema()" (schemaChange)="percentageSchema.set($event)"></percentage-schema-builder>
+                                    <percentage-schema-builder section="instructions" [formGroup]="percentageSchemaGroup"></percentage-schema-builder>
                                 }
                             }
                         </div>
@@ -81,13 +86,13 @@
                         <div class="card-body">
                             @switch (collectionMethod()) {
                                 @case ("PassFail") {
-                                    <pass-fail-schema-builder section="labelsUnits" [schema]="passFailSchema()" (schemaChange)="passFailSchema.set($event)"></pass-fail-schema-builder>
+                                    <pass-fail-schema-builder section="labelsUnits" [formGroup]="passFailSchemaGroup"></pass-fail-schema-builder>
                                 }
                                 @case ("DiscreteValue") {
-                                    <discrete-schema-builder section="labelsUnits" [schema]="discreteSchema()" (schemaChange)="discreteSchema.set($event)"></discrete-schema-builder>
+                                    <discrete-schema-builder section="labelsUnits" [formGroup]="discreteSchemaGroup"></discrete-schema-builder>
                                 }
                                 @case ("Percentage") {
-                                    <percentage-schema-builder section="labelsUnits" [schema]="percentageSchema()" (schemaChange)="percentageSchema.set($event)"></percentage-schema-builder>
+                                    <percentage-schema-builder section="labelsUnits" [formGroup]="percentageSchemaGroup"></percentage-schema-builder>
                                 }
                             }
                         </div>
@@ -96,13 +101,13 @@
             } @else if (collectionMethod() && !derivedSpecID() && !isPassFail()) {
                 <p class="system-text mt-3">Select a Target Type and Threshold Type to configure the schema.</p>
             }
-        </form>
-    } @else {
-        <p>Loading...</p>
-    }
-</div>
-<div class="modal-footer">
-    <button class="btn btn-primary" (click)="save()" [disabled]="formGroup.invalid || !derivedSpecID()">Save</button>
-    <button class="btn btn-secondary-outline" (click)="cancel()">Cancel</button>
-</div>
-</div>
+        </div>
+
+        <div class="page-footer">
+            <button type="button" class="btn btn-primary" (click)="save()" [disabled]="isSaving() || formGroup.invalid || !derivedSpecID() || (activeSchemaGroup() && activeSchemaGroup()!.invalid)">Save</button>
+            <button type="button" class="btn btn-secondary-outline" (click)="cancel()" [disabled]="isSaving()">Cancel</button>
+        </div>
+    </div>
+} @else {
+    <p>Loading...</p>
+}
