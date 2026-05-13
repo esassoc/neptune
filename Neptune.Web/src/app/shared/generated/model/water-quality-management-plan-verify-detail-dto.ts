@@ -28,7 +28,9 @@ export class WaterQualityManagementPlanVerifyDetailDto {
     SourceControlCondition?: string | null;
     EnforcementOrFollowupActions?: string | null;
     IsDraft?: boolean;
+    FileResourceID?: number | null;
     FileResourceGUID?: string | null;
+    FileResourceFileName?: string | null;
     TreatmentBMPs?: Array<WaterQualityManagementPlanVerifyTreatmentBMPSimpleDto> | null;
     QuickBMPs?: Array<WaterQualityManagementPlanVerifyQuickBMPDto> | null;
     SourceControlBMPs?: Array<VerifySourceControlBMPDetailDto> | null;
@@ -52,7 +54,9 @@ export interface WaterQualityManagementPlanVerifyDetailDtoForm {
     SourceControlCondition?: FormControl<string>;
     EnforcementOrFollowupActions?: FormControl<string>;
     IsDraft?: FormControl<boolean>;
+    FileResourceID?: FormControl<number>;
     FileResourceGUID?: FormControl<string>;
+    FileResourceFileName?: FormControl<string>;
     TreatmentBMPs?: FormControl<Array<WaterQualityManagementPlanVerifyTreatmentBMPSimpleDto>>;
     QuickBMPs?: FormControl<Array<WaterQualityManagementPlanVerifyQuickBMPDto>>;
     SourceControlBMPs?: FormControl<Array<VerifySourceControlBMPDetailDto>>;
@@ -199,7 +203,27 @@ export class WaterQualityManagementPlanVerifyDetailDtoFormControls {
             ],
         }
     );
+    public static FileResourceID = (value: FormControlState<number> | number = undefined, formControlOptions?: FormControlOptions | null) => new FormControl<number>(
+        value,
+        formControlOptions ?? 
+        {
+            nonNullable: false,
+            validators: 
+            [
+            ],
+        }
+    );
     public static FileResourceGUID = (value: FormControlState<string> | string = undefined, formControlOptions?: FormControlOptions | null) => new FormControl<string>(
+        value,
+        formControlOptions ?? 
+        {
+            nonNullable: false,
+            validators: 
+            [
+            ],
+        }
+    );
+    public static FileResourceFileName = (value: FormControlState<string> | string = undefined, formControlOptions?: FormControlOptions | null) => new FormControl<string>(
         value,
         formControlOptions ?? 
         {

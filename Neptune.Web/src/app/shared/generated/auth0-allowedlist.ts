@@ -109,6 +109,7 @@ const SECURED_REGEX: RegexMap = {
     new RegExp("^/water-quality-management-plan-documents/[^/]+$"),
     new RegExp("^/water-quality-management-plans/[^/]+$"),
     new RegExp("^/water-quality-management-plans/[^/]+/verifications/[^/]+$"),
+    new RegExp("^/water-quality-management-plans/[^/]+/verifications/[^/]+/supporting-documentation$"),
   ],
   'GET': [
     new RegExp("^/delineations/for-treatment-bmp/[^/]+$"),
@@ -212,6 +213,7 @@ const SECURED_REGEX: RegexMap = {
     new RegExp("^/water-quality-management-plans/[^/]+/save-bmps$"),
     new RegExp("^/water-quality-management-plans/[^/]+/save-location$"),
     new RegExp("^/water-quality-management-plans/[^/]+/verifications$"),
+    new RegExp("^/water-quality-management-plans/[^/]+/verifications/[^/]+/supporting-documentation$"),
   ],
   'PUT': [
     new RegExp("^/custom-attribute-types/[^/]+$"),

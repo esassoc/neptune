@@ -16,7 +16,9 @@ USING (VALUES
 (14, 'application/msword', 'Word (DOC)', 'Word (DOC)', '/Content/img/MimeTypeIcons/word_20x20.png', '/Content/img/MimeTypeIcons/word_48x48.png'),
 (15, 'application/x-excel', 'x-Excel (XLSX)', 'x-Excel (XLSX)', '/Content/img/MimeTypeIcons/excel_20x20.png', '/Content/img/MimeTypeIcons/excel_48x48.png'),
 (16, 'text/css', 'CSS', 'CSS', null, null),
-(17, 'application/x-zip-compressed', 'ZIP', 'ZIP', null, null)
+(17, 'application/x-zip-compressed', 'ZIP', 'ZIP', null, null),
+(18, 'text/csv', 'CSV', 'CSV', null, null),
+(19, 'text/plain', 'Text', 'Text', null, null)
 )
 AS Source (FileResourceMimeTypeID, FileResourceMimeTypeContentTypeName, FileResourceMimeTypeName, FileResourceMimeTypeDisplayName, FileResourceMimeTypeIconSmallFilename, FileResourceMimeTypeIconNormalFilename)
 ON Target.FileResourceMimeTypeID = Source.FileResourceMimeTypeID

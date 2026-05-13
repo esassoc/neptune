@@ -16,7 +16,9 @@ public class WaterQualityManagementPlanVerifyDetailDto
     public string SourceControlCondition { get; set; }
     public string EnforcementOrFollowupActions { get; set; }
     public bool IsDraft { get; set; }
+    public int? FileResourceID { get; set; }
     public string FileResourceGUID { get; set; }
+    public string FileResourceFileName { get; set; }
 
     public List<WaterQualityManagementPlanVerifyTreatmentBMPSimpleDto> TreatmentBMPs { get; set; } = new();
     public List<WaterQualityManagementPlanVerifyQuickBMPDto> QuickBMPs { get; set; } = new();

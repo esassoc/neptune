@@ -8,6 +8,7 @@ import { AuthenticationService } from "src/app/services/authentication.service";
 import { WaterQualityManagementPlanService } from "src/app/shared/generated/api/water-quality-management-plan.service";
 import { WaterQualityManagementPlanDto } from "src/app/shared/generated/model/water-quality-management-plan-dto";
 import { WaterQualityManagementPlanVerifyDetailDto } from "src/app/shared/generated/model/water-quality-management-plan-verify-detail-dto";
+import { environment } from "src/environments/environment";
 
 @Component({
     selector: "verification-detail",
@@ -36,6 +37,11 @@ export class VerificationDetailComponent {
 
     public get currentPersonCanEdit(): boolean {
         return this.authenticationService.doesCurrentUserHaveJurisdictionEditPermission();
+    }
+
+    // NPT-995 Round 5: FileResource download URL — same pattern as the supporting-documentation step.
+    public getDownloadUrl(guid: string): string {
+        return `${environment.mainAppApiUrl}/FileResource/DisplayResource/${guid}`;
     }
 
     public groupSourceControlsByCategory(rows: WaterQualityManagementPlanVerifyDetailDto["SourceControlBMPs"]): { category: string; items: WaterQualityManagementPlanVerifyDetailDto["SourceControlBMPs"] }[] {

@@ -1,0 +1,34 @@
+<page-header pageTitle="Verification Basics" [customRichTextTypeID]="service.stepHelpID('basics')"></page-header>
+
+<div class="grid-12">
+    <form-field class="g-col-6" [formControl]="service.basicsForm.controls.WaterQualityManagementPlanVerifyTypeID"
+        fieldLabel="Verification Type" [type]="FormFieldType.Select" [required]="true"
+        placeholder="Select Type" [formInputOptions]="service.verifyTypeOptions">
+    </form-field>
+    <form-field class="g-col-6" [formControl]="service.basicsForm.controls.WaterQualityManagementPlanVisitStatusID"
+        fieldLabel="Visit Status" [type]="FormFieldType.Select" [required]="true"
+        placeholder="Select Visit Status" [formInputOptions]="service.visitStatusOptions">
+    </form-field>
+    <form-field class="g-col-6" [formControl]="service.basicsForm.controls.VerificationDate"
+        fieldLabel="Verification Date" [type]="FormFieldType.Date" [required]="true">
+    </form-field>
+    <form-field class="g-col-6" [formControl]="service.basicsForm.controls.WaterQualityManagementPlanVerifyStatusID"
+        fieldLabel="Verify Status" [type]="FormFieldType.Select"
+        placeholder="Select Status" [formInputOptions]="service.verifyStatusOptions">
+    </form-field>
+    <form-field class="g-col-12" [formControl]="service.basicsForm.controls.EnforcementOrFollowupActions"
+        fieldLabel="Enforcement or Follow-up Actions" [type]="FormFieldType.Textarea"
+        placeholder="Enter follow-up actions if applicable">
+    </form-field>
+    <form-field class="g-col-12" [formControl]="service.basicsForm.controls.SourceControlCondition"
+        fieldLabel="Source Control Condition Notes" [type]="FormFieldType.Textarea"
+        placeholder="Enter source control condition notes if applicable">
+    </form-field>
+</div>
+
+@if (service.mode() !== "view") {
+    <div class="page-footer">
+        <button class="btn btn-primary-outline" (click)="service.save('basics', false)" [disabled]="service.isSaving()">Save</button>
+        <button class="btn btn-primary" (click)="service.save('basics', true)" [disabled]="service.isSaving()">Save and Continue</button>
+    </div>
+}

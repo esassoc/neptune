@@ -134,5 +134,23 @@
                 }
             </div>
         </div>
+
+        <!-- NPT-995 Round 5: Supporting Documentation card mirrors the legacy MVC detail panel. -->
+        <div class="card g-col-12 mt-3">
+            <div class="card-header">
+                <span class="card-title">Supporting Documentation</span>
+            </div>
+            <div class="card-body">
+                @if (data.verification.FileResourceGUID) {
+                    <p>
+                        <a [href]="getDownloadUrl(data.verification.FileResourceGUID)" target="_blank" rel="noopener noreferrer">
+                            <i class="fa fa-file"></i> {{ data.verification.FileResourceFileName || "Download" }}
+                        </a>
+                    </p>
+                } @else {
+                    <p class="system-text">No supporting documentation uploaded.</p>
+                }
+            </div>
+        </div>
     </div>
 }

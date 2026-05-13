@@ -204,6 +204,68 @@ namespace Neptune.API.Controllers
             return NoContent();
         }
 
+        // NPT-995 Round 5: Supporting Documentation upload/delete on a verification. Mirrors the
+        // legacy MVC SupportingDocumentation panel (single FileResource per verify). Draft-only —
+        // finalized verifications are locked.
+        [HttpPost("{waterQualityManagementPlanID}/verifications/{waterQualityManagementPlanVerifyID}/supporting-documentation")]
+        [JurisdictionEditFeature]
+        [Consumes("multipart/form-data")]
+        [RequestSizeLimit(500 * 1024 * 1024)]
+        [RequestFormLimits(MultipartBodyLengthLimit = 500 * 1024 * 1024)]
+        [EntityNotFound(typeof(WaterQualityManagementPlan), "waterQualityManagementPlanID")]
+        [EntityNotFound(typeof(WaterQualityManagementPlanVerify), "waterQualityManagementPlanVerifyID")]
+        public async Task<ActionResult<WaterQualityManagementPlanVerifyDetailDto>> UploadVerificationSupportingDocumentation(
+            [FromRoute] int waterQualityManagementPlanID, [FromRoute] int waterQualityManagementPlanVerifyID, IFormFile file)
+        {
+            var verify = WaterQualityManagementPlanVerifies.GetByID(DbContext, waterQualityManagementPlanVerifyID);
+            // Guard against cross-WQMP modification — a caller with edit rights on WQMP A
+            // shouldn't be able to mutate WQMP B's verifications by smuggling B's verify ID
+            // through A's route. Copilot review on PR #502.
+            if (verify.WaterQualityManagementPlanID != waterQualityManagementPlanID)
+            {
+                return NotFound();
+            }
+            if (!verify.IsDraft)
+            {
+                return BadRequest("Supporting Documentation cannot be modified after the verification has been finalized.");
+            }
+            if (file == null || file.Length == 0)
+            {
+                return BadRequest("No file was supplied.");
+            }
+            var validationErrors = FileResources.ValidateFileUpload(file);
+            if (validationErrors.Any())
+            {
+                return BadRequest(string.Join(" ", validationErrors.Select(x => x.Message)));
+            }
+
+            var fileResource = await HttpUtilities.MakeFileResourceFromFormFileAsync(DbContext, HttpContext, azureBlobStorageService, file);
+            var dto = await WaterQualityManagementPlanVerifies.SetSupportingDocumentationFileResourceAsync(
+                DbContext, waterQualityManagementPlanVerifyID, fileResource.FileResourceID);
+            return Ok(dto);
+        }
+
+        [HttpDelete("{waterQualityManagementPlanID}/verifications/{waterQualityManagementPlanVerifyID}/supporting-documentation")]
+        [JurisdictionEditFeature]
+        [EntityNotFound(typeof(WaterQualityManagementPlan), "waterQualityManagementPlanID")]
+        [EntityNotFound(typeof(WaterQualityManagementPlanVerify), "waterQualityManagementPlanVerifyID")]
+        public async Task<IActionResult> DeleteVerificationSupportingDocumentation(
+            [FromRoute] int waterQualityManagementPlanID, [FromRoute] int waterQualityManagementPlanVerifyID)
+        {
+            var verify = WaterQualityManagementPlanVerifies.GetByID(DbContext, waterQualityManagementPlanVerifyID);
+            // Guard against cross-WQMP modification — see upload endpoint above.
+            if (verify.WaterQualityManagementPlanID != waterQualityManagementPlanID)
+            {
+                return NotFound();
+            }
+            if (!verify.IsDraft)
+            {
+                return BadRequest("Supporting Documentation cannot be modified after the verification has been finalized.");
+            }
+            await WaterQualityManagementPlanVerifies.ClearSupportingDocumentationAsync(DbContext, waterQualityManagementPlanVerifyID);
+            return NoContent();
+        }
+
         [HttpGet("{waterQualityManagementPlanID}/modeled-performance")]
         [AllowAnonymous]
         [OptionalAuth]
@@ -494,7 +556,8 @@ namespace Neptune.API.Controllers
                 WaterQualityManagementPlanName = wqmpName,
                 StormwaterJurisdictionID = stormwaterJurisdictionID,
                 WaterQualityManagementPlanStatusID = (int)WaterQualityManagementPlanStatusEnum.Draft,
-                WaterQualityManagementPlanModelingApproachID = (int)WaterQualityManagementPlanModelingApproachEnum.Detailed,
+                // KE 5/13/26 decision: default to Simplified — see wqmp-modal.component.ts for context.
+                WaterQualityManagementPlanModelingApproachID = (int)WaterQualityManagementPlanModelingApproachEnum.Simplified,
                 TrashCaptureStatusTypeID = (int)TrashCaptureStatusTypeEnum.NotProvided,
             };
             var wqmpDto = await WaterQualityManagementPlans.CreateAsync(DbContext, dto);

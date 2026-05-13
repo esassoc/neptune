@@ -49,7 +49,9 @@ export class WqmpModalComponent implements OnInit {
         WaterQualityManagementPlanLandUseID: WaterQualityManagementPlanUpsertDtoFormControls.WaterQualityManagementPlanLandUseID(),
         WaterQualityManagementPlanPermitTermID: WaterQualityManagementPlanUpsertDtoFormControls.WaterQualityManagementPlanPermitTermID(),
         WaterQualityManagementPlanModelingApproachID: WaterQualityManagementPlanUpsertDtoFormControls.WaterQualityManagementPlanModelingApproachID(
-            WaterQualityManagementPlanModelingApproachEnum.Detailed,
+            // KE 5/13/26 decision: default to Simplified rather than Detailed when creating a
+            // new WQMP — most new entries don't justify a full detailed-modeling parameterization.
+            WaterQualityManagementPlanModelingApproachEnum.Simplified,
             { validators: [Validators.required] }
         ),
         ApprovalDate: WaterQualityManagementPlanUpsertDtoFormControls.ApprovalDate(),
