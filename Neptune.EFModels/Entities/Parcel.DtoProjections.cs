@@ -11,4 +11,14 @@ public static class ParcelProjections
         ParcelNumber = parcel.ParcelNumber,
         ParcelAddress = parcel.ParcelAddress,
     };
+
+    public static readonly Expression<Func<Parcel, ParcelGridDto>> AsGridDto = parcel => new ParcelGridDto
+    {
+        ParcelID = parcel.ParcelID,
+        ParcelNumber = parcel.ParcelNumber,
+        ParcelAddress = parcel.ParcelAddress,
+        ParcelCityState = parcel.ParcelCityState,
+        ParcelZipCode = parcel.ParcelZipCode,
+        ParcelAreaInAcres = Math.Round(parcel.ParcelAreaInAcres, 2),
+    };
 }

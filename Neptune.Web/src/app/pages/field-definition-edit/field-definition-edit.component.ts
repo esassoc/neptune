@@ -24,9 +24,18 @@ export class FieldDefinitionEditComponent implements OnInit {
     private currentUser: PersonDto;
 
     public fieldDefinition: FieldDefinitionDto;
-    public editor;
-    @ViewChild("tinyMceEditor") tinyMceEditor: EditorComponent;
     public tinyMceConfig: object;
+
+    // The <editor> sits inside an `@if (fieldDefinition)` so the ViewChild ref doesn't exist at
+    // ngAfterViewInit time. Use the setter form so we can wire the image-upload-aware config the
+    // moment the editor is queried in, after the data load resolves and the @if hydrates.
+    private _tinyMceEditor: EditorComponent;
+    @ViewChild("tinyMceEditor") set tinyMceEditor(ref: EditorComponent) {
+        if (ref && !this._tinyMceEditor) {
+            this._tinyMceEditor = ref;
+            this.tinyMceConfig = TinyMCEHelpers.DefaultInitConfig(ref);
+        }
+    }
 
     public isLoadingSubmit: boolean;
 
@@ -51,12 +60,6 @@ export class FieldDefinitionEditComponent implements OnInit {
         });
     }
 
-    ngAfterViewInit(): void {
-        // We need to use ngAfterViewInit because the image upload needs a reference to the component
-        // to setup the blobCache for image base64 encoding
-        this.tinyMceConfig = TinyMCEHelpers.DefaultInitConfig(this.tinyMceEditor);
-    }
-
     ngOnDestroy() {
         this.cdr.detach();
     }
@@ -68,19 +71,26 @@ export class FieldDefinitionEditComponent implements OnInit {
     saveDefinition(): void {
         this.isLoadingSubmit = true;
 
-        this.fieldDefinitionService.updateFieldDefinition(this.fieldDefinition.FieldDefinitionType.FieldDefinitionTypeID, this.fieldDefinition).subscribe(
-            (response) => {
+        this.fieldDefinitionService.updateFieldDefinition(this.fieldDefinition.FieldDefinitionType.FieldDefinitionTypeID, this.fieldDefinition).subscribe({
+            next: () => {
                 this.isLoadingSubmit = false;
-                this.router.navigateByUrl("/labels-and-definitions").then((x) => {
+                this.router.navigateByUrl("/labels-and-definitions").then(() => {
                     this.alertService.pushAlert(
                         new Alert(`The definition for ${this.fieldDefinition.FieldDefinitionType.FieldDefinitionTypeDisplayName} was successfully updated.`, AlertContext.Success)
                     );
                 });
             },
-            (error) => {
+            error: () => {
                 this.isLoadingSubmit = false;
+                this.alertService.pushAlert(
+                    new Alert(
+                        `Failed to save the definition for ${this.fieldDefinition.FieldDefinitionType.FieldDefinitionTypeDisplayName}. Please try again.`,
+                        AlertContext.Danger,
+                        true
+                    )
+                );
                 this.cdr.detectChanges();
-            }
-        );
+            },
+        });
     }
 }

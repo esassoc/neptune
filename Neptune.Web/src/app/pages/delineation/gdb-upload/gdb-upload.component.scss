@@ -1,0 +1,42 @@
+@use "/src/scss/abstracts" as *;
+
+.back-link {
+  font-size: $type-size-200;
+}
+
+.header-action {
+  margin-left: $spacing-200;
+}
+
+.instructions {
+  ul {
+    margin-top: $spacing-100;
+    padding-left: 1.25rem;
+  }
+  li + li {
+    margin-top: $spacing-100;
+  }
+}
+
+.approval-instructions {
+  margin-top: $spacing-300;
+}
+
+form-field {
+  display: block;
+  margin-bottom: $spacing-300;
+}
+
+.upload-errors {
+  margin-top: $spacing-200;
+  ul {
+    margin: $spacing-100 0 0 1rem;
+  }
+}
+
+.actions {
+  display: flex;
+  gap: 0.5rem;
+  justify-content: flex-end;
+  margin-top: $spacing-200;
+}

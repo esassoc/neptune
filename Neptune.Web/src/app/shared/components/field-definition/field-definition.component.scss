@@ -22,17 +22,6 @@
     color: $neptune-green;
 }
 
-// Reset button chrome so the iconOnly help-trigger renders identically to the bare <i> it
-// replaces, while still getting native button keyboard + screen-reader semantics.
-.field-definition-icon-button {
-    background: transparent;
-    border: none;
-    padding: 0;
-    cursor: help;
-    line-height: 1;
-    color: inherit;
-}
-
 ::ng-deep .popover-body {
     padding: $spacing-500 !important;
 

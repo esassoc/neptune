@@ -14,3 +14,25 @@ dl {
         margin-bottom: 0;
     }
 }
+
+// Two-column key/value list. Use on a <dl> with alternating <dt>/<dd> children
+// when you want a compact label/value table inside a card or panel.
+dl.kv {
+    margin: 0;
+    display: grid;
+    grid-template-columns: auto 1fr;
+    column-gap: $spacing-200;
+    row-gap: $spacing-100;
+    align-items: baseline;
+
+    dt {
+        font-weight: 600;
+        text-align: left;
+        font-size: inherit;
+        padding-bottom: 0;
+    }
+
+    dd {
+        margin: 0;
+    }
+}

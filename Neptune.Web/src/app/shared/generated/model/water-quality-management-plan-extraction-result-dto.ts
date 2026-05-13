@@ -18,6 +18,8 @@ export class WaterQualityManagementPlanExtractionResultDto {
     ExtractionResultJson?: string | null;
     ExtractedAt?: string;
     FileResourceGuid?: string | null;
+    ErrorMessage?: string | null;
+    ErrorCode?: string | null;
     constructor(obj?: any) {
         Object.assign(this, obj);
     }
@@ -31,6 +33,8 @@ export interface WaterQualityManagementPlanExtractionResultDtoForm {
     ExtractionResultJson?: FormControl<string>;
     ExtractedAt?: FormControl<string>;
     FileResourceGuid?: FormControl<string>;
+    ErrorMessage?: FormControl<string>;
+    ErrorCode?: FormControl<string>;
 }
 
 export class WaterQualityManagementPlanExtractionResultDtoFormControls { 
@@ -95,6 +99,26 @@ export class WaterQualityManagementPlanExtractionResultDtoFormControls {
         }
     );
     public static FileResourceGuid = (value: FormControlState<string> | string = undefined, formControlOptions?: FormControlOptions | null) => new FormControl<string>(
+        value,
+        formControlOptions ?? 
+        {
+            nonNullable: false,
+            validators: 
+            [
+            ],
+        }
+    );
+    public static ErrorMessage = (value: FormControlState<string> | string = undefined, formControlOptions?: FormControlOptions | null) => new FormControl<string>(
+        value,
+        formControlOptions ?? 
+        {
+            nonNullable: false,
+            validators: 
+            [
+            ],
+        }
+    );
+    public static ErrorCode = (value: FormControlState<string> | string = undefined, formControlOptions?: FormControlOptions | null) => new FormControl<string>(
         value,
         formControlOptions ?? 
         {

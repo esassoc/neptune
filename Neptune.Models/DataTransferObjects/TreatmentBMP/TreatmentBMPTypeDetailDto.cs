@@ -23,6 +23,19 @@ public class TreatmentBMPTypeObservationTypeDetailDto
     public int? SortOrder { get; set; }
     public string ObservationTypeCollectionMethodDisplayName { get; set; }
     public int ObservationTypeSpecificationID { get; set; }
+
+    // Spec-driven fields used by the SPA editor + detail UIs to drive per-OT conditional rendering
+    // (Pass/Fail rows hide Benchmark/Threshold; threshold unit label depends on TargetType + ThresholdType).
+    public int ObservationTypeCollectionMethodID { get; set; }
+    public int ObservationTargetTypeID { get; set; }
+    public int ObservationThresholdTypeID { get; set; }
+    public bool HasBenchmarkAndThreshold { get; set; }
+    public string BenchmarkUnitDisplayName { get; set; }
+    public string ThresholdUnitDisplayName { get; set; }
+
+    // Formatted display values used by the public detail page (matches MVC's GetFormattedBenchmarkValue / GetFormattedThresholdValue).
+    public string FormattedBenchmarkValue { get; set; }
+    public string FormattedThresholdValue { get; set; }
 }
 
 public class TreatmentBMPTypeCustomAttributeTypeDetailDto
@@ -33,4 +46,11 @@ public class TreatmentBMPTypeCustomAttributeTypeDetailDto
     public string CustomAttributeTypePurposeDisplayName { get; set; }
     public int CustomAttributeTypePurposeID { get; set; }
     public int? SortOrder { get; set; }
+    // Surfaced for the flat editor table + detail page tables.
+    public int CustomAttributeDataTypeID { get; set; }
+    public string CustomAttributeDataTypeDisplayName { get; set; }
+    public int? MeasurementUnitTypeID { get; set; }
+    public string MeasurementUnitDisplayName { get; set; }
+    public bool IsRequired { get; set; }
+    public string CustomAttributeTypeDescription { get; set; }
 }

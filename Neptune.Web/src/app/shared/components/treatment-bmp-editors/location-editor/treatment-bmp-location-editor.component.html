@@ -1,0 +1,29 @@
+@if (treatmentBMP$ | async) {
+    <form [formGroup]="formGroup" class="grid-12">
+        <div class="g-col-12">
+            <lat-lon-picker
+                [latControl]="formGroup.controls.Latitude"
+                [lonControl]="formGroup.controls.Longitude"
+                [instructionsTemplate]="instructionsTemplate || defaultInstructions">
+                <ng-template #defaultInstructions>
+                    <div class="lat-lon-instructions">
+                        To set the location of the Treatment BMP:
+                        <ul>
+                            <li>Place the BMP at your current location (using GPS if available) <strong>OR</strong></li>
+                            <li>Click on the location of the BMP on the map <strong>OR</strong></li>
+                            <li>Directly type in the latitude and longitude</li>
+                        </ul>
+                        <p class="mt-1">For centralized BMPs, any existing delineation will automatically be re-calculated based on the new saved location.</p>
+                    </div>
+                </ng-template>
+            </lat-lon-picker>
+        </div>
+    </form>
+
+    @if (!hideFooter) {
+        <div class="page-footer">
+            <button type="button" class="btn btn-primary" (click)="save()" [disabled]="isLoadingSubmit">Save</button>
+            <button type="button" class="btn btn-secondary-outline" (click)="cancel()" [disabled]="isLoadingSubmit">Cancel</button>
+        </div>
+    }
+}

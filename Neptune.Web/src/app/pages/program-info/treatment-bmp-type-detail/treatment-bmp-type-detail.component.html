@@ -1,0 +1,106 @@
+@if (bmpType$ | async; as bmpType) {
+    <page-header [pageTitle]="bmpType.TreatmentBMPTypeName ?? ''"
+        [templateAbove]="templateAbove"
+        [templateRight]="templateRight">
+        <ng-template #templateAbove>
+            <div class="back">
+                <a [routerLink]="['/program-info/treatment-bmp-types']" class="back__link"><i class="fa fa-arrow-left"></i> Back to Treatment BMP Type List</a>
+            </div>
+        </ng-template>
+        <ng-template #templateRight>
+            @if (isAdmin) {
+                <a class="btn btn-primary-outline" [routerLink]="['/manage/treatment-bmp-types', bmpType.TreatmentBMPTypeID, 'edit']">
+                    <i class="fa fa-pencil"></i> Edit Treatment BMP Type
+                </a>
+            }
+        </ng-template>
+    </page-header>
+
+    <div class="grid-12">
+        <!-- Basics -->
+        <div class="card g-col-12">
+            <div class="card-header"><span class="card-title">Basics</span></div>
+            <div class="card-body">
+                <dl class="grid-12">
+                    <dt class="g-col-3">Name</dt>
+                    <dd class="g-col-9">{{ bmpType.TreatmentBMPTypeName }}</dd>
+
+                    <dt class="g-col-3">Description</dt>
+                    <dd class="g-col-9">{{ bmpType.TreatmentBMPTypeDescription || "—" }}</dd>
+                </dl>
+            </div>
+        </div>
+
+        <!-- Applicable Observation Types -->
+        <div class="card g-col-12 mt-3">
+            <div class="card-header"><span class="card-title">Applicable Observation Types</span></div>
+            <div class="card-body">
+                @if (bmpType.ObservationTypes?.length) {
+                    <table class="table table-condensed">
+                        <thead>
+                            <tr>
+                                <th>Observation Type</th>
+                                <th>Collection Method</th>
+                                <th>Default Benchmark Value</th>
+                                <th>Default Threshold Value</th>
+                                <th>Assessment Score Weight</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @for (ot of bmpType.ObservationTypes; track ot.TreatmentBMPTypeAssessmentObservationTypeID) {
+                                <tr>
+                                    <td>
+                                        <a [routerLink]="['/program-info/observation-types', ot.TreatmentBMPAssessmentObservationTypeID]">{{ ot.TreatmentBMPAssessmentObservationTypeName }}</a>
+                                    </td>
+                                    <td>{{ ot.ObservationTypeCollectionMethodDisplayName ?? "—" }}</td>
+                                    <td>{{ ot.HasBenchmarkAndThreshold ? (ot.FormattedBenchmarkValue ?? "—") : "N/A" }}</td>
+                                    <td>{{ ot.HasBenchmarkAndThreshold ? (ot.FormattedThresholdValue ?? "—") : "N/A" }}</td>
+                                    <td>{{ weightDisplay(ot) }}</td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                } @else {
+                    <p class="system-text">No observation types are configured for this BMP Type.</p>
+                }
+            </div>
+        </div>
+
+        <!-- Custom Attributes — one card per Purpose, matching MVC -->
+        @for (group of attributesByPurpose(bmpType); track group.purposeID) {
+            <div class="card g-col-12 mt-3">
+                <div class="card-header"><span class="card-title">{{ group.purposeDisplayName }}</span></div>
+                <div class="card-body">
+                    @if (group.rows.length) {
+                        <table class="table table-condensed">
+                            <thead>
+                                <tr>
+                                    <th>Attribute Name</th>
+                                    <th>Data Type</th>
+                                    <th>Measurement Unit</th>
+                                    <th class="cell-center">Required?</th>
+                                    <th>Description</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @for (cat of group.rows; track cat.TreatmentBMPTypeCustomAttributeTypeID) {
+                                    <tr>
+                                        <td>{{ cat.CustomAttributeTypeName }}</td>
+                                        <td>{{ cat.CustomAttributeDataTypeDisplayName || "—" }}</td>
+                                        <td>{{ cat.MeasurementUnitDisplayName || "—" }}</td>
+                                        <td class="cell-center">{{ cat.IsRequired ? "Yes" : "No" }}</td>
+                                        <td>{{ cat.CustomAttributeTypeDescription || "—" }}</td>
+                                    </tr>
+                                }
+                            </tbody>
+                        </table>
+                    } @else {
+                        <p class="system-text">No {{ group.purposeDisplayName }} are defined for this BMP Type.</p>
+                    }
+                </div>
+            </div>
+        }
+    </div>
+} @else {
+    <div [loadingSpinner]="{ isLoading: isLoading, loadingHeight: 400 }"></div>
+}

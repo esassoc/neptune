@@ -1,1 +1,33 @@
-<!-- Placeholder for Field Records component template -->
+<page-header pageTitle="Field Records"></page-header>
+
+<app-alert-display></app-alert-display>
+
+<div class="page-body">
+    <div class="record-tabs">
+        <btn-group-radio-input [options]="tabOptions" [default]="activeTab" (change)="onTabChange($event)"></btn-group-radio-input>
+    </div>
+
+    @switch (activeTab) {
+        @case ("field-visits") {
+            <neptune-grid
+                [rowData]="fieldVisits$ | async"
+                [columnDefs]="fieldVisitColumnDefs"
+                [pagination]="true"
+                downloadFileName="field-visits"></neptune-grid>
+        }
+        @case ("assessments") {
+            <neptune-grid
+                [rowData]="assessments$ | async"
+                [columnDefs]="assessmentColumnDefs"
+                [pagination]="true"
+                downloadFileName="assessment-records"></neptune-grid>
+        }
+        @case ("maintenance-records") {
+            <neptune-grid
+                [rowData]="maintenanceRecords$ | async"
+                [columnDefs]="maintenanceRecordColumnDefs"
+                [pagination]="true"
+                downloadFileName="maintenance-records"></neptune-grid>
+        }
+    }
+</div>

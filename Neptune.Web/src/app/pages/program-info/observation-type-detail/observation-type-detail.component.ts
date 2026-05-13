@@ -1,4 +1,4 @@
-import { Component, inject, Input, OnInit } from "@angular/core";
+import { Component, inject, Input, numberAttribute, OnInit } from "@angular/core";
 import { AsyncPipe } from "@angular/common";
 import { Router, RouterLink } from "@angular/router";
 import { BehaviorSubject, catchError, EMPTY, map, Observable, shareReplay, switchMap, tap } from "rxjs";
@@ -9,7 +9,6 @@ import { AlertService } from "src/app/shared/services/alert.service";
 import { Alert } from "src/app/shared/models/alert";
 import { AlertContext } from "src/app/shared/models/enums/alert-context.enum";
 import { AuthenticationService } from "src/app/services/authentication.service";
-import { environment } from "src/environments/environment";
 import { NeptunePageTypeEnum } from "src/app/shared/generated/enum/neptune-page-type-enum";
 import { MeasurementUnitTypes } from "src/app/shared/generated/enum/measurement-unit-type-enum";
 import { TreatmentBMPAssessmentObservationTypeService } from "src/app/shared/generated/api/treatment-bmp-assessment-observation-type.service";
@@ -40,16 +39,13 @@ interface ObservationTypeDetailViewModel {
     templateUrl: "./observation-type-detail.component.html",
 })
 export class ObservationTypeDetailComponent implements OnInit {
-    @Input() observationTypeID!: number;
+    @Input({ transform: numberAttribute }) observationTypeID!: number;
 
     private observationTypeService = inject(TreatmentBMPAssessmentObservationTypeService);
     private alertService = inject(AlertService);
     private authenticationService = inject(AuthenticationService);
     private dialogService = inject(DialogService);
     private router = inject(Router);
-
-    // BMP Type detail still lives in legacy MVC; build links against the legacy host.
-    private readonly legacyMvcBaseUrl = environment.ocStormwaterToolsBaseUrl;
 
     private reload$ = new BehaviorSubject<void>(undefined);
     public viewModel$: Observable<ObservationTypeDetailViewModel>;
@@ -74,10 +70,6 @@ export class ObservationTypeDetailComponent implements OnInit {
             map((detail) => this.toViewModel(detail)),
             shareReplay(1),
         );
-    }
-
-    public bmpTypeDetailUrl(treatmentBMPTypeID: number): string {
-        return `${this.legacyMvcBaseUrl}/TreatmentBMPType/Detail/${treatmentBMPTypeID}`;
     }
 
     public openEdit(): void {

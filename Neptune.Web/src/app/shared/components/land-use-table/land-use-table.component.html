@@ -1,4 +1,4 @@
-<table class="table table-striped land-use-table" style="text-align: center">
+<table class="table simple land-use-table" style="text-align: center">
     <thead>
         <tr>
             <th style="text-align: left; min-width: 270px">
@@ -20,7 +20,7 @@
             <td>{{ hruCharacteristicSummary.ImperviousCover | number : "1.2-2" }}</td>
         </tr>
         }
-        <tr style="font-weight: bold">
+        <tr class="total">
             <td style="text-align: left">Total</td>
             <td>{{ hruCharacteristics | sum : "Area" | number : "1.2-2" }}</td>
             <td>{{ hruCharacteristics | sum : "ImperviousCover" | number : "1.2-2" }}</td>

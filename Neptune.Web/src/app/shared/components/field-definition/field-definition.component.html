@@ -7,16 +7,12 @@
 @if (!isLoading) {
   <div class="field-definition-wrapper">
     <ng-template #popTitle>
-      <div class="field-definition-title flex-between">
-        <div class="mt-1">
-          {{ fieldDefinition.FieldDefinitionType.FieldDefinitionTypeDisplayName }}
-        </div>
-        @if (showEditButton()) {
-          <button type="button" class="btn btn-link" style="margin-left: auto" [hidden]="isEditing" (click)="enterEdit($event)">
-            <i class="fa fa-pencil-square-o" attr.aria-label="Edit the definition for {{ fieldDefinition.FieldDefinitionType.FieldDefinitionTypeDisplayName }}"></i>
-          </button>
-        }
-      </div>
+      <span>{{ fieldDefinition.FieldDefinitionType.FieldDefinitionTypeDisplayName }}</span>
+      @if (showEditButton()) {
+        <button type="button" class="btn btn-text" [hidden]="isEditing" (click)="enterEdit($event)">
+          <i class="fa fa-pencil-square-o" attr.aria-label="Edit the definition for {{ fieldDefinition.FieldDefinitionType.FieldDefinitionTypeDisplayName }}"></i>
+        </button>
+      }
     </ng-template>
     <ng-template #popContent>
       @if (!isEditing) {
@@ -44,17 +40,7 @@
         </div>
       }
     </ng-template>
-    @if (iconOnly) {
-      <button
-        type="button"
-        class="field-definition-icon-button"
-        [attr.aria-label]="'Help: ' + (labelOverride || fieldDefinition.FieldDefinitionType.FieldDefinitionTypeDisplayName)"
-        [popper]="popContent"
-        [useBodyContainer]="useBodyContainer"
-        [popperTitle]="showEditButton() ? popTitle : fieldDefinition.FieldDefinitionType.FieldDefinitionTypeDisplayName">
-        <i class="fas fa-question-circle small field-definition-icon"></i>
-      </button>
-    } @else if (!inline) {
+    @if (!inline) {
       @if (showEditButton()) {
         <span style="overflow: hidden; text-overflow: ellipsis">
           {{ getLabelText() }}

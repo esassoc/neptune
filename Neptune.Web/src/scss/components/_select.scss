@@ -94,3 +94,28 @@
     border-width: 0 6px 7px;
     top: 0;
 }
+
+// Size variants for form-field component
+.field--sm .ng-select.custom .ng-select-container {
+    height: 2rem;
+    min-height: 2rem;
+    font-size: $type-size-200;
+}
+
+.field--sm .ng-select.custom .ng-dropdown-panel .ng-dropdown-panel-items .ng-option {
+    height: 2rem;
+    line-height: 1.5rem;
+    font-size: $type-size-200;
+}
+
+.field--md .ng-select.custom .ng-select-container {
+    height: 2.5rem;
+    min-height: 2.5rem;
+    font-size: $type-size-300;
+}
+
+.field--md .ng-select.custom .ng-dropdown-panel .ng-dropdown-panel-items .ng-option {
+    height: 2.5rem;
+    line-height: 1.75rem;
+    font-size: $type-size-300;
+}

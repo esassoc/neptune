@@ -22,6 +22,7 @@ export class OnlandVisualTrashAssessmentReviewAndFinalizeDto {
     AssessingNewArea?: boolean;
     IsProgressAssessment?: boolean | null;
     Notes?: string | null;
+    SecondAssessorName?: string | null;
     AssessmentDate?: string | null;
     PreliminarySourceIdentifications?: Array<OnlandVisualTrashAssessmentPreliminarySourceIdentificationUpsertDto> | null;
     constructor(obj?: any) {
@@ -40,6 +41,7 @@ export interface OnlandVisualTrashAssessmentReviewAndFinalizeDtoForm {
     AssessingNewArea?: FormControl<boolean>;
     IsProgressAssessment?: FormControl<boolean>;
     Notes?: FormControl<string>;
+    SecondAssessorName?: FormControl<string>;
     AssessmentDate?: FormControl<string>;
     PreliminarySourceIdentifications?: FormControl<Array<OnlandVisualTrashAssessmentPreliminarySourceIdentificationUpsertDto>>;
 }
@@ -136,6 +138,16 @@ export class OnlandVisualTrashAssessmentReviewAndFinalizeDtoFormControls {
         }
     );
     public static Notes = (value: FormControlState<string> | string = undefined, formControlOptions?: FormControlOptions | null) => new FormControl<string>(
+        value,
+        formControlOptions ?? 
+        {
+            nonNullable: false,
+            validators: 
+            [
+            ],
+        }
+    );
+    public static SecondAssessorName = (value: FormControlState<string> | string = undefined, formControlOptions?: FormControlOptions | null) => new FormControl<string>(
         value,
         formControlOptions ?? 
         {

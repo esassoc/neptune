@@ -1,5 +1,6 @@
 ﻿using Microsoft.EntityFrameworkCore;
 using Neptune.Common.DesignByContract;
+using Neptune.EFModels.Nereid;
 using Neptune.Models.DataTransferObjects;
 
 namespace Neptune.EFModels.Entities;
@@ -156,6 +157,64 @@ public static class WaterQualityManagementPlans
         return await GetByIDAsDtoAsync(dbContext, entity.WaterQualityManagementPlanID);
     }
 
+    // NPT-1051: Classifies a Status transition's effect on the modeling pipeline. Pure function,
+    // hermetically unit-testable. Same-status saves and Draft <-> Inactive flips are no-ops
+    // because neither state participates in the modeling graph. Crossing the Active boundary in
+    // either direction requires DB-side cleanup or re-dirtying.
+    public static StatusTransitionEffect ClassifyStatusTransition(int? oldStatusID, int? newStatusID)
+    {
+        if (oldStatusID == newStatusID) return StatusTransitionEffect.None;
+        var active = (int)WaterQualityManagementPlanStatusEnum.Active;
+        if (oldStatusID == active) return StatusTransitionEffect.LeavingActive;
+        if (newStatusID == active) return StatusTransitionEffect.EnteringActive;
+        return StatusTransitionEffect.None;
+    }
+
+    // NPT-1051: Side effects of a WQMP Status transition. Read-time gating (NereidService graph
+    // filter, vTrashGeneratingUnitLoadStatistic CASE, TrashGeneratingUnitHelper) hides non-Active
+    // WQMPs from results going forward, but the DB still carries the WQMP's previously-cached
+    // NereidResult rows, and the WQMP's neighbors hold solve results that were computed *with*
+    // this WQMP in the network. On any transition that crosses the Active boundary we have to
+    // (a) invalidate stale rows and (b) dirty the affected nodes so the next DeltaSolveJob
+    // recomputes them. Returns true when the caller should enqueue a DeltaSolveJob.
+    public static async Task<bool> HandleStatusTransitionAsync(NeptuneDbContext dbContext, int waterQualityManagementPlanID, int? oldStatusID)
+    {
+        var newStatusID = await dbContext.WaterQualityManagementPlans
+            .Where(x => x.WaterQualityManagementPlanID == waterQualityManagementPlanID)
+            .Select(x => x.WaterQualityManagementPlanStatusID)
+            .FirstAsync();
+
+        switch (ClassifyStatusTransition(oldStatusID, newStatusID))
+        {
+            case StatusTransitionEffect.LeavingActive:
+                // WQMP leaves the modeling graph. Dirty the downstream regional subbasins /
+                // centralized BMPs that previously folded this WQMP into their solves so they
+                // get recomputed without it; then delete the WQMP's own (now stale) result rows.
+                var leavingWqmp = await dbContext.WaterQualityManagementPlans
+                    .Include(x => x.LoadGeneratingUnits)
+                    .FirstAsync(x => x.WaterQualityManagementPlanID == waterQualityManagementPlanID);
+                await NereidUtilities.MarkDownstreamNodeDirty(leavingWqmp, dbContext);
+                await dbContext.NereidResults
+                    .Where(x => x.WaterQualityManagementPlanID == waterQualityManagementPlanID)
+                    .ExecuteDeleteAsync();
+                await dbContext.ProjectNereidResults
+                    .Where(x => x.WaterQualityManagementPlanID == waterQualityManagementPlanID)
+                    .ExecuteDeleteAsync();
+                return true;
+
+            case StatusTransitionEffect.EnteringActive:
+                // WQMP enters the graph. Dirty it directly so DeltaSolve picks up the new node
+                // on its next run.
+                var enteringWqmp = await dbContext.WaterQualityManagementPlans
+                    .FirstAsync(x => x.WaterQualityManagementPlanID == waterQualityManagementPlanID);
+                await NereidUtilities.MarkWqmpDirty(enteringWqmp, dbContext);
+                return true;
+
+            default:
+                return false;
+        }
+    }
+
     public static async Task<bool> DeleteAsync(NeptuneDbContext dbContext, int waterQualityManagementPlanID)
     {
         var entity = await dbContext.WaterQualityManagementPlans.FirstOrDefaultAsync(x => x.WaterQualityManagementPlanID == waterQualityManagementPlanID);
@@ -280,27 +339,23 @@ public static class WaterQualityManagementPlans
         }
     }
 
-    // NPT-1051: Promotion (Draft → Active) makes the WQMP the binding legal record. The
-    // gate is data-completeness for legal-record purposes, distinct from the looser "did
-    // model binding succeed?" check that section saves rely on. Returns the human-readable
-    // names of any required fields that aren't populated; an empty list means promotion is
-    // safe to proceed.
+    // NPT-1051: Promotion (Draft → Active) makes the WQMP the binding legal record.
+    // Validation mirrors the Basics editor modal's required-field set — only Name needs
+    // an explicit check. Jurisdiction, ModelingApproach, and TrashCaptureStatus are also
+    // modal-required but are NOT NULL on the entity, so they're guaranteed to be populated
+    // by the time we get here. Anything else (record numbers, dates, contact info, hydromod,
+    // etc.) is optional in the modal and therefore optional at Promote time.
     public static List<string> ValidateForPromote(WaterQualityManagementPlan entity)
     {
         var missing = new List<string>();
         if (string.IsNullOrWhiteSpace(entity.WaterQualityManagementPlanName)) missing.Add("WQMP Name");
-        if (entity.HydrologicSubareaID == null) missing.Add("Hydrologic Subarea");
-        if (entity.WaterQualityManagementPlanLandUseID == null) missing.Add("Land Use");
-        if (entity.WaterQualityManagementPlanPriorityID == null) missing.Add("Priority");
-        if (entity.WaterQualityManagementPlanDevelopmentTypeID == null) missing.Add("Development Type");
-        if (entity.WaterQualityManagementPlanPermitTermID == null) missing.Add("Permit Term");
-        if (entity.HydromodificationAppliesTypeID == null) missing.Add("Hydromodification Applies");
-        if (string.IsNullOrWhiteSpace(entity.RecordNumber)) missing.Add("Record Number");
-        if (entity.RecordedWQMPAreaInAcres == null) missing.Add("Recorded WQMP Area (Acres)");
-        if (entity.ApprovalDate == null) missing.Add("Approval Date");
-        if (entity.DateOfConstruction == null) missing.Add("Date of Construction");
-        if (string.IsNullOrWhiteSpace(entity.MaintenanceContactName)) missing.Add("Maintenance Contact Name");
-        if (string.IsNullOrWhiteSpace(entity.MaintenanceContactOrganization)) missing.Add("Maintenance Contact Organization");
         return missing;
     }
+}
+
+public enum StatusTransitionEffect
+{
+    None,
+    LeavingActive,
+    EnteringActive,
 }

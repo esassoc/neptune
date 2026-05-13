@@ -41,6 +41,20 @@ namespace Neptune.EFModels.Entities
                 x.TreatmentBMPAssessmentObservationType.TreatmentBMPAssessmentObservationTypeName).ToList();
         }
 
+        public TreatmentBMPTypeAssessmentObservationType? GetTreatmentBMPTypeObservationTypeOrDefault(TreatmentBMPAssessmentObservationType observationType)
+        {
+            return TreatmentBMPTypeAssessmentObservationTypes.SingleOrDefault(x =>
+                x.TreatmentBMPTypeID == TreatmentBMPTypeID &&
+                x.TreatmentBMPAssessmentObservationTypeID == observationType.TreatmentBMPAssessmentObservationTypeID);
+        }
+
+        public TreatmentBMPTypeAssessmentObservationType GetTreatmentBMPTypeObservationType(TreatmentBMPAssessmentObservationType observationType)
+        {
+            return GetTreatmentBMPTypeObservationTypeOrDefault(observationType)
+                ?? throw new InvalidOperationException(
+                    $"The Observation Type '{observationType.TreatmentBMPAssessmentObservationTypeName}' is not applicable to the Treatment BMP Type '{TreatmentBMPTypeName}'.");
+        }
+
         public async Task DeleteFull(NeptuneDbContext dbContext)
         {
             await dbContext.CustomAttributeValues

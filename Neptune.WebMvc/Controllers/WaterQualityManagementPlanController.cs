@@ -13,8 +13,10 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
 using Neptune.Common;
 using Neptune.Common.GeoSpatial;
+using Hangfire;
 using Neptune.EFModels.Entities;
 using Neptune.EFModels.Nereid;
+using Neptune.Jobs.Hangfire;
 using Neptune.Models.DataTransferObjects;
 using Neptune.WebMvc.Common.Models;
 using Neptune.WebMvc.Common.MvcResults;
@@ -366,9 +368,17 @@ namespace Neptune.WebMvc.Controllers
                 return ViewEdit(viewModel);
             }
 
+            // NPT-1051: Status transitions across the Active boundary need cleanup + re-solve;
+            // legacy Edit form is the primary path admins use to flip Active <-> Inactive.
+            var oldStatusID = waterQualityManagementPlan.WaterQualityManagementPlanStatusID;
             viewModel.UpdateModel(waterQualityManagementPlan);
             SetMessageForDisplay($"Successfully updated \"{waterQualityManagementPlan.WaterQualityManagementPlanName}\".");
             await _dbContext.SaveChangesAsync();
+
+            if (await WaterQualityManagementPlans.HandleStatusTransitionAsync(_dbContext, waterQualityManagementPlan.WaterQualityManagementPlanID, oldStatusID))
+            {
+                BackgroundJob.Enqueue<DeltaSolveJob>(x => x.RunJob());
+            }
 
             return new ModalDialogFormJsonResult(
                 SitkaRoute<WaterQualityManagementPlanController>.BuildUrlFromExpression(_linkGenerator, x => x.Detail(waterQualityManagementPlan)));
@@ -755,7 +765,9 @@ namespace Neptune.WebMvc.Controllers
                 LastEditedByPersonID = CurrentPerson.PersonID,
                 LastEditedDate = DateTime.UtcNow,
                 IsDraft = true,
-                VerificationDate = DateTime.UtcNow
+                // Default to today in Pacific time (the OC stormwater client locale) so a late-night
+                // Pacific session doesn't pre-fill tomorrow's UTC date in the picker.
+                VerificationDate = DateOnly.FromDateTime(TimeZoneInfo.ConvertTimeFromUtc(DateTime.UtcNow, TimeZoneInfo.FindSystemTimeZoneById("Pacific Standard Time")))
             };
             var viewModel = new NewWqmpVerifyViewModel(waterQualityManagementPlan, waterQualityManagementPlanVerify, quickBMPs, treatmentBMPs);
             return ViewNewWqmpVerify(waterQualityManagementPlan, viewModel);
@@ -779,7 +791,7 @@ namespace Neptune.WebMvc.Controllers
                 LastEditedByPersonID = CurrentPerson.PersonID,
                 LastEditedDate = DateTime.UtcNow,
                 IsDraft = !viewModel.HiddenIsFinalizeVerificationInput,
-                VerificationDate = viewModel.VerificationDate.ConvertTimeFromPSTToUTC()
+                VerificationDate = viewModel.VerificationDate
             };
             await _dbContext.WaterQualityManagementPlanVerifies.AddAsync(waterQualityManagementPlanVerify);
             await _dbContext.SaveChangesAsync();
@@ -1274,7 +1286,7 @@ The WQMP Boundaries for Stormwater Jurisdiction {stormwaterJurisdiction} were su
             var wqmpInventoryVerificationsAndFieldVisits = vWaterQualityManagementPlanAnnualReports
                 .ListForStormwaterJurisdictionIDs(_dbContext, CurrentPerson, stormwaterJurisdictionIDsPersonCanView).Where(x =>
                     (stormwaterJurisdictionID == -1 || x.StormwaterJurisdictionID == stormwaterJurisdictionID) 
-                    && x.WaterQualityManagementPlanVerifyVerificationDate >= reportingPeriodStart && x.WaterQualityManagementPlanVerifyVerificationDate <= reportingPeriodEnd)
+                    && x.WaterQualityManagementPlanVerifyVerificationDate >= DateOnly.FromDateTime(reportingPeriodStart) && x.WaterQualityManagementPlanVerifyVerificationDate <= DateOnly.FromDateTime(reportingPeriodEnd))
                 .GroupBy(x => x.WaterQualityManagementPlanID);
 
             var postConstructionInspectionAndVerificationGridSimples = wqmpInventoryVerificationsAndFieldVisits.Select(

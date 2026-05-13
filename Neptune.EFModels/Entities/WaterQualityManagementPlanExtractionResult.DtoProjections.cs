@@ -14,5 +14,7 @@ public static class WaterQualityManagementPlanExtractionResultProjections
         ExtractionResultJson = x.ExtractionResultJson,
         ExtractedAt = x.ExtractedAt,
         FileResourceGuid = x.WaterQualityManagementPlanDocument.FileResource.FileResourceGUID.ToString(),
+        ErrorMessage = x.ErrorMessage,
+        ErrorCode = x.ErrorCode,
     };
 }

@@ -155,7 +155,10 @@ export class WqmpModalComponent implements OnInit {
     }
 
     save(): void {
-        if (this.formGroup.invalid) return;
+        if (this.formGroup.invalid) {
+            this.formGroup.markAllAsTouched();
+            return;
+        }
         const dto = new WaterQualityManagementPlanUpsertDto(this.formGroup.getRawValue());
 
         if (this.mode === "edit") {

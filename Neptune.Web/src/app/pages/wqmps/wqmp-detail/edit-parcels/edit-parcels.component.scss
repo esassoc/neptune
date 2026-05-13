@@ -1,7 +1,20 @@
 @use "/src/scss/abstracts" as *;
 
+.search-row {
+    display: flex;
+    gap: 0.5rem;
+    align-items: flex-end;
+}
+
 .search-wrapper {
     position: relative;
+    flex: 1 1 0;
+    min-width: 0;
+}
+
+.search-add {
+    flex: 0 0 auto;
+    height: 2.5rem;
 }
 
 .search-results {
@@ -51,7 +64,7 @@
     &__item {
         display: flex;
         align-items: center;
-        gap: 0.5rem;
+        gap: 1rem;
         padding: 0.4rem 0.75rem;
 
         & + & {
@@ -73,11 +86,11 @@
 
     &__apn {
         font-weight: 600;
-        font-size: $type-size-200;
+        font-size: $type-size-300;
     }
 
     &__address {
-        font-size: $type-size-200;
+        font-size: $type-size-300;
         color: $gray-400;
     }
 }

@@ -19,6 +19,10 @@ export interface ReviewSummaryGroup {
 export interface ReviewSummaryRow {
     label: string;
     displayValue: string;
+    // NPT-1051: live value currently saved on the WQMP record. Drives the third "WQMP Record"
+    // column and the "Accepted" status pill for pending fields whose value is already on the
+    // record (saved in this or a prior wizard session).
+    wqmpRecordValue: string | null;
     state: ExtractedField["state"];
     origin: "ai" | "user" | "blank";
 }
@@ -36,6 +40,9 @@ export class ReviewSummaryComponent {
     @Input() parcelFields: ExtractedField[] = [];
     @Input() bmpGroups: { bmpIndex: number; displayName: string | null; fields: ExtractedField[]; isRejected: boolean }[] = [];
     @Input() lookupOptionsByKey: Record<string, SelectDropdownOption[]> = {};
+    // NPT-1051: parent supplies a key→liveWqmpValue resolver so the summary can render the
+    // third "WQMP Record" column without duplicating the key→DTO field mapping in the child.
+    @Input() getWqmpFieldValue: (field: ExtractedField) => string | null = () => null;
 
     get groups(): ReviewSummaryGroup[] {
         const groups: ReviewSummaryGroup[] = [];
@@ -65,6 +72,8 @@ export class ReviewSummaryComponent {
                 return {
                     label: `BMP #${g.bmpIndex + 1}`,
                     displayValue: g.isRejected ? "(rejected)" : display,
+                    // BMP rows don't map to a single WQMP-record column — leave blank.
+                    wqmpRecordValue: null,
                     state,
                     origin: "ai",
                 };
@@ -79,6 +88,7 @@ export class ReviewSummaryComponent {
         return {
             label: f.label,
             displayValue: this.displayFor(f),
+            wqmpRecordValue: this.getWqmpFieldValue(f),
             state: f.state,
             origin: f.isUserEntered ? "user" : f.value ? "ai" : "blank",
         };

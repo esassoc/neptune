@@ -9,7 +9,7 @@ public class WaterQualityManagementPlanVerifyUpsertDto
     [Required]
     public int WaterQualityManagementPlanVisitStatusID { get; set; }
     [Required]
-    public DateTime VerificationDate { get; set; }
+    public DateOnly VerificationDate { get; set; }
     public int? WaterQualityManagementPlanVerifyStatusID { get; set; }
     [MaxLength(1000)]
     public string SourceControlCondition { get; set; }

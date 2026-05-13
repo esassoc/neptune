@@ -11,6 +11,7 @@ import { AlertContext } from "src/app/shared/models/enums/alert-context.enum";
 import { AlertService } from "src/app/shared/services/alert.service";
 import { ConfirmService } from "src/app/shared/services/confirm/confirm.service";
 import { StormwaterJurisdictionService } from "src/app/shared/generated/api/stormwater-jurisdiction.service";
+import { PDF_EXTRACTION_LIMITS_BULLETS } from "src/app/shared/constants/pdf-extraction-limits";
 import { environment } from "src/environments/environment";
 
 @Component({
@@ -21,8 +22,11 @@ import { environment } from "src/environments/environment";
     styleUrl: "./wqmp-upload-modal.component.scss",
 })
 export class WqmpUploadModalComponent implements OnInit {
-    public ref: DialogRef<{ file: File }, { wqmpID: number; documentID: number }> = inject(DialogRef);
+    // NPT-1051 rework: the modal owns file selection internally so the user sees
+    // upload requirements before committing to a file. No `data: { file }` input.
+    public ref: DialogRef<unknown, { wqmpID: number; documentID: number }> = inject(DialogRef);
     public FormFieldType = FormFieldType;
+    public fileControl = new FormControl<File | null>(null, { validators: [Validators.required] });
     public wqmpNameControl = new FormControl<string>("", {
         nonNullable: true,
         validators: [Validators.required, Validators.maxLength(100)],
@@ -30,7 +34,7 @@ export class WqmpUploadModalComponent implements OnInit {
     public jurisdictionControl = new FormControl<number | null>(null, { validators: [Validators.required] });
     public jurisdictionOptions$: Observable<FormInputOption[]>;
     public isUploading = signal(false);
-    public file: File;
+    public pdfLimitsBullets = PDF_EXTRACTION_LIMITS_BULLETS;
 
     constructor(
         private alertService: AlertService,
@@ -42,7 +46,6 @@ export class WqmpUploadModalComponent implements OnInit {
 
     ngOnInit(): void {
         this.alertService.clearAlerts();
-        this.file = this.ref.data.file;
 
         this.jurisdictionOptions$ = this.stormwaterJurisdictionService.listStormwaterJurisdiction().pipe(
             map((jurisdictions) =>
@@ -53,8 +56,23 @@ export class WqmpUploadModalComponent implements OnInit {
         );
     }
 
+    // form-field's accept=".pdf" only filters the file picker; users can still pick a
+    // non-PDF via "All files". Defensively reject and clear the control.
+    onFileChange(file: File | null): void {
+        if (!file) return;
+        if (!file.name.toLowerCase().endsWith(".pdf")) {
+            this.alertService.pushAlert(new Alert("Only PDF files are accepted.", AlertContext.Danger));
+            this.fileControl.setValue(null);
+        }
+    }
+
     upload(overwrite = false): void {
-        if (this.jurisdictionControl.invalid || this.wqmpNameControl.invalid) return;
+        if (this.fileControl.invalid || this.jurisdictionControl.invalid || this.wqmpNameControl.invalid) {
+            this.fileControl.markAsTouched();
+            this.jurisdictionControl.markAsTouched();
+            this.wqmpNameControl.markAsTouched();
+            return;
+        }
         this.isUploading.set(true);
         this.alertService.clearAlerts();
 
@@ -85,13 +103,10 @@ export class WqmpUploadModalComponent implements OnInit {
                 }
 
                 if (err.status === 409) {
-                    // 409 isn't handled by HttpErrorInterceptor — surface the DTO's Message here
                     this.alertService.pushAlert(new Alert(err.error?.Message ?? "A conflict occurred.", AlertContext.Danger));
                     return;
                 }
 
-                // 400/401/403/404 are handled by HttpErrorInterceptor. Only push a fallback for
-                // statuses the interceptor doesn't cover (e.g., 500).
                 if (err.status < 400 || err.status >= 500) {
                     this.alertService.pushAlert(new Alert("An unexpected error occurred during upload.", AlertContext.Danger));
                 }
@@ -101,14 +116,12 @@ export class WqmpUploadModalComponent implements OnInit {
 
     private postUpload(overwrite: boolean): Observable<any> {
         const formData = new FormData();
-        formData.append("file", this.file);
+        formData.append("file", this.fileControl.value!);
         formData.append("stormwaterJurisdictionID", this.jurisdictionControl.value.toString());
         formData.append("wqmpName", this.wqmpNameControl.value.trim());
         if (overwrite) {
             formData.append("overwrite", "true");
         }
-        // Upload only — AI extraction is now a second, explicit step triggered from the
-        // review page so users can confirm the PDF before spending tokens.
         return this.http.post<any>(`${environment.mainAppApiUrl}/water-quality-management-plans/upload`, formData);
     }
 

@@ -166,6 +166,44 @@ public static class TreatmentBMPs
             .ToList();
     }
 
+    public static async Task<List<TreatmentBMPDelineationMapDto>> ListForDelineationMapAsync(NeptuneDbContext dbContext, Person person)
+    {
+        var isAdmin = person.RoleID == (int)RoleEnum.Admin || person.RoleID == (int)RoleEnum.SitkaAdmin;
+        var jurisdictionIDs = isAdmin
+            ? null
+            : await StormwaterJurisdictionPeople.ListViewableStormwaterJurisdictionIDsByPersonIDForBMPsAsync(dbContext, person.PersonID);
+
+        var rows = await dbContext.TreatmentBMPs
+            .AsNoTracking()
+            .Where(x => x.ProjectID == null && (jurisdictionIDs == null || jurisdictionIDs.Contains(x.StormwaterJurisdictionID)))
+            .Select(x => new
+            {
+                x.TreatmentBMPID,
+                x.TreatmentBMPName,
+                TreatmentBMPTypeName = x.TreatmentBMPType.TreatmentBMPTypeName,
+                x.StormwaterJurisdictionID,
+                x.LocationPoint4326,
+                DelineationID = (int?)(x.Delineation != null ? x.Delineation.DelineationID : (int?)null),
+                DelineationTypeID = (int?)(x.Delineation != null ? x.Delineation.DelineationTypeID : (int?)null),
+                IsVerified = (bool?)(x.Delineation != null ? x.Delineation.IsVerified : (bool?)null),
+            })
+            .ToListAsync();
+
+        return rows.Select(x => new TreatmentBMPDelineationMapDto
+        {
+            TreatmentBMPID = x.TreatmentBMPID,
+            TreatmentBMPName = x.TreatmentBMPName,
+            TreatmentBMPTypeName = x.TreatmentBMPTypeName,
+            StormwaterJurisdictionID = x.StormwaterJurisdictionID,
+            Latitude = x.LocationPoint4326?.Coordinate.Y ?? 0,
+            Longitude = x.LocationPoint4326?.Coordinate.X ?? 0,
+            HasDelineation = x.DelineationID.HasValue,
+            DelineationID = x.DelineationID,
+            DelineationTypeID = x.DelineationTypeID,
+            IsVerified = x.IsVerified,
+        }).ToList();
+    }
+
     public static IQueryable<TreatmentBMP> GetNonPlanningModuleBMPs(NeptuneDbContext dbContext)
     {
         return GetImpl(dbContext).AsNoTracking().Where(x => x.ProjectID == null);
@@ -857,6 +895,7 @@ public static class TreatmentBMPs
     {
         var treatmentBMPToUpdate = dbContext.TreatmentBMPs
             .Include(x => x.StormwaterJurisdiction)
+            .Include(x => x.InverseUpstreamBMP)
             .Single(x => x.TreatmentBMPID == treatmentBMPID);
 
         var locationPointGeometry4326 = CreateLocationPoint4326FromLatLong(locationUpdateDto.Latitude!.Value, locationUpdateDto.Longitude!.Value);
@@ -867,12 +906,69 @@ public static class TreatmentBMPs
 
         treatmentBMPToUpdate.SetTreatmentBMPPointInPolygonDataByLocationPoint(locationPoint, dbContext);
 
+        UpdateUpstreamBMPReferencesIfNecessary(dbContext, treatmentBMPToUpdate);
+
+        var existingDelineation = Delineations.GetByTreatmentBMPIDWithChangeTracking(dbContext, treatmentBMPID);
+        await UpdateCentralizedBMPDelineationIfPresentAsync(dbContext, treatmentBMPToUpdate, existingDelineation);
+
         await dbContext.SaveChangesAsync();
         await dbContext.Entry(treatmentBMPToUpdate).ReloadAsync();
 
         var updatedTreatmentBMPDto = await GetByIDAsDtoAsync(dbContext, treatmentBMPID);
 
         return updatedTreatmentBMPDto;
+    }
+
+    private static void UpdateUpstreamBMPReferencesIfNecessary(NeptuneDbContext dbContext, TreatmentBMP treatmentBMP)
+    {
+        if (treatmentBMP.UpstreamBMPID != null)
+        {
+            var regionalSubbasin = treatmentBMP.GetRegionalSubbasin(dbContext);
+            if (regionalSubbasin == null
+                || !regionalSubbasin.GetTreatmentBMPs(dbContext).Select(x => x.TreatmentBMPID).Contains(treatmentBMP.UpstreamBMPID.Value))
+            {
+                treatmentBMP.UpstreamBMPID = null;
+            }
+        }
+
+        if (treatmentBMP.InverseUpstreamBMP.Any())
+        {
+            foreach (var dependent in treatmentBMP.InverseUpstreamBMP.ToList())
+            {
+                var regionalSubbasin = dependent.GetRegionalSubbasin(dbContext);
+                if (regionalSubbasin == null || !regionalSubbasin.CatchmentGeometry.Contains(treatmentBMP.LocationPoint))
+                {
+                    dependent.UpstreamBMPID = null;
+                }
+            }
+        }
+    }
+
+    private static async Task UpdateCentralizedBMPDelineationIfPresentAsync(NeptuneDbContext dbContext, TreatmentBMP treatmentBMP, Delineation? delineation)
+    {
+        if (delineation is not { DelineationTypeID: (int)DelineationTypeEnum.Centralized })
+        {
+            return;
+        }
+
+        var updated4326Geometry = treatmentBMP.GetCentralizedDelineationGeometry4326(dbContext);
+
+        if (updated4326Geometry != null && updated4326Geometry.EqualsExact(delineation.DelineationGeometry4326))
+        {
+            return;
+        }
+
+        if (updated4326Geometry != null)
+        {
+            delineation.DelineationGeometry = treatmentBMP.GetCentralizedDelineationGeometry2771(dbContext);
+            delineation.DelineationGeometry4326 = updated4326Geometry;
+            delineation.IsVerified = false;
+            delineation.DateLastModified = DateTime.UtcNow;
+        }
+        else
+        {
+            await delineation.DeleteFull(dbContext);
+        }
     }
 
     public static async Task<List<ErrorMessage>> ValidateUpdateTypeAsync(NeptuneDbContext dbContext, int treatmentBMPID, TreatmentBMPTypeUpdateDto typeUpdateDto)

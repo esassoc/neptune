@@ -2,7 +2,7 @@ import { Component, inject, Input, OnInit, OnChanges, signal, SimpleChanges, Vie
 import { HttpErrorResponse } from "@angular/common/http";
 import { Router, RouterLink } from "@angular/router";
 import { DatePipe, AsyncPipe, CommonModule } from "@angular/common";
-import { Observable, of } from "rxjs";
+import { BehaviorSubject, Observable, of } from "rxjs";
 import { finalize, shareReplay, switchMap, tap } from "rxjs/operators";
 import { DialogService } from "@ngneat/dialog";
 import { ColDef } from "ag-grid-community";
@@ -87,6 +87,16 @@ export class WqmpDetailComponent implements OnInit, OnChanges {
     public aboutModelingBMPPerformanceUrl = `${environment.ocStormwaterToolsBaseUrl}/Home/AboutModelingBMPPerformance`;
     public apiBaseUrl = environment.mainAppApiUrl;
 
+    // NPT-1051: wqmp$ is a stable observable driven by reload$ so the AsyncPipe stays
+    // subscribed to one reference. Modal saves call reload$.next() to refetch — this is
+    // robust against AsyncPipe re-subscription quirks that can leave the page showing
+    // stale Status / Modeling Approach values when wqmp$ is reassigned mid-stream.
+    private reload$ = new BehaviorSubject<void>(undefined);
+    // NPT-995 round 5: separate signal for verifications$ so a row-delete only refreshes
+    // the verifications grid — pushing reload$ would also refetch wqmp$ + rebuild the
+    // map layers, which is unnecessary work and a potential source of UI flicker on a
+    // verification mutation.
+    private verificationsReload$ = new BehaviorSubject<void>(undefined);
     wqmp$: Observable<WaterQualityManagementPlanDto>;
     quickBMPs$: Observable<QuickBMPDto[]>;
     quickBMPTotalRow: any[] = [];
@@ -182,27 +192,34 @@ export class WqmpDetailComponent implements OnInit, OnChanges {
 
     private loadData(): void {
         this.boundingBox = undefined;
-        this.wqmp$ = this.wqmpService.getWaterQualityManagementPlan(this.waterQualityManagementPlanID).pipe(
-            tap((wqmp) => {
-                if (wqmp?.WaterQualityManagementPlanBoundaryBBox) {
-                    const parts = wqmp.WaterQualityManagementPlanBoundaryBBox.split(",").map(Number);
-                    if (parts.length === 4) {
-                        this.boundingBox = new BoundingBoxDto({
-                            Left: parts[0],
-                            Bottom: parts[1],
-                            Right: parts[2],
-                            Top: parts[3],
-                        });
+        // wqmp$ is initialized once; subsequent loadData() calls just push reload$ to
+        // refetch through the stable observable.
+        if (!this.wqmp$) {
+            this.wqmp$ = this.reload$.pipe(
+                switchMap(() => this.wqmpService.getWaterQualityManagementPlan(this.waterQualityManagementPlanID)),
+                tap((wqmp) => {
+                    if (wqmp?.WaterQualityManagementPlanBoundaryBBox) {
+                        const parts = wqmp.WaterQualityManagementPlanBoundaryBBox.split(",").map(Number);
+                        if (parts.length === 4) {
+                            this.boundingBox = new BoundingBoxDto({
+                                Left: parts[0],
+                                Bottom: parts[1],
+                                Right: parts[2],
+                                Top: parts[3],
+                            });
+                        }
                     }
-                }
-                if (this.map) {
-                    this.addTreatmentBMPsLayer(wqmp);
-                } else {
-                    this.pendingWqmpForMap = wqmp;
-                }
-            }),
-            shareReplay(1)
-        );
+                    if (this.map) {
+                        this.addTreatmentBMPsLayer(wqmp);
+                    } else {
+                        this.pendingWqmpForMap = wqmp;
+                    }
+                }),
+                shareReplay(1)
+            );
+        } else {
+            this.reload$.next();
+        }
 
         this.quickBMPs$ = this.wqmpService.listQuickBMPsWaterQualityManagementPlan(this.waterQualityManagementPlanID).pipe(
             tap((quickBMPs) => {
@@ -220,7 +237,16 @@ export class WqmpDetailComponent implements OnInit, OnChanges {
                 }));
             })
         );
-        this.verifications$ = this.wqmpService.listVerificationsWaterQualityManagementPlan(this.waterQualityManagementPlanID);
+        // NPT-995 round 5: stable observable driven by verificationsReload$. Delete
+        // mutations push the dedicated reload signal rather than inline-reassigning
+        // verifications$ — same AsyncPipe re-subscription fix as wqmp$ (NPT-1051 PR #488),
+        // scoped narrowly so unrelated wqmp$ refreshes don't drag the grid along.
+        if (!this.verifications$) {
+            this.verifications$ = this.verificationsReload$.pipe(
+                switchMap(() => this.wqmpService.listVerificationsWaterQualityManagementPlan(this.waterQualityManagementPlanID)),
+                shareReplay(1)
+            );
+        }
 
         this.modeledPerformance$ = this.wqmpService.getModeledPerformanceWaterQualityManagementPlan(this.waterQualityManagementPlanID);
 
@@ -523,8 +549,9 @@ export class WqmpDetailComponent implements OnInit, OnChanges {
                 this.wqmpService.deleteVerificationWaterQualityManagementPlan(this.waterQualityManagementPlanID, verifyID).subscribe({
                     next: () => {
                         this.alertService.pushAlert(new Alert("Verification deleted.", AlertContext.Success));
-                        // Re-assign the observable so the async pipe re-subscribes and the grid refreshes.
-                        this.verifications$ = this.wqmpService.listVerificationsWaterQualityManagementPlan(this.waterQualityManagementPlanID);
+                        // NPT-995 round 5: scoped reload — refresh only the verifications grid,
+                        // not wqmp$ + map layers (delete doesn't affect WQMP fields/geometry).
+                        this.verificationsReload$.next();
                     },
                     error: () => {
                         this.alertService.pushAlert(new Alert("An error occurred while deleting the verification.", AlertContext.Danger));

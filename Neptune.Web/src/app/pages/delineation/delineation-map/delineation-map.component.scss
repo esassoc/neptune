@@ -1,0 +1,134 @@
+@use "/src/scss/abstracts" as *;
+
+.selected-bmp-panel {
+    overflow-y: auto;
+}
+
+.panel-section-header {
+    color: $primary;
+    font-size: $type-size-300;
+    font-weight: bold;
+    margin: $spacing-300 0 $spacing-100;
+
+    &:first-child {
+        margin-top: 0;
+    }
+}
+
+.kv {
+    margin-bottom: $spacing-200;
+
+    dd a icon {
+        display: inline-block;
+        width: 0.85rem;
+        margin-left: $spacing-050;
+        vertical-align: middle;
+    }
+}
+
+.status-switch {
+    // form-field always renders an (empty) field-label above the switch — hide it so the toggle aligns with the dt baseline.
+    ::ng-deep .field-label {
+        display: none;
+    }
+
+    ::ng-deep .switch-container {
+        min-height: 0;
+    }
+
+    // The shared .switch is 5rem wide; "Provisional" needs more room and the knob slide distance must follow.
+    ::ng-deep .switch {
+        width: 9.5rem;
+        height: 1.75rem;
+
+        .toggle:before {
+            height: 1.25rem;
+            width: 1.25rem;
+            left: 4px;
+            bottom: 4px;
+        }
+
+        // shared rule slides the knob 3rem (sized for a 5rem switch); recompute for our 9.5rem width.
+        input:checked + .toggle:before {
+            transform: translateX(calc(9.5rem - 1.25rem - 8px));
+        }
+
+        .toggle:after,
+        input:checked + .toggle:after {
+            font-size: $type-size-150;
+            top: 50%;
+            transform: translateY(-50%);
+            line-height: 1;
+        }
+    }
+}
+
+.inline-actions {
+    display: flex;
+    gap: $spacing-200;
+    margin-top: $spacing-200;
+}
+
+.stacked-actions {
+    display: flex;
+    flex-direction: column;
+    gap: $spacing-200;
+    margin-top: $spacing-200;
+}
+
+.action-btn {
+    display: block;
+    width: 100%;
+}
+
+.icon-btn {
+    padding-left: $spacing-200;
+    padding-right: $spacing-200;
+}
+
+.explanatory {
+    font-size: $type-size-200;
+    color: $gray-700;
+    margin: 0 0 $spacing-200;
+}
+
+.request-revision-btn {
+    margin-top: $spacing-200;
+    text-align: center;
+}
+
+.edit-hint {
+    font-size: $type-size-200;
+    color: $gray-700;
+    margin: $spacing-200 0;
+}
+
+.empty-hint {
+    font-size: $type-size-200;
+    color: $gray-600;
+    margin: 0;
+}
+
+hr {
+    margin: $spacing-300 0;
+}
+
+.header-action {
+    margin-left: $spacing-200;
+}
+
+::ng-deep .treatment-bmp-cluster {
+    background: rgba($primary, 0.6);
+    border-radius: 50%;
+    color: $white;
+    font-weight: bold;
+    text-align: center;
+
+    div {
+        background: rgba($primary, 0.9);
+        border-radius: 50%;
+        margin: 5px;
+        height: 30px;
+        line-height: 30px;
+    }
+}

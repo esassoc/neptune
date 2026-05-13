@@ -1,5 +1,5 @@
 import { Component } from "@angular/core";
-import { Observable, tap } from "rxjs";
+import { BehaviorSubject, Observable, switchMap, tap } from "rxjs";
 import { OnlandVisualTrashAssessmentService } from "src/app/shared/generated/api/onland-visual-trash-assessment.service";
 import { NeptuneGridComponent } from "src/app/shared/components/neptune-grid/neptune-grid.component";
 import { PageHeaderComponent } from "src/app/shared/components/page-header/page-header.component";
@@ -19,6 +19,7 @@ import { AlertService } from "src/app/shared/services/alert.service";
 import { Alert } from "src/app/shared/models/alert";
 import { AlertContext } from "src/app/shared/models/enums/alert-context.enum";
 import { AuthenticationService } from "src/app/services/authentication.service";
+import { escapeHtml } from "src/app/shared/helpers/html-escape";
 
 @Component({
     selector: "trash-ovta-index",
@@ -32,6 +33,8 @@ export class TrashOvtaIndexComponent {
     public customRichTextID = NeptunePageTypeEnum.OVTAIndex;
     public isLoading: boolean = true;
     public url = environment.ocStormwaterToolsBaseUrl;
+
+    private refreshGridTrigger$ = new BehaviorSubject<void>(null);
 
     constructor(
         private onlandVisualTrashAssessmentService: OnlandVisualTrashAssessmentService,
@@ -56,7 +59,16 @@ export class TrashOvtaIndexComponent {
                                 ? this.confirmEditOVTA(params.data.OnlandVisualTrashAssessmentID, params.data.CompletedDate)
                                 : this.router.navigateByUrl(`/trash/onland-visual-trash-assessments/edit/${params.data.OnlandVisualTrashAssessmentID}/record-observations`),
                     },
-                    //{ ActionName: "Delete", ActionIcon: "fa fa-trash text-danger", ActionHandler: () => this.deleteModal(params) },
+                    {
+                        ActionName: "Delete",
+                        ActionHandler: () =>
+                            this.deleteOVTA(
+                                params.data.OnlandVisualTrashAssessmentID,
+                                params.data.CreatedDate,
+                                params.data.OnlandVisualTrashAssessmentStatusID,
+                                params.data.CompletedDate
+                            ),
+                    },
                 ];
             }),
             this.utilityFunctionsService.createLinkColumnDef("Assessment ID", "OnlandVisualTrashAssessmentID", "OnlandVisualTrashAssessmentID", {
@@ -77,9 +89,14 @@ export class TrashOvtaIndexComponent {
                 CustomDropdownFilterField: "StormwaterJurisdictionName",
             }),
             this.utilityFunctionsService.createBasicColumnDef("Created By", "CreatedByPersonFullName"),
+            this.utilityFunctionsService.createBasicColumnDef("Second Assessor", "SecondAssessorName"),
             this.utilityFunctionsService.createDateColumnDef("Created On", "CreatedDate", "short"),
         ];
-        this.onlandVisualTrashAssessments$ = this.onlandVisualTrashAssessmentService.listOnlandVisualTrashAssessment().pipe(tap((x) => (this.isLoading = false)));
+        this.onlandVisualTrashAssessments$ = this.refreshGridTrigger$.pipe(
+            tap(() => (this.isLoading = true)),
+            switchMap(() => this.onlandVisualTrashAssessmentService.listOnlandVisualTrashAssessment()),
+            tap(() => (this.isLoading = false))
+        );
     }
 
     public confirmEditOVTA(onlandVisualTrashAssessmentID: number, completedDate: string) {
@@ -95,6 +112,27 @@ export class TrashOvtaIndexComponent {
                         this.alertService.clearAlerts();
                         this.alertService.pushAlert(new Alert('The OVTA was successfully returned to the "In Progress" status.', AlertContext.Success));
                         this.router.navigateByUrl(`/trash/onland-visual-trash-assessments/edit/${onlandVisualTrashAssessmentID}/record-observations`);
+                    });
+                }
+            });
+    }
+
+    public deleteOVTA(onlandVisualTrashAssessmentID: number, createdDate: string, statusID: number, completedDate: string) {
+        const safeCreatedDate = escapeHtml(this.datePipe.transform(createdDate, "MM/dd/yyyy") ?? "");
+        const safeCompletedDate = escapeHtml(this.datePipe.transform(completedDate, "MM/dd/yyyy") ?? "");
+        const finalizedWarning =
+            statusID === OnlandVisualTrashAssessmentStatusEnum.Complete
+                ? `<br/><p>This OVTA was finalized on ${safeCompletedDate}. Deleting it will remove its completed score from the OVTA Area.</p>`
+                : "";
+        const modalContents = `<p>Are you sure you want to delete the assessment from ${safeCreatedDate}? This cannot be undone.</p>${finalizedWarning}`;
+        this.confirmService
+            .confirm({ buttonClassYes: "btn-primary", buttonTextYes: "Delete", buttonTextNo: "Cancel", title: "Delete OVTA", message: modalContents })
+            .then((confirmed) => {
+                if (confirmed) {
+                    this.onlandVisualTrashAssessmentService.deleteOnlandVisualTrashAssessment(onlandVisualTrashAssessmentID).subscribe(() => {
+                        this.alertService.clearAlerts();
+                        this.alertService.pushAlert(new Alert("Your OVTA was successfully deleted.", AlertContext.Success));
+                        this.refreshGridTrigger$.next();
                     });
                 }
             });

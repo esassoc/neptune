@@ -1,0 +1,46 @@
+<app-alert-display></app-alert-display>
+
+@if (loaded$ | async) {
+    <div class="dashboard workflow">
+        <aside class="sidebar">
+            <div class="sidebar-header">
+                <h5 class="sidebar-title">
+                    <div>
+                        <p class="verification-label">O&M Verification</p>
+                        <p>
+                            <a class="wqmp-link" [routerLink]="['/water-quality-management-plans', waterQualityManagementPlanID]">
+                                <strong>{{ service.wqmpName() }}</strong>
+                            </a>
+                        </p>
+                        <p class="verification-status">
+                            @if (service.waterQualityManagementPlanVerifyID() == null) {
+                                New verification
+                            } @else if (service.isFinalized()) {
+                                Finalized verification
+                            } @else {
+                                Editing draft verification
+                            }
+                        </p>
+                    </div>
+                </h5>
+            </div>
+
+            <workflow-nav>
+                @for (step of service.steps; track step.key) {
+                    <workflow-nav-item
+                        [navRouterLink]="[step.key]"
+                        [complete]="service.progress()[step.key].completed"
+                        [disabled]="service.progress()[step.key].disabled">
+                        {{ step.title }}
+                    </workflow-nav-item>
+                }
+            </workflow-nav>
+        </aside>
+
+        <main class="main">
+            <div class="outlet-container">
+                <router-outlet></router-outlet>
+            </div>
+        </main>
+    </div>
+}

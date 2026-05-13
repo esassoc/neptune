@@ -5,7 +5,7 @@
         [customRichTextTypeID]="NeptunePageTypeEnum.ManageObservationTypesList">
         <ng-template #templateAbove>
             <div class="back">
-                <a [routerLink]="['/program-info/observation-types']" class="back__link">Back to Observation Types</a>
+                <a [routerLink]="['/program-info/observation-types']" class="back__link"><i class="fa fa-arrow-left"></i> Back to Observation Type List</a>
             </div>
         </ng-template>
         <ng-template #templateRight>
@@ -118,7 +118,7 @@
                     <ul>
                         @for (bmpType of vm.detail.TreatmentBMPTypes; track bmpType.TreatmentBMPTypeID) {
                             <li>
-                                <a [href]="bmpTypeDetailUrl(bmpType.TreatmentBMPTypeID!)">{{ bmpType.TreatmentBMPTypeName }}</a>
+                                <a [routerLink]="['/program-info/treatment-bmp-types', bmpType.TreatmentBMPTypeID]">{{ bmpType.TreatmentBMPTypeName }}</a>
                             </li>
                         }
                     </ul>

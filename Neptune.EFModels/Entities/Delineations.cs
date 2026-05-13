@@ -267,5 +267,13 @@ namespace Neptune.EFModels.Entities
                 .Where(x => x.TreatmentBMP.CanView(currentPerson))
                 .OrderBy(x => x.TreatmentBMP.TreatmentBMPName).ToList();
         }
+
+        public static DelineationDto? GetByTreatmentBMPIDAsDto(NeptuneDbContext dbContext, int treatmentBMPID)
+        {
+            return GetImpl(dbContext).AsNoTracking()
+                .Where(x => x.TreatmentBMPID == treatmentBMPID)
+                .Select(x => x.AsDto())
+                .SingleOrDefault();
+        }
     }
 }

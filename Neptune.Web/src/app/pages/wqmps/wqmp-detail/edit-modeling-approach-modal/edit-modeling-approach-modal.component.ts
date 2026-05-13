@@ -1,7 +1,8 @@
 import { Component, inject, OnInit } from "@angular/core";
-import { ReactiveFormsModule, FormControl } from "@angular/forms";
+import { ReactiveFormsModule, FormControl, Validators } from "@angular/forms";
 import { AlertDisplayComponent } from "src/app/shared/components/alert-display/alert-display.component";
 import { FormFieldComponent, FormFieldType } from "src/app/shared/components/forms/form-field/form-field.component";
+import { NoteComponent } from "src/app/shared/components/note/note.component";
 import { DialogRef } from "@ngneat/dialog";
 import { AlertService } from "src/app/shared/services/alert.service";
 import { WaterQualityManagementPlanService } from "src/app/shared/generated/api/water-quality-management-plan.service";
@@ -12,7 +13,7 @@ import {
 
 @Component({
     selector: "edit-modeling-approach-modal",
-    imports: [AlertDisplayComponent, ReactiveFormsModule, FormFieldComponent],
+    imports: [AlertDisplayComponent, ReactiveFormsModule, FormFieldComponent, NoteComponent],
     templateUrl: "./edit-modeling-approach-modal.component.html",
 })
 export class EditModelingApproachModalComponent implements OnInit {
@@ -22,7 +23,7 @@ export class EditModelingApproachModalComponent implements OnInit {
 
     public FormFieldType = FormFieldType;
     public modelingApproachOptions = WaterQualityManagementPlanModelingApproachesAsSelectDropdownOptions;
-    public modelingApproachControl = new FormControl<number>(undefined, { nonNullable: true });
+    public modelingApproachControl = new FormControl<number>(undefined, { nonNullable: true, validators: [Validators.required] });
 
     public modelingApproachDescriptions: { [key: number]: string } = {
         [WaterQualityManagementPlanModelingApproachEnum.Detailed]:
@@ -39,6 +40,10 @@ export class EditModelingApproachModalComponent implements OnInit {
     }
 
     public save(): void {
+        if (this.modelingApproachControl.invalid) {
+            this.modelingApproachControl.markAsTouched();
+            return;
+        }
         const wqmpID = this.ref.data?.wqmpID;
         const approachID = this.modelingApproachControl.value;
         this.wqmpService.updateModelingApproachWaterQualityManagementPlan(wqmpID, approachID).subscribe(() => {
