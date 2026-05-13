@@ -168,6 +168,10 @@ namespace Neptune.API.Controllers
         {
             var dto = await WaterQualityManagementPlanVerifies.GetByIDAsDtoAsync(DbContext, waterQualityManagementPlanVerifyID);
             if (dto == null) return NotFound();
+            // Cross-WQMP guard — see Copilot PR #502 review feedback. A caller authorized for
+            // wqmp A shouldn't be able to read B's verify by smuggling B's verify ID through
+            // A's route.
+            if (dto.WaterQualityManagementPlanID != waterQualityManagementPlanID) return NotFound();
             return Ok(dto);
         }
 
@@ -189,6 +193,9 @@ namespace Neptune.API.Controllers
             [FromRoute] int waterQualityManagementPlanID, [FromRoute] int waterQualityManagementPlanVerifyID,
             [FromBody] WaterQualityManagementPlanVerifyUpsertDto dto)
         {
+            var verify = WaterQualityManagementPlanVerifies.GetByID(DbContext, waterQualityManagementPlanVerifyID);
+            // Cross-WQMP guard — see Copilot PR #502 review feedback.
+            if (verify.WaterQualityManagementPlanID != waterQualityManagementPlanID) return NotFound();
             var result = await WaterQualityManagementPlanVerifies.UpdateAsync(DbContext, waterQualityManagementPlanVerifyID, dto, CallingUser.PersonID);
             return Ok(result);
         }
@@ -200,6 +207,9 @@ namespace Neptune.API.Controllers
         public async Task<IActionResult> DeleteVerification(
             [FromRoute] int waterQualityManagementPlanID, [FromRoute] int waterQualityManagementPlanVerifyID)
         {
+            var verify = WaterQualityManagementPlanVerifies.GetByID(DbContext, waterQualityManagementPlanVerifyID);
+            // Cross-WQMP guard — see Copilot PR #502 review feedback.
+            if (verify.WaterQualityManagementPlanID != waterQualityManagementPlanID) return NotFound();
             await WaterQualityManagementPlanVerifies.DeleteAsync(DbContext, waterQualityManagementPlanVerifyID);
             return NoContent();
         }
