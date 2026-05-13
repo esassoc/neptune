@@ -21,21 +21,26 @@ import { FieldDefinitionComponent } from "src/app/shared/components/field-defini
             </div>
         }
 
-        <form-field
-            [type]="FormFieldType.Text"
-            [formControl]="newPropControl"
-            placeholder="New property..."
-            (keydown.enter)="add(); $event.preventDefault()"></form-field>
-        <div class="picker-row">
-            <button type="button" class="btn btn-primary-outline btn-sm" (click)="add()">
-                <i class="fa fa-plus"></i> Add
-            </button>
+        <div class="new-prop">
+            <form-field
+                [type]="FormFieldType.Text"
+                [formControl]="newPropControl"
+                placeholder="New property..."
+                (keydown.enter)="add(); $event.preventDefault()"></form-field>
+            <div class="picker-row">
+                <button type="button" class="btn btn-primary-outline btn-sm" (click)="add()">
+                    <i class="fa fa-plus"></i> Add
+                </button>
+            </div>
         </div>
     `,
     styles: [`
         .field-label {
             font-weight: 600;
             margin-bottom: 0.5rem;
+        }
+        .new-prop {
+            margin-top: 1rem;
         }
         .picker-row {
             display: flex;
