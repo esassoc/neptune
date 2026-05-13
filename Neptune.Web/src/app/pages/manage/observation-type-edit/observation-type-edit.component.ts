@@ -86,11 +86,16 @@ export class ObservationTypeEditComponent implements OnInit {
     public discreteSchemaGroup: DiscreteSchemaFormGroup = buildDiscreteSchemaFormGroup(emptyDiscreteValueSchema());
     public percentageSchemaGroup: PercentageSchemaFormGroup = buildPercentageSchemaFormGroup(emptyPercentageSchema());
 
-    public derivedSpecID = computed(() => tripleToSpec({
-        CollectionMethodID: this.formGroup.controls.CollectionMethodID.value,
-        TargetTypeID: this.formGroup.controls.TargetTypeID.value,
-        ThresholdTypeID: this.formGroup.controls.ThresholdTypeID.value,
-    }));
+    // Kept as a method (not a computed signal) on purpose — it reads formGroup.controls[*].value,
+    // which are plain getters, not signals. A computed would cache its initial null forever and
+    // never re-evaluate on form changes. Templates call methods on every CD cycle anyway.
+    public derivedSpecID(): number | null {
+        return tripleToSpec({
+            CollectionMethodID: this.formGroup.controls.CollectionMethodID.value,
+            TargetTypeID: this.formGroup.controls.TargetTypeID.value,
+            ThresholdTypeID: this.formGroup.controls.ThresholdTypeID.value,
+        });
+    }
 
     ngOnInit(): void {
         this.alertService.clearAlerts();
