@@ -171,6 +171,7 @@ export * from './treatment-bmp-type-observation-type-upsert-dto';
 export * from './treatment-bmp-type-reference-dto';
 export * from './treatment-bmp-type-update-dto';
 export * from './treatment-bmp-type-upsert-dto';
+export * from './treatment-bmp-type-usage-dto';
 export * from './treatment-bmp-type-with-modeling-attributes-dto';
 export * from './treatment-bmp-upsert-dto';
 export * from './treatment-bmp-upstream-bmp-update-dto';

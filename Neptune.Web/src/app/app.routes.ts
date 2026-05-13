@@ -19,6 +19,7 @@ export const routeParams = {
     waterQualityManagementPlanID: "waterQualityManagementPlanID",
     waterQualityManagementPlanVerifyID: "waterQualityManagementPlanVerifyID",
     treatmentBMPTypeID: "treatmentBMPTypeID",
+    customAttributeTypeID: "customAttributeTypeID",
     observationTypeID: "observationTypeID",
     fieldVisitID: "fieldVisitID",
     personID: "personID",
@@ -811,7 +812,17 @@ export const routes: Routes = [
                 loadComponent: () => import("./pages/manage/custom-attributes.component").then((m) => m.CustomAttributesComponent),
             },
             {
-                path: "manage/custom-attributes/:customAttributeTypeID",
+                path: "manage/custom-attributes/new",
+                title: "New Custom Attribute",
+                loadComponent: () => import("./pages/manage/custom-attribute-type-edit/custom-attribute-type-edit.component").then((m) => m.CustomAttributeTypeEditComponent),
+            },
+            {
+                path: `manage/custom-attributes/:${routeParams.customAttributeTypeID}/edit`,
+                title: "Edit Custom Attribute",
+                loadComponent: () => import("./pages/manage/custom-attribute-type-edit/custom-attribute-type-edit.component").then((m) => m.CustomAttributeTypeEditComponent),
+            },
+            {
+                path: `manage/custom-attributes/:${routeParams.customAttributeTypeID}`,
                 title: "Custom Attribute Type Detail",
                 loadComponent: () => import("./pages/manage/custom-attribute-type-detail/custom-attribute-type-detail.component").then((m) => m.CustomAttributeTypeDetailComponent),
             },

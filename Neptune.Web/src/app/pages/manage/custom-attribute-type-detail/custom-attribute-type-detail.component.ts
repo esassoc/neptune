@@ -1,8 +1,7 @@
 import { Component, inject, Input, OnInit } from "@angular/core";
-import { AsyncPipe } from "@angular/common";
+import { AsyncPipe, DecimalPipe } from "@angular/common";
 import { Router, RouterLink } from "@angular/router";
 import { BehaviorSubject, catchError, EMPTY, Observable, shareReplay, switchMap, tap } from "rxjs";
-import { DialogService } from "@ngneat/dialog";
 import { PageHeaderComponent } from "src/app/shared/components/page-header/page-header.component";
 import { AlertDisplayComponent } from "src/app/shared/components/alert-display/alert-display.component";
 import { LoadingDirective } from "src/app/shared/directives/loading.directive";
@@ -14,7 +13,6 @@ import { CustomAttributeTypeService } from "src/app/shared/generated/api/custom-
 import { CustomAttributeTypeDto } from "src/app/shared/generated/model/custom-attribute-type-dto";
 import { CustomAttributeTypePurposeEnum } from "src/app/shared/generated/enum/custom-attribute-type-purpose-enum";
 import { CustomAttributeDataTypeEnum } from "src/app/shared/generated/enum/custom-attribute-data-type-enum";
-import { CustomAttributeTypeModalComponent } from "src/app/pages/manage/custom-attribute-type-modal/custom-attribute-type-modal.component";
 
 /**
  * NPT-1038 rework: read-only detail page for a single Custom Attribute Type.
@@ -27,7 +25,7 @@ import { CustomAttributeTypeModalComponent } from "src/app/pages/manage/custom-a
 @Component({
     selector: "custom-attribute-type-detail",
     standalone: true,
-    imports: [AsyncPipe, RouterLink, PageHeaderComponent, AlertDisplayComponent, LoadingDirective],
+    imports: [AsyncPipe, DecimalPipe, RouterLink, PageHeaderComponent, AlertDisplayComponent, LoadingDirective],
     templateUrl: "./custom-attribute-type-detail.component.html",
     styleUrl: "./custom-attribute-type-detail.component.scss",
 })
@@ -37,7 +35,6 @@ export class CustomAttributeTypeDetailComponent implements OnInit {
     private customAttributeTypeService = inject(CustomAttributeTypeService);
     private alertService = inject(AlertService);
     private confirmService = inject(ConfirmService);
-    private dialogService = inject(DialogService);
     private router = inject(Router);
 
     private reload$ = new BehaviorSubject<void>(undefined);
@@ -79,17 +76,8 @@ export class CustomAttributeTypeDetailComponent implements OnInit {
         }
     }
 
-    openEditModal(attribute: CustomAttributeTypeDto): void {
-        const dialogRef = this.dialogService.open(CustomAttributeTypeModalComponent, {
-            data: { mode: "edit", customAttributeType: attribute },
-            width: "700px",
-        });
-        dialogRef.afterClosed$.subscribe((result) => {
-            if (result) {
-                this.alertService.pushAlert(new Alert("Custom attribute type updated.", AlertContext.Success));
-                this.reload$.next();
-            }
-        });
+    openEdit(attribute: CustomAttributeTypeDto): void {
+        this.router.navigate(["/manage/custom-attributes", attribute.CustomAttributeTypeID, "edit"]);
     }
 
     confirmDelete(attribute: CustomAttributeTypeDto): void {
@@ -108,14 +96,18 @@ export class CustomAttributeTypeDetailComponent implements OnInit {
                 if (!confirmed) return;
                 this.customAttributeTypeService.deleteCustomAttributeType(attribute.CustomAttributeTypeID!).subscribe({
                     next: () => {
-                        this.alertService.pushAlert(new Alert("Custom attribute type deleted.", AlertContext.Success));
-                        this.router.navigate(["/manage/custom-attributes"]);
+                        this.router.navigate(["/manage/custom-attributes"]).then(() => {
+                            this.alertService.pushAlert(new Alert("Custom attribute type deleted.", AlertContext.Success));
+                        });
                     },
-                    error: () => {
-                        this.alertService.pushAlert(new Alert("An error occurred while deleting the custom attribute type.", AlertContext.Danger));
+                    error: (err) => {
+                        const detail = err?.error?.detail ?? err?.error?.title
+                            ?? "An error occurred while deleting the custom attribute type.";
+                        this.alertService.pushAlert(new Alert(detail, AlertContext.Danger));
                     },
                 });
-            });
+            })
+            .catch(() => { /* dismissed via X/Escape — no-op */ });
     }
 
     private escapeHtml(s: string): string {

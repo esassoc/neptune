@@ -222,6 +222,7 @@ model/treatment-bmp-type-observation-type-upsert-dto.ts
 model/treatment-bmp-type-reference-dto.ts
 model/treatment-bmp-type-update-dto.ts
 model/treatment-bmp-type-upsert-dto.ts
+model/treatment-bmp-type-usage-dto.ts
 model/treatment-bmp-type-with-modeling-attributes-dto.ts
 model/treatment-bmp-upsert-dto.ts
 model/treatment-bmp-upstream-bmp-update-dto.ts
