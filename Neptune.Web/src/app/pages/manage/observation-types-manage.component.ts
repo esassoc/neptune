@@ -108,11 +108,16 @@ export class ObservationTypesManageComponent implements OnInit {
         // <p> wrappers (not concatenated <br/>) so the confirm-modal's paragraph spacing applies.
         const name = this.escapeHtml(row.TreatmentBMPAssessmentObservationTypeName ?? "this observation type");
         const bmpTypeLabel = affectedBmpTypeCount === 1 ? "Treatment BMP Type" : "Treatment BMP Types";
+        // Phrasing mirrors the legacy MVC ConfirmDialogFormViewData built in
+        // TreatmentBMPAssessmentObservationTypeController.ViewDeleteObservationType — single
+        // quotes around the name, no <strong>. Legacy also surfaces the count of historical
+        // Observations; that requires a new field on TreatmentBMPAssessmentObservationTypeDetailDto
+        // and is deferred to a follow-up backend tweak.
         this.confirmService
             .confirm({
                 title: "Delete Observation Type",
                 message:
-                    `<p>Observation Type <strong>${name}</strong> is related to ${affectedBmpTypeCount} ${bmpTypeLabel}.</p>` +
+                    `<p>Observation Type '${name}' is related to ${affectedBmpTypeCount} ${bmpTypeLabel}.</p>` +
                     `<p>Are you sure you want to delete this Observation Type?</p>`,
                 buttonClassYes: "btn btn-danger",
                 buttonTextYes: "Delete",

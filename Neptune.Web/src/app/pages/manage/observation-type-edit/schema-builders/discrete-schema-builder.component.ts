@@ -27,7 +27,7 @@ export function buildDiscreteSchemaFormGroup(initial: DiscreteValueSchema): Disc
         AssessmentDescription: new FormControl<string>(initial.AssessmentDescription ?? "", { nonNullable: true, validators: [Validators.required, Validators.maxLength(300)] }),
         MeasurementUnitLabel: new FormControl<string>(initial.MeasurementUnitLabel ?? "", { nonNullable: true, validators: [Validators.required] }),
         MeasurementUnitTypeID: new FormControl<number | null>(initial.MeasurementUnitTypeID ?? null, { validators: [Validators.required] }),
-        MinimumNumberOfObservations: new FormControl<number>(initial.MinimumNumberOfObservations ?? 1, { nonNullable: true, validators: [Validators.required, Validators.min(0)] }),
+        MinimumNumberOfObservations: new FormControl<number>(initial.MinimumNumberOfObservations ?? 1, { nonNullable: true, validators: [Validators.required, Validators.min(1)] }),
         MaximumNumberOfObservations: new FormControl<number | null>(initial.MaximumNumberOfObservations ?? null),
         MinimumValueOfObservations: new FormControl<number>(initial.MinimumValueOfObservations ?? 0, { nonNullable: true, validators: [Validators.required] }),
         MaximumValueOfObservations: new FormControl<number | null>(initial.MaximumValueOfObservations ?? null),

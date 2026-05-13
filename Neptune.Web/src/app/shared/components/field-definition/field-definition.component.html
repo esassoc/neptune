@@ -45,12 +45,15 @@
       }
     </ng-template>
     @if (iconOnly) {
-      <i
-        class="fas fa-question-circle small field-definition-icon"
-        style="cursor: help"
+      <button
+        type="button"
+        class="field-definition-icon-button"
+        [attr.aria-label]="'Help: ' + (labelOverride || fieldDefinition.FieldDefinitionType.FieldDefinitionTypeDisplayName)"
         [popper]="popContent"
         [useBodyContainer]="useBodyContainer"
-        [popperTitle]="showEditButton() ? popTitle : fieldDefinition.FieldDefinitionType.FieldDefinitionTypeDisplayName"></i>
+        [popperTitle]="showEditButton() ? popTitle : fieldDefinition.FieldDefinitionType.FieldDefinitionTypeDisplayName">
+        <i class="fas fa-question-circle small field-definition-icon"></i>
+      </button>
     } @else if (!inline) {
       @if (showEditButton()) {
         <span style="overflow: hidden; text-overflow: ellipsis">
