@@ -1,9 +1,9 @@
-import { Component } from "@angular/core";
+import { Component, ElementRef, ViewChild } from "@angular/core";
 import { PageHeaderComponent } from "../../../../shared/components/page-header/page-header.component";
 import { AlertDisplayComponent } from "../../../../shared/components/alert-display/alert-display.component";
 import { Router } from "@angular/router";
 import { Input } from "@angular/core";
-import { Observable, of, tap } from "rxjs";
+import { merge, Observable, of, Subject, switchMap, tap } from "rxjs";
 import { NeptuneMapInitEvent, NeptuneMapComponent } from "src/app/shared/components/leaflet/neptune-map/neptune-map.component";
 import { WfsService } from "src/app/shared/services/wfs.service";
 import * as L from "leaflet";
@@ -28,6 +28,7 @@ import {
     BtnGroupRadioInputComponent,
     IBtnGroupRadioInputOption,
 } from "src/app/shared/components/inputs/btn-group-radio-input/btn-group-radio-input.component";
+import { NoteComponent } from "src/app/shared/components/note/note.component";
 
 @Component({
     selector: "trash-ovta-add-remove-parcels",
@@ -43,12 +44,18 @@ import {
         WorkflowBodyComponent,
         TransectLineLayerComponent,
         ParcelLayerComponent,
+        NoteComponent,
     ],
     templateUrl: "./trash-ovta-add-remove-parcels.component.html",
     styleUrl: "./trash-ovta-add-remove-parcels.component.scss",
 })
 export class TrashOvtaAddRemoveParcelsComponent {
     @Input() onlandVisualTrashAssessmentID!: number;
+    @ViewChild("alertAnchor", { read: ElementRef }) alertAnchor?: ElementRef<HTMLElement>;
+    /** Ping from the template (Refresh button) to re-fetch the context after backend regenerates
+     * DraftGeometry from observations. Wired into selectAreaContext$ via merge() so a single
+     * async-pipe subscription drives both initial load and refresh. */
+    public refreshTrigger$ = new Subject<void>();
     public selectAreaContext$: Observable<OnlandVisualTrashAssessmentSelectAreaContextDto>;
     public selectAreaContext: OnlandVisualTrashAssessmentSelectAreaContextDto;
     public map: L.Map;
@@ -84,14 +91,33 @@ export class TrashOvtaAddRemoveParcelsComponent {
 
     ngOnInit(): void {
         this.isLoading = true;
-        this.selectAreaContext$ = this.onlandVisualTrashAssessmentService
-            .getSelectAreaContextOnlandVisualTrashAssessment(this.onlandVisualTrashAssessmentID)
-            .pipe(
-                tap((context) => {
-                    this.applyContext(context);
-                    this.isLoading = false;
-                })
-            );
+        // Refresh flow: POST to clear DraftGeometry, then update the workflow progress sidebar.
+        // The trailing emission feeds into the merge below so the context is re-fetched after.
+        const refreshAndUpdateProgress$ = this.refreshTrigger$.pipe(
+            switchMap(() => this.onlandVisualTrashAssessmentService.refreshOnlandVisualTrashAssessmentParcelsOnlandVisualTrashAssessment(this.onlandVisualTrashAssessmentID)),
+            tap(() => this.ovtaWorkflowProgressService.updateProgress(this.onlandVisualTrashAssessmentID))
+        );
+        // One stream drives both initial load (of(undefined)) and post-refresh re-fetch. The
+        // async pipe in the template is the single subscriber.
+        this.selectAreaContext$ = merge(of(undefined), refreshAndUpdateProgress$).pipe(
+            switchMap(() => this.onlandVisualTrashAssessmentService.getSelectAreaContextOnlandVisualTrashAssessment(this.onlandVisualTrashAssessmentID)),
+            tap((context) => {
+                this.applyContext(context);
+                this.isLoading = false;
+                // On post-refresh emissions, the map is already initialized — re-style the
+                // parcel highlight and re-bind the click handler so they pick up the new context.
+                if (this.mapIsReady) {
+                    this.refreshParcelSelectionLayer(true);
+                    this.enableDisableMapClickEvent(context);
+                }
+            })
+        );
+    }
+
+    /** True when the area was hand-refined on the Refine step — picker is locked until the user
+     * presses Refresh, which clears DraftGeometry server-side and the flag flips back to false. */
+    public get isLockedPendingRefresh(): boolean {
+        return this.selectAreaContext?.IsDraftGeometryManuallyRefined === true;
     }
 
     private applyContext(context: OnlandVisualTrashAssessmentSelectAreaContextDto) {
@@ -99,9 +125,10 @@ export class TrashOvtaAddRemoveParcelsComponent {
         this.sourceTypeID = context.OvtaAreaSourceTypeID as OvtaAreaSourceTypeEnum;
         this.selectedParcelIDs = context.SelectedParcelIDs ?? [];
         this.selectedLandUseBlockIDs = context.SelectedLandUseBlockIDs ?? [];
+        const locked = context.IsDraftGeometryManuallyRefined === true;
         this.sourceTypeOptions = [
-            { label: "Parcels", value: OvtaAreaSourceTypeEnum.Parcel },
-            { label: "Land Use Blocks", value: OvtaAreaSourceTypeEnum.LandUseBlock, disabled: !context.JurisdictionHasLandUseBlocks },
+            { label: "Parcels", value: OvtaAreaSourceTypeEnum.Parcel, disabled: locked },
+            { label: "Land Use Blocks", value: OvtaAreaSourceTypeEnum.LandUseBlock, disabled: locked || !context.JurisdictionHasLandUseBlocks },
         ];
     }
 
@@ -121,6 +148,12 @@ export class TrashOvtaAddRemoveParcelsComponent {
         if (this.sourceTypeID === newSourceTypeID) {
             return;
         }
+        // While locked the radio options are disabled, but ngModel can still be flipped
+        // programmatically — snap back to the saved source type and bail.
+        if (this.isLockedPendingRefresh) {
+            this.sourceTypeID = this.selectAreaContext.OvtaAreaSourceTypeID as OvtaAreaSourceTypeEnum;
+            return;
+        }
         // Clear the inactive list so we don't accidentally save a stale union of mixed sources.
         // The user can still re-pick from the now-active layer; nothing is lost on the server
         // until they click Save.
@@ -137,6 +170,7 @@ export class TrashOvtaAddRemoveParcelsComponent {
      * selectedLandUseBlockIDs; we replace the array (rather than mutating) so Angular fires
      * ngOnChanges on the layer and it can re-style. */
     public onLandUseBlockClicked(landUseBlockID: number) {
+        if (this.isLockedPendingRefresh) return;
         if (this.selectedLandUseBlockIDs.includes(landUseBlockID)) {
             this.selectedLandUseBlockIDs = this.selectedLandUseBlockIDs.filter((id) => id !== landUseBlockID);
         } else {
@@ -183,32 +217,22 @@ export class TrashOvtaAddRemoveParcelsComponent {
                 this.ovtaWorkflowProgressService.updateProgress(this.onlandVisualTrashAssessmentID);
                 if (andContinue) {
                     this.router.navigate([`/trash/onland-visual-trash-assessments/edit/${this.onlandVisualTrashAssessmentID}/refine-assessment-area`]);
+                    return;
                 }
+                this.alertAnchor?.nativeElement.scrollIntoView({ behavior: "smooth", block: "start" });
             });
     }
 
-    public refreshParcels() {
-        this.onlandVisualTrashAssessmentService.refreshOnlandVisualTrashAssessmentParcelsOnlandVisualTrashAssessment(this.onlandVisualTrashAssessmentID).subscribe(() => {
-            // After clearing DraftGeometry, re-fetch the context so the saved source type and
-            // freshly-recomputed selection (from the transect line) come back together.
-            this.onlandVisualTrashAssessmentService
-                .getSelectAreaContextOnlandVisualTrashAssessment(this.onlandVisualTrashAssessmentID)
-                .subscribe((context) => {
-                    this.applyContext(context);
-                    this.refreshParcelSelectionLayer(true);
-                    this.enableDisableMapClickEvent(context);
-                    this.selectAreaContext$ = of(context);
-                });
-        });
-    }
-
-    /** Map-level click handler — used only for parcel mode (coordinate-query against WMS). LUB
-     * mode handles per-feature clicks directly on the vector layer. Stays active even when the
-     * area was manually refined: re-picking is a valid way for the user to discard the
-     * refinement (matches the LUB layer's behavior and the Refresh button's intent). */
+/** Map-level click handler — used only for parcel mode (coordinate-query against WMS). LUB
+     * mode handles per-feature clicks directly on the vector layer. Disabled while
+     * IsDraftGeometryManuallyRefined is true so a stray click can't silently overwrite the
+     * hand-refined polygon — user must press Refresh to unlock. */
     private enableDisableMapClickEvent(_context: OnlandVisualTrashAssessmentSelectAreaContextDto) {
         this.map.off("click");
         this.map.on("click", (event: L.LeafletMouseEvent): void => {
+            if (this.isLockedPendingRefresh) {
+                return;
+            }
             if (this.sourceTypeID !== OvtaAreaSourceTypeEnum.Parcel) {
                 return;
             }

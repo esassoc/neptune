@@ -1,4 +1,4 @@
-import { Component } from "@angular/core";
+import { Component, ElementRef, ViewChild } from "@angular/core";
 import { FormArray, FormBuilder, FormControl, FormGroup, FormsModule, ReactiveFormsModule, Validators } from "@angular/forms";
 import { OnlandVisualTrashAssessmentService } from "src/app/shared/generated/api/onland-visual-trash-assessment.service";
 import { PageHeaderComponent } from "../../../../shared/components/page-header/page-header.component";
@@ -64,6 +64,7 @@ export class TrashOvtaReviewAndFinalizeComponent {
     });
 
     @Input() onlandVisualTrashAssessmentID!: number;
+    @ViewChild("alertAnchor", { read: ElementRef }) alertAnchor?: ElementRef<HTMLElement>;
 
     constructor(
         private onlandVisualTrashAssessmentService: OnlandVisualTrashAssessmentService,
@@ -151,7 +152,9 @@ export class TrashOvtaReviewAndFinalizeComponent {
                 this.ovtaWorkflowProgressService.updateProgress(this.onlandVisualTrashAssessmentID);
                 if (andContinue) {
                     this.router.navigate([`/trash/onland-visual-trash-assessments/${this.onlandVisualTrashAssessmentID}`]);
+                    return;
                 }
+                this.alertAnchor?.nativeElement.scrollIntoView({ behavior: "smooth", block: "start" });
             });
     }
 }
