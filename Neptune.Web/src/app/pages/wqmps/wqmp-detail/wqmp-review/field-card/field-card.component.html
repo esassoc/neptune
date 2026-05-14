@@ -61,18 +61,26 @@
     </div>
 
     @if (extractionEvidence || documentSource) {
-        <button class="field-card__evidence-toggle" (click)="toggleEvidence()">
-            <i class="fa" [class.fa-chevron-down]="!showEvidence()" [class.fa-chevron-up]="showEvidence()"></i>
-            Evidence
-        </button>
-        @if (showEvidence()) {
+        <!--
+            NPT-1054: page-number link sits inline with the Evidence toggle so the user can
+            jump to the PDF page without expanding the panel. The expandable panel now only
+            contains the extracted snippet text; when there's no snippet (just a page link),
+            no toggle button is rendered at all.
+        -->
+        <div class="field-card__evidence-header">
+            @if (extractionEvidence) {
+                <button class="field-card__evidence-toggle" (click)="toggleEvidence()">
+                    <i class="fa" [class.fa-chevron-down]="!showEvidence()" [class.fa-chevron-up]="showEvidence()"></i>
+                    Evidence
+                </button>
+            }
+            @if (documentSource) {
+                <span class="field-card__source field-card__source--clickable" (click)="goToSource()"><i class="fa fa-file-pdf-o"></i> {{ documentSource }}</span>
+            }
+        </div>
+        @if (showEvidence() && extractionEvidence) {
             <div class="field-card__evidence">
-                @if (documentSource) {
-                    <span class="field-card__source field-card__source--clickable" (click)="goToSource()"><i class="fa fa-file-pdf-o"></i> {{ documentSource }}</span>
-                }
-                @if (extractionEvidence) {
-                    <p class="field-card__snippet field-card__snippet--clickable" (click)="goToSource()" title="Jump to this passage in the PDF">{{ extractionEvidence }}</p>
-                }
+                <p class="field-card__snippet field-card__snippet--clickable" (click)="goToSource()" title="Jump to this passage in the PDF">{{ extractionEvidence }}</p>
             </div>
         }
     }

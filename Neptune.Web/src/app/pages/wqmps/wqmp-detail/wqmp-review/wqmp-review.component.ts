@@ -518,31 +518,40 @@ export class WqmpReviewComponent implements OnInit, IDeactivateComponent {
             const extractedEntry = extractedByName.get(attr.SourceControlBMPAttributeName?.toLowerCase() ?? "");
             const isPresentExtracted = extractedEntry?.IsPresent;
             const noteExtracted = extractedEntry?.SourceControlBMPNote;
+            const saved = this.existingSourceControlByAttributeID.get(attr.SourceControlBMPAttributeID);
 
             // Coerce "Yes"/"No"/true/false from Claude to the boolean | null shape the
             // form-field Radio + isPresentOptions expect.
-            let isPresentValue: boolean | null = null;
+            let extractedIsPresentValue: boolean | null = null;
             const rawIsPresent = isPresentExtracted?.Value;
             if (typeof rawIsPresent === "boolean") {
-                isPresentValue = rawIsPresent;
+                extractedIsPresentValue = rawIsPresent;
             } else if (typeof rawIsPresent === "string") {
                 const lc = rawIsPresent.trim().toLowerCase();
-                isPresentValue = lc === "yes" || lc === "true" ? true
+                extractedIsPresentValue = lc === "yes" || lc === "true" ? true
                     : lc === "no" || lc === "false" ? false
                     : null;
             }
 
-            // Step 4 is the AI-review surface: only AI-extracted values prefill the form.
-            // Previously-saved-but-not-AI values live on the WQMP record (visible from the
-            // standalone edit page) and intentionally do NOT bleed into the wizard so the
-            // user is always reviewing AI suggestions, not their own prior edits.
+            // Saved-first prefill (NPT-1054): the form reflects what's currently on the WQMP
+            // record so the replace-all save endpoint can't silently drop untouched attributes.
+            // AI-extracted values fill gaps for attributes the user hasn't saved yet. AI badges
+            // mark cells the AI extracted (see sourceControlIsPresentEvidence /
+            // sourceControlNoteEvidence Maps) regardless of which source supplied the value.
+            const isPresentValue: boolean | null = saved
+                ? (saved.IsPresent ?? null)
+                : extractedIsPresentValue;
+            const noteValue: string = saved
+                ? (saved.SourceControlBMPNote ?? "")
+                : (noteExtracted?.Value ?? "");
+
             const row = new FormGroup({
                 SourceControlBMPAttributeID: new FormControl<number>(attr.SourceControlBMPAttributeID),
                 SourceControlBMPAttributeName: new FormControl<string>(attr.SourceControlBMPAttributeName ?? null),
                 SourceControlBMPAttributeCategoryID: new FormControl<number>(attr.SourceControlBMPAttributeCategoryID),
                 SourceControlBMPAttributeCategoryName: new FormControl<string>(attr.SourceControlBMPAttributeCategoryName ?? null),
                 IsPresent: new FormControl<boolean | null>(isPresentValue),
-                SourceControlBMPNote: new FormControl<string>(noteExtracted?.Value ?? "", { validators: [Validators.maxLength(200)] }),
+                SourceControlBMPNote: new FormControl<string>(noteValue, { validators: [Validators.maxLength(200)] }),
             });
             this.sourceControlRows.push(row, { emitEvent: false });
 
@@ -626,6 +635,25 @@ export class WqmpReviewComponent implements OnInit, IDeactivateComponent {
         return out;
     }
 
+    /**
+     * Per-row origin pill for Step 4. Mirrors the AI-extracted / User-entered / Blank /
+     * Edited labelling on the Steps 1–3 field cards so users can see provenance at a glance.
+     *  - "edited"  → user changed this row in the current session (FormGroup is dirty)
+     *  - "record"  → row prefilled from the WQMP record (saved value, regardless of AI)
+     *  - "ai"      → AI extracted a value and there's no saved value on the record
+     *  - "blank"   → nothing on record and AI didn't extract anything
+     */
+    public getSourceControlRowOrigin(row: FormGroup): "ai" | "record" | "edited" | "blank" {
+        if (row.dirty) return "edited";
+        const attrID = row.get("SourceControlBMPAttributeID")!.value as number;
+        const saved = this.existingSourceControlByAttributeID.get(attrID);
+        const isPresent = saved?.IsPresent ?? null;
+        const note = (saved?.SourceControlBMPNote ?? "").trim();
+        if (saved && (isPresent != null || note)) return "record";
+        if (this.sourceControlIsPresentEvidence.has(attrID) || this.sourceControlNoteEvidence.has(attrID)) return "ai";
+        return "blank";
+    }
+
     private formatSavedSourceControlValue(saved: SourceControlBMPDto | undefined): string | null {
         if (!saved) return null;
         const note = (saved.SourceControlBMPNote ?? "").trim();
@@ -633,6 +661,7 @@ export class WqmpReviewComponent implements OnInit, IDeactivateComponent {
         const presentDisplay = saved.IsPresent === true ? "Yes" : saved.IsPresent === false ? "No" : "—";
         return note ? `${presentDisplay} — ${note}` : presentDisplay;
     }
+
 
     get summaryLookupOptionsByKey(): Record<string, SelectDropdownOption[]> {
         const map: Record<string, SelectDropdownOption[]> = {};

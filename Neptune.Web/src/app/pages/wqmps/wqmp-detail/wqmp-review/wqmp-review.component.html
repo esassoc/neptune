@@ -233,6 +233,12 @@
                                                     <tr [formGroup]="row">
                                                         <td class="col-attribute">
                                                             <label>{{ row.get("SourceControlBMPAttributeName")!.value }}</label>
+                                                            @switch (getSourceControlRowOrigin(row)) {
+                                                                @case ("edited") { <span class="sc-origin-pill sc-origin-pill--edited">Edited</span> }
+                                                                @case ("record") { <span class="sc-origin-pill sc-origin-pill--record">On record</span> }
+                                                                @case ("ai") { <span class="sc-origin-pill sc-origin-pill--ai">AI-extracted</span> }
+                                                                @case ("blank") { <span class="sc-origin-pill sc-origin-pill--blank">Blank</span> }
+                                                            }
                                                         </td>
                                                         <td class="col-present">
                                                             <div class="sc-cell">

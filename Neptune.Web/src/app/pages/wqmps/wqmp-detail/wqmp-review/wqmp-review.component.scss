@@ -486,6 +486,44 @@
     form-field { flex: 1 1 auto; }
 }
 
+// NPT-1054: per-row provenance pill on Step 4. Mirrors the .origin-pill on the field-card
+// component (Steps 1–3) so users can read where a row's value came from at a glance:
+//  - On record   → prefilled from saved WQMP state (won't be wiped on save)
+//  - AI-extracted → prefilled from the AI; no saved value on the record yet
+//  - Edited      → user changed it in this session
+//  - Blank       → nothing on record, AI didn't extract
+.sc-origin-pill {
+    display: inline-block;
+    margin-top: 0.15rem;
+    font-size: 0.65rem;
+    padding: 0.05rem 0.45rem;
+    border-radius: 999px;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    font-weight: 600;
+    line-height: 1.4;
+
+    &--ai {
+        background: rgba(0, 153, 171, 0.12);
+        color: $primary;
+    }
+
+    &--record {
+        background: rgba(34, 197, 94, 0.14);
+        color: #15803d;
+    }
+
+    &--edited {
+        background: rgba(245, 158, 11, 0.14);
+        color: #b45309;
+    }
+
+    &--blank {
+        background: $gray-100;
+        color: $gray-500;
+    }
+}
+
 .sc-ai-badge {
     flex: 0 0 auto;
     background: transparent;

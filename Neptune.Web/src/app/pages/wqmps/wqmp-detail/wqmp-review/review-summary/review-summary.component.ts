@@ -141,4 +141,25 @@ export class ReviewSummaryComponent {
         }
         return String(raw);
     }
+
+    /**
+     * NPT-1054 diff-dashboard Status. Status carries only the workflow-vs-record diff state;
+     * provenance ("AI", "User", etc.) is conveyed elsewhere (AI pill in the Workflow Value
+     * cell, the WQMP Record column itself). Three states:
+     *  - "saved":   Workflow value matches WQMP record (both non-empty, equal strings).
+     *  - "empty":   Both workflow and record are empty — nothing to save, nothing on record.
+     *  - "pending": Workflow differs from record — the user has unsaved changes (including
+     *               additions, edits, and rejections that haven't been persisted yet).
+     */
+    public getSaveStatus(row: ReviewSummaryRow): "saved" | "pending" | "empty" {
+        const workflowEmpty = !row.displayValue || row.displayValue === "(not set)" || row.displayValue === "(rejected)";
+        const recordEmpty = !row.wqmpRecordValue;
+        if (workflowEmpty && recordEmpty) return "empty";
+        if (!workflowEmpty && !recordEmpty && row.displayValue === row.wqmpRecordValue) return "saved";
+        return "pending";
+    }
+
+    public isWorkflowRejected(row: ReviewSummaryRow): boolean {
+        return row.displayValue === "(rejected)";
+    }
 }

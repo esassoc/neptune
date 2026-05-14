@@ -28,7 +28,7 @@
             <thead>
                 <tr>
                     <th class="review-summary__col-label">Field</th>
-                    <th class="review-summary__col-value">Extracted Value</th>
+                    <th class="review-summary__col-value">Workflow Value</th>
                     <th class="review-summary__col-value">WQMP Record</th>
                     <th class="review-summary__col-status">Status</th>
                 </tr>
@@ -37,28 +37,22 @@
                 @for (row of rows; track row.label) {
                     <tr>
                         <td class="review-summary__col-label">{{ row.label }}</td>
-                        <td class="review-summary__col-value" [class.review-summary__col-value--empty]="row.displayValue === '(not set)' || row.displayValue === '(rejected)'">
+                        <td class="review-summary__col-value"
+                            [class.review-summary__col-value--empty]="row.displayValue === '(not set)'"
+                            [class.review-summary__col-value--rejected]="isWorkflowRejected(row)">
                             {{ row.displayValue }}
+                            @if (row.origin === "ai" && row.state !== "rejected" && row.displayValue !== "(not set)") {
+                                <span class="review-summary__ai-badge" title="AI-extracted from the uploaded PDF"><i class="fa fa-magic"></i> AI</span>
+                            }
                         </td>
                         <td class="review-summary__col-value" [class.review-summary__col-value--empty]="!row.wqmpRecordValue">
                             {{ row.wqmpRecordValue ?? "—" }}
                         </td>
                         <td class="review-summary__col-status">
-                            @switch (row.state) {
-                                @case ("accepted") { <span class="status-pill status-pill--accepted">Accepted</span> }
-                                @case ("edited") { <span class="status-pill status-pill--edited">Edited</span> }
-                                @case ("rejected") { <span class="status-pill status-pill--rejected">Rejected</span> }
-                                @default {
-                                    @if (row.wqmpRecordValue) {
-                                        <span class="status-pill status-pill--accepted">Accepted</span>
-                                    } @else if (row.origin === "user") {
-                                        <span class="status-pill status-pill--user">User-entered</span>
-                                    } @else if (row.origin === "blank") {
-                                        <span class="status-pill status-pill--blank">Blank in source</span>
-                                    } @else {
-                                        <span class="status-pill status-pill--pending">AI-pending</span>
-                                    }
-                                }
+                            @switch (getSaveStatus(row)) {
+                                @case ("saved") { <span class="status-pill status-pill--saved">Saved</span> }
+                                @case ("pending") { <span class="status-pill status-pill--pending">Pending save</span> }
+                                @case ("empty") { <span class="status-pill status-pill--empty">Empty</span> }
                             }
                         </td>
                     </tr>
