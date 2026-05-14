@@ -310,7 +310,22 @@ public class WqmpExtractionService
             WaterQualityManagementPlanDevelopmentType = WaterQualityManagementPlanDevelopmentType.All.Select(x => x.WaterQualityManagementPlanDevelopmentTypeDisplayName),
             WaterQualityManagementPlanPermitTerm = WaterQualityManagementPlanPermitTerm.All.Select(x => x.WaterQualityManagementPlanPermitTermDisplayName),
             TrashCaptureStatusType = TrashCaptureStatusType.All.Select(x => x.TrashCaptureStatusTypeDisplayName),
-            SourceControlBMPAttributes = await _dbContext.SourceControlBMPAttributes.AsNoTracking().Select(x => x.SourceControlBMPAttributeName).ToListAsync(),
+            // NPT-1054: send SC attribute names grouped by their category so Claude has the
+            // three-bucket taxonomy when matching extracted attribute wording. The v3 prompt
+            // explicitly enumerates the three categories with examples — the categorized
+            // DomainContext lets Claude resolve fuzzy PDF wording against the right bucket.
+            SourceControlBMPAttributes = (await _dbContext.SourceControlBMPAttributes
+                .AsNoTracking()
+                .Select(x => new { x.SourceControlBMPAttributeName, x.SourceControlBMPAttributeCategoryID })
+                .ToListAsync())
+                .GroupBy(x => x.SourceControlBMPAttributeCategoryID)
+                .Select(g => new
+                {
+                    Category = SourceControlBMPAttributeCategory.AllLookupDictionary[g.Key].SourceControlBMPAttributeCategoryName,
+                    Attributes = g.Select(a => a.SourceControlBMPAttributeName).OrderBy(n => n).ToList(),
+                })
+                .OrderBy(g => g.Category)
+                .ToList(),
         };
         return $"SCHEMA_VERSION: {SchemaVersion}\nDOMAIN TABLES: {JsonSerializer.Serialize(domainTables)}\n";
     }

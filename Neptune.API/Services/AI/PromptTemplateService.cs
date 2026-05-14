@@ -30,7 +30,7 @@ public sealed class PromptTemplateService : IPromptTemplateService
         [PromptTemplate.ExtractWqmpFields] = "v2",
         [PromptTemplate.ExtractParcels] = "v2",
         [PromptTemplate.ExtractQuickBMPs] = "v3",
-        [PromptTemplate.ExtractSourceControlBMPs] = "v2",
+        [PromptTemplate.ExtractSourceControlBMPs] = "v3",
     };
 
     private readonly string _promptsDirectory;
