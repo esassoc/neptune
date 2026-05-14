@@ -6,7 +6,7 @@ import { BehaviorSubject, EMPTY, finalize, forkJoin, map, Observable, switchMap,
 import { ConfirmService } from "src/app/shared/services/confirm/confirm.service";
 import { PdfJsViewerModule, PdfJsViewerComponent } from "ng2-pdfjs-viewer";
 import { AlertDisplayComponent } from "src/app/shared/components/alert-display/alert-display.component";
-import { FormFieldType, SelectDropdownOption } from "src/app/shared/components/forms/form-field/form-field.component";
+import { FormFieldComponent, FormFieldType, SelectDropdownOption } from "src/app/shared/components/forms/form-field/form-field.component";
 import { AlertService } from "src/app/shared/services/alert.service";
 import { Alert } from "src/app/shared/models/alert";
 import { AlertContext } from "src/app/shared/models/enums/alert-context.enum";
@@ -23,6 +23,9 @@ import { WaterQualityManagementPlanSectionSaveResponseDto } from "src/app/shared
 import { EvidenceBoundingBox, FieldCardComponent, SourceNavigation } from "src/app/pages/wqmps/wqmp-detail/wqmp-review/field-card/field-card.component";
 import { BmpReviewCardComponent } from "src/app/pages/wqmps/wqmp-detail/wqmp-review/bmp-review-card/bmp-review-card.component";
 import { ReviewSummaryComponent } from "src/app/pages/wqmps/wqmp-detail/wqmp-review/review-summary/review-summary.component";
+import { SourceControlBMPUpsertDto } from "src/app/shared/generated/model/source-control-bmp-upsert-dto";
+import { SourceControlBMPDto } from "src/app/shared/generated/model/source-control-bmp-dto";
+import { FormArray, FormControl, FormGroup, ReactiveFormsModule, Validators } from "@angular/forms";
 import { IDeactivateComponent } from "src/app/shared/guards/unsaved-changes.guard";
 import { escapeHtml } from "src/app/shared/helpers/html-escape";
 import { WaterQualityManagementPlanPrioritiesAsSelectDropdownOptions } from "src/app/shared/generated/enum/water-quality-management-plan-priority-enum";
@@ -64,7 +67,7 @@ export interface ExtractedField {
 @Component({
     selector: "wqmp-review",
     standalone: true,
-    imports: [AlertDisplayComponent, FieldCardComponent, BmpReviewCardComponent, ReviewSummaryComponent, PdfJsViewerModule, RouterLink, AsyncPipe],
+    imports: [AlertDisplayComponent, FieldCardComponent, BmpReviewCardComponent, ReviewSummaryComponent, PdfJsViewerModule, RouterLink, AsyncPipe, ReactiveFormsModule, FormFieldComponent],
     templateUrl: "./wqmp-review.component.html",
     styleUrl: "./wqmp-review.component.scss",
 })
@@ -94,6 +97,25 @@ export class WqmpReviewComponent implements OnInit, IDeactivateComponent {
     // draft persistence. The card-level "reject this BMP" overlay is tracked separately
     // in `rejectedBmpIndices` because it spans multiple fields.
     public readonly BMP_KEY_PREFIX = "__BMP__-";
+    // NPT-1054: Step 4 Source Control BMP state. Mirrors edit-source-control-bmps's
+    // FormArray-of-FormGroups so the table-row UX is identical. AI-extracted evidence is
+    // tracked in parallel maps keyed by SourceControlBMPAttributeID — surfaced as small
+    // inline AI badges in the IsPresent / Note cells (click → navigate to PDF source).
+    public readonly isPresentOptions: SelectDropdownOption[] = [
+        { Value: true, Label: "Yes" } as SelectDropdownOption,
+        { Value: false, Label: "No" } as SelectDropdownOption,
+    ];
+    public sourceControlRows = new FormArray<FormGroup>([]);
+    public sourceControlGroups: { category: string; rows: FormGroup[]; collapsed: boolean }[] = [];
+    public sourceControlIsPresentEvidence = new Map<number, { value: any; evidence: string | null; source: string | null; boundingBox: EvidenceBoundingBox | null }>();
+    public sourceControlNoteEvidence = new Map<number, { value: any; evidence: string | null; source: string | null; boundingBox: EvidenceBoundingBox | null }>();
+    public sourceControlDirty = signal(false);
+    /** Cached attribute list (categories + names + IDs) loaded once with the other lookups. */
+    private sourceControlAttributesCache: SourceControlBMPUpsertDto[] = [];
+    // What's actually saved on the WQMP record, keyed by AttributeID. Refreshed every time the
+    // inner forkJoin runs (initial mount + reload$ emissions). Drives the "WQMP Record" column
+    // on the Step 5 Review summary — Step 4 itself stays AI-only.
+    private existingSourceControlByAttributeID = new Map<number, SourceControlBMPDto>();
     public readonly BMP_FIELD_KEYS = [
         "QuickBMPName",
         "TreatmentBMPType",
@@ -139,7 +161,7 @@ export class WqmpReviewComponent implements OnInit, IDeactivateComponent {
     public pdfBlob: Blob | null = null;
     // NPT-1051: per-section save in progress. Set while POST /save-{location|basics|bmps} is
     // outstanding; binds the corresponding step's Save button to a spinner + disabled state.
-    public savingSection = signal<"location" | "basics" | "bmps" | null>(null);
+    public savingSection = signal<"location" | "basics" | "bmps" | "source-control" | null>(null);
     // NPT-1051: hasUnsavedChanges is derived from field state — any field accepted/edited/
     // rejected (or any card-level BMP rejection) counts as dirty until the corresponding section
     // Save commits. UnsavedChangesGuard reads canExit() which reads this.
@@ -149,6 +171,7 @@ export class WqmpReviewComponent implements OnInit, IDeactivateComponent {
     // suggestion. That auto-accept is settled state — not unsaved review work — so it doesn't
     // count toward hasUnsavedChanges. Editing or rejecting a user-entered field still counts.
     public hasUnsavedChanges = computed(() => {
+        if (this.sourceControlDirty()) return true;
         return this.fields().some((f) => {
             if (f.state === "pending") return false;
             if (f.isUserEntered && f.state === "accepted") return false;
@@ -187,7 +210,9 @@ export class WqmpReviewComponent implements OnInit, IDeactivateComponent {
         { number: 1, title: "Location", desc: "Jurisdiction & parcels" },
         { number: 2, title: "Basics", desc: "Project details & contacts" },
         { number: 3, title: "BMPs", desc: "Treatment controls" },
-        { number: 4, title: "Review", desc: "Final review" },
+        // NPT-1054: Source Control BMPs slot in between BMPs and the final Review.
+        { number: 4, title: "Source Control BMPs", desc: "Operational / non-structural controls" },
+        { number: 5, title: "Review", desc: "Final review" },
     ];
 
     // Fields per step
@@ -225,6 +250,11 @@ export class WqmpReviewComponent implements OnInit, IDeactivateComponent {
     };
 
     ngOnInit(): void {
+        // NPT-1054: any user edit on the SC FormArray flips the dirty signal. Reset back to
+        // false on (re)build (buildSourceControlRowsFromParsed clears it after pushing rows)
+        // and after a successful save.
+        this.sourceControlRows.valueChanges.subscribe(() => this.sourceControlDirty.set(true));
+
         // Load lookup options first, then parse extraction results
         const jurisdictions$ = this.jurisdictionService.listViewableStormwaterJurisdiction().pipe(
             map((j) => j.map((x) => ({ Label: x.StormwaterJurisdictionName, Value: x.StormwaterJurisdictionID }) as SelectDropdownOption)),
@@ -244,10 +274,17 @@ export class WqmpReviewComponent implements OnInit, IDeactivateComponent {
                 .sort((a, b) => a.Label.localeCompare(b.Label))),
             catchError(() => of([] as SelectDropdownOption[]))
         );
+        // NPT-1054: full Source Control BMP attribute list (with category info) drives Step 4's
+        // collapsible-by-category grid. Loaded with the other lookups so parseExtractionResult
+        // can pre-fill rows synchronously when extraction results are present.
+        const sourceControlAttributes$ = this.wqmpService.listSourceControlBMPAttributesWaterQualityManagementPlan().pipe(
+            catchError(() => of([] as SourceControlBMPUpsertDto[]))
+        );
 
-        this.pageData$ = forkJoin([jurisdictions$, hydrologicSubareas$, treatmentBMPTypes$]).pipe(
-            tap(([jurisdictions, hydrologicSubareas, treatmentBMPTypes]) => {
+        this.pageData$ = forkJoin([jurisdictions$, hydrologicSubareas$, treatmentBMPTypes$, sourceControlAttributes$]).pipe(
+            tap(([jurisdictions, hydrologicSubareas, treatmentBMPTypes, sourceControlAttributes]) => {
                 this.treatmentBMPTypeOptions.set(treatmentBMPTypes);
+                this.sourceControlAttributesCache = sourceControlAttributes;
                 this.lookupFieldConfig = {
                     Jurisdiction: { options: jurisdictions, dtoField: "StormwaterJurisdictionID" },
                     HydrologicSubarea: { options: hydrologicSubareas, dtoField: "HydrologicSubareaID" },
@@ -269,16 +306,31 @@ export class WqmpReviewComponent implements OnInit, IDeactivateComponent {
                 documents: this.wqmpService.listDocumentsWaterQualityManagementPlan(this.waterQualityManagementPlanID),
                 // NPT-1051: live WQMP record drives Step 4's WQMP Record column.
                 wqmp: this.wqmpService.getWaterQualityManagementPlan(this.waterQualityManagementPlanID),
+                // NPT-1054: previously-saved Source Control BMPs feed the Step 5 Review's
+                // "WQMP Record" column so the user can see what's already on the record next
+                // to the (possibly empty) AI extraction for each attribute. Does NOT prefill
+                // Step 4 — the wizard intentionally only shows AI-extracted suggestions there.
+                existingSourceControl: this.wqmpService.listSourceControlBMPsWaterQualityManagementPlan(this.waterQualityManagementPlanID).pipe(
+                    catchError(() => of([] as SourceControlBMPDto[]))
+                ),
             })),
-            tap(({ extractionResult, wqmp }) => {
+            tap(({ extractionResult, wqmp, existingSourceControl }) => {
                 this.currentResult.set(extractionResult);
                 this.liveWqmp.set(wqmp);
+                this.existingSourceControlByAttributeID = new Map(
+                    (existingSourceControl ?? [])
+                        .filter((e) => e?.SourceControlBMPAttributeID != null)
+                        .map((e) => [e.SourceControlBMPAttributeID!, e] as const)
+                );
                 if (extractionResult?.ExtractionResultJson) {
                     this.parseExtractionResult(extractionResult.ExtractionResultJson);
                 } else {
                     // Either no extraction yet, or the prior run failed (failure row carries
                     // ErrorMessage/ErrorCode but null JSON). Surface the error if present.
                     this.fields.set([]);
+                    // NPT-1054: still build blank SC rows so Step 4 renders without error
+                    // when there's no extraction yet (AC: empty form, no error).
+                    this.buildSourceControlRowsFromParsed(null);
                     if (extractionResult?.ErrorMessage) {
                         // ErrorMessage echoes server-side data (Anthropic SDK errors include the
                         // upstream JSON body). Alerts render via [innerHTML] so HTML-escape the
@@ -392,9 +444,10 @@ export class WqmpReviewComponent implements OnInit, IDeactivateComponent {
     get fieldsForCurrentStep(): ExtractedField[] {
         // Step 3's BMP fields are grouped under bmp-review-card components rather than
         // rendered flat — exclude them from the top-level field list so the Step 1/2
-        // template path doesn't duplicate them.
+        // template path doesn't duplicate them. Step 4 (Source Control BMPs) doesn't put
+        // anything on the ExtractedField list; it uses its own FormArray state.
         return this.fields().filter(
-            (f) => f.step === this.currentStep() && !f.key.startsWith(this.BMP_KEY_PREFIX)
+            (f) => f.step === this.currentStep() && !f.key.startsWith(this.BMP_KEY_PREFIX),
         );
     }
 
@@ -432,6 +485,184 @@ export class WqmpReviewComponent implements OnInit, IDeactivateComponent {
                 return { bmpIndex, displayName, fields, isRejected: rejected.has(bmpIndex) };
             });
     }
+    /**
+     * NPT-1054: build the Source Control FormArray from the loaded attribute list and
+     * (optionally) the extraction JSON. Mirrors edit-source-control-bmps's row schema so
+     * the table-row UX is identical. Evidence (per IsPresent / per Note) is parked in
+     * sibling Maps so the inline AI badge can render and source-navigate.
+     *
+     * Called from parseExtractionResult (both extraction-present and extraction-absent
+     * paths) so Step 4 always renders with all attribute rows visible (AC: empty form,
+     * no error).
+     */
+    private buildSourceControlRowsFromParsed(parsed: any): void {
+        // Map extraction entries by attribute-name for fast lookup. Empty when no extraction.
+        const extractedByName = new Map<string, any>();
+        const scArr = parsed?.SourceControlBMPs;
+        if (Array.isArray(scArr)) {
+            for (const entry of scArr) {
+                const name = entry?.SourceControlBMPAttribute?.Value;
+                if (typeof name === "string" && name.length > 0) {
+                    extractedByName.set(name.toLowerCase(), entry);
+                }
+            }
+        }
+
+        // Reset (load may run multiple times on reload$). Stop emitting valueChanges while
+        // we rebuild so we don't flip sourceControlDirty during seeding.
+        this.sourceControlRows.clear({ emitEvent: false });
+        this.sourceControlIsPresentEvidence.clear();
+        this.sourceControlNoteEvidence.clear();
+
+        for (const attr of this.sourceControlAttributesCache) {
+            const extractedEntry = extractedByName.get(attr.SourceControlBMPAttributeName?.toLowerCase() ?? "");
+            const isPresentExtracted = extractedEntry?.IsPresent;
+            const noteExtracted = extractedEntry?.SourceControlBMPNote;
+            const saved = this.existingSourceControlByAttributeID.get(attr.SourceControlBMPAttributeID);
+
+            // Coerce "Yes"/"No"/true/false from Claude to the boolean | null shape the
+            // form-field Radio + isPresentOptions expect.
+            let extractedIsPresentValue: boolean | null = null;
+            const rawIsPresent = isPresentExtracted?.Value;
+            if (typeof rawIsPresent === "boolean") {
+                extractedIsPresentValue = rawIsPresent;
+            } else if (typeof rawIsPresent === "string") {
+                const lc = rawIsPresent.trim().toLowerCase();
+                extractedIsPresentValue = lc === "yes" || lc === "true" ? true
+                    : lc === "no" || lc === "false" ? false
+                    : null;
+            }
+
+            // Saved-first prefill (NPT-1054): the form reflects what's currently on the WQMP
+            // record so the replace-all save endpoint can't silently drop untouched attributes.
+            // AI-extracted values fill gaps for attributes the user hasn't saved yet. AI badges
+            // mark cells the AI extracted (see sourceControlIsPresentEvidence /
+            // sourceControlNoteEvidence Maps) regardless of which source supplied the value.
+            const isPresentValue: boolean | null = saved
+                ? (saved.IsPresent ?? null)
+                : extractedIsPresentValue;
+            const noteValue: string = saved
+                ? (saved.SourceControlBMPNote ?? "")
+                : (noteExtracted?.Value ?? "");
+
+            const row = new FormGroup({
+                SourceControlBMPAttributeID: new FormControl<number>(attr.SourceControlBMPAttributeID),
+                SourceControlBMPAttributeName: new FormControl<string>(attr.SourceControlBMPAttributeName ?? null),
+                SourceControlBMPAttributeCategoryID: new FormControl<number>(attr.SourceControlBMPAttributeCategoryID),
+                SourceControlBMPAttributeCategoryName: new FormControl<string>(attr.SourceControlBMPAttributeCategoryName ?? null),
+                IsPresent: new FormControl<boolean | null>(isPresentValue),
+                SourceControlBMPNote: new FormControl<string>(noteValue, { validators: [Validators.maxLength(200)] }),
+            });
+            this.sourceControlRows.push(row, { emitEvent: false });
+
+            // Park evidence for inline AI-badge rendering. Only stash when the AI actually
+            // matched the attribute (entry present) — empty rows render without a badge.
+            if (isPresentExtracted) {
+                this.sourceControlIsPresentEvidence.set(attr.SourceControlBMPAttributeID, {
+                    value: rawIsPresent,
+                    evidence: isPresentExtracted.ExtractionEvidence ?? null,
+                    source: isPresentExtracted.DocumentSource ?? null,
+                    boundingBox: this.parseBoundingBox(isPresentExtracted.BoundingBox),
+                });
+            }
+            if (noteExtracted) {
+                this.sourceControlNoteEvidence.set(attr.SourceControlBMPAttributeID, {
+                    value: noteExtracted.Value,
+                    evidence: noteExtracted.ExtractionEvidence ?? null,
+                    source: noteExtracted.DocumentSource ?? null,
+                    boundingBox: this.parseBoundingBox(noteExtracted.BoundingBox),
+                });
+            }
+        }
+
+        this.rebuildSourceControlGroups();
+        this.sourceControlDirty.set(false);
+    }
+
+    private rebuildSourceControlGroups(): void {
+        const groupMap = new Map<string, FormGroup[]>();
+        for (const row of this.sourceControlRows.controls) {
+            const category = row.get("SourceControlBMPAttributeCategoryName")!.value as string;
+            if (!groupMap.has(category)) groupMap.set(category, []);
+            groupMap.get(category)!.push(row);
+        }
+        this.sourceControlGroups = Array.from(groupMap.entries()).map(([category, rows]) => ({
+            category, rows, collapsed: false,
+        }));
+    }
+
+    public toggleSourceControlCategory(group: { collapsed: boolean }): void {
+        group.collapsed = !group.collapsed;
+    }
+
+    /** Used by Step 4 cells: navigate the PDF viewer to the AI evidence for a given attr+kind. */
+    public navigateToSourceControlEvidence(attrID: number, kind: "isPresent" | "note"): void {
+        const evidence = kind === "isPresent"
+            ? this.sourceControlIsPresentEvidence.get(attrID)
+            : this.sourceControlNoteEvidence.get(attrID);
+        if (!evidence) return;
+        const key = `__SourceControl__-${attrID}-${kind}`;
+        this.selectedFieldKey.set(key);
+        this.navigateToSource({
+            value: evidence.value != null ? String(evidence.value) : null,
+            evidence: evidence.evidence,
+            documentSource: evidence.source,
+            boundingBox: evidence.boundingBox,
+        });
+    }
+
+    /** Used by ReviewSummary input — flatten the FormArray to read-only rows for the summary. */
+    get summarySourceControlRows(): { categoryName: string; attributeName: string; isPresent: boolean | null; note: string; hasEvidence: boolean; wqmpRecordValue: string | null }[] {
+        // Emit every attribute row — the child summary renders unset rows as "(not set)" so
+        // all three categories still appear (collapsed) even when AI extracted nothing and
+        // the user hasn't touched Step 4. Keeps the Review structure stable.
+        const out: { categoryName: string; attributeName: string; isPresent: boolean | null; note: string; hasEvidence: boolean; wqmpRecordValue: string | null }[] = [];
+        for (const row of this.sourceControlRows.controls) {
+            const isPresent = row.get("IsPresent")!.value as boolean | null;
+            const note = ((row.get("SourceControlBMPNote")!.value as string) ?? "").trim();
+            const attrID = row.get("SourceControlBMPAttributeID")!.value as number;
+            const saved = this.existingSourceControlByAttributeID.get(attrID);
+            const savedDisplay = this.formatSavedSourceControlValue(saved);
+            out.push({
+                categoryName: row.get("SourceControlBMPAttributeCategoryName")!.value as string,
+                attributeName: row.get("SourceControlBMPAttributeName")!.value as string,
+                isPresent,
+                note,
+                hasEvidence: this.sourceControlIsPresentEvidence.has(attrID) || this.sourceControlNoteEvidence.has(attrID),
+                wqmpRecordValue: savedDisplay,
+            });
+        }
+        return out;
+    }
+
+    /**
+     * Per-row origin pill for Step 4. Mirrors the AI-extracted / User-entered / Blank /
+     * Edited labelling on the Steps 1–3 field cards so users can see provenance at a glance.
+     *  - "edited"  → user changed this row in the current session (FormGroup is dirty)
+     *  - "record"  → row prefilled from the WQMP record (saved value, regardless of AI)
+     *  - "ai"      → AI extracted a value and there's no saved value on the record
+     *  - "blank"   → nothing on record and AI didn't extract anything
+     */
+    public getSourceControlRowOrigin(row: FormGroup): "ai" | "record" | "edited" | "blank" {
+        if (row.dirty) return "edited";
+        const attrID = row.get("SourceControlBMPAttributeID")!.value as number;
+        const saved = this.existingSourceControlByAttributeID.get(attrID);
+        const isPresent = saved?.IsPresent ?? null;
+        const note = (saved?.SourceControlBMPNote ?? "").trim();
+        if (saved && (isPresent != null || note)) return "record";
+        if (this.sourceControlIsPresentEvidence.has(attrID) || this.sourceControlNoteEvidence.has(attrID)) return "ai";
+        return "blank";
+    }
+
+    private formatSavedSourceControlValue(saved: SourceControlBMPDto | undefined): string | null {
+        if (!saved) return null;
+        const note = (saved.SourceControlBMPNote ?? "").trim();
+        if (saved.IsPresent == null && !note) return null;
+        const presentDisplay = saved.IsPresent === true ? "Yes" : saved.IsPresent === false ? "No" : "—";
+        return note ? `${presentDisplay} — ${note}` : presentDisplay;
+    }
+
+
     get summaryLookupOptionsByKey(): Record<string, SelectDropdownOption[]> {
         const map: Record<string, SelectDropdownOption[]> = {};
         for (const [key, cfg] of Object.entries(this.lookupFieldConfig)) {
@@ -1032,6 +1263,61 @@ export class WqmpReviewComponent implements OnInit, IDeactivateComponent {
         });
     }
 
+    // NPT-1054: Source Control BMP section save. Reads from the FormArray (same state model
+    // as edit-source-control-bmps), filters out rows that have neither IsPresent nor a Note,
+    // and goes through the existing PUT /source-control-bmps endpoint (merge semantics).
+    // AC: 400 surfaces as inline alert without leaving Step 4.
+    saveSourceControlBmps(): void {
+        const noteMaxLength = 200;
+
+        if (this.sourceControlRows.invalid) {
+            this.sourceControlRows.markAllAsTouched();
+            const overflowed: string[] = [];
+            for (const row of this.sourceControlRows.controls) {
+                const noteCtl = row.get("SourceControlBMPNote");
+                if (noteCtl?.errors?.["maxlength"]) {
+                    overflowed.push(`"${row.get("SourceControlBMPAttributeName")!.value}"`);
+                }
+            }
+            this.alertService.pushAlert(new Alert(
+                overflowed.length > 0
+                    ? `${overflowed.length} note(s) exceed the ${noteMaxLength}-character limit: ${overflowed.join(", ")}.`
+                    : "Please correct the highlighted fields before saving.",
+                AlertContext.Danger,
+            ));
+            return;
+        }
+
+        this.savingSection.set("source-control");
+        this.alertService.clearAlerts();
+
+        const dtos: SourceControlBMPUpsertDto[] = [];
+        for (const row of this.sourceControlRows.controls) {
+            const isPresent = row.get("IsPresent")!.value as boolean | null;
+            const note = ((row.get("SourceControlBMPNote")!.value as string) ?? "").trim();
+            if (isPresent == null && !note) continue;
+
+            dtos.push(new SourceControlBMPUpsertDto({
+                SourceControlBMPAttributeID: row.get("SourceControlBMPAttributeID")!.value as number,
+                SourceControlBMPAttributeCategoryID: row.get("SourceControlBMPAttributeCategoryID")!.value as number,
+                SourceControlBMPAttributeCategoryName: row.get("SourceControlBMPAttributeCategoryName")!.value as string,
+                SourceControlBMPAttributeName: row.get("SourceControlBMPAttributeName")!.value as string,
+                IsPresent: isPresent,
+                SourceControlBMPNote: note || null,
+            }));
+        }
+
+        this.wqmpService.mergeSourceControlBMPsWaterQualityManagementPlan(this.waterQualityManagementPlanID, dtos).pipe(
+            finalize(() => this.savingSection.set(null)),
+        ).subscribe({
+            next: () => {
+                this.alertService.pushAlert(new Alert("Source Control BMPs saved.", AlertContext.Success));
+                this.sourceControlDirty.set(false);
+            },
+            error: (err: HttpErrorResponse) => this.handleSectionSaveError(err, "Source Control BMPs"),
+        });
+    }
+
     // Builds an UpsertDto seeded with every field on the live WQMP, then overlays the
     // accepted/edited/pending values for the keys in `sectionKeys`. Rejected and
     // out-of-section fields fall through to the live value untouched.
@@ -1411,6 +1697,11 @@ export class WqmpReviewComponent implements OnInit, IDeactivateComponent {
                     }
                 });
             }
+
+            // NPT-1054 Step 4: extract the SourceControlBMPs[] map for downstream FormArray
+            // hydration (handled in buildSourceControlRowsFromParsed). Done here so the same
+            // parse pass that drives Steps 1/2/3 also captures SC evidence.
+            this.buildSourceControlRowsFromParsed(parsed);
 
             // Jurisdiction + WQMP Name are user-entered in the upload modal — they are
             // authoritative and don't need review. Override the AI-extracted values, mark
