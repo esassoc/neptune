@@ -6274,45 +6274,6 @@
         "x-optional-auth": true
       }
     },
-    "/jurisdictions/manageable": {
-      "get": {
-        "tags": [
-          "StormwaterJurisdiction"
-        ],
-        "operationId": "ListManageable_StormwaterJurisdiction",
-        "responses": {
-          "200": {
-            "description": "OK",
-            "content": {
-              "text/plain": {
-                "schema": {
-                  "type": "array",
-                  "items": {
-                    "$ref": "#/components/schemas/StormwaterJurisdictionDisplayDto"
-                  }
-                }
-              },
-              "application/json": {
-                "schema": {
-                  "type": "array",
-                  "items": {
-                    "$ref": "#/components/schemas/StormwaterJurisdictionDisplayDto"
-                  }
-                }
-              },
-              "text/json": {
-                "schema": {
-                  "type": "array",
-                  "items": {
-                    "$ref": "#/components/schemas/StormwaterJurisdictionDisplayDto"
-                  }
-                }
-              }
-            }
-          }
-        }
-      }
-    },
     "/jurisdictions/bounding-box": {
       "get": {
         "tags": [
