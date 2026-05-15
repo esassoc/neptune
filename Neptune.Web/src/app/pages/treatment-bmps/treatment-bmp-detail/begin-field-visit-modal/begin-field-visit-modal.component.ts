@@ -1,6 +1,8 @@
 import { Component, inject, OnInit } from "@angular/core";
+import { HttpErrorResponse } from "@angular/common/http";
 import { FormGroup, ReactiveFormsModule, Validators } from "@angular/forms";
 import { DialogRef } from "@ngneat/dialog";
+import { escapeHtml } from "src/app/shared/helpers/html-escape";
 
 import { FormFieldComponent, FormFieldType } from "src/app/shared/components/forms/form-field/form-field.component";
 import { AlertDisplayComponent } from "src/app/shared/components/alert-display/alert-display.component";
@@ -102,10 +104,19 @@ export class BeginFieldVisitModalComponent implements OnInit {
                 this.alertService.pushAlert(new Alert("Field Visit started.", AlertContext.Success));
                 this.ref.close(result);
             },
-            error: (err) => {
+            error: (err: HttpErrorResponse) => {
                 this.isSaving = false;
-                const message = typeof err?.error === "string" ? err.error : "Failed to start the Field Visit. Please try again.";
-                this.alertService.pushAlert(new Alert(message, AlertContext.Danger));
+                // NPT-984: server failures (DB constraint hits, 4xx from the API) were being
+                // swallowed as a generic "Failed to start" message — Kathleen's 5/14 retest
+                // couldn't see why the "Start new field visit" path was failing. Prefer the
+                // structured ProblemDetails / message fields, then string error bodies, then
+                // the generic fallback. Alerts render via [innerHTML] so escape any server text.
+                const raw = (err?.error?.detail as string | undefined)
+                    ?? (err?.error?.title as string | undefined)
+                    ?? (err?.error?.message as string | undefined)
+                    ?? (typeof err?.error === "string" ? (err.error as string) : null)
+                    ?? "Failed to start the Field Visit. Please try again.";
+                this.alertService.pushAlert(new Alert(escapeHtml(raw), AlertContext.Danger));
             },
         });
     }
