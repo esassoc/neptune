@@ -123,7 +123,15 @@ public static class FieldVisits
 
         if (existing != null && createDto.ContinueExistingInProgress == false)
         {
+            // NPT-984: the FieldVisit table has a unique filtered index
+            // (CK_AtMostOneFieldVisitMayBeInProgressAtAnyTimePerBMP — at most one InProgress
+            // visit per BMP). If we batched the update + insert into a single SaveChangesAsync,
+            // EF Core sometimes ordered the insert before the update and tripped the constraint
+            // (the "Start new field visit" path in the Begin Field Visit modal was returning a
+            // generic "failure to start" message). Flush the Unresolved update first so the
+            // unique-InProgress slot is free before inserting the new visit.
             existing.FieldVisitStatusID = FieldVisitStatus.Unresolved.FieldVisitStatusID;
+            await dbContext.SaveChangesAsync();
         }
 
         var fieldVisit = new FieldVisit

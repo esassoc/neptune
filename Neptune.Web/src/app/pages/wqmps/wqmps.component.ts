@@ -47,6 +47,10 @@ export class WqmpsComponent {
     public wqmpJurisdictionIDs: number[];
     public siteUrl = environment.ocStormwaterToolsBaseUrl;
     public currentPersonCanEdit$: Observable<boolean>;
+    // NPT-984: Create-from-PDF (the AI workflow entry point) is Manager-level — the backend
+    // upload endpoint is gated on [JurisdictionManageFeature]. Editor-level users see the
+    // rest of the Actions menu (Add WQMP, Bulk Uploads via legacy MVC) but not Create from PDF.
+    public currentPersonCanManage$: Observable<boolean>;
     private wqmps: WaterQualityManagementPlanGridDto[] = [];
     private static NO_BOUNDARY_ALERT = "WqmpNoBoundary";
 
@@ -88,6 +92,9 @@ export class WqmpsComponent {
 
         this.currentPersonCanEdit$ = currentUser$.pipe(
             map(() => this.authenticationService.doesCurrentUserHaveJurisdictionEditPermission())
+        );
+        this.currentPersonCanManage$ = currentUser$.pipe(
+            map(() => this.authenticationService.doesCurrentUserHaveJurisdictionManagePermission())
         );
 
         this.wqmps$ = this.loadWqmps$();

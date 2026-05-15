@@ -83,7 +83,9 @@
         </div>
 
         <!-- Review Panel -->
-        <div class="review-panel" [class.review-panel--full-width]="currentStep() === 5">
+        <div class="review-panel"
+             [class.review-panel--full-width]="currentStep() === 5"
+             [class.review-panel--wide-table]="currentStep() === 4">
             <div class="review-panel__header">
                 <div class="review-panel__header-text">
                     <h2>{{ steps[currentStep() - 1].title }}</h2>

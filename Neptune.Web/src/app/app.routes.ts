@@ -454,6 +454,19 @@ export const routes: Routes = [
                 loadComponent: () => import("./pages/field-records/field-records.component").then((m) => m.FieldRecordsComponent),
             },
             {
+                // NPT-984: dedicated read-only Field Visit detail page. The Field Records grid
+                // routes here for any visit not in InProgress; the workflow outlet's Wrap Up
+                // handler navigates here after finalize. Keeps editable workflow pages and the
+                // locked-down summary view as separate routes so wrap-up actually wraps up.
+                path: `field-visits/:${routeParams.fieldVisitID}/view`,
+                title: "Field Visit",
+                loadComponent: () =>
+                    import("./pages/field-visits/field-visit-detail-readonly/field-visit-detail-readonly.component").then(
+                        (m) => m.FieldVisitDetailReadOnlyComponent
+                    ),
+                canActivate: [JurisdictionManagerOrEditorOnlyGuard],
+            },
+            {
                 path: `field-visits/:${routeParams.fieldVisitID}`,
                 title: "Field Visit",
                 loadComponent: () =>

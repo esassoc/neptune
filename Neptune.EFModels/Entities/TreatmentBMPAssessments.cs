@@ -112,7 +112,10 @@ public static class TreatmentBMPAssessments
             .Where(x => x.TreatmentBMPAssessmentID == treatmentBMPAssessmentID)
             .Select(TreatmentBMPAssessmentProjections.AsDetailDto)
             .SingleOrDefaultAsync();
-        return dto == null ? null : ResolveLookupDisplayNames(dto);
+        if (dto == null) return null;
+        ResolveLookupDisplayNames(dto);
+        await PopulateObservationScoresAsync(dbContext, dto);
+        return dto;
     }
 
     public static async Task<TreatmentBMPAssessmentDetailDto?> GetByFieldVisitIDAndTypeAsDetailDtoAsync(NeptuneDbContext dbContext, int fieldVisitID, TreatmentBMPAssessmentTypeEnum treatmentBMPAssessmentTypeEnum)
@@ -122,16 +125,95 @@ public static class TreatmentBMPAssessments
             .Where(x => x.FieldVisitID == fieldVisitID && x.TreatmentBMPAssessmentTypeID == (int)treatmentBMPAssessmentTypeEnum)
             .Select(TreatmentBMPAssessmentProjections.AsDetailDto)
             .SingleOrDefaultAsync();
-        return dto == null ? null : ResolveLookupDisplayNames(dto);
+        if (dto == null) return null;
+        ResolveLookupDisplayNames(dto);
+        await PopulateObservationScoresAsync(dbContext, dto);
+        return dto;
+    }
+
+    /// <summary>
+    /// NPT-984: post-materialize, compute the per-observation score by loading the assessment
+    /// entity (with the BMP + benchmark/threshold tree) and calling FormattedObservationScore()
+    /// on each TreatmentBMPObservation. The Expression projection can't do this because
+    /// CalculateObservationScore walks the static ObservationTypeCollectionMethod lookup tree
+    /// and needs the BMP entity for benchmark context. Stamps the formatted score back onto
+    /// each observation DTO by matching on TreatmentBMPObservationID.
+    /// </summary>
+    private static async Task PopulateObservationScoresAsync(NeptuneDbContext dbContext, TreatmentBMPAssessmentDetailDto dto)
+    {
+        if (dto.Observations == null || dto.Observations.Count == 0) return;
+        var assessment = await GetImpl(dbContext).AsNoTracking()
+            .SingleOrDefaultAsync(x => x.TreatmentBMPAssessmentID == dto.TreatmentBMPAssessmentID);
+        if (assessment == null) return;
+        var scoreByObservationID = assessment.TreatmentBMPObservations
+            .ToDictionary(o => o.TreatmentBMPObservationID, o => o.FormattedObservationScore());
+        foreach (var observationDto in dto.Observations)
+        {
+            if (scoreByObservationID.TryGetValue(observationDto.TreatmentBMPObservationID, out var score))
+            {
+                observationDto.ObservationScore = score;
+            }
+        }
     }
 
     public static List<TreatmentBMPAssessmentGridDto> ListAsGridDtoForJurisdictions(NeptuneDbContext dbContext, IEnumerable<int> stormwaterJurisdictionIDsPersonCanView)
     {
-        return dbContext.vTreatmentBMPAssessmentDetaileds.AsNoTracking()
-            .Where(x => stormwaterJurisdictionIDsPersonCanView.Contains(x.StormwaterJurisdictionID))
+        var jurisdictionIDs = stormwaterJurisdictionIDsPersonCanView.ToList();
+
+        // NPT-984: Latest BMP Assessments page should show one row per TreatmentBMP — the
+        // most-recent assessment from a wrapped-up (FieldVisitStatusID = Complete) visit.
+        // Mirror the legacy MVC pattern (TreatmentBMPController.TreatmentBMPAssessmentSummaryGridJsonData)
+        // by filtering on vMostRecentTreatmentBMPAssessment.LastAssessmentID. Previously the
+        // SPA returned every assessment ever recorded which over-counted vs. the MVC page.
+        var mostRecentAssessmentIDs = dbContext.vMostRecentTreatmentBMPAssessments.AsNoTracking()
+            .Where(x => jurisdictionIDs.Contains(x.StormwaterJurisdictionID))
+            .Select(x => x.LastAssessmentID)
+            .ToList();
+
+        var rows = dbContext.vTreatmentBMPAssessmentDetaileds.AsNoTracking()
+            .Where(x => mostRecentAssessmentIDs.Contains(x.TreatmentBMPAssessmentID))
             .OrderByDescending(x => x.VisitDate)
+            .ToList();
+
+        // NPT-984: assemble the "Failure Notes" column the same way MVC does — load the
+        // PassFail observations whose recorded value was false for the in-scope assessments,
+        // deserialize each ObservationData blob, and concatenate notes per observation type.
+        // ObservationData is JSON text so the filter has to materialize in-memory; the IN
+        // clause is bounded by jurisdiction-scope so the row count stays manageable.
+        // Use the PassFail-specific deserialize helper and tolerate null/non-bool values so
+        // a single malformed payload doesn't 500 the whole page (Copilot PR #507 #1, #2).
+        static bool IsFailingPassFailValue(object? observationValue)
+        {
+            return observationValue switch
+            {
+                bool b => !b,
+                string s when bool.TryParse(s, out var parsed) => !parsed,
+                _ => false,
+            };
+        }
+
+        var failingObservations = dbContext.TreatmentBMPObservations.AsNoTracking()
+            .Include(x => x.TreatmentBMPAssessmentObservationType)
+            .Where(x => mostRecentAssessmentIDs.Contains(x.TreatmentBMPAssessmentID))
             .ToList()
-            .Select(x => new TreatmentBMPAssessmentGridDto
+            .Where(x => x.TreatmentBMPAssessmentObservationType.ObservationTypeSpecification.ObservationTypeCollectionMethodID == (int)ObservationTypeCollectionMethodEnum.PassFail
+                        && x.GetPassFailObservationData().SingleValueObservations.Any(y => IsFailingPassFailValue(y.ObservationValue)))
+            .ToList();
+
+        var failureNotesByAssessment = failingObservations
+            .GroupBy(x => x.TreatmentBMPAssessmentID)
+            .ToDictionary(g => g.Key, g => string.Join("; ", g.Select(x =>
+            {
+                var noteParts = x.GetPassFailObservationData()
+                    .SingleValueObservations
+                    .Select(y => y.Notes)
+                    .Where(s => !string.IsNullOrWhiteSpace(s));
+                var joined = string.Join(". ", noteParts);
+                if (string.IsNullOrWhiteSpace(joined)) joined = "[None provided]";
+                return $"{x.TreatmentBMPAssessmentObservationType.TreatmentBMPAssessmentObservationTypeName} Failure Notes: {joined}";
+            }).OrderBy(s => s)));
+
+        return rows.Select(x => new TreatmentBMPAssessmentGridDto
             {
                 TreatmentBMPAssessmentID = x.TreatmentBMPAssessmentID,
                 FieldVisitID = x.FieldVisitID,
@@ -151,6 +233,7 @@ public static class TreatmentBMPAssessments
                 IsAssessmentComplete = x.IsAssessmentComplete,
                 AssessmentScore = x.AssessmentScore,
                 IsFieldVisitVerified = x.IsFieldVisitVerified,
+                FailureNotes = failureNotesByAssessment.GetValueOrDefault(x.TreatmentBMPAssessmentID),
             })
             .ToList();
     }

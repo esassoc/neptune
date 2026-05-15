@@ -1,8 +1,9 @@
-import { Component, OnInit } from "@angular/core";
+import { Component, inject, OnInit } from "@angular/core";
 import { AsyncPipe } from "@angular/common";
 import { ActivatedRoute, Router, RouterModule } from "@angular/router";
 import { ColDef } from "ag-grid-community";
-import { Observable } from "rxjs";
+import { BehaviorSubject, Observable } from "rxjs";
+import { switchMap } from "rxjs/operators";
 
 import { PageHeaderComponent } from "src/app/shared/components/page-header/page-header.component";
 import { AlertDisplayComponent } from "src/app/shared/components/alert-display/alert-display.component";
@@ -13,6 +14,7 @@ import {
 } from "src/app/shared/components/inputs/btn-group-radio-input/btn-group-radio-input.component";
 
 import { FieldVisitService } from "src/app/shared/generated/api/field-visit.service";
+import { FieldVisitStatusEnum } from "src/app/shared/generated/enum/field-visit-status-enum";
 import { TreatmentBMPAssessmentService } from "src/app/shared/generated/api/treatment-bmp-assessment.service";
 import { MaintenanceRecordService } from "src/app/shared/generated/api/maintenance-record.service";
 import { FieldVisitDto } from "src/app/shared/generated/model/field-visit-dto";
@@ -37,9 +39,27 @@ type ActiveTab = "field-visits" | "assessments" | "maintenance-records";
     styleUrl: "./field-records.component.scss",
 })
 export class FieldRecordsComponent implements OnInit {
-    public fieldVisits$: Observable<FieldVisitDto[]>;
-    public assessments$: Observable<TreatmentBMPAssessmentGridDto[]>;
-    public maintenanceRecords$: Observable<MaintenanceRecordGridDto[]>;
+    // NPT-984: services injected via `inject()` so field initializers can reference them.
+    // Lazy-loaded zoneless routes complete their first CD pass *before* ngOnInit runs, so
+    // observables assigned in ngOnInit (the previous attempt) raced the template's first
+    // `| async` subscription — the page rendered empty until the user clicked to force a
+    // second CD pass. Wiring the observables in field initializers means they exist before
+    // the component is ever rendered, and the async pipe sees a live Observable on its
+    // first check.
+    private fieldVisitService = inject(FieldVisitService);
+    private assessmentService = inject(TreatmentBMPAssessmentService);
+    private maintenanceRecordService = inject(MaintenanceRecordService);
+    private utility = inject(UtilityFunctionsService);
+    private confirmService = inject(ConfirmService);
+    private alertService = inject(AlertService);
+    private authenticationService = inject(AuthenticationService);
+    private router = inject(Router);
+    private route = inject(ActivatedRoute);
+
+    private reload$ = new BehaviorSubject<void>(undefined);
+    public fieldVisits$: Observable<FieldVisitDto[]> = this.reload$.pipe(switchMap(() => this.fieldVisitService.listFieldVisit()));
+    public assessments$: Observable<TreatmentBMPAssessmentGridDto[]> = this.reload$.pipe(switchMap(() => this.assessmentService.listTreatmentBMPAssessment()));
+    public maintenanceRecords$: Observable<MaintenanceRecordGridDto[]> = this.reload$.pipe(switchMap(() => this.maintenanceRecordService.listMaintenanceRecord()));
 
     public fieldVisitColumnDefs: ColDef[];
     public assessmentColumnDefs: ColDef[];
@@ -55,17 +75,15 @@ export class FieldRecordsComponent implements OnInit {
         { label: "Maintenance Records", value: "maintenance-records" },
     ];
 
-    constructor(
-        private fieldVisitService: FieldVisitService,
-        private assessmentService: TreatmentBMPAssessmentService,
-        private maintenanceRecordService: MaintenanceRecordService,
-        private utility: UtilityFunctionsService,
-        private confirmService: ConfirmService,
-        private alertService: AlertService,
-        private authenticationService: AuthenticationService,
-        private router: Router,
-        private route: ActivatedRoute
-    ) {}
+    // NPT-984: BtnGroupRadioInputComponent's `[default]` input is matched against `label`
+    // (not value) in its ngOnInit — passing the kebab-case `activeTab` value caused
+    // `options.find(...)` to return undefined, then `.value` threw "Cannot read properties
+    // of undefined" and the whole template render aborted. (This was the real root cause of
+    // Kathleen's "field records page is blank until I click" report.) Map the active value
+    // back to its label so the radio group highlights the right tab.
+    public get activeTabLabel(): string {
+        return this.tabOptions.find((o) => o.value === this.activeTab)?.label ?? "";
+    }
 
     ngOnInit(): void {
         this.canManage = this.authenticationService.doesCurrentUserHaveJurisdictionManagePermission();
@@ -78,8 +96,6 @@ export class FieldRecordsComponent implements OnInit {
         this.fieldVisitColumnDefs = this.buildFieldVisitColumnDefs();
         this.assessmentColumnDefs = this.buildAssessmentColumnDefs();
         this.maintenanceRecordColumnDefs = this.buildMaintenanceRecordColumnDefs();
-
-        this.refresh();
     }
 
     public onTabChange(value: string): void {
@@ -95,9 +111,7 @@ export class FieldRecordsComponent implements OnInit {
     }
 
     private refresh(): void {
-        this.fieldVisits$ = this.fieldVisitService.listFieldVisit();
-        this.assessments$ = this.assessmentService.listTreatmentBMPAssessment();
-        this.maintenanceRecords$ = this.maintenanceRecordService.listMaintenanceRecord();
+        this.reload$.next();
     }
 
     private buildFieldVisitColumnDefs(): ColDef[] {
@@ -105,11 +119,22 @@ export class FieldRecordsComponent implements OnInit {
         cols.push(
             this.utility.createActionsColumnDef((params: any) => {
                 const visit: FieldVisitDto = params.data;
-                const inProgress = visit.FieldVisitStatusID === 1; // FieldVisitStatusEnum.InProgress
+                // NPT-984: route InProgress + ReturnedToEdit to the editable workflow outlet
+                // (the latter is the post-MarkProvisional state — the visit is meant to be
+                // editable again). Complete + Unresolved route to the locked-down read-only
+                // detail page. Pre-Copilot review this only checked InProgress, which left
+                // Editors stranded after a Manager Returned-to-Edit their visit (Copilot PR
+                // #507 #3).
+                const editable = visit.FieldVisitStatusID === FieldVisitStatusEnum.InProgress
+                    || visit.FieldVisitStatusID === FieldVisitStatusEnum.ReturnedToEdit;
                 const actions: { ActionName: string; ActionIcon?: string; ActionHandler: () => void }[] = [
                     {
-                        ActionName: inProgress ? "Continue" : "View",
-                        ActionHandler: () => this.router.navigate(["/field-visits", visit.FieldVisitID]),
+                        ActionName: editable ? "Continue" : "View",
+                        ActionHandler: () => this.router.navigate(
+                            editable
+                                ? ["/field-visits", visit.FieldVisitID]
+                                : ["/field-visits", visit.FieldVisitID, "view"],
+                        ),
                     },
                 ];
                 if (this.canManage) {

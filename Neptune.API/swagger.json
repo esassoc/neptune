@@ -18195,6 +18195,10 @@
             "type": "string",
             "nullable": true,
             "readOnly": true
+          },
+          "FailureNotes": {
+            "type": "string",
+            "nullable": true
           }
         },
         "additionalProperties": false
@@ -19497,6 +19501,10 @@
             "format": "int32"
           },
           "ObservationData": {
+            "type": "string",
+            "nullable": true
+          },
+          "ObservationScore": {
             "type": "string",
             "nullable": true
           }

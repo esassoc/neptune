@@ -1,11 +1,18 @@
 <ng-template #addButton>
-    @if (currentPersonCanEdit$ | async) {
-        <!-- NPT-1051: Create from PDF promoted to a primary action — AI extraction is the
-             expected entry point for new WQMPs going forward. The new WQMP lands in Draft
-             status; the reviewer wizard auto-opens for transcription review. -->
+    <!--
+        NPT-1051: Create from PDF promoted to a primary action — AI extraction is the
+        expected entry point for new WQMPs going forward. The new WQMP lands in Draft
+        status; the reviewer wizard auto-opens for transcription review.
+        NPT-984: Manager-only gate — backend upload endpoint is [JurisdictionManageFeature].
+        Editors keep access to the Actions dropdown (Add WQMP + bulk uploads) but cannot
+        kick off the AI workflow.
+    -->
+    @if (currentPersonCanManage$ | async) {
         <button type="button" class="btn btn-primary" style="margin-right: 0.5rem" (click)="openCreateFromPdfModal()">
             <i class="fa fa-magic"></i> Create from PDF
         </button>
+    }
+    @if (currentPersonCanEdit$ | async) {
         <a href="javascript:void(0);" [dropdownToggle]="actionsMenu" class="btn btn-primary-outline dropdown-toggle ml-2" role="button" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
             Actions <i class="fas fa-chevron-down"></i>
         </a>

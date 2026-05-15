@@ -43,6 +43,9 @@ export class LatestBmpAssessmentsComponent implements OnInit {
             this.utility.createBasicColumnDef("Assessment Type", "TreatmentBMPAssessmentTypeDisplayName", { UseCustomDropdownFilter: true }),
             this.utility.createBasicColumnDef("Status", "Status", { UseCustomDropdownFilter: true }),
             this.utility.createDecimalColumnDef("Score", "AssessmentScore"),
+            // NPT-984: comma-separated failure notes from the assessment's PassFail observations.
+            // Mirrors the legacy MVC "Failure Notes" column on the same page.
+            this.utility.createBasicColumnDef("Failure Notes", "FailureNotes"),
         ];
         this.assessments$ = this.assessmentService.listTreatmentBMPAssessment();
     }

@@ -225,10 +225,10 @@
 
 // Review Panel
 .review-panel {
-    // NPT-1054: bumped from 420 to 720 so Step 4's 3-column Source Control table has room
-    // for long attribute names (e.g. "Design Outdoor Hazardous Material Storage Areas...")
-    // without wrapping. Other steps absorb the extra space cleanly (fields are flex anyway).
-    width: 720px;
+    // NPT-984: default panel width narrowed (was 720 → 540) so Steps 1-3 (and Step 5) leave
+    // the PDF viewer the most room. Step 4's Source Control table needs more horizontal room
+    // for long attribute names — it overrides via .review-panel--wide-table below.
+    width: 540px;
     flex-shrink: 0;
     display: flex;
     flex-direction: column;
@@ -242,6 +242,13 @@
         width: auto;
         flex: 1;
         max-width: none;
+    }
+
+    // NPT-984: Source Control BMPs (Step 4) renders a 3-column table with long attribute
+    // names (e.g., "Design Outdoor Hazardous Material Storage Areas to Reduce Pollutant
+    // Introduction"). Boost the panel back to 720 there so the table doesn't wrap badly.
+    &--wide-table {
+        width: 720px;
     }
 
     &__header {

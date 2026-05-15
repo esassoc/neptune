@@ -37,11 +37,19 @@ public static class TreatmentBMPImages
 
     /// <summary>
     /// Carousel feed: inventory <see cref="TreatmentBMPImage"/> rows UNION assessment photos from
-    /// the BMP's verified field visits. Used by the BMP detail page so a user can browse all of a
-    /// BMP's photos in one place once the visit's been signed off, while the edit-images page
+    /// the BMP's wrapped-up field visits. Used by the BMP detail page so a user can browse all of
+    /// a BMP's photos in one place once the visit's been wrapped up, while the edit-images page
     /// (which has delete / caption-update affordances) keeps using <see cref="ListAsync"/> so it
     /// only shows rows backed by the TreatmentBMPImage table.
     /// </summary>
+    /// <remarks>
+    /// NPT-984: filter on <c>FieldVisitStatusID == Complete</c> rather than the previous
+    /// <c>IsFieldVisitVerified</c> flag. Verification is a separate Manager-only attestation
+    /// (Verify / Mark Provisional / Return to Edit); Kathleen's expectation is that wrap-up
+    /// alone surfaces the visit's photos in the BMP detail carousel, since the field
+    /// technician has already saved them with the visit and there's no editorial gate before
+    /// browsing.
+    /// </remarks>
     public static async Task<List<TreatmentBMPImageDto>> ListForCarouselAsync(NeptuneDbContext dbContext, int treatmentBMPID)
     {
         var inventoryDtos = await dbContext.TreatmentBMPImages.AsNoTracking()
@@ -51,7 +59,7 @@ public static class TreatmentBMPImages
 
         var assessmentDtos = await dbContext.TreatmentBMPAssessmentPhotos.AsNoTracking()
             .Where(x => x.TreatmentBMPAssessment.TreatmentBMPID == treatmentBMPID
-                        && x.TreatmentBMPAssessment.FieldVisit.IsFieldVisitVerified)
+                        && x.TreatmentBMPAssessment.FieldVisit.FieldVisitStatusID == (int)FieldVisitStatusEnum.Complete)
             .Select(TreatmentBMPImageProjections.AssessmentPhotoAsCarouselDto(treatmentBMPID))
             .ToListAsync();
 

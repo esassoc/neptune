@@ -21,6 +21,7 @@ import { MaintenanceRecordTypes, MaintenanceRecordTypesAsSelectDropdownOptions }
 
 import { FieldVisitWorkflowService } from "../../services/field-visit-workflow.service";
 import { AlertService } from "src/app/shared/services/alert.service";
+import { AuthenticationService } from "src/app/services/authentication.service";
 import { ConfirmService } from "src/app/shared/services/confirm/confirm.service";
 import { Alert } from "src/app/shared/models/alert";
 import { AlertContext } from "src/app/shared/models/enums/alert-context.enum";
@@ -76,9 +77,16 @@ export class FieldVisitMaintenanceEditStepComponent implements OnInit {
         private maintenanceRecordService: MaintenanceRecordService,
         private treatmentBMPTypeService: TreatmentBMPTypeService,
         private alertService: AlertService,
+        private authenticationService: AuthenticationService,
         private confirmService: ConfirmService,
         private router: Router
     ) {}
+
+    // NPT-984: Delete Maintenance Record is Manager-only (backend tightened to
+    // JurisdictionManageFeature). Editor performs the maintenance; only Manager can delete it.
+    public get canManage(): boolean {
+        return this.authenticationService.doesCurrentUserHaveJurisdictionManagePermission();
+    }
 
     ngOnInit(): void {
         this.workflow$ = this.workflowService.workflow$;

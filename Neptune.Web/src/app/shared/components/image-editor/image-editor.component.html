@@ -44,14 +44,21 @@
             }
         </div>
         @if (useCaptionModal) {
-            <div class="g-col-8 caption-readonly">
+            <div class="g-col-6 caption-readonly">
                 <label class="field-label">Caption</label>
                 <div class="caption-row">
                     <span class="caption-text">{{ image.Caption || "(no caption)" }}</span>
-                    <button type="button" class="btn-icon" [disabled]="isLoadingSubmit" (click)="requestEditCaption(image)" title="Edit caption" aria-label="Edit caption">
-                        <i class="fa fa-pencil"></i>
-                    </button>
                 </div>
+            </div>
+            <!--
+                NPT-984: the caption-edit affordance was a bare pencil glyph next to a full
+                "Delete Photo" button — visually mismatched and confusing. Render the edit
+                action as a real button labeled "Edit" so the pair reads consistently.
+            -->
+            <div class="g-col-2">
+                <button type="button" class="btn btn-secondary mt-4" [disabled]="isLoadingSubmit" (click)="requestEditCaption(image)">
+                    <i class="fa fa-pencil mr-1"></i> Edit
+                </button>
             </div>
         } @else {
             <div class="g-col-8">
