@@ -603,8 +603,12 @@ namespace Neptune.API.Controllers
             });
         }
 
+        // NPT-984: Run AI extraction — Manager-level. The Manager created the WQMP via the
+        // upload flow (also [JurisdictionManageFeature]); they need to run extractions on
+        // their own WQMPs. Was [AdminFeature] which left JMs unable to use the wizard they
+        // just opened.
         [HttpPost("{waterQualityManagementPlanID}/extract")]
-        [AdminFeature]
+        [JurisdictionManageFeature]
         [EntityNotFound(typeof(WaterQualityManagementPlan), "waterQualityManagementPlanID")]
         public async Task<ActionResult<WaterQualityManagementPlanExtractionResultDto>> RunExtraction(
             [FromRoute] int waterQualityManagementPlanID)
@@ -714,8 +718,10 @@ namespace Neptune.API.Controllers
             return rawMessage;
         }
 
+        // NPT-984: Manager-level — the review wizard loads this on mount to show the AI's
+        // suggestions; JMs need access to review their own WQMPs.
         [HttpGet("{waterQualityManagementPlanID}/extraction-result")]
-        [AdminFeature]
+        [JurisdictionManageFeature]
         [EntityNotFound(typeof(WaterQualityManagementPlan), "waterQualityManagementPlanID")]
         public async Task<ActionResult<WaterQualityManagementPlanExtractionResultDto>> GetExtractionResult(
             [FromRoute] int waterQualityManagementPlanID)
