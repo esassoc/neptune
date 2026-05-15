@@ -18385,9 +18385,7 @@
         "required": [
           "SizingBasisTypeID",
           "TrashCaptureStatusTypeID",
-          "TreatmentBMPLifespanTypeID",
-          "TreatmentBMPName",
-          "WaterQualityManagementPlanID"
+          "TreatmentBMPName"
         ],
         "type": "object",
         "properties": {
@@ -18411,11 +18409,13 @@
           },
           "WaterQualityManagementPlanID": {
             "type": "integer",
-            "format": "int32"
+            "format": "int32",
+            "nullable": true
           },
           "TreatmentBMPLifespanTypeID": {
             "type": "integer",
-            "format": "int32"
+            "format": "int32",
+            "nullable": true
           },
           "TreatmentBMPLifespanEndDate": {
             "type": "string",
@@ -18531,10 +18531,8 @@
           "SizingBasisTypeID",
           "StormwaterJurisdictionID",
           "TrashCaptureStatusTypeID",
-          "TreatmentBMPLifespanTypeID",
           "TreatmentBMPName",
-          "TreatmentBMPTypeID",
-          "WaterQualityManagementPlanID"
+          "TreatmentBMPTypeID"
         ],
         "type": "object",
         "properties": {
@@ -18566,11 +18564,13 @@
           },
           "WaterQualityManagementPlanID": {
             "type": "integer",
-            "format": "int32"
+            "format": "int32",
+            "nullable": true
           },
           "TreatmentBMPLifespanTypeID": {
             "type": "integer",
-            "format": "int32"
+            "format": "int32",
+            "nullable": true
           },
           "TreatmentBMPLifespanEndDate": {
             "type": "string",
@@ -18950,6 +18950,10 @@
             "type": "integer",
             "format": "int32",
             "nullable": true
+          },
+          "TreatmentBMPAssessmentCount": {
+            "type": "integer",
+            "format": "int32"
           },
           "IsFullyParameterized": {
             "type": "boolean",

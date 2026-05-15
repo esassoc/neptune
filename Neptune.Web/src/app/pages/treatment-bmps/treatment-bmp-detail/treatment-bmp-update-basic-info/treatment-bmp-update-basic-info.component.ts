@@ -4,6 +4,7 @@ import { Router, RouterModule, ActivatedRoute } from "@angular/router";
 import { PageHeaderComponent } from "src/app/shared/components/page-header/page-header.component";
 import { AlertDisplayComponent } from "src/app/shared/components/alert-display/alert-display.component";
 import { FormFieldComponent, FormFieldType, SelectDropdownOption } from "src/app/shared/components/forms/form-field/form-field.component";
+import { FieldDefinitionComponent } from "src/app/shared/components/field-definition/field-definition.component";
 import { AsyncPipe } from "@angular/common";
 import { Observable, map, firstValueFrom, of, delay, tap, combineLatest } from "rxjs";
 import { TreatmentBMPService } from "src/app/shared/generated/api/treatment-bmp.service";
@@ -25,7 +26,7 @@ import { validateFormOrAlert } from "src/app/shared/helpers/form-validation-help
 
 @Component({
     selector: "treatment-bmp-update-basic-info",
-    imports: [PageHeaderComponent, RouterModule, ReactiveFormsModule, FormFieldComponent, AlertDisplayComponent, AsyncPipe],
+    imports: [PageHeaderComponent, RouterModule, ReactiveFormsModule, FormFieldComponent, FieldDefinitionComponent, AlertDisplayComponent, AsyncPipe],
     templateUrl: "./treatment-bmp-update-basic-info.component.html",
     styleUrls: ["./treatment-bmp-update-basic-info.component.scss"],
 })

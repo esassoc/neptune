@@ -339,7 +339,13 @@ export class TreatmentBmpDetailComponent implements OnInit, OnChanges {
     openUpdateTypeModal(treatmentBMP: TreatmentBMPDto): void {
         this.dialogService
             .open(TreatmentBmpUpdateTypeModalComponent, {
-                data: { treatmentBMPID: this.treatmentBMPID, currentTreatmentBMPTypeID: treatmentBMP.TreatmentBMPTypeID } as TreatmentBmpUpdateTypeModalContext,
+                data: {
+                    treatmentBMPID: this.treatmentBMPID,
+                    currentTreatmentBMPTypeID: treatmentBMP.TreatmentBMPTypeID,
+                    treatmentBMPName: treatmentBMP.TreatmentBMPName,
+                    currentTreatmentBMPTypeName: treatmentBMP.TreatmentBMPTypeName,
+                    treatmentBMPAssessmentCount: treatmentBMP.TreatmentBMPAssessmentCount,
+                } as TreatmentBmpUpdateTypeModalContext,
             })
             .afterClosed$.subscribe((result) => {
                 if (result) {

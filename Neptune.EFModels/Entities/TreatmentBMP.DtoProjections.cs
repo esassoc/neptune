@@ -39,6 +39,7 @@ public static class TreatmentBMPDtoProjections
         UpstreamBMPID = x.UpstreamBMPID,
         RegionalSubbasinID = x.RegionalSubbasinID,
         LastNereidLogID = x.LastNereidLogID,
+        TreatmentBMPAssessmentCount = x.TreatmentBMPAssessments.Count,
         // Lookup types: project ID-only DTOs, names resolved client-side via ResolveClientSideLookups
         SizingBasisType = new SizingBasisTypeDto
         {

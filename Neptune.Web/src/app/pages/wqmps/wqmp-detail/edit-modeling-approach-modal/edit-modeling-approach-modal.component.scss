@@ -1,0 +1,20 @@
+@use "/src/scss/abstracts" as *;
+
+.modeling-approach-option {
+    display: flex;
+    align-items: flex-start;
+    gap: $spacing-300;
+    margin-bottom: $spacing-400;
+    cursor: pointer;
+
+    input[type="radio"] {
+        margin-top: 4px;
+        flex-shrink: 0;
+    }
+}
+
+.modeling-approach-option__description {
+    color: $gray-700;
+    font-size: $type-size-200;
+    margin-top: $spacing-100;
+}
