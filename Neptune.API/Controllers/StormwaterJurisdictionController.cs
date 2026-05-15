@@ -40,6 +40,25 @@ namespace Neptune.API.Controllers
             return Ok(stormwaterJurisdictionDisplayDtos);
         }
 
+        // NPT-984: jurisdictions the calling user is permitted to manage. Used by the AI
+        // Create-from-PDF modal so a JurisdictionManager can only select from the
+        // jurisdictions they're assigned to. Admin / SitkaAdmin see all. Gated by
+        // [JurisdictionManageFeature] so Editors / Unassigned / Anonymous never hit the
+        // helper — and the helper's role logic happens to produce the right set for the
+        // three remaining roles (Admin / SitkaAdmin → all; JurisdictionManager → assigned).
+        [HttpGet("manageable")]
+        [JurisdictionManageFeature]
+        public ActionResult<List<StormwaterJurisdictionDisplayDto>> ListManageable()
+        {
+            var currentPerson = People.GetByID(DbContext, CallingUser.PersonID);
+            var stormwaterJurisdictions = StormwaterJurisdictions.ListViewableByPersonForWQMPs(DbContext, currentPerson);
+            var stormwaterJurisdictionDisplayDtos = stormwaterJurisdictions
+                .Select(x => x.AsDisplayDto())
+                .OrderBy(x => x.StormwaterJurisdictionName)
+                .ToList();
+            return Ok(stormwaterJurisdictionDisplayDtos);
+        }
+
         [HttpGet("bounding-box")]
         [AllowAnonymous]
         [OptionalAuth]

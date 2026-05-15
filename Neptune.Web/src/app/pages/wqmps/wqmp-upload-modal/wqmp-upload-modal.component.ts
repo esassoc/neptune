@@ -47,7 +47,11 @@ export class WqmpUploadModalComponent implements OnInit {
     ngOnInit(): void {
         this.alertService.clearAlerts();
 
-        this.jurisdictionOptions$ = this.stormwaterJurisdictionService.listStormwaterJurisdiction().pipe(
+        // NPT-984: use the manageable-jurisdictions endpoint so a JurisdictionManager only
+        // sees the jurisdictions they're assigned to. Admin / SitkaAdmin still see all.
+        // The backend upload endpoint validates the requested jurisdiction is in the
+        // caller's manageable set as defense-in-depth.
+        this.jurisdictionOptions$ = this.stormwaterJurisdictionService.listManageableStormwaterJurisdiction().pipe(
             map((jurisdictions) =>
                 jurisdictions.map(
                     (j) => ({ Label: j.StormwaterJurisdictionName, Value: j.StormwaterJurisdictionID, disabled: false }) as FormInputOption

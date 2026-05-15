@@ -551,7 +551,7 @@ export class WqmpReviewComponent implements OnInit, IDeactivateComponent {
                 SourceControlBMPAttributeCategoryID: new FormControl<number>(attr.SourceControlBMPAttributeCategoryID),
                 SourceControlBMPAttributeCategoryName: new FormControl<string>(attr.SourceControlBMPAttributeCategoryName ?? null),
                 IsPresent: new FormControl<boolean | null>(isPresentValue),
-                SourceControlBMPNote: new FormControl<string>(noteValue, { validators: [Validators.maxLength(200)] }),
+                SourceControlBMPNote: new FormControl<string>(noteValue, { validators: [Validators.maxLength(500)] }),
             });
             this.sourceControlRows.push(row, { emitEvent: false });
 
@@ -1268,7 +1268,9 @@ export class WqmpReviewComponent implements OnInit, IDeactivateComponent {
     // and goes through the existing PUT /source-control-bmps endpoint (merge semantics).
     // AC: 400 surfaces as inline alert without leaving Step 4.
     saveSourceControlBmps(): void {
-        const noteMaxLength = 200;
+        // NPT-984: bumped from 200 → 500 to match the widened SourceControlBMPNote column;
+        // the AI-extracted notes were routinely exceeding the prior 200-char limit.
+        const noteMaxLength = 500;
 
         if (this.sourceControlRows.invalid) {
             this.sourceControlRows.markAllAsTouched();
