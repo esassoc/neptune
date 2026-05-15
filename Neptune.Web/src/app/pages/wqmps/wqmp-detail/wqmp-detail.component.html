@@ -390,7 +390,7 @@
                                 @for (doc of docGroup.documents; track doc.WaterQualityManagementPlanDocumentID) {
                                     <div class="document-entry">
                                         @if (doc.FileResource?.FileResourceGUID) {
-                                            <a [href]="apiBaseUrl + '/file-resources/' + doc.FileResource.FileResourceGUID" target="_blank">
+                                            <a [href]="fileResourceUrl(doc.FileResource.FileResourceGUID)" target="_blank">
                                                 {{ doc.DisplayName }} <i class="fa fa-download"></i>
                                             </a>
                                         } @else {

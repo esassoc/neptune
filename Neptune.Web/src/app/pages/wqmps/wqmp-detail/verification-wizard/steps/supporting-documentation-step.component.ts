@@ -9,8 +9,8 @@ import { AlertContext } from "src/app/shared/models/enums/alert-context.enum";
 import { ConfirmService } from "src/app/shared/services/confirm/confirm.service";
 import { WaterQualityManagementPlanService } from "src/app/shared/generated/api/water-quality-management-plan.service";
 import { WqmpVerificationWorkflowService } from "src/app/shared/services/wqmp-verification-workflow.service";
-import { environment } from "src/environments/environment";
 import { escapeHtml } from "src/app/shared/helpers/html-escape";
+import { fileResourceUrl } from "src/app/shared/helpers/file-resource-url";
 
 /**
  * NPT-995 Round 5: Supporting Documentation step. Mirrors the legacy MVC panel —
@@ -58,10 +58,7 @@ export class SupportingDocumentationStepComponent implements OnInit {
         return this.isUploading() || this.service.isSaving();
     }
 
-    getDownloadUrl(guid: string): string {
-        // FileResource.GetFileResourceUrl pattern, same path the legacy MVC + other SPA pages use.
-        return `${environment.mainAppApiUrl}/FileResource/DisplayResource/${guid}`;
-    }
+    getDownloadUrl = fileResourceUrl;
 
     private upload(file: File): void {
         const wqmpID = this.service.waterQualityManagementPlanID();
