@@ -14,6 +14,7 @@ import {
 } from "src/app/shared/components/inputs/btn-group-radio-input/btn-group-radio-input.component";
 
 import { FieldVisitService } from "src/app/shared/generated/api/field-visit.service";
+import { FieldVisitStatusEnum } from "src/app/shared/generated/enum/field-visit-status-enum";
 import { TreatmentBMPAssessmentService } from "src/app/shared/generated/api/treatment-bmp-assessment.service";
 import { MaintenanceRecordService } from "src/app/shared/generated/api/maintenance-record.service";
 import { FieldVisitDto } from "src/app/shared/generated/model/field-visit-dto";
@@ -118,17 +119,19 @@ export class FieldRecordsComponent implements OnInit {
         cols.push(
             this.utility.createActionsColumnDef((params: any) => {
                 const visit: FieldVisitDto = params.data;
-                const inProgress = visit.FieldVisitStatusID === 1; // FieldVisitStatusEnum.InProgress
-                // NPT-984: route in-progress visits to the editable workflow outlet and
-                // wrapped-up / unresolved / returned visits to the new read-only detail page.
-                // The read-only page provides a fully locked-down summary view with
-                // MVC-style observation tables, photos, and Manager-only Mark Provisional
-                // action that flips back to the editable workflow.
+                // NPT-984: route InProgress + ReturnedToEdit to the editable workflow outlet
+                // (the latter is the post-MarkProvisional state — the visit is meant to be
+                // editable again). Complete + Unresolved route to the locked-down read-only
+                // detail page. Pre-Copilot review this only checked InProgress, which left
+                // Editors stranded after a Manager Returned-to-Edit their visit (Copilot PR
+                // #507 #3).
+                const editable = visit.FieldVisitStatusID === FieldVisitStatusEnum.InProgress
+                    || visit.FieldVisitStatusID === FieldVisitStatusEnum.ReturnedToEdit;
                 const actions: { ActionName: string; ActionIcon?: string; ActionHandler: () => void }[] = [
                     {
-                        ActionName: inProgress ? "Continue" : "View",
+                        ActionName: editable ? "Continue" : "View",
                         ActionHandler: () => this.router.navigate(
-                            inProgress
+                            editable
                                 ? ["/field-visits", visit.FieldVisitID]
                                 : ["/field-visits", visit.FieldVisitID, "view"],
                         ),

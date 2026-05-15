@@ -1,6 +1,5 @@
 using Microsoft.EntityFrameworkCore;
 using Neptune.Common.DesignByContract;
-using Neptune.Common.GeoSpatial;
 using Neptune.Models.DataTransferObjects;
 
 namespace Neptune.EFModels.Entities;
@@ -181,19 +180,31 @@ public static class TreatmentBMPAssessments
         // deserialize each ObservationData blob, and concatenate notes per observation type.
         // ObservationData is JSON text so the filter has to materialize in-memory; the IN
         // clause is bounded by jurisdiction-scope so the row count stays manageable.
+        // Use the PassFail-specific deserialize helper and tolerate null/non-bool values so
+        // a single malformed payload doesn't 500 the whole page (Copilot PR #507 #1, #2).
+        static bool IsFailingPassFailValue(object? observationValue)
+        {
+            return observationValue switch
+            {
+                bool b => !b,
+                string s when bool.TryParse(s, out var parsed) => !parsed,
+                _ => false,
+            };
+        }
+
         var failingObservations = dbContext.TreatmentBMPObservations.AsNoTracking()
             .Include(x => x.TreatmentBMPAssessmentObservationType)
             .Where(x => mostRecentAssessmentIDs.Contains(x.TreatmentBMPAssessmentID))
             .ToList()
             .Where(x => x.TreatmentBMPAssessmentObservationType.ObservationTypeSpecification.ObservationTypeCollectionMethodID == (int)ObservationTypeCollectionMethodEnum.PassFail
-                        && x.GetPassFailObservationData().SingleValueObservations.Any(y => !bool.Parse(y.ObservationValue.ToString()!)))
+                        && x.GetPassFailObservationData().SingleValueObservations.Any(y => IsFailingPassFailValue(y.ObservationValue)))
             .ToList();
 
         var failureNotesByAssessment = failingObservations
             .GroupBy(x => x.TreatmentBMPAssessmentID)
             .ToDictionary(g => g.Key, g => string.Join("; ", g.Select(x =>
             {
-                var noteParts = GeoJsonSerializer.Deserialize<DiscreteObservationSchema>(x.ObservationData)
+                var noteParts = x.GetPassFailObservationData()
                     .SingleValueObservations
                     .Select(y => y.Notes)
                     .Where(s => !string.IsNullOrWhiteSpace(s));

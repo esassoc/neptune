@@ -1,6 +1,6 @@
 import { Component, inject, Input, OnInit } from "@angular/core";
 import { AsyncPipe, DatePipe, DecimalPipe } from "@angular/common";
-import { ActivatedRoute, Router, RouterLink } from "@angular/router";
+import { Router, RouterLink } from "@angular/router";
 import { BehaviorSubject, forkJoin, Observable, of, switchMap } from "rxjs";
 
 import { PageHeaderComponent } from "src/app/shared/components/page-header/page-header.component";
@@ -60,7 +60,6 @@ export class FieldVisitDetailReadOnlyComponent implements OnInit {
     private confirmService = inject(ConfirmService);
     private alertService = inject(AlertService);
     private router = inject(Router);
-    private route = inject(ActivatedRoute);
 
     private reload$ = new BehaviorSubject<void>(undefined);
 
@@ -145,7 +144,11 @@ export class FieldVisitDetailReadOnlyComponent implements OnInit {
             const value = first.ObservationValue;
             if (value == null || value === "") return "—";
             if (collectionMethod === "PassFail") {
-                return value === true || value === "true" ? "Pass" : "Fail";
+                // NPT-984: explicit fallback to "—" for unknown PassFail payloads (typo'd
+                // value, etc.) instead of silently rendering "Fail" — Copilot PR #507 #6.
+                if (value === true || value === "true") return "Pass";
+                if (value === false || value === "false") return "Fail";
+                return "—";
             }
             if (collectionMethod === "Percentage") {
                 return `${value}%`;
