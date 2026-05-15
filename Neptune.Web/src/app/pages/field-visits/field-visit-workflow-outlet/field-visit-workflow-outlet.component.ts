@@ -113,7 +113,11 @@ export class FieldVisitWorkflowOutletComponent implements OnInit, OnDestroy {
                 if (!confirmed) return;
                 this.fieldVisitService.finalizeFieldVisit(workflow.FieldVisitID).subscribe(() => {
                     this.alertService.pushAlert(new Alert("Field Visit marked Complete.", AlertContext.Success));
-                    this.router.navigate(["/treatment-bmps", workflow.TreatmentBMPID]);
+                    // NPT-984: navigate to the new read-only detail page rather than the BMP
+                    // detail. Wrap Up flips the visit to Complete; the read-only page surfaces
+                    // the locked-down summary (scores, observations, photos) and the
+                    // Manager-only Mark Provisional flow that returns it to edit.
+                    this.router.navigate(["/field-visits", workflow.FieldVisitID, "view"]);
                 });
             });
     }

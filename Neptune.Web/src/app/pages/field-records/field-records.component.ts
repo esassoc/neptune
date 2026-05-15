@@ -117,10 +117,19 @@ export class FieldRecordsComponent implements OnInit {
             this.utility.createActionsColumnDef((params: any) => {
                 const visit: FieldVisitDto = params.data;
                 const inProgress = visit.FieldVisitStatusID === 1; // FieldVisitStatusEnum.InProgress
+                // NPT-984: route in-progress visits to the editable workflow outlet and
+                // wrapped-up / unresolved / returned visits to the new read-only detail page.
+                // The read-only page provides a fully locked-down summary view with
+                // MVC-style observation tables, photos, and Manager-only Mark Provisional
+                // action that flips back to the editable workflow.
                 const actions: { ActionName: string; ActionIcon?: string; ActionHandler: () => void }[] = [
                     {
                         ActionName: inProgress ? "Continue" : "View",
-                        ActionHandler: () => this.router.navigate(["/field-visits", visit.FieldVisitID]),
+                        ActionHandler: () => this.router.navigate(
+                            inProgress
+                                ? ["/field-visits", visit.FieldVisitID]
+                                : ["/field-visits", visit.FieldVisitID, "view"],
+                        ),
                     },
                 ];
                 if (this.canManage) {

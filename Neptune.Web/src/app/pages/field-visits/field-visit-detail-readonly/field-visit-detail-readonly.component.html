@@ -1,0 +1,196 @@
+@if (data$ | async; as data) {
+    <page-header [pageTitle]="(data.workflow.TreatmentBMPName ?? 'Field Visit') + ' — ' + (data.workflow.FieldVisitStatusDisplayName ?? '')"></page-header>
+
+    <app-alert-display></app-alert-display>
+
+    <div class="readonly-visit-detail">
+        <p class="alert alert-info readonly-banner">
+            <i class="fa fa-lock mr-2"></i>
+            This Field Visit has been wrapped up and is shown in read-only view.
+            @if (canManage) {
+                Use <strong>Mark Provisional</strong> to return it to an editable state.
+            }
+        </p>
+
+        <!--
+            NPT-984: visit metadata panel — BMP, visit date, type, performed by. Mirrors the
+            sidebar shown by the editable workflow outlet, but as a single header strip since
+            there's no step navigation here.
+        -->
+        <section class="card readonly-section">
+            <div class="card-header">
+                <h3>Visit Information</h3>
+            </div>
+            <div class="card-body">
+                <dl class="readonly-grid">
+                    <dt>Treatment BMP</dt>
+                    <dd>
+                        <a [routerLink]="['/treatment-bmps', data.workflow.TreatmentBMPID]">{{ data.workflow.TreatmentBMPName }}</a>
+                        <span class="readonly-grid__meta">({{ data.workflow.TreatmentBMPTypeName }})</span>
+                    </dd>
+                    <dt>Visit Date</dt>
+                    <dd>{{ data.workflow.VisitDate | date: "MM/dd/yyyy" : "UTC" }}</dd>
+                    <dt>Visit Type</dt>
+                    <dd>{{ data.workflow.FieldVisitTypeDisplayName }}</dd>
+                    <dt>Performed By</dt>
+                    <dd>{{ data.workflow.PerformedByPersonName }}</dd>
+                    <dt>Status</dt>
+                    <dd>{{ data.workflow.FieldVisitStatusDisplayName }}</dd>
+                    <dt>Verified</dt>
+                    <dd>{{ data.workflow.IsFieldVisitVerified ? "Yes" : "No" }}</dd>
+                    <dt>Inventory Updated</dt>
+                    <dd>{{ data.workflow.InventoryUpdated ? "Yes" : "No" }}</dd>
+                    @if (data.workflow.InitialAssessmentScore != null) {
+                        <dt>Initial Assessment Score</dt>
+                        <dd>{{ data.workflow.InitialAssessmentScore | number: "1.1-1" }}</dd>
+                    }
+                    @if (data.workflow.PostMaintenanceAssessmentScore != null) {
+                        <dt>Post-Maintenance Score</dt>
+                        <dd>{{ data.workflow.PostMaintenanceAssessmentScore | number: "1.1-1" }}</dd>
+                    }
+                </dl>
+            </div>
+        </section>
+
+        <!-- Initial Assessment — observation table + score + photos -->
+        @if (data.initial) {
+            <section class="card readonly-section">
+                <div class="card-header card-header__split">
+                    <h3>Initial Assessment</h3>
+                    <span class="readonly-score">
+                        Score: <strong>{{ data.initial.AssessmentScore != null ? (data.initial.AssessmentScore | number: "1.1-1") : "—" }}</strong>
+                    </span>
+                </div>
+                <div class="card-body">
+                    @if (data.initial.ObservationTypes && data.initial.ObservationTypes.length) {
+                        <table class="readonly-obs-table">
+                            <thead>
+                                <tr>
+                                    <th>Observation Type</th>
+                                    <th>Value</th>
+                                    <th>Notes</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @for (ot of data.initial.ObservationTypes; track ot.TreatmentBMPAssessmentObservationTypeID) {
+                                    @let obs = (data.initial.Observations ?? []).find(o => o.TreatmentBMPAssessmentObservationTypeID === ot.TreatmentBMPAssessmentObservationTypeID);
+                                    <tr>
+                                        <td>{{ ot.TreatmentBMPAssessmentObservationTypeName }}</td>
+                                        <td>{{ formatObservationValue(obs?.ObservationData, ot.ObservationTypeCollectionMethodName) }}</td>
+                                        <td>{{ formatObservationNotes(obs?.ObservationData) || "—" }}</td>
+                                    </tr>
+                                }
+                            </tbody>
+                        </table>
+                    } @else {
+                        <p class="text-muted">No observation types defined for this BMP.</p>
+                    }
+                    @if (data.initialPhotos.length) {
+                        <h4 class="mt-3">Photos</h4>
+                        <image-carousel [images]="data.initialPhotos"></image-carousel>
+                    }
+                </div>
+            </section>
+        }
+
+        <!-- Maintenance Record — type + description + attribute table -->
+        @if (data.maintenance) {
+            <section class="card readonly-section">
+                <div class="card-header">
+                    <h3>Maintenance Record</h3>
+                </div>
+                <div class="card-body">
+                    <dl class="readonly-grid">
+                        <dt>Maintenance Type</dt>
+                        <dd>{{ data.maintenance.MaintenanceRecordTypeDisplayName || "—" }}</dd>
+                        <dt>Description</dt>
+                        <dd>{{ data.maintenance.MaintenanceRecordDescription || "—" }}</dd>
+                    </dl>
+                    @if (data.maintenanceAttributes.length) {
+                        <h4 class="mt-3">Attributes</h4>
+                        <table class="readonly-obs-table">
+                            <thead>
+                                <tr>
+                                    <th>Attribute</th>
+                                    <th>Value</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @for (attr of data.maintenanceAttributes; track attr.CustomAttributeType?.CustomAttributeTypeID) {
+                                    <tr>
+                                        <td>{{ attr.CustomAttributeType?.CustomAttributeTypeName }}</td>
+                                        <td>{{ maintenanceAttributeValue(attr, data.maintenance) }}</td>
+                                    </tr>
+                                }
+                            </tbody>
+                        </table>
+                    }
+                </div>
+            </section>
+        }
+
+        <!-- Post-Maintenance Assessment -->
+        @if (data.postMaintenance) {
+            <section class="card readonly-section">
+                <div class="card-header card-header__split">
+                    <h3>Post-Maintenance Assessment</h3>
+                    <span class="readonly-score">
+                        Score: <strong>{{ data.postMaintenance.AssessmentScore != null ? (data.postMaintenance.AssessmentScore | number: "1.1-1") : "—" }}</strong>
+                    </span>
+                </div>
+                <div class="card-body">
+                    @if (data.postMaintenance.ObservationTypes && data.postMaintenance.ObservationTypes.length) {
+                        <table class="readonly-obs-table">
+                            <thead>
+                                <tr>
+                                    <th>Observation Type</th>
+                                    <th>Value</th>
+                                    <th>Notes</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @for (ot of data.postMaintenance.ObservationTypes; track ot.TreatmentBMPAssessmentObservationTypeID) {
+                                    @let obs = (data.postMaintenance.Observations ?? []).find(o => o.TreatmentBMPAssessmentObservationTypeID === ot.TreatmentBMPAssessmentObservationTypeID);
+                                    <tr>
+                                        <td>{{ ot.TreatmentBMPAssessmentObservationTypeName }}</td>
+                                        <td>{{ formatObservationValue(obs?.ObservationData, ot.ObservationTypeCollectionMethodName) }}</td>
+                                        <td>{{ formatObservationNotes(obs?.ObservationData) || "—" }}</td>
+                                    </tr>
+                                }
+                            </tbody>
+                        </table>
+                    }
+                    @if (data.postMaintenancePhotos.length) {
+                        <h4 class="mt-3">Photos</h4>
+                        <image-carousel [images]="data.postMaintenancePhotos"></image-carousel>
+                    }
+                </div>
+            </section>
+        }
+
+        <!--
+            Footer actions. Verify / Mark Provisional are Manager-only and the backend rejects
+            non-Manager calls — keep the frontend gate to avoid showing actions that would 403.
+        -->
+        <div class="readonly-footer">
+            <button type="button" class="btn btn-secondary" (click)="backToFieldRecords()">
+                <i class="fa fa-arrow-left mr-1"></i> Back to Field Records
+            </button>
+            <button type="button" class="btn btn-secondary" (click)="backToBMP(data.workflow)">
+                <i class="fa fa-arrow-left mr-1"></i> Back to BMP
+            </button>
+            @if (canManage) {
+                @if (!data.workflow.IsFieldVisitVerified) {
+                    <button type="button" class="btn btn-primary" (click)="verify(data.workflow)">
+                        <i class="fa fa-check mr-1"></i> Verify
+                    </button>
+                }
+                <button type="button" class="btn btn-warning" (click)="markProvisional(data.workflow)">
+                    <i class="fa fa-undo mr-1"></i> Mark Provisional
+                </button>
+            }
+        </div>
+    </div>
+} @else {
+    <div [loadingSpinner]="{ isLoading: isLoading }"></div>
+}
