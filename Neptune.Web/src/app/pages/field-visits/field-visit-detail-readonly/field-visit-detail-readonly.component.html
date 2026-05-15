@@ -169,7 +169,7 @@
             }
 
             @if (data.postMaintenance) {
-                <div class="card mt-3">
+                <div class="card" [class.mt-3]="!!data.initial">
                     <div class="card-header">
                         <span class="card-title">Post-Maintenance Assessment</span>
                         <span class="card-actions">
