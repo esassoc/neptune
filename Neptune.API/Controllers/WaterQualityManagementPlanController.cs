@@ -488,8 +488,12 @@ namespace Neptune.API.Controllers
             return Ok(response);
         }
 
+        // NPT-984: Create-via-AI is a Manager-level entry point. Previously [AdminFeature]
+        // (Admin + SitkaAdmin only) which locked out Jurisdiction Managers even though they
+        // own WQMP records for their jurisdictions. Editors stay excluded — creating a new
+        // WQMP record is an attestation action above performing field work on an existing one.
         [HttpPost("upload")]
-        [AdminFeature]
+        [JurisdictionManageFeature]
         [Consumes("multipart/form-data")]
         [RequestSizeLimit(200 * 1024 * 1024)]
         [RequestFormLimits(MultipartBodyLengthLimit = 200 * 1024 * 1024)]
