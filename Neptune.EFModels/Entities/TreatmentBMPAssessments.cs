@@ -1,5 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 using Neptune.Common.DesignByContract;
+using Neptune.Common.GeoSpatial;
 using Neptune.Models.DataTransferObjects;
 
 namespace Neptune.EFModels.Entities;
@@ -127,11 +128,50 @@ public static class TreatmentBMPAssessments
 
     public static List<TreatmentBMPAssessmentGridDto> ListAsGridDtoForJurisdictions(NeptuneDbContext dbContext, IEnumerable<int> stormwaterJurisdictionIDsPersonCanView)
     {
-        return dbContext.vTreatmentBMPAssessmentDetaileds.AsNoTracking()
-            .Where(x => stormwaterJurisdictionIDsPersonCanView.Contains(x.StormwaterJurisdictionID))
+        var jurisdictionIDs = stormwaterJurisdictionIDsPersonCanView.ToList();
+
+        // NPT-984: Latest BMP Assessments page should show one row per TreatmentBMP — the
+        // most-recent assessment from a wrapped-up (FieldVisitStatusID = Complete) visit.
+        // Mirror the legacy MVC pattern (TreatmentBMPController.TreatmentBMPAssessmentSummaryGridJsonData)
+        // by filtering on vMostRecentTreatmentBMPAssessment.LastAssessmentID. Previously the
+        // SPA returned every assessment ever recorded which over-counted vs. the MVC page.
+        var mostRecentAssessmentIDs = dbContext.vMostRecentTreatmentBMPAssessments.AsNoTracking()
+            .Where(x => jurisdictionIDs.Contains(x.StormwaterJurisdictionID))
+            .Select(x => x.LastAssessmentID)
+            .ToList();
+
+        var rows = dbContext.vTreatmentBMPAssessmentDetaileds.AsNoTracking()
+            .Where(x => mostRecentAssessmentIDs.Contains(x.TreatmentBMPAssessmentID))
             .OrderByDescending(x => x.VisitDate)
+            .ToList();
+
+        // NPT-984: assemble the "Failure Notes" column the same way MVC does — load the
+        // PassFail observations whose recorded value was false for the in-scope assessments,
+        // deserialize each ObservationData blob, and concatenate notes per observation type.
+        // ObservationData is JSON text so the filter has to materialize in-memory; the IN
+        // clause is bounded by jurisdiction-scope so the row count stays manageable.
+        var failingObservations = dbContext.TreatmentBMPObservations.AsNoTracking()
+            .Include(x => x.TreatmentBMPAssessmentObservationType)
+            .Where(x => mostRecentAssessmentIDs.Contains(x.TreatmentBMPAssessmentID))
             .ToList()
-            .Select(x => new TreatmentBMPAssessmentGridDto
+            .Where(x => x.TreatmentBMPAssessmentObservationType.ObservationTypeSpecification.ObservationTypeCollectionMethodID == (int)ObservationTypeCollectionMethodEnum.PassFail
+                        && x.GetPassFailObservationData().SingleValueObservations.Any(y => !bool.Parse(y.ObservationValue.ToString()!)))
+            .ToList();
+
+        var failureNotesByAssessment = failingObservations
+            .GroupBy(x => x.TreatmentBMPAssessmentID)
+            .ToDictionary(g => g.Key, g => string.Join("; ", g.Select(x =>
+            {
+                var noteParts = GeoJsonSerializer.Deserialize<DiscreteObservationSchema>(x.ObservationData)
+                    .SingleValueObservations
+                    .Select(y => y.Notes)
+                    .Where(s => !string.IsNullOrWhiteSpace(s));
+                var joined = string.Join(". ", noteParts);
+                if (string.IsNullOrWhiteSpace(joined)) joined = "[None provided]";
+                return $"{x.TreatmentBMPAssessmentObservationType.TreatmentBMPAssessmentObservationTypeName} Failure Notes: {joined}";
+            }).OrderBy(s => s)));
+
+        return rows.Select(x => new TreatmentBMPAssessmentGridDto
             {
                 TreatmentBMPAssessmentID = x.TreatmentBMPAssessmentID,
                 FieldVisitID = x.FieldVisitID,
@@ -151,6 +191,7 @@ public static class TreatmentBMPAssessments
                 IsAssessmentComplete = x.IsAssessmentComplete,
                 AssessmentScore = x.AssessmentScore,
                 IsFieldVisitVerified = x.IsFieldVisitVerified,
+                FailureNotes = failureNotesByAssessment.GetValueOrDefault(x.TreatmentBMPAssessmentID),
             })
             .ToList();
     }

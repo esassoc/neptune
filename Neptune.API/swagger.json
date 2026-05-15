@@ -18195,6 +18195,10 @@
             "type": "string",
             "nullable": true,
             "readOnly": true
+          },
+          "FailureNotes": {
+            "type": "string",
+            "nullable": true
           }
         },
         "additionalProperties": false
