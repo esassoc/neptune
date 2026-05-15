@@ -1,4 +1,4 @@
-import { Component, OnInit } from "@angular/core";
+import { Component, inject, OnInit } from "@angular/core";
 import { AsyncPipe } from "@angular/common";
 import { ActivatedRoute, Router, RouterModule } from "@angular/router";
 import { ColDef } from "ag-grid-community";
@@ -38,17 +38,27 @@ type ActiveTab = "field-visits" | "assessments" | "maintenance-records";
     styleUrl: "./field-records.component.scss",
 })
 export class FieldRecordsComponent implements OnInit {
-    // NPT-984: wire the three grids' observables through a class-level reload trigger so the
-    // `| async` pipes have a real Observable to subscribe to at template-init time. Previously
-    // the fields were declared without a value and assigned inside refresh() during ngOnInit;
-    // on lazy-loaded routes in zoneless mode that race led to the page rendering empty until
-    // the user clicked somewhere to force a CD pass (Kathleen's "page does not load until I
-    // click it myself" report). The reload$ trigger replaces the prior reassignment pattern
-    // while still letting refresh() re-fetch after deletes.
+    // NPT-984: services injected via `inject()` so field initializers can reference them.
+    // Lazy-loaded zoneless routes complete their first CD pass *before* ngOnInit runs, so
+    // observables assigned in ngOnInit (the previous attempt) raced the template's first
+    // `| async` subscription — the page rendered empty until the user clicked to force a
+    // second CD pass. Wiring the observables in field initializers means they exist before
+    // the component is ever rendered, and the async pipe sees a live Observable on its
+    // first check.
+    private fieldVisitService = inject(FieldVisitService);
+    private assessmentService = inject(TreatmentBMPAssessmentService);
+    private maintenanceRecordService = inject(MaintenanceRecordService);
+    private utility = inject(UtilityFunctionsService);
+    private confirmService = inject(ConfirmService);
+    private alertService = inject(AlertService);
+    private authenticationService = inject(AuthenticationService);
+    private router = inject(Router);
+    private route = inject(ActivatedRoute);
+
     private reload$ = new BehaviorSubject<void>(undefined);
-    public fieldVisits$: Observable<FieldVisitDto[]>;
-    public assessments$: Observable<TreatmentBMPAssessmentGridDto[]>;
-    public maintenanceRecords$: Observable<MaintenanceRecordGridDto[]>;
+    public fieldVisits$: Observable<FieldVisitDto[]> = this.reload$.pipe(switchMap(() => this.fieldVisitService.listFieldVisit()));
+    public assessments$: Observable<TreatmentBMPAssessmentGridDto[]> = this.reload$.pipe(switchMap(() => this.assessmentService.listTreatmentBMPAssessment()));
+    public maintenanceRecords$: Observable<MaintenanceRecordGridDto[]> = this.reload$.pipe(switchMap(() => this.maintenanceRecordService.listMaintenanceRecord()));
 
     public fieldVisitColumnDefs: ColDef[];
     public assessmentColumnDefs: ColDef[];
@@ -64,18 +74,6 @@ export class FieldRecordsComponent implements OnInit {
         { label: "Maintenance Records", value: "maintenance-records" },
     ];
 
-    constructor(
-        private fieldVisitService: FieldVisitService,
-        private assessmentService: TreatmentBMPAssessmentService,
-        private maintenanceRecordService: MaintenanceRecordService,
-        private utility: UtilityFunctionsService,
-        private confirmService: ConfirmService,
-        private alertService: AlertService,
-        private authenticationService: AuthenticationService,
-        private router: Router,
-        private route: ActivatedRoute
-    ) {}
-
     ngOnInit(): void {
         this.canManage = this.authenticationService.doesCurrentUserHaveJurisdictionManagePermission();
 
@@ -87,12 +85,6 @@ export class FieldRecordsComponent implements OnInit {
         this.fieldVisitColumnDefs = this.buildFieldVisitColumnDefs();
         this.assessmentColumnDefs = this.buildAssessmentColumnDefs();
         this.maintenanceRecordColumnDefs = this.buildMaintenanceRecordColumnDefs();
-
-        // Pipe each grid feed off the shared reload trigger so `refresh()` re-fetches all three
-        // and the async pipes never see an undefined observable.
-        this.fieldVisits$ = this.reload$.pipe(switchMap(() => this.fieldVisitService.listFieldVisit()));
-        this.assessments$ = this.reload$.pipe(switchMap(() => this.assessmentService.listTreatmentBMPAssessment()));
-        this.maintenanceRecords$ = this.reload$.pipe(switchMap(() => this.maintenanceRecordService.listMaintenanceRecord()));
     }
 
     public onTabChange(value: string): void {
