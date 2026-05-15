@@ -225,10 +225,10 @@
 
 // Review Panel
 .review-panel {
-    // NPT-984: default panel width returned to 620 so Steps 1-3 (and Step 5) leave more room
-    // for the PDF viewer. Step 4's Source Control table needs more horizontal room for long
-    // attribute names — it overrides via .review-panel--wide-table below.
-    width: 620px;
+    // NPT-984: default panel width narrowed (was 720 → 540) so Steps 1-3 (and Step 5) leave
+    // the PDF viewer the most room. Step 4's Source Control table needs more horizontal room
+    // for long attribute names — it overrides via .review-panel--wide-table below.
+    width: 540px;
     flex-shrink: 0;
     display: flex;
     flex-direction: column;
