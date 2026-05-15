@@ -325,6 +325,11 @@ export class UtilityFunctionsService {
             headerName: headerName,
             valueGetter: (params) => this.defaultValueGetter(params, fieldName),
             valueFormatter: (params) => this.booleanValueGetter(params.value),
+            // NPT-984: ag-grid's filter pipeline reads the raw cell value (the boolean) rather
+            // than the formatted display value, so the custom-dropdown filter rendered chips
+            // labeled "true" / "false". Surface the "Yes" / "No" string to the filter via
+            // filterValueGetter so the filter chips match what the grid cell shows.
+            filterValueGetter: (params: any) => this.booleanValueGetter(this.defaultValueGetter(params, fieldName)),
             filter: true,
         };
         this.applyDefaultQanatColumnDefParams(colDef, linkColumnDefParams);

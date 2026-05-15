@@ -2,7 +2,8 @@ import { Component, OnInit } from "@angular/core";
 import { AsyncPipe } from "@angular/common";
 import { ActivatedRoute, Router, RouterModule } from "@angular/router";
 import { ColDef } from "ag-grid-community";
-import { Observable } from "rxjs";
+import { BehaviorSubject, Observable } from "rxjs";
+import { switchMap } from "rxjs/operators";
 
 import { PageHeaderComponent } from "src/app/shared/components/page-header/page-header.component";
 import { AlertDisplayComponent } from "src/app/shared/components/alert-display/alert-display.component";
@@ -37,6 +38,14 @@ type ActiveTab = "field-visits" | "assessments" | "maintenance-records";
     styleUrl: "./field-records.component.scss",
 })
 export class FieldRecordsComponent implements OnInit {
+    // NPT-984: wire the three grids' observables through a class-level reload trigger so the
+    // `| async` pipes have a real Observable to subscribe to at template-init time. Previously
+    // the fields were declared without a value and assigned inside refresh() during ngOnInit;
+    // on lazy-loaded routes in zoneless mode that race led to the page rendering empty until
+    // the user clicked somewhere to force a CD pass (Kathleen's "page does not load until I
+    // click it myself" report). The reload$ trigger replaces the prior reassignment pattern
+    // while still letting refresh() re-fetch after deletes.
+    private reload$ = new BehaviorSubject<void>(undefined);
     public fieldVisits$: Observable<FieldVisitDto[]>;
     public assessments$: Observable<TreatmentBMPAssessmentGridDto[]>;
     public maintenanceRecords$: Observable<MaintenanceRecordGridDto[]>;
@@ -79,7 +88,11 @@ export class FieldRecordsComponent implements OnInit {
         this.assessmentColumnDefs = this.buildAssessmentColumnDefs();
         this.maintenanceRecordColumnDefs = this.buildMaintenanceRecordColumnDefs();
 
-        this.refresh();
+        // Pipe each grid feed off the shared reload trigger so `refresh()` re-fetches all three
+        // and the async pipes never see an undefined observable.
+        this.fieldVisits$ = this.reload$.pipe(switchMap(() => this.fieldVisitService.listFieldVisit()));
+        this.assessments$ = this.reload$.pipe(switchMap(() => this.assessmentService.listTreatmentBMPAssessment()));
+        this.maintenanceRecords$ = this.reload$.pipe(switchMap(() => this.maintenanceRecordService.listMaintenanceRecord()));
     }
 
     public onTabChange(value: string): void {
@@ -95,9 +108,7 @@ export class FieldRecordsComponent implements OnInit {
     }
 
     private refresh(): void {
-        this.fieldVisits$ = this.fieldVisitService.listFieldVisit();
-        this.assessments$ = this.assessmentService.listTreatmentBMPAssessment();
-        this.maintenanceRecords$ = this.maintenanceRecordService.listMaintenanceRecord();
+        this.reload$.next();
     }
 
     private buildFieldVisitColumnDefs(): ColDef[] {
