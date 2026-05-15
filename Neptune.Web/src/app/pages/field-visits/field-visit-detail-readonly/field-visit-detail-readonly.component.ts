@@ -187,14 +187,6 @@ export class FieldVisitDetailReadOnlyComponent implements OnInit {
         return values.length > 0 ? values.join(", ") : "—";
     }
 
-    public backToFieldRecords(): void {
-        this.router.navigate(["/field-records"]);
-    }
-
-    public backToBMP(workflow: FieldVisitWorkflowDto): void {
-        this.router.navigate(["/treatment-bmps", workflow.TreatmentBMPID]);
-    }
-
     /**
      * Mark Provisional returns the visit to an editable state. Manager-only, gated both on
      * the frontend (`canManage`) and on the backend (`[JurisdictionManageFeature]` on the

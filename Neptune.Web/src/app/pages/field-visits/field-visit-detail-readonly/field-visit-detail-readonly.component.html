@@ -9,9 +9,6 @@
             </div>
         </ng-template>
         <ng-template #headerActions>
-            <a [routerLink]="['/treatment-bmps', data.workflow.TreatmentBMPID]" class="btn btn-secondary-outline mr-2">
-                <i class="fa fa-arrow-left mr-1"></i> Back to BMP
-            </a>
             @if (canManage) {
                 @if (!data.workflow.IsFieldVisitVerified) {
                     <button type="button" class="btn btn-primary mr-2" (click)="verify(data.workflow)">
