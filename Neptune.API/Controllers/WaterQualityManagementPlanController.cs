@@ -532,6 +532,19 @@ namespace Neptune.API.Controllers
                 return BadRequest("Only PDF files are accepted.");
             }
 
+            // NPT-984: defense-in-depth — even though the frontend modal only offers the
+            // user's manageable jurisdictions, validate the requested jurisdiction is in
+            // the caller's manageable set. Admin / SitkaAdmin see all jurisdictions; a
+            // JurisdictionManager is restricted to their assigned set.
+            var currentPerson = People.GetByID(DbContext, CallingUser.PersonID);
+            var manageableJurisdictionIDs = StormwaterJurisdictionPeople
+                .ListViewableStormwaterJurisdictionIDsByPersonForWQMPs(DbContext, currentPerson)
+                .ToList();
+            if (!manageableJurisdictionIDs.Contains(stormwaterJurisdictionID))
+            {
+                return StatusCode((int)System.Net.HttpStatusCode.Forbidden, new { message = "You are not permitted to create a WQMP in the selected jurisdiction." });
+            }
+
             // Check for existing WQMP with the same name in this jurisdiction
             var existing = await WaterQualityManagementPlans.GetByNameAndJurisdiction(DbContext, wqmpName, stormwaterJurisdictionID);
             if (existing != null)

@@ -57,16 +57,20 @@ export class ReviewSummaryComponent {
     get groups(): ReviewSummaryGroup[] {
         const groups: ReviewSummaryGroup[] = [];
 
+        // NPT-984: all groups render as collapsible <details open> panels so the user can
+        // toggle individual sections without losing position on the page. Default-open keeps
+        // the prior all-visible-on-load behavior; sections can be collapsed individually to
+        // reduce scroll, which is especially useful once Source Control's ~36 rows show up.
         if (this.locationFields.length || this.parcelFields.length) {
             const rows: ReviewSummaryRow[] = [
                 ...this.locationFields.map((f) => this.toRow(f)),
                 ...this.parcelFields.map((f) => this.toRow(f)),
             ];
-            groups.push({ title: "Location", rows });
+            groups.push({ title: "Location", rows, collapsible: true, initiallyOpen: true });
         }
 
         if (this.basicsFields.length) {
-            groups.push({ title: "Basics", rows: this.basicsFields.map((f) => this.toRow(f)) });
+            groups.push({ title: "Basics", rows: this.basicsFields.map((f) => this.toRow(f)), collapsible: true, initiallyOpen: true });
         }
 
         if (this.sourceControlRows.length) {
@@ -90,7 +94,10 @@ export class ReviewSummaryComponent {
                 });
             }
             for (const [category, rows] of byCategory.entries()) {
-                groups.push({ title: category, rows, collapsible: true, initiallyOpen: false });
+                // NPT-984: SC categories were initially closed by default to keep the long
+                // checklist scannable. Per Kathleen's feedback, default-open all groups so
+                // the user lands on a fully-visible review; collapsing is opt-in per group.
+                groups.push({ title: category, rows, collapsible: true, initiallyOpen: true });
             }
         }
 
@@ -113,7 +120,7 @@ export class ReviewSummaryComponent {
                     origin: "ai",
                 };
             });
-            groups.push({ title: "BMPs", rows });
+            groups.push({ title: "BMPs", rows, collapsible: true, initiallyOpen: true });
         }
 
         return groups;

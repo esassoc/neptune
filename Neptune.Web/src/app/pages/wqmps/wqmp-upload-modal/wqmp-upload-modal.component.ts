@@ -47,7 +47,14 @@ export class WqmpUploadModalComponent implements OnInit {
     ngOnInit(): void {
         this.alertService.clearAlerts();
 
-        this.jurisdictionOptions$ = this.stormwaterJurisdictionService.listStormwaterJurisdiction().pipe(
+        // NPT-984: use the user-viewable jurisdictions endpoint — its
+        // ListViewableStormwaterJurisdictionIDsByPersonIDForBMPsAsync helper produces the
+        // right set for the role set that can reach this modal (Admin/SitkaAdmin see all;
+        // JM sees only their assigned jurisdictions). The Create-from-PDF button is
+        // already gated on canManage on the WQMPs index, and the upload endpoint
+        // validates the requested jurisdictionID is in the caller's manageable set as
+        // defense-in-depth, so the anon-branch in that helper is unreachable here.
+        this.jurisdictionOptions$ = this.stormwaterJurisdictionService.listViewableStormwaterJurisdiction().pipe(
             map((jurisdictions) =>
                 jurisdictions.map(
                     (j) => ({ Label: j.StormwaterJurisdictionName, Value: j.StormwaterJurisdictionID, disabled: false }) as FormInputOption
