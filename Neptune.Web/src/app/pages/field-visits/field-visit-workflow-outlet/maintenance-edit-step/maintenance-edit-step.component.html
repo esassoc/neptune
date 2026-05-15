@@ -1,7 +1,7 @@
 @if (workflow$ | async; as workflow) {
     <page-header [pageTitle]="isReadOnly() ? 'View Maintenance Record' : 'Edit Maintenance Record'" [templateRight]="headerActions"></page-header>
     <ng-template #headerActions>
-        @if (maintenanceRecord() && !isReadOnly()) {
+        @if (maintenanceRecord() && !isReadOnly() && canManage) {
             <button type="button" class="btn btn-danger btn-sm" (click)="deleteRecord(workflow)">
                 <i class="fa fa-trash mr-1"></i> Delete Record
             </button>

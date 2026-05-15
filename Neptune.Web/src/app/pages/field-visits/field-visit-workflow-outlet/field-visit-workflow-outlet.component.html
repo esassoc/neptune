@@ -14,9 +14,11 @@
                             <button type="button" class="btn-icon" (click)="openChangeDateAndTypeModal(workflow)" title="Change visit date or type">
                                 <i class="fa fa-pencil"></i>
                             </button>
-                            <button type="button" class="btn-icon btn-icon-danger" (click)="deleteVisit(workflow)" title="Delete visit">
-                                <i class="fa fa-trash"></i>
-                            </button>
+                            @if (canManage) {
+                                <button type="button" class="btn-icon btn-icon-danger" (click)="deleteVisit(workflow)" title="Delete visit">
+                                    <i class="fa fa-trash"></i>
+                                </button>
+                            }
                         </p>
                         <p class="visit-status">Status: {{ workflow.FieldVisitStatusDisplayName }}</p>
                     </div>
