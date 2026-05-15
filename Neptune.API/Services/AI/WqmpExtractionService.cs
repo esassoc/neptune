@@ -132,7 +132,12 @@ public class WqmpExtractionService
                 var parameters = new MessageCreateParams
                 {
                     Model = _configuration.ClaudeModelId,
-                    MaxTokens = 8192,
+                    // NPT-1054: bumped from 8192 → 16384. Sonnet 4.5+ uses interleaved thinking
+                    // by default when tool_use is in play; thinking tokens count toward the same
+                    // output budget. On the SourceControlBMPs call with a longer prompt + a
+                    // 65-page PDF, Claude consumed all 8192 tokens on thinking and never reached
+                    // the tool call (stop_reason=max_tokens, no text or input_json captured).
+                    MaxTokens = 16384,
                     // The Files-API source variant (BetaFileDocumentSource) is gated behind
                     // this beta header on the Messages endpoint. Without it the request gets
                     // routed to the standard validator and rejected with
@@ -225,15 +230,61 @@ public class WqmpExtractionService
                 results[i].cachedTokens, $"WQMP Extraction - {keys[i]}");
         }
 
-        // Array categories return { "items": [...] } — unwrap to just the array
+        // Array categories return { "items": [...] } — unwrap to just the array.
+        // NPT-1054: Claude sometimes JSON-encodes `items` as a string instead of emitting a real
+        // array (observed on the SourceControlBMPs call with longer prompts + multi-line array
+        // examples). Detect that shape and parse it back to an array before consolidating;
+        // otherwise the downstream JSON_QUERY consumer sees a string literal where an array
+        // should be.
         string UnwrapItems(string json)
         {
             try
             {
                 using var doc = JsonDocument.Parse(json);
-                if (doc.RootElement.TryGetProperty("items", out var items)) return items.GetRawText();
+                if (doc.RootElement.TryGetProperty("items", out var items))
+                {
+                    if (items.ValueKind == JsonValueKind.String)
+                    {
+                        var innerJson = items.GetString();
+                        if (string.IsNullOrEmpty(innerJson))
+                        {
+                            _logger.LogWarning("Tool output `items` was an empty string — emitting empty array.");
+                            return "[]";
+                        }
+                        try
+                        {
+                            using var innerDoc = JsonDocument.Parse(innerJson);
+                            _logger.LogWarning("Tool output had `items` as a JSON-encoded string ({Len} chars) — unwrapped successfully.", innerJson.Length);
+                            return innerJson;
+                        }
+                        catch (JsonException ex)
+                        {
+                            // The string content failed to parse as JSON. Try a best-effort cleanup:
+                            // strip a stray trailing comma + newline before the closing bracket,
+                            // which is a common Claude foible on long array outputs.
+                            var cleaned = System.Text.RegularExpressions.Regex.Replace(
+                                innerJson, @",\s*([\]\}])", "$1");
+                            try
+                            {
+                                using var cleanedDoc = JsonDocument.Parse(cleaned);
+                                _logger.LogWarning("Tool output `items` was a JSON-encoded string with trailing-comma issues — repaired and unwrapped ({Len} chars).", cleaned.Length);
+                                return cleaned;
+                            }
+                            catch (JsonException ex2)
+                            {
+                                _logger.LogError(ex2, "Tool output `items` was a JSON-encoded string but failed to parse even after cleanup. First error: {FirstErr}. Cleanup error: {CleanupErr}. Inner head: {Head}",
+                                    ex.Message, ex2.Message, innerJson.Length > 500 ? innerJson.Substring(0, 500) : innerJson);
+                                return "[]";
+                            }
+                        }
+                    }
+                    return items.GetRawText();
+                }
             }
-            catch { /* fall through */ }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "UnwrapItems failed to parse tool output JSON; using raw output.");
+            }
             return json;
         }
 
@@ -310,7 +361,22 @@ public class WqmpExtractionService
             WaterQualityManagementPlanDevelopmentType = WaterQualityManagementPlanDevelopmentType.All.Select(x => x.WaterQualityManagementPlanDevelopmentTypeDisplayName),
             WaterQualityManagementPlanPermitTerm = WaterQualityManagementPlanPermitTerm.All.Select(x => x.WaterQualityManagementPlanPermitTermDisplayName),
             TrashCaptureStatusType = TrashCaptureStatusType.All.Select(x => x.TrashCaptureStatusTypeDisplayName),
-            SourceControlBMPAttributes = await _dbContext.SourceControlBMPAttributes.AsNoTracking().Select(x => x.SourceControlBMPAttributeName).ToListAsync(),
+            // NPT-1054: send SC attribute names grouped by their category so Claude has the
+            // three-bucket taxonomy when matching extracted attribute wording. The v3 prompt
+            // explicitly enumerates the three categories with examples — the categorized
+            // DomainContext lets Claude resolve fuzzy PDF wording against the right bucket.
+            SourceControlBMPAttributes = (await _dbContext.SourceControlBMPAttributes
+                .AsNoTracking()
+                .Select(x => new { x.SourceControlBMPAttributeName, x.SourceControlBMPAttributeCategoryID })
+                .ToListAsync())
+                .GroupBy(x => x.SourceControlBMPAttributeCategoryID)
+                .Select(g => new
+                {
+                    Category = SourceControlBMPAttributeCategory.AllLookupDictionary[g.Key].SourceControlBMPAttributeCategoryName,
+                    Attributes = g.Select(a => a.SourceControlBMPAttributeName).OrderBy(n => n).ToList(),
+                })
+                .OrderBy(g => g.Category)
+                .ToList(),
         };
         return $"SCHEMA_VERSION: {SchemaVersion}\nDOMAIN TABLES: {JsonSerializer.Serialize(domainTables)}\n";
     }
