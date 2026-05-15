@@ -1,7 +1,7 @@
-import { Component, Input, OnInit } from "@angular/core";
+import { Component, inject, Input, OnInit } from "@angular/core";
 import { AsyncPipe, DatePipe, DecimalPipe } from "@angular/common";
 import { ActivatedRoute, Router, RouterLink } from "@angular/router";
-import { forkJoin, Observable, of, switchMap } from "rxjs";
+import { BehaviorSubject, forkJoin, Observable, of, switchMap } from "rxjs";
 
 import { PageHeaderComponent } from "src/app/shared/components/page-header/page-header.component";
 import { AlertDisplayComponent } from "src/app/shared/components/alert-display/alert-display.component";
@@ -46,6 +46,24 @@ import { AlertContext } from "src/app/shared/models/enums/alert-context.enum";
     styleUrl: "./field-visit-detail-readonly.component.scss",
 })
 export class FieldVisitDetailReadOnlyComponent implements OnInit {
+    // NPT-984: services injected via `inject()` so the data$ pipeline can be wired up as a
+    // field initializer (see data$ below). Lazy-loaded zoneless routes complete the first
+    // CD pass before ngOnInit runs, so observables assigned in ngOnInit raced the template's
+    // `| async` subscription. Field initializers run at class instantiation time — well
+    // before the first CD — so the async pipe sees a live observable on its first check.
+    private fieldVisitService = inject(FieldVisitService);
+    private assessmentService = inject(TreatmentBMPAssessmentService);
+    private assessmentPhotoService = inject(TreatmentBMPAssessmentPhotoService);
+    private maintenanceRecordService = inject(MaintenanceRecordService);
+    private treatmentBMPTypeService = inject(TreatmentBMPTypeService);
+    private authenticationService = inject(AuthenticationService);
+    private confirmService = inject(ConfirmService);
+    private alertService = inject(AlertService);
+    private router = inject(Router);
+    private route = inject(ActivatedRoute);
+
+    private reload$ = new BehaviorSubject<void>(undefined);
+
     @Input() fieldVisitID!: number;
 
     public data$: Observable<{
@@ -56,69 +74,57 @@ export class FieldVisitDetailReadOnlyComponent implements OnInit {
         postMaintenancePhotos: ImageCarouselItem[];
         maintenance: MaintenanceRecordDetailDto | null;
         maintenanceAttributes: TreatmentBMPTypeCustomAttributeTypeDto[];
-    } | null>;
+    } | null> = this.reload$.pipe(
+        switchMap(() => this.fieldVisitService.getByIDFieldVisit(this.fieldVisitID)),
+        switchMap((workflow) => {
+            const initialAssessment$ = workflow.InitialAssessmentID
+                ? this.assessmentService.getByIDTreatmentBMPAssessment(workflow.InitialAssessmentID)
+                : of(null as TreatmentBMPAssessmentDetailDto | null);
+            const postMaintenanceAssessment$ = workflow.PostMaintenanceAssessmentID
+                ? this.assessmentService.getByIDTreatmentBMPAssessment(workflow.PostMaintenanceAssessmentID)
+                : of(null as TreatmentBMPAssessmentDetailDto | null);
+            const initialPhotos$ = workflow.InitialAssessmentID
+                ? this.assessmentPhotoService.listTreatmentBMPAssessmentPhoto(workflow.InitialAssessmentID)
+                : of([]);
+            const postMaintenancePhotos$ = workflow.PostMaintenanceAssessmentID
+                ? this.assessmentPhotoService.listTreatmentBMPAssessmentPhoto(workflow.PostMaintenanceAssessmentID)
+                : of([]);
+            const maintenance$ = this.maintenanceRecordService.getByFieldVisitMaintenanceRecord(this.fieldVisitID);
+            const attributes$ = this.treatmentBMPTypeService.listCustomAttributeTypesTreatmentBMPType(workflow.TreatmentBMPTypeID);
+            return forkJoin({
+                workflow: of(workflow),
+                initial: initialAssessment$,
+                initialPhotos: initialPhotos$,
+                postMaintenance: postMaintenanceAssessment$,
+                postMaintenancePhotos: postMaintenancePhotos$,
+                maintenance: maintenance$,
+                maintenanceAttributes: attributes$,
+            });
+        }),
+        switchMap((payload) => {
+            this.isLoading = false;
+            const toCarouselItems = (rows: { FileResourceGUID?: string | null; Caption?: string | null }[]): ImageCarouselItem[] =>
+                rows.map((p) => ({ FileResourceGUID: p.FileResourceGUID ?? undefined, Caption: p.Caption ?? null }));
+            const filteredMaintenanceAttributes = (payload.maintenanceAttributes ?? []).filter(
+                (t) => t.CustomAttributeType?.CustomAttributeTypePurposeID === CustomAttributeTypePurposeEnum.Maintenance,
+            );
+            return of({
+                workflow: payload.workflow,
+                initial: payload.initial,
+                initialPhotos: toCarouselItems(payload.initialPhotos ?? []),
+                postMaintenance: payload.postMaintenance,
+                postMaintenancePhotos: toCarouselItems(payload.postMaintenancePhotos ?? []),
+                maintenance: payload.maintenance,
+                maintenanceAttributes: filteredMaintenanceAttributes,
+            });
+        }),
+    );
 
     public isLoading = true;
 
-    constructor(
-        private fieldVisitService: FieldVisitService,
-        private assessmentService: TreatmentBMPAssessmentService,
-        private assessmentPhotoService: TreatmentBMPAssessmentPhotoService,
-        private maintenanceRecordService: MaintenanceRecordService,
-        private treatmentBMPTypeService: TreatmentBMPTypeService,
-        private authenticationService: AuthenticationService,
-        private confirmService: ConfirmService,
-        private alertService: AlertService,
-        private router: Router,
-        private route: ActivatedRoute,
-    ) {}
-
     ngOnInit(): void {
-        this.data$ = this.fieldVisitService.getByIDFieldVisit(this.fieldVisitID).pipe(
-            switchMap((workflow) => {
-                const initialAssessment$ = workflow.InitialAssessmentID
-                    ? this.assessmentService.getByIDTreatmentBMPAssessment(workflow.InitialAssessmentID)
-                    : of(null as TreatmentBMPAssessmentDetailDto | null);
-                const postMaintenanceAssessment$ = workflow.PostMaintenanceAssessmentID
-                    ? this.assessmentService.getByIDTreatmentBMPAssessment(workflow.PostMaintenanceAssessmentID)
-                    : of(null as TreatmentBMPAssessmentDetailDto | null);
-                const initialPhotos$ = workflow.InitialAssessmentID
-                    ? this.assessmentPhotoService.listTreatmentBMPAssessmentPhoto(workflow.InitialAssessmentID)
-                    : of([]);
-                const postMaintenancePhotos$ = workflow.PostMaintenanceAssessmentID
-                    ? this.assessmentPhotoService.listTreatmentBMPAssessmentPhoto(workflow.PostMaintenanceAssessmentID)
-                    : of([]);
-                const maintenance$ = this.maintenanceRecordService.getByFieldVisitMaintenanceRecord(this.fieldVisitID);
-                const attributes$ = this.treatmentBMPTypeService.listCustomAttributeTypesTreatmentBMPType(workflow.TreatmentBMPTypeID);
-                return forkJoin({
-                    workflow: of(workflow),
-                    initial: initialAssessment$,
-                    initialPhotos: initialPhotos$,
-                    postMaintenance: postMaintenanceAssessment$,
-                    postMaintenancePhotos: postMaintenancePhotos$,
-                    maintenance: maintenance$,
-                    maintenanceAttributes: attributes$,
-                });
-            }),
-            // Use the loaded payload to flip the loading flag, then map to the same shape.
-            switchMap((payload) => {
-                this.isLoading = false;
-                const toCarouselItems = (rows: { FileResourceGUID?: string | null; Caption?: string | null }[]): ImageCarouselItem[] =>
-                    rows.map((p) => ({ FileResourceGUID: p.FileResourceGUID ?? undefined, Caption: p.Caption ?? null }));
-                const filteredMaintenanceAttributes = (payload.maintenanceAttributes ?? []).filter(
-                    (t) => t.CustomAttributeType?.CustomAttributeTypePurposeID === CustomAttributeTypePurposeEnum.Maintenance,
-                );
-                return of({
-                    workflow: payload.workflow,
-                    initial: payload.initial,
-                    initialPhotos: toCarouselItems(payload.initialPhotos ?? []),
-                    postMaintenance: payload.postMaintenance,
-                    postMaintenancePhotos: toCarouselItems(payload.postMaintenancePhotos ?? []),
-                    maintenance: payload.maintenance,
-                    maintenanceAttributes: filteredMaintenanceAttributes,
-                });
-            }),
-        );
+        // Nothing required here — data$ is wired via field initializer and subscribes lazily
+        // through the template's `| async`. Kept on the class for future per-route work.
     }
 
     public get canManage(): boolean {
@@ -226,9 +232,9 @@ export class FieldVisitDetailReadOnlyComponent implements OnInit {
                 if (!confirmed) return;
                 this.fieldVisitService.verifyFieldVisit(workflow.FieldVisitID!).subscribe(() => {
                     this.alertService.pushAlert(new Alert("Field Visit verified.", AlertContext.Success));
-                    // Refresh by re-fetching — stay on the read-only page; the verified pill
-                    // flips and the Manager actions reflect the new state.
-                    this.ngOnInit();
+                    // Re-fire the reload trigger to re-fetch the workflow + child data so the
+                    // verified pill flips and the Manager actions reflect the new state.
+                    this.reload$.next();
                 });
             });
     }
