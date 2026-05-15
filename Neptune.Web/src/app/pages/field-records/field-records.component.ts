@@ -74,6 +74,16 @@ export class FieldRecordsComponent implements OnInit {
         { label: "Maintenance Records", value: "maintenance-records" },
     ];
 
+    // NPT-984: BtnGroupRadioInputComponent's `[default]` input is matched against `label`
+    // (not value) in its ngOnInit — passing the kebab-case `activeTab` value caused
+    // `options.find(...)` to return undefined, then `.value` threw "Cannot read properties
+    // of undefined" and the whole template render aborted. (This was the real root cause of
+    // Kathleen's "field records page is blank until I click" report.) Map the active value
+    // back to its label so the radio group highlights the right tab.
+    public get activeTabLabel(): string {
+        return this.tabOptions.find((o) => o.value === this.activeTab)?.label ?? "";
+    }
+
     ngOnInit(): void {
         this.canManage = this.authenticationService.doesCurrentUserHaveJurisdictionManagePermission();
 

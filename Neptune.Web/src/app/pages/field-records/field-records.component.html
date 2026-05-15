@@ -4,7 +4,7 @@
 
 <div class="page-body">
     <div class="record-tabs">
-        <btn-group-radio-input [options]="tabOptions" [default]="activeTab" (change)="onTabChange($event)"></btn-group-radio-input>
+        <btn-group-radio-input [options]="tabOptions" [default]="activeTabLabel" (change)="onTabChange($event)"></btn-group-radio-input>
     </div>
 
     @switch (activeTab) {
