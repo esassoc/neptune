@@ -5,12 +5,14 @@
 // handful of overrides for the score chip and the MVC-style observation table that lives
 // inside the assessment cards' bodies.
 
+// Score chip sits inside `.card-header` (white-on-teal). Inherit color rather than
+// re-declaring so the "Score:" label + value both read white over the teal background.
 .readonly-score {
     font-size: $type-size-300;
-    color: $gray-700;
+    font-weight: 600;
 
     strong {
-        color: $teal-800;
+        font-weight: 700;
     }
 }
 

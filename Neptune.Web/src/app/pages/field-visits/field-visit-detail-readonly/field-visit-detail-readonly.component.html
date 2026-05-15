@@ -30,13 +30,19 @@
     <!--
         Read-only banner — surfaces the wrap-up status + (for Managers) the path back to editing.
         Sits above the cards so the user knows what to expect before scanning the data.
+        `.alert` is flex+space-between so the content needs to live inside one .alert-content
+        flex item; otherwise the message gets spread across the full width.
     -->
     <div class="alert alert-info">
-        <i class="fa fa-lock mr-2"></i>
-        This Field Visit has been wrapped up and is shown in read-only view.
-        @if (canManage) {
-            Use <strong>Mark Provisional</strong> to return it to an editable state.
-        }
+        <div class="alert-content">
+            <i class="fa fa-lock"></i>
+            <span>
+                This Field Visit has been wrapped up and is shown in read-only view.
+                @if (canManage) {
+                    Use <strong>Mark Provisional</strong> to return it to an editable state.
+                }
+            </span>
+        </div>
     </div>
 
     <div class="grid-12">
