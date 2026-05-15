@@ -19503,6 +19503,10 @@
           "ObservationData": {
             "type": "string",
             "nullable": true
+          },
+          "ObservationScore": {
+            "type": "string",
+            "nullable": true
           }
         },
         "additionalProperties": false

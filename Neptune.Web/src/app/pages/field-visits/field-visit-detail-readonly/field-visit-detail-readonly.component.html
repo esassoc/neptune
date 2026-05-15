@@ -143,6 +143,7 @@
                                     <tr>
                                         <th>Observation Type</th>
                                         <th>Value</th>
+                                        <th>Score</th>
                                         <th>Notes</th>
                                     </tr>
                                 </thead>
@@ -152,6 +153,7 @@
                                         <tr>
                                             <td>{{ ot.TreatmentBMPAssessmentObservationTypeName }}</td>
                                             <td>{{ formatObservationValue(obs?.ObservationData, ot.ObservationTypeCollectionMethodName) }}</td>
+                                            <td>{{ obs?.ObservationScore || "—" }}</td>
                                             <td>{{ formatObservationNotes(obs?.ObservationData) || "—" }}</td>
                                         </tr>
                                     }
@@ -185,6 +187,7 @@
                                     <tr>
                                         <th>Observation Type</th>
                                         <th>Value</th>
+                                        <th>Score</th>
                                         <th>Notes</th>
                                     </tr>
                                 </thead>
@@ -194,6 +197,7 @@
                                         <tr>
                                             <td>{{ ot.TreatmentBMPAssessmentObservationTypeName }}</td>
                                             <td>{{ formatObservationValue(obs?.ObservationData, ot.ObservationTypeCollectionMethodName) }}</td>
+                                            <td>{{ obs?.ObservationScore || "—" }}</td>
                                             <td>{{ formatObservationNotes(obs?.ObservationData) || "—" }}</td>
                                         </tr>
                                     }

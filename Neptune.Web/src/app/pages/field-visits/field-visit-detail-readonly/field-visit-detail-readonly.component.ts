@@ -184,7 +184,12 @@ export class FieldVisitDetailReadOnlyComponent implements OnInit {
         const values = (obs?.Values ?? [])
             .map((v) => (v?.ObservationValue ?? "").trim())
             .filter((s) => s.length > 0);
-        return values.length > 0 ? values.join(", ") : "—";
+        if (values.length === 0) return "—";
+        // NPT-984: append the attribute's measurement unit (e.g., "cu ft", "gal", "%") when
+        // one is configured. Mirrors the legacy MVC unit-suffix pattern on attribute values.
+        const joined = values.join(", ");
+        const unit = attribute.CustomAttributeType?.MeasurementUnitDisplayName?.trim();
+        return unit ? `${joined} ${unit}` : joined;
     }
 
     /**
