@@ -186,10 +186,13 @@ export class FieldVisitDetailReadOnlyComponent implements OnInit {
             .filter((s) => s.length > 0);
         if (values.length === 0) return "—";
         // NPT-984: append the attribute's measurement unit (e.g., "cu ft", "gal", "%") when
-        // one is configured. Mirrors the legacy MVC unit-suffix pattern on attribute values.
+        // one is configured. Mirrors the legacy MVC unit-suffix pattern. Skip when the unit
+        // is "None" (the placeholder DataTransferObject value for unitless attributes, e.g.,
+        // boolean "Mechanical Repair Conducted") so we don't render "No None".
         const joined = values.join(", ");
         const unit = attribute.CustomAttributeType?.MeasurementUnitDisplayName?.trim();
-        return unit ? `${joined} ${unit}` : joined;
+        const hasMeaningfulUnit = !!unit && unit.toLowerCase() !== "none";
+        return hasMeaningfulUnit ? `${joined} ${unit}` : joined;
     }
 
     /**
