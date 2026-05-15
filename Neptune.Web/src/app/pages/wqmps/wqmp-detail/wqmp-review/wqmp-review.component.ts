@@ -369,7 +369,9 @@ export class WqmpReviewComponent implements OnInit, IDeactivateComponent {
     }
 
     runExtraction(): void {
-        // Caller (template) gates this on isAdmin + confirm-dialog when a result already exists.
+        // NPT-984: backend endpoint is [JurisdictionManageFeature], same as the upload flow
+        // that landed the user here. No frontend role gate — the wizard route itself is
+        // only reachable via paths that already require manage permission.
         this.isExtracting.set(true);
         this.alertService.clearAlerts();
         this.wqmpService.runExtractionWaterQualityManagementPlan(this.waterQualityManagementPlanID)
