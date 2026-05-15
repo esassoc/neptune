@@ -26,6 +26,7 @@ import { Alert } from "src/app/shared/models/alert";
 import { AlertContext } from "src/app/shared/models/enums/alert-context.enum";
 import { MarkerHelper } from "src/app/shared/helpers/marker-helper";
 import { escapeHtml } from "src/app/shared/helpers/html-escape";
+import { fileResourceUrl } from "src/app/shared/helpers/file-resource-url";
 import { WaterQualityManagementPlanService } from "src/app/shared/generated/api/water-quality-management-plan.service";
 import { WaterQualityManagementPlanDto } from "src/app/shared/generated/model/water-quality-management-plan-dto";
 import { WaterQualityManagementPlanDocumentDto } from "src/app/shared/generated/model/water-quality-management-plan-document-dto";
@@ -85,7 +86,7 @@ export class WqmpDetailComponent implements OnInit, OnChanges {
     public WaterQualityManagementPlanModelingApproachEnum = WaterQualityManagementPlanModelingApproachEnum;
     public WaterQualityManagementPlanStatusEnum = WaterQualityManagementPlanStatusEnum;
     public aboutModelingBMPPerformanceUrl = `${environment.ocStormwaterToolsBaseUrl}/Home/AboutModelingBMPPerformance`;
-    public apiBaseUrl = environment.mainAppApiUrl;
+    public fileResourceUrl = fileResourceUrl;
 
     // NPT-1051: wqmp$ is a stable observable driven by reload$ so the AsyncPipe stays
     // subscribed to one reference. Modal saves call reload$.next() to refetch — this is
