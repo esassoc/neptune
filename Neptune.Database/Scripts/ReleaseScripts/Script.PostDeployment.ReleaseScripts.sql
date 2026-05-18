@@ -64,4 +64,6 @@ GO
 GO
 :r ".\028 - Seed gt_pk_metadata for vGeoServerLandUseBlock.sql"
 GO
+:r ".\029 - WQMP Verification Supporting Documentation help text.sql"
+GO
 

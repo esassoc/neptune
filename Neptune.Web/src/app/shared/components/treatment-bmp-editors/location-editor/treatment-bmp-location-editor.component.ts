@@ -31,6 +31,7 @@ import { AlertContext } from "src/app/shared/models/enums/alert-context.enum";
     standalone: true,
     imports: [ReactiveFormsModule, AsyncPipe, LatLonPickerComponent],
     templateUrl: "./treatment-bmp-location-editor.component.html",
+    styleUrls: ["./treatment-bmp-location-editor.component.scss"],
 })
 export class TreatmentBmpLocationEditorComponent implements OnInit {
     private treatmentBMPService = inject(TreatmentBMPService);
@@ -39,9 +40,15 @@ export class TreatmentBmpLocationEditorComponent implements OnInit {
     @Input() treatmentBMPID!: number;
     /** Optional override for the lat-lon-picker instructions template. */
     @Input() instructionsTemplate?: TemplateRef<unknown>;
+    /** When true, suppresses the built-in Save/Cancel footer so a host (e.g. the field-visit
+     * workflow) can render its own button row and drive saves via @ViewChild + save(). */
+    @Input() hideFooter = false;
 
     @Output() saved = new EventEmitter<TreatmentBMPDto>();
     @Output() cancelled = new EventEmitter<void>();
+    /** Emitted when a save attempt fails. Hosts driving saves via @ViewChild listen here to
+     * clear their own in-flight UI state on the error path. */
+    @Output() saveError = new EventEmitter<void>();
 
     public formGroup: FormGroup<TreatmentBMPLocationUpdateDtoForm> = new FormGroup<TreatmentBMPLocationUpdateDtoForm>({
         Latitude: TreatmentBMPLocationUpdateDtoFormControls.Latitude(undefined),
@@ -68,17 +75,23 @@ export class TreatmentBmpLocationEditorComponent implements OnInit {
     }
 
     public save(): void {
+        if (this.formGroup.invalid) {
+            this.formGroup.markAllAsTouched();
+            this.alertService.pushAlert(new Alert("Please complete the highlighted required fields before saving.", AlertContext.Danger));
+            return;
+        }
         this.isLoadingSubmit = true;
+        this.alertService.clearAlerts();
         const dto = this.formGroup.value as TreatmentBMPLocationUpdateDto;
         this.treatmentBMPService.updateLocationTreatmentBMP(this.treatmentBMPID, dto).subscribe({
             next: (bmp) => {
                 this.isLoadingSubmit = false;
                 this.formGroup.markAsPristine();
-                this.alertService.pushAlert(new Alert("Treatment BMP location updated successfully.", AlertContext.Success));
                 this.saved.emit(bmp);
             },
             error: () => {
                 this.isLoadingSubmit = false;
+                this.saveError.emit();
             },
         });
     }

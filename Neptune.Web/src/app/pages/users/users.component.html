@@ -3,5 +3,5 @@
 <app-alert-display></app-alert-display>
 
 <div class="page-body">
-    <neptune-grid [rowData]="users$ | async" [columnDefs]="columnDefs" downloadFileName="users"> </neptune-grid>
+    <neptune-grid [rowData]="users$ | async" [columnDefs]="columnDefs()" downloadFileName="users"> </neptune-grid>
 </div>

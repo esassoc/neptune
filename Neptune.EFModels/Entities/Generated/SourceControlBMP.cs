@@ -18,7 +18,7 @@ public partial class SourceControlBMP
 
     public bool? IsPresent { get; set; }
 
-    [StringLength(200)]
+    [StringLength(500)]
     [Unicode(false)]
     public string? SourceControlBMPNote { get; set; }
 

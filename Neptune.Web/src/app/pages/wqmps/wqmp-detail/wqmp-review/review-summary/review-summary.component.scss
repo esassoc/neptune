@@ -52,6 +52,13 @@
             color: $gray-400;
             font-style: italic;
         }
+        // NPT-1054: rejection-intent is shown in the cell (workflow value "(rejected)") while
+        // Status only carries the save-state diff. Muted red distinguishes it from a plain
+        // empty cell so the user can see at a glance that the rejection still needs saving.
+        &--rejected {
+            color: $danger;
+            font-style: italic;
+        }
     }
 
     &__col-status {
@@ -65,8 +72,12 @@
     }
 }
 
-// Status pill colors mirror the field-card origin pills so the visual language is
-// consistent across the workflow.
+// NPT-1054: Status pill now encodes the workflow-vs-record diff state only — provenance
+// (AI / record / user) is conveyed by the inline AI pill in the Workflow Value cell and
+// the WQMP Record column itself. Three states:
+//   - Saved        → workflow matches record (both non-empty, equal). Green.
+//   - Pending save → workflow differs from record (edit/add/reject not yet persisted). Amber.
+//   - Empty        → both workflow and record are empty. Muted gray.
 .status-pill {
     display: inline-block;
     font-size: 0.7rem;
@@ -76,10 +87,63 @@
     letter-spacing: 0.04em;
     font-weight: 600;
 
-    &--accepted { background: rgba(34, 197, 94, 0.15); color: #15803d; }
-    &--edited { background: rgba(245, 158, 11, 0.14); color: #b45309; }
-    &--rejected { background: rgba(220, 53, 69, 0.12); color: $danger; }
-    &--pending { background: rgba(0, 153, 171, 0.12); color: $primary; }
-    &--user { background: $gray-100; color: $gray-700; }
-    &--blank { background: $gray-100; color: $gray-500; }
+    &--saved { background: rgba(34, 197, 94, 0.15); color: #15803d; }
+    &--pending { background: rgba(245, 158, 11, 0.14); color: #b45309; }
+    &--empty { background: $gray-100; color: $gray-500; }
+}
+
+// NPT-1054: collapsible category sections (Source Control BMPs).
+.review-summary__group--collapsible {
+    details {
+        > summary {
+            cursor: pointer;
+            user-select: none;
+            list-style: none;
+            display: flex;
+            align-items: center;
+            padding: 0.25rem 0;
+
+            &::-webkit-details-marker { display: none; }
+            &::before {
+                content: "\25B6";
+                margin-right: 0.5rem;
+                font-size: 0.7rem;
+                color: $gray-600;
+                transition: transform 0.15s ease;
+            }
+        }
+
+        &[open] > summary::before { transform: rotate(90deg); }
+    }
+}
+
+.review-summary__count {
+    font-weight: normal;
+    color: $gray-600;
+    margin-left: 0.4rem;
+    font-size: 0.85em;
+}
+
+.review-summary__group-summary {
+    .review-summary__group-title { margin: 0; }
+}
+
+// NPT-1054: inline AI tag rendered next to the Workflow Value when that value originated
+// from extraction. Compact pill so it doesn't dominate the cell.
+.review-summary__ai-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.25rem;
+    margin-left: 0.4rem;
+    padding: 0.05rem 0.4rem;
+    border-radius: 999px;
+    background: rgba(0, 153, 171, 0.12);
+    color: $primary;
+    font-size: 0.65rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    vertical-align: middle;
+
+    i { font-size: 0.6rem; }
 }

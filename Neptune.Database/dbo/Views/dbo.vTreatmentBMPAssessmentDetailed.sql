@@ -44,7 +44,7 @@ as
 
 select  tba.TreatmentBMPAssessmentID, tbat.TreatmentBMPAssessmentTypeDisplayName, tba.IsAssessmentComplete, tba.AssessmentScore,
         bmp.TreatmentBMPID, bmp.TreatmentBMPName, bmp.TreatmentBMPTypeID, bmpt.TreatmentBMPTypeName,
-        fv.FieldVisitID, fvt.FieldVisitTypeDisplayName, fv.VisitDate,
+        fv.FieldVisitID, fvt.FieldVisitTypeDisplayName, fv.VisitDate, fv.IsFieldVisitVerified,
         fv.PerformedByPersonID, fvp.FirstName + ' ' + fvp.LastName as PerformedByPersonName,
         sj.StormwaterJurisdictionID, o.OrganizationName as StormwaterJurisdictionName, sj.StormwaterJurisdictionPublicWQMPVisibilityTypeID,
         wqmp.WaterQualityManagementPlanID, wqmp.WaterQualityManagementPlanName

@@ -95,8 +95,18 @@ namespace Neptune.API.Controllers
         [EntityNotFound(typeof(WaterQualityManagementPlan), "waterQualityManagementPlanID")]
         public async Task<ActionResult<WaterQualityManagementPlanDto>> Update([FromRoute] int waterQualityManagementPlanID, [FromBody] WaterQualityManagementPlanUpsertDto dto)
         {
+            // NPT-1051: Status transitions across the Active boundary need cleanup + re-solve; the
+            // SPA Basics modal hits this endpoint and can flip Active <-> Inactive.
+            var oldStatusID = await DbContext.WaterQualityManagementPlans.AsNoTracking()
+                .Where(x => x.WaterQualityManagementPlanID == waterQualityManagementPlanID)
+                .Select(x => x.WaterQualityManagementPlanStatusID)
+                .FirstAsync();
             var updated = await WaterQualityManagementPlans.UpdateAsync(DbContext, waterQualityManagementPlanID, dto);
             if (updated == null) return NotFound();
+            if (await WaterQualityManagementPlans.HandleStatusTransitionAsync(DbContext, waterQualityManagementPlanID, oldStatusID))
+            {
+                BackgroundJob.Enqueue<DeltaSolveJob>(x => x.RunJob());
+            }
             return Ok(updated);
         }
 
@@ -163,6 +173,10 @@ namespace Neptune.API.Controllers
         {
             var dto = await WaterQualityManagementPlanVerifies.GetByIDAsDtoAsync(DbContext, waterQualityManagementPlanVerifyID);
             if (dto == null) return NotFound();
+            // Cross-WQMP guard — see Copilot PR #502 review feedback. A caller authorized for
+            // wqmp A shouldn't be able to read B's verify by smuggling B's verify ID through
+            // A's route.
+            if (dto.WaterQualityManagementPlanID != waterQualityManagementPlanID) return NotFound();
             return Ok(dto);
         }
 
@@ -184,6 +198,9 @@ namespace Neptune.API.Controllers
             [FromRoute] int waterQualityManagementPlanID, [FromRoute] int waterQualityManagementPlanVerifyID,
             [FromBody] WaterQualityManagementPlanVerifyUpsertDto dto)
         {
+            var verify = WaterQualityManagementPlanVerifies.GetByID(DbContext, waterQualityManagementPlanVerifyID);
+            // Cross-WQMP guard — see Copilot PR #502 review feedback.
+            if (verify.WaterQualityManagementPlanID != waterQualityManagementPlanID) return NotFound();
             var result = await WaterQualityManagementPlanVerifies.UpdateAsync(DbContext, waterQualityManagementPlanVerifyID, dto, CallingUser.PersonID);
             return Ok(result);
         }
@@ -195,7 +212,72 @@ namespace Neptune.API.Controllers
         public async Task<IActionResult> DeleteVerification(
             [FromRoute] int waterQualityManagementPlanID, [FromRoute] int waterQualityManagementPlanVerifyID)
         {
+            var verify = WaterQualityManagementPlanVerifies.GetByID(DbContext, waterQualityManagementPlanVerifyID);
+            // Cross-WQMP guard — see Copilot PR #502 review feedback.
+            if (verify.WaterQualityManagementPlanID != waterQualityManagementPlanID) return NotFound();
             await WaterQualityManagementPlanVerifies.DeleteAsync(DbContext, waterQualityManagementPlanVerifyID);
+            return NoContent();
+        }
+
+        // NPT-995 Round 5: Supporting Documentation upload/delete on a verification. Mirrors the
+        // legacy MVC SupportingDocumentation panel (single FileResource per verify). Draft-only —
+        // finalized verifications are locked.
+        [HttpPost("{waterQualityManagementPlanID}/verifications/{waterQualityManagementPlanVerifyID}/supporting-documentation")]
+        [JurisdictionEditFeature]
+        [Consumes("multipart/form-data")]
+        [RequestSizeLimit(500 * 1024 * 1024)]
+        [RequestFormLimits(MultipartBodyLengthLimit = 500 * 1024 * 1024)]
+        [EntityNotFound(typeof(WaterQualityManagementPlan), "waterQualityManagementPlanID")]
+        [EntityNotFound(typeof(WaterQualityManagementPlanVerify), "waterQualityManagementPlanVerifyID")]
+        public async Task<ActionResult<WaterQualityManagementPlanVerifyDetailDto>> UploadVerificationSupportingDocumentation(
+            [FromRoute] int waterQualityManagementPlanID, [FromRoute] int waterQualityManagementPlanVerifyID, IFormFile file)
+        {
+            var verify = WaterQualityManagementPlanVerifies.GetByID(DbContext, waterQualityManagementPlanVerifyID);
+            // Guard against cross-WQMP modification — a caller with edit rights on WQMP A
+            // shouldn't be able to mutate WQMP B's verifications by smuggling B's verify ID
+            // through A's route. Copilot review on PR #502.
+            if (verify.WaterQualityManagementPlanID != waterQualityManagementPlanID)
+            {
+                return NotFound();
+            }
+            if (!verify.IsDraft)
+            {
+                return BadRequest("Supporting Documentation cannot be modified after the verification has been finalized.");
+            }
+            if (file == null || file.Length == 0)
+            {
+                return BadRequest("No file was supplied.");
+            }
+            var validationErrors = FileResources.ValidateFileUpload(file);
+            if (validationErrors.Any())
+            {
+                return BadRequest(string.Join(" ", validationErrors.Select(x => x.Message)));
+            }
+
+            var fileResource = await HttpUtilities.MakeFileResourceFromFormFileAsync(DbContext, HttpContext, azureBlobStorageService, file);
+            var dto = await WaterQualityManagementPlanVerifies.SetSupportingDocumentationFileResourceAsync(
+                DbContext, waterQualityManagementPlanVerifyID, fileResource.FileResourceID);
+            return Ok(dto);
+        }
+
+        [HttpDelete("{waterQualityManagementPlanID}/verifications/{waterQualityManagementPlanVerifyID}/supporting-documentation")]
+        [JurisdictionEditFeature]
+        [EntityNotFound(typeof(WaterQualityManagementPlan), "waterQualityManagementPlanID")]
+        [EntityNotFound(typeof(WaterQualityManagementPlanVerify), "waterQualityManagementPlanVerifyID")]
+        public async Task<IActionResult> DeleteVerificationSupportingDocumentation(
+            [FromRoute] int waterQualityManagementPlanID, [FromRoute] int waterQualityManagementPlanVerifyID)
+        {
+            var verify = WaterQualityManagementPlanVerifies.GetByID(DbContext, waterQualityManagementPlanVerifyID);
+            // Guard against cross-WQMP modification — see upload endpoint above.
+            if (verify.WaterQualityManagementPlanID != waterQualityManagementPlanID)
+            {
+                return NotFound();
+            }
+            if (!verify.IsDraft)
+            {
+                return BadRequest("Supporting Documentation cannot be modified after the verification has been finalized.");
+            }
+            await WaterQualityManagementPlanVerifies.ClearSupportingDocumentationAsync(DbContext, waterQualityManagementPlanVerifyID);
             return NoContent();
         }
 
@@ -411,8 +493,12 @@ namespace Neptune.API.Controllers
             return Ok(response);
         }
 
+        // NPT-984: Create-via-AI is a Manager-level entry point. Previously [AdminFeature]
+        // (Admin + SitkaAdmin only) which locked out Jurisdiction Managers even though they
+        // own WQMP records for their jurisdictions. Editors stay excluded — creating a new
+        // WQMP record is an attestation action above performing field work on an existing one.
         [HttpPost("upload")]
-        [AdminFeature]
+        [JurisdictionManageFeature]
         [Consumes("multipart/form-data")]
         [RequestSizeLimit(200 * 1024 * 1024)]
         [RequestFormLimits(MultipartBodyLengthLimit = 200 * 1024 * 1024)]
@@ -449,6 +535,19 @@ namespace Neptune.API.Controllers
             if (extension != ".pdf")
             {
                 return BadRequest("Only PDF files are accepted.");
+            }
+
+            // NPT-984: defense-in-depth — even though the frontend modal only offers the
+            // user's manageable jurisdictions, validate the requested jurisdiction is in
+            // the caller's manageable set. Admin / SitkaAdmin see all jurisdictions; a
+            // JurisdictionManager is restricted to their assigned set.
+            var currentPerson = People.GetByID(DbContext, CallingUser.PersonID);
+            var manageableJurisdictionIDs = StormwaterJurisdictionPeople
+                .ListViewableStormwaterJurisdictionIDsByPersonForWQMPs(DbContext, currentPerson)
+                .ToList();
+            if (!manageableJurisdictionIDs.Contains(stormwaterJurisdictionID))
+            {
+                return StatusCode((int)System.Net.HttpStatusCode.Forbidden, new { message = "You are not permitted to create a WQMP in the selected jurisdiction." });
             }
 
             // Check for existing WQMP with the same name in this jurisdiction
@@ -489,7 +588,8 @@ namespace Neptune.API.Controllers
                 WaterQualityManagementPlanName = wqmpName,
                 StormwaterJurisdictionID = stormwaterJurisdictionID,
                 WaterQualityManagementPlanStatusID = (int)WaterQualityManagementPlanStatusEnum.Draft,
-                WaterQualityManagementPlanModelingApproachID = (int)WaterQualityManagementPlanModelingApproachEnum.Detailed,
+                // KE 5/13/26 decision: default to Simplified — see wqmp-modal.component.ts for context.
+                WaterQualityManagementPlanModelingApproachID = (int)WaterQualityManagementPlanModelingApproachEnum.Simplified,
                 TrashCaptureStatusTypeID = (int)TrashCaptureStatusTypeEnum.NotProvided,
             };
             var wqmpDto = await WaterQualityManagementPlans.CreateAsync(DbContext, dto);
@@ -508,8 +608,12 @@ namespace Neptune.API.Controllers
             });
         }
 
+        // NPT-984: Run AI extraction — Manager-level. The Manager created the WQMP via the
+        // upload flow (also [JurisdictionManageFeature]); they need to run extractions on
+        // their own WQMPs. Was [AdminFeature] which left JMs unable to use the wizard they
+        // just opened.
         [HttpPost("{waterQualityManagementPlanID}/extract")]
-        [AdminFeature]
+        [JurisdictionManageFeature]
         [EntityNotFound(typeof(WaterQualityManagementPlan), "waterQualityManagementPlanID")]
         public async Task<ActionResult<WaterQualityManagementPlanExtractionResultDto>> RunExtraction(
             [FromRoute] int waterQualityManagementPlanID)
@@ -619,8 +723,10 @@ namespace Neptune.API.Controllers
             return rawMessage;
         }
 
+        // NPT-984: Manager-level — the review wizard loads this on mount to show the AI's
+        // suggestions; JMs need access to review their own WQMPs.
         [HttpGet("{waterQualityManagementPlanID}/extraction-result")]
-        [AdminFeature]
+        [JurisdictionManageFeature]
         [EntityNotFound(typeof(WaterQualityManagementPlan), "waterQualityManagementPlanID")]
         public async Task<ActionResult<WaterQualityManagementPlanExtractionResultDto>> GetExtractionResult(
             [FromRoute] int waterQualityManagementPlanID)
@@ -748,18 +854,18 @@ namespace Neptune.API.Controllers
                 return BadRequest(new { MissingFields = missingFields });
             }
 
+            var oldStatusID = entity.WaterQualityManagementPlanStatusID;
             entity.WaterQualityManagementPlanStatusID = (int)WaterQualityManagementPlanStatusEnum.Active;
             await DbContext.SaveChangesAsync();
 
-            // Now that the WQMP is Active, it flows into modeling result calculations. Mark it
-            // dirty so the next network solve picks it up rather than waiting for some other
-            // mutation to trigger it.
-            await NereidUtilities.MarkWqmpDirty(entity, DbContext);
-
-            // NPT-1051 rework: kick off the incremental solve immediately. Without this, the
-            // dirty marker only gets consumed when HRURefreshJob next runs (hours away on the
-            // schedule), so a freshly-promoted WQMP shows no modeling results until then.
-            BackgroundJob.Enqueue<DeltaSolveJob>(x => x.RunJob());
+            // Mark the WQMP dirty + kick off the incremental solve immediately. Without the
+            // enqueue, the dirty marker would only be consumed when HRURefreshJob next runs
+            // (hours away on the schedule), so a freshly-promoted WQMP would show no modeling
+            // results until then.
+            if (await WaterQualityManagementPlans.HandleStatusTransitionAsync(DbContext, waterQualityManagementPlanID, oldStatusID))
+            {
+                BackgroundJob.Enqueue<DeltaSolveJob>(x => x.RunJob());
+            }
 
             var dto = await WaterQualityManagementPlans.GetByIDAsDtoAsync(DbContext, waterQualityManagementPlanID);
             return Ok(dto);

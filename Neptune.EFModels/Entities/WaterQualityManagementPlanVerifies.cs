@@ -243,6 +243,35 @@ public static class WaterQualityManagementPlanVerifies
         await dbContext.SaveChangesAsync();
     }
 
+    // NPT-995 Round 5: associate an already-created FileResource (uploaded via the controller
+    // through HttpUtilities.MakeFileResourceFromFormFileAsync) with this verify as its
+    // Supporting Documentation. Replaces any prior file (deletes the old FileResource row).
+    public static async Task<WaterQualityManagementPlanVerifyDetailDto> SetSupportingDocumentationFileResourceAsync(
+        NeptuneDbContext dbContext, int waterQualityManagementPlanVerifyID, int fileResourceID)
+    {
+        var verify = GetByIDWithChangeTracking(dbContext, waterQualityManagementPlanVerifyID);
+        var oldFileResourceID = verify.FileResourceID;
+        verify.FileResourceID = fileResourceID;
+        await dbContext.SaveChangesAsync();
+        if (oldFileResourceID.HasValue && oldFileResourceID.Value != fileResourceID)
+        {
+            await FileResources.DeleteAsync(dbContext, oldFileResourceID.Value);
+        }
+        return await GetByIDAsDtoAsync(dbContext, waterQualityManagementPlanVerifyID);
+    }
+
+    public static async Task ClearSupportingDocumentationAsync(NeptuneDbContext dbContext, int waterQualityManagementPlanVerifyID)
+    {
+        var verify = GetByIDWithChangeTracking(dbContext, waterQualityManagementPlanVerifyID);
+        var oldFileResourceID = verify.FileResourceID;
+        verify.FileResourceID = null;
+        await dbContext.SaveChangesAsync();
+        if (oldFileResourceID.HasValue)
+        {
+            await FileResources.DeleteAsync(dbContext, oldFileResourceID.Value);
+        }
+    }
+
     private static async Task SaveChildRecordsAsync(NeptuneDbContext dbContext, int verifyID, WaterQualityManagementPlanVerifyUpsertDto dto)
     {
         if (dto.TreatmentBMPs?.Any() == true)

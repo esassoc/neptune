@@ -3,7 +3,7 @@
     <page-header [pageTitle]="treatmentBMP.TreatmentBMPName" [templateAbove]="templateAbove">
         <ng-template #templateAbove>
             <div class="back">
-                <a [routerLink]="['/treatment-bmps']" class="back__link">Back to BMP Grid</a>
+                <a [routerLink]="['/treatment-bmps']" class="back__link"><i class="fa fa-arrow-left"></i> Back to BMP List</a>
             </div>
         </ng-template>
     </page-header>
@@ -166,6 +166,7 @@
                             </div>
                             <div class="card-body">
                                 <custom-attributes-display
+                                    [isAdmin]="isSitkaAdmin"
                                     [customAttributeTypePurposeEnum]="CustomAttributeTypePurposeEnum.Modeling"
                                     [treatmentBMPTypeCustomAttributeTypes]="treatmentBMPTypeCustomAttributeTypes"
                                     [customAttributes]="customAttributes"></custom-attributes-display>

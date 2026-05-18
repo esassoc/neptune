@@ -33,6 +33,7 @@ export const VERIFICATION_STEP_KEYS = [
     "structural-bmps",
     "simplified-bmps",
     "source-control",
+    "supporting-documentation",
     "review-and-finalize",
 ] as const;
 export type VerificationStepKey = (typeof VERIFICATION_STEP_KEYS)[number];
@@ -59,6 +60,7 @@ export class WqmpVerificationWorkflowService {
         { key: "structural-bmps", title: "Structural BMPs", helpID: NeptunePageTypeEnum.WQMPVerificationStructuralBmps },
         { key: "simplified-bmps", title: "Simplified BMPs", helpID: NeptunePageTypeEnum.WQMPVerificationSimplifiedBmps },
         { key: "source-control", title: "Source Control", helpID: NeptunePageTypeEnum.WQMPVerificationSourceControl },
+        { key: "supporting-documentation", title: "Supporting Documentation", helpID: NeptunePageTypeEnum.WQMPVerificationSupportingDocumentation },
         { key: "review-and-finalize", title: "Review & Finalize", helpID: NeptunePageTypeEnum.WQMPVerificationReview },
     ];
 
@@ -89,6 +91,11 @@ export class WqmpVerificationWorkflowService {
     public treatmentBMPRows = signal<BMPChecklistRow[]>([]);
     public quickBMPRows = signal<BMPChecklistRow[]>([]);
     public sourceControlRows = signal<SourceControlRow[]>([]);
+
+    // NPT-995 Round 5: Supporting Documentation — single FileResource per verification.
+    // Mirrors the legacy MVC supporting-documentation panel.
+    public supportingDocumentationFileResourceGUID = signal<string | null>(null);
+    public supportingDocumentationFileName = signal<string | null>(null);
 
     // -- lookup options --
     public verifyTypeOptions = WaterQualityManagementPlanVerifyTypesAsSelectDropdownOptions;
@@ -129,6 +136,12 @@ export class WqmpVerificationWorkflowService {
             },
             "source-control": {
                 completed: hasVerify && scbmpHasAny,
+                disabled: !hasVerify,
+            },
+            "supporting-documentation": {
+                // Optional step — "completed" simply means a file has been attached.
+                // Not required to enable the next step.
+                completed: hasVerify && this.supportingDocumentationFileResourceGUID() != null,
                 disabled: !hasVerify,
             },
             "review-and-finalize": {
@@ -211,6 +224,8 @@ export class WqmpVerificationWorkflowService {
                         EnforcementOrFollowupActions: verify.EnforcementOrFollowupActions ?? "",
                         SourceControlCondition: verify.SourceControlCondition ?? "",
                     });
+                    this.supportingDocumentationFileResourceGUID.set(verify.FileResourceGUID ?? null);
+                    this.supportingDocumentationFileName.set(verify.FileResourceFileName ?? null);
                 }
 
                 if (this.mode() === "view") {
@@ -257,6 +272,8 @@ export class WqmpVerificationWorkflowService {
         this.treatmentBMPRows.set([]);
         this.quickBMPRows.set([]);
         this.sourceControlRows.set([]);
+        this.supportingDocumentationFileResourceGUID.set(null);
+        this.supportingDocumentationFileName.set(null);
         this.basicsForm.reset({}, { emitEvent: false });
         this.basicsForm.enable({ emitEvent: false });
         this.basicsFormValidSignal.set(this.basicsForm.valid);

@@ -1,0 +1,62 @@
+<div class="modal">
+    <div class="modal-header">
+        <h3>Edit Roles for {{ ref.data.detail.FirstName }} {{ ref.data.detail.LastName }}</h3>
+    </div>
+    <div class="modal-body">
+        @if (errorMessage(); as msg) {
+            <div class="alert alert-danger">{{ msg }}</div>
+        }
+        <form [formGroup]="formGroup" class="grid-12">
+            <form-field
+                class="g-col-12"
+                fieldLabel="Role"
+                [type]="FormFieldType.Select"
+                [formControl]="formGroup.controls.RoleID"
+                [formInputOptions]="roleOptions"
+                placeholder="Select a role"
+                [required]="true"
+            ></form-field>
+
+            <form-field
+                class="g-col-12"
+                fieldLabel="Organization"
+                [type]="FormFieldType.Select"
+                [formControl]="formGroup.controls.OrganizationID"
+                [formInputOptions]="(organizationOptions$ | async) ?? []"
+                placeholder="Select an organization"
+                [required]="true"
+            ></form-field>
+
+            <form-field
+                class="g-col-12"
+                fieldLabel="OCTA Grant Reviewer"
+                [type]="FormFieldType.Check"
+                [formControl]="formGroup.controls.IsOCTAGrantReviewer"
+            ></form-field>
+
+            <form-field
+                class="g-col-12"
+                fieldLabel="Receives System Communications"
+                [type]="FormFieldType.Radio"
+                name="ReceiveSupportEmails"
+                [formControl]="formGroup.controls.ReceiveSupportEmails"
+                [formInputOptions]="[{ Label: 'Yes', Value: true, disabled: false }, { Label: 'No', Value: false, disabled: false }]"
+            ></form-field>
+
+            <form-field
+                class="g-col-12"
+                fieldLabel="Receives RSB Revision Requests"
+                [type]="FormFieldType.Radio"
+                name="ReceiveRSBRevisionRequestEmails"
+                [formControl]="formGroup.controls.ReceiveRSBRevisionRequestEmails"
+                [formInputOptions]="[{ Label: 'Yes', Value: true, disabled: false }, { Label: 'No', Value: false, disabled: false }]"
+            ></form-field>
+        </form>
+    </div>
+    <div class="modal-footer">
+        <button type="button" class="btn btn-primary" [disabled]="formGroup.invalid || isSaving()" (click)="save()">
+            @if (isSaving()) { <i class="fa fa-spinner fa-spin"></i> Saving... } @else { Save }
+        </button>
+        <button type="button" class="btn btn-secondary" [disabled]="isSaving()" (click)="cancel()">Cancel</button>
+    </div>
+</div>

@@ -1,0 +1,41 @@
+<page-header pageTitle="Simplified BMPs" [customRichTextTypeID]="service.stepHelpID('simplified-bmps')"></page-header>
+
+@if (service.quickBMPRows().length) {
+    <table class="table table-condensed table-bordered">
+        <thead>
+            <tr>
+                <th>BMP Name</th>
+                <th>Type</th>
+                <th style="width: 200px">O&amp;M Adequate?</th>
+                <th style="width: 300px">Notes</th>
+            </tr>
+        </thead>
+        <tbody>
+            @for (row of service.quickBMPRows(); track row.id) {
+                <tr>
+                    <td>{{ row.name }}</td>
+                    <td>{{ row.type }}</td>
+                    <td>
+                        <div class="radio-group">
+                            <label><input type="radio" [name]="'qbmp-' + row.id" [value]="true" [(ngModel)]="row.isAdequate" [disabled]="readonly" (ngModelChange)="touched()"> Yes</label>
+                            <label><input type="radio" [name]="'qbmp-' + row.id" [value]="false" [(ngModel)]="row.isAdequate" [disabled]="readonly" (ngModelChange)="touched()"> No</label>
+                            <label><input type="radio" [name]="'qbmp-' + row.id" [value]="null" [(ngModel)]="row.isAdequate" [disabled]="readonly" (ngModelChange)="touched()"> N/A</label>
+                        </div>
+                    </td>
+                    <td>
+                        <textarea class="form-control form-control-sm" rows="3" [(ngModel)]="row.note" [disabled]="readonly" maxlength="500" (ngModelChange)="touched()"></textarea>
+                    </td>
+                </tr>
+            }
+        </tbody>
+    </table>
+} @else {
+    <p class="system-text">No simplified BMPs are associated with this WQMP.</p>
+}
+
+@if (!readonly) {
+    <div class="page-footer">
+        <button class="btn btn-primary-outline" (click)="service.save('simplified-bmps', false)" [disabled]="service.isSaving()">Save</button>
+        <button class="btn btn-primary" (click)="service.save('simplified-bmps', true)" [disabled]="service.isSaving()">Save and Continue</button>
+    </div>
+}

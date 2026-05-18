@@ -1,5 +1,4 @@
 {
-  "include": [".claude/docs/*.md"],
   "permissions": {
     "allow": [
       "Bash(find:*)",
@@ -23,5 +22,11 @@
       "Skill(migrate-map)",
       "Skill(migrate-workflow)"
     ]
+  },
+  "include": [
+    ".claude/docs/*.md"
+  ],
+  "enabledPlugins": {
+    "frontend-design@claude-plugins-official": true
   }
 }

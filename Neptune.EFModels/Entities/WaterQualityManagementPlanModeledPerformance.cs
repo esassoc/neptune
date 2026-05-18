@@ -10,6 +10,14 @@ public static class WaterQualityManagementPlanModeledPerformance
     {
         var wqmp = WaterQualityManagementPlans.GetByID(dbContext, waterQualityManagementPlanID);
 
+        // NPT-1051: Non-Active WQMPs are excluded from modeling result calculations. The status
+        // transition cleanup deletes the WQMP's NereidResult rows, but this defense-in-depth
+        // short-circuit protects direct API callers from any residual rows that slip through.
+        if (wqmp.WaterQualityManagementPlanStatusID != (int)WaterQualityManagementPlanStatusEnum.Active)
+        {
+            return null;
+        }
+
         List<vLoadReducingResult> nereidResults;
         DateTime? lastDeltaQueue;
 

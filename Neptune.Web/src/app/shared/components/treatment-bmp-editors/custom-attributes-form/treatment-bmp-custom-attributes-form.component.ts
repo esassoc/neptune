@@ -35,9 +35,16 @@ export class TreatmentBmpCustomAttributesFormComponent implements OnInit {
 
     @Input() treatmentBMPID!: number;
     @Input() customAttributePurposeID!: number;
+    /** When true, suppresses the built-in Save/Cancel footer so a host (e.g. the field-visit
+     * workflow) can render its own button row and drive saves via @ViewChild + saveFromHost(). */
+    @Input() hideFooter = false;
 
     @Output() saved = new EventEmitter<void>();
     @Output() cancelled = new EventEmitter<void>();
+    /** Emitted when a save attempt fails or is rejected before it can fire (e.g. attribute types
+     * not yet loaded). Hosts driving saves via @ViewChild should listen here to clear their
+     * own in-flight UI state on error/no-op paths. */
+    @Output() saveError = new EventEmitter<void>();
 
     public customAttributePurposeName?: string;
     public treatmentBMP$!: Observable<TreatmentBMPDto>;
@@ -47,6 +54,10 @@ export class TreatmentBmpCustomAttributesFormComponent implements OnInit {
     public formGroup = new FormGroup({});
     public isLoadingSubmit = false;
 
+    /** Cached attribute-types last emitted by the observable, populated via tap(). The host calls
+     * saveFromHost() without needing to thread the types in; saveFromHost() uses this cache. */
+    private cachedAttributeTypes: TreatmentBMPTypeCustomAttributeTypeDto[] = [];
+
     ngOnInit(): void {
         this.customAttributePurposeName = CustomAttributeTypePurposes.find((x) => x.Value == this.customAttributePurposeID)?.DisplayName;
         this.treatmentBMP$ = this.treatmentBMPService.getByIDTreatmentBMP(this.treatmentBMPID).pipe(shareReplay(1));
@@ -55,6 +66,7 @@ export class TreatmentBmpCustomAttributesFormComponent implements OnInit {
             switchMap((bmp) =>
                 this.treatmentBMPTypeService.listCustomAttributeTypesTreatmentBMPType(bmp.TreatmentBMPTypeID).pipe(
                     tap((attributes) => {
+                        this.cachedAttributeTypes = attributes ?? [];
                         this.hasAttributes =
                             Array.isArray(attributes) &&
                             attributes.some((attr) => attr.CustomAttributeType?.CustomAttributeTypePurposeID === this.customAttributePurposeID);
@@ -97,11 +109,27 @@ export class TreatmentBmpCustomAttributesFormComponent implements OnInit {
                     this.alertService.pushAlert(new Alert(`Treatment BMP ${this.customAttributePurposeName} attributes updated successfully.`, AlertContext.Success));
                     this.saved.emit();
                 },
-                error: () => (this.isLoadingSubmit = false),
+                error: () => {
+                    this.isLoadingSubmit = false;
+                    this.saveError.emit();
+                },
             });
     }
 
     public cancel(): void {
         this.cancelled.emit();
+    }
+
+    /** Imperative save trigger for hosts using `[hideFooter]`. Uses the cached attribute-types
+     * captured during the load pipeline so the host doesn't need to pass them in. When the BMP
+     * type has no custom attributes (legitimate empty case) we still want to give the host a
+     * `(saved)` signal so its 3-button footer can advance — there's nothing to persist, so the
+     * empty case is effectively a no-op success. */
+    public saveFromHost(): void {
+        if (this.cachedAttributeTypes.length === 0) {
+            this.saved.emit();
+            return;
+        }
+        this.save(this.cachedAttributeTypes);
     }
 }

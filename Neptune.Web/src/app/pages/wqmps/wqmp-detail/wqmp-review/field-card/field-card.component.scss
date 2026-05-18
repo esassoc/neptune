@@ -136,13 +136,22 @@
         margin-top: 0.5rem;
     }
 
+    // NPT-1054: row that holds the Evidence toggle and the (now-inline) document-source
+    // page link side-by-side, so users can jump to the PDF page without expanding the panel.
+    &__evidence-header {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        gap: 0.75rem;
+        margin-top: 0.25rem;
+    }
+
     &__evidence-toggle {
         border: none;
         background: none;
         color: $gray-400;
         font-size: $type-size-100;
         cursor: pointer;
-        margin-top: 0.25rem;
         padding: 0;
 
         &:hover {
@@ -165,8 +174,7 @@
     &__source {
         font-weight: 600;
         color: $primary;
-        display: block;
-        margin-bottom: 0.25rem;
+        font-size: $type-size-100;
 
         &--clickable {
             cursor: pointer;

@@ -43,6 +43,7 @@ export class FieldVisitAssessmentStepComponent implements OnInit {
 
     ngOnInit(): void {
         this.workflow$ = this.workflowService.workflow$;
+        this.workflowService.clearStepAlerts();
     }
 
     public get isPostMaintenance(): boolean {
@@ -76,5 +77,9 @@ export class FieldVisitAssessmentStepComponent implements OnInit {
      */
     skip(workflow: FieldVisitWorkflowDto): void {
         this.router.navigate(["/field-visits", workflow.FieldVisitID, "maintenance"]);
+    }
+
+    wrapUpVisit(workflow: FieldVisitWorkflowDto): void {
+        this.workflowService.wrapUpVisit(workflow.FieldVisitID);
     }
 }

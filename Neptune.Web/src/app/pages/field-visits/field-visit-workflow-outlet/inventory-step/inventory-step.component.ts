@@ -23,6 +23,7 @@ export class FieldVisitInventoryStepComponent implements OnInit {
 
     ngOnInit(): void {
         this.workflow$ = this.workflowService.workflow$;
+        this.workflowService.clearStepAlerts();
     }
 
     reviewInventory(workflow: FieldVisitWorkflowDto): void {
@@ -31,5 +32,9 @@ export class FieldVisitInventoryStepComponent implements OnInit {
 
     skipToAssessment(workflow: FieldVisitWorkflowDto): void {
         this.router.navigate(["/field-visits", workflow.FieldVisitID, "assessment"]);
+    }
+
+    wrapUpVisit(workflow: FieldVisitWorkflowDto): void {
+        this.workflowService.wrapUpVisit(workflow.FieldVisitID);
     }
 }

@@ -62,8 +62,11 @@ public class MaintenanceRecordController(NeptuneDbContext dbContext, ILogger<Mai
         return Ok(dto);
     }
 
+    // NPT-984: Delete Maintenance Record is Manager-only — destructive against a regulatory
+    // record. Editors can create/update maintenance records on visits they're performing but
+    // can't delete them.
     [HttpDelete("{maintenanceRecordID}")]
-    [JurisdictionEditFeature]
+    [JurisdictionManageFeature]
     [EntityNotFound(typeof(MaintenanceRecord), "maintenanceRecordID")]
     public async Task<IActionResult> Delete([FromRoute] int maintenanceRecordID)
     {

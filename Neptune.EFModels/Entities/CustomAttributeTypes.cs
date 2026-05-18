@@ -208,7 +208,10 @@ namespace Neptune.EFModels.Entities
         public static async Task DeleteAsync(NeptuneDbContext dbContext, int customAttributeTypeID)
         {
             var entity = GetByIDWithChangeTracking(dbContext, customAttributeTypeID);
-            entity.DeleteFull(dbContext);
+            // NPT-1038: DeleteFull is async; the prior call ignored the returned Task and
+            // raced the cascade against DbContext disposal — endpoint returned 204 while
+            // the row was still in place. Await each ExecuteDeleteAsync to completion.
+            await entity.DeleteFull(dbContext);
             await dbContext.SaveChangesAsync();
         }
     }

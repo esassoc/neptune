@@ -16,6 +16,7 @@ import { FieldVisitWorkflowDto } from "src/app/shared/generated/model/field-visi
 import { FieldVisitService } from "src/app/shared/generated/api/field-visit.service";
 import { FieldVisitWorkflowService } from "../services/field-visit-workflow.service";
 import { AlertService } from "src/app/shared/services/alert.service";
+import { AuthenticationService } from "src/app/services/authentication.service";
 import { ConfirmService } from "src/app/shared/services/confirm/confirm.service";
 import { Alert } from "src/app/shared/models/alert";
 import { AlertContext } from "src/app/shared/models/enums/alert-context.enum";
@@ -39,9 +40,17 @@ export class FieldVisitWorkflowOutletComponent implements OnInit, OnDestroy {
         private fieldVisitService: FieldVisitService,
         private dialogService: DialogService,
         private alertService: AlertService,
+        private authenticationService: AuthenticationService,
         private confirmService: ConfirmService,
         private router: Router
     ) {}
+
+    // NPT-984: Delete Field Visit is Manager-only (tightened backend to JurisdictionManageFeature).
+    // The frontend gate has to match — Editors performing visits should not see the destructive
+    // header-level delete icon.
+    public get canManage(): boolean {
+        return this.authenticationService.doesCurrentUserHaveJurisdictionManagePermission();
+    }
 
     ngOnInit(): void {
         this.workflow$ = this.workflowService.workflow$;
@@ -89,23 +98,4 @@ export class FieldVisitWorkflowOutletComponent implements OnInit, OnDestroy {
             });
     }
 
-    wrapUpVisit(workflow: FieldVisitWorkflowDto): void {
-        this.confirmService
-            .confirm({
-                title: "Wrap Up Visit",
-                message:
-                    "Are you sure you want to wrap up the field visit? Wrapping up will mark the field visit as complete and ready for review by the Jurisdiction Manager. " +
-                    "Any unsaved form changes on the current step will be lost.",
-                buttonClassYes: "btn btn-primary",
-                buttonTextYes: "Continue",
-                buttonTextNo: "Cancel",
-            })
-            .then((confirmed) => {
-                if (!confirmed) return;
-                this.fieldVisitService.finalizeFieldVisit(workflow.FieldVisitID).subscribe(() => {
-                    this.alertService.pushAlert(new Alert("Field Visit marked Complete.", AlertContext.Success));
-                    this.router.navigate(["/treatment-bmps", workflow.TreatmentBMPID]);
-                });
-            });
-    }
 }

@@ -4,6 +4,12 @@
     margin-top: $spacing-400;
 }
 
+.summary-card-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
 // Browser default `dd { margin-left: 40px }` and the global `dt { padding-bottom: 0.5rem }`
 // both throw off the grid-row alignment. Zero them out so each dt/dd pair sits flush on the same baseline.
 dl.grid-12 {

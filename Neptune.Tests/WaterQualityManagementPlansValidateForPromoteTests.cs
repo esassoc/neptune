@@ -8,6 +8,12 @@ namespace Neptune.Tests
     /// Covers the NPT-1051 promotion gate. <see cref="WaterQualityManagementPlans.ValidateForPromote"/>
     /// is the legal-record completeness check that runs before flipping a Draft WQMP to Active —
     /// missing fields are surfaced to the SPA so the reviewer can fill them in before retrying.
+    ///
+    /// Per the post-NPT-1051 loosening (dbb7d2567), validation mirrors the Basics editor modal's
+    /// required-field set. Only WQMP Name needs an explicit check here: Jurisdiction,
+    /// ModelingApproach, and TrashCaptureStatus are also modal-required but are NOT NULL on the
+    /// entity and so are guaranteed to be populated. Everything else (record numbers, dates,
+    /// contact info, hydromod) is optional in the modal and therefore optional at Promote.
     /// </summary>
     [TestClass]
     public class WaterQualityManagementPlansValidateForPromoteTests
@@ -53,39 +59,39 @@ namespace Neptune.Tests
         }
 
         [TestMethod]
-        public void NullHydrologicSubarea_FlagsHydrologicSubarea()
+        public void NullHydrologicSubarea_DoesNotFlag_OptionalAtPromote()
         {
             var entity = FullyPopulated();
             entity.HydrologicSubareaID = null;
-            Assert.IsTrue(WaterQualityManagementPlans.ValidateForPromote(entity).Contains("Hydrologic Subarea"));
+            Assert.IsFalse(WaterQualityManagementPlans.ValidateForPromote(entity).Contains("Hydrologic Subarea"));
         }
 
         [TestMethod]
-        public void NullRecordedAcreage_FlagsAcreage()
+        public void NullRecordedAcreage_DoesNotFlag_OptionalAtPromote()
         {
             var entity = FullyPopulated();
             entity.RecordedWQMPAreaInAcres = null;
-            Assert.IsTrue(WaterQualityManagementPlans.ValidateForPromote(entity).Contains("Recorded WQMP Area (Acres)"));
+            Assert.IsFalse(WaterQualityManagementPlans.ValidateForPromote(entity).Contains("Recorded WQMP Area (Acres)"));
         }
 
         [TestMethod]
-        public void NullApprovalDate_FlagsApprovalDate()
+        public void NullApprovalDate_DoesNotFlag_OptionalAtPromote()
         {
             var entity = FullyPopulated();
             entity.ApprovalDate = null;
-            Assert.IsTrue(WaterQualityManagementPlans.ValidateForPromote(entity).Contains("Approval Date"));
+            Assert.IsFalse(WaterQualityManagementPlans.ValidateForPromote(entity).Contains("Approval Date"));
         }
 
         [TestMethod]
-        public void NullMaintenanceContactOrganization_FlagsOrganization()
+        public void NullMaintenanceContactOrganization_DoesNotFlag_OptionalAtPromote()
         {
             var entity = FullyPopulated();
             entity.MaintenanceContactOrganization = null;
-            Assert.IsTrue(WaterQualityManagementPlans.ValidateForPromote(entity).Contains("Maintenance Contact Organization"));
+            Assert.IsFalse(WaterQualityManagementPlans.ValidateForPromote(entity).Contains("Maintenance Contact Organization"));
         }
 
         [TestMethod]
-        public void EmptyEntity_FlagsAllRequiredFields()
+        public void EmptyEntity_FlagsOnlyName()
         {
             var missing = WaterQualityManagementPlans.ValidateForPromote(new WaterQualityManagementPlan
             {
@@ -94,22 +100,22 @@ namespace Neptune.Tests
                 MaintenanceContactName = null,
                 MaintenanceContactOrganization = null,
             });
-            // Every single field on FullyPopulated maps to one missing-field entry.
-            Assert.AreEqual(13, missing.Count);
+            // Post-loosening, only Name is explicitly required at Promote — everything else on
+            // FullyPopulated is modal-optional and therefore Promote-optional.
+            Assert.AreEqual(1, missing.Count);
+            Assert.IsTrue(missing.Contains("WQMP Name"));
         }
 
         [TestMethod]
-        public void MultipleMissing_ReturnsAllOfThem()
+        public void MultipleMissingOptional_FlagsNone()
         {
             var entity = FullyPopulated();
             entity.RecordNumber = null;
             entity.ApprovalDate = null;
             entity.HydromodificationAppliesTypeID = null;
+            // All three are modal-optional, so Promote should accept the entity as-is.
             var missing = WaterQualityManagementPlans.ValidateForPromote(entity);
-            Assert.AreEqual(3, missing.Count);
-            Assert.IsTrue(missing.Contains("Record Number"));
-            Assert.IsTrue(missing.Contains("Approval Date"));
-            Assert.IsTrue(missing.Contains("Hydromodification Applies"));
+            Assert.AreEqual(0, missing.Count);
         }
     }
 }

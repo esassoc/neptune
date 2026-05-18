@@ -5,6 +5,9 @@ import { AlertDisplayComponent } from "src/app/shared/components/alert-display/a
 import { TreatmentBMPDto } from "src/app/shared/generated/model/treatment-bmp-dto";
 import { IDeactivateComponent } from "src/app/shared/guards/unsaved-changes.guard";
 import { TreatmentBmpLocationEditorComponent } from "src/app/shared/components/treatment-bmp-editors/location-editor/treatment-bmp-location-editor.component";
+import { AlertService } from "src/app/shared/services/alert.service";
+import { Alert } from "src/app/shared/models/alert";
+import { AlertContext } from "src/app/shared/models/enums/alert-context.enum";
 
 /**
  * Routed page wrapper that supplies the page-header + back-to-BMP chrome around
@@ -21,6 +24,7 @@ import { TreatmentBmpLocationEditorComponent } from "src/app/shared/components/t
 })
 export class TreatmentBmpUpdateLocationComponent implements IDeactivateComponent {
     private router = inject(Router);
+    private alertService = inject(AlertService);
 
     @Input() treatmentBMPID?: number;
 
@@ -31,7 +35,11 @@ export class TreatmentBmpUpdateLocationComponent implements IDeactivateComponent
     }
 
     public onSaved(bmp: TreatmentBMPDto): void {
-        this.router.navigate(["/treatment-bmps", bmp.TreatmentBMPID]);
+        // Navigate first — this page's <app-alert-display> clears alerts on destroy,
+        // so the success alert is pushed only after the BMP detail page mounts.
+        this.router.navigate(["/treatment-bmps", bmp.TreatmentBMPID]).then(() => {
+            this.alertService.pushAlert(new Alert("Treatment BMP location updated successfully.", AlertContext.Success));
+        });
     }
 
     public onCancelled(): void {

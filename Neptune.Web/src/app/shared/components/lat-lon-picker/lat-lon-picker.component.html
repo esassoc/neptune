@@ -1,6 +1,5 @@
 <div class="lat-lon-picker grid-two-col">
     <div class="left-col">
-        <div class="field-label">Location</div>
         <div class="instructions">
             @if (instructionsTemplate) {
                 <ng-container *ngTemplateOutlet="instructionsTemplate"></ng-container>
@@ -10,8 +9,8 @@
         </div>
 
         <div class="inputs-row mt-4">
-            <form-field class="col" [fieldLabel]="'Latitude'" [formControl]="latControl" [type]="FormFieldType.Number"></form-field>
-            <form-field class="col" [fieldLabel]="'Longitude'" [formControl]="lonControl" [type]="FormFieldType.Number"></form-field>
+            <form-field class="col" size="md" [fieldLabel]="'Latitude'" [formControl]="latControl" [type]="FormFieldType.Number"></form-field>
+            <form-field class="col" size="md" [fieldLabel]="'Longitude'" [formControl]="lonControl" [type]="FormFieldType.Number"></form-field>
         </div>
 
         <div class="buttons-row">

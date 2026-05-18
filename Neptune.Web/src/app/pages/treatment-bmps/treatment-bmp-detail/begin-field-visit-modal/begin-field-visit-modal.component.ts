@@ -1,6 +1,8 @@
 import { Component, inject, OnInit } from "@angular/core";
+import { HttpErrorResponse } from "@angular/common/http";
 import { FormGroup, ReactiveFormsModule, Validators } from "@angular/forms";
 import { DialogRef } from "@ngneat/dialog";
+import { escapeHtml } from "src/app/shared/helpers/html-escape";
 
 import { FormFieldComponent, FormFieldType } from "src/app/shared/components/forms/form-field/form-field.component";
 import { AlertDisplayComponent } from "src/app/shared/components/alert-display/alert-display.component";
@@ -43,6 +45,7 @@ export class BeginFieldVisitModalComponent implements OnInit {
     });
 
     public hasInProgressVisit = false;
+    public isSaving = false;
 
     constructor(private fieldVisitService: FieldVisitService, private alertService: AlertService) {}
 
@@ -51,23 +54,70 @@ export class BeginFieldVisitModalComponent implements OnInit {
         const ctx = this.ref.data;
         this.hasInProgressVisit = !!ctx?.inProgressFieldVisit;
         if (this.hasInProgressVisit) {
-            // Default to continuing the existing visit
+            // Default to continuing the existing visit; pre-fill date and type from the in-progress
+            // visit so the user can see what they'd be continuing.
             this.formGroup.controls.ContinueExistingInProgress.setValue(true);
             this.formGroup.controls.VisitDate.setValue(this.formatDateInputValue(ctx.inProgressFieldVisit!.VisitDate));
             this.formGroup.controls.FieldVisitTypeID.setValue(ctx.inProgressFieldVisit!.FieldVisitTypeID);
+
+            // When the user flips to "Start a new visit", reset Date + Type back to fresh defaults so
+            // they don't accidentally clone the in-progress visit's metadata. Flip the other way and
+            // we restore the in-progress values.
+            this.formGroup.controls.ContinueExistingInProgress.valueChanges.subscribe((value) => {
+                if (value === false) {
+                    this.formGroup.controls.VisitDate.setValue(this.todayDateString());
+                    this.formGroup.controls.FieldVisitTypeID.setValue(FieldVisitTypeEnum.DryWeather);
+                } else if (value === true) {
+                    this.formGroup.controls.VisitDate.setValue(this.formatDateInputValue(ctx.inProgressFieldVisit!.VisitDate));
+                    this.formGroup.controls.FieldVisitTypeID.setValue(ctx.inProgressFieldVisit!.FieldVisitTypeID);
+                }
+            });
         }
     }
 
     save(): void {
-        if (this.formGroup.invalid) return;
+        // Surface the invalid state so required-field errors light up (Kathleen's "click does
+        // nothing" report). Per NPT-1029, modals rely on field-level highlights rather than
+        // pushing a global danger alert, so just markAllAsTouched and return.
+        if (this.formGroup.invalid) {
+            this.formGroup.markAllAsTouched();
+            return;
+        }
+
+        this.alertService.clearAlerts();
+        this.isSaving = true;
+
+        // Strict boolean: the radio form control should hold true/false, but defend against string
+        // coercion from older ng versions or odd ValueAccessor wiring by normalizing here.
+        const continueRaw = this.formGroup.controls.ContinueExistingInProgress.value;
+        const continueExistingInProgress = this.hasInProgressVisit ? continueRaw === true || (continueRaw as unknown) === "true" : null;
+
         const dto = new FieldVisitCreateDto({
             VisitDate: this.formGroup.controls.VisitDate.value,
             FieldVisitTypeID: this.formGroup.controls.FieldVisitTypeID.value,
-            ContinueExistingInProgress: this.hasInProgressVisit ? this.formGroup.controls.ContinueExistingInProgress.value : null,
+            ContinueExistingInProgress: continueExistingInProgress,
         });
-        this.fieldVisitService.createFieldVisit(this.ref.data.treatmentBMPID, dto).subscribe((result) => {
-            this.alertService.pushAlert(new Alert("Field Visit started.", AlertContext.Success));
-            this.ref.close(result);
+
+        this.fieldVisitService.createFieldVisit(this.ref.data.treatmentBMPID, dto).subscribe({
+            next: (result) => {
+                this.isSaving = false;
+                this.alertService.pushAlert(new Alert("Field Visit started.", AlertContext.Success));
+                this.ref.close(result);
+            },
+            error: (err: HttpErrorResponse) => {
+                this.isSaving = false;
+                // NPT-984: server failures (DB constraint hits, 4xx from the API) were being
+                // swallowed as a generic "Failed to start" message — Kathleen's 5/14 retest
+                // couldn't see why the "Start new field visit" path was failing. Prefer the
+                // structured ProblemDetails / message fields, then string error bodies, then
+                // the generic fallback. Alerts render via [innerHTML] so escape any server text.
+                const raw = (err?.error?.detail as string | undefined)
+                    ?? (err?.error?.title as string | undefined)
+                    ?? (err?.error?.message as string | undefined)
+                    ?? (typeof err?.error === "string" ? (err.error as string) : null)
+                    ?? "Failed to start the Field Visit. Please try again.";
+                this.alertService.pushAlert(new Alert(escapeHtml(raw), AlertContext.Danger));
+            },
         });
     }
 
@@ -76,7 +126,14 @@ export class BeginFieldVisitModalComponent implements OnInit {
     }
 
     private todayDateString(): string {
-        return new Date().toISOString().slice(0, 10);
+        // Local-date string (yyyy-MM-dd) so the date picker shows today's wall-clock date regardless
+        // of timezone — `new Date().toISOString()` returns UTC, which can show tomorrow's date for users
+        // east of UTC late in the day. This avoids the same UTC-shift bug the visit sidebar surfaces.
+        const d = new Date();
+        const yyyy = d.getFullYear();
+        const mm = String(d.getMonth() + 1).padStart(2, "0");
+        const dd = String(d.getDate()).padStart(2, "0");
+        return `${yyyy}-${mm}-${dd}`;
     }
 
     private formatDateInputValue(value: string | Date): string {

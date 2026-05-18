@@ -34,16 +34,24 @@ export class LatestBmpAssessmentsComponent implements OnInit {
                 InRouterLink: "/treatment-bmps/",
                 FieldDefinitionType: "TreatmentBMP",
             }),
-            this.utility.createBasicColumnDef("BMP Type", "TreatmentBMPTypeName"),
+            this.utility.createBasicColumnDef("BMP Type", "TreatmentBMPTypeName", { UseCustomDropdownFilter: true }),
             this.utility.createDateColumnDef("Date", "VisitDate", "MM/dd/yyyy"),
-            this.utility.createBasicColumnDef("Jurisdiction", "StormwaterJurisdictionName"),
+            this.utility.createBasicColumnDef("Jurisdiction", "StormwaterJurisdictionName", { UseCustomDropdownFilter: true }),
             this.utility.createBasicColumnDef("WQMP", "WaterQualityManagementPlanName"),
             this.utility.createBasicColumnDef("Performed By", "PerformedByPersonName"),
-            this.utility.createBasicColumnDef("Field Visit Type", "FieldVisitTypeDisplayName"),
-            this.utility.createBasicColumnDef("Assessment Type", "TreatmentBMPAssessmentTypeDisplayName"),
-            this.utility.createBasicColumnDef("Status", "Status"),
+            this.utility.createBasicColumnDef("Field Visit Type", "FieldVisitTypeDisplayName", { UseCustomDropdownFilter: true }),
+            this.utility.createBasicColumnDef("Assessment Type", "TreatmentBMPAssessmentTypeDisplayName", { UseCustomDropdownFilter: true }),
+            this.utility.createBasicColumnDef("Status", "Status", { UseCustomDropdownFilter: true }),
             this.utility.createDecimalColumnDef("Score", "AssessmentScore"),
+            // NPT-984: comma-separated failure notes from the assessment's PassFail observations.
+            // Mirrors the legacy MVC "Failure Notes" column on the same page.
+            this.utility.createBasicColumnDef("Failure Notes", "FailureNotes"),
         ];
-        this.assessments$ = this.assessmentService.listTreatmentBMPAssessment();
+        // NPT-984 round 6: latest-by-BMP is its own endpoint now. The shared list endpoint
+        // returns every assessment ever recorded (used by the Field Records "Assessments" tab);
+        // this page wants one row per BMP (most-recent wrapped-up assessment), so it calls the
+        // dedicated `listLatestByBMP...` route. Splitting the endpoints unwound a silent
+        // regression where the Field Records tab was inadvertently filtered to most-recent.
+        this.assessments$ = this.assessmentService.listLatestByBMPTreatmentBMPAssessment();
     }
 }

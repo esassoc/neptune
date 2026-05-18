@@ -325,6 +325,11 @@ export class UtilityFunctionsService {
             headerName: headerName,
             valueGetter: (params) => this.defaultValueGetter(params, fieldName),
             valueFormatter: (params) => this.booleanValueGetter(params.value),
+            // NPT-984: ag-grid's filter pipeline reads the raw cell value (the boolean) rather
+            // than the formatted display value, so the custom-dropdown filter rendered chips
+            // labeled "true" / "false". Surface the "Yes" / "No" string to the filter via
+            // filterValueGetter so the filter chips match what the grid cell shows.
+            filterValueGetter: (params: any) => this.booleanValueGetter(this.defaultValueGetter(params, fieldName)),
             filter: true,
         };
         this.applyDefaultQanatColumnDefParams(colDef, linkColumnDefParams);
@@ -374,15 +379,25 @@ export class UtilityFunctionsService {
             suppressQuotes: false,
             fileName: fileName,
             processCellCallback: function (p) {
-                if (p.column.getColDef().cellRenderer) {
-                    if (p.value.downloadDisplay) {
-                        return p.value.downloadDisplay;
-                    } else {
-                        return p.value.LinkDisplay;
-                    }
-                } else {
-                    return p.value;
+                const colDef = p.column.getColDef();
+                if (colDef.cellRenderer && p.value && typeof p.value === "object") {
+                    if ((p.value as any).downloadDisplay !== undefined) return (p.value as any).downloadDisplay;
+                    if ((p.value as any).LinkDisplay !== undefined) return (p.value as any).LinkDisplay;
                 }
+                // Fall through to the column's valueFormatter so booleans render as "Yes"/"No",
+                // dates render in the configured format, etc., instead of raw true/false / ISO strings.
+                if (typeof colDef.valueFormatter === "function") {
+                    return colDef.valueFormatter({
+                        value: p.value,
+                        data: p.node?.data,
+                        node: p.node,
+                        colDef,
+                        column: p.column,
+                        api: p.api,
+                        context: p.context,
+                    } as any);
+                }
+                return p.value;
             },
         } as CsvExportParams;
         if (columnKeys) {

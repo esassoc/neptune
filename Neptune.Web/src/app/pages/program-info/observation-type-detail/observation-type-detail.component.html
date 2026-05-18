@@ -5,14 +5,14 @@
         [customRichTextTypeID]="NeptunePageTypeEnum.ManageObservationTypesList">
         <ng-template #templateAbove>
             <div class="back">
-                <a [routerLink]="['/program-info/observation-types']" class="back__link">Back to Observation Types</a>
+                <a [routerLink]="['/program-info/observation-types']" class="back__link"><i class="fa fa-arrow-left"></i> Back to Observation Type List</a>
             </div>
         </ng-template>
         <ng-template #templateRight>
-            <button type="button" class="btn btn-secondary-outline" title="Preview what the Observation Type will look like in a Treatment BMP Assessment form" (click)="openPreview(vm)">
-                <i class="fa fa-eye"></i> Preview
-            </button>
             @if (isAdmin) {
+                <button type="button" class="btn btn-secondary-outline" title="Preview what the Observation Type will look like in a Treatment BMP Assessment form" (click)="openPreview(vm)">
+                    <i class="fa fa-eye"></i> Preview
+                </button>
                 <button type="button" class="btn btn-primary-outline ml-2" (click)="openEdit()">
                     <i class="fa fa-pencil"></i> Edit Observation Type
                 </button>

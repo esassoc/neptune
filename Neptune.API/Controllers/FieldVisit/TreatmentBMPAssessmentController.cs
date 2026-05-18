@@ -22,7 +22,22 @@ public class TreatmentBMPAssessmentController(NeptuneDbContext dbContext, ILogge
     public async Task<ActionResult<List<TreatmentBMPAssessmentGridDto>>> List()
     {
         var stormwaterJurisdictionIDsPersonCanView = await StormwaterJurisdictionPeople.ListViewableStormwaterJurisdictionIDsByPersonIDForBMPsAsync(DbContext, CallingUser.PersonID);
-        var dtos = TreatmentBMPAssessments.ListAsGridDtoForJurisdictions(DbContext, stormwaterJurisdictionIDsPersonCanView);
+        var dtos = TreatmentBMPAssessments.ListAllAsGridDtoForJurisdictions(DbContext, stormwaterJurisdictionIDsPersonCanView);
+        return Ok(dtos);
+    }
+
+    /// <summary>
+    /// NPT-984 round 6: dedicated endpoint for the Latest BMP Assessments page — returns one
+    /// row per BMP (the most-recent assessment from a wrapped-up visit). Split from the
+    /// unfiltered <see cref="List"/> endpoint so the Field Records "Assessments" tab can
+    /// continue listing every assessment ever recorded.
+    /// </summary>
+    [HttpGet("latest-by-bmp")]
+    [UserViewFeature]
+    public async Task<ActionResult<List<TreatmentBMPAssessmentGridDto>>> ListLatestByBMP()
+    {
+        var stormwaterJurisdictionIDsPersonCanView = await StormwaterJurisdictionPeople.ListViewableStormwaterJurisdictionIDsByPersonIDForBMPsAsync(DbContext, CallingUser.PersonID);
+        var dtos = TreatmentBMPAssessments.ListLatestAsGridDtoForJurisdictions(DbContext, stormwaterJurisdictionIDsPersonCanView);
         return Ok(dtos);
     }
 

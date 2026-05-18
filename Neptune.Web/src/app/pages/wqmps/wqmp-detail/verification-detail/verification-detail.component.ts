@@ -8,6 +8,7 @@ import { AuthenticationService } from "src/app/services/authentication.service";
 import { WaterQualityManagementPlanService } from "src/app/shared/generated/api/water-quality-management-plan.service";
 import { WaterQualityManagementPlanDto } from "src/app/shared/generated/model/water-quality-management-plan-dto";
 import { WaterQualityManagementPlanVerifyDetailDto } from "src/app/shared/generated/model/water-quality-management-plan-verify-detail-dto";
+import { fileResourceUrl } from "src/app/shared/helpers/file-resource-url";
 
 @Component({
     selector: "verification-detail",
@@ -37,6 +38,8 @@ export class VerificationDetailComponent {
     public get currentPersonCanEdit(): boolean {
         return this.authenticationService.doesCurrentUserHaveJurisdictionEditPermission();
     }
+
+    public getDownloadUrl = fileResourceUrl;
 
     public groupSourceControlsByCategory(rows: WaterQualityManagementPlanVerifyDetailDto["SourceControlBMPs"]): { category: string; items: WaterQualityManagementPlanVerifyDetailDto["SourceControlBMPs"] }[] {
         const map = new Map<string, WaterQualityManagementPlanVerifyDetailDto["SourceControlBMPs"]>();

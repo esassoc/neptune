@@ -71,8 +71,11 @@ public class FieldVisitController(NeptuneDbContext dbContext, ILogger<FieldVisit
         return Ok(result);
     }
 
+    // NPT-984: Verify / Mark Provisional / Return to Edit are Manager-only attestation actions
+    // — they signal the field visit's regulatory record is finalized. JurisdictionEditor can
+    // perform field visits and edit them while in progress but cannot attest to the result.
     [HttpPost("{fieldVisitID}/verify")]
-    [JurisdictionEditFeature]
+    [JurisdictionManageFeature]
     [EntityNotFound(typeof(FieldVisit), "fieldVisitID")]
     public async Task<ActionResult<FieldVisitDto>> Verify([FromRoute] int fieldVisitID)
     {
@@ -81,7 +84,7 @@ public class FieldVisitController(NeptuneDbContext dbContext, ILogger<FieldVisit
     }
 
     [HttpPost("{fieldVisitID}/mark-provisional")]
-    [JurisdictionEditFeature]
+    [JurisdictionManageFeature]
     [EntityNotFound(typeof(FieldVisit), "fieldVisitID")]
     public async Task<ActionResult<FieldVisitDto>> MarkProvisional([FromRoute] int fieldVisitID)
     {
@@ -90,7 +93,7 @@ public class FieldVisitController(NeptuneDbContext dbContext, ILogger<FieldVisit
     }
 
     [HttpPost("{fieldVisitID}/return-to-edit")]
-    [JurisdictionEditFeature]
+    [JurisdictionManageFeature]
     [EntityNotFound(typeof(FieldVisit), "fieldVisitID")]
     public async Task<ActionResult<FieldVisitDto>> ReturnToEdit([FromRoute] int fieldVisitID)
     {
@@ -98,6 +101,9 @@ public class FieldVisitController(NeptuneDbContext dbContext, ILogger<FieldVisit
         return Ok(dto);
     }
 
+    // Save & Wrap Up — Editor performs the visit and wraps it up themselves; only the
+    // post-wrap-up attestation actions (Verify / Mark Provisional / Return to Edit) need the
+    // Manager gate.
     [HttpPost("{fieldVisitID}/finalize")]
     [JurisdictionEditFeature]
     [EntityNotFound(typeof(FieldVisit), "fieldVisitID")]
@@ -107,8 +113,9 @@ public class FieldVisitController(NeptuneDbContext dbContext, ILogger<FieldVisit
         return Ok(dto);
     }
 
+    // NPT-984: Delete Field Visit is Manager-only — destructive, removes the field record.
     [HttpDelete("{fieldVisitID}")]
-    [JurisdictionEditFeature]
+    [JurisdictionManageFeature]
     [EntityNotFound(typeof(FieldVisit), "fieldVisitID")]
     public async Task<IActionResult> Delete([FromRoute] int fieldVisitID)
     {

@@ -19,8 +19,14 @@ export const routeParams = {
     waterQualityManagementPlanID: "waterQualityManagementPlanID",
     waterQualityManagementPlanVerifyID: "waterQualityManagementPlanVerifyID",
     treatmentBMPTypeID: "treatmentBMPTypeID",
+    customAttributeTypeID: "customAttributeTypeID",
+    observationTypeID: "observationTypeID",
     fieldVisitID: "fieldVisitID",
+    personID: "personID",
 };
+
+// Anonymous-friendly routes (e.g., /support) live under the public site layout below alongside
+// auth'd ones; they intentionally have no canActivate so unauthenticated visitors can reach them.
 
 export const routes: Routes = [
     {
@@ -344,6 +350,17 @@ export const routes: Routes = [
             },
             { path: "users", title: "Users", loadComponent: () => import("./pages/users/users.component").then((m) => m.UsersComponent) },
             {
+                path: `users/:${routeParams.personID}`,
+                title: "User Detail",
+                loadComponent: () => import("./pages/users/user-detail/user-detail.component").then((m) => m.UserDetailComponent),
+                canActivate: [authGuardFn],
+            },
+            {
+                path: "support",
+                title: "Request Support",
+                loadComponent: () => import("./pages/support/request-support/request-support.component").then((m) => m.RequestSupportComponent),
+            },
+            {
                 path: "organizations",
                 title: "Organizations",
                 loadComponent: () => import("./pages/organizations/organizations.component").then((m) => m.OrganizationsComponent),
@@ -435,6 +452,19 @@ export const routes: Routes = [
                 path: "field-records",
                 title: "View All Field Records",
                 loadComponent: () => import("./pages/field-records/field-records.component").then((m) => m.FieldRecordsComponent),
+            },
+            {
+                // NPT-984: dedicated read-only Field Visit detail page. The Field Records grid
+                // routes here for any visit not in InProgress; the workflow outlet's Wrap Up
+                // handler navigates here after finalize. Keeps editable workflow pages and the
+                // locked-down summary view as separate routes so wrap-up actually wraps up.
+                path: `field-visits/:${routeParams.fieldVisitID}/view`,
+                title: "Field Visit",
+                loadComponent: () =>
+                    import("./pages/field-visits/field-visit-detail-readonly/field-visit-detail-readonly.component").then(
+                        (m) => m.FieldVisitDetailReadOnlyComponent
+                    ),
+                canActivate: [JurisdictionManagerOrEditorOnlyGuard],
             },
             {
                 path: `field-visits/:${routeParams.fieldVisitID}`,
@@ -626,6 +656,11 @@ export const routes: Routes = [
                             import("./pages/wqmps/wqmp-detail/verification-wizard/steps/source-control-step.component").then((m) => m.SourceControlStepComponent),
                     },
                     {
+                        path: "supporting-documentation",
+                        loadComponent: () =>
+                            import("./pages/wqmps/wqmp-detail/verification-wizard/steps/supporting-documentation-step.component").then((m) => m.SupportingDocumentationStepComponent),
+                    },
+                    {
                         path: "review-and-finalize",
                         loadComponent: () =>
                             import("./pages/wqmps/wqmp-detail/verification-wizard/steps/review-step.component").then((m) => m.ReviewStepComponent),
@@ -659,6 +694,11 @@ export const routes: Routes = [
                         path: "source-control",
                         loadComponent: () =>
                             import("./pages/wqmps/wqmp-detail/verification-wizard/steps/source-control-step.component").then((m) => m.SourceControlStepComponent),
+                    },
+                    {
+                        path: "supporting-documentation",
+                        loadComponent: () =>
+                            import("./pages/wqmps/wqmp-detail/verification-wizard/steps/supporting-documentation-step.component").then((m) => m.SupportingDocumentationStepComponent),
                     },
                     {
                         path: "review-and-finalize",
@@ -873,7 +913,17 @@ export const routes: Routes = [
                 loadComponent: () => import("./pages/manage/custom-attributes.component").then((m) => m.CustomAttributesComponent),
             },
             {
-                path: "manage/custom-attributes/:customAttributeTypeID",
+                path: "manage/custom-attributes/new",
+                title: "New Custom Attribute",
+                loadComponent: () => import("./pages/manage/custom-attribute-type-edit/custom-attribute-type-edit.component").then((m) => m.CustomAttributeTypeEditComponent),
+            },
+            {
+                path: `manage/custom-attributes/:${routeParams.customAttributeTypeID}/edit`,
+                title: "Edit Custom Attribute",
+                loadComponent: () => import("./pages/manage/custom-attribute-type-edit/custom-attribute-type-edit.component").then((m) => m.CustomAttributeTypeEditComponent),
+            },
+            {
+                path: `manage/custom-attributes/:${routeParams.customAttributeTypeID}`,
                 title: "Custom Attribute Type Detail",
                 loadComponent: () => import("./pages/manage/custom-attribute-type-detail/custom-attribute-type-detail.component").then((m) => m.CustomAttributeTypeDetailComponent),
             },
@@ -881,6 +931,16 @@ export const routes: Routes = [
                 path: "manage/observation-types",
                 title: "Observation Types",
                 loadComponent: () => import("./pages/manage/observation-types-manage.component").then((m) => m.ObservationTypesManageComponent),
+            },
+            {
+                path: "manage/observation-types/new",
+                title: "New Observation Type",
+                loadComponent: () => import("./pages/manage/observation-type-edit/observation-type-edit.component").then((m) => m.ObservationTypeEditComponent),
+            },
+            {
+                path: `manage/observation-types/:${routeParams.observationTypeID}/edit`,
+                title: "Edit Observation Type",
+                loadComponent: () => import("./pages/manage/observation-type-edit/observation-type-edit.component").then((m) => m.ObservationTypeEditComponent),
             },
             {
                 path: "manage/treatment-bmp-types",

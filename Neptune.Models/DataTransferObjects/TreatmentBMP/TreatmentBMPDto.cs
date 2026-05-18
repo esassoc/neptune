@@ -35,6 +35,7 @@ public class TreatmentBMPDto
     public int? UpstreamBMPID { get; set; }
     public int? RegionalSubbasinID { get; set; }
     public int? LastNereidLogID { get; set; }
+    public int TreatmentBMPAssessmentCount { get; set; }
 
     // Modeling/Parameterization
     public bool? IsFullyParameterized { get; set; }
