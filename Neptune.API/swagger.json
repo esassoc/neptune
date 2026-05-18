@@ -8081,6 +8081,45 @@
         }
       }
     },
+    "/treatment-bmp-assessments/latest-by-bmp": {
+      "get": {
+        "tags": [
+          "TreatmentBMPAssessment"
+        ],
+        "operationId": "ListLatestByBMP_TreatmentBMPAssessment",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/TreatmentBMPAssessmentGridDto"
+                  }
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/TreatmentBMPAssessmentGridDto"
+                  }
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/TreatmentBMPAssessmentGridDto"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/treatment-bmp-assessments/{treatmentBMPAssessmentID}": {
       "get": {
         "tags": [

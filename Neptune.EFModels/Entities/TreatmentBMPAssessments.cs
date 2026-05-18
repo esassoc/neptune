@@ -156,15 +156,34 @@ public static class TreatmentBMPAssessments
         }
     }
 
-    public static List<TreatmentBMPAssessmentGridDto> ListAsGridDtoForJurisdictions(NeptuneDbContext dbContext, IEnumerable<int> stormwaterJurisdictionIDsPersonCanView)
+    /// <summary>
+    /// NPT-984: returns every assessment row in the caller's viewable jurisdictions, ordered
+    /// most-recent first. Powers the Field Records "Assessments" tab, which lists every
+    /// assessment ever recorded (not just the latest per BMP). The previous round folded
+    /// this and the Latest-BMP-Assessments listing into one helper that always filtered to
+    /// most-recent, which silently regressed the Field Records tab — round 6 splits them.
+    /// </summary>
+    public static List<TreatmentBMPAssessmentGridDto> ListAllAsGridDtoForJurisdictions(NeptuneDbContext dbContext, IEnumerable<int> stormwaterJurisdictionIDsPersonCanView)
     {
         var jurisdictionIDs = stormwaterJurisdictionIDsPersonCanView.ToList();
+        var rows = dbContext.vTreatmentBMPAssessmentDetaileds.AsNoTracking()
+            .Where(x => jurisdictionIDs.Contains(x.StormwaterJurisdictionID))
+            .OrderByDescending(x => x.VisitDate)
+            .ToList();
+        var assessmentIDs = rows.Select(x => x.TreatmentBMPAssessmentID).ToList();
+        var failureNotes = BuildFailureNotesByAssessment(dbContext, assessmentIDs);
+        return rows.Select(x => ProjectGridDto(x, failureNotes)).ToList();
+    }
 
-        // NPT-984: Latest BMP Assessments page should show one row per TreatmentBMP — the
-        // most-recent assessment from a wrapped-up (FieldVisitStatusID = Complete) visit.
-        // Mirror the legacy MVC pattern (TreatmentBMPController.TreatmentBMPAssessmentSummaryGridJsonData)
-        // by filtering on vMostRecentTreatmentBMPAssessment.LastAssessmentID. Previously the
-        // SPA returned every assessment ever recorded which over-counted vs. the MVC page.
+    /// <summary>
+    /// NPT-984: returns one row per Treatment BMP — the most-recent assessment from a wrapped-up
+    /// (FieldVisitStatusID = Complete) visit. Mirrors the legacy MVC pattern
+    /// (TreatmentBMPController.TreatmentBMPAssessmentSummaryGridJsonData) by filtering on
+    /// vMostRecentTreatmentBMPAssessment.LastAssessmentID. Powers the Latest BMP Assessments page.
+    /// </summary>
+    public static List<TreatmentBMPAssessmentGridDto> ListLatestAsGridDtoForJurisdictions(NeptuneDbContext dbContext, IEnumerable<int> stormwaterJurisdictionIDsPersonCanView)
+    {
+        var jurisdictionIDs = stormwaterJurisdictionIDsPersonCanView.ToList();
         var mostRecentAssessmentIDs = dbContext.vMostRecentTreatmentBMPAssessments.AsNoTracking()
             .Where(x => jurisdictionIDs.Contains(x.StormwaterJurisdictionID))
             .Select(x => x.LastAssessmentID)
@@ -174,14 +193,22 @@ public static class TreatmentBMPAssessments
             .Where(x => mostRecentAssessmentIDs.Contains(x.TreatmentBMPAssessmentID))
             .OrderByDescending(x => x.VisitDate)
             .ToList();
+        var failureNotes = BuildFailureNotesByAssessment(dbContext, mostRecentAssessmentIDs);
+        return rows.Select(x => ProjectGridDto(x, failureNotes)).ToList();
+    }
 
-        // NPT-984: assemble the "Failure Notes" column the same way MVC does — load the
-        // PassFail observations whose recorded value was false for the in-scope assessments,
-        // deserialize each ObservationData blob, and concatenate notes per observation type.
-        // ObservationData is JSON text so the filter has to materialize in-memory; the IN
-        // clause is bounded by jurisdiction-scope so the row count stays manageable.
-        // Use the PassFail-specific deserialize helper and tolerate null/non-bool values so
-        // a single malformed payload doesn't 500 the whole page (Copilot PR #507 #1, #2).
+    /// <summary>
+    /// Loads the PassFail observations whose recorded value was false for the supplied
+    /// assessments, deserializes each ObservationData blob, and concatenates the per-observation
+    /// notes the same way the legacy MVC view does. ObservationData is JSON text so the failing
+    /// filter has to materialize in-memory; the IN clause is bounded by jurisdiction-scope so the
+    /// row count stays manageable. Tolerates null/non-bool values so a single malformed payload
+    /// doesn't 500 the whole page (Copilot PR #507 #1, #2).
+    /// </summary>
+    private static Dictionary<int, string> BuildFailureNotesByAssessment(NeptuneDbContext dbContext, IReadOnlyCollection<int> assessmentIDs)
+    {
+        if (assessmentIDs.Count == 0) return new Dictionary<int, string>();
+
         static bool IsFailingPassFailValue(object? observationValue)
         {
             return observationValue switch
@@ -194,13 +221,13 @@ public static class TreatmentBMPAssessments
 
         var failingObservations = dbContext.TreatmentBMPObservations.AsNoTracking()
             .Include(x => x.TreatmentBMPAssessmentObservationType)
-            .Where(x => mostRecentAssessmentIDs.Contains(x.TreatmentBMPAssessmentID))
+            .Where(x => assessmentIDs.Contains(x.TreatmentBMPAssessmentID))
             .ToList()
             .Where(x => x.TreatmentBMPAssessmentObservationType.ObservationTypeSpecification.ObservationTypeCollectionMethodID == (int)ObservationTypeCollectionMethodEnum.PassFail
                         && x.GetPassFailObservationData().SingleValueObservations.Any(y => IsFailingPassFailValue(y.ObservationValue)))
             .ToList();
 
-        var failureNotesByAssessment = failingObservations
+        return failingObservations
             .GroupBy(x => x.TreatmentBMPAssessmentID)
             .ToDictionary(g => g.Key, g => string.Join("; ", g.Select(x =>
             {
@@ -212,30 +239,32 @@ public static class TreatmentBMPAssessments
                 if (string.IsNullOrWhiteSpace(joined)) joined = "[None provided]";
                 return $"{x.TreatmentBMPAssessmentObservationType.TreatmentBMPAssessmentObservationTypeName} Failure Notes: {joined}";
             }).OrderBy(s => s)));
+    }
 
-        return rows.Select(x => new TreatmentBMPAssessmentGridDto
-            {
-                TreatmentBMPAssessmentID = x.TreatmentBMPAssessmentID,
-                FieldVisitID = x.FieldVisitID,
-                TreatmentBMPID = x.TreatmentBMPID,
-                TreatmentBMPName = x.TreatmentBMPName,
-                TreatmentBMPTypeID = x.TreatmentBMPTypeID,
-                TreatmentBMPTypeName = x.TreatmentBMPTypeName,
-                VisitDate = x.VisitDate,
-                StormwaterJurisdictionID = x.StormwaterJurisdictionID,
-                StormwaterJurisdictionName = x.StormwaterJurisdictionName,
-                WaterQualityManagementPlanID = x.WaterQualityManagementPlanID,
-                WaterQualityManagementPlanName = x.WaterQualityManagementPlanName,
-                PerformedByPersonID = x.PerformedByPersonID,
-                PerformedByPersonName = x.PerformedByPersonName,
-                FieldVisitTypeDisplayName = x.FieldVisitTypeDisplayName,
-                TreatmentBMPAssessmentTypeDisplayName = x.TreatmentBMPAssessmentTypeDisplayName,
-                IsAssessmentComplete = x.IsAssessmentComplete,
-                AssessmentScore = x.AssessmentScore,
-                IsFieldVisitVerified = x.IsFieldVisitVerified,
-                FailureNotes = failureNotesByAssessment.GetValueOrDefault(x.TreatmentBMPAssessmentID),
-            })
-            .ToList();
+    private static TreatmentBMPAssessmentGridDto ProjectGridDto(vTreatmentBMPAssessmentDetailed x, IReadOnlyDictionary<int, string> failureNotesByAssessment)
+    {
+        return new TreatmentBMPAssessmentGridDto
+        {
+            TreatmentBMPAssessmentID = x.TreatmentBMPAssessmentID,
+            FieldVisitID = x.FieldVisitID,
+            TreatmentBMPID = x.TreatmentBMPID,
+            TreatmentBMPName = x.TreatmentBMPName,
+            TreatmentBMPTypeID = x.TreatmentBMPTypeID,
+            TreatmentBMPTypeName = x.TreatmentBMPTypeName,
+            VisitDate = x.VisitDate,
+            StormwaterJurisdictionID = x.StormwaterJurisdictionID,
+            StormwaterJurisdictionName = x.StormwaterJurisdictionName,
+            WaterQualityManagementPlanID = x.WaterQualityManagementPlanID,
+            WaterQualityManagementPlanName = x.WaterQualityManagementPlanName,
+            PerformedByPersonID = x.PerformedByPersonID,
+            PerformedByPersonName = x.PerformedByPersonName,
+            FieldVisitTypeDisplayName = x.FieldVisitTypeDisplayName,
+            TreatmentBMPAssessmentTypeDisplayName = x.TreatmentBMPAssessmentTypeDisplayName,
+            IsAssessmentComplete = x.IsAssessmentComplete,
+            AssessmentScore = x.AssessmentScore,
+            IsFieldVisitVerified = x.IsFieldVisitVerified,
+            FailureNotes = failureNotesByAssessment.GetValueOrDefault(x.TreatmentBMPAssessmentID),
+        };
     }
 
     public static async Task<TreatmentBMPAssessmentDetailDto> CreateForFieldVisitAsync(NeptuneDbContext dbContext, int fieldVisitID, TreatmentBMPAssessmentTypeEnum assessmentTypeEnum)
