@@ -18,7 +18,7 @@
                             [type]="FormFieldType.Textarea"
                             placeholder="Caption"></form-field>
                         <div class="g-col-12">
-                            <button class="btn btn-primary" style="float: right" (click)="addNewImage()">Add Photo</button>
+                            <button type="button" class="btn btn-primary" style="float: right" (click)="addNewImage()">Add Photo</button>
                         </div>
                     }
                 </div>
@@ -65,7 +65,7 @@
                 </div>
             } @else {
                 <form-field [formControl]="captionControls[image.FileResourceGUID]" fieldLabel="Caption" [type]="FormFieldType.Textarea" placeholder="Caption"></form-field>
-                <button class="btn btn-danger btn-sm" [disabled]="isLoadingSubmit" (click)="deleteImage(image)">Delete Photo</button>
+                <button type="button" class="btn btn-danger btn-sm" [disabled]="isLoadingSubmit" (click)="deleteImage(image)">Delete Photo</button>
             }
         </div>
     }
@@ -73,7 +73,7 @@
 
 @if (!useCaptionModal) {
     <div class="page-footer">
-        <button class="btn btn-primary mr-2" [disabled]="isLoadingSubmit || captionControlForm.pristine" (click)="save()">Save</button>
-        <button class="btn btn-secondary" [disabled]="isLoadingSubmit" (click)="cancel()">Cancel</button>
+        <button type="button" class="btn btn-primary mr-2" [disabled]="isLoadingSubmit || captionControlForm.pristine" (click)="save()">Save</button>
+        <button type="button" class="btn btn-secondary" [disabled]="isLoadingSubmit" (click)="cancel()">Cancel</button>
     </div>
 }

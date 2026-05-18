@@ -162,6 +162,10 @@ public static class TreatmentBMPAssessments
     /// assessment ever recorded (not just the latest per BMP). The previous round folded
     /// this and the Latest-BMP-Assessments listing into one helper that always filtered to
     /// most-recent, which silently regressed the Field Records tab — round 6 splits them.
+    /// FailureNotes is intentionally left null here — the Assessments tab doesn't render it,
+    /// and computing failure notes scales with the *all-assessments* row count, which would
+    /// pull every PassFail observation + deserialize every ObservationData JSON blob on
+    /// every page hit (Copilot PR #512 review).
     /// </summary>
     public static List<TreatmentBMPAssessmentGridDto> ListAllAsGridDtoForJurisdictions(NeptuneDbContext dbContext, IEnumerable<int> stormwaterJurisdictionIDsPersonCanView)
     {
@@ -170,9 +174,8 @@ public static class TreatmentBMPAssessments
             .Where(x => jurisdictionIDs.Contains(x.StormwaterJurisdictionID))
             .OrderByDescending(x => x.VisitDate)
             .ToList();
-        var assessmentIDs = rows.Select(x => x.TreatmentBMPAssessmentID).ToList();
-        var failureNotes = BuildFailureNotesByAssessment(dbContext, assessmentIDs);
-        return rows.Select(x => ProjectGridDto(x, failureNotes)).ToList();
+        var emptyFailureNotes = new Dictionary<int, string>();
+        return rows.Select(x => ProjectGridDto(x, emptyFailureNotes)).ToList();
     }
 
     /// <summary>
