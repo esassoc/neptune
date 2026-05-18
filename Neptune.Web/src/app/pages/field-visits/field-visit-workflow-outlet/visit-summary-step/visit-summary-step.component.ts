@@ -42,6 +42,14 @@ export class FieldVisitVisitSummaryStepComponent implements OnInit {
         this.canManage = this.authenticationService.doesCurrentUserHaveJurisdictionManagePermission();
     }
 
+    // NPT-984: the delete buttons on each Visit Summary card need to disappear once the visit
+    // is wrapped up (Editor walking through a finished visit shouldn't be able to nuke records,
+    // and the Manager review surface shouldn't expose destructive actions either). Centralizing
+    // the check here so the template can `@if (isEditable(workflow))` each delete button.
+    public isEditable(workflow: FieldVisitWorkflowDto): boolean {
+        return !this.workflowService.isReadOnly(workflow);
+    }
+
     verify(workflow: FieldVisitWorkflowDto): void {
         this.workflowService.clearStepAlerts();
         this.fieldVisitService.verifyFieldVisit(workflow.FieldVisitID).subscribe(() => {

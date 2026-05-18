@@ -26,7 +26,7 @@
     <div class="card mt-3">
         <div class="card-header summary-card-header">
             <span class="card-title">Initial Assessment</span>
-            @if (workflow.InitialAssessmentID) {
+            @if (workflow.InitialAssessmentID && canManage && isEditable(workflow)) {
                 <button type="button" class="btn btn-danger btn-sm" (click)="deleteAssessment(workflow, 'Initial')">
                     <i class="fa fa-trash mr-1"></i> Delete
                 </button>
@@ -47,7 +47,7 @@
     <div class="card mt-3">
         <div class="card-header summary-card-header">
             <span class="card-title">Maintenance</span>
-            @if (workflow.MaintenanceRecordID) {
+            @if (workflow.MaintenanceRecordID && canManage && isEditable(workflow)) {
                 <button type="button" class="btn btn-danger btn-sm" (click)="deleteMaintenanceRecord(workflow)">
                     <i class="fa fa-trash mr-1"></i> Delete
                 </button>
@@ -61,7 +61,7 @@
     <div class="card mt-3">
         <div class="card-header summary-card-header">
             <span class="card-title">Post-Maintenance Assessment</span>
-            @if (workflow.PostMaintenanceAssessmentID) {
+            @if (workflow.PostMaintenanceAssessmentID && canManage && isEditable(workflow)) {
                 <button type="button" class="btn btn-danger btn-sm" (click)="deleteAssessment(workflow, 'Post-Maintenance')">
                     <i class="fa fa-trash mr-1"></i> Delete
                 </button>

@@ -7,6 +7,8 @@ import { FieldVisitService } from "src/app/shared/generated/api/field-visit.serv
 import { FieldVisitWorkflowDto } from "src/app/shared/generated/model/field-visit-workflow-dto";
 import { FieldVisitInventoryUpdatedDto } from "src/app/shared/generated/model/field-visit-inventory-updated-dto";
 import { AlertService } from "src/app/shared/services/alert.service";
+import { Alert } from "src/app/shared/models/alert";
+import { AlertContext } from "src/app/shared/models/enums/alert-context.enum";
 
 @Injectable({ providedIn: "root" })
 export class FieldVisitWorkflowService {
@@ -61,10 +63,24 @@ export class FieldVisitWorkflowService {
         this.alertService.clearAlerts();
     }
 
-    /** Navigate to the Visit Summary for the current field visit. Used by the "Wrap Up Visit" buttons
-     * on gateway/edit pages and by the "Save & Wrap Up Visit" save targets. */
+    /**
+     * Wrap up (finalize) the field visit: flip its status to Complete via the API, surface a
+     * success alert, and navigate to the read-only detail page. Called by the "Save & Wrap Up
+     * Visit" buttons on every step (which save first via their own form), by the standalone
+     * "Wrap Up Visit" buttons on gateway pages (inventory/inventory-photos/assessment/maintenance),
+     * and by the workflow-outlet's sidebar Wrap Up button (which wraps this in a confirm dialog).
+     *
+     * NPT-984: previously this method only navigated to /summary — it never called finalize, so
+     * users hitting "Save & Wrap Up Visit" landed on Summary with the visit still InProgress and
+     * concluded that wrap-up was broken. Only the sidebar button (which had its own inline
+     * finalize call in the workflow-outlet) actually wrapped the visit. Centralizing the
+     * finalize call here makes every wrap-up entry point work the same way.
+     */
     public wrapUpVisit(fieldVisitID: number): void {
-        this.router.navigate(["/field-visits", fieldVisitID, "summary"]);
+        this.fieldVisitService.finalizeFieldVisit(fieldVisitID).subscribe(() => {
+            this.alertService.pushAlert(new Alert("Field Visit marked Complete.", AlertContext.Success));
+            this.router.navigate(["/field-visits", fieldVisitID, "view"]);
+        });
     }
 
     /** True when the field visit is no longer editable — anything past the InProgress (1) status.

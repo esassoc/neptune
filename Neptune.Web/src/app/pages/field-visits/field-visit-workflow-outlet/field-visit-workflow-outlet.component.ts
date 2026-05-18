@@ -99,6 +99,9 @@ export class FieldVisitWorkflowOutletComponent implements OnInit, OnDestroy {
     }
 
     wrapUpVisit(workflow: FieldVisitWorkflowDto): void {
+        // Sidebar Wrap Up is reachable mid-edit on any step, so confirm first — the user might
+        // have unsaved changes on the active form. The step-level "Save & Wrap Up Visit" buttons
+        // save before delegating, so they skip the confirm (the button label itself is the intent).
         this.confirmService
             .confirm({
                 title: "Wrap Up Visit",
@@ -111,14 +114,7 @@ export class FieldVisitWorkflowOutletComponent implements OnInit, OnDestroy {
             })
             .then((confirmed) => {
                 if (!confirmed) return;
-                this.fieldVisitService.finalizeFieldVisit(workflow.FieldVisitID).subscribe(() => {
-                    this.alertService.pushAlert(new Alert("Field Visit marked Complete.", AlertContext.Success));
-                    // NPT-984: navigate to the new read-only detail page rather than the BMP
-                    // detail. Wrap Up flips the visit to Complete; the read-only page surfaces
-                    // the locked-down summary (scores, observations, photos) and the
-                    // Manager-only Mark Provisional flow that returns it to edit.
-                    this.router.navigate(["/field-visits", workflow.FieldVisitID, "view"]);
-                });
+                this.workflowService.wrapUpVisit(workflow.FieldVisitID);
             });
     }
 }
