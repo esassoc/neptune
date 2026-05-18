@@ -98,23 +98,4 @@ export class FieldVisitWorkflowOutletComponent implements OnInit, OnDestroy {
             });
     }
 
-    wrapUpVisit(workflow: FieldVisitWorkflowDto): void {
-        // Sidebar Wrap Up is reachable mid-edit on any step, so confirm first — the user might
-        // have unsaved changes on the active form. The step-level "Save & Wrap Up Visit" buttons
-        // save before delegating, so they skip the confirm (the button label itself is the intent).
-        this.confirmService
-            .confirm({
-                title: "Wrap Up Visit",
-                message:
-                    "Are you sure you want to wrap up the field visit? Wrapping up will mark the field visit as complete and ready for review by the Jurisdiction Manager. " +
-                    "Any unsaved form changes on the current step will be lost.",
-                buttonClassYes: "btn btn-primary",
-                buttonTextYes: "Continue",
-                buttonTextNo: "Cancel",
-            })
-            .then((confirmed) => {
-                if (!confirmed) return;
-                this.workflowService.wrapUpVisit(workflow.FieldVisitID);
-            });
-    }
 }
