@@ -3,7 +3,6 @@ import { AsyncPipe } from "@angular/common";
 import { FormsModule } from "@angular/forms";
 import { NgSelectModule } from "@ng-select/ng-select";
 import { AlertDisplayComponent } from "src/app/shared/components/alert-display/alert-display.component";
-import { IconComponent } from "src/app/shared/components/icon/icon.component";
 import { DialogRef } from "@ngneat/dialog";
 import { AlertService } from "src/app/shared/services/alert.service";
 import { WaterQualityManagementPlanService } from "src/app/shared/generated/api/water-quality-management-plan.service";
@@ -12,7 +11,7 @@ import { BehaviorSubject, combineLatest, map, Observable, shareReplay } from "rx
 
 @Component({
     selector: "edit-treatment-bmps-modal",
-    imports: [AlertDisplayComponent, FormsModule, NgSelectModule, IconComponent, AsyncPipe],
+    imports: [AlertDisplayComponent, FormsModule, NgSelectModule, AsyncPipe],
     templateUrl: "./edit-treatment-bmps-modal.component.html",
 })
 export class EditTreatmentBMPsModalComponent implements OnInit {

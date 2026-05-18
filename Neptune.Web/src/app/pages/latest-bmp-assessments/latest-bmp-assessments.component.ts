@@ -47,6 +47,11 @@ export class LatestBmpAssessmentsComponent implements OnInit {
             // Mirrors the legacy MVC "Failure Notes" column on the same page.
             this.utility.createBasicColumnDef("Failure Notes", "FailureNotes"),
         ];
-        this.assessments$ = this.assessmentService.listTreatmentBMPAssessment();
+        // NPT-984 round 6: latest-by-BMP is its own endpoint now. The shared list endpoint
+        // returns every assessment ever recorded (used by the Field Records "Assessments" tab);
+        // this page wants one row per BMP (most-recent wrapped-up assessment), so it calls the
+        // dedicated `listLatestByBMP...` route. Splitting the endpoints unwound a silent
+        // regression where the Field Records tab was inadvertently filtered to most-recent.
+        this.assessments$ = this.assessmentService.listLatestByBMPTreatmentBMPAssessment();
     }
 }

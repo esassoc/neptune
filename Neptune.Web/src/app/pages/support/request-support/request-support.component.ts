@@ -1,4 +1,3 @@
-import { AsyncPipe } from "@angular/common";
 import { Component, inject, OnInit, signal } from "@angular/core";
 import { FormControl, FormGroup, FormsModule, ReactiveFormsModule, Validators } from "@angular/forms";
 import { RouterLink } from "@angular/router";
@@ -19,7 +18,7 @@ declare const grecaptcha: { ready: (cb: () => void) => void; execute: (siteKey: 
 @Component({
     selector: "request-support",
     standalone: true,
-    imports: [AsyncPipe, FormsModule, ReactiveFormsModule, RouterLink, PageHeaderComponent, AlertDisplayComponent, FormFieldComponent],
+    imports: [FormsModule, ReactiveFormsModule, RouterLink, PageHeaderComponent, AlertDisplayComponent, FormFieldComponent],
     templateUrl: "./request-support.component.html",
     styleUrl: "./request-support.component.scss",
 })

@@ -18,7 +18,7 @@
                             [type]="FormFieldType.Textarea"
                             placeholder="Caption"></form-field>
                         <div class="g-col-12">
-                            <button class="btn btn-primary" style="float: right" (click)="addNewImage()">Add Photo</button>
+                            <button type="button" class="btn btn-primary" style="float: right" (click)="addNewImage()">Add Photo</button>
                         </div>
                     }
                 </div>
@@ -32,48 +32,48 @@
         </div>
     </div>
 </div>
-<div class="grid-12">
+<!--
+    NPT-984: photo gallery tiles cards left-to-right and wraps to a new row when it runs out
+    of width. Each card stacks image / action icons / caption-label / caption-text vertically.
+    Earlier rounds used a 12-col grid with one row per photo, which wasted horizontal space
+    when a visit had only a handful of photos.
+-->
+<div class="photo-grid">
     @for (image of images; track image.FileResourceGUID) {
-        <div class="g-col-2">
+        <div class="photo-card">
             @if (imagePreviewUrls()[image.FileResourceGUID]) {
-                <img class="existing-image-preview" [src]="imagePreviewUrls()[image.FileResourceGUID]" alt="Preview of existing photo." />
+                <img class="photo-card__image" [src]="imagePreviewUrls()[image.FileResourceGUID]" alt="Preview of existing photo." />
             } @else {
-                <div class="existing-image-preview" style="display: flex; align-items: center; justify-content: center; background: #f0f0f0;">
+                <div class="photo-card__image photo-card__image--loading">
                     <span class="spinner-border spinner-border-sm"></span>
                 </div>
             }
-        </div>
-        @if (useCaptionModal) {
-            <div class="g-col-6 caption-readonly">
-                <label class="field-label">Caption</label>
-                <div class="caption-row">
-                    <span class="caption-text">{{ image.Caption || "(no caption)" }}</span>
+            @if (useCaptionModal) {
+                <div class="caption-actions">
+                    <button type="button" class="btn-icon" title="Edit caption" [disabled]="isLoadingSubmit" (click)="requestEditCaption(image)">
+                        <i class="fa fa-pencil"></i>
+                    </button>
+                    <button type="button" class="btn-icon btn-icon-danger" title="Delete photo" [disabled]="isLoadingSubmit" (click)="deleteImage(image)">
+                        <i class="fa fa-trash"></i>
+                    </button>
                 </div>
-            </div>
-            <!--
-                NPT-984: the caption-edit affordance was a bare pencil glyph next to a full
-                "Delete Photo" button — visually mismatched and confusing. Render the edit
-                action as a real button labeled "Edit" so the pair reads consistently.
-            -->
-            <div class="g-col-2">
-                <button type="button" class="btn btn-secondary mt-4" [disabled]="isLoadingSubmit" (click)="requestEditCaption(image)">
-                    <i class="fa fa-pencil mr-1"></i> Edit
-                </button>
-            </div>
-        } @else {
-            <div class="g-col-8">
+                <div class="caption-readonly">
+                    <label class="field-label">Caption</label>
+                    <div class="caption-row">
+                        <span class="caption-text">{{ image.Caption || "(no caption)" }}</span>
+                    </div>
+                </div>
+            } @else {
                 <form-field [formControl]="captionControls[image.FileResourceGUID]" fieldLabel="Caption" [type]="FormFieldType.Textarea" placeholder="Caption"></form-field>
-            </div>
-        }
-        <div class="g-col-2">
-            <button class="btn btn-danger mt-4" [disabled]="isLoadingSubmit" (click)="deleteImage(image)">Delete Photo</button>
+                <button type="button" class="btn btn-danger btn-sm" [disabled]="isLoadingSubmit" (click)="deleteImage(image)">Delete Photo</button>
+            }
         </div>
     }
 </div>
 
 @if (!useCaptionModal) {
     <div class="page-footer">
-        <button class="btn btn-primary mr-2" [disabled]="isLoadingSubmit || captionControlForm.pristine" (click)="save()">Save</button>
-        <button class="btn btn-secondary" [disabled]="isLoadingSubmit" (click)="cancel()">Cancel</button>
+        <button type="button" class="btn btn-primary mr-2" [disabled]="isLoadingSubmit || captionControlForm.pristine" (click)="save()">Save</button>
+        <button type="button" class="btn btn-secondary" [disabled]="isLoadingSubmit" (click)="cancel()">Cancel</button>
     </div>
 }
