@@ -7,6 +7,10 @@
     margin-bottom: $spacing-400;
     cursor: pointer;
 
+    &:first-of-type {
+        margin-top: $spacing-300;
+    }
+
     input[type="radio"] {
         margin-top: 4px;
         flex-shrink: 0;
