@@ -4,7 +4,6 @@ import { FormGroup, FormArray, ReactiveFormsModule } from "@angular/forms";
 import { FormFieldComponent, FormFieldType } from "src/app/shared/components/forms/form-field/form-field.component";
 import { AsyncPipe } from "@angular/common";
 import { AlertDisplayComponent } from "src/app/shared/components/alert-display/alert-display.component";
-import { IconComponent } from "src/app/shared/components/icon/icon.component";
 import { FundingEventUpsertDtoFormControls } from "src/app/shared/generated/model/funding-event-upsert-dto";
 import { FundingEventFundingSourceSimpleDtoFormControls } from "src/app/shared/generated/model/funding-event-funding-source-simple-dto";
 import { FundingEventByTreatmentBMPIDService } from "src/app/shared/generated/api/funding-event-by-treatment-bmpid.service";
@@ -21,7 +20,7 @@ import { FundingEventTypesAsSelectDropdownOptions } from "src/app/shared/generat
 
 @Component({
     selector: "funding-event-modal",
-    imports: [ReactiveFormsModule, FormFieldComponent, AlertDisplayComponent, IconComponent, AsyncPipe],
+    imports: [ReactiveFormsModule, FormFieldComponent, AlertDisplayComponent, AsyncPipe],
     templateUrl: "./funding-event-modal.component.html",
     styleUrl: "./funding-event-modal.component.scss",
 })
