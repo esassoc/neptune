@@ -9,7 +9,7 @@ public interface IHaveTreatmentBMPBasicInfo
     int? YearBuilt { get; set; }
     string? SystemOfRecordID { get; set; }
     int? WaterQualityManagementPlanID { get; set; }
-    int TreatmentBMPLifespanTypeID { get; set; }
+    int? TreatmentBMPLifespanTypeID { get; set; }
     DateTime? TreatmentBMPLifespanEndDate { get; set; }
     int SizingBasisTypeID { get; set; }
     int TrashCaptureStatusTypeID { get; set; }
@@ -36,11 +36,9 @@ public class TreatmentBMPCreateDto : IHaveTreatmentBMPBasicInfo
 
     public string? SystemOfRecordID { get; set; }
 
-    [Required]
     public int? WaterQualityManagementPlanID { get; set; }
 
-    [Required]
-    public int TreatmentBMPLifespanTypeID { get; set; }
+    public int? TreatmentBMPLifespanTypeID { get; set; }
 
     public DateTime? TreatmentBMPLifespanEndDate { get; set; }
 
@@ -80,11 +78,9 @@ public class TreatmentBMPBasicInfoUpdateDto : IHaveTreatmentBMPBasicInfo
 
     public string? SystemOfRecordID { get; set; }
 
-    [Required]
     public int? WaterQualityManagementPlanID { get; set; }
 
-    [Required]
-    public int TreatmentBMPLifespanTypeID { get; set; }
+    public int? TreatmentBMPLifespanTypeID { get; set; }
 
     public DateTime? TreatmentBMPLifespanEndDate { get; set; }
 

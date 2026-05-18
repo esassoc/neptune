@@ -66,4 +66,7 @@ export class TreatmentBmpUpdateTypeModalComponent implements OnInit {
 export class TreatmentBmpUpdateTypeModalContext {
     treatmentBMPID: number;
     currentTreatmentBMPTypeID?: number;
+    treatmentBMPName?: string;
+    currentTreatmentBMPTypeName?: string;
+    treatmentBMPAssessmentCount?: number;
 }

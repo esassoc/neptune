@@ -78,7 +78,8 @@ public static class TreatmentBMPs
             SystemOfRecordID = createDto.SystemOfRecordID,
             WaterQualityManagementPlanID = createDto.WaterQualityManagementPlanID,
             TreatmentBMPLifespanTypeID = createDto.TreatmentBMPLifespanTypeID,
-            TreatmentBMPLifespanEndDate = createDto.TreatmentBMPLifespanTypeID == TreatmentBMPLifespanType.FixedEndDate.TreatmentBMPLifespanTypeID
+            TreatmentBMPLifespanEndDate = createDto.TreatmentBMPLifespanTypeID.HasValue
+                && createDto.TreatmentBMPLifespanTypeID.Value == TreatmentBMPLifespanType.FixedEndDate.TreatmentBMPLifespanTypeID
                 ? createDto.TreatmentBMPLifespanEndDate
                 : null,
             SizingBasisTypeID = createDto.SizingBasisTypeID,
@@ -801,7 +802,8 @@ public static class TreatmentBMPs
         treatmentBMPToUpdate.SystemOfRecordID = updateDto.SystemOfRecordID;
         treatmentBMPToUpdate.WaterQualityManagementPlanID = updateDto.WaterQualityManagementPlanID;
         treatmentBMPToUpdate.TreatmentBMPLifespanTypeID = updateDto.TreatmentBMPLifespanTypeID;
-        treatmentBMPToUpdate.TreatmentBMPLifespanEndDate = updateDto.TreatmentBMPLifespanTypeID == TreatmentBMPLifespanType.FixedEndDate.TreatmentBMPLifespanTypeID
+        treatmentBMPToUpdate.TreatmentBMPLifespanEndDate = updateDto.TreatmentBMPLifespanTypeID.HasValue
+            && updateDto.TreatmentBMPLifespanTypeID.Value == TreatmentBMPLifespanType.FixedEndDate.TreatmentBMPLifespanTypeID
             ? updateDto.TreatmentBMPLifespanEndDate
             : null;
 
@@ -861,24 +863,30 @@ public static class TreatmentBMPs
             errors.Add(new ErrorMessage("TrashCaptureStatusTypeID", "Valid Trash Capture Status Type is required."));
         }
 
-        // Lifespan type
-        var hasValidLifespan = TreatmentBMPLifespanType.All.Any(x => x.TreatmentBMPLifespanTypeID == dto.TreatmentBMPLifespanTypeID);
-        if (!hasValidLifespan)
+        // Lifespan type (optional — only validate when supplied)
+        if (dto.TreatmentBMPLifespanTypeID.HasValue)
         {
-            errors.Add(new ErrorMessage("TreatmentBMPLifespanTypeID", "Valid Lifespan Type is required."));
+            var hasValidLifespan = TreatmentBMPLifespanType.All.Any(x => x.TreatmentBMPLifespanTypeID == dto.TreatmentBMPLifespanTypeID.Value);
+            if (!hasValidLifespan)
+            {
+                errors.Add(new ErrorMessage("TreatmentBMPLifespanTypeID", "Valid Lifespan Type is required."));
+            }
+
+            // Lifespan end date required if type is Fixed End Date
+            if (dto.TreatmentBMPLifespanTypeID.Value == TreatmentBMPLifespanType.FixedEndDate.TreatmentBMPLifespanTypeID && !dto.TreatmentBMPLifespanEndDate.HasValue)
+            {
+                errors.Add(new ErrorMessage("LifespanEndDate", "The Lifespan End Date must be set if the Lifespan Type is Fixed End Date."));
+            }
         }
 
-        // Lifespan end date required if type is Fixed End Date
-        if (dto.TreatmentBMPLifespanTypeID == TreatmentBMPLifespanType.FixedEndDate.TreatmentBMPLifespanTypeID && !dto.TreatmentBMPLifespanEndDate.HasValue)
+        // Water quality management plan (optional — only validate when supplied)
+        if (dto.WaterQualityManagementPlanID.HasValue)
         {
-            errors.Add(new ErrorMessage("LifespanEndDate", "The Lifespan End Date must be set if the Lifespan Type is Fixed End Date."));
-        }
-
-        // Water quality management plan
-        var hasValidWQMP = await dbContext.WaterQualityManagementPlans.AnyAsync(x => x.WaterQualityManagementPlanID == dto.WaterQualityManagementPlanID);
-        if (!hasValidWQMP)
-        {
-            errors.Add(new ErrorMessage("WaterQualityManagementPlanID", "Valid Water Quality Management Plan is required."));
+            var hasValidWQMP = await dbContext.WaterQualityManagementPlans.AnyAsync(x => x.WaterQualityManagementPlanID == dto.WaterQualityManagementPlanID.Value);
+            if (!hasValidWQMP)
+            {
+                errors.Add(new ErrorMessage("WaterQualityManagementPlanID", "Valid Water Quality Management Plan is required."));
+            }
         }
 
         return errors;

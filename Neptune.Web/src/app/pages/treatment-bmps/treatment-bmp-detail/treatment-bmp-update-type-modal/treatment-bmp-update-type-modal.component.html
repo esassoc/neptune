@@ -4,6 +4,16 @@
 
 <div class="modal-body grid-12">
     <app-alert-display></app-alert-display>
+
+    <p>
+        This will convert <strong>{{ ref.data?.treatmentBMPName }}</strong> from a(n)
+        <strong>{{ ref.data?.currentTreatmentBMPTypeName }}</strong> to the selected BMP Type.
+        Custom Attributes and Modeling Attributes of this BMP which are not applicable to the new BMP Type will be discarded along with any assessment records.
+        This BMP has <strong>{{ ref.data?.treatmentBMPAssessmentCount ?? 0 }}</strong>
+        assessment {{ (ref.data?.treatmentBMPAssessmentCount ?? 0) === 1 ? "record" : "records" }} which will be discarded.
+        This operation cannot be undone.
+    </p>
+
     <form class="form grid-12" [formGroup]="formGroup">
         <form-field
             class="g-col-12"

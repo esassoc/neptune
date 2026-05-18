@@ -119,3 +119,20 @@
     line-height: 1.75rem;
     font-size: $type-size-300;
 }
+
+// Multi-select: allow the container to grow so selected-value pills wrap
+// instead of overflowing/clipping inside the fixed single-select heights above.
+.ng-select-multiple.custom .ng-select-container {
+    height: auto;
+    min-height: 3rem;
+}
+
+.field--sm .ng-select-multiple.custom .ng-select-container {
+    height: auto;
+    min-height: 2rem;
+}
+
+.field--md .ng-select-multiple.custom .ng-select-container {
+    height: auto;
+    min-height: 2.5rem;
+}

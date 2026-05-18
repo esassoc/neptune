@@ -1,8 +1,6 @@
 import { Component, inject, OnInit } from "@angular/core";
 import { ReactiveFormsModule, FormControl, Validators } from "@angular/forms";
 import { AlertDisplayComponent } from "src/app/shared/components/alert-display/alert-display.component";
-import { FormFieldComponent, FormFieldType } from "src/app/shared/components/forms/form-field/form-field.component";
-import { NoteComponent } from "src/app/shared/components/note/note.component";
 import { DialogRef } from "@ngneat/dialog";
 import { AlertService } from "src/app/shared/services/alert.service";
 import { WaterQualityManagementPlanService } from "src/app/shared/generated/api/water-quality-management-plan.service";
@@ -13,15 +11,15 @@ import {
 
 @Component({
     selector: "edit-modeling-approach-modal",
-    imports: [AlertDisplayComponent, ReactiveFormsModule, FormFieldComponent, NoteComponent],
+    imports: [AlertDisplayComponent, ReactiveFormsModule],
     templateUrl: "./edit-modeling-approach-modal.component.html",
+    styleUrl: "./edit-modeling-approach-modal.component.scss",
 })
 export class EditModelingApproachModalComponent implements OnInit {
     public ref: DialogRef<EditModelingApproachModalContext, boolean> = inject(DialogRef);
     private wqmpService = inject(WaterQualityManagementPlanService);
     private alertService = inject(AlertService);
 
-    public FormFieldType = FormFieldType;
     public modelingApproachOptions = WaterQualityManagementPlanModelingApproachesAsSelectDropdownOptions;
     public modelingApproachControl = new FormControl<number>(undefined, { nonNullable: true, validators: [Validators.required] });
 

@@ -17,8 +17,8 @@ export class TreatmentBMPCreateDto {
     OwnerOrganizationID?: number | null;
     YearBuilt?: number | null;
     SystemOfRecordID?: string | null;
-    WaterQualityManagementPlanID: number;
-    TreatmentBMPLifespanTypeID: number;
+    WaterQualityManagementPlanID?: number | null;
+    TreatmentBMPLifespanTypeID?: number | null;
     TreatmentBMPLifespanEndDate?: string | null;
     SizingBasisTypeID: number;
     TrashCaptureStatusTypeID: number;
@@ -40,8 +40,8 @@ export interface TreatmentBMPCreateDtoForm {
     OwnerOrganizationID?: FormControl<number>;
     YearBuilt?: FormControl<number>;
     SystemOfRecordID?: FormControl<string>;
-    WaterQualityManagementPlanID: FormControl<number>;
-    TreatmentBMPLifespanTypeID: FormControl<number>;
+    WaterQualityManagementPlanID?: FormControl<number>;
+    TreatmentBMPLifespanTypeID?: FormControl<number>;
     TreatmentBMPLifespanEndDate?: FormControl<string>;
     SizingBasisTypeID: FormControl<number>;
     TrashCaptureStatusTypeID: FormControl<number>;
@@ -122,10 +122,9 @@ export class TreatmentBMPCreateDtoFormControls {
         value,
         formControlOptions ?? 
         {
-            nonNullable: true,
+            nonNullable: false,
             validators: 
             [
-                Validators.required,
             ],
         }
     );
@@ -133,10 +132,9 @@ export class TreatmentBMPCreateDtoFormControls {
         value,
         formControlOptions ?? 
         {
-            nonNullable: true,
+            nonNullable: false,
             validators: 
             [
-                Validators.required,
             ],
         }
     );

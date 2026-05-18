@@ -26,7 +26,7 @@
                 </div>
                 <div class="units-wrapper">
                     <input [mask]="mask" type="text" [placeholder]="placeholder" [formControl]="formControl" [name]="name" />
-                    @if (units) {
+                    @if (units && units.toLowerCase() !== 'none') {
                         <span class="units">{{ units }}</span>
                     }
                 </div>
@@ -40,7 +40,7 @@
                 }
                 <div class="units-wrapper">
                     <input type="number" [placeholder]="placeholder" [formControl]="formControl" [mask]="mask" [name]="name" />
-                    @if (units) {
+                    @if (units && units.toLowerCase() !== 'none') {
                         <span class="units">{{ units }}</span>
                     }
                 </div>
@@ -164,7 +164,7 @@
         </div>
         <div>
             <span>{{ formControl.getRawValue() }}</span>
-            @if (units) {
+            @if (units && units.toLowerCase() !== 'none') {
                 <span class="units">{{ units }}</span>
             }
         </div>
