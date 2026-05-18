@@ -118,10 +118,29 @@ export class CustomDropdownFilterComponent implements AgFilterComponent {
     }
 
     private getNodeValue(rowNode: RowNode) {
+        // NPT-984: honor `filterValueGetter` first so column defs can surface a different
+        // dropdown value than the raw cell value — specifically, booleans configured by
+        // `createBooleanColumnDef` need the filter chips to read "Yes"/"No" rather than
+        // true/false. The previous version skipped `filterValueGetter` entirely and the
+        // dropdown always reflected the raw field value, defeating the createBooleanColumnDef
+        // fix on every column with UseCustomDropdownFilter: true.
+        const colDef: any = this.params.colDef;
+        if (typeof colDef.filterValueGetter === "function") {
+            return colDef.filterValueGetter({
+                data: rowNode.data,
+                node: rowNode,
+                colDef,
+                column: this.params.column,
+                api: this.params.api,
+                context: this.params.context,
+                getValue: (field: string) => rowNode.data?.[field],
+            });
+        }
+
         if (this.field) {
             return this.getPropertyValue(rowNode.data, this.field, "");
-        } else if (this.params.colDef.valueGetter) {
-            return this.params.colDef.valueGetter(rowNode);
+        } else if (colDef.valueGetter) {
+            return colDef.valueGetter(rowNode);
         }
 
         return this.getPropertyValue(rowNode.data, this.field, "");
