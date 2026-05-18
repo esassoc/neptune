@@ -33,6 +33,31 @@
 }
 
 .caption-readonly {
+    .caption-actions {
+        display: flex;
+        gap: $spacing-200;
+        margin-bottom: $spacing-200;
+
+        // Bare clickable icons (no button chrome) — same pattern as the
+        // change-date pencil + delete-visit trash in field-visit-workflow-outlet.
+        .btn-icon {
+            border: 0;
+            background: transparent;
+            padding: $spacing-100 $spacing-200;
+            color: $primary;
+            cursor: pointer;
+
+            &.btn-icon-danger {
+                color: $red-default;
+            }
+
+            &:disabled {
+                opacity: 0.5;
+                cursor: not-allowed;
+            }
+        }
+    }
+
     .field-label {
         font-weight: 600;
         margin-bottom: $spacing-200;
@@ -48,20 +73,6 @@
             flex: 1;
             white-space: pre-wrap;
             word-break: break-word;
-        }
-
-        .btn-icon {
-            background: none;
-            border: none;
-            padding: 0;
-            color: $primary;
-            cursor: pointer;
-            line-height: 1;
-
-            &:disabled {
-                opacity: 0.5;
-                cursor: not-allowed;
-            }
         }
     }
 }

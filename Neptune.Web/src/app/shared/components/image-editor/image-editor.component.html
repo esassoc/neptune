@@ -44,30 +44,34 @@
             }
         </div>
         @if (useCaptionModal) {
-            <div class="g-col-6 caption-readonly">
+            <!--
+                NPT-984: Edit + Delete are compact icon-only buttons above the caption label
+                so the photo card reads top-to-bottom (image / actions / caption). Earlier
+                rounds tried full-text buttons in a separate column; KE wanted the actions
+                tighter and visually attached to the caption block they affect.
+            -->
+            <div class="g-col-10 caption-readonly">
+                <div class="caption-actions">
+                    <button type="button" class="btn-icon" title="Edit caption" [disabled]="isLoadingSubmit" (click)="requestEditCaption(image)">
+                        <i class="fa fa-pencil"></i>
+                    </button>
+                    <button type="button" class="btn-icon btn-icon-danger" title="Delete photo" [disabled]="isLoadingSubmit" (click)="deleteImage(image)">
+                        <i class="fa fa-trash"></i>
+                    </button>
+                </div>
                 <label class="field-label">Caption</label>
                 <div class="caption-row">
                     <span class="caption-text">{{ image.Caption || "(no caption)" }}</span>
                 </div>
             </div>
-            <!--
-                NPT-984: the caption-edit affordance was a bare pencil glyph next to a full
-                "Delete Photo" button — visually mismatched and confusing. Render the edit
-                action as a real button labeled "Edit" so the pair reads consistently.
-            -->
-            <div class="g-col-2">
-                <button type="button" class="btn btn-secondary mt-4" [disabled]="isLoadingSubmit" (click)="requestEditCaption(image)">
-                    <i class="fa fa-pencil mr-1"></i> Edit
-                </button>
-            </div>
         } @else {
             <div class="g-col-8">
                 <form-field [formControl]="captionControls[image.FileResourceGUID]" fieldLabel="Caption" [type]="FormFieldType.Textarea" placeholder="Caption"></form-field>
             </div>
+            <div class="g-col-2">
+                <button class="btn btn-danger mt-4" [disabled]="isLoadingSubmit" (click)="deleteImage(image)">Delete Photo</button>
+            </div>
         }
-        <div class="g-col-2">
-            <button class="btn btn-danger mt-4" [disabled]="isLoadingSubmit" (click)="deleteImage(image)">Delete Photo</button>
-        </div>
     }
 </div>
 
