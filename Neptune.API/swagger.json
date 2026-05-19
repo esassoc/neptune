@@ -9879,6 +9879,56 @@
         "x-anonymous": true
       }
     },
+    "/treatment-bmp-types/{treatmentBMPTypeID}/treatment-bmps": {
+      "get": {
+        "tags": [
+          "TreatmentBMPType"
+        ],
+        "operationId": "ListBMPsByType_TreatmentBMPType",
+        "parameters": [
+          {
+            "name": "treatmentBMPTypeID",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/TreatmentBMPByTypeGridDto"
+                  }
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/TreatmentBMPByTypeGridDto"
+                  }
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/TreatmentBMPByTypeGridDto"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/treatment-bmp-types/{treatmentBMPTypeID}": {
       "put": {
         "tags": [
@@ -18563,6 +18613,118 @@
           "ThresholdValue": {
             "type": "number",
             "format": "double"
+          }
+        },
+        "additionalProperties": false
+      },
+      "TreatmentBMPByTypeGridDto": {
+        "type": "object",
+        "properties": {
+          "TreatmentBMPID": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "TreatmentBMPName": {
+            "type": "string",
+            "nullable": true
+          },
+          "StormwaterJurisdictionID": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "StormwaterJurisdictionName": {
+            "type": "string",
+            "nullable": true
+          },
+          "OwnerOrganizationName": {
+            "type": "string",
+            "nullable": true
+          },
+          "YearBuilt": {
+            "type": "integer",
+            "format": "int32",
+            "nullable": true
+          },
+          "SystemOfRecordID": {
+            "type": "string",
+            "nullable": true
+          },
+          "WaterQualityManagementPlanID": {
+            "type": "integer",
+            "format": "int32",
+            "nullable": true
+          },
+          "WaterQualityManagementPlanName": {
+            "type": "string",
+            "nullable": true
+          },
+          "Notes": {
+            "type": "string",
+            "nullable": true
+          },
+          "LatestAssessmentDate": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          },
+          "LatestAssessmentScore": {
+            "type": "number",
+            "format": "double",
+            "nullable": true
+          },
+          "NumberOfAssessments": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "LatestMaintenanceDate": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          },
+          "NumberOfMaintenanceRecords": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "BenchmarkAndThresholdSet": {
+            "type": "boolean"
+          },
+          "TreatmentBMPLifespanTypeDisplayName": {
+            "type": "string",
+            "nullable": true
+          },
+          "TreatmentBMPLifespanEndDate": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          },
+          "RequiredFieldVisitsPerYear": {
+            "type": "integer",
+            "format": "int32",
+            "nullable": true
+          },
+          "RequiredPostStormFieldVisitsPerYear": {
+            "type": "integer",
+            "format": "int32",
+            "nullable": true
+          },
+          "SizingBasisTypeDisplayName": {
+            "type": "string",
+            "nullable": true
+          },
+          "TrashCaptureStatusTypeDisplayName": {
+            "type": "string",
+            "nullable": true
+          },
+          "DelineationTypeDisplayName": {
+            "type": "string",
+            "nullable": true
+          },
+          "CustomAttributeValues": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "string"
+            },
+            "nullable": true
           }
         },
         "additionalProperties": false
