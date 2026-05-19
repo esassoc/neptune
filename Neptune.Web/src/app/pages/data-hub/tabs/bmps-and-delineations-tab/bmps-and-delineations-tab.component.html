@@ -1,7 +1,7 @@
 <div class="tab-body">
     <div class="tab-main">
         <h3>Treatment BMPs</h3>
-        <p>Bulk-manage Treatment BMPs and their associated data.</p>
+        <custom-rich-text [customRichTextTypeID]="NeptunePageTypeEnum.BMPDataHub"></custom-rich-text>
         <data-hub-action-button
             label="Upload"
             icon="upload"
@@ -12,7 +12,7 @@
         <data-hub-action-button label="Download" icon="download" [routerLink]="['/data-hub', 'treatment-bmp-download']"></data-hub-action-button>
 
         <h3>Delineations</h3>
-        <p>Bulk-upload, review, and download Treatment BMP Delineations.</p>
+        <custom-rich-text [customRichTextTypeID]="NeptunePageTypeEnum.DelineationDataHub"></custom-rich-text>
         <data-hub-action-button
             label="Upload"
             icon="upload"
@@ -29,7 +29,7 @@
         ></data-hub-action-button>
 
         <h3>Trash Screen Field Visits</h3>
-        <p>Bulk-upload Trash Screen field visit assessments and maintenance records.</p>
+        <custom-rich-text [customRichTextTypeID]="NeptunePageTypeEnum.FieldVisitDataHub"></custom-rich-text>
         <data-hub-action-button
             label="Upload"
             icon="upload"

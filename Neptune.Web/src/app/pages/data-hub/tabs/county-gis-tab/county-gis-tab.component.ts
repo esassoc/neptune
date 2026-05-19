@@ -10,7 +10,9 @@ import { ParcelService } from "src/app/shared/generated/api/parcel.service";
 import { PrecipitationZoneService } from "src/app/shared/generated/api/precipitation-zone.service";
 import { RegionalSubbasinService } from "src/app/shared/generated/api/regional-subbasin.service";
 import { RoleEnum } from "src/app/shared/generated/enum/role-enum";
+import { NeptunePageTypeEnum } from "src/app/shared/generated/enum/neptune-page-type-enum";
 import { DataHubLastUpdatedDto } from "src/app/shared/generated/model/data-hub-last-updated-dto";
+import { CustomRichTextComponent } from "src/app/shared/components/custom-rich-text/custom-rich-text.component";
 import { Alert } from "src/app/shared/models/alert";
 import { AlertContext } from "src/app/shared/models/enums/alert-context.enum";
 import { AlertService } from "src/app/shared/services/alert.service";
@@ -23,11 +25,13 @@ type RefreshKey = "parcels" | "regional-subbasins" | "hru-characteristics" | "mo
 @Component({
     selector: "county-gis-tab",
     standalone: true,
-    imports: [DatePipe, DataHubActionButtonComponent, DataHubQuickLinksComponent],
+    imports: [DatePipe, CustomRichTextComponent, DataHubActionButtonComponent, DataHubQuickLinksComponent],
     templateUrl: "./county-gis-tab.component.html",
     styleUrl: "../../data-hub.component.scss",
 })
 export class CountyGisTabComponent {
+    public NeptunePageTypeEnum = NeptunePageTypeEnum;
+
     private dataHubService = inject(DataHubService);
     private parcelService = inject(ParcelService);
     private regionalSubbasinService = inject(RegionalSubbasinService);

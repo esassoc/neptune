@@ -4,6 +4,8 @@ import { RouterLink } from "@angular/router";
 import { environment } from "src/environments/environment";
 import { AlertDisplayComponent } from "src/app/shared/components/alert-display/alert-display.component";
 import { PageHeaderComponent } from "src/app/shared/components/page-header/page-header.component";
+import { CustomRichTextComponent } from "src/app/shared/components/custom-rich-text/custom-rich-text.component";
+import { NeptunePageTypeEnum } from "src/app/shared/generated/enum/neptune-page-type-enum";
 import { Alert } from "src/app/shared/models/alert";
 import { AlertContext } from "src/app/shared/models/enums/alert-context.enum";
 import { AlertService } from "src/app/shared/services/alert.service";
@@ -11,10 +13,11 @@ import { AlertService } from "src/app/shared/services/alert.service";
 @Component({
     selector: "treatment-bmp-download",
     standalone: true,
-    imports: [RouterLink, PageHeaderComponent, AlertDisplayComponent],
+    imports: [RouterLink, PageHeaderComponent, AlertDisplayComponent, CustomRichTextComponent],
     templateUrl: "./treatment-bmp-download.component.html",
 })
 export class TreatmentBMPDownloadComponent {
+    public NeptunePageTypeEnum = NeptunePageTypeEnum;
     public isWorking = signal(false);
 
     constructor(private alertService: AlertService, private httpClient: HttpClient) {}

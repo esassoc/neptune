@@ -7,14 +7,7 @@
 
     <div class="grid-12">
         <div class="g-col-6 instructions">
-            <p>Use this form to bulk upload Treatment BMPs from a CSV. Requirements:</p>
-            <ul>
-                <li>Select the Treatment BMP Type the rows in the CSV represent. All rows must share that type.</li>
-                <li>Required columns: Jurisdiction, BMP Name, Latitude, Longitude, Sizing Basis, Trash Capture Status, Owner.</li>
-                <li>Optional columns: Year Built or Installed, Asset ID in System of Record, Required Lifespan of Installation, Allowable End Date of Installation, Required Field Visits Per Year, Required Post-Storm Field Visits Per Year, Notes.</li>
-                <li>If a BMP with the same Name and Jurisdiction already exists, its record will be updated; otherwise a new record is created.</li>
-                <li>Custom attributes for the selected Treatment BMP Type can also be included as columns and will be upserted.</li>
-            </ul>
+            <custom-rich-text [customRichTextTypeID]="NeptunePageTypeEnum.UploadTreatmentBMPs"></custom-rich-text>
         </div>
         <div class="g-col-6">
             @if (bmpTypeOptions$ | async; as opts) {

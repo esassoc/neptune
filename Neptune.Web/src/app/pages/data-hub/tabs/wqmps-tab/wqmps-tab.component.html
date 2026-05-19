@@ -1,7 +1,7 @@
 <div class="tab-body">
     <div class="tab-main">
         <h3>Water Quality Management Plans</h3>
-        <p>Bulk-upload Water Quality Management Plans.</p>
+        <custom-rich-text [customRichTextTypeID]="NeptunePageTypeEnum.WQMPDataHub"></custom-rich-text>
         <data-hub-action-button
             label="Upload"
             icon="upload"
@@ -11,7 +11,7 @@
         ></data-hub-action-button>
 
         <h3>Simplified BMPs</h3>
-        <p>Bulk-upload Simplified BMPs associated with WQMPs.</p>
+        <custom-rich-text [customRichTextTypeID]="NeptunePageTypeEnum.SimplifiedBMPsDataHub"></custom-rich-text>
         <data-hub-action-button
             label="Upload"
             icon="upload"
@@ -21,7 +21,7 @@
         ></data-hub-action-button>
 
         <h3>Water Quality Management Plan Locations</h3>
-        <p>Upload WQMP boundary geometries by APN list.</p>
+        <custom-rich-text [customRichTextTypeID]="NeptunePageTypeEnum.WQMPLocationsDataHub"></custom-rich-text>
         <data-hub-action-button
             label="Upload"
             icon="upload"

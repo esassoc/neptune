@@ -6,8 +6,10 @@ import { map, Observable } from "rxjs";
 import { TreatmentBMPService } from "src/app/shared/generated/api/treatment-bmp.service";
 import { TreatmentBMPTypeService } from "src/app/shared/generated/api/treatment-bmp-type.service";
 import { AlertDisplayComponent } from "src/app/shared/components/alert-display/alert-display.component";
+import { CustomRichTextComponent } from "src/app/shared/components/custom-rich-text/custom-rich-text.component";
 import { FormFieldComponent, FormFieldType, FormInputOption } from "src/app/shared/components/forms/form-field/form-field.component";
 import { PageHeaderComponent } from "src/app/shared/components/page-header/page-header.component";
+import { NeptunePageTypeEnum } from "src/app/shared/generated/enum/neptune-page-type-enum";
 import { Alert } from "src/app/shared/models/alert";
 import { AlertContext } from "src/app/shared/models/enums/alert-context.enum";
 import { AlertService } from "src/app/shared/services/alert.service";
@@ -15,10 +17,11 @@ import { AlertService } from "src/app/shared/services/alert.service";
 @Component({
     selector: "treatment-bmp-upload",
     standalone: true,
-    imports: [AsyncPipe, FormsModule, ReactiveFormsModule, RouterLink, PageHeaderComponent, AlertDisplayComponent, FormFieldComponent],
+    imports: [AsyncPipe, FormsModule, ReactiveFormsModule, RouterLink, PageHeaderComponent, AlertDisplayComponent, CustomRichTextComponent, FormFieldComponent],
     templateUrl: "./treatment-bmp-upload.component.html",
 })
 export class TreatmentBMPUploadComponent implements OnInit {
+    public NeptunePageTypeEnum = NeptunePageTypeEnum;
     public FormFieldType = FormFieldType;
     public bmpTypeOptions$: Observable<FormInputOption[]>;
 

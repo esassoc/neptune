@@ -479,6 +479,29 @@
         }
       }
     },
+    "/data-hub/upload-templates/{templateKey}": {
+      "get": {
+        "tags": [
+          "DataHub"
+        ],
+        "operationId": "DownloadUploadTemplate_DataHub",
+        "parameters": [
+          {
+            "name": "templateKey",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
     "/delineations": {
       "get": {
         "tags": [

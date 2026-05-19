@@ -1,7 +1,7 @@
 <div class="tab-body">
     <div class="tab-main">
         <h3>Parcels</h3>
-        <p>Refresh Parcels from OC Survey.</p>
+        <custom-rich-text [customRichTextTypeID]="NeptunePageTypeEnum.ParcelUploadDataHub"></custom-rich-text>
         @if (lastUpdated()) {
             <span class="last-updated">Last Updated: {{ lastUpdated().Parcels | date: 'medium' }}</span>
         }
@@ -14,7 +14,7 @@
         ></data-hub-action-button>
 
         <h3>Regional Subbasins</h3>
-        <p>Refresh Regional Subbasins from OC Survey.</p>
+        <custom-rich-text [customRichTextTypeID]="NeptunePageTypeEnum.RegionalSubbasinsDataHub"></custom-rich-text>
         @if (lastUpdated()) {
             <span class="last-updated">Last Updated: {{ lastUpdated().RegionalSubbasins | date: 'medium' }}</span>
         }
@@ -27,7 +27,7 @@
         ></data-hub-action-button>
 
         <h3>HRU Characteristics</h3>
-        <p>Refresh HRU Characteristics from OC Survey.</p>
+        <custom-rich-text [customRichTextTypeID]="NeptunePageTypeEnum.LandUseStatisticsDataHub"></custom-rich-text>
         @if (lastUpdated()) {
             <span class="last-updated">Last Updated: {{ lastUpdated().HRUCharacteristics | date: 'medium' }}</span>
         }
@@ -40,7 +40,7 @@
         ></data-hub-action-button>
 
         <h3>Model Basins</h3>
-        <p>Refresh Model Basins from OC Survey.</p>
+        <custom-rich-text [customRichTextTypeID]="NeptunePageTypeEnum.ModelBasinsDataHub"></custom-rich-text>
         @if (lastUpdated()) {
             <span class="last-updated">Last Updated: {{ lastUpdated().ModelBasins | date: 'medium' }}</span>
         }
@@ -53,7 +53,7 @@
         ></data-hub-action-button>
 
         <h3>Precipitation Zones</h3>
-        <p>Refresh Precipitation Zones from OC Survey.</p>
+        <custom-rich-text [customRichTextTypeID]="NeptunePageTypeEnum.PrecipitationZonesDataHub"></custom-rich-text>
         @if (lastUpdated()) {
             <span class="last-updated">Last Updated: {{ lastUpdated().PrecipitationZones | date: 'medium' }}</span>
         }

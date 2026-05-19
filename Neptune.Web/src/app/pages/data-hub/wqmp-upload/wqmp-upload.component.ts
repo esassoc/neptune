@@ -1,4 +1,5 @@
 import { AsyncPipe } from "@angular/common";
+import { HttpClient } from "@angular/common/http";
 import { Component, OnInit, signal } from "@angular/core";
 import { FormControl, FormsModule, ReactiveFormsModule, Validators } from "@angular/forms";
 import { RouterLink } from "@angular/router";
@@ -6,19 +7,23 @@ import { map, Observable } from "rxjs";
 import { StormwaterJurisdictionService } from "src/app/shared/generated/api/stormwater-jurisdiction.service";
 import { WaterQualityManagementPlanService } from "src/app/shared/generated/api/water-quality-management-plan.service";
 import { AlertDisplayComponent } from "src/app/shared/components/alert-display/alert-display.component";
+import { CustomRichTextComponent } from "src/app/shared/components/custom-rich-text/custom-rich-text.component";
 import { FormFieldComponent, FormFieldType, FormInputOption } from "src/app/shared/components/forms/form-field/form-field.component";
 import { PageHeaderComponent } from "src/app/shared/components/page-header/page-header.component";
+import { NeptunePageTypeEnum } from "src/app/shared/generated/enum/neptune-page-type-enum";
 import { Alert } from "src/app/shared/models/alert";
 import { AlertContext } from "src/app/shared/models/enums/alert-context.enum";
 import { AlertService } from "src/app/shared/services/alert.service";
+import { downloadDataHubTemplate } from "src/app/shared/helpers/data-hub-template-download";
 
 @Component({
     selector: "wqmp-upload",
     standalone: true,
-    imports: [AsyncPipe, FormsModule, ReactiveFormsModule, RouterLink, PageHeaderComponent, AlertDisplayComponent, FormFieldComponent],
+    imports: [AsyncPipe, FormsModule, ReactiveFormsModule, RouterLink, PageHeaderComponent, AlertDisplayComponent, CustomRichTextComponent, FormFieldComponent],
     templateUrl: "./wqmp-upload.component.html",
 })
 export class WqmpUploadComponent implements OnInit {
+    public NeptunePageTypeEnum = NeptunePageTypeEnum;
     public FormFieldType = FormFieldType;
     public jurisdictionOptions$: Observable<FormInputOption[]>;
 
@@ -26,13 +31,15 @@ export class WqmpUploadComponent implements OnInit {
     public jurisdictionControl = new FormControl<number | null>(null, { validators: [Validators.required] });
 
     public isUploading = signal(false);
+    public isDownloadingTemplate = signal(false);
     public errors = signal<string[]>([]);
     public successMessage = signal<string | null>(null);
 
     constructor(
         private alertService: AlertService,
         private wqmpService: WaterQualityManagementPlanService,
-        private stormwaterJurisdictionService: StormwaterJurisdictionService
+        private stormwaterJurisdictionService: StormwaterJurisdictionService,
+        private httpClient: HttpClient
     ) {}
 
     ngOnInit(): void {
@@ -47,6 +54,10 @@ export class WqmpUploadComponent implements OnInit {
             this.alertService.pushAlert(new Alert("Only XLSX files are accepted.", AlertContext.Danger, true));
             this.fileControl.setValue(null);
         }
+    }
+
+    public downloadTemplate(): void {
+        downloadDataHubTemplate(this.httpClient, this.alertService, this.isDownloadingTemplate, "wqmp", "UploadWQMPTemplate.xlsx", "WQMP");
     }
 
     public submit(): void {
@@ -72,3 +83,4 @@ export class WqmpUploadComponent implements OnInit {
         });
     }
 }
+

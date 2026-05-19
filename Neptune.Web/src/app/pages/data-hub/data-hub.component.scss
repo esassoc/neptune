@@ -1,46 +1,9 @@
 @use "/src/scss/abstracts" as *;
 
+// NPT-998: tab control now uses btn-group-radio-input (same pattern as Field Records),
+// so the old underline-tab styles + bordered content container are removed.
 .data-hub-tabs {
-    list-style: none;
-    margin: 0 0 -1px 0;
-    padding: 0;
-    display: flex;
-    border-bottom: 1px solid #ccc;
-
-    li {
-        margin: 0;
-    }
-
-    button {
-        background: transparent;
-        border: 1px solid transparent;
-        border-bottom: none;
-        padding: 0.5rem 1.25rem;
-        font-size: $type-size-300;
-        cursor: pointer;
-        color: $primary;
-
-        &:hover {
-            color: darken($primary, 10%);
-        }
-
-        &.active {
-            background: #fff;
-            border-color: #ccc;
-            color: #333;
-            font-weight: 600;
-            border-bottom: 1px solid #fff;
-            position: relative;
-            top: 1px;
-        }
-    }
-}
-
-.data-hub-tab-content {
-    border: 1px solid #ccc;
-    background: #fff;
-    padding: 1.5rem;
-    margin-bottom: 2rem;
+    margin-bottom: 1.5rem;
 }
 
 .tab-body {

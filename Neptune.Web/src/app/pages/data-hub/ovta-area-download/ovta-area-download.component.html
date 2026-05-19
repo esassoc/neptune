@@ -7,12 +7,7 @@
 
     <div class="grid-12">
         <div class="g-col-6 instructions">
-            <p>Build a zipped File Geodatabase containing every OVTA Area for the selected jurisdiction. The export includes:</p>
-            <ul>
-                <li>Area name and description.</li>
-                <li>The most recent OVTA assessment date for each area.</li>
-                <li>Polygon geometry in NAD 83 HARN California Zone VI (SRID 2771).</li>
-            </ul>
+            <custom-rich-text [customRichTextTypeID]="NeptunePageTypeEnum.ExportAssessmentGeospatialData"></custom-rich-text>
         </div>
         <div class="g-col-6">
             @if (jurisdictionOptions$ | async; as opts) {

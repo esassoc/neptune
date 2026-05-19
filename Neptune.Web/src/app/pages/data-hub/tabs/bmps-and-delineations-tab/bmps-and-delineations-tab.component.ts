@@ -3,18 +3,22 @@ import { toSignal } from "@angular/core/rxjs-interop";
 import { map } from "rxjs";
 import { AuthenticationService } from "src/app/services/authentication.service";
 import { RoleEnum } from "src/app/shared/generated/enum/role-enum";
+import { NeptunePageTypeEnum } from "src/app/shared/generated/enum/neptune-page-type-enum";
+import { CustomRichTextComponent } from "src/app/shared/components/custom-rich-text/custom-rich-text.component";
 import { DataHubActionButtonComponent } from "../../components/data-hub-action-button/data-hub-action-button.component";
 import { DataHubQuickLinksComponent } from "../../components/data-hub-quick-links/data-hub-quick-links.component";
 
 @Component({
     selector: "bmps-and-delineations-tab",
     standalone: true,
-    imports: [DataHubActionButtonComponent, DataHubQuickLinksComponent],
+    imports: [CustomRichTextComponent, DataHubActionButtonComponent, DataHubQuickLinksComponent],
     templateUrl: "./bmps-and-delineations-tab.component.html",
     styleUrl: "../../data-hub.component.scss",
 })
 export class BmpsAndDelineationsTabComponent {
     private authenticationService = inject(AuthenticationService);
+
+    public NeptunePageTypeEnum = NeptunePageTypeEnum;
 
     private currentUser = toSignal(this.authenticationService.currentUserSetObservable.pipe(map((u) => u ?? null)), { initialValue: null });
 

@@ -7,13 +7,7 @@
 
     <div class="grid-12">
         <div class="g-col-6 instructions">
-            <p>Build a single ArcGIS file geodatabase containing all Treatment BMPs you have permission to view, organized into one feature class per BMP Type.</p>
-            <ul>
-                <li>Each Treatment BMP feature carries Name, Jurisdiction, Type, Owner, Year Built, System of Record ID, WQMP, Trash Capture Effectiveness, Notes, last assessment metadata, lifespan, and required field visit cadence.</li>
-                <li>Feature classes for each BMP Type also include the type's custom maintenance attributes.</li>
-                <li>The download is filtered to the jurisdictions you are assigned to. Administrators receive all BMPs.</li>
-                <li><em>Note: Generation may take a moment depending on the volume of inventory data. Thank you for your patience.</em></li>
-            </ul>
+            <custom-rich-text [customRichTextTypeID]="NeptunePageTypeEnum.ExportBMPInventoryToGIS"></custom-rich-text>
         </div>
         <div class="g-col-6">
             <div class="actions">

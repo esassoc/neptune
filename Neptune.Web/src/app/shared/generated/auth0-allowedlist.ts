@@ -112,6 +112,7 @@ const SECURED_REGEX: RegexMap = {
     new RegExp("^/water-quality-management-plans/[^/]+/verifications/[^/]+/supporting-documentation$"),
   ],
   'GET': [
+    new RegExp("^/data-hub/upload-templates/[^/]+$"),
     new RegExp("^/delineations/for-treatment-bmp/[^/]+$"),
     new RegExp("^/field-visits/[^/]+$"),
     new RegExp("^/field-visits/[^/]+/assessments/[^/]+$"),
