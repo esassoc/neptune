@@ -2,7 +2,8 @@ import { Component, inject, Input, numberAttribute, OnInit } from "@angular/core
 import { AsyncPipe } from "@angular/common";
 import { Router, RouterLink } from "@angular/router";
 import { ColDef, ValueGetterParams } from "ag-grid-community";
-import { catchError, combineLatest, EMPTY, map, Observable, shareReplay, switchMap, tap } from "rxjs";
+import { BehaviorSubject, catchError, combineLatest, EMPTY, map, Observable, shareReplay, switchMap, tap } from "rxjs";
+import { escapeHtml } from "src/app/shared/helpers/html-escape";
 import { PageHeaderComponent } from "src/app/shared/components/page-header/page-header.component";
 import { LoadingDirective } from "src/app/shared/directives/loading.directive";
 import { NeptuneGridComponent } from "src/app/shared/components/neptune-grid/neptune-grid.component";
@@ -46,7 +47,12 @@ export class TreatmentBmpTypeDetailComponent implements OnInit {
     private router = inject(Router);
 
     public bmpType$: Observable<TreatmentBMPTypeDetailDto>;
-    public bmps$: Observable<TreatmentBMPByTypeGridDto[]>;
+    // BehaviorSubject + asObservable so local mutations (e.g. row delete) reactively flow
+    // through to both the grid rowData binding and the totals-row derivation. A naive
+    // applyTransaction({ remove }) on the grid API would only update the grid in place,
+    // leaving the pinned totals row computed from stale pre-delete data.
+    private bmpsSubject = new BehaviorSubject<TreatmentBMPByTypeGridDto[]>([]);
+    public bmps$: Observable<TreatmentBMPByTypeGridDto[]> = this.bmpsSubject.asObservable();
     public bmpTotalsRow$: Observable<TreatmentBMPByTypeGridDto[]>;
     public bmpColumnDefs: ColDef[] = [];
     public bmpDownloadFileName = "treatment-bmps-of-type";
@@ -71,15 +77,18 @@ export class TreatmentBmpTypeDetailComponent implements OnInit {
             shareReplay(1),
         );
 
-        // Chain off bmpType$ so the column-defs/header build first, then we fetch rows.
-        this.bmps$ = this.bmpType$.pipe(
-            switchMap(() => this.bmpTypeService.listBMPsByTypeTreatmentBMPType(this.treatmentBMPTypeID)),
-            catchError(() => {
-                this.alertService.pushAlert(new Alert("Failed to load Treatment BMPs of this type.", AlertContext.Danger));
-                return EMPTY;
-            }),
-            shareReplay(1),
-        );
+        // Chain off bmpType$ so the column-defs/header build first, then we fetch rows + push
+        // them into the BehaviorSubject. Subsequent local mutations (delete handler) push
+        // updated arrays without re-hitting the API.
+        this.bmpType$
+            .pipe(
+                switchMap(() => this.bmpTypeService.listBMPsByTypeTreatmentBMPType(this.treatmentBMPTypeID)),
+                catchError(() => {
+                    this.alertService.pushAlert(new Alert("Failed to load Treatment BMPs of this type.", AlertContext.Danger));
+                    return EMPTY;
+                }),
+            )
+            .subscribe((rows) => this.bmpsSubject.next(rows));
 
         // Pinned-bottom totals row — sums # of Assessments + # of Maintenance Events + every
         // numeric custom-attribute column (Decimal/Integer, non-Maintenance purpose) across
@@ -349,10 +358,14 @@ export class TreatmentBmpTypeDetailComponent implements OnInit {
     }
 
     private deleteBMP(params: any): void {
+        // BMP names can contain user-entered markup; escape before interpolating into the
+        // confirm message since alerts/dialogs render via [innerHTML]. Same defensive escape
+        // pattern as field-records.component.deleteFieldVisit.
+        const bmpName = escapeHtml(params.data.TreatmentBMPName ?? "this BMP");
         this.confirmService
             .confirm({
                 title: "Delete BMP",
-                message: `<p>You are about to delete ${params.data.TreatmentBMPName ?? "this BMP"}.</p><p>Are you sure you wish to proceed?</p>`,
+                message: `<p>You are about to delete ${bmpName}.</p><p>Are you sure you wish to proceed?</p>`,
                 buttonClassYes: "btn btn-danger",
                 buttonTextYes: "Delete",
                 buttonTextNo: "Cancel",
@@ -361,7 +374,12 @@ export class TreatmentBmpTypeDetailComponent implements OnInit {
                 if (!confirmed) return;
                 this.bmpService.deleteTreatmentBMP(params.data.TreatmentBMPID).subscribe(() => {
                     this.alertService.pushAlert(new Alert("Successfully deleted BMP.", AlertContext.Success));
-                    params.api.applyTransaction({ remove: [params.data] });
+                    // Update the subject so both the grid rowData (bound via `| async`) AND
+                    // the totals row (derived via combineLatest off bmps$) re-render. A direct
+                    // applyTransaction would refresh the grid but leave the pinned totals
+                    // computed from pre-delete data.
+                    const currentRows = this.bmpsSubject.value;
+                    this.bmpsSubject.next(currentRows.filter((r) => r.TreatmentBMPID !== params.data.TreatmentBMPID));
                 });
             });
     }
