@@ -28,8 +28,11 @@ public class HRUCharacteristicController(
         return Ok(hruCharacteristics);
     }
 
+    // NPT-998: AdminFeature (Admin + SitkaAdmin) — was SitkaAdminFeature which locked regular
+    // Admins out of the Data Hub refresh button. Legacy MVC HRUCharacteristicController.RefreshHRUCharacteristics
+    // uses NeptuneAdminFeature (= Admin + SitkaAdmin), so this matches it.
     [HttpPost("enqueue-refresh")]
-    [SitkaAdminFeature]
+    [AdminFeature]
     public IActionResult EnqueueRefresh()
     {
         BackgroundJob.Enqueue<HRURefreshJob>(x => x.RunJob(null));

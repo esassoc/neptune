@@ -318,8 +318,13 @@ public class OnlandVisualTrashAssessmentAreaController(
         return NoContent();
     }
 
+    // NPT-998: UserViewFeature (Admin/SA/JM/JE/Unassigned) mirrors legacy MVC
+    // OnlandVisualTrashAssessmentExportController.ExportAssessmentGeospatialData which used
+    // [NeptuneViewAndRequiresJurisdictionsFeature]. The Data Hub link itself is JM/JE-gated,
+    // but a user hitting the URL directly (e.g., from a saved link) shouldn't be locked out
+    // at the API. The export payload is already scoped to a single StormwaterJurisdictionID.
     [HttpPost("download-gdb")]
-    [JurisdictionEditFeature]
+    [UserViewFeature]
     [Produces("application/zip")]
     public async Task<FileResult> DownloadGdb([FromBody] OvtaAreaGdbDownloadRequestDto dto)
     {

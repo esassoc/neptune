@@ -62,8 +62,12 @@ public class RegionalSubbasinController : SitkaController<RegionalSubbasinContro
         return Ok(dtos);
     }
 
+    // NPT-998: AdminFeature (Admin + SitkaAdmin) — was SitkaAdminFeature which locked regular
+    // Admins out of the Data Hub refresh button. Legacy MVC RegionalSubbasinController.RefreshFromOCSurvey
+    // uses NeptuneAdminFeature (= Admin + SitkaAdmin), so this matches it and also matches the
+    // sibling refresh attrs on Parcel/ModelBasin/PrecipitationZoneController.
     [HttpPost("enqueue-refresh")]
-    [SitkaAdminFeature]
+    [AdminFeature]
     public IActionResult EnqueueRefresh()
     {
         BackgroundJob.Enqueue<RegionalSubbasinRefreshJob>(x => x.RunJob());
