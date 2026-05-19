@@ -554,6 +554,104 @@ public static class TreatmentBMPs
             .ToDictionary(x => x.Key, x => x.Count);
     }
 
+    /// <summary>
+    /// NPT-1038 round 4: rows for the "Treatment BMPs of this Type" grid on the SPA
+    /// `/program-info/treatment-bmp-types/{id}` page. Filters out planning-module BMPs
+    /// (those with a ProjectID — the legacy MVC GridSpec query uses
+    /// <see cref="GetNonPlanningModuleBMPs"/>), restricts to the caller's viewable
+    /// jurisdictions, then loads SystemOfRecordID + WQMP linkage off the TreatmentBMP
+    /// entity (not surfaced on the view) and CustomAttributeValues for each in-scope BMP
+    /// (one extra query each, no N+1). Multi-value attributes are pre-joined with ", "
+    /// server-side to mirror the legacy GridSpec.GetCustomAttributeValue helper.
+    /// </summary>
+    public static async Task<List<TreatmentBMPByTypeGridDto>> ListByTypeAsGridDtoForJurisdictionsAsync(
+        NeptuneDbContext dbContext,
+        int treatmentBMPTypeID,
+        IEnumerable<int> stormwaterJurisdictionIDsPersonCanView)
+    {
+        var jurisdictionIDs = stormwaterJurisdictionIDsPersonCanView.ToList();
+
+        // SystemOfRecordID + WQMP linkage live on the TreatmentBMP entity (not on the view),
+        // and we need the same query to filter ProjectID == null (planning-module exclusion),
+        // so run the entity query first and capture both the eligible BMP IDs and the entity
+        // fields in one pass. Legacy MVC TreatmentBMPTypeController.TreatmentBMPsInTreatmentBMPTypeGridJsonData
+        // uses GetNonPlanningModuleBMPs + Where(TreatmentBMPTypeID && jurisdictionIDs) — same shape.
+        var entityRows = await dbContext.TreatmentBMPs.AsNoTracking()
+            .Where(x => x.ProjectID == null
+                        && x.TreatmentBMPTypeID == treatmentBMPTypeID
+                        && jurisdictionIDs.Contains(x.StormwaterJurisdictionID))
+            .Select(x => new
+            {
+                x.TreatmentBMPID,
+                x.SystemOfRecordID,
+                x.WaterQualityManagementPlanID,
+                WaterQualityManagementPlanName = x.WaterQualityManagementPlan != null ? x.WaterQualityManagementPlan.WaterQualityManagementPlanName : null,
+            })
+            .ToListAsync();
+
+        if (entityRows.Count == 0) return new List<TreatmentBMPByTypeGridDto>();
+
+        var bmpIDs = entityRows.Select(x => x.TreatmentBMPID).ToList();
+        var entityLookup = entityRows.ToDictionary(x => x.TreatmentBMPID);
+
+        var rows = await dbContext.vTreatmentBMPDetaileds.AsNoTracking()
+            .Where(x => bmpIDs.Contains(x.TreatmentBMPID))
+            .OrderBy(x => x.TreatmentBMPName)
+            .ToListAsync();
+
+        // One query for every custom-attribute-value of every in-scope BMP. Group by BMPID +
+        // CustomAttributeTypeID so multi-value attributes collapse into a single ", "-joined
+        // string per attribute (matches the legacy MVC's `GetCustomAttributeValue` join).
+        var attributeRows = await dbContext.CustomAttributes.AsNoTracking()
+            .Where(ca => bmpIDs.Contains(ca.TreatmentBMPID))
+            .Select(ca => new
+            {
+                ca.TreatmentBMPID,
+                ca.CustomAttributeTypeID,
+                Values = ca.CustomAttributeValues
+                    .OrderBy(v => v.AttributeValue)
+                    .Select(v => v.AttributeValue)
+                    .ToList(),
+            })
+            .ToListAsync();
+
+        var attributeLookup = attributeRows
+            .GroupBy(x => x.TreatmentBMPID)
+            .ToDictionary(
+                g => g.Key,
+                g => g.ToDictionary(
+                    x => x.CustomAttributeTypeID,
+                    x => string.Join(", ", x.Values)));
+
+        return rows.Select(x => new TreatmentBMPByTypeGridDto
+        {
+            TreatmentBMPID = x.TreatmentBMPID,
+            TreatmentBMPName = x.TreatmentBMPName,
+            StormwaterJurisdictionID = x.StormwaterJurisdictionID,
+            StormwaterJurisdictionName = x.OrganizationName,
+            OwnerOrganizationName = x.OwnerOrganizationName,
+            YearBuilt = x.YearBuilt,
+            SystemOfRecordID = entityLookup.TryGetValue(x.TreatmentBMPID, out var e) ? e.SystemOfRecordID : null,
+            WaterQualityManagementPlanID = entityLookup.TryGetValue(x.TreatmentBMPID, out var e2) ? e2.WaterQualityManagementPlanID : null,
+            WaterQualityManagementPlanName = entityLookup.TryGetValue(x.TreatmentBMPID, out var e3) ? e3.WaterQualityManagementPlanName : null,
+            Notes = x.Notes,
+            LatestAssessmentDate = x.LatestAssessmentDate,
+            LatestAssessmentScore = x.LatestAssessmentScore,
+            NumberOfAssessments = x.NumberOfAssessments,
+            LatestMaintenanceDate = x.LatestMaintenanceDate,
+            NumberOfMaintenanceRecords = x.NumberOfMaintenanceRecords,
+            BenchmarkAndThresholdSet = x.NumberOfBenchmarkAndThresholds == x.NumberOfBenchmarkAndThresholdsEntered,
+            TreatmentBMPLifespanTypeDisplayName = x.TreatmentBMPLifespanTypeDisplayName,
+            TreatmentBMPLifespanEndDate = x.TreatmentBMPLifespanEndDate,
+            RequiredFieldVisitsPerYear = x.RequiredFieldVisitsPerYear,
+            RequiredPostStormFieldVisitsPerYear = x.RequiredPostStormFieldVisitsPerYear,
+            SizingBasisTypeDisplayName = x.SizingBasisTypeDisplayName,
+            TrashCaptureStatusTypeDisplayName = x.TrashCaptureStatusTypeDisplayName,
+            DelineationTypeDisplayName = x.DelineationTypeDisplayName,
+            CustomAttributeValues = attributeLookup.TryGetValue(x.TreatmentBMPID, out var attrs) ? attrs : new Dictionary<int, string>(),
+        }).ToList();
+    }
+
     public static TreatmentBMP GetByIDForFeatureContextCheck(NeptuneDbContext dbContext, int treatmentBMPID)
     {
         var treatmentBMP = dbContext.TreatmentBMPs

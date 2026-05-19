@@ -143,6 +143,7 @@ export * from './treatment-bmp-assessment-upsert-dto';
 export * from './treatment-bmp-basic-info-update-dto';
 export * from './treatment-bmp-benchmark-and-threshold-dto';
 export * from './treatment-bmp-benchmark-and-threshold-upsert-dto';
+export * from './treatment-bmpby-type-grid-dto';
 export * from './treatment-bmp-create-dto';
 export * from './treatment-bmp-delineation-errors-dto';
 export * from './treatment-bmp-delineation-map-dto';

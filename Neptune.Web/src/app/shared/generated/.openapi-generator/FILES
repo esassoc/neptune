@@ -227,6 +227,7 @@ model/treatment-bmp-type-with-modeling-attributes-dto.ts
 model/treatment-bmp-upsert-dto.ts
 model/treatment-bmp-upstream-bmp-update-dto.ts
 model/treatment-bmp-upstreamest-errors-dto.ts
+model/treatment-bmpby-type-grid-dto.ts
 model/treatment-bmphru-characteristics-summary-simple-dto.ts
 model/v-treatment-bmp-modeling-attribute-dto.ts
 model/verify-quick-bmp-upsert-dto.ts
