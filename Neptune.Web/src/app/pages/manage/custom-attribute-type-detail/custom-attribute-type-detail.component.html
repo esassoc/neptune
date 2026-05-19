@@ -87,7 +87,7 @@
                         <tbody>
                             @for (usage of attribute.TreatmentBMPTypeUsages; track usage.TreatmentBMPTypeID) {
                                 <tr>
-                                    <td>{{ usage.TreatmentBMPTypeName }}</td>
+                                    <td><a [routerLink]="['/program-info/treatment-bmp-types', usage.TreatmentBMPTypeID]">{{ usage.TreatmentBMPTypeName }}</a></td>
                                     <td class="text-right">{{ usage.ObservationTypeCount | number }}</td>
                                     <td class="text-right">{{ usage.TreatmentBMPCount | number }}</td>
                                 </tr>
