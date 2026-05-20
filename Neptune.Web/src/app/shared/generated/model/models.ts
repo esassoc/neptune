@@ -35,6 +35,8 @@ export * from './funding-event-dto';
 export * from './funding-event-funding-source-simple-dto';
 export * from './funding-event-upsert-dto';
 export * from './funding-source-dto';
+export * from './funding-source-simple-dto';
+export * from './funding-source-treatment-bmp-funding-dto';
 export * from './funding-source-upsert-dto';
 export * from './geometry';
 export * from './geometry-factory';

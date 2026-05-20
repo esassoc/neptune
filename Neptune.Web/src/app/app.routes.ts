@@ -8,6 +8,9 @@ import { AuthCallbackComponent } from "./auth-callback.component";
 
 export const routeParams = {
     definitionID: "definitionID",
+    fieldDefinitionTypeID: "fieldDefinitionTypeID",
+    fundingSourceID: "fundingSourceID",
+    organizationID: "organizationID",
     projectID: "projectID",
     onlandVisualTrashAssessmentID: "onlandVisualTrashAssessmentID",
     onlandVisualTrashAssessmentAreaID: "onlandVisualTrashAssessmentAreaID",
@@ -344,9 +347,17 @@ export const routes: Routes = [
             },
             { path: "modeling", loadComponent: () => import("./pages/modeling-about/modeling-about.component").then((m) => m.ModelingAboutComponent) },
             {
-                path: `labels-and-definitions/:${routeParams.definitionID}`,
+                // NPT-999: Canonical edit URL per AC. Reads `fieldDefinitionTypeID` from the param map.
+                path: `field-definitions/:${routeParams.fieldDefinitionTypeID}/edit`,
                 loadComponent: () => import("./pages/field-definition-edit/field-definition-edit.component").then((m) => m.FieldDefinitionEditComponent),
                 canActivate: [authGuardFn, ManagerOnlyGuard],
+            },
+            {
+                // Legacy URL kept as a redirect so any persisted links (or the prior list-cell
+                // routing target before this rework) still land on the new canonical URL.
+                path: `labels-and-definitions/:${routeParams.definitionID}`,
+                redirectTo: `field-definitions/:${routeParams.definitionID}/edit`,
+                pathMatch: "full",
             },
             { path: "users", title: "Users", loadComponent: () => import("./pages/users/users.component").then((m) => m.UsersComponent) },
             {
@@ -364,6 +375,17 @@ export const routes: Routes = [
                 path: "organizations",
                 title: "Organizations",
                 loadComponent: () => import("./pages/organizations/organizations.component").then((m) => m.OrganizationsComponent),
+            },
+            {
+                // NPT-999: org detail page. Backend GET is UserViewFeature (any authenticated
+                // user — matches the legacy MVC OrganizationViewFeature). The component's 403
+                // handler redirects to /organizations if a future tightening ever blocks a
+                // viewer. Linked from the User Detail page's Role / Organization and Primary
+                // Contact Organizations sections, plus several grids and the FS detail page.
+                path: `organizations/:${routeParams.organizationID}`,
+                title: "Organization Detail",
+                loadComponent: () => import("./pages/organizations/organization-detail/organization-detail.component").then((m) => m.OrganizationDetailComponent),
+                canActivate: [authGuardFn],
             },
             {
                 path: "labels-and-definitions",
@@ -764,6 +786,14 @@ export const routes: Routes = [
                 path: "funding-sources",
                 title: "Funding Sources",
                 loadComponent: () => import("./pages/funding-sources/funding-sources.component").then((m) => m.FundingSourcesComponent),
+            },
+            {
+                // NPT-999: SPA Funding Source detail page mirroring the legacy MVC view.
+                // Linked from the Organization detail page's Funding Sources panel.
+                path: `funding-sources/:${routeParams.fundingSourceID}`,
+                title: "Funding Source Detail",
+                loadComponent: () => import("./pages/funding-sources/funding-source-detail/funding-source-detail.component").then((m) => m.FundingSourceDetailComponent),
+                canActivate: [authGuardFn],
             },
             // Dashboard
             {
