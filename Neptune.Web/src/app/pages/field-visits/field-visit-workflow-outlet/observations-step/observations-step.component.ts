@@ -4,9 +4,10 @@ import { AsyncPipe } from "@angular/common";
 import { FormControl, ReactiveFormsModule, ValidatorFn, Validators } from "@angular/forms";
 import { Observable, of, switchMap, take } from "rxjs";
 
-import { FormFieldComponent, FormFieldType, SelectDropdownOption } from "src/app/shared/components/forms/form-field/form-field.component";
+import { SelectDropdownOption } from "src/app/shared/components/forms/form-field/form-field.component";
 import { LoadingDirective } from "src/app/shared/directives/loading.directive";
 import { PageHeaderComponent } from "src/app/shared/components/page-header/page-header.component";
+import { ObservationPanelComponent, ObservationTypePanel } from "src/app/shared/observation-types/observation-panel.component";
 
 import { TreatmentBMPAssessmentByFieldVisitService } from "src/app/shared/generated/api/treatment-bmp-assessment-by-field-visit.service";
 import { TreatmentBMPAssessmentService } from "src/app/shared/generated/api/treatment-bmp-assessment.service";
@@ -36,33 +37,14 @@ import { AlertContext } from "src/app/shared/models/enums/alert-context.enum";
  * serialized as a JSON string in TreatmentBMPObservation.ObservationData.
  */
 
-interface PropertyControl {
-    propertyObserved: string;
-    valueControl: FormControl<string | null>;
-    notesControl: FormControl<string | null>;
-    /** PassFail only — Pass/Fail dropdown options */
-    passFailOptions?: SelectDropdownOption[];
-}
-
-interface ObservationTypePanel {
-    observationTypeID: number;
-    name: string;
-    collectionMethod: "DiscreteValue" | "PassFail" | "Percentage" | string;
-    measurementUnitLabel?: string;
-    minValue?: number;
-    maxValue?: number;
-    assessmentDescription?: string;
-    benchmarkDescription?: string;
-    thresholdDescription?: string;
-    passingLabel?: string;
-    failingLabel?: string;
-    properties: PropertyControl[];
-}
+// ObservationTypePanel + per-property controls now live in observation-panel.component.ts so the
+// preview modal can share the exact same renderer; importing the type here preserves the existing
+// internal panel-build logic without touching downstream consumers.
 
 @Component({
     selector: "field-visit-observations-step",
     standalone: true,
-    imports: [AsyncPipe, ReactiveFormsModule, LoadingDirective, PageHeaderComponent, FormFieldComponent],
+    imports: [AsyncPipe, ReactiveFormsModule, LoadingDirective, PageHeaderComponent, ObservationPanelComponent],
     templateUrl: "./observations-step.component.html",
     styleUrl: "./observations-step.component.scss",
 })
@@ -77,7 +59,6 @@ export class FieldVisitObservationsStepComponent implements OnInit {
     public panels = signal<ObservationTypePanel[]>([]);
     public isLoading = signal(true);
     public isReadOnly = signal(false);
-    public FormFieldType = FormFieldType;
 
     constructor(
         private workflowService: FieldVisitWorkflowService,

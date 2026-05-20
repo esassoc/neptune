@@ -1,0 +1,46 @@
+@use "/src/scss/abstracts" as *;
+
+.observation-panel + .observation-panel {
+    margin-top: $spacing-400;
+}
+
+.assessment-description {
+    margin: 0 0 $spacing-300;
+    font-style: italic;
+}
+
+.thresholds {
+    background: $gray-50;
+    padding: $spacing-300;
+    border-left: 3px solid $teal-500;
+    margin: 0 0 $spacing-400;
+    display: grid;
+    grid-template-columns: max-content 1fr;
+    column-gap: $spacing-300;
+    row-gap: $spacing-200;
+
+    dt {
+        font-weight: 600;
+        margin: 0;
+        white-space: nowrap;
+    }
+
+    dd {
+        margin-left: 0;
+        margin-bottom: 0;
+        word-break: break-word;
+        overflow-wrap: anywhere;
+    }
+}
+
+.property-row {
+    margin-bottom: $spacing-300;
+
+    &:last-child {
+        margin-bottom: 0;
+    }
+
+    form-field {
+        display: block;
+    }
+}
