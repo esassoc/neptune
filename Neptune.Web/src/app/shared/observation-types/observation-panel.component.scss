@@ -1,8 +1,8 @@
 @use "/src/scss/abstracts" as *;
 
-.observation-panel + .observation-panel {
-    margin-top: $spacing-400;
-}
+// Inter-panel spacing is the responsibility of the parent — when multiple
+// <observation-panel> elements are stacked, the parent sets margin between them
+// (see observations-step.component.scss). This component handles its own internals.
 
 .assessment-description {
     margin: 0 0 $spacing-300;
