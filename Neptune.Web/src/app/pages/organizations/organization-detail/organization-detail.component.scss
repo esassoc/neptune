@@ -1,0 +1,13 @@
+@use "/src/scss/abstracts" as *;
+
+// Matches the wqmp-detail / user-detail card-header pattern: title left, edit/add icon right.
+// The global .card-header rule is not a flex container, so each detail page opts in component-side.
+.card-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+
+    .icon-button {
+        cursor: pointer;
+    }
+}

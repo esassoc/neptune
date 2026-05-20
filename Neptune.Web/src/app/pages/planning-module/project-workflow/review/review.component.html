@@ -45,7 +45,11 @@
                             </dd>
                             <dt class="g-col-4 mt-2">Project Owner</dt>
                             <dd class="g-col-7 mt-2">
-                                {{ project.Organization.OrganizationName }}
+                                @if (project.Organization?.OrganizationID) {
+                                    <a [routerLink]="['/organizations', project.Organization.OrganizationID]">{{ project.Organization.OrganizationName }}</a>
+                                } @else {
+                                    —
+                                }
                             </dd>
                             <dt class="g-col-4 mt-2">Jurisdiction</dt>
                             <dd class="g-col-7 mt-2">

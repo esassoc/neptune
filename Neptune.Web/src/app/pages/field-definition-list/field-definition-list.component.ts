@@ -31,11 +31,15 @@ export class FieldDefinitionListComponent implements OnInit {
             {
                 headerName: "Label",
                 valueGetter: (params: any) => ({
-                    LinkValue: params.data.FieldDefinitionType.FieldDefinitionTypeID,
+                    // NPT-999: link target is `/field-definitions/{id}/edit` per AC. LinkValue
+                    // carries both the ID and the trailing `edit` segment so the LinkRenderer's
+                    // `inRouterLink` + LinkValue concatenation produces the full canonical URL
+                    // without needing a custom cell renderer for the trailing path piece.
+                    LinkValue: `${params.data.FieldDefinitionType.FieldDefinitionTypeID}/edit`,
                     LinkDisplay: params.data.FieldDefinitionType.FieldDefinitionTypeDisplayName,
                 }),
                 cellRenderer: LinkRendererComponent,
-                cellRendererParams: { inRouterLink: "/labels-and-definitions/" },
+                cellRendererParams: { inRouterLink: "/field-definitions/" },
                 filterValueGetter: (params: any) => params.data.FieldDefinitionType.FieldDefinitionTypeDisplayName,
                 comparator: (id1: any, id2: any) => {
                     if (id1.LinkDisplay < id2.LinkDisplay) return -1;

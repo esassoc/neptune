@@ -49,8 +49,12 @@ export class FundingSourcesComponent {
                     ActionHandler: () => this.deleteFundingSource(params.data),
                 },
             ]),
-            this.utilityFunctions.createBasicColumnDef("Name", "FundingSourceName"),
-            this.utilityFunctions.createBasicColumnDef("Organization", "OrganizationName"),
+            this.utilityFunctions.createLinkColumnDef("Name", "FundingSourceName", "FundingSourceID", {
+                InRouterLink: "/funding-sources/",
+            }),
+            this.utilityFunctions.createLinkColumnDef("Organization", "OrganizationName", "OrganizationID", {
+                InRouterLink: "/organizations/",
+            }),
             this.utilityFunctions.createBasicColumnDef("Description", "FundingSourceDescription"),
             this.utilityFunctions.createBooleanColumnDef("Active?", "IsActive"),
         ];

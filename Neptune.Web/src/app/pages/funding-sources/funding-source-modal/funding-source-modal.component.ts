@@ -24,7 +24,9 @@ export class FundingSourceModalComponent implements OnInit {
     public formGroup = new FormGroup<FundingSourceUpsertDtoForm>({
         OrganizationID: FundingSourceUpsertDtoFormControls.OrganizationID(undefined, { validators: [Validators.required] }),
         FundingSourceName: FundingSourceUpsertDtoFormControls.FundingSourceName(undefined, { validators: [Validators.required] }),
-        IsActive: FundingSourceUpsertDtoFormControls.IsActive(false),
+        // Default to Active for add mode (matches the legacy MVC's `IsActive = true` seed
+        // on New). Edit mode's patchValue overrides this with the persisted value.
+        IsActive: FundingSourceUpsertDtoFormControls.IsActive(true),
         FundingSourceDescription: FundingSourceUpsertDtoFormControls.FundingSourceDescription(),
     });
     public mode: "add" | "edit";
@@ -35,12 +37,17 @@ export class FundingSourceModalComponent implements OnInit {
     ngOnInit(): void {
         this.alertService.clearAlerts();
         this.mode = this.ref.data.mode;
-        if (this.mode === "edit" && this.ref.data.fundingSource) {
+        // Patch in any pre-fill the caller supplied, regardless of mode. Edit mode passes the
+        // full FundingSourceDto for the row being edited; add mode may pass a partial seed
+        // (e.g. { OrganizationID } from the org-detail page's "Add Funding Source" icon —
+        // NPT-999 round 2). patchValue ignores undefined keys, so partial seeds are safe.
+        const seed = this.ref.data.fundingSource;
+        if (seed) {
             this.formGroup.patchValue({
-                OrganizationID: this.ref.data.fundingSource.OrganizationID,
-                FundingSourceName: this.ref.data.fundingSource.FundingSourceName,
-                IsActive: this.ref.data.fundingSource.IsActive,
-                FundingSourceDescription: this.ref.data.fundingSource.FundingSourceDescription,
+                OrganizationID: seed.OrganizationID,
+                FundingSourceName: seed.FundingSourceName,
+                IsActive: seed.IsActive,
+                FundingSourceDescription: seed.FundingSourceDescription,
             });
         }
         this.organizationOptions$ = this.organizationService.listOrganization().pipe(
@@ -49,7 +56,13 @@ export class FundingSourceModalComponent implements OnInit {
     }
 
     save(): void {
-        if (this.formGroup.invalid) return;
+        if (this.formGroup.invalid) {
+            // Touching every control flips the form-field error-display into showing the
+            // missing-required messages — silent return left the modal feeling unresponsive
+            // when a required field wasn't filled.
+            this.formGroup.markAllAsTouched();
+            return;
+        }
         const dto = new FundingSourceUpsertDto(this.formGroup.value);
         if (this.mode === "add") {
             this.fundingSourceService.createFundingSource(dto).subscribe(() => {

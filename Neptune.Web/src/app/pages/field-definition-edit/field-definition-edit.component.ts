@@ -24,6 +24,7 @@ export class FieldDefinitionEditComponent implements OnInit {
     private currentUser: PersonDto;
 
     public fieldDefinition: FieldDefinitionDto;
+    public loadFailed = false;
     public tinyMceConfig: object;
 
     // The <editor> sits inside an `@if (fieldDefinition)` so the ViewChild ref doesn't exist at
@@ -51,11 +52,27 @@ export class FieldDefinitionEditComponent implements OnInit {
     ngOnInit() {
         this.authenticationService.getCurrentUser().subscribe((currentUser) => {
             this.currentUser = currentUser;
-            const id = parseInt(this.route.snapshot.paramMap.get("definitionID"));
-            if (id) {
-                this.fieldDefinitionService.getFieldDefinition(id).subscribe((fieldDefinition) => {
-                    this.fieldDefinition = fieldDefinition;
+            // NPT-999: read `fieldDefinitionTypeID` (canonical AC param). Legacy `definitionID`
+            // route still resolves via a redirect in app.routes.ts that preserves the value, so
+            // either param name reaching this component is treated the same.
+            const raw = this.route.snapshot.paramMap.get("fieldDefinitionTypeID")
+                ?? this.route.snapshot.paramMap.get("definitionID");
+            const id = raw ? parseInt(raw, 10) : NaN;
+            if (Number.isFinite(id)) {
+                this.fieldDefinitionService.getFieldDefinition(id).subscribe({
+                    next: (fieldDefinition) => {
+                        if (fieldDefinition) {
+                            this.fieldDefinition = fieldDefinition;
+                        } else {
+                            this.loadFailed = true;
+                        }
+                    },
+                    error: () => {
+                        this.loadFailed = true;
+                    },
                 });
+            } else {
+                this.loadFailed = true;
             }
         });
     }

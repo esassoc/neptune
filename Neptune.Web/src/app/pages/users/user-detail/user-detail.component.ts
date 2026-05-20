@@ -88,8 +88,9 @@ export class UserDetailComponent implements OnInit {
         });
         ref.afterClosed$.subscribe((saved) => {
             if (saved) {
+                this.alertService.clearAlerts();
                 this.detail$ = this.loadDetail();
-                this.alertService.pushAlert(new Alert("Roles updated.", AlertContext.Success, true));
+                this.alertService.pushAlert(new Alert("Roles updated.", AlertContext.Success, true, "user-roles-saved"));
             }
         });
     }
@@ -101,14 +102,34 @@ export class UserDetailComponent implements OnInit {
         });
         ref.afterClosed$.subscribe((saved) => {
             if (saved) {
+                this.alertService.clearAlerts();
                 this.detail$ = this.loadDetail();
-                this.alertService.pushAlert(new Alert("Assigned jurisdictions updated.", AlertContext.Success, true));
+                this.alertService.pushAlert(new Alert("Assigned jurisdictions updated.", AlertContext.Success, true, "user-jurisdictions-saved"));
             }
         });
     }
 
     public toggleActive(detail: PersonDetailDto): void {
         const goingInactive = detail.IsActive;
+
+        // Clear any stale alerts up-front so the user sees only this action's outcome.
+        this.alertService.clearAlerts();
+
+        // Pre-check primary-contact organizations client-side. The server validates the same
+        // condition, but surfacing it before the confirm dialog opens avoids the awkward
+        // "dialog → confirm → error appears" sequence Kathleen flagged in NPT-999 round 2.
+        // PrimaryContactOrganizations is already on the loaded DTO, so no extra round-trip.
+        if (goingInactive && detail.PrimaryContactOrganizations?.length) {
+            const orgNames = detail.PrimaryContactOrganizations.map((o) => o.OrganizationName).join(", ");
+            this.alertService.pushAlert(new Alert(
+                `Cannot inactivate this user — they are the primary contact for: ${escapeHtml(orgNames)}. Reassign primary contact before inactivating.`,
+                AlertContext.Danger,
+                true,
+                "user-inactivate-blocked",
+            ));
+            return;
+        }
+
         this.confirmService
             .confirm({
                 title: goingInactive ? "Inactivate User" : "Activate User",
@@ -124,13 +145,15 @@ export class UserDetailComponent implements OnInit {
                     next: () => {
                         this.isWorking.set(false);
                         this.detail$ = this.loadDetail();
-                        this.alertService.pushAlert(new Alert(`User ${goingInactive ? "inactivated" : "activated"}.`, AlertContext.Success, true));
+                        this.alertService.pushAlert(new Alert(`User ${goingInactive ? "inactivated" : "activated"}.`, AlertContext.Success, true, "user-active-toggle"));
                     },
                     error: (err) => {
                         this.isWorking.set(false);
-                        // Server returns a plain string in 400 responses (primary-contact violation, etc.).
+                        // Server returns a plain string in 400 responses — safety net only since
+                        // primary-contact is pre-checked above. uniqueCode dedupes if anything
+                        // else also pushes the same error.
                         const message = typeof err?.error === "string" ? err.error : "Failed to update active status.";
-                        this.alertService.pushAlert(new Alert(escapeHtml(message), AlertContext.Danger, true));
+                        this.alertService.pushAlert(new Alert(escapeHtml(message), AlertContext.Danger, true, "user-active-toggle-error"));
                     },
                 });
             });

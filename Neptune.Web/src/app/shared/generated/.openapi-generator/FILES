@@ -86,6 +86,8 @@ model/funding-event-dto.ts
 model/funding-event-funding-source-simple-dto.ts
 model/funding-event-upsert-dto.ts
 model/funding-source-dto.ts
+model/funding-source-simple-dto.ts
+model/funding-source-treatment-bmp-funding-dto.ts
 model/funding-source-upsert-dto.ts
 model/geometry-factory.ts
 model/geometry-geo-json-and-area-dto.ts

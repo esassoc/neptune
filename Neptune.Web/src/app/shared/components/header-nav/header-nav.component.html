@@ -82,6 +82,7 @@
                     </span>
                 </a>
                 <div #userToggle class="dropdown-menu dropdown-menu-right" aria-labelledby="navbarDropdown">
+                    <a [routerLink]="['/users', currentUser.PersonID]" class="dropdown-item">My Profile</a>
                     <a href="javascript:void(0);" (click)="logout()" class="dropdown-item"> Sign Out </a>
                 </div>
             </li>

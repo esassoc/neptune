@@ -1,0 +1,91 @@
+@if (viewModel$ | async; as vm) {
+    <page-header [pageTitle]="vm.fundingSource.FundingSourceName ?? ''" [templateAbove]="templateAbove">
+        <ng-template #templateAbove>
+            <div class="back">
+                <a [routerLink]="['/funding-sources']" class="back__link"><i class="fa fa-arrow-left"></i> Back to Funding Sources List</a>
+            </div>
+        </ng-template>
+    </page-header>
+
+    <app-alert-display></app-alert-display>
+
+    @if (!vm.fundingSource.IsActive) {
+        <div class="alert alert-warning">This funding source is currently inactive.</div>
+    }
+
+    <div class="grid-12">
+        <div class="g-col-6">
+            <div class="card">
+                <div class="card-header">
+                    <span class="card-title">Basics</span>
+                    @if (isAdmin) {
+                        <a (click)="openEditModal(vm.fundingSource)" style="cursor: pointer" title="Edit Funding Source"><icon class="icon-button" icon="CirclePencil"></icon></a>
+                    }
+                </div>
+                <div class="card-body">
+                    <dl class="grid-12">
+                        <dt class="g-col-4">Name</dt>
+                        <dd class="g-col-8">{{ vm.fundingSource.FundingSourceName || "—" }}</dd>
+
+                        <dt class="g-col-4">Description</dt>
+                        <dd class="g-col-8" style="white-space: pre-wrap">{{ vm.fundingSource.FundingSourceDescription || "—" }}</dd>
+
+                        <dt class="g-col-4">Organization</dt>
+                        <dd class="g-col-8">
+                            @if (vm.fundingSource.OrganizationID) {
+                                @if (isAdmin) {
+                                    <a [routerLink]="['/organizations', vm.fundingSource.OrganizationID]">{{ vm.fundingSource.OrganizationName || vm.fundingSource.DisplayName }}</a>
+                                } @else {
+                                    {{ vm.fundingSource.OrganizationName || vm.fundingSource.DisplayName }}
+                                }
+                            } @else {
+                                —
+                            }
+                        </dd>
+
+                        <dt class="g-col-4">Active</dt>
+                        <dd class="g-col-8">{{ vm.fundingSource.IsActive ? "Yes" : "No" }}</dd>
+                    </dl>
+                </div>
+            </div>
+        </div>
+
+        <div class="g-col-6">
+            <div class="card">
+                <div class="card-header"><span class="card-title">Treatment BMP Funding</span></div>
+                <div class="card-body">
+                    @if (vm.bmpFunding.length > 0) {
+                        <table class="table">
+                            <thead>
+                                <tr>
+                                    <th>Treatment BMP</th>
+                                    <th class="text-end">Amount</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @for (row of vm.bmpFunding; track row.TreatmentBMPID) {
+                                    <tr>
+                                        <td>
+                                            @if (isAdmin || row.InventoryIsVerified) {
+                                                <a [routerLink]="['/treatment-bmps', row.TreatmentBMPID]">{{ row.TreatmentBMPName }}</a>
+                                            } @else {
+                                                {{ row.TreatmentBMPName }}
+                                            }
+                                        </td>
+                                        <td class="text-end">{{ row.Amount | currency }}</td>
+                                    </tr>
+                                }
+                                <tr class="total">
+                                    <td>Total</td>
+                                    <td class="text-end">{{ vm.totalAmount | currency }}</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    } @else {
+                        <p class="system-text">No Treatment BMPs have identified <strong>{{ vm.fundingSource.FundingSourceName }}</strong> as a source of funding.</p>
+                    }
+                </div>
+            </div>
+        </div>
+    </div>
+}

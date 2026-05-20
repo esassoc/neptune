@@ -2014,6 +2014,56 @@
         }
       }
     },
+    "/funding-sources/{fundingSourceID}/treatment-bmps": {
+      "get": {
+        "tags": [
+          "FundingSource"
+        ],
+        "operationId": "ListTreatmentBMPFunding_FundingSource",
+        "parameters": [
+          {
+            "name": "fundingSourceID",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/FundingSourceTreatmentBMPFundingDto"
+                  }
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/FundingSourceTreatmentBMPFundingDto"
+                  }
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/FundingSourceTreatmentBMPFundingDto"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/hru-characteristics": {
       "get": {
         "tags": [
@@ -4267,6 +4317,106 @@
         "responses": {
           "200": {
             "description": "OK"
+          }
+        }
+      }
+    },
+    "/organizations/{organizationID}/funding-sources": {
+      "get": {
+        "tags": [
+          "Organization"
+        ],
+        "operationId": "ListFundingSources_Organization",
+        "parameters": [
+          {
+            "name": "organizationID",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/FundingSourceSimpleDto"
+                  }
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/FundingSourceSimpleDto"
+                  }
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/FundingSourceSimpleDto"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/organizations/{organizationID}/users": {
+      "get": {
+        "tags": [
+          "Organization"
+        ],
+        "operationId": "ListUsers_Organization",
+        "parameters": [
+          {
+            "name": "organizationID",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/PersonSimpleDto"
+                  }
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/PersonSimpleDto"
+                  }
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/PersonSimpleDto"
+                  }
+                }
+              }
+            }
           }
         }
       }
@@ -14089,6 +14239,52 @@
         },
         "additionalProperties": false
       },
+      "FundingSourceSimpleDto": {
+        "type": "object",
+        "properties": {
+          "FundingSourceID": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "OrganizationID": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "FundingSourceName": {
+            "type": "string",
+            "nullable": true
+          },
+          "IsActive": {
+            "type": "boolean"
+          },
+          "FundingSourceDescription": {
+            "type": "string",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "FundingSourceTreatmentBMPFundingDto": {
+        "type": "object",
+        "properties": {
+          "TreatmentBMPID": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "TreatmentBMPName": {
+            "type": "string",
+            "nullable": true
+          },
+          "Amount": {
+            "type": "number",
+            "format": "double"
+          },
+          "InventoryIsVerified": {
+            "type": "boolean"
+          }
+        },
+        "additionalProperties": false
+      },
       "FundingSourceUpsertDto": {
         "type": "object",
         "properties": {
@@ -15857,6 +16053,11 @@
           },
           "OrganizationType": {
             "$ref": "#/components/schemas/OrganizationTypeSimpleDto"
+          },
+          "StormwaterJurisdictionID": {
+            "type": "integer",
+            "format": "int32",
+            "nullable": true
           }
         },
         "additionalProperties": false
