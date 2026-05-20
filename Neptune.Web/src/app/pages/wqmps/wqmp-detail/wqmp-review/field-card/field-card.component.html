@@ -56,7 +56,15 @@
                 </div>
             </div>
         } @else {
-            <span [class.field-card__value--empty]="!currentValue" [class.field-card__value--clickable]="!!documentSource" (click)="goToSource()">{{ fieldType === FormFieldType.Select && currentValue ? getOptionLabel(currentValue) : (currentValue ?? "Not extracted") }}</span>
+            <span [class.field-card__value--empty]="!currentValue" [class.field-card__value--clickable]="!!documentSource" (click)="goToSource()">
+                @if (fieldType === FormFieldType.Date && currentValue) {
+                    {{ currentValue | date: "MM/dd/yyyy" : "+0000" }}
+                } @else if (fieldType === FormFieldType.Select && currentValue) {
+                    {{ getOptionLabel(currentValue) }}
+                } @else {
+                    {{ currentValue ?? "Not extracted" }}
+                }
+            </span>
         }
     </div>
 

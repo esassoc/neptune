@@ -1,5 +1,5 @@
-import { Component, Input } from "@angular/core";
-import { NgTemplateOutlet } from "@angular/common";
+import { Component, inject, Input } from "@angular/core";
+import { DatePipe, NgTemplateOutlet } from "@angular/common";
 import { ExtractedField } from "src/app/pages/wqmps/wqmp-detail/wqmp-review/wqmp-review.component";
 import { FormFieldType, SelectDropdownOption } from "src/app/shared/components/forms/form-field/form-field.component";
 
@@ -37,18 +37,21 @@ export interface ReviewSummaryRow {
     selector: "review-summary",
     standalone: true,
     imports: [NgTemplateOutlet],
+    providers: [DatePipe],
     templateUrl: "./review-summary.component.html",
     styleUrl: "./review-summary.component.scss",
 })
 export class ReviewSummaryComponent {
+    private datePipe = inject(DatePipe);
+
     @Input() locationFields: ExtractedField[] = [];
     @Input() basicsFields: ExtractedField[] = [];
     @Input() parcelFields: ExtractedField[] = [];
     @Input() bmpGroups: { bmpIndex: number; displayName: string | null; fields: ExtractedField[]; isRejected: boolean }[] = [];
-    // NPT-1054: flat list of Source Control BMP rows with values (rows where IsPresent is
-    // null AND Note is empty are pre-filtered out by the parent). hasEvidence is true when
-    // any of the row's fields came from the AI extractor.
-    @Input() sourceControlRows: { categoryName: string; attributeName: string; isPresent: boolean | null; note: string; hasEvidence: boolean; wqmpRecordValue: string | null }[] = [];
+    // NPT-1054: flat list of Source Control BMP rows. origin mirrors Step 4's row classifier
+    // (getSourceControlRowOrigin) so the AI pill only shows when the displayed value actually
+    // came from the AI — not when the user accepted a value that was already on the record.
+    @Input() sourceControlRows: { categoryName: string; attributeName: string; isPresent: boolean | null; note: string; origin: "ai" | "record" | "edited" | "blank"; wqmpRecordValue: string | null }[] = [];
     @Input() lookupOptionsByKey: Record<string, SelectDropdownOption[]> = {};
     // NPT-1051: parent supplies a key→liveWqmpValue resolver so the summary can render the
     // third "WQMP Record" column without duplicating the key→DTO field mapping in the child.
@@ -85,12 +88,21 @@ export class ReviewSummaryComponent {
                 const display = isUnset
                     ? "(not set)"
                     : r.note ? `${presentDisplay} — ${r.note}` : presentDisplay;
+                // Map Step 4's four-state origin into the summary's three-state origin so the
+                // AI pill (which only fires on origin === "ai") matches Step 4's pill: "record"
+                // and "edited" both fall back to "user" (no AI pill); "ai" stays; "blank"
+                // collapses to "blank" only when the row is genuinely empty.
+                const summaryOrigin: ReviewSummaryRow["origin"] = isUnset
+                    ? "blank"
+                    : r.origin === "ai"
+                        ? "ai"
+                        : "user";
                 byCategory.get(r.categoryName)!.push({
                     label: r.attributeName,
                     displayValue: display,
                     wqmpRecordValue: r.wqmpRecordValue,
                     state: isUnset ? "pending" : "accepted",
-                    origin: isUnset ? "blank" : r.hasEvidence ? "ai" : "user",
+                    origin: summaryOrigin,
                 });
             }
             for (const [category, rows] of byCategory.entries()) {
@@ -140,6 +152,12 @@ export class ReviewSummaryComponent {
         if (f.state === "rejected") return "(rejected)";
         const raw = f.acceptedValue ?? f.value;
         if (raw == null || raw === "") return "(not set)";
+        // Date fields render in MM/dd/yyyy to match the WQMP Record column (which is formatted
+        // through the same pipe in getWqmpFieldValueForRow); without this the Workflow column
+        // showed raw ISO yyyy-mm-dd while the Record column showed MM/dd/yyyy on the same row.
+        if (f.fieldType === FormFieldType.Date) {
+            return this.datePipe.transform(raw, "MM/dd/yyyy", "+0000") ?? String(raw);
+        }
         // Lookup fields hold an ID — show the label for readability.
         if (f.fieldType === FormFieldType.Select) {
             const options = f.selectOptions ?? this.lookupOptionsByKey[f.key] ?? [];
