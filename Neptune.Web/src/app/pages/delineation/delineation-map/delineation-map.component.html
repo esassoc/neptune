@@ -79,7 +79,7 @@
                                 @switch (mode) {
                                     @case ("editingDistributed") { Use the map tools to draw or edit the polygon, then save. }
                                     @case ("editingCentralized") { Loaded upstream catchment. Adjust vertices if needed, then save. }
-                                    @case ("editingLocation") { Click on the map to place the new BMP location, then save. }
+                                    @case ("editingLocation") { Drag the BMP marker or click anywhere on the map to relocate it, then Save. }
                                 }
                             </p>
                             <div class="inline-actions">
@@ -102,7 +102,13 @@
                         <stormwater-network-layer [displayOnLoad]="false" [map]="map" [layerControl]="layerControl" [sortOrder]="20"></stormwater-network-layer>
                         <jurisdictions-layer [mode]="OverlayMode.ReferenceOnly" [displayOnLoad]="true" [map]="map" [layerControl]="layerControl" [sortOrder]="30"></jurisdictions-layer>
                         <wqmps-layer [displayOnLoad]="false" [map]="map" [layerControl]="layerControl" [sortOrder]="40"></wqmps-layer>
-                        <delineations-layer [displayOnLoad]="true" [map]="map" [layerControl]="layerControl" [sortOrder]="50"></delineations-layer>
+                        <!-- NPT-981 r2: two separate layers so the layer-control surfaces both as
+                             toggleable overlays and the WMS / WFS filter is correctly per-status.
+                             (selected) on each layer emits the clicked DelineationID; the parent
+                             matches it to the local BMP cache to populate the side panel. -->
+                        <delineations-layer [delineationStatus]="'Verified'" [displayOnLoad]="true" [map]="map" [layerControl]="layerControl" [sortOrder]="50" (selected)="onDelineationSelected($event)"></delineations-layer>
+                        <delineations-layer [delineationStatus]="'Provisional'" [displayOnLoad]="false" [map]="map" [layerControl]="layerControl" [sortOrder]="51" (selected)="onDelineationSelected($event)"></delineations-layer>
+                        <parcels-layer [mode]="OverlayMode.ReferenceOnly" [displayOnLoad]="false" [map]="map" [layerControl]="layerControl" [sortOrder]="60"></parcels-layer>
                     }
                 </neptune-map>
             }
