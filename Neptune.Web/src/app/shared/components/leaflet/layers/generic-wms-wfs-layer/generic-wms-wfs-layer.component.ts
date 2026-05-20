@@ -74,6 +74,11 @@ export class GenericWmsWfsLayerComponent extends MapLayerBase implements OnChang
             if (this.legendHtml) {
                 (this.layer as any).legendHtml = this.legendHtml;
             }
+            // leaflet.groupedlayercontrol sorts overlays by layer.sortOrder. Without this,
+            // GenericWmsWfsLayer overlays land in unstable order; Copilot PR #518 flagged it.
+            if (this.sortOrder != null) {
+                (this.layer as any).sortOrder = this.sortOrder;
+            }
         }
         // Add to layerControl only once, after both layer and layerControl are available
         if (this.layer && this.layerControl && !this.overlayAddedToControl && this.addToLayerControl) {
