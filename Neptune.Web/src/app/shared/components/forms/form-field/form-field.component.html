@@ -50,7 +50,7 @@
                 <div class="field-label" [class.required]="formControl | isRequired">
                     <ng-container *ngTemplateOutlet="labelContent"></ng-container>
                 </div>
-                <textarea [placeholder]="placeholder" [formControl]="formControl" [name]="name"></textarea>
+                <textarea [placeholder]="placeholder" [formControl]="formControl" [name]="name" [attr.rows]="rows"></textarea>
             }
             <!-- RTE -->
             @case (FormFieldType.RTE) {

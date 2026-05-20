@@ -6,8 +6,8 @@
     </ng-template>
     <ng-template #templateRight>
         @if (collectionMethod() && derivedSpecID()) {
-            <button type="button" class="btn btn-secondary-outline" (click)="togglePreview()">
-                <i class="fa fa-eye"></i> {{ showPreview() ? "Hide Preview" : "Show Preview" }}
+            <button type="button" class="btn btn-secondary-outline" title="Preview what the Observation Type will look like in a Treatment BMP Assessment form" (click)="openPreview()">
+                <i class="fa fa-eye"></i> Preview
             </button>
         }
     </ng-template>
@@ -49,55 +49,41 @@
             </div>
 
             @if (collectionMethod() && derivedSpecID()) {
-                @if (showPreview()) {
-                    <div class="card mb-3">
-                        <div class="card-header"><span class="card-title">Schema Preview</span></div>
-                        <div class="card-body">
-                            <schema-preview
-                                [collectionMethod]="collectionMethod()"
-                                [passFailSchema]="passFailSchemaPreview()"
-                                [discreteSchema]="discreteSchemaPreview()"
-                                [percentageSchema]="percentageSchemaPreview()">
-                            </schema-preview>
-                        </div>
-                    </div>
-                } @else {
-                    <!-- Section 2: Data Collection Instructions -->
-                    <div class="card mb-3">
-                        <div class="card-header"><span class="card-title">Enter Data Collection Instructions</span></div>
-                        <div class="card-body">
-                            @switch (collectionMethod()) {
-                                @case ("PassFail") {
-                                    <pass-fail-schema-builder section="instructions" [formGroup]="passFailSchemaGroup"></pass-fail-schema-builder>
-                                }
-                                @case ("DiscreteValue") {
-                                    <discrete-schema-builder section="instructions" [formGroup]="discreteSchemaGroup"></discrete-schema-builder>
-                                }
-                                @case ("Percentage") {
-                                    <percentage-schema-builder section="instructions" [formGroup]="percentageSchemaGroup"></percentage-schema-builder>
-                                }
+                <!-- Section 2: Data Collection Instructions -->
+                <div class="card mb-3">
+                    <div class="card-header"><span class="card-title">Enter Data Collection Instructions</span></div>
+                    <div class="card-body">
+                        @switch (collectionMethod()) {
+                            @case ("PassFail") {
+                                <pass-fail-schema-builder section="instructions" [formGroup]="passFailSchemaGroup"></pass-fail-schema-builder>
                             }
-                        </div>
+                            @case ("DiscreteValue") {
+                                <discrete-schema-builder section="instructions" [formGroup]="discreteSchemaGroup"></discrete-schema-builder>
+                            }
+                            @case ("Percentage") {
+                                <percentage-schema-builder section="instructions" [formGroup]="percentageSchemaGroup"></percentage-schema-builder>
+                            }
+                        }
                     </div>
+                </div>
 
-                    <!-- Section 3: Labels and Units for Data Collection -->
-                    <div class="card mb-3">
-                        <div class="card-header"><span class="card-title">Enter Labels and Units for Data Collection</span></div>
-                        <div class="card-body">
-                            @switch (collectionMethod()) {
-                                @case ("PassFail") {
-                                    <pass-fail-schema-builder section="labelsUnits" [formGroup]="passFailSchemaGroup"></pass-fail-schema-builder>
-                                }
-                                @case ("DiscreteValue") {
-                                    <discrete-schema-builder section="labelsUnits" [formGroup]="discreteSchemaGroup"></discrete-schema-builder>
-                                }
-                                @case ("Percentage") {
-                                    <percentage-schema-builder section="labelsUnits" [formGroup]="percentageSchemaGroup"></percentage-schema-builder>
-                                }
+                <!-- Section 3: Labels and Units for Data Collection -->
+                <div class="card mb-3">
+                    <div class="card-header"><span class="card-title">Enter Labels and Units for Data Collection</span></div>
+                    <div class="card-body">
+                        @switch (collectionMethod()) {
+                            @case ("PassFail") {
+                                <pass-fail-schema-builder section="labelsUnits" [formGroup]="passFailSchemaGroup"></pass-fail-schema-builder>
                             }
-                        </div>
+                            @case ("DiscreteValue") {
+                                <discrete-schema-builder section="labelsUnits" [formGroup]="discreteSchemaGroup"></discrete-schema-builder>
+                            }
+                            @case ("Percentage") {
+                                <percentage-schema-builder section="labelsUnits" [formGroup]="percentageSchemaGroup"></percentage-schema-builder>
+                            }
+                        }
                     </div>
-                }
+                </div>
             } @else if (collectionMethod() && !derivedSpecID() && !isPassFail()) {
                 <p class="system-text mt-3">Select a Target Type and Threshold Type to configure the schema.</p>
             }
