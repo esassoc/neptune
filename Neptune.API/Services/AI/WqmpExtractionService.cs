@@ -11,6 +11,7 @@ using Anthropic.Exceptions;
 using Anthropic.Models.Beta.Messages;
 using BetaRole = Anthropic.Models.Beta.Messages.Role;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using Neptune.EFModels.Entities;
@@ -33,6 +34,7 @@ public class WqmpExtractionService
     private readonly IPromptTemplateService _promptTemplateService;
     private readonly ILogger<WqmpExtractionService> _logger;
     private readonly NeptuneConfiguration _configuration;
+    private readonly IHostEnvironment _environment;
 
     public WqmpExtractionService(
         AnthropicClient anthropic,
@@ -40,7 +42,8 @@ public class WqmpExtractionService
         NeptuneDbContext dbContext,
         IPromptTemplateService promptTemplateService,
         ILogger<WqmpExtractionService> logger,
-        IOptions<NeptuneConfiguration> configuration)
+        IOptions<NeptuneConfiguration> configuration,
+        IHostEnvironment environment)
     {
         _anthropic = anthropic;
         _anthropicFileService = anthropicFileService;
@@ -48,6 +51,7 @@ public class WqmpExtractionService
         _promptTemplateService = promptTemplateService;
         _logger = logger;
         _configuration = configuration.Value;
+        _environment = environment;
     }
 
     public async Task<WaterQualityManagementPlanDocumentExtractionResultDto> ExtractFromDocument(
@@ -301,25 +305,33 @@ public class WqmpExtractionService
                                 var windowStart = Math.Max(0, approxOffset - 200);
                                 var windowAround = approxOffset >= 0 ? Slice(innerJson, windowStart, 400) : "(no position)";
 
+                                // The /tmp dump is a dev-only diagnostic. WQMP content can include
+                                // facility addresses and contacts; QA/prod pods would also accumulate
+                                // dumps on a long-lived volume with no retention. Gating to
+                                // Development keeps the artifact useful for local repro without
+                                // leaking content or filling shared disk in deployed envs.
                                 string dumpPath = null;
-                                try
+                                if (_environment.IsDevelopment())
                                 {
-                                    dumpPath = Path.Combine(Path.GetTempPath(), $"wqmp-sc-extraction-failure-{DateTime.UtcNow:yyyyMMddHHmmss}-{Guid.NewGuid():N}.json");
-                                    File.WriteAllText(dumpPath, innerJson);
-                                }
-                                catch (Exception dumpEx)
-                                {
-                                    _logger.LogWarning(dumpEx, "Failed to write extraction-failure dump file");
+                                    try
+                                    {
+                                        dumpPath = Path.Combine(Path.GetTempPath(), $"wqmp-sc-extraction-failure-{DateTime.UtcNow:yyyyMMddHHmmss}-{Guid.NewGuid():N}.json");
+                                        File.WriteAllText(dumpPath, innerJson);
+                                    }
+                                    catch (Exception dumpEx)
+                                    {
+                                        _logger.LogWarning(dumpEx, "Failed to write extraction-failure dump file");
+                                    }
                                 }
 
                                 _logger.LogError(ex2,
                                     "Tool output `items` was a JSON-encoded string but failed to parse even after cleanup. " +
                                     "First error: {FirstErr}. Cleanup error: {CleanupErr}. Approx offset: {Offset} of {Len}. " +
                                     "Dump file: {DumpPath}. Head: {Head} | Window around error: {Window} | Tail: {Tail}",
-                                    ex.Message, ex2.Message, approxOffset, innerJson.Length, dumpPath,
-                                    Slice(innerJson, 0, 1000),
+                                    ex.Message, ex2.Message, approxOffset, innerJson.Length, dumpPath ?? "(disabled)",
+                                    Slice(innerJson, 0, 400),
                                     windowAround,
-                                    Slice(innerJson, Math.Max(0, innerJson.Length - 1000), 1000));
+                                    Slice(innerJson, Math.Max(0, innerJson.Length - 400), 400));
                                 return ("[]", true);
                             }
                         }

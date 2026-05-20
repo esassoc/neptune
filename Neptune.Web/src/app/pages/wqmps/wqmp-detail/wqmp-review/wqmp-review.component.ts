@@ -33,7 +33,7 @@ import { WaterQualityManagementPlanDevelopmentTypesAsSelectDropdownOptions } fro
 import { WaterQualityManagementPlanLandUsesAsSelectDropdownOptions } from "src/app/shared/generated/enum/water-quality-management-plan-land-use-enum";
 import { WaterQualityManagementPlanPermitTermsAsSelectDropdownOptions } from "src/app/shared/generated/enum/water-quality-management-plan-permit-term-enum";
 import { HydromodificationAppliesTypesAsSelectDropdownOptions } from "src/app/shared/generated/enum/hydromodification-applies-type-enum";
-import { TrashCaptureStatusTypesAsSelectDropdownOptions } from "src/app/shared/generated/enum/trash-capture-status-type-enum";
+import { TrashCaptureStatusTypeEnum, TrashCaptureStatusTypesAsSelectDropdownOptions } from "src/app/shared/generated/enum/trash-capture-status-type-enum";
 import { US_STATES } from "src/app/shared/constants/us-states";
 import {
     PDF_EXTRACTION_FAILURE_HINT,
@@ -228,10 +228,10 @@ export class WqmpReviewComponent implements OnInit, IDeactivateComponent {
         "MaintenanceContactAddress1", "MaintenanceContactAddress2", "MaintenanceContactCity", "MaintenanceContactState", "MaintenanceContactZip",
     ];
 
-    // NPT-1054: TrashCaptureStatusTypeID = 2 is "Partial (>5mm but less than full sizing)".
-    // TrashCaptureEffectiveness is only collected when the status is Partial; for any other
-    // status the field locks read-only and the saved value is forced to null.
-    private static readonly PARTIAL_TRASH_CAPTURE_STATUS_ID = 2;
+    // NPT-1054: TrashCaptureEffectiveness is only collected when status is Partial; for any
+    // other status the field locks read-only and the saved value is forced to null. Aliased
+    // to the generated enum so a future renumber of the lookup table doesn't drift this code.
+    private static readonly PARTIAL_TRASH_CAPTURE_STATUS_ID = TrashCaptureStatusTypeEnum.Partial;
 
     private fieldLabels: Record<string, string> = {
         WaterQualityManagementPlanName: "WQMP Name",
@@ -1408,6 +1408,25 @@ export class WqmpReviewComponent implements OnInit, IDeactivateComponent {
                 : field.value;
             const v = this.normalizeOverlayValue(raw);
 
+            // Trash Capture Effectiveness must run BEFORE the null-skip below: when status
+            // flips away from Partial the field goes pending+null, which would otherwise
+            // hit `v == null && state !== "edited" → continue` and leave the seeded stale
+            // percentage on the dto. Handle the force-null case here and skip explicitly.
+            if (key === "TrashCaptureEffectiveness") {
+                const statusID = this.getCurrentTrashCaptureStatusID(this.fields())
+                    ?? dto.TrashCaptureStatusTypeID
+                    ?? null;
+                if (statusID !== WqmpReviewComponent.PARTIAL_TRASH_CAPTURE_STATUS_ID) {
+                    dto.TrashCaptureEffectiveness = null;
+                } else if (v == null) {
+                    dto.TrashCaptureEffectiveness = null;
+                } else {
+                    const n = parseInt(v, 10);
+                    if (!isNaN(n)) dto.TrashCaptureEffectiveness = n;
+                }
+                continue;
+            }
+
             // Tester feedback (Kathleen): don't overwrite user-entered data with nothing. If the
             // AI didn't extract a value and the reviewer hasn't typed one in (state=pending or
             // accepted with no value), leave the seeded live value alone. The reviewer can
@@ -1445,23 +1464,6 @@ export class WqmpReviewComponent implements OnInit, IDeactivateComponent {
 
             if (key === "ApprovalDate" || key === "DateOfConstruction") {
                 dto[key] = v;
-                continue;
-            }
-
-            if (key === "TrashCaptureEffectiveness") {
-                // Force null when status isn't Partial so flipping the status away from
-                // Partial wipes a stale percentage rather than leaving the old number behind.
-                const statusID = this.getCurrentTrashCaptureStatusID(this.fields())
-                    ?? dto.TrashCaptureStatusTypeID
-                    ?? null;
-                if (statusID !== WqmpReviewComponent.PARTIAL_TRASH_CAPTURE_STATUS_ID) {
-                    dto.TrashCaptureEffectiveness = null;
-                } else if (v == null) {
-                    dto.TrashCaptureEffectiveness = null;
-                } else {
-                    const n = parseInt(v, 10);
-                    if (!isNaN(n)) dto.TrashCaptureEffectiveness = n;
-                }
                 continue;
             }
         }
