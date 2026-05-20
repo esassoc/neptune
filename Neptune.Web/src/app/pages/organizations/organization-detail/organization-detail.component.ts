@@ -29,9 +29,10 @@ interface OrganizationDetailViewModel {
  * NPT-999: Organization Detail page mirroring the legacy MVC Organization/Detail view.
  *
  * Composes three focused endpoints (basics, funding sources, users) via forkJoin rather than
- * one super-DTO so each panel loads independently and the endpoints stay reusable. Reload$ is
- * a BehaviorSubject so the Edit modal's success path can re-pull every panel without rebuilding
- * the component.
+ * one super-DTO. The benefit isn't independent panel loading (forkJoin waits for every request
+ * to complete before emitting); it's that each endpoint stays narrow and reusable elsewhere,
+ * and each can be permission-scoped on its own. Reload$ is a BehaviorSubject so the Edit
+ * modal's success path re-pulls every panel without rebuilding the component.
  */
 @Component({
     selector: "organization-detail",

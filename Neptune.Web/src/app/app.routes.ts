@@ -377,10 +377,11 @@ export const routes: Routes = [
                 loadComponent: () => import("./pages/organizations/organizations.component").then((m) => m.OrganizationsComponent),
             },
             {
-                // NPT-999: org detail page. Backend GET is AdminFeature-only, so non-admin
-                // viewers are caught by the component's 403 handler and redirected to /users.
-                // Linked from the User Detail page's Role / Organization and Primary Contact
-                // Organizations sections (admin viewers only).
+                // NPT-999: org detail page. Backend GET is UserViewFeature (any authenticated
+                // user — matches the legacy MVC OrganizationViewFeature). The component's 403
+                // handler redirects to /organizations if a future tightening ever blocks a
+                // viewer. Linked from the User Detail page's Role / Organization and Primary
+                // Contact Organizations sections, plus several grids and the FS detail page.
                 path: `organizations/:${routeParams.organizationID}`,
                 title: "Organization Detail",
                 loadComponent: () => import("./pages/organizations/organization-detail/organization-detail.component").then((m) => m.OrganizationDetailComponent),

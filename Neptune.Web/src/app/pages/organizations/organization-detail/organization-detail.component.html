@@ -1,4 +1,6 @@
-@if (viewModel$ | async; as vm) {
+@let vm = viewModel$ | async;
+@if (vm) {
+
     <page-header [pageTitle]="vm.organization.OrganizationName ?? ''" [templateAbove]="templateAbove">
         <ng-template #templateAbove>
             <div class="back">
@@ -131,5 +133,13 @@
                 </div>
             </div>
         </div>
+    </div>
+} @else if (vm === null) {
+    <!-- viewModel$ emitted null — the basics endpoint hit a non-403 error or returned null. 403s
+         redirect to the list via the catchError in the component, so this path is the "load
+         failed / not found" surface. (Undefined vm means the observable hasn't emitted yet —
+         the implicit empty render during that brief window is fine.) -->
+    <div class="alert alert-warning">
+        <span>Organization not found. <a [routerLink]="['/organizations']">Return to Organizations list</a>.</span>
     </div>
 }

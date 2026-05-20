@@ -1,4 +1,5 @@
-@if (viewModel$ | async; as vm) {
+@let vm = viewModel$ | async;
+@if (vm) {
     <page-header [pageTitle]="vm.fundingSource.FundingSourceName ?? ''" [templateAbove]="templateAbove">
         <ng-template #templateAbove>
             <div class="back">
@@ -87,5 +88,11 @@
                 </div>
             </div>
         </div>
+    </div>
+} @else if (vm === null) {
+    <!-- viewModel$ emitted null — the basics endpoint failed (non-403; 403 redirects to the
+         list from the catchError in the component) or no funding source matches the route ID. -->
+    <div class="alert alert-warning">
+        <span>Funding source not found. <a [routerLink]="['/funding-sources']">Return to Funding Sources list</a>.</span>
     </div>
 }

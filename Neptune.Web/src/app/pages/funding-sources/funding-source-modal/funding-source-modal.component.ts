@@ -37,18 +37,19 @@ export class FundingSourceModalComponent implements OnInit {
     ngOnInit(): void {
         this.alertService.clearAlerts();
         this.mode = this.ref.data.mode;
-        // Patch in any pre-fill the caller supplied, regardless of mode. Edit mode passes the
-        // full FundingSourceDto for the row being edited; add mode may pass a partial seed
-        // (e.g. { OrganizationID } from the org-detail page's "Add Funding Source" icon —
-        // NPT-999 round 2). patchValue ignores undefined keys, so partial seeds are safe.
+        // Patch in any pre-fill the caller supplied. Edit mode passes the full FundingSourceDto;
+        // add mode may pass a partial seed (e.g. { OrganizationID } from the org-detail page's
+        // "Add Funding Source" icon — NPT-999 round 2). Build the patch from defined fields only
+        // so an undefined property doesn't clobber the form's default value (notably IsActive,
+        // which defaults to true above for add mode — Copilot PR #517 review feedback).
         const seed = this.ref.data.fundingSource;
         if (seed) {
-            this.formGroup.patchValue({
-                OrganizationID: seed.OrganizationID,
-                FundingSourceName: seed.FundingSourceName,
-                IsActive: seed.IsActive,
-                FundingSourceDescription: seed.FundingSourceDescription,
-            });
+            const patch: Partial<{ OrganizationID: number; FundingSourceName: string; IsActive: boolean; FundingSourceDescription: string }> = {};
+            if (seed.OrganizationID !== undefined) patch.OrganizationID = seed.OrganizationID;
+            if (seed.FundingSourceName !== undefined) patch.FundingSourceName = seed.FundingSourceName;
+            if (seed.IsActive !== undefined) patch.IsActive = seed.IsActive;
+            if (seed.FundingSourceDescription !== undefined) patch.FundingSourceDescription = seed.FundingSourceDescription;
+            this.formGroup.patchValue(patch);
         }
         this.organizationOptions$ = this.organizationService.listOrganization().pipe(
             map((orgs) => orgs.map((org) => ({ Label: org.OrganizationName, Value: org.OrganizationID })))
