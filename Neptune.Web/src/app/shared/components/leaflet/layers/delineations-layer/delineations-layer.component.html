@@ -1,12 +1,14 @@
-<ng-template #layerName>
-    <span>Delineations ({{ delineationStatus }})</span>
-</ng-template>
-<ng-template #legend>
-    <p>
-        @if (delineationStatus === "Verified") {
-            <img src="./assets/main/map-legend-images/delineationVerified.png" style="margin-bottom: 3px" />
-        } @else {
-            <img src="./assets/main/map-legend-images/delineationProvisional.png" style="margin-bottom: 3px" />
-        }
-    </p>
-</ng-template>
+<generic-wms-wfs-layer
+    [map]="map"
+    [layerControl]="layerControl"
+    [interactive]="true"
+    [displayOnLoad]="displayOnLoad"
+    [cqlFilter]="cqlFilter"
+    [wmsLayerName]="WMS_LAYER_NAME"
+    [wmsStyle]="WMS_STYLE"
+    [wfsFeatureType]="WFS_FEATURE_TYPE"
+    [identifierProperty]="IDENTIFIER_PROPERTY"
+    [overlayLabel]="overlayLabel"
+    [legendHtml]="legendHtml"
+    (selected)="selected.emit($event)">
+</generic-wms-wfs-layer>

@@ -31,6 +31,13 @@ export class GenericWmsWfsLayerComponent extends MapLayerBase implements OnChang
         fillOpacity: 0.1,
     };
     @Input() cqlFilter: string = "1=1";
+    /** Optional pre-rendered legend HTML (e.g. a static `<img>` swatch from
+     *  `/assets/main/map-legend-images/`). When provided, applied to the WMS layer as
+     *  `layer.legendHtml` so `neptune-map.createLegendItems` uses this HTML instead of
+     *  Geoserver's auto-generated `GetLegendGraphic`. Lets wrappers like delineations-layer
+     *  hand-craft legend swatches and bypass Geoserver SLD rules that include unwanted
+     *  variants (e.g. WQMP Boundary) or status-suffixed labels. */
+    @Input() legendHtml?: string;
     @Input() addToLayerControl: boolean = true;
     @Input() fitBoundsOnSelect: boolean = true;
     @Output() selected = new EventEmitter<number>();
@@ -61,6 +68,12 @@ export class GenericWmsWfsLayerComponent extends MapLayerBase implements OnChang
                 maxZoom: 22,
             } as any;
             this.layer = L.tileLayer.wms(environment.geoserverMapServiceUrl + "/wms?", wmsOptions);
+            // neptune-map.createLegendItems reads layer.legendHtml first and falls back to
+            // Geoserver GetLegendGraphic; setting it here lets wrappers ship a pre-rendered
+            // legend swatch (see DelineationsLayerComponent).
+            if (this.legendHtml) {
+                (this.layer as any).legendHtml = this.legendHtml;
+            }
         }
         // Add to layerControl only once, after both layer and layerControl are available
         if (this.layer && this.layerControl && !this.overlayAddedToControl && this.addToLayerControl) {

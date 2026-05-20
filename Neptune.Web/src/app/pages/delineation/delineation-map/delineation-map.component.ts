@@ -32,6 +32,7 @@ import { DelineationsLayerComponent } from "src/app/shared/components/leaflet/la
 import { JurisdictionsLayerComponent } from "src/app/shared/components/leaflet/layers/jurisdictions-layer/jurisdictions-layer.component";
 import { WqmpsLayerComponent } from "src/app/shared/components/leaflet/layers/wqmps-layer/wqmps-layer.component";
 import { StormwaterNetworkLayerComponent } from "src/app/shared/components/leaflet/layers/stormwater-network-layer/stormwater-network-layer.component";
+import { ParcelsLayerComponent } from "src/app/shared/components/leaflet/layers/parcels-layer/parcels-layer.component";
 import { OverlayMode } from "src/app/shared/components/leaflet/layers/generic-wms-wfs-layer/overlay-mode.enum";
 
 import { PageHeaderComponent } from "src/app/shared/components/page-header/page-header.component";
@@ -56,6 +57,7 @@ type EditMode = "idle" | "editingDistributed" | "editingCentralized" | "editingL
         JurisdictionsLayerComponent,
         WqmpsLayerComponent,
         StormwaterNetworkLayerComponent,
+        ParcelsLayerComponent,
         PageHeaderComponent,
         AlertDisplayComponent,
         IconComponent,
@@ -204,6 +206,23 @@ export class DelineationMapComponent implements OnInit {
         this.map.addLayer(this.bmpsClusterLayer);
     }
 
+    /**
+     * NPT-981 r2: handler for the delineations-layer (selected) event. The WMS GetFeatureInfo
+     * response from Geoserver returns features in draw order, so features[0] is the topmost —
+     * generic-wms-wfs-layer already emits that one ID. Match it against the local BMP cache
+     * (every TreatmentBMPDelineationMapDto carries its DelineationID); if the BMP is in the
+     * cache, select it via the existing selectBMP flow so the side panel populates. BMPs
+     * outside the user's jurisdiction won't be in the cache — clicking such a delineation is
+     * a no-op (the verified-delineation layer is visible to everyone but write actions are
+     * already permission-gated on the API).
+     */
+    public onDelineationSelected(delineationID: number): void {
+        const bmp = this.bmps.find((b) => b.DelineationID === delineationID);
+        if (bmp) {
+            this.selectBMP(bmp);
+        }
+    }
+
     public selectBMP(bmp: TreatmentBMPDelineationMapDto): void {
         this.cancelEdit();
         this.selectedBMP.set(bmp);
@@ -348,29 +367,55 @@ export class DelineationMapComponent implements OnInit {
     }
 
     public startEditLocation(): void {
-        if (!this.selectedBMP()) {
+        const bmp = this.selectedBMP();
+        if (!bmp) {
             return;
         }
         this.cancelEdit();
         this.editMode.set("editingLocation");
         this.pendingLocation = null;
-        const el = document.querySelector(".leaflet-interactive") as HTMLElement | null;
-        if (el) {
-            el.style.cursor = "crosshair";
+
+        // NPT-981 r2: cursor goes on the map container (not the .leaflet-interactive SVG
+        // overlay) so the crosshair is visible everywhere the user might click — matches
+        // Jamie's OVTA assessment-point pattern.
+        this.map.getContainer().style.cursor = "crosshair";
+
+        // NPT-981 r2: enable drag on the selected BMP marker so the user can drag it OR
+        // click somewhere new — either feeds the same handleLocationChange path.
+        const marker = this.bmpMarkerByID.get(bmp.TreatmentBMPID);
+        if (marker) {
+            marker.dragging?.enable();
+            marker.on("dragend", this.onMarkerDragEnd);
         }
     }
+
+    /** Bound reference so we can off() it cleanly on cancel — instance method would lose
+     *  this-binding when passed to off() unless we wrap it. Defined as a property to keep
+     *  the same Function identity across enable/disable cycles. */
+    private onMarkerDragEnd = (event: any): void => {
+        const latLng = event.target.getLatLng();
+        this.handleLocationChange(latLng);
+    };
 
     private attachMapClickForLocation(): void {
         this.map.on("click", (event: L.LeafletMouseEvent) => {
             if (this.editMode() !== "editingLocation") {
                 return;
             }
-            this.pendingLocation = { lat: event.latlng.lat, lng: event.latlng.lng };
-            if (this.locationPreviewMarker) {
-                this.map.removeLayer(this.locationPreviewMarker);
-            }
-            this.locationPreviewMarker = L.marker(event.latlng, { icon: MarkerHelper.selectedMarker, zIndexOffset: 11000 }).addTo(this.map);
+            this.handleLocationChange(event.latlng);
         });
+    }
+
+    /** NPT-981 r2: shared handler for both drag-end and map-click during Edit BMP Location.
+     *  Updates the pending location signal and moves a preview marker so the user can see
+     *  where the BMP would land before saving. */
+    private handleLocationChange(latLng: L.LatLng): void {
+        this.pendingLocation = { lat: latLng.lat, lng: latLng.lng };
+        if (this.locationPreviewMarker) {
+            this.locationPreviewMarker.setLatLng(latLng);
+        } else {
+            this.locationPreviewMarker = L.marker(latLng, { icon: MarkerHelper.selectedMarker, zIndexOffset: 11000 }).addTo(this.map);
+        }
     }
 
     private attachGeomanHandlers(): void {
@@ -466,9 +511,19 @@ export class DelineationMapComponent implements OnInit {
             this.locationPreviewMarker = null;
         }
         this.pendingLocation = null;
-        const el = document.querySelector(".leaflet-interactive") as HTMLElement | null;
-        if (el) {
-            el.style.cursor = "";
+
+        // NPT-981 r2: restore the map container's cursor and disable + unbind the marker's
+        // drag handler so the selected BMP marker doesn't stay draggable after Save/Cancel.
+        if (this.map) {
+            this.map.getContainer().style.cursor = "";
+        }
+        const bmp = this.selectedBMP();
+        if (bmp) {
+            const marker = this.bmpMarkerByID.get(bmp.TreatmentBMPID);
+            if (marker) {
+                marker.dragging?.disable();
+                marker.off("dragend", this.onMarkerDragEnd);
+            }
         }
     }
 
