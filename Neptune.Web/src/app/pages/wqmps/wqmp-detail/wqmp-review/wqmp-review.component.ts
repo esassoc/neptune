@@ -62,6 +62,9 @@ export interface ExtractedField {
     // True when the value came from the user (upload modal), not the AI. Drives the
     // "User-entered" origin pill and suppresses AI evidence styling.
     isUserEntered?: boolean;
+    // NPT-1054: read-only fields hide the Accept/Edit/Reject buttons in field-card.
+    // Currently used by TrashCaptureEffectiveness when TrashCaptureStatus !== Partial.
+    readOnly?: boolean;
 }
 
 @Component({
@@ -220,10 +223,15 @@ export class WqmpReviewComponent implements OnInit, IDeactivateComponent {
     private basicsFields = [
         "WaterQualityManagementPlanName", "WaterQualityManagementPlanPriority", "WaterQualityManagementPlanDevelopmentType",
         "WaterQualityManagementPlanLandUse", "WaterQualityManagementPlanPermitTerm", "ApprovalDate", "DateOfConstruction",
-        "HydromodificationAppliesType", "RecordNumber", "TrashCaptureStatusType",
+        "HydromodificationAppliesType", "RecordNumber", "TrashCaptureStatusType", "TrashCaptureEffectiveness",
         "MaintenanceContactName", "MaintenanceContactOrganization", "MaintenanceContactPhone",
         "MaintenanceContactAddress1", "MaintenanceContactAddress2", "MaintenanceContactCity", "MaintenanceContactState", "MaintenanceContactZip",
     ];
+
+    // NPT-1054: TrashCaptureStatusTypeID = 2 is "Partial (>5mm but less than full sizing)".
+    // TrashCaptureEffectiveness is only collected when the status is Partial; for any other
+    // status the field locks read-only and the saved value is forced to null.
+    private static readonly PARTIAL_TRASH_CAPTURE_STATUS_ID = 2;
 
     private fieldLabels: Record<string, string> = {
         WaterQualityManagementPlanName: "WQMP Name",
@@ -239,6 +247,7 @@ export class WqmpReviewComponent implements OnInit, IDeactivateComponent {
         HydromodificationAppliesType: "Hydromodification Applies",
         RecordNumber: "Record Number",
         TrashCaptureStatusType: "Trash Capture Status",
+        TrashCaptureEffectiveness: "Trash Capture Effectiveness (%)",
         MaintenanceContactName: "Maintenance Contact Name",
         MaintenanceContactOrganization: "Maintenance Contact Organization",
         MaintenanceContactPhone: "Maintenance Contact Phone",
@@ -614,23 +623,26 @@ export class WqmpReviewComponent implements OnInit, IDeactivateComponent {
     }
 
     /** Used by ReviewSummary input — flatten the FormArray to read-only rows for the summary. */
-    get summarySourceControlRows(): { categoryName: string; attributeName: string; isPresent: boolean | null; note: string; hasEvidence: boolean; wqmpRecordValue: string | null }[] {
+    get summarySourceControlRows(): { categoryName: string; attributeName: string; isPresent: boolean | null; note: string; origin: "ai" | "record" | "edited" | "blank"; wqmpRecordValue: string | null }[] {
         // Emit every attribute row — the child summary renders unset rows as "(not set)" so
         // all three categories still appear (collapsed) even when AI extracted nothing and
         // the user hasn't touched Step 4. Keeps the Review structure stable.
-        const out: { categoryName: string; attributeName: string; isPresent: boolean | null; note: string; hasEvidence: boolean; wqmpRecordValue: string | null }[] = [];
+        const out: { categoryName: string; attributeName: string; isPresent: boolean | null; note: string; origin: "ai" | "record" | "edited" | "blank"; wqmpRecordValue: string | null }[] = [];
         for (const row of this.sourceControlRows.controls) {
             const isPresent = row.get("IsPresent")!.value as boolean | null;
             const note = ((row.get("SourceControlBMPNote")!.value as string) ?? "").trim();
             const attrID = row.get("SourceControlBMPAttributeID")!.value as number;
             const saved = this.existingSourceControlByAttributeID.get(attrID);
             const savedDisplay = this.formatSavedSourceControlValue(saved);
+            // Reuse Step 4's origin classifier so the Review's AI pill only fires when the
+            // displayed value actually came from the AI extraction — not when the user accepted
+            // a value that was already on the WQMP record. Mirrors getSourceControlRowOrigin().
             out.push({
                 categoryName: row.get("SourceControlBMPAttributeCategoryName")!.value as string,
                 attributeName: row.get("SourceControlBMPAttributeName")!.value as string,
                 isPresent,
                 note,
-                hasEvidence: this.sourceControlIsPresentEvidence.has(attrID) || this.sourceControlNoteEvidence.has(attrID),
+                origin: this.getSourceControlRowOrigin(row),
                 wqmpRecordValue: savedDisplay,
             });
         }
@@ -1088,19 +1100,40 @@ export class WqmpReviewComponent implements OnInit, IDeactivateComponent {
     onFieldAccepted(field: ExtractedField, value: string | null): void {
         field.state = "accepted";
         field.acceptedValue = value;
+        if (field.key === "TrashCaptureStatusType") this.syncTrashCaptureEffectivenessReadOnly();
         this.fields.update((f) => [...f]);
     }
 
     onFieldEdited(field: ExtractedField, value: string): void {
         field.state = "edited";
         field.acceptedValue = value;
+        if (field.key === "TrashCaptureStatusType") this.syncTrashCaptureEffectivenessReadOnly();
         this.fields.update((f) => [...f]);
     }
 
     onFieldRejected(field: ExtractedField): void {
         field.state = "rejected";
         field.acceptedValue = null;
+        if (field.key === "TrashCaptureStatusType") this.syncTrashCaptureEffectivenessReadOnly();
         this.fields.update((f) => [...f]);
+    }
+
+    /** NPT-1054: flip TrashCaptureEffectiveness between editable and read-only whenever the
+     *  Trash Capture Status changes. Clears the saved value when locking — matches legacy MVC,
+     *  where a non-Partial status nulls the percentage on save. */
+    private syncTrashCaptureEffectivenessReadOnly(): void {
+        const all = this.fields();
+        const tceField = all.find((f) => f.key === "TrashCaptureEffectiveness");
+        if (!tceField) return;
+        const partial = WqmpReviewComponent.PARTIAL_TRASH_CAPTURE_STATUS_ID;
+        const status = this.getCurrentTrashCaptureStatusID(all);
+        const isPartial = status === partial;
+        tceField.readOnly = !isPartial;
+        if (!isPartial) {
+            tceField.value = null;
+            tceField.acceptedValue = null;
+            tceField.state = "pending";
+        }
     }
 
     // NPT-1047: BmpReviewCard emits per-field events keyed by string. Bridge them into
@@ -1414,6 +1447,23 @@ export class WqmpReviewComponent implements OnInit, IDeactivateComponent {
                 dto[key] = v;
                 continue;
             }
+
+            if (key === "TrashCaptureEffectiveness") {
+                // Force null when status isn't Partial so flipping the status away from
+                // Partial wipes a stale percentage rather than leaving the old number behind.
+                const statusID = this.getCurrentTrashCaptureStatusID(this.fields())
+                    ?? dto.TrashCaptureStatusTypeID
+                    ?? null;
+                if (statusID !== WqmpReviewComponent.PARTIAL_TRASH_CAPTURE_STATUS_ID) {
+                    dto.TrashCaptureEffectiveness = null;
+                } else if (v == null) {
+                    dto.TrashCaptureEffectiveness = null;
+                } else {
+                    const n = parseInt(v, 10);
+                    if (!isNaN(n)) dto.TrashCaptureEffectiveness = n;
+                }
+                continue;
+            }
         }
 
         return dto as WaterQualityManagementPlanUpsertDto;
@@ -1518,6 +1568,12 @@ export class WqmpReviewComponent implements OnInit, IDeactivateComponent {
             const dd = String(d.getUTCDate()).padStart(2, "0");
             const yyyy = d.getUTCFullYear();
             return `${mm}/${dd}/${yyyy}`;
+        }
+        if (field.key === "TrashCaptureEffectiveness") {
+            // Suffix the saved percentage so the Step 5 row reads "75%" instead of bare "75".
+            // When the WQMP status isn't Partial the persisted value is null; getWqmpFieldValueForRow
+            // returns null for null/empty above, so no special handling is needed here.
+            return `${raw}%`;
         }
         return String(raw);
     }
@@ -1742,6 +1798,11 @@ export class WqmpReviewComponent implements OnInit, IDeactivateComponent {
                 }
             }
 
+            // NPT-1054: TrashCaptureEffectiveness has no AI source — seed from the live WQMP
+            // and toggle readOnly based on the current TrashCaptureStatus. Mirrors the legacy
+            // MVC behavior: editable only when status = Partial; saved as null otherwise.
+            this.seedTrashCaptureEffectivenessField(allFields);
+
             this.fields.set(allFields);
         } catch {
             this.fields.set([]);
@@ -1791,6 +1852,12 @@ export class WqmpReviewComponent implements OnInit, IDeactivateComponent {
             }
         } else if (key === "RecordedWQMPAreaInAcres") {
             fieldType = FormFieldType.Number;
+        } else if (key === "TrashCaptureEffectiveness") {
+            // AI extraction doesn't produce this; it's a manual percentage the user enters when
+            // TrashCaptureStatus = Partial. The post-build pass in parseExtractionResult marks
+            // the field as user-entered, seeds it from the live WQMP, and toggles readOnly
+            // based on the current TrashCaptureStatus.
+            fieldType = FormFieldType.Number;
         } else if (key === "MaintenanceContactPhone") {
             // Format any raw 10-digit AI capture as (NNN) NNN-NNNN for display; mask enforces
             // it on user edits too.
@@ -1839,5 +1906,39 @@ export class WqmpReviewComponent implements OnInit, IDeactivateComponent {
         if (evidence && source) return "high";
         if (evidence || source) return "medium";
         return "low";
+    }
+
+    /** NPT-1054: hydrate the TrashCaptureEffectiveness field from the live WQMP and lock it
+     *  read-only when Trash Capture Status isn't Partial. Called in-place on the post-parse
+     *  field array so makeField stays generic. */
+    private seedTrashCaptureEffectivenessField(allFields: ExtractedField[]): void {
+        const tceField = allFields.find((f) => f.key === "TrashCaptureEffectiveness");
+        if (!tceField) return;
+        const wqmp = this.liveWqmp();
+        const partial = WqmpReviewComponent.PARTIAL_TRASH_CAPTURE_STATUS_ID;
+        const status = this.getCurrentTrashCaptureStatusID(allFields) ?? wqmp?.TrashCaptureStatusTypeID ?? null;
+        const isPartial = status === partial;
+        const existingValue = wqmp?.TrashCaptureEffectiveness != null ? String(wqmp.TrashCaptureEffectiveness) : null;
+        tceField.value = isPartial ? existingValue : null;
+        tceField.acceptedValue = isPartial ? existingValue : null;
+        tceField.state = "pending";
+        tceField.isUserEntered = true;
+        tceField.readOnly = !isPartial;
+        tceField.evidence = null;
+        tceField.source = null;
+        tceField.boundingBox = null;
+        tceField.confidence = "none";
+    }
+
+    /** Latest in-wizard TrashCaptureStatusTypeID — prefers the reviewer's pending edit over
+     *  the live WQMP value so the TCE field flips read-only mid-session when the status
+     *  changes. Returns null if the status field is missing or unset. */
+    private getCurrentTrashCaptureStatusID(allFields: ExtractedField[]): number | null {
+        const statusField = allFields.find((f) => f.key === "TrashCaptureStatusType");
+        if (!statusField) return null;
+        const raw = statusField.acceptedValue ?? statusField.value;
+        if (raw == null || raw === "") return null;
+        const n = Number(raw);
+        return Number.isFinite(n) ? n : null;
     }
 }
