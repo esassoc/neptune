@@ -52,6 +52,13 @@ export class UserDetailComponent implements OnInit {
         return !!u && (u.RoleID === RoleEnum.Admin || u.RoleID === RoleEnum.SitkaAdmin);
     });
 
+    /** KE 5/20/26: the viewed user (not the viewer) — Admin / SitkaAdmin users implicitly
+     *  manage every jurisdiction, so the Assigned Jurisdictions panel renders a stub
+     *  message and suppresses the Edit pencil for those role IDs. */
+    public isDetailUserAdmin(detail: PersonDetailDto): boolean {
+        return detail.RoleID === RoleEnum.Admin || detail.RoleID === RoleEnum.SitkaAdmin;
+    }
+
     public isWorking = signal(false);
 
     ngOnInit(): void {
@@ -73,7 +80,10 @@ export class UserDetailComponent implements OnInit {
             catchError((err) => {
                 if (err?.status === 403) {
                     this.alertService.pushAlert(new Alert("You don't have permission to view that user's profile.", AlertContext.Danger, true));
-                    this.router.navigate(["/users"]);
+                    // NPT-999 r3 (Copilot PR #519): /users is now ManagerOnlyGuard-protected.
+                    // Non-admin viewers redirected there would bounce to / via the guard, firing
+                    // a second unauthorized alert. Send admins to the list and everyone else home.
+                    this.router.navigate([this.isAdmin() ? "/users" : "/"]);
                 }
                 return of(null as unknown as PersonDetailDto);
             }),
