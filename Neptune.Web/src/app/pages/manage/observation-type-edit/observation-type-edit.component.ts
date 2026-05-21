@@ -1,6 +1,7 @@
 import { Component, computed, inject, Input, OnInit, signal } from "@angular/core";
 import { Router, RouterLink } from "@angular/router";
 import { FormControl, FormGroup, ReactiveFormsModule, Validators } from "@angular/forms";
+import { DialogService } from "@ngneat/dialog";
 import { PageHeaderComponent } from "src/app/shared/components/page-header/page-header.component";
 import { AlertDisplayComponent } from "src/app/shared/components/alert-display/alert-display.component";
 import { FormFieldComponent, FormFieldType, SelectDropdownOption } from "src/app/shared/components/forms/form-field/form-field.component";
@@ -18,7 +19,10 @@ import {
     DiscreteValueSchema, PassFailSchema, PercentageSchema,
     emptyDiscreteValueSchema, emptyPassFailSchema, emptyPercentageSchema,
 } from "src/app/shared/observation-types/schema-types";
-import { SchemaPreviewComponent } from "src/app/shared/observation-types/schema-preview.component";
+import {
+    ObservationTypePreviewModalComponent,
+    ObservationTypePreviewModalData,
+} from "src/app/shared/observation-types/observation-type-preview-modal.component";
 import { PassFailSchemaBuilderComponent, PassFailSchemaFormGroup, buildPassFailSchemaFormGroup } from "./schema-builders/pass-fail-schema-builder.component";
 import { DiscreteSchemaBuilderComponent, DiscreteSchemaFormGroup, buildDiscreteSchemaFormGroup } from "./schema-builders/discrete-schema-builder.component";
 import { PercentageSchemaBuilderComponent, PercentageSchemaFormGroup, buildPercentageSchemaFormGroup } from "./schema-builders/percentage-schema-builder.component";
@@ -39,7 +43,6 @@ import { PercentageSchemaBuilderComponent, PercentageSchemaFormGroup, buildPerce
     imports: [
         RouterLink, ReactiveFormsModule, PageHeaderComponent, AlertDisplayComponent, FormFieldComponent,
         PassFailSchemaBuilderComponent, DiscreteSchemaBuilderComponent, PercentageSchemaBuilderComponent,
-        SchemaPreviewComponent,
     ],
     templateUrl: "./observation-type-edit.component.html",
     styleUrl: "./observation-type-edit.component.scss",
@@ -50,12 +53,12 @@ export class ObservationTypeEditComponent implements OnInit {
     private observationTypeService = inject(TreatmentBMPAssessmentObservationTypeService);
     private alertService = inject(AlertService);
     private router = inject(Router);
+    private dialogService = inject(DialogService);
 
     public FormFieldType = FormFieldType;
     public isEdit = false;
     public isLoading = signal(false);
     public isSaving = signal(false);
-    public showPreview = signal(false);
 
     public formGroup = new FormGroup({
         TreatmentBMPAssessmentObservationTypeName: new FormControl<string>("", { validators: [Validators.required, Validators.maxLength(100)], nonNullable: true }),
@@ -233,18 +236,18 @@ export class ObservationTypeEditComponent implements OnInit {
         this.router.navigate(["/manage/observation-types"]);
     }
 
-    togglePreview(): void {
-        this.showPreview.set(!this.showPreview());
-    }
-
-    /** Snapshot of the live schema-builder values, used by the Schema Preview pane while editing. */
-    public passFailSchemaPreview(): PassFailSchema {
-        return this.passFailSchemaGroup.getRawValue() as PassFailSchema;
-    }
-    public discreteSchemaPreview(): DiscreteValueSchema {
-        return this.discreteSchemaGroup.getRawValue() as DiscreteValueSchema;
-    }
-    public percentageSchemaPreview(): PercentageSchema {
-        return this.percentageSchemaGroup.getRawValue() as PercentageSchema;
+    /** Open the shared preview modal against a snapshot of the live schema-builder values, so admins
+     * see exactly what assessors will see in the Field Visit Workflow. Mirrors the detail page's
+     * openPreview so both entry points share one rendering path. */
+    openPreview(): void {
+        const cm = this.collectionMethod();
+        const data: ObservationTypePreviewModalData = {
+            observationTypeName: this.formGroup.controls.TreatmentBMPAssessmentObservationTypeName.value ?? "",
+            collectionMethod: cm,
+            passFailSchema: cm === "PassFail" ? this.passFailSchemaGroup.getRawValue() as PassFailSchema : null,
+            discreteSchema: cm === "DiscreteValue" ? this.discreteSchemaGroup.getRawValue() as DiscreteValueSchema : null,
+            percentageSchema: cm === "Percentage" ? this.percentageSchemaGroup.getRawValue() as PercentageSchema : null,
+        };
+        this.dialogService.open(ObservationTypePreviewModalComponent, { data, width: "700px" });
     }
 }

@@ -8,6 +8,9 @@ import { AuthCallbackComponent } from "./auth-callback.component";
 
 export const routeParams = {
     definitionID: "definitionID",
+    fieldDefinitionTypeID: "fieldDefinitionTypeID",
+    fundingSourceID: "fundingSourceID",
+    organizationID: "organizationID",
     projectID: "projectID",
     onlandVisualTrashAssessmentID: "onlandVisualTrashAssessmentID",
     onlandVisualTrashAssessmentAreaID: "onlandVisualTrashAssessmentAreaID",
@@ -344,11 +347,27 @@ export const routes: Routes = [
             },
             { path: "modeling", loadComponent: () => import("./pages/modeling-about/modeling-about.component").then((m) => m.ModelingAboutComponent) },
             {
-                path: `labels-and-definitions/:${routeParams.definitionID}`,
+                // NPT-999: Canonical edit URL per AC. Reads `fieldDefinitionTypeID` from the param map.
+                path: `field-definitions/:${routeParams.fieldDefinitionTypeID}/edit`,
                 loadComponent: () => import("./pages/field-definition-edit/field-definition-edit.component").then((m) => m.FieldDefinitionEditComponent),
                 canActivate: [authGuardFn, ManagerOnlyGuard],
             },
-            { path: "users", title: "Users", loadComponent: () => import("./pages/users/users.component").then((m) => m.UsersComponent) },
+            {
+                // Legacy URL kept as a redirect so any persisted links (or the prior list-cell
+                // routing target before this rework) still land on the new canonical URL.
+                path: `labels-and-definitions/:${routeParams.definitionID}`,
+                redirectTo: `field-definitions/:${routeParams.definitionID}/edit`,
+                pathMatch: "full",
+            },
+            {
+                // NPT-999 r3 (KE 5/20/26): the users list is Admin / SitkaAdmin only.
+                // Jurisdiction users have no business seeing the full user roster; they
+                // reach their own profile via the Welcome dropdown's Account link.
+                path: "users",
+                title: "Users",
+                loadComponent: () => import("./pages/users/users.component").then((m) => m.UsersComponent),
+                canActivate: [authGuardFn, ManagerOnlyGuard],
+            },
             {
                 path: `users/:${routeParams.personID}`,
                 title: "User Detail",
@@ -364,6 +383,17 @@ export const routes: Routes = [
                 path: "organizations",
                 title: "Organizations",
                 loadComponent: () => import("./pages/organizations/organizations.component").then((m) => m.OrganizationsComponent),
+            },
+            {
+                // NPT-999: org detail page. Backend GET is UserViewFeature (any authenticated
+                // user — matches the legacy MVC OrganizationViewFeature). The component's 403
+                // handler redirects to /organizations if a future tightening ever blocks a
+                // viewer. Linked from the User Detail page's Role / Organization and Primary
+                // Contact Organizations sections, plus several grids and the FS detail page.
+                path: `organizations/:${routeParams.organizationID}`,
+                title: "Organization Detail",
+                loadComponent: () => import("./pages/organizations/organization-detail/organization-detail.component").then((m) => m.OrganizationDetailComponent),
+                canActivate: [authGuardFn],
             },
             {
                 path: "labels-and-definitions",
@@ -733,6 +763,7 @@ export const routes: Routes = [
                 path: "wqmp-annual-report",
                 title: "WQMP Annual Report",
                 loadComponent: () => import("./pages/wqmp-annual-report/wqmp-annual-report.component").then((m) => m.WqmpAnnualReportComponent),
+                canActivate: [authGuardFn, JurisdictionManagerOrEditorOnlyGuard],
             },
             {
                 path: "parcels",
@@ -765,6 +796,14 @@ export const routes: Routes = [
                 title: "Funding Sources",
                 loadComponent: () => import("./pages/funding-sources/funding-sources.component").then((m) => m.FundingSourcesComponent),
             },
+            {
+                // NPT-999: SPA Funding Source detail page mirroring the legacy MVC view.
+                // Linked from the Organization detail page's Funding Sources panel.
+                path: `funding-sources/:${routeParams.fundingSourceID}`,
+                title: "Funding Source Detail",
+                loadComponent: () => import("./pages/funding-sources/funding-source-detail/funding-source-detail.component").then((m) => m.FundingSourceDetailComponent),
+                canActivate: [authGuardFn],
+            },
             // Dashboard
             {
                 path: "dashboard",
@@ -780,7 +819,11 @@ export const routes: Routes = [
             {
                 path: "delineation/delineation-reconciliation-report",
                 title: "Delineation Reconciliation Report",
-                loadComponent: () => import("./pages/delineation/delineation-reconciliation-report.component").then((m) => m.DelineationReconciliationReportComponent),
+                loadComponent: () =>
+                    import("./pages/delineation/delineation-reconciliation-report/delineation-reconciliation-report.component").then(
+                        (m) => m.DelineationReconciliationReportComponent
+                    ),
+                canActivate: [authGuardFn, JurisdictionManagerOrEditorOnlyGuard],
             },
             {
                 path: "delineation/revision-requests",

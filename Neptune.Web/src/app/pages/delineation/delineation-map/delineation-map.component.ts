@@ -32,6 +32,7 @@ import { DelineationsLayerComponent } from "src/app/shared/components/leaflet/la
 import { JurisdictionsLayerComponent } from "src/app/shared/components/leaflet/layers/jurisdictions-layer/jurisdictions-layer.component";
 import { WqmpsLayerComponent } from "src/app/shared/components/leaflet/layers/wqmps-layer/wqmps-layer.component";
 import { StormwaterNetworkLayerComponent } from "src/app/shared/components/leaflet/layers/stormwater-network-layer/stormwater-network-layer.component";
+import { ParcelsLayerComponent } from "src/app/shared/components/leaflet/layers/parcels-layer/parcels-layer.component";
 import { OverlayMode } from "src/app/shared/components/leaflet/layers/generic-wms-wfs-layer/overlay-mode.enum";
 
 import { PageHeaderComponent } from "src/app/shared/components/page-header/page-header.component";
@@ -56,6 +57,7 @@ type EditMode = "idle" | "editingDistributed" | "editingCentralized" | "editingL
         JurisdictionsLayerComponent,
         WqmpsLayerComponent,
         StormwaterNetworkLayerComponent,
+        ParcelsLayerComponent,
         PageHeaderComponent,
         AlertDisplayComponent,
         IconComponent,
@@ -189,7 +191,12 @@ export class DelineationMapComponent implements OnInit {
             if (!bmp.Latitude || !bmp.Longitude) {
                 continue;
             }
-            const marker = L.marker([bmp.Latitude, bmp.Longitude], { icon: MarkerHelper.treatmentBMPMarker });
+            // NPT-981 r2: construct with draggable: true so Leaflet's _initInteraction
+            // builds the marker.dragging Handler when the cluster eventually exposes the
+            // marker on the map. Immediately disable on `add` so the marker is click-only
+            // outside edit mode; startEditLocation re-enables on demand.
+            const marker = L.marker([bmp.Latitude, bmp.Longitude], { icon: MarkerHelper.treatmentBMPMarker, draggable: true });
+            marker.on("add", () => marker.dragging?.disable());
             marker.on("click", () => {
                 if (this.editMode() !== "idle") {
                     return;
@@ -202,6 +209,23 @@ export class DelineationMapComponent implements OnInit {
         this.bmpsClusterLayer["legendHtml"] = "<img src='./assets/main/map-icons/marker-icon-violet.png' style='height:17px'>";
         this.layerControl.addOverlay(this.bmpsClusterLayer, "Treatment BMPs");
         this.map.addLayer(this.bmpsClusterLayer);
+    }
+
+    /**
+     * NPT-981 r2: handler for the delineations-layer (selected) event. The WMS GetFeatureInfo
+     * response from Geoserver returns features in draw order, so features[0] is the topmost —
+     * generic-wms-wfs-layer already emits that one ID. Match it against the local BMP cache
+     * (every TreatmentBMPDelineationMapDto carries its DelineationID); if the BMP is in the
+     * cache, select it via the existing selectBMP flow so the side panel populates. BMPs
+     * outside the user's jurisdiction won't be in the cache — clicking such a delineation is
+     * a no-op (the verified-delineation layer is visible to everyone but write actions are
+     * already permission-gated on the API).
+     */
+    public onDelineationSelected(delineationID: number): void {
+        const bmp = this.bmps.find((b) => b.DelineationID === delineationID);
+        if (bmp) {
+            this.selectBMP(bmp);
+        }
     }
 
     public selectBMP(bmp: TreatmentBMPDelineationMapDto): void {
@@ -348,29 +372,78 @@ export class DelineationMapComponent implements OnInit {
     }
 
     public startEditLocation(): void {
-        if (!this.selectedBMP()) {
+        const bmp = this.selectedBMP();
+        if (!bmp) {
             return;
         }
         this.cancelEdit();
         this.editMode.set("editingLocation");
-        this.pendingLocation = null;
-        const el = document.querySelector(".leaflet-interactive") as HTMLElement | null;
-        if (el) {
-            el.style.cursor = "crosshair";
+
+        // NPT-981 r2: cursor goes on the map container (not the .leaflet-interactive SVG
+        // overlay) so the crosshair is visible everywhere the user might click — matches
+        // Jamie's OVTA assessment-point pattern.
+        this.map.getContainer().style.cursor = "crosshair";
+
+        // NPT-981 r2: drag the BMP's own cluster marker directly. The earlier preview-marker
+        // approach left an orphan marker on the map after save when reference tracking
+        // raced with cluster re-renders. Dragging the cluster marker keeps exactly one
+        // marker visible at all times; saveEdit's renderBMPMarkers rebuilds it cleanly.
+        const marker = this.bmpMarkerByID.get(bmp.TreatmentBMPID);
+        if (marker) {
+            marker.dragging?.enable();
+            marker.on("drag", this.onMarkerDrag);
+            marker.on("dragend", this.onMarkerDragEnd);
         }
+
+        // Seed pending location to the current position so Save without further interaction
+        // is a no-op rather than an error.
+        this.pendingLocation = { lat: bmp.Latitude, lng: bmp.Longitude };
     }
+
+    /** Bound references so we can off() them cleanly on cancel — instance methods would lose
+     *  this-binding when passed to off() unless we wrap them. Property-assigned arrow
+     *  functions keep the same Function identity across enable/disable cycles. */
+
+    /** `drag` event carries the live latlng during the drag and fires on every mousemove.
+     *  Markercluster can return stale lat/lngs from getLatLng() on dragend (its internal
+     *  index doesn't update mid-drag), so we capture the position continuously here as the
+     *  authoritative source for pendingLocation. */
+    private onMarkerDrag = (event: any): void => {
+        this.handleLocationChange(event.latlng);
+    };
+
+    /** Belt-and-suspenders dragend handler — also refreshes the cluster's index so the
+     *  marker's new position propagates to the cluster's spatial query structures. */
+    private onMarkerDragEnd = (event: any): void => {
+        const latLng = event.target.getLatLng();
+        this.handleLocationChange(latLng);
+        if (this.bmpsClusterLayer?.refreshClusters) {
+            this.bmpsClusterLayer.refreshClusters(event.target);
+        }
+    };
 
     private attachMapClickForLocation(): void {
         this.map.on("click", (event: L.LeafletMouseEvent) => {
             if (this.editMode() !== "editingLocation") {
                 return;
             }
-            this.pendingLocation = { lat: event.latlng.lat, lng: event.latlng.lng };
-            if (this.locationPreviewMarker) {
-                this.map.removeLayer(this.locationPreviewMarker);
-            }
-            this.locationPreviewMarker = L.marker(event.latlng, { icon: MarkerHelper.selectedMarker, zIndexOffset: 11000 }).addTo(this.map);
+            this.handleLocationChange(event.latlng);
         });
+    }
+
+    /** NPT-981 r2: shared handler for both drag-end and map-click during Edit BMP Location.
+     *  Updates pending location and moves the BMP's cluster marker to the new spot so the
+     *  user sees the preview without a second marker on the map. */
+    private handleLocationChange(latLng: L.LatLng): void {
+        this.pendingLocation = { lat: latLng.lat, lng: latLng.lng };
+        const bmp = this.selectedBMP();
+        if (!bmp) {
+            return;
+        }
+        const marker = this.bmpMarkerByID.get(bmp.TreatmentBMPID);
+        if (marker) {
+            marker.setLatLng(latLng);
+        }
     }
 
     private attachGeomanHandlers(): void {
@@ -404,6 +477,16 @@ export class DelineationMapComponent implements OnInit {
                 next: () => {
                     this.savingSubject.next(false);
                     this.alertService.pushAlert(new Alert("Treatment BMP location updated.", AlertContext.Success, true));
+                    // The `bmp` local is a spread copy from the selectedBMP signal (set by
+                    // applyDelineationToSelectedBMP after select). Mutating it doesn't
+                    // propagate to this.bmps[]; we have to find and mutate the cached entry
+                    // so renderBMPMarkers below rebuilds at the new position. Without this,
+                    // the API persists the change but the SPA reverts on re-render.
+                    const cached = this.bmps.find((b) => b.TreatmentBMPID === bmp.TreatmentBMPID);
+                    if (cached) {
+                        cached.Latitude = newLat;
+                        cached.Longitude = newLng;
+                    }
                     bmp.Latitude = newLat;
                     bmp.Longitude = newLng;
                     this.selectedBMP.set({ ...bmp });
@@ -461,14 +544,25 @@ export class DelineationMapComponent implements OnInit {
     }
 
     private clearLocationPreview(): void {
-        if (this.locationPreviewMarker) {
-            this.map.removeLayer(this.locationPreviewMarker);
-            this.locationPreviewMarker = null;
-        }
+        // NPT-981 r2: we drag the cluster's own BMP marker now. Cleanup is just: disable
+        // dragging on it, unbind dragend, restore cursor, and revert the marker's visual
+        // position if the user cancelled (saveEdit's renderBMPMarkers rebuild handles the
+        // successful-save case). Reverting on cancel uses the BMP's authoritative lat/lng
+        // from the bmps array, which saveEdit has not yet mutated when cancelEdit is invoked.
         this.pendingLocation = null;
-        const el = document.querySelector(".leaflet-interactive") as HTMLElement | null;
-        if (el) {
-            el.style.cursor = "";
+        if (this.map) {
+            this.map.getContainer().style.cursor = "";
+        }
+        const bmp = this.selectedBMP();
+        if (!bmp) return;
+        const marker = this.bmpMarkerByID.get(bmp.TreatmentBMPID);
+        if (marker) {
+            marker.dragging?.disable();
+            marker.off("drag", this.onMarkerDrag);
+            marker.off("dragend", this.onMarkerDragEnd);
+            // Revert any visual drag (no-op if user saved — by then the marker was
+            // rebuilt by renderBMPMarkers at the new position).
+            marker.setLatLng([bmp.Latitude, bmp.Longitude]);
         }
     }
 

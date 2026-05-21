@@ -69,6 +69,9 @@ model/data-hub-last-updated-dto.ts
 model/delineation-dto.ts
 model/delineation-gdb-download-request-dto.ts
 model/delineation-gdb-upload-validation-dto.ts
+model/delineation-reconciliation-discrepancy-grid-dto.ts
+model/delineation-reconciliation-overlap-grid-dto.ts
+model/delineation-reconciliation-report-context-dto.ts
 model/delineation-set-verified-dto.ts
 model/delineation-upsert-dto.ts
 model/delineation-upsert-geo-json-dto.ts
@@ -90,6 +93,8 @@ model/funding-event-dto.ts
 model/funding-event-funding-source-simple-dto.ts
 model/funding-event-upsert-dto.ts
 model/funding-source-dto.ts
+model/funding-source-simple-dto.ts
+model/funding-source-treatment-bmp-funding-dto.ts
 model/funding-source-upsert-dto.ts
 model/geometry-factory.ts
 model/geometry-geo-json-and-area-dto.ts
@@ -142,6 +147,7 @@ model/organization-dto.ts
 model/organization-simple-dto.ts
 model/organization-type-simple-dto.ts
 model/organization-upsert-dto.ts
+model/overlapping-delineation-link-dto.ts
 model/ovta-area-gdb-download-request-dto.ts
 model/ovta-area-gdb-staging-report-dto.ts
 model/ovta-bulk-upload-result-dto.ts
@@ -180,6 +186,7 @@ model/regional-subbasin-dto.ts
 model/regional-subbasin-revision-request-close-dto.ts
 model/regional-subbasin-revision-request-dto.ts
 model/regional-subbasin-revision-request-upsert-dto.ts
+model/reporting-year-simple-dto.ts
 model/sizing-basis-type-dto.ts
 model/source-control-bmp-dto.ts
 model/source-control-bmp-upsert-dto.ts
@@ -238,12 +245,15 @@ model/treatment-bmp-type-with-modeling-attributes-dto.ts
 model/treatment-bmp-upsert-dto.ts
 model/treatment-bmp-upstream-bmp-update-dto.ts
 model/treatment-bmp-upstreamest-errors-dto.ts
+model/treatment-bmpby-type-grid-dto.ts
 model/treatment-bmphru-characteristics-summary-simple-dto.ts
 model/v-treatment-bmp-modeling-attribute-dto.ts
 model/verify-quick-bmp-upsert-dto.ts
 model/verify-source-control-bmp-detail-dto.ts
 model/verify-source-control-bmp-upsert-dto.ts
 model/verify-treatment-bmp-upsert-dto.ts
+model/water-quality-management-plan-annual-report-options-dto.ts
+model/water-quality-management-plan-approval-summary-grid-dto.ts
 model/water-quality-management-plan-boundary-response-dto.ts
 model/water-quality-management-plan-boundary-upsert-dto.ts
 model/water-quality-management-plan-display-dto.ts
@@ -253,6 +263,7 @@ model/water-quality-management-plan-document-upsert-dto.ts
 model/water-quality-management-plan-dto.ts
 model/water-quality-management-plan-extraction-result-dto.ts
 model/water-quality-management-plan-grid-dto.ts
+model/water-quality-management-plan-post-construction-verification-grid-dto.ts
 model/water-quality-management-plan-section-save-location-dto.ts
 model/water-quality-management-plan-section-save-response-dto.ts
 model/water-quality-management-plan-simple-dto.ts

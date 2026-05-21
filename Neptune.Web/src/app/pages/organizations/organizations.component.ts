@@ -50,7 +50,9 @@ export class OrganizationsComponent {
                     ActionHandler: () => this.deleteOrganization(params.data),
                 },
             ]),
-            this.utilityFunctions.createBasicColumnDef("Name", "OrganizationName"),
+            this.utilityFunctions.createLinkColumnDef("Name", "OrganizationName", "OrganizationID", {
+                InRouterLink: "/organizations/",
+            }),
             this.utilityFunctions.createBasicColumnDef("Short Name", "OrganizationShortName"),
             this.utilityFunctions.createBasicColumnDef("URL", "OrganizationUrl"),
             this.utilityFunctions.createBasicColumnDef("Type", "OrganizationType.OrganizationTypeName"),

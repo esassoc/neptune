@@ -1,9 +1,15 @@
 @if (detail$ | async; as detail) {
     <page-header [pageTitle]="detail.FirstName + ' ' + detail.LastName" [templateAbove]="templateAbove" [templateRight]="headerActions">
         <ng-template #templateAbove>
-            <div class="back">
-                <a [routerLink]="['/users']" class="back__link">Back to Users</a>
-            </div>
+            <!-- NPT-999 r3 (KE 5/20/26): the back-link only renders for Admin / SitkaAdmin
+                 viewers since the /users list itself is now guarded to those roles. Jurisdiction
+                 users land on this page through the Welcome dropdown's Account link and have
+                 no business browsing the full user roster. -->
+            @if (isAdmin()) {
+                <div class="back">
+                    <a [routerLink]="['/users']" class="back__link"><i class="fa fa-arrow-left"></i> Back to Users List</a>
+                </div>
+            }
         </ng-template>
         <ng-template #headerActions>
             @if (isAdmin()) {
@@ -63,9 +69,7 @@
                 <div class="card-header">
                     <span class="card-title">Role / Organization</span>
                     @if (isAdmin()) {
-                        <button type="button" class="icon-button-button" (click)="openEditRolesModal(detail)" title="Edit Roles" aria-label="Edit Roles">
-                            <icon class="icon-button" icon="CirclePencil"></icon>
-                        </button>
+                        <a (click)="openEditRolesModal(detail)" style="cursor: pointer" title="Edit Roles"><icon class="icon-button" icon="CirclePencil"></icon></a>
                     }
                 </div>
                 <div class="card-body">
@@ -73,7 +77,11 @@
                         <dt class="g-col-5">Organization</dt>
                         <dd class="g-col-7">
                             @if (detail.Organization) {
-                                <a [routerLink]="['/organizations']">{{ detail.Organization.OrganizationName }}</a>
+                                @if (isAdmin()) {
+                                    <a [routerLink]="['/organizations', detail.Organization.OrganizationID]">{{ detail.Organization.OrganizationName }}</a>
+                                } @else {
+                                    {{ detail.Organization.OrganizationName }}
+                                }
                             } @else {
                                 —
                             }
@@ -100,14 +108,17 @@
             <div class="card mt-3">
                 <div class="card-header">
                     <span class="card-title">Assigned Jurisdictions</span>
-                    @if (isAdmin()) {
-                        <button type="button" class="icon-button-button" (click)="openEditJurisdictionsModal(detail)" title="Edit Jurisdictions" aria-label="Edit Jurisdictions">
-                            <icon class="icon-button" icon="CirclePencil"></icon>
-                        </button>
+                    @if (isAdmin() && !isDetailUserAdmin(detail)) {
+                        <a (click)="openEditJurisdictionsModal(detail)" style="cursor: pointer" title="Edit Jurisdictions"><icon class="icon-button" icon="CirclePencil"></icon></a>
                     }
                 </div>
                 <div class="card-body">
-                    @if (detail.AssignedStormwaterJurisdictions && detail.AssignedStormwaterJurisdictions.length > 0) {
+                    @if (isDetailUserAdmin(detail)) {
+                        <!-- KE 5/20/26: Admin / SitkaAdmin users implicitly manage every jurisdiction;
+                             show the stub message in place of the assigned list and suppress the Edit
+                             pencil above so it can't be clicked to add a redundant assignment. -->
+                        <p class="system-text">Administrators are by definition assigned to manage all Jurisdictions.</p>
+                    } @else if (detail.AssignedStormwaterJurisdictions && detail.AssignedStormwaterJurisdictions.length > 0) {
                         <ul class="plain-list">
                             @for (jurisdiction of detail.AssignedStormwaterJurisdictions; track jurisdiction.StormwaterJurisdictionID) {
                                 <li>
@@ -132,7 +143,13 @@
                     @if (detail.PrimaryContactOrganizations && detail.PrimaryContactOrganizations.length > 0) {
                         <ul class="plain-list">
                             @for (org of detail.PrimaryContactOrganizations; track org.OrganizationID) {
-                                <li>{{ org.OrganizationName }}</li>
+                                <li>
+                                    @if (isAdmin()) {
+                                        <a [routerLink]="['/organizations', org.OrganizationID]">{{ org.OrganizationName }}</a>
+                                    } @else {
+                                        {{ org.OrganizationName }}
+                                    }
+                                </li>
                             }
                         </ul>
                     } @else {

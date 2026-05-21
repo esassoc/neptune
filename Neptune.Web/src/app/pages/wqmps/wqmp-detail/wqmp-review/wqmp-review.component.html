@@ -158,6 +158,7 @@
                             [selectOptions]="field.selectOptions ?? []"
                             [mask]="field.mask ?? null"
                             [origin]="getFieldOrigin(field)"
+                            [readOnly]="field.readOnly ?? false"
                             [initialState]="field.state"
                             [initialValue]="field.acceptedValue ?? field.value"
                             [selected]="selectedFieldKey() === field.key"

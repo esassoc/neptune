@@ -49,5 +49,19 @@ namespace Neptune.EFModels.Entities
                 IsDraft = entity.WaterQualityManagementPlanStatusID == (int)WaterQualityManagementPlanStatusEnum.Draft
             };
         }
+
+        public static WaterQualityManagementPlanApprovalSummaryGridDto AsApprovalSummaryGridDto(this vWaterQualityManagementPlanDetailed entity)
+        {
+            return new WaterQualityManagementPlanApprovalSummaryGridDto
+            {
+                WaterQualityManagementPlanID = entity.WaterQualityManagementPlanID,
+                WaterQualityManagementPlanName = entity.WaterQualityManagementPlanName,
+                Priority = entity.WaterQualityManagementPlanPriorityDisplayName,
+                LandUse = entity.WaterQualityManagementPlanLandUseDisplayName,
+                HydrologicSubareaName = entity.HydrologicSubareaName,
+                RecordedWQMPAreaInAcres = entity.RecordedWQMPAreaInAcres,
+                ApprovalDate = entity.ApprovalDate,
+            };
+        }
     }
 }

@@ -1,7 +1,9 @@
 using System;
 using System.Collections.Generic;
 using System.Threading.Tasks;
+using Hangfire;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using Neptune.API.Common;
@@ -11,6 +13,7 @@ using Neptune.API.Services.Authorization;
 using Neptune.Common.GeoSpatial;
 using Neptune.EFModels.Entities;
 using Neptune.EFModels.Nereid;
+using Neptune.Jobs.Hangfire;
 using Neptune.Models.DataTransferObjects;
 using NetTopologySuite.Features;
 using NetTopologySuite.Geometries;
@@ -162,6 +165,43 @@ namespace Neptune.API.Controllers
             }
 
             return NoContent();
+        }
+
+        [HttpGet("reconciliation-report/context")]
+        [JurisdictionEditFeature]
+        public async Task<ActionResult<DelineationReconciliationReportContextDto>> GetReconciliationReportContext()
+        {
+            var lastUpdated = await DbContext.RegionalSubbasins.AsNoTracking().MaxAsync(x => (DateTime?)x.LastUpdate);
+            var currentPerson = People.GetByID(DbContext, CallingUser.PersonID);
+            return Ok(new DelineationReconciliationReportContextDto
+            {
+                RegionalSubbasinsLastUpdated = lastUpdated,
+                CallerIsAdministrator = currentPerson.IsAdministrator(),
+            });
+        }
+
+        [HttpGet("reconciliation-report/discrepancies")]
+        [JurisdictionEditFeature]
+        public async Task<ActionResult<List<DelineationReconciliationDiscrepancyGridDto>>> GetReconciliationDiscrepancies()
+        {
+            var currentPerson = People.GetByID(DbContext, CallingUser.PersonID);
+            return Ok(await Delineations.ListDiscrepancyGridDtosAsync(DbContext, currentPerson));
+        }
+
+        [HttpGet("reconciliation-report/overlaps")]
+        [JurisdictionEditFeature]
+        public async Task<ActionResult<List<DelineationReconciliationOverlapGridDto>>> GetReconciliationOverlaps()
+        {
+            var currentPerson = People.GetByID(DbContext, CallingUser.PersonID);
+            return Ok(await Delineations.ListOverlapGridDtosAsync(DbContext, currentPerson));
+        }
+
+        [HttpPost("reconciliation-report/enqueue-check")]
+        [AdminFeature]
+        public IActionResult EnqueueReconciliationCheck()
+        {
+            BackgroundJob.Enqueue<DelineationCheckDiscrepanciesJob>(x => x.RunJob());
+            return Ok(new { message = "The job to check BMP delineation discrepancies and overlaps has been queued. Please check back in a few minutes to see updated results." });
         }
     }
 }

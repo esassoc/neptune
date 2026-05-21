@@ -52,6 +52,7 @@ export class FormFieldComponent {
     @Input() popoverTitle: string;
     @Input() toggleHeight: string = "";
     @Input() mask: string;
+    @Input() rows: number = 2;
 
     // for select dropdown
     @Input() formInputOptions: FormInputOption[];

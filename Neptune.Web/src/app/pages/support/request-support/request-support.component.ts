@@ -120,7 +120,10 @@ export class RequestSupportComponent implements OnInit {
             next: (result) => {
                 this.isSubmitting.set(false);
                 if (result.Success) {
-                    this.successMessage.set(result.Message ?? "Support request sent.");
+                    // NPT-999: PO Kathleen specified the exact success copy; ignore the API's
+                    // result.Message on success so wording stays consistent. Failure path below
+                    // still surfaces server-supplied error text.
+                    this.successMessage.set("Your message has been sent to OC Stormwater Tools Administrators.");
                     this.formGroup.reset();
                 } else {
                     this.alertService.pushAlert(new Alert(escapeHtml(result.Message ?? "Failed to send support request."), AlertContext.Danger, true));

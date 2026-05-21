@@ -121,7 +121,9 @@ export class OCTAM2Tier2DashboardComponent implements OnInit {
             this.utilityFunctionsService.createLinkColumnDef("Project Name", "ProjectName", "ProjectID", {
                 InRouterLink: "/planning/projects/",
             }),
-            this.utilityFunctionsService.createBasicColumnDef("Organization", "Organization.OrganizationName"),
+            this.utilityFunctionsService.createLinkColumnDef("Organization", "Organization.OrganizationName", "Organization.OrganizationID", {
+                InRouterLink: "/organizations/",
+            }),
             this.utilityFunctionsService.createBasicColumnDef("Jurisdiction", "StormwaterJurisdiction.Organization.OrganizationName"),
             this.utilityFunctionsService.createBasicColumnDef("Project Description", "ProjectDescription", { MaxWidth: 250 }),
             this.utilityFunctionsService.createDateColumnDef("Last Shared On", "OCTAM2Tier2ScoresLastSharedDate", "short", { Width: 140 }),

@@ -36,6 +36,7 @@ export function buildPassFailSchemaFormGroup(initial: PassFailSchema): PassFailS
                     <form-field class="g-col-12"
                         fieldLabel="Assessment Instruction"
                         [type]="FormFieldType.Textarea"
+                        [rows]="4"
                         [formControl]="formGroup.controls.AssessmentDescription"
                         [required]="true"
                         placeholder="Instructions for the assessor"></form-field>

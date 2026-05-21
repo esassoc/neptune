@@ -1,4 +1,5 @@
-import { Component, OnInit, ChangeDetectorRef, ViewChild } from "@angular/core";
+import { Component, DestroyRef, OnInit, ChangeDetectorRef, ViewChild, inject } from "@angular/core";
+import { takeUntilDestroyed } from "@angular/core/rxjs-interop";
 import { AuthenticationService } from "src/app/services/authentication.service";
 import { Router, ActivatedRoute, RouterLink } from "@angular/router";
 import { Alert } from "src/app/shared/models/alert";
@@ -24,6 +25,7 @@ export class FieldDefinitionEditComponent implements OnInit {
     private currentUser: PersonDto;
 
     public fieldDefinition: FieldDefinitionDto;
+    public loadFailed = false;
     public tinyMceConfig: object;
 
     // The <editor> sits inside an `@if (fieldDefinition)` so the ViewChild ref doesn't exist at
@@ -39,6 +41,11 @@ export class FieldDefinitionEditComponent implements OnInit {
 
     public isLoadingSubmit: boolean;
 
+    // NPT-999 r3 (Copilot PR #519): cancels the in-flight subscribes when the component is
+    // destroyed so the subscribe callbacks (which call cdr.detectChanges) don't run on a
+    // torn-down view if the user navigates away mid-request.
+    private destroyRef = inject(DestroyRef);
+
     constructor(
         private route: ActivatedRoute,
         private router: Router,
@@ -49,13 +56,37 @@ export class FieldDefinitionEditComponent implements OnInit {
     ) {}
 
     ngOnInit() {
-        this.authenticationService.getCurrentUser().subscribe((currentUser) => {
+        this.authenticationService.getCurrentUser().pipe(takeUntilDestroyed(this.destroyRef)).subscribe((currentUser) => {
             this.currentUser = currentUser;
-            const id = parseInt(this.route.snapshot.paramMap.get("definitionID"));
-            if (id) {
-                this.fieldDefinitionService.getFieldDefinition(id).subscribe((fieldDefinition) => {
-                    this.fieldDefinition = fieldDefinition;
+            // NPT-999: read `fieldDefinitionTypeID` (canonical AC param). Legacy `definitionID`
+            // route still resolves via a redirect in app.routes.ts that preserves the value, so
+            // either param name reaching this component is treated the same.
+            const raw = this.route.snapshot.paramMap.get("fieldDefinitionTypeID")
+                ?? this.route.snapshot.paramMap.get("definitionID");
+            const id = raw ? parseInt(raw, 10) : NaN;
+            if (Number.isFinite(id)) {
+                this.fieldDefinitionService.getFieldDefinition(id).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
+                    next: (fieldDefinition) => {
+                        if (fieldDefinition) {
+                            this.fieldDefinition = fieldDefinition;
+                        } else {
+                            this.loadFailed = true;
+                        }
+                        // NPT-999 r3 (KE 5/20/26): under zoneless change detection, mutating a
+                        // plain property inside a .subscribe() callback doesn't mark the view
+                        // dirty — the @if (fieldDefinition) branch only re-evaluates when the
+                        // next user-triggered tick fires (a click anywhere on the page). Force
+                        // a detectChanges so the editor renders as soon as the GET resolves.
+                        this.cdr.detectChanges();
+                    },
+                    error: () => {
+                        this.loadFailed = true;
+                        this.cdr.detectChanges();
+                    },
                 });
+            } else {
+                this.loadFailed = true;
+                this.cdr.detectChanges();
             }
         });
     }

@@ -1,7 +1,9 @@
-import { Component, computed, inject, signal } from "@angular/core";
+import { Component, computed, inject } from "@angular/core";
+import { FormControl } from "@angular/forms";
 import { DialogRef } from "@ngneat/dialog";
 import { CollectionMethodType, DiscreteValueSchema, PassFailSchema, PercentageSchema } from "src/app/shared/observation-types/schema-types";
-import { MeasurementUnitTypes } from "src/app/shared/generated/enum/measurement-unit-type-enum";
+import { SelectDropdownOption } from "src/app/shared/components/forms/form-field/form-field.component";
+import { ObservationPanelComponent, ObservationPanelProperty, ObservationTypePanel } from "./observation-panel.component";
 
 export interface ObservationTypePreviewModalData {
     observationTypeName: string;
@@ -11,14 +13,13 @@ export interface ObservationTypePreviewModalData {
     percentageSchema: PercentageSchema | null;
 }
 
-interface PreviewRow {
-    property: string;
-    placeholder: string;
-}
-
+/** Renders the observation type using the same per-panel component the Field Visit Workflow uses
+ * for live assessments, so admins can confirm exactly what assessors will see. Inputs are bound to
+ * disabled throwaway FormControls — the modal is preview-only. */
 @Component({
     selector: "observation-type-preview-modal",
     standalone: true,
+    imports: [ObservationPanelComponent],
     template: `
         <div class="modal">
             <div class="modal-header">
@@ -27,69 +28,8 @@ interface PreviewRow {
             <div class="modal-body">
                 <p class="system-text">This is a preview of how <strong>{{ data.observationTypeName }}</strong> will look in a Treatment BMP Assessment form.</p>
 
-                @if (assessmentInstruction()) {
-                    <div class="instructions">{{ assessmentInstruction() }}</div>
-                }
-
-                @if (data.collectionMethod === "PassFail" && data.passFailSchema) {
-                    <table class="preview-table">
-                        <thead>
-                            <tr>
-                                <th>Property</th>
-                                <th class="score-col">{{ data.passFailSchema.PassingScoreLabel || "Pass" }}</th>
-                                <th class="score-col">{{ data.passFailSchema.FailingScoreLabel || "Fail" }}</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            @for (row of rows(); track $index) {
-                                <tr>
-                                    <td>{{ row.property }}</td>
-                                    <td class="score-col"><input type="radio" disabled /></td>
-                                    <td class="score-col"><input type="radio" disabled /></td>
-                                </tr>
-                            } @empty {
-                                <tr><td colspan="3" class="empty">No properties to observe configured.</td></tr>
-                            }
-                        </tbody>
-                    </table>
-                } @else if (data.collectionMethod === "DiscreteValue" && data.discreteSchema) {
-                    <table class="preview-table">
-                        <thead>
-                            <tr>
-                                <th>Property</th>
-                                <th>{{ data.discreteSchema.MeasurementUnitLabel || "Value" }}{{ unitSuffix() }}</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            @for (row of rows(); track $index) {
-                                <tr>
-                                    <td>{{ row.property }}</td>
-                                    <td><input type="number" class="form-control form-control-sm" [placeholder]="row.placeholder" disabled /></td>
-                                </tr>
-                            } @empty {
-                                <tr><td colspan="2" class="empty">No properties to observe configured.</td></tr>
-                            }
-                        </tbody>
-                    </table>
-                } @else if (data.collectionMethod === "Percentage" && data.percentageSchema) {
-                    <table class="preview-table">
-                        <thead>
-                            <tr>
-                                <th>Property</th>
-                                <th>{{ data.percentageSchema.MeasurementUnitLabel || "Percent" }} (%)</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            @for (row of rows(); track $index) {
-                                <tr>
-                                    <td>{{ row.property }}</td>
-                                    <td><input type="number" class="form-control form-control-sm" placeholder="0 – 100" disabled /></td>
-                                </tr>
-                            } @empty {
-                                <tr><td colspan="2" class="empty">No properties to observe configured.</td></tr>
-                            }
-                        </tbody>
-                    </table>
+                @if (panel(); as p) {
+                    <observation-panel [panel]="p" namePrefix="preview"></observation-panel>
                 } @else {
                     <p class="system-text">No preview available for this observation type.</p>
                 }
@@ -99,57 +39,54 @@ interface PreviewRow {
             </div>
         </div>
     `,
-    styles: [`
-        .instructions { background: #f7f7f7; border-left: 3px solid #0099ab; padding: 0.5rem 0.75rem; margin: 0.75rem 0; white-space: pre-wrap; }
-        .preview-table { width: 100%; border-collapse: collapse; margin-top: 0.5rem; }
-        .preview-table th, .preview-table td { border: 1px solid #ddd; padding: 0.5rem; vertical-align: middle; }
-        .preview-table thead th { background: #f0f0f0; font-weight: 600; }
-        .score-col { text-align: center; width: 5rem; }
-        .empty { text-align: center; color: #888; font-style: italic; }
-    `],
 })
 export class ObservationTypePreviewModalComponent {
     public ref: DialogRef<ObservationTypePreviewModalData, void> = inject(DialogRef);
     public data: ObservationTypePreviewModalData = this.ref.data;
 
-    public assessmentInstruction = signal(
-        this.data.passFailSchema?.AssessmentDescription
-        ?? this.data.discreteSchema?.AssessmentDescription
-        ?? this.data.percentageSchema?.AssessmentDescription
-        ?? "",
-    );
+    public panel = computed<ObservationTypePanel | null>(() => this.buildPanel());
 
-    public rows = computed<PreviewRow[]>(() => {
-        const props = this.collectProperties();
-        const placeholder = this.discretePlaceholder();
-        return props.map((p) => ({ property: p, placeholder }));
-    });
+    private buildPanel(): ObservationTypePanel | null {
+        const cm = this.data.collectionMethod;
+        if (!cm) return null;
+        const pf = this.data.passFailSchema;
+        const dv = this.data.discreteSchema;
+        const pc = this.data.percentageSchema;
+        const properties = [...(pf?.PropertiesToObserve ?? dv?.PropertiesToObserve ?? pc?.PropertiesToObserve ?? [])]
+            .sort((a, b) => a.localeCompare(b));
+        if (cm !== "PassFail" && cm !== "DiscreteValue" && cm !== "Percentage") return null;
 
-    public unitSuffix = computed(() => {
-        const id = this.data.discreteSchema?.MeasurementUnitTypeID;
-        if (id == null) return "";
-        const display = MeasurementUnitTypes.find((u) => u.Value === id)?.DisplayName;
-        return display ? ` (${display})` : "";
-    });
+        const passFailOptions: SelectDropdownOption[] | undefined =
+            cm === "PassFail" && pf
+                ? [
+                      { Value: "true", Label: pf.PassingScoreLabel || "Pass", disabled: false },
+                      { Value: "false", Label: pf.FailingScoreLabel || "Fail", disabled: false },
+                  ]
+                : undefined;
 
-    private collectProperties(): string[] {
-        const props =
-            this.data.passFailSchema?.PropertiesToObserve
-            ?? this.data.discreteSchema?.PropertiesToObserve
-            ?? this.data.percentageSchema?.PropertiesToObserve
-            ?? [];
-        return [...props].sort((a, b) => a.localeCompare(b));
-    }
+        const props: ObservationPanelProperty[] = properties.map((propertyObserved) => ({
+            propertyObserved,
+            // Disabled controls render visually inactive — the preview is read-only and the disabled
+            // state on form-field is the cue, without needing template-level @if(readOnly) branches.
+            valueControl: new FormControl<string | null>({ value: null, disabled: true }),
+            notesControl: new FormControl<string | null>({ value: null, disabled: true }),
+            passFailOptions,
+        }));
 
-    private discretePlaceholder(): string {
-        const s = this.data.discreteSchema;
-        if (!s) return "";
-        const min = s.MinimumValueOfObservations;
-        const max = s.MaximumValueOfObservations;
-        if (min != null && max != null) return `${min} – ${max}`;
-        if (min != null) return `≥ ${min}`;
-        if (max != null) return `≤ ${max}`;
-        return "";
+        return {
+            // ID only namespaces radio names — no real entity ID exists for an in-progress preview,
+            // so 0 is a safe sentinel since the modal is the only consumer of this synthetic panel.
+            observationTypeID: 0,
+            name: this.data.observationTypeName,
+            collectionMethod: cm,
+            measurementUnitLabel: dv?.MeasurementUnitLabel ?? pc?.MeasurementUnitLabel ?? undefined,
+            assessmentDescription: pf?.AssessmentDescription ?? dv?.AssessmentDescription ?? pc?.AssessmentDescription,
+            benchmarkDescription: dv?.BenchmarkDescription ?? pc?.BenchmarkDescription,
+            thresholdDescription: dv?.ThresholdDescription ?? pc?.ThresholdDescription,
+            passingLabel: pf?.PassingScoreLabel,
+            failingLabel: pf?.FailingScoreLabel,
+            properties: props,
+        };
     }
 
     close(): void {

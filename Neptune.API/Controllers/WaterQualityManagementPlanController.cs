@@ -10,6 +10,7 @@ using Hangfire;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Mvc.ModelBinding;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
@@ -1069,6 +1070,78 @@ namespace Neptune.API.Controllers
             result.UpdatedCount = updated.Count;
             result.MissingApns = missingApnList;
             return Ok(result);
+        }
+
+        [HttpGet("annual-report/options")]
+        [WaterQualityManagementPlanAnnualReportFeature]
+        public ActionResult<WaterQualityManagementPlanAnnualReportOptionsDto> GetAnnualReportOptions()
+        {
+            var currentPerson = People.GetByID(DbContext, CallingUser.PersonID);
+            var jurisdictions = StormwaterJurisdictions.ListViewableByPersonForWQMPs(DbContext, currentPerson)
+                .Select(x => x.AsDisplayDto())
+                .OrderBy(x => x.StormwaterJurisdictionName)
+                .ToList();
+            jurisdictions.Insert(0, new StormwaterJurisdictionDisplayDto { StormwaterJurisdictionID = -1, StormwaterJurisdictionName = "All" });
+
+            var reportingYears = WaterQualityManagementPlans.GetSelectableAnnualReportYears()
+                .Select(y => new ReportingYearSimpleDto { ReportingYear = y, ReportingYearDisplay = $"FY {y - 1}-{y}" })
+                .ToList();
+
+            return Ok(new WaterQualityManagementPlanAnnualReportOptionsDto
+            {
+                ReportingYears = reportingYears,
+                StormwaterJurisdictions = jurisdictions,
+                DefaultReportingYear = WaterQualityManagementPlans.GetCurrentReportingYear(),
+            });
+        }
+
+        [HttpGet("annual-report/approval-summary")]
+        [WaterQualityManagementPlanAnnualReportFeature]
+        public async Task<ActionResult<List<WaterQualityManagementPlanApprovalSummaryGridDto>>> GetAnnualReportApprovalSummary(
+            [FromQuery, BindRequired] int reportingYear, [FromQuery] int stormwaterJurisdictionID = -1)
+        {
+            if (!IsValidReportingYear(reportingYear, out var error))
+            {
+                return BadRequest(error);
+            }
+            var start = WaterQualityManagementPlans.GetAnnualReportPeriodStart(reportingYear);
+            var end = WaterQualityManagementPlans.GetAnnualReportPeriodEnd(reportingYear);
+            var rows = await vWaterQualityManagementPlanDetaileds.ListForAnnualReportApprovalSummaryAsync(
+                DbContext, CallingUser, start, end, stormwaterJurisdictionID);
+            return Ok(rows.Select(x => x.AsApprovalSummaryGridDto()).ToList());
+        }
+
+        [HttpGet("annual-report/post-construction-verifications")]
+        [WaterQualityManagementPlanAnnualReportFeature]
+        public async Task<ActionResult<List<WaterQualityManagementPlanPostConstructionVerificationGridDto>>> GetAnnualReportPostConstructionVerifications(
+            [FromQuery, BindRequired] int reportingYear, [FromQuery] int stormwaterJurisdictionID = -1)
+        {
+            if (!IsValidReportingYear(reportingYear, out var error))
+            {
+                return BadRequest(error);
+            }
+            var start = WaterQualityManagementPlans.GetAnnualReportPeriodStart(reportingYear);
+            var end = WaterQualityManagementPlans.GetAnnualReportPeriodEnd(reportingYear);
+            var currentPerson = People.GetByID(DbContext, CallingUser.PersonID);
+            var visibleJurisdictionIDs = StormwaterJurisdictionPeople
+                .ListViewableStormwaterJurisdictionIDsByPersonForWQMPs(DbContext, currentPerson)
+                .ToList();
+            var rows = await vWaterQualityManagementPlanAnnualReports.ListForAnnualReportPostConstructionAsync(
+                DbContext, CallingUser, visibleJurisdictionIDs,
+                DateOnly.FromDateTime(start), DateOnly.FromDateTime(end), stormwaterJurisdictionID);
+            return Ok(vWaterQualityManagementPlanAnnualReportExtensionMethods.BuildPostConstructionGridDtos(rows));
+        }
+
+        private static bool IsValidReportingYear(int reportingYear, out string error)
+        {
+            var max = WaterQualityManagementPlans.GetCurrentReportingYear();
+            if (reportingYear < WaterQualityManagementPlans.AnnualReportMinimumReportingYear || reportingYear > max)
+            {
+                error = $"reportingYear must be between {WaterQualityManagementPlans.AnnualReportMinimumReportingYear} and {max}.";
+                return false;
+            }
+            error = null;
+            return true;
         }
 
     }

@@ -705,6 +705,127 @@
         }
       }
     },
+    "/delineations/reconciliation-report/context": {
+      "get": {
+        "tags": [
+          "Delineation"
+        ],
+        "operationId": "GetReconciliationReportContext_Delineation",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/DelineationReconciliationReportContextDto"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DelineationReconciliationReportContextDto"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DelineationReconciliationReportContextDto"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/delineations/reconciliation-report/discrepancies": {
+      "get": {
+        "tags": [
+          "Delineation"
+        ],
+        "operationId": "GetReconciliationDiscrepancies_Delineation",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/DelineationReconciliationDiscrepancyGridDto"
+                  }
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/DelineationReconciliationDiscrepancyGridDto"
+                  }
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/DelineationReconciliationDiscrepancyGridDto"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/delineations/reconciliation-report/overlaps": {
+      "get": {
+        "tags": [
+          "Delineation"
+        ],
+        "operationId": "GetReconciliationOverlaps_Delineation",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/DelineationReconciliationOverlapGridDto"
+                  }
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/DelineationReconciliationOverlapGridDto"
+                  }
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/DelineationReconciliationOverlapGridDto"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/delineations/reconciliation-report/enqueue-check": {
+      "post": {
+        "tags": [
+          "Delineation"
+        ],
+        "operationId": "EnqueueReconciliationCheck_Delineation",
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
     "/delineations/gdb/upload": {
       "post": {
         "tags": [
@@ -2113,6 +2234,56 @@
         "responses": {
           "200": {
             "description": "OK"
+          }
+        }
+      }
+    },
+    "/funding-sources/{fundingSourceID}/treatment-bmps": {
+      "get": {
+        "tags": [
+          "FundingSource"
+        ],
+        "operationId": "ListTreatmentBMPFunding_FundingSource",
+        "parameters": [
+          {
+            "name": "fundingSourceID",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/FundingSourceTreatmentBMPFundingDto"
+                  }
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/FundingSourceTreatmentBMPFundingDto"
+                  }
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/FundingSourceTreatmentBMPFundingDto"
+                  }
+                }
+              }
+            }
           }
         }
       }
@@ -4693,6 +4864,106 @@
         "responses": {
           "200": {
             "description": "OK"
+          }
+        }
+      }
+    },
+    "/organizations/{organizationID}/funding-sources": {
+      "get": {
+        "tags": [
+          "Organization"
+        ],
+        "operationId": "ListFundingSources_Organization",
+        "parameters": [
+          {
+            "name": "organizationID",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/FundingSourceSimpleDto"
+                  }
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/FundingSourceSimpleDto"
+                  }
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/FundingSourceSimpleDto"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/organizations/{organizationID}/users": {
+      "get": {
+        "tags": [
+          "Organization"
+        ],
+        "operationId": "ListUsers_Organization",
+        "parameters": [
+          {
+            "name": "organizationID",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/PersonSimpleDto"
+                  }
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/PersonSimpleDto"
+                  }
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/PersonSimpleDto"
+                  }
+                }
+              }
+            }
           }
         }
       }
@@ -10401,6 +10672,56 @@
         "x-anonymous": true
       }
     },
+    "/treatment-bmp-types/{treatmentBMPTypeID}/treatment-bmps": {
+      "get": {
+        "tags": [
+          "TreatmentBMPType"
+        ],
+        "operationId": "ListBMPsByType_TreatmentBMPType",
+        "parameters": [
+          {
+            "name": "treatmentBMPTypeID",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/TreatmentBMPByTypeGridDto"
+                  }
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/TreatmentBMPByTypeGridDto"
+                  }
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/TreatmentBMPByTypeGridDto"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/treatment-bmp-types/{treatmentBMPTypeID}": {
       "put": {
         "tags": [
@@ -13208,6 +13529,154 @@
         }
       }
     },
+    "/water-quality-management-plans/annual-report/options": {
+      "get": {
+        "tags": [
+          "WaterQualityManagementPlan"
+        ],
+        "operationId": "GetAnnualReportOptions_WaterQualityManagementPlan",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/WaterQualityManagementPlanAnnualReportOptionsDto"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WaterQualityManagementPlanAnnualReportOptionsDto"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WaterQualityManagementPlanAnnualReportOptionsDto"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/water-quality-management-plans/annual-report/approval-summary": {
+      "get": {
+        "tags": [
+          "WaterQualityManagementPlan"
+        ],
+        "operationId": "GetAnnualReportApprovalSummary_WaterQualityManagementPlan",
+        "parameters": [
+          {
+            "name": "reportingYear",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          },
+          {
+            "name": "stormwaterJurisdictionID",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "format": "int32",
+              "default": -1
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/WaterQualityManagementPlanApprovalSummaryGridDto"
+                  }
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/WaterQualityManagementPlanApprovalSummaryGridDto"
+                  }
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/WaterQualityManagementPlanApprovalSummaryGridDto"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/water-quality-management-plans/annual-report/post-construction-verifications": {
+      "get": {
+        "tags": [
+          "WaterQualityManagementPlan"
+        ],
+        "operationId": "GetAnnualReportPostConstructionVerifications_WaterQualityManagementPlan",
+        "parameters": [
+          {
+            "name": "reportingYear",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          },
+          {
+            "name": "stormwaterJurisdictionID",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "format": "int32",
+              "default": -1
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/WaterQualityManagementPlanPostConstructionVerificationGridDto"
+                  }
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/WaterQualityManagementPlanPostConstructionVerificationGridDto"
+                  }
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/WaterQualityManagementPlanPostConstructionVerificationGridDto"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/water-quality-management-plan-documents": {
       "get": {
         "tags": [
@@ -14063,6 +14532,128 @@
         },
         "additionalProperties": false
       },
+      "DelineationReconciliationDiscrepancyGridDto": {
+        "type": "object",
+        "properties": {
+          "DelineationID": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "TreatmentBMPID": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "TreatmentBMPName": {
+            "type": "string",
+            "nullable": true
+          },
+          "TreatmentBMPTypeName": {
+            "type": "string",
+            "nullable": true
+          },
+          "DelineationTypeID": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "DelineationTypeName": {
+            "type": "string",
+            "nullable": true
+          },
+          "AreaInAcres": {
+            "type": "number",
+            "format": "double",
+            "nullable": true
+          },
+          "DateLastModified": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "DateLastVerified": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          },
+          "StormwaterJurisdictionID": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "StormwaterJurisdictionName": {
+            "type": "string",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "DelineationReconciliationOverlapGridDto": {
+        "type": "object",
+        "properties": {
+          "DelineationID": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "TreatmentBMPID": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "TreatmentBMPName": {
+            "type": "string",
+            "nullable": true
+          },
+          "TreatmentBMPTypeName": {
+            "type": "string",
+            "nullable": true
+          },
+          "AreaInAcres": {
+            "type": "number",
+            "format": "double",
+            "nullable": true
+          },
+          "DateLastModified": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "DateLastVerified": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          },
+          "StormwaterJurisdictionID": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "StormwaterJurisdictionName": {
+            "type": "string",
+            "nullable": true
+          },
+          "AreaOfOverlapInAcres": {
+            "type": "number",
+            "format": "double",
+            "nullable": true
+          },
+          "OverlappingDelineations": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/OverlappingDelineationLinkDto"
+            },
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "DelineationReconciliationReportContextDto": {
+        "type": "object",
+        "properties": {
+          "RegionalSubbasinsLastUpdated": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          },
+          "CallerIsAdministrator": {
+            "type": "boolean"
+          }
+        },
+        "additionalProperties": false
+      },
       "DelineationSetVerifiedDto": {
         "type": "object",
         "properties": {
@@ -14759,6 +15350,52 @@
           "DisplayName": {
             "type": "string",
             "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "FundingSourceSimpleDto": {
+        "type": "object",
+        "properties": {
+          "FundingSourceID": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "OrganizationID": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "FundingSourceName": {
+            "type": "string",
+            "nullable": true
+          },
+          "IsActive": {
+            "type": "boolean"
+          },
+          "FundingSourceDescription": {
+            "type": "string",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "FundingSourceTreatmentBMPFundingDto": {
+        "type": "object",
+        "properties": {
+          "TreatmentBMPID": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "TreatmentBMPName": {
+            "type": "string",
+            "nullable": true
+          },
+          "Amount": {
+            "type": "number",
+            "format": "double"
+          },
+          "InventoryIsVerified": {
+            "type": "boolean"
           }
         },
         "additionalProperties": false
@@ -16561,6 +17198,11 @@
           },
           "OrganizationType": {
             "$ref": "#/components/schemas/OrganizationTypeSimpleDto"
+          },
+          "StormwaterJurisdictionID": {
+            "type": "integer",
+            "format": "int32",
+            "nullable": true
           }
         },
         "additionalProperties": false
@@ -16670,6 +17312,20 @@
           "OrganizationTypeID": {
             "type": "integer",
             "format": "int32"
+          }
+        },
+        "additionalProperties": false
+      },
+      "OverlappingDelineationLinkDto": {
+        "type": "object",
+        "properties": {
+          "TreatmentBMPID": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "TreatmentBMPName": {
+            "type": "string",
+            "nullable": true
           }
         },
         "additionalProperties": false
@@ -18384,6 +19040,20 @@
         },
         "additionalProperties": false
       },
+      "ReportingYearSimpleDto": {
+        "type": "object",
+        "properties": {
+          "ReportingYear": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "ReportingYearDisplay": {
+            "type": "string",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
       "SizingBasisTypeDto": {
         "type": "object",
         "properties": {
@@ -19394,6 +20064,118 @@
           "ThresholdValue": {
             "type": "number",
             "format": "double"
+          }
+        },
+        "additionalProperties": false
+      },
+      "TreatmentBMPByTypeGridDto": {
+        "type": "object",
+        "properties": {
+          "TreatmentBMPID": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "TreatmentBMPName": {
+            "type": "string",
+            "nullable": true
+          },
+          "StormwaterJurisdictionID": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "StormwaterJurisdictionName": {
+            "type": "string",
+            "nullable": true
+          },
+          "OwnerOrganizationName": {
+            "type": "string",
+            "nullable": true
+          },
+          "YearBuilt": {
+            "type": "integer",
+            "format": "int32",
+            "nullable": true
+          },
+          "SystemOfRecordID": {
+            "type": "string",
+            "nullable": true
+          },
+          "WaterQualityManagementPlanID": {
+            "type": "integer",
+            "format": "int32",
+            "nullable": true
+          },
+          "WaterQualityManagementPlanName": {
+            "type": "string",
+            "nullable": true
+          },
+          "Notes": {
+            "type": "string",
+            "nullable": true
+          },
+          "LatestAssessmentDate": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          },
+          "LatestAssessmentScore": {
+            "type": "number",
+            "format": "double",
+            "nullable": true
+          },
+          "NumberOfAssessments": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "LatestMaintenanceDate": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          },
+          "NumberOfMaintenanceRecords": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "BenchmarkAndThresholdSet": {
+            "type": "boolean"
+          },
+          "TreatmentBMPLifespanTypeDisplayName": {
+            "type": "string",
+            "nullable": true
+          },
+          "TreatmentBMPLifespanEndDate": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          },
+          "RequiredFieldVisitsPerYear": {
+            "type": "integer",
+            "format": "int32",
+            "nullable": true
+          },
+          "RequiredPostStormFieldVisitsPerYear": {
+            "type": "integer",
+            "format": "int32",
+            "nullable": true
+          },
+          "SizingBasisTypeDisplayName": {
+            "type": "string",
+            "nullable": true
+          },
+          "TrashCaptureStatusTypeDisplayName": {
+            "type": "string",
+            "nullable": true
+          },
+          "DelineationTypeDisplayName": {
+            "type": "string",
+            "nullable": true
+          },
+          "CustomAttributeValues": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "string"
+            },
+            "nullable": true
           }
         },
         "additionalProperties": false
@@ -21030,6 +21812,66 @@
         },
         "additionalProperties": false
       },
+      "WaterQualityManagementPlanAnnualReportOptionsDto": {
+        "type": "object",
+        "properties": {
+          "ReportingYears": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ReportingYearSimpleDto"
+            },
+            "nullable": true
+          },
+          "StormwaterJurisdictions": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/StormwaterJurisdictionDisplayDto"
+            },
+            "nullable": true
+          },
+          "DefaultReportingYear": {
+            "type": "integer",
+            "format": "int32"
+          }
+        },
+        "additionalProperties": false
+      },
+      "WaterQualityManagementPlanApprovalSummaryGridDto": {
+        "type": "object",
+        "properties": {
+          "WaterQualityManagementPlanID": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "WaterQualityManagementPlanName": {
+            "type": "string",
+            "nullable": true
+          },
+          "Priority": {
+            "type": "string",
+            "nullable": true
+          },
+          "LandUse": {
+            "type": "string",
+            "nullable": true
+          },
+          "HydrologicSubareaName": {
+            "type": "string",
+            "nullable": true
+          },
+          "RecordedWQMPAreaInAcres": {
+            "type": "number",
+            "format": "double",
+            "nullable": true
+          },
+          "ApprovalDate": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
       "WaterQualityManagementPlanBoundaryResponseDto": {
         "type": "object",
         "properties": {
@@ -21528,6 +22370,43 @@
           },
           "IsDraft": {
             "type": "boolean"
+          }
+        },
+        "additionalProperties": false
+      },
+      "WaterQualityManagementPlanPostConstructionVerificationGridDto": {
+        "type": "object",
+        "properties": {
+          "WaterQualityManagementPlanID": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "WaterQualityManagementPlanName": {
+            "type": "string",
+            "nullable": true
+          },
+          "WaterQualityManagementPlanVerifyStatusName": {
+            "type": "string",
+            "nullable": true
+          },
+          "NumberOfBMPs": {
+            "type": "integer",
+            "format": "int32",
+            "nullable": true
+          },
+          "NumberOfBMPsAdequate": {
+            "type": "integer",
+            "format": "int32",
+            "nullable": true
+          },
+          "NumberOfBMPsDeficient": {
+            "type": "integer",
+            "format": "int32",
+            "nullable": true
+          },
+          "WQMPVerificationComments": {
+            "type": "string",
+            "nullable": true
           }
         },
         "additionalProperties": false
