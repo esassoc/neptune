@@ -144,7 +144,37 @@ namespace Neptune.Tests
             Assert.AreEqual(3, dto.NumberOfBMPs);
             Assert.AreEqual(2, dto.NumberOfBMPsAdequate);
             Assert.AreEqual(1, dto.NumberOfBMPsDeficient);
-            Assert.AreEqual("new", dto.WQMPVerificationComments.TrimEnd(';', ' '));
+            Assert.AreEqual("new", dto.WQMPVerificationComments);
+        }
+
+        [TestMethod]
+        public void BuildPostConstructionGridDtos_OmitsTrailingSeparatorWhenEnforcementEmpty()
+        {
+            // NPT-1063 — Copilot PR review caught a trailing "; " when BMP notes were
+            // present but enforcement was null/empty. Comments should join only non-empty parts.
+            var row = BuildRow(
+                wqmpID: 6, name: "WQMP F",
+                verificationDate: new DateOnly(2025, 3, 15), verifyID: 40,
+                treatmentBMPCount: 1, treatmentBMPAdequate: 1, treatmentBMPDeficient: 0, treatmentBMPNotes: "tbmp note",
+                quickBMPCount: null, quickBMPAdequate: null, quickBMPDeficient: null, quickBMPNotes: null,
+                enforcement: null);
+
+            var dto = vWaterQualityManagementPlanAnnualReportExtensionMethods.BuildPostConstructionGridDtos(new[] { row }).Single();
+            Assert.AreEqual("tbmp note", dto.WQMPVerificationComments);
+        }
+
+        [TestMethod]
+        public void BuildPostConstructionGridDtos_ReturnsEmptyWhenBothPiecesEmpty()
+        {
+            var row = BuildRow(
+                wqmpID: 7, name: "WQMP G",
+                verificationDate: new DateOnly(2025, 3, 15), verifyID: 50,
+                treatmentBMPCount: 1, treatmentBMPAdequate: 1, treatmentBMPDeficient: 0, treatmentBMPNotes: null,
+                quickBMPCount: null, quickBMPAdequate: null, quickBMPDeficient: null, quickBMPNotes: null,
+                enforcement: null);
+
+            var dto = vWaterQualityManagementPlanAnnualReportExtensionMethods.BuildPostConstructionGridDtos(new[] { row }).Single();
+            Assert.AreEqual(string.Empty, dto.WQMPVerificationComments);
         }
 
         [TestMethod]

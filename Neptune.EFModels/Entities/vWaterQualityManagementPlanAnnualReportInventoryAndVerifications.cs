@@ -26,24 +26,39 @@ public static class vWaterQualityManagementPlanAnnualReports
         return waterQualityManagementPlans.ToList();
     }
 
-    public static async Task<List<vWaterQualityManagementPlanAnnualReport>> ListForStormwaterJurisdictionIDsDtoAsync(NeptuneDbContext dbContext, PersonDto? personDto, IEnumerable<int> stormwaterJurisdictionIDsPersonCanView)
+    /// <summary>
+    /// Annual-report Post-Construction listing: pushes the verification-date range and
+    /// optional jurisdiction filter into SQL so the database does the work. -1 means
+    /// "all jurisdictions the caller is allowed to see". Returns one row per verification
+    /// in window; the caller groups by WQMP and picks the most recent.
+    /// </summary>
+    public static async Task<List<vWaterQualityManagementPlanAnnualReport>> ListForAnnualReportPostConstructionAsync(
+        NeptuneDbContext dbContext, PersonDto? personDto, IEnumerable<int> stormwaterJurisdictionIDsPersonCanView,
+        DateOnly reportingPeriodStart, DateOnly reportingPeriodEnd, int stormwaterJurisdictionID)
     {
         var isAnonymousOrUnassigned = personDto == null || personDto.RoleID == (int)RoleEnum.Unassigned;
 
-        var waterQualityManagementPlans = dbContext.vWaterQualityManagementPlanAnnualReports.AsNoTracking()
-            .Where(x => stormwaterJurisdictionIDsPersonCanView.Contains(x.StormwaterJurisdictionID));
+        var query = dbContext.vWaterQualityManagementPlanAnnualReports.AsNoTracking()
+            .Where(x => stormwaterJurisdictionIDsPersonCanView.Contains(x.StormwaterJurisdictionID)
+                        && x.WaterQualityManagementPlanVerifyVerificationDate >= reportingPeriodStart
+                        && x.WaterQualityManagementPlanVerifyVerificationDate <= reportingPeriodEnd);
+
+        if (stormwaterJurisdictionID != -1)
+        {
+            query = query.Where(x => x.StormwaterJurisdictionID == stormwaterJurisdictionID);
+        }
 
         if (isAnonymousOrUnassigned)
         {
-            return await waterQualityManagementPlans.Where(x =>
+            query = query.Where(x =>
                 x.WaterQualityManagementPlanStatusID ==
                 (int)WaterQualityManagementPlanStatusEnum.Active ||
                 (x.WaterQualityManagementPlanStatusID ==
                 (int)WaterQualityManagementPlanStatusEnum.Inactive &&
                 x.StormwaterJurisdictionPublicWQMPVisibilityTypeID ==
-                (int)StormwaterJurisdictionPublicWQMPVisibilityTypeEnum.ActiveAndInactive)).ToListAsync();
+                (int)StormwaterJurisdictionPublicWQMPVisibilityTypeEnum.ActiveAndInactive));
         }
 
-        return await waterQualityManagementPlans.ToListAsync();
+        return await query.ToListAsync();
     }
 }

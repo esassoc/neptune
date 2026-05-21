@@ -12755,6 +12755,7 @@
           {
             "name": "reportingYear",
             "in": "query",
+            "required": true,
             "schema": {
               "type": "integer",
               "format": "int32"
@@ -12765,7 +12766,8 @@
             "in": "query",
             "schema": {
               "type": "integer",
-              "format": "int32"
+              "format": "int32",
+              "default": -1
             }
           }
         ],
@@ -12812,6 +12814,7 @@
           {
             "name": "reportingYear",
             "in": "query",
+            "required": true,
             "schema": {
               "type": "integer",
               "format": "int32"
@@ -12822,7 +12825,8 @@
             "in": "query",
             "schema": {
               "type": "integer",
-              "format": "int32"
+              "format": "int32",
+              "default": -1
             }
           }
         ],

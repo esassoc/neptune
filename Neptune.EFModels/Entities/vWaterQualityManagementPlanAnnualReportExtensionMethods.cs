@@ -37,8 +37,9 @@ public static class vWaterQualityManagementPlanAnnualReportExtensionMethods
         var bmpNoteComments = useTreatmentBMP
             ? mostRecent.WaterQualityManagementPlanVerifyTreatmentBMPNotes
             : mostRecent.WaterQualityManagementPlanVerifyQuickBMPNotes;
-        var separator = string.IsNullOrWhiteSpace(bmpNoteComments) ? string.Empty : "; ";
-        var comments = $"{bmpNoteComments}{separator}{mostRecent.EnforcementOrFollowupActions}";
+        var comments = string.Join("; ",
+            new[] { bmpNoteComments, mostRecent.EnforcementOrFollowupActions }
+                .Where(s => !string.IsNullOrWhiteSpace(s)));
 
         var statusName = mostRecent.WaterQualityManagementPlanVerifyStatusID.HasValue
             && WaterQualityManagementPlanVerifyStatus.AllLookupDictionary.TryGetValue(mostRecent.WaterQualityManagementPlanVerifyStatusID.Value, out var status)
