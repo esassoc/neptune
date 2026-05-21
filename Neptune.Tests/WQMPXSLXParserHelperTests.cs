@@ -283,5 +283,22 @@ namespace Neptune.Tests
             WQMPXSLXParserHelper.ParseWQMPRowsFromXLSX(_dbContext, dt, GetAnyJurisdictionID(), out var errors);
             Assert.IsTrue(errors.Any(x => x.Contains("Hydrologic Subarea Nonexistent Subarea X")));
         }
+
+        [TestMethod]
+        public void MissingOptionalColumns_ParseSucceedsWithoutException()
+        {
+            // After the optional-column backfill fix: a hand-edited template that drops optional
+            // columns should still parse cleanly — the missing columns are treated as blank.
+            // Previously this threw ArgumentException on `row["Maintenance Contact Name"]`.
+            var requiredOnly = new[] { "WQMP Name", "Land Use", "Priority", "Status", "Development Type", "Trash Capture Status" };
+            var dt = BuildDataTable(requiredOnly,
+                new[] { "___NPT_998_TEST_MIN_COLS___", ValidLandUse(), ValidPriority(), ValidStatus(), ValidDevelopmentType(), ValidTrashCaptureStatus() });
+            var result = WQMPXSLXParserHelper.ParseWQMPRowsFromXLSX(_dbContext, dt, GetAnyJurisdictionID(), out var errors);
+            Assert.AreEqual(0, errors.Count, string.Join("; ", errors));
+            Assert.AreEqual(1, result.Count);
+            Assert.AreEqual("___NPT_998_TEST_MIN_COLS___", result[0].WaterQualityManagementPlanName);
+            Assert.IsNull(result[0].MaintenanceContactName);
+            Assert.IsNull(result[0].ApprovalDate);
+        }
     }
 }

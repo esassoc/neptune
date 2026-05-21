@@ -5,6 +5,7 @@ using System.Linq;
 using System.Threading.Tasks;
 using ClosedXML.Excel;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Storage;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using Neptune.EFModels.Entities;
 
@@ -24,6 +25,7 @@ namespace Neptune.Tests
         private const int InletAndTrashScreenTreatmentBMPTypeID = 35;
 
         private NeptuneDbContext _dbContext = GetDbContext();
+        private IDbContextTransaction? _transaction;
 
         private static NeptuneDbContext GetDbContext()
         {
@@ -35,6 +37,26 @@ namespace Neptune.Tests
                     x.UseNetTopologySuite();
                 });
             return new NeptuneDbContext(optionsBuilder.Options);
+        }
+
+        // The importer calls SaveChangesAsync on the happy path. Wrap every test in a transaction
+        // we roll back so happy-path tests can assert on persisted state without polluting the
+        // dev DB. Error-path tests get a no-op rollback.
+        [TestInitialize]
+        public async Task TestInitialize()
+        {
+            _transaction = await _dbContext.Database.BeginTransactionAsync();
+        }
+
+        [TestCleanup]
+        public async Task TestCleanup()
+        {
+            if (_transaction != null)
+            {
+                await _transaction.RollbackAsync();
+                await _transaction.DisposeAsync();
+                _transaction = null;
+            }
         }
 
         private Person GetAdminPerson() =>
@@ -263,6 +285,40 @@ namespace Neptune.Tests
             var result = await TrashScreenFieldVisitImporter.BulkUploadAsync(_dbContext, xlsx, GetAdminPerson());
             Assert.AreEqual(0, result.Errors.Count, string.Join("; ", result.Errors));
             Assert.AreEqual(0, result.RowsProcessed);
+        }
+
+        [TestMethod]
+        public async Task ValidRow_NoAssessmentBlocks_PersistsFieldVisitShell()
+        {
+            // Minimal happy path: valid BMP + visit type + date, with blank initial-assessment
+            // and post-maintenance blocks. The importer should create the FieldVisit row and
+            // skip the assessment/maintenance sub-paths.
+            var bmp = GetAnyTrashScreenBMP();
+            if (bmp == null)
+            {
+                Assert.Inconclusive("No Inlet-And-Trash-Screen BMPs in dev DB.");
+                return;
+            }
+            // Use a date well in the future to avoid colliding with a pre-existing FieldVisit
+            // for this BMP on the same day (which would update rather than insert).
+            var visitDate = "01/01/2099";
+            var row = BlankRow();
+            Set(row, "BMP Name", bmp.TreatmentBMPName);
+            Set(row, "Jurisdiction", bmp.StormwaterJurisdiction.Organization.OrganizationName);
+            Set(row, "Field Visit Type", FieldVisitType.All.First().FieldVisitTypeDisplayName);
+            Set(row, "Field Visit Date", visitDate);
+
+            var beforeCount = await _dbContext.FieldVisits.CountAsync(x => x.TreatmentBMPID == bmp.TreatmentBMPID);
+
+            using var xlsx = BuildXlsx(new[] { row });
+            var result = await TrashScreenFieldVisitImporter.BulkUploadAsync(_dbContext, xlsx, GetAdminPerson());
+
+            Assert.AreEqual(0, result.Errors.Count, string.Join("; ", result.Errors));
+            Assert.AreEqual(1, result.RowsProcessed);
+
+            var afterCount = await _dbContext.FieldVisits.CountAsync(x => x.TreatmentBMPID == bmp.TreatmentBMPID);
+            Assert.AreEqual(beforeCount + 1, afterCount,
+                "Exactly one new FieldVisit should have been added for this BMP.");
         }
     }
 }

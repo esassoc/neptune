@@ -104,17 +104,16 @@ namespace Neptune.Tests
         }
 
         [TestMethod]
-        public void EmptyRow_TriggersBlankWqmpNameError()
+        public void EmptyRow_IsSkippedNoError()
         {
-            // Documents current behavior: the per-row WQMP-lookup loop in the parser runs
-            // before the empty-row skip logic, so an all-blank row produces a "WQMP with name
-            // '' does not exist" error and the top-level returns null. The legitimate template
-            // never has blank rows, but a hand-edited sheet would surface this.
+            // After the empty-row skip fix in the WQMP-name pre-pass, trailing blank rows in
+            // the spreadsheet should be silently ignored rather than producing a spurious
+            // "WQMP with name '' does not exist" error.
             var dt = BuildDataTable(AllCols, new string?[] { "", "", "", "", "", "", "", "", "" });
             var result = SimplifiedBMPsExcelParserHelper.ParseWQMPRowsFromXLSX(_dbContext, GetAnyJurisdictionID(), dt, out var errors);
-            Assert.IsNull(result);
-            Assert.IsTrue(errors.Any(x => x.Contains("WQMP with name") && x.Contains("does not exist")),
-                string.Join("; ", errors));
+            Assert.IsNotNull(result);
+            Assert.AreEqual(0, result.Count);
+            Assert.AreEqual(0, errors.Count, string.Join("; ", errors));
         }
 
         [TestMethod]

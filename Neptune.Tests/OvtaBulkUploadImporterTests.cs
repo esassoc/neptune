@@ -5,6 +5,7 @@ using System.Linq;
 using System.Threading.Tasks;
 using ClosedXML.Excel;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Storage;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using Neptune.EFModels.Entities;
 
@@ -21,6 +22,7 @@ namespace Neptune.Tests
     public class OvtaBulkUploadImporterTests
     {
         private NeptuneDbContext _dbContext = GetDbContext();
+        private IDbContextTransaction? _transaction;
 
         private static NeptuneDbContext GetDbContext()
         {
@@ -32,6 +34,26 @@ namespace Neptune.Tests
                     x.UseNetTopologySuite();
                 });
             return new NeptuneDbContext(optionsBuilder.Options);
+        }
+
+        // The importer calls SaveChangesAsync on the happy path. Wrap every test in a transaction
+        // we roll back so happy-path tests can assert on persisted state without polluting the
+        // dev DB. Error-path tests get a no-op rollback.
+        [TestInitialize]
+        public async Task TestInitialize()
+        {
+            _transaction = await _dbContext.Database.BeginTransactionAsync();
+        }
+
+        [TestCleanup]
+        public async Task TestCleanup()
+        {
+            if (_transaction != null)
+            {
+                await _transaction.RollbackAsync();
+                await _transaction.DisposeAsync();
+                _transaction = null;
+            }
         }
 
         private Person GetAdminPerson() =>
@@ -240,6 +262,43 @@ namespace Neptune.Tests
             var result = await OvtaBulkUploadImporter.BulkUploadAsync(_dbContext, xlsx, editor);
             Assert.IsTrue(result.Errors.Any(x => x.Contains("do not have permission to manage")),
                 string.Join("; ", result.Errors));
+        }
+
+        [TestMethod]
+        public async Task ValidRow_PersistsAssessmentAndRecalculatesAreaScores()
+        {
+            var area = _dbContext.OnlandVisualTrashAssessmentAreas.AsNoTracking().FirstOrDefault();
+            if (area == null)
+            {
+                Assert.Inconclusive("No OVTA areas in dev DB.");
+                return;
+            }
+            var creator = GetAdminPerson();
+            var jurisdiction = _dbContext.StormwaterJurisdictions.Include(x => x.Organization).AsNoTracking()
+                .Single(x => x.StormwaterJurisdictionID == area.StormwaterJurisdictionID);
+            var validScore = OnlandVisualTrashAssessmentScore.All.First().OnlandVisualTrashAssessmentScoreDisplayName;
+
+            var beforeCount = await _dbContext.OnlandVisualTrashAssessments
+                .CountAsync(x => x.OnlandVisualTrashAssessmentAreaID == area.OnlandVisualTrashAssessmentAreaID);
+
+            var row = new[]
+            {
+                area.OnlandVisualTrashAssessmentAreaName, jurisdiction.Organization.OrganizationName, creator.Email,
+                "Finalized", "06/15/2024", validScore, "No",
+                "", "", "", "",
+            };
+            using var xlsx = BuildXlsx(BaseColumns, new[] { row });
+
+            var result = await OvtaBulkUploadImporter.BulkUploadAsync(_dbContext, xlsx, creator);
+
+            Assert.AreEqual(0, result.Errors.Count, string.Join("; ", result.Errors));
+            Assert.AreEqual(1, result.RowsProcessed);
+
+            // Within the still-open transaction we should see the new OVTA.
+            var afterCount = await _dbContext.OnlandVisualTrashAssessments
+                .CountAsync(x => x.OnlandVisualTrashAssessmentAreaID == area.OnlandVisualTrashAssessmentAreaID);
+            Assert.AreEqual(beforeCount + 1, afterCount,
+                "Exactly one new OnlandVisualTrashAssessment should have been added in this area.");
         }
 
         [TestMethod]

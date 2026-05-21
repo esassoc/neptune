@@ -23,6 +23,15 @@ namespace Neptune.EFModels.Entities
             {
                 return null;
             }
+
+            // Optional columns may be absent if the user hand-edited the template. Backfill them
+            // as empty columns so the per-row reads don't throw ArgumentException on
+            // `row[fieldName]`. Missing optional values are treated the same as blank cells.
+            foreach (var field in optionalFields.Where(f => !dataTableFromExcel.Columns.Contains(f)))
+            {
+                dataTableFromExcel.Columns.Add(field);
+            }
+
             var numColumns = dataTableFromExcel.Columns.Count;
             var numRows = dataTableFromExcel.Rows.Count;
 
