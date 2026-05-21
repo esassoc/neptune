@@ -1,7 +1,7 @@
 import { ChangeDetectionStrategy, ChangeDetectorRef, Component, OnInit, inject } from "@angular/core";
 import { AsyncPipe, DatePipe } from "@angular/common";
-import { ColDef, ICellRendererParams } from "ag-grid-community";
-import { BehaviorSubject, Observable, switchMap, tap } from "rxjs";
+import { ColDef } from "ag-grid-community";
+import { BehaviorSubject, Observable, switchMap } from "rxjs";
 import { Router } from "@angular/router";
 
 import { PageHeaderComponent } from "src/app/shared/components/page-header/page-header.component";
@@ -14,7 +14,6 @@ import { ConfirmService } from "src/app/shared/services/confirm/confirm.service"
 import { AlertService } from "src/app/shared/services/alert.service";
 import { Alert } from "src/app/shared/models/alert";
 import { AlertContext } from "src/app/shared/models/enums/alert-context.enum";
-import { escapeHtml } from "src/app/shared/helpers/html-escape";
 
 import { DelineationService } from "src/app/shared/generated/api/delineation.service";
 import { DelineationReconciliationReportContextDto } from "src/app/shared/generated/model/delineation-reconciliation-report-context-dto";
@@ -75,15 +74,22 @@ export class DelineationReconciliationReportComponent implements OnInit {
                 this.isEnqueueing = true;
                 this.cdr.detectChanges();
                 this.delineationService.enqueueReconciliationCheckDelineation().subscribe({
-                    next: (res: any) => {
+                    next: () => {
                         this.isEnqueueing = false;
                         this.alertService.pushAlert(
-                            new Alert(res?.message ?? "The discrepancy check job has been queued.", AlertContext.Success, true)
+                            new Alert(
+                                "The job to check for delineation discrepancies and overlaps has been queued. Please check back in a few minutes to see updated results.",
+                                AlertContext.Success,
+                                true
+                            )
                         );
                         this.cdr.detectChanges();
                     },
                     error: () => {
                         this.isEnqueueing = false;
+                        this.alertService.pushAlert(
+                            new Alert("Failed to queue the discrepancy check job. Please try again, or contact support if the problem persists.", AlertContext.Danger, true)
+                        );
                         this.cdr.detectChanges();
                     },
                 });
@@ -164,17 +170,10 @@ export class DelineationReconciliationReportComponent implements OnInit {
                 FieldDefinitionType: "Area",
                 FieldDefinitionLabelOverride: "Area of Overlap (ac)",
             }),
-            {
-                headerName: "Overlapping Delineations",
-                field: "OverlappingDelineations",
-                width: 280,
-                filter: false,
-                sortable: false,
-                cellRenderer: (p: ICellRendererParams) =>
-                    ((p.value as { TreatmentBMPID: number; TreatmentBMPName: string }[]) ?? [])
-                        .map((x) => `<a href="/treatment-bmps/${x.TreatmentBMPID}">${escapeHtml(x.TreatmentBMPName ?? "")}</a>`)
-                        .join(", "),
-            },
+            this.utility.createMultiLinkColumnDef("Overlapping Delineations", "OverlappingDelineations", "TreatmentBMPID", "TreatmentBMPName", {
+                InRouterLink: "../../treatment-bmps/",
+                Width: 280,
+            }),
         ];
     }
 }
