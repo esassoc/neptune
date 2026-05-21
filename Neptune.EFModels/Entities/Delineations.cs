@@ -275,5 +275,49 @@ namespace Neptune.EFModels.Entities
                 .Select(x => x.AsDto())
                 .SingleOrDefault();
         }
+
+        // NPT-1064 — SPA reconciliation report endpoints. These push the viewable-jurisdiction
+        // filter into SQL (replacing the legacy in-memory `.Where(CanView)` in
+        // ListHavingDiscrepancies / ListHavingOverlaps) and use the DtoProjections so EF
+        // emits a single SELECT with JOINs instead of an Include chain.
+
+        public static async Task<List<DelineationReconciliationDiscrepancyGridDto>> ListDiscrepancyGridDtosAsync(NeptuneDbContext dbContext, Person currentPerson)
+        {
+            var viewableJurisdictionIDs = StormwaterJurisdictionPeople
+                .ListViewableStormwaterJurisdictionIDsByPersonForBMPs(dbContext, currentPerson).ToList();
+
+            var dtos = await dbContext.Delineations.AsNoTracking()
+                .Where(x => x.HasDiscrepancies
+                            && x.TreatmentBMP.ProjectID == null
+                            && viewableJurisdictionIDs.Contains(x.TreatmentBMP.StormwaterJurisdictionID))
+                .OrderBy(x => x.TreatmentBMP.TreatmentBMPName)
+                .Select(DelineationProjections.AsDiscrepancyGridDto)
+                .ToListAsync();
+
+            ResolveDelineationTypeNames(dtos);
+            return dtos;
+        }
+
+        public static async Task<List<DelineationReconciliationOverlapGridDto>> ListOverlapGridDtosAsync(NeptuneDbContext dbContext, Person currentPerson)
+        {
+            var viewableJurisdictionIDs = StormwaterJurisdictionPeople
+                .ListViewableStormwaterJurisdictionIDsByPersonForBMPs(dbContext, currentPerson).ToList();
+
+            return await dbContext.Delineations.AsNoTracking()
+                .Where(x => x.DelineationOverlapDelineations.Any()
+                            && x.TreatmentBMP.ProjectID == null
+                            && viewableJurisdictionIDs.Contains(x.TreatmentBMP.StormwaterJurisdictionID))
+                .OrderBy(x => x.TreatmentBMP.TreatmentBMPName)
+                .Select(DelineationProjections.AsOverlapGridDto)
+                .ToListAsync();
+        }
+
+        public static void ResolveDelineationTypeNames(IEnumerable<DelineationReconciliationDiscrepancyGridDto> dtos)
+        {
+            foreach (var dto in dtos)
+            {
+                dto.DelineationTypeName = DelineationType.AllLookupDictionary[dto.DelineationTypeID].DelineationTypeDisplayName;
+            }
+        }
     }
 }

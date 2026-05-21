@@ -819,7 +819,11 @@ export const routes: Routes = [
             {
                 path: "delineation/delineation-reconciliation-report",
                 title: "Delineation Reconciliation Report",
-                loadComponent: () => import("./pages/delineation/delineation-reconciliation-report.component").then((m) => m.DelineationReconciliationReportComponent),
+                loadComponent: () =>
+                    import("./pages/delineation/delineation-reconciliation-report/delineation-reconciliation-report.component").then(
+                        (m) => m.DelineationReconciliationReportComponent
+                    ),
+                canActivate: [authGuardFn, JurisdictionManagerOrEditorOnlyGuard],
             },
             {
                 path: "delineation/revision-requests",

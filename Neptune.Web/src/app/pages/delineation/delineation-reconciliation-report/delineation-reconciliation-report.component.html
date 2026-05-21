@@ -1,0 +1,44 @@
+<page-header
+    pageTitle="Delineation Reconciliation Report"
+    [customRichTextTypeID]="customRichTextTypeID"
+    [templateRight]="templateRight"></page-header>
+
+<ng-template #templateRight>
+    @if (context$ | async; as ctx) {
+        <div class="report-meta">
+            <em
+                >Regional Subbasins last updated on:
+                {{ ctx.RegionalSubbasinsLastUpdated | date: "MM/dd/yyyy" : "+0000" }}</em
+            >
+            @if (ctx.CallerIsAdministrator) {
+                <button class="btn btn-primary" (click)="onCheckForDiscrepancies()" [disabled]="isEnqueueing">
+                    Check for Discrepancies
+                </button>
+            }
+        </div>
+    }
+</ng-template>
+
+<app-alert-display></app-alert-display>
+
+<section class="report-section">
+    <h2 class="section-title">Treatment BMPs with Discrepancies with the most recent Regional Subbasin Layer</h2>
+    <neptune-grid
+        height="500px"
+        [rowData]="(discrepancies$ | async) ?? []"
+        [columnDefs]="discrepancyColumnDefs"
+        downloadFileName="delineation-reconciliation-discrepancies"
+        [pagination]="true"
+        [sizeColumnsToFitGrid]="true"></neptune-grid>
+</section>
+
+<section class="report-section">
+    <h2 class="section-title">Treatment BMPs that are overlapping</h2>
+    <neptune-grid
+        height="500px"
+        [rowData]="(overlaps$ | async) ?? []"
+        [columnDefs]="overlapColumnDefs"
+        downloadFileName="delineation-reconciliation-overlaps"
+        [pagination]="true"
+        [sizeColumnsToFitGrid]="true"></neptune-grid>
+</section>
