@@ -66,13 +66,21 @@ export class FieldDefinitionEditComponent implements OnInit {
                         } else {
                             this.loadFailed = true;
                         }
+                        // NPT-999 r3 (KE 5/20/26): under zoneless change detection, mutating a
+                        // plain property inside a .subscribe() callback doesn't mark the view
+                        // dirty — the @if (fieldDefinition) branch only re-evaluates when the
+                        // next user-triggered tick fires (a click anywhere on the page). Force
+                        // a detectChanges so the editor renders as soon as the GET resolves.
+                        this.cdr.detectChanges();
                     },
                     error: () => {
                         this.loadFailed = true;
+                        this.cdr.detectChanges();
                     },
                 });
             } else {
                 this.loadFailed = true;
+                this.cdr.detectChanges();
             }
         });
     }

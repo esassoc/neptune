@@ -1,9 +1,15 @@
 @if (detail$ | async; as detail) {
     <page-header [pageTitle]="detail.FirstName + ' ' + detail.LastName" [templateAbove]="templateAbove" [templateRight]="headerActions">
         <ng-template #templateAbove>
-            <div class="back">
-                <a [routerLink]="['/users']" class="back__link"><i class="fa fa-arrow-left"></i> Back to Users List</a>
-            </div>
+            <!-- NPT-999 r3 (KE 5/20/26): the back-link only renders for Admin / SitkaAdmin
+                 viewers since the /users list itself is now guarded to those roles. Jurisdiction
+                 users land on this page through "My Profile" in the Welcome dropdown and have
+                 no business browsing the full user roster. -->
+            @if (isAdmin()) {
+                <div class="back">
+                    <a [routerLink]="['/users']" class="back__link"><i class="fa fa-arrow-left"></i> Back to Users List</a>
+                </div>
+            }
         </ng-template>
         <ng-template #headerActions>
             @if (isAdmin()) {
@@ -102,12 +108,17 @@
             <div class="card mt-3">
                 <div class="card-header">
                     <span class="card-title">Assigned Jurisdictions</span>
-                    @if (isAdmin()) {
+                    @if (isAdmin() && !isDetailUserAdmin(detail)) {
                         <a (click)="openEditJurisdictionsModal(detail)" style="cursor: pointer" title="Edit Jurisdictions"><icon class="icon-button" icon="CirclePencil"></icon></a>
                     }
                 </div>
                 <div class="card-body">
-                    @if (detail.AssignedStormwaterJurisdictions && detail.AssignedStormwaterJurisdictions.length > 0) {
+                    @if (isDetailUserAdmin(detail)) {
+                        <!-- KE 5/20/26: Admin / SitkaAdmin users implicitly manage every jurisdiction;
+                             show the stub message in place of the assigned list and suppress the Edit
+                             pencil above so it can't be clicked to add a redundant assignment. -->
+                        <p class="system-text">Administrators are by definition assigned to manage all Jurisdictions.</p>
+                    } @else if (detail.AssignedStormwaterJurisdictions && detail.AssignedStormwaterJurisdictions.length > 0) {
                         <ul class="plain-list">
                             @for (jurisdiction of detail.AssignedStormwaterJurisdictions; track jurisdiction.StormwaterJurisdictionID) {
                                 <li>

@@ -52,6 +52,13 @@ export class UserDetailComponent implements OnInit {
         return !!u && (u.RoleID === RoleEnum.Admin || u.RoleID === RoleEnum.SitkaAdmin);
     });
 
+    /** KE 5/20/26: the viewed user (not the viewer) — Admin / SitkaAdmin users implicitly
+     *  manage every jurisdiction, so the Assigned Jurisdictions panel renders a stub
+     *  message and suppresses the Edit pencil for those role IDs. */
+    public isDetailUserAdmin(detail: PersonDetailDto): boolean {
+        return detail.RoleID === RoleEnum.Admin || detail.RoleID === RoleEnum.SitkaAdmin;
+    }
+
     public isWorking = signal(false);
 
     ngOnInit(): void {

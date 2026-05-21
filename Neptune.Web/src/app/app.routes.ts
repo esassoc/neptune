@@ -359,7 +359,15 @@ export const routes: Routes = [
                 redirectTo: `field-definitions/:${routeParams.definitionID}/edit`,
                 pathMatch: "full",
             },
-            { path: "users", title: "Users", loadComponent: () => import("./pages/users/users.component").then((m) => m.UsersComponent) },
+            {
+                // NPT-999 r3 (KE 5/20/26): the users list is Admin / SitkaAdmin only.
+                // Jurisdiction users have no business seeing the full user roster; they
+                // reach their own profile via the Welcome dropdown's "My Profile" link.
+                path: "users",
+                title: "Users",
+                loadComponent: () => import("./pages/users/users.component").then((m) => m.UsersComponent),
+                canActivate: [authGuardFn, ManagerOnlyGuard],
+            },
             {
                 path: `users/:${routeParams.personID}`,
                 title: "User Detail",
