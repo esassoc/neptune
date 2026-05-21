@@ -362,7 +362,7 @@ export const routes: Routes = [
             {
                 // NPT-999 r3 (KE 5/20/26): the users list is Admin / SitkaAdmin only.
                 // Jurisdiction users have no business seeing the full user roster; they
-                // reach their own profile via the Welcome dropdown's "My Profile" link.
+                // reach their own profile via the Welcome dropdown's Account link.
                 path: "users",
                 title: "Users",
                 loadComponent: () => import("./pages/users/users.component").then((m) => m.UsersComponent),

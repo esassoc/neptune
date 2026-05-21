@@ -3,7 +3,7 @@
         <ng-template #templateAbove>
             <!-- NPT-999 r3 (KE 5/20/26): the back-link only renders for Admin / SitkaAdmin
                  viewers since the /users list itself is now guarded to those roles. Jurisdiction
-                 users land on this page through "My Profile" in the Welcome dropdown and have
+                 users land on this page through the Welcome dropdown's Account link and have
                  no business browsing the full user roster. -->
             @if (isAdmin()) {
                 <div class="back">

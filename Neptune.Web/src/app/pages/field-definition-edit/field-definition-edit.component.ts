@@ -1,4 +1,5 @@
-import { Component, OnInit, ChangeDetectorRef, ViewChild } from "@angular/core";
+import { Component, DestroyRef, OnInit, ChangeDetectorRef, ViewChild, inject } from "@angular/core";
+import { takeUntilDestroyed } from "@angular/core/rxjs-interop";
 import { AuthenticationService } from "src/app/services/authentication.service";
 import { Router, ActivatedRoute, RouterLink } from "@angular/router";
 import { Alert } from "src/app/shared/models/alert";
@@ -40,6 +41,11 @@ export class FieldDefinitionEditComponent implements OnInit {
 
     public isLoadingSubmit: boolean;
 
+    // NPT-999 r3 (Copilot PR #519): cancels the in-flight subscribes when the component is
+    // destroyed so the subscribe callbacks (which call cdr.detectChanges) don't run on a
+    // torn-down view if the user navigates away mid-request.
+    private destroyRef = inject(DestroyRef);
+
     constructor(
         private route: ActivatedRoute,
         private router: Router,
@@ -50,7 +56,7 @@ export class FieldDefinitionEditComponent implements OnInit {
     ) {}
 
     ngOnInit() {
-        this.authenticationService.getCurrentUser().subscribe((currentUser) => {
+        this.authenticationService.getCurrentUser().pipe(takeUntilDestroyed(this.destroyRef)).subscribe((currentUser) => {
             this.currentUser = currentUser;
             // NPT-999: read `fieldDefinitionTypeID` (canonical AC param). Legacy `definitionID`
             // route still resolves via a redirect in app.routes.ts that preserves the value, so
@@ -59,7 +65,7 @@ export class FieldDefinitionEditComponent implements OnInit {
                 ?? this.route.snapshot.paramMap.get("definitionID");
             const id = raw ? parseInt(raw, 10) : NaN;
             if (Number.isFinite(id)) {
-                this.fieldDefinitionService.getFieldDefinition(id).subscribe({
+                this.fieldDefinitionService.getFieldDefinition(id).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
                     next: (fieldDefinition) => {
                         if (fieldDefinition) {
                             this.fieldDefinition = fieldDefinition;
