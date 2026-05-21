@@ -652,6 +652,127 @@
         }
       }
     },
+    "/delineations/reconciliation-report/context": {
+      "get": {
+        "tags": [
+          "Delineation"
+        ],
+        "operationId": "GetReconciliationReportContext_Delineation",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/DelineationReconciliationReportContextDto"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DelineationReconciliationReportContextDto"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DelineationReconciliationReportContextDto"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/delineations/reconciliation-report/discrepancies": {
+      "get": {
+        "tags": [
+          "Delineation"
+        ],
+        "operationId": "GetReconciliationDiscrepancies_Delineation",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/DelineationReconciliationDiscrepancyGridDto"
+                  }
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/DelineationReconciliationDiscrepancyGridDto"
+                  }
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/DelineationReconciliationDiscrepancyGridDto"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/delineations/reconciliation-report/overlaps": {
+      "get": {
+        "tags": [
+          "Delineation"
+        ],
+        "operationId": "GetReconciliationOverlaps_Delineation",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/DelineationReconciliationOverlapGridDto"
+                  }
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/DelineationReconciliationOverlapGridDto"
+                  }
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/DelineationReconciliationOverlapGridDto"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/delineations/reconciliation-report/enqueue-check": {
+      "post": {
+        "tags": [
+          "Delineation"
+        ],
+        "operationId": "EnqueueReconciliationCheck_Delineation",
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
     "/delineations/gdb/upload": {
       "post": {
         "tags": [
@@ -13687,6 +13808,128 @@
         },
         "additionalProperties": false
       },
+      "DelineationReconciliationDiscrepancyGridDto": {
+        "type": "object",
+        "properties": {
+          "DelineationID": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "TreatmentBMPID": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "TreatmentBMPName": {
+            "type": "string",
+            "nullable": true
+          },
+          "TreatmentBMPTypeName": {
+            "type": "string",
+            "nullable": true
+          },
+          "DelineationTypeID": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "DelineationTypeName": {
+            "type": "string",
+            "nullable": true
+          },
+          "AreaInAcres": {
+            "type": "number",
+            "format": "double",
+            "nullable": true
+          },
+          "DateLastModified": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "DateLastVerified": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          },
+          "StormwaterJurisdictionID": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "StormwaterJurisdictionName": {
+            "type": "string",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "DelineationReconciliationOverlapGridDto": {
+        "type": "object",
+        "properties": {
+          "DelineationID": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "TreatmentBMPID": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "TreatmentBMPName": {
+            "type": "string",
+            "nullable": true
+          },
+          "TreatmentBMPTypeName": {
+            "type": "string",
+            "nullable": true
+          },
+          "AreaInAcres": {
+            "type": "number",
+            "format": "double",
+            "nullable": true
+          },
+          "DateLastModified": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "DateLastVerified": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          },
+          "StormwaterJurisdictionID": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "StormwaterJurisdictionName": {
+            "type": "string",
+            "nullable": true
+          },
+          "AreaOfOverlapInAcres": {
+            "type": "number",
+            "format": "double",
+            "nullable": true
+          },
+          "OverlappingDelineations": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/OverlappingDelineationLinkDto"
+            },
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "DelineationReconciliationReportContextDto": {
+        "type": "object",
+        "properties": {
+          "RegionalSubbasinsLastUpdated": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          },
+          "CallerIsAdministrator": {
+            "type": "boolean"
+          }
+        },
+        "additionalProperties": false
+      },
       "DelineationSetVerifiedDto": {
         "type": "object",
         "properties": {
@@ -16315,6 +16558,20 @@
           "OrganizationTypeID": {
             "type": "integer",
             "format": "int32"
+          }
+        },
+        "additionalProperties": false
+      },
+      "OverlappingDelineationLinkDto": {
+        "type": "object",
+        "properties": {
+          "TreatmentBMPID": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "TreatmentBMPName": {
+            "type": "string",
+            "nullable": true
           }
         },
         "additionalProperties": false

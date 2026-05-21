@@ -65,6 +65,9 @@ model/custom-attribute-upsert-dto.ts
 model/delineation-dto.ts
 model/delineation-gdb-download-request-dto.ts
 model/delineation-gdb-upload-validation-dto.ts
+model/delineation-reconciliation-discrepancy-grid-dto.ts
+model/delineation-reconciliation-overlap-grid-dto.ts
+model/delineation-reconciliation-report-context-dto.ts
 model/delineation-set-verified-dto.ts
 model/delineation-upsert-dto.ts
 model/delineation-upsert-geo-json-dto.ts
@@ -138,6 +141,7 @@ model/organization-dto.ts
 model/organization-simple-dto.ts
 model/organization-type-simple-dto.ts
 model/organization-upsert-dto.ts
+model/overlapping-delineation-link-dto.ts
 model/ovta-results-dto.ts
 model/parcel-display-dto.ts
 model/parcel-geometry-simple-dto.ts

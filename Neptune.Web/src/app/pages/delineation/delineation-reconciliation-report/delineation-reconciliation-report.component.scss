@@ -1,0 +1,17 @@
+@use "/src/scss/abstracts" as *;
+
+.report-meta {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 0.75rem;
+}
+
+.report-section + .report-section {
+    margin-top: $type-size-400;
+}
+
+.section-title {
+    font-size: $type-size-400;
+    margin-bottom: 0.5rem;
+}
