@@ -1,1 +1,25 @@
-/* Placeholder for WQMP Annual Report component styles */
+@use "/src/scss/abstracts" as *;
+
+.annual-report-filters {
+    display: grid;
+    grid-template-columns: minmax(220px, 280px) minmax(220px, 320px);
+    column-gap: 1rem;
+    margin-bottom: $type-size-400;
+
+    form-field {
+        display: block;
+    }
+}
+
+.report-section + .report-section {
+    margin-top: $type-size-400;
+}
+
+.section-title {
+    font-size: $type-size-400;
+    margin-bottom: 0.5rem;
+}
+
+.grid-wrapper {
+    margin-top: 0.5rem;
+}

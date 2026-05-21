@@ -173,6 +173,7 @@ model/regional-subbasin-dto.ts
 model/regional-subbasin-revision-request-close-dto.ts
 model/regional-subbasin-revision-request-dto.ts
 model/regional-subbasin-revision-request-upsert-dto.ts
+model/reporting-year-simple-dto.ts
 model/sizing-basis-type-dto.ts
 model/source-control-bmp-dto.ts
 model/source-control-bmp-upsert-dto.ts
@@ -236,6 +237,8 @@ model/verify-quick-bmp-upsert-dto.ts
 model/verify-source-control-bmp-detail-dto.ts
 model/verify-source-control-bmp-upsert-dto.ts
 model/verify-treatment-bmp-upsert-dto.ts
+model/water-quality-management-plan-annual-report-options-dto.ts
+model/water-quality-management-plan-approval-summary-grid-dto.ts
 model/water-quality-management-plan-boundary-response-dto.ts
 model/water-quality-management-plan-boundary-upsert-dto.ts
 model/water-quality-management-plan-display-dto.ts
@@ -245,6 +248,7 @@ model/water-quality-management-plan-document-upsert-dto.ts
 model/water-quality-management-plan-dto.ts
 model/water-quality-management-plan-extraction-result-dto.ts
 model/water-quality-management-plan-grid-dto.ts
+model/water-quality-management-plan-post-construction-verification-grid-dto.ts
 model/water-quality-management-plan-section-save-location-dto.ts
 model/water-quality-management-plan-section-save-response-dto.ts
 model/water-quality-management-plan-simple-dto.ts

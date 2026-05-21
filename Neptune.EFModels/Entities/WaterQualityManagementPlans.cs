@@ -5,7 +5,7 @@ using Neptune.Models.DataTransferObjects;
 
 namespace Neptune.EFModels.Entities;
 
-public static class WaterQualityManagementPlans
+public static partial class WaterQualityManagementPlans
 {
     private static IQueryable<WaterQualityManagementPlan> GetImpl(NeptuneDbContext dbContext)
     {

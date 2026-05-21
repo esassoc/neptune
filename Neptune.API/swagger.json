@@ -12715,6 +12715,150 @@
         }
       }
     },
+    "/water-quality-management-plans/annual-report/options": {
+      "get": {
+        "tags": [
+          "WaterQualityManagementPlan"
+        ],
+        "operationId": "GetAnnualReportOptions_WaterQualityManagementPlan",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/WaterQualityManagementPlanAnnualReportOptionsDto"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WaterQualityManagementPlanAnnualReportOptionsDto"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WaterQualityManagementPlanAnnualReportOptionsDto"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/water-quality-management-plans/annual-report/approval-summary": {
+      "get": {
+        "tags": [
+          "WaterQualityManagementPlan"
+        ],
+        "operationId": "GetAnnualReportApprovalSummary_WaterQualityManagementPlan",
+        "parameters": [
+          {
+            "name": "reportingYear",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          },
+          {
+            "name": "stormwaterJurisdictionID",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/WaterQualityManagementPlanApprovalSummaryGridDto"
+                  }
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/WaterQualityManagementPlanApprovalSummaryGridDto"
+                  }
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/WaterQualityManagementPlanApprovalSummaryGridDto"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/water-quality-management-plans/annual-report/post-construction-verifications": {
+      "get": {
+        "tags": [
+          "WaterQualityManagementPlan"
+        ],
+        "operationId": "GetAnnualReportPostConstructionVerifications_WaterQualityManagementPlan",
+        "parameters": [
+          {
+            "name": "reportingYear",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          },
+          {
+            "name": "stormwaterJurisdictionID",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/WaterQualityManagementPlanPostConstructionVerificationGridDto"
+                  }
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/WaterQualityManagementPlanPostConstructionVerificationGridDto"
+                  }
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/WaterQualityManagementPlanPostConstructionVerificationGridDto"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/water-quality-management-plan-documents": {
       "get": {
         "tags": [
@@ -17821,6 +17965,20 @@
         },
         "additionalProperties": false
       },
+      "ReportingYearSimpleDto": {
+        "type": "object",
+        "properties": {
+          "ReportingYear": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "ReportingYearDisplay": {
+            "type": "string",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
       "SizingBasisTypeDto": {
         "type": "object",
         "properties": {
@@ -20513,6 +20671,66 @@
         },
         "additionalProperties": false
       },
+      "WaterQualityManagementPlanAnnualReportOptionsDto": {
+        "type": "object",
+        "properties": {
+          "ReportingYears": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ReportingYearSimpleDto"
+            },
+            "nullable": true
+          },
+          "StormwaterJurisdictions": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/StormwaterJurisdictionDisplayDto"
+            },
+            "nullable": true
+          },
+          "DefaultReportingYear": {
+            "type": "integer",
+            "format": "int32"
+          }
+        },
+        "additionalProperties": false
+      },
+      "WaterQualityManagementPlanApprovalSummaryGridDto": {
+        "type": "object",
+        "properties": {
+          "WaterQualityManagementPlanID": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "WaterQualityManagementPlanName": {
+            "type": "string",
+            "nullable": true
+          },
+          "Priority": {
+            "type": "string",
+            "nullable": true
+          },
+          "LandUse": {
+            "type": "string",
+            "nullable": true
+          },
+          "HydrologicSubareaName": {
+            "type": "string",
+            "nullable": true
+          },
+          "RecordedWQMPAreaInAcres": {
+            "type": "number",
+            "format": "double",
+            "nullable": true
+          },
+          "ApprovalDate": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
       "WaterQualityManagementPlanBoundaryResponseDto": {
         "type": "object",
         "properties": {
@@ -21011,6 +21229,43 @@
           },
           "IsDraft": {
             "type": "boolean"
+          }
+        },
+        "additionalProperties": false
+      },
+      "WaterQualityManagementPlanPostConstructionVerificationGridDto": {
+        "type": "object",
+        "properties": {
+          "WaterQualityManagementPlanID": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "WaterQualityManagementPlanName": {
+            "type": "string",
+            "nullable": true
+          },
+          "WaterQualityManagementPlanVerifyStatusName": {
+            "type": "string",
+            "nullable": true
+          },
+          "NumberOfBMPs": {
+            "type": "integer",
+            "format": "int32",
+            "nullable": true
+          },
+          "NumberOfBMPsAdequate": {
+            "type": "integer",
+            "format": "int32",
+            "nullable": true
+          },
+          "NumberOfBMPsDeficient": {
+            "type": "integer",
+            "format": "int32",
+            "nullable": true
+          },
+          "WQMPVerificationComments": {
+            "type": "string",
+            "nullable": true
           }
         },
         "additionalProperties": false

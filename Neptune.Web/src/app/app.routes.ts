@@ -763,6 +763,7 @@ export const routes: Routes = [
                 path: "wqmp-annual-report",
                 title: "WQMP Annual Report",
                 loadComponent: () => import("./pages/wqmp-annual-report/wqmp-annual-report.component").then((m) => m.WqmpAnnualReportComponent),
+                canActivate: [authGuardFn, JurisdictionManagerOrEditorOnlyGuard],
             },
             {
                 path: "parcels",

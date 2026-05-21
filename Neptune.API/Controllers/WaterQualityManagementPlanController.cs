@@ -907,5 +907,67 @@ namespace Neptune.API.Controllers
             }
         }
 
+        [HttpGet("annual-report/options")]
+        [WaterQualityManagementPlanAnnualReportFeature]
+        public ActionResult<WaterQualityManagementPlanAnnualReportOptionsDto> GetAnnualReportOptions()
+        {
+            var currentPerson = People.GetByID(DbContext, CallingUser.PersonID);
+            var jurisdictions = StormwaterJurisdictions.ListViewableByPersonForWQMPs(DbContext, currentPerson)
+                .Select(x => x.AsDisplayDto())
+                .OrderBy(x => x.StormwaterJurisdictionName)
+                .ToList();
+            jurisdictions.Insert(0, new StormwaterJurisdictionDisplayDto { StormwaterJurisdictionID = -1, StormwaterJurisdictionName = "All" });
+
+            var reportingYears = WaterQualityManagementPlans.GetSelectableAnnualReportYears()
+                .Select(y => new ReportingYearSimpleDto { ReportingYear = y, ReportingYearDisplay = $"FY {y - 1}-{y}" })
+                .ToList();
+
+            return Ok(new WaterQualityManagementPlanAnnualReportOptionsDto
+            {
+                ReportingYears = reportingYears,
+                StormwaterJurisdictions = jurisdictions,
+                DefaultReportingYear = WaterQualityManagementPlans.GetCurrentReportingYear(),
+            });
+        }
+
+        [HttpGet("annual-report/approval-summary")]
+        [WaterQualityManagementPlanAnnualReportFeature]
+        public async Task<ActionResult<List<WaterQualityManagementPlanApprovalSummaryGridDto>>> GetAnnualReportApprovalSummary(
+            [FromQuery] int reportingYear, [FromQuery] int stormwaterJurisdictionID)
+        {
+            var start = WaterQualityManagementPlans.GetAnnualReportPeriodStart(reportingYear);
+            var end = WaterQualityManagementPlans.GetAnnualReportPeriodEnd(reportingYear);
+            var rows = await vWaterQualityManagementPlanDetaileds.ListViewableByPersonDtoAsync(DbContext, CallingUser);
+            var dtos = rows
+                .Where(x => x.ApprovalDate >= start && x.ApprovalDate <= end
+                            && (stormwaterJurisdictionID == -1 || x.StormwaterJurisdictionID == stormwaterJurisdictionID))
+                .OrderBy(x => x.WaterQualityManagementPlanName)
+                .Select(x => x.AsApprovalSummaryGridDto())
+                .ToList();
+            return Ok(dtos);
+        }
+
+        [HttpGet("annual-report/post-construction-verifications")]
+        [WaterQualityManagementPlanAnnualReportFeature]
+        public async Task<ActionResult<List<WaterQualityManagementPlanPostConstructionVerificationGridDto>>> GetAnnualReportPostConstructionVerifications(
+            [FromQuery] int reportingYear, [FromQuery] int stormwaterJurisdictionID)
+        {
+            var start = WaterQualityManagementPlans.GetAnnualReportPeriodStart(reportingYear);
+            var end = WaterQualityManagementPlans.GetAnnualReportPeriodEnd(reportingYear);
+            var currentPerson = People.GetByID(DbContext, CallingUser.PersonID);
+            var visibleJurisdictionIDs = StormwaterJurisdictionPeople
+                .ListViewableStormwaterJurisdictionIDsByPersonForWQMPs(DbContext, currentPerson)
+                .ToList();
+            var rows = await vWaterQualityManagementPlanAnnualReports
+                .ListForStormwaterJurisdictionIDsDtoAsync(DbContext, CallingUser, visibleJurisdictionIDs);
+            var startOnly = DateOnly.FromDateTime(start);
+            var endOnly = DateOnly.FromDateTime(end);
+            var filtered = rows.Where(x =>
+                (stormwaterJurisdictionID == -1 || x.StormwaterJurisdictionID == stormwaterJurisdictionID)
+                && x.WaterQualityManagementPlanVerifyVerificationDate >= startOnly
+                && x.WaterQualityManagementPlanVerifyVerificationDate <= endOnly);
+            return Ok(vWaterQualityManagementPlanAnnualReportExtensionMethods.BuildPostConstructionGridDtos(filtered));
+        }
+
     }
 }
