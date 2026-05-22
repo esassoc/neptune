@@ -8,7 +8,7 @@
         <div class="report-meta">
             <em
                 >Regional Subbasins last updated on:
-                {{ ctx.RegionalSubbasinsLastUpdated | date: "MM/dd/yyyy" : "+0000" }}</em
+                {{ ctx.RegionalSubbasinsLastUpdated | date: "MM/dd/yyyy h:mm a" }}</em
             >
             @if (ctx.CallerIsAdministrator) {
                 <button class="btn btn-primary" (click)="onCheckForDiscrepancies()" [disabled]="isEnqueueing">
