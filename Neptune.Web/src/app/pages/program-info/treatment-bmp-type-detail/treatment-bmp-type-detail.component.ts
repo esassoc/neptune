@@ -205,7 +205,7 @@ export class TreatmentBmpTypeDetailComponent implements OnInit {
                 UseCustomDropdownFilter: true,
             }),
             this.utility.createBasicColumnDef("Owner Organization", "OwnerOrganizationName", { UseCustomDropdownFilter: true }),
-            this.utility.createBasicColumnDef("Year Built", "YearBuilt"),
+            this.utility.createYearColumnDef("Year Built", "YearBuilt"),
             this.utility.createBasicColumnDef("ID in System of Record", "SystemOfRecordID"),
             this.utility.createLinkColumnDef("Water Quality Management Plan", "WaterQualityManagementPlanName", "WaterQualityManagementPlanID", {
                 InRouterLink: "/water-quality-management-plans/",
@@ -214,9 +214,9 @@ export class TreatmentBmpTypeDetailComponent implements OnInit {
             this.utility.createDateColumnDef("Last Assessment Date", "LatestAssessmentDate", "MM/dd/yyyy"),
             // Legacy MVC GridSpec formats Last Assessed Score with one decimal place ("0.0").
             this.utility.createDecimalColumnDef("Last Assessed Score", "LatestAssessmentScore", { DecimalPlacesToDisplay: 1 }),
-            this.utility.createBasicColumnDef("# of Assessments", "NumberOfAssessments"),
+            this.utility.createDecimalColumnDef("# of Assessments", "NumberOfAssessments", { DecimalPlacesToDisplay: 0 }),
             this.utility.createDateColumnDef("Last Maintenance Date", "LatestMaintenanceDate", "MM/dd/yyyy"),
-            this.utility.createBasicColumnDef("# of Maintenance Events", "NumberOfMaintenanceRecords"),
+            this.utility.createDecimalColumnDef("# of Maintenance Events", "NumberOfMaintenanceRecords", { DecimalPlacesToDisplay: 0 }),
             this.utility.createBooleanColumnDef("Benchmark and Threshold Set?", "BenchmarkAndThresholdSet", { UseCustomDropdownFilter: true }),
             this.utility.createBasicColumnDef("Required Lifespan of Installation", "TreatmentBMPLifespanTypeDisplayName", {
                 UseCustomDropdownFilter: true,
@@ -228,8 +228,8 @@ export class TreatmentBmpTypeDetailComponent implements OnInit {
                 FilterValueGetter: (params: any) => params.data?.TreatmentBMPLifespanTypeDisplayName || "Unknown",
             }),
             this.utility.createDateColumnDef("Lifespan End Date (if Fixed End Date)", "TreatmentBMPLifespanEndDate", "MM/dd/yyyy"),
-            this.utility.createBasicColumnDef("Required Field Visits / Year", "RequiredFieldVisitsPerYear"),
-            this.utility.createBasicColumnDef("Required Post-Storm Field Visits / Year", "RequiredPostStormFieldVisitsPerYear"),
+            this.utility.createDecimalColumnDef("Required Field Visits / Year", "RequiredFieldVisitsPerYear", { DecimalPlacesToDisplay: 0 }),
+            this.utility.createDecimalColumnDef("Required Post-Storm Field Visits / Year", "RequiredPostStormFieldVisitsPerYear", { DecimalPlacesToDisplay: 0 }),
             this.utility.createBasicColumnDef("Sizing Basis", "SizingBasisTypeDisplayName", { UseCustomDropdownFilter: true }),
             this.utility.createBasicColumnDef("Trash Capture Status", "TrashCaptureStatusTypeDisplayName", { UseCustomDropdownFilter: true }),
             this.utility.createBasicColumnDef("Delineation Type", "DelineationTypeDisplayName", {
