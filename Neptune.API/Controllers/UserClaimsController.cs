@@ -44,7 +44,9 @@ public class UserClaimsController(
             return BadRequest();
         }
 
-        var updatedUserDto = await People.UpdateClaims(DbContext, claimsPrincipal);
-        return Ok(updatedUserDto);
+        await People.UpdateClaims(DbContext, claimsPrincipal);
+        // Return CallingUser (effective user) so a SPA refresh during an impersonation
+        // session correctly returns the impersonated PersonDto, not the authenticated user.
+        return Ok(CallingUser);
     }
 }

@@ -30,6 +30,7 @@ export class PersonDto {
     WebServiceAccessToken?: string;
     IsOCTAGrantReviewer?: boolean;
     HasAssignedStormwaterJurisdiction?: boolean;
+    ImpersonatedPersonID?: number | null;
     constructor(obj?: any) {
         Object.assign(this, obj);
     }
@@ -55,6 +56,7 @@ export interface PersonDtoForm {
     WebServiceAccessToken?: FormControl<string>;
     IsOCTAGrantReviewer?: FormControl<boolean>;
     HasAssignedStormwaterJurisdiction?: FormControl<boolean>;
+    ImpersonatedPersonID?: FormControl<number>;
 }
 
 export class PersonDtoFormControls { 
@@ -239,6 +241,16 @@ export class PersonDtoFormControls {
         }
     );
     public static HasAssignedStormwaterJurisdiction = (value: FormControlState<boolean> | boolean = undefined, formControlOptions?: FormControlOptions | null) => new FormControl<boolean>(
+        value,
+        formControlOptions ?? 
+        {
+            nonNullable: false,
+            validators: 
+            [
+            ],
+        }
+    );
+    public static ImpersonatedPersonID = (value: FormControlState<number> | number = undefined, formControlOptions?: FormControlOptions | null) => new FormControl<number>(
         value,
         formControlOptions ?? 
         {

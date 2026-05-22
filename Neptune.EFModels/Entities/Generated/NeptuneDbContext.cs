@@ -686,6 +686,8 @@ public partial class NeptuneDbContext : DbContext
         {
             entity.HasKey(e => e.PersonID).HasName("PK_Person_PersonID");
 
+            entity.HasOne(d => d.ImpersonatedPerson).WithMany(p => p.InverseImpersonatedPerson).HasConstraintName("FK_Person_Person_ImpersonatedPersonID_PersonID");
+
             entity.HasOne(d => d.Organization).WithMany(p => p.People).OnDelete(DeleteBehavior.ClientSetNull);
         });
 

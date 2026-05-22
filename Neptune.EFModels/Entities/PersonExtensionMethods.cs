@@ -47,6 +47,9 @@ public static class PersonExtensionMethods
         var personDto = new PersonDto()
         {
             PersonID = person.PersonID,
+            // GlobalID and ImpersonatedPersonID needed by the SPA to detect impersonation
+            // (claimsUser.sub vs currentUser.GlobalID comparison in AuthenticationService).
+            GlobalID = person.GlobalID,
             FirstName = person.FirstName,
             LastName = person.LastName,
             Email = person.Email,
@@ -63,7 +66,8 @@ public static class PersonExtensionMethods
             ReceiveRSBRevisionRequestEmails = person.ReceiveRSBRevisionRequestEmails,
             WebServiceAccessToken = person.WebServiceAccessToken,
             IsOCTAGrantReviewer = person.IsOCTAGrantReviewer,
-            HasAssignedStormwaterJurisdiction = person.StormwaterJurisdictionPeople.Any()
+            HasAssignedStormwaterJurisdiction = person.StormwaterJurisdictionPeople.Any(),
+            ImpersonatedPersonID = person.ImpersonatedPersonID,
         };
         return personDto;
     }

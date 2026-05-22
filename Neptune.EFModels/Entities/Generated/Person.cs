@@ -55,6 +55,8 @@ public partial class Person
     [Unicode(false)]
     public string? GlobalID { get; set; }
 
+    public int? ImpersonatedPersonID { get; set; }
+
     [InverseProperty("Person")]
     public virtual ICollection<AITokenUsage> AITokenUsages { get; set; } = new List<AITokenUsage>();
 
@@ -69,6 +71,13 @@ public partial class Person
 
     [InverseProperty("CreatePerson")]
     public virtual ICollection<FileResource> FileResources { get; set; } = new List<FileResource>();
+
+    [ForeignKey("ImpersonatedPersonID")]
+    [InverseProperty("InverseImpersonatedPerson")]
+    public virtual Person? ImpersonatedPerson { get; set; }
+
+    [InverseProperty("ImpersonatedPerson")]
+    public virtual ICollection<Person> InverseImpersonatedPerson { get; set; } = new List<Person>();
 
     [InverseProperty("UploadedByPerson")]
     public virtual ICollection<LandUseBlockStaging> LandUseBlockStagings { get; set; } = new List<LandUseBlockStaging>();

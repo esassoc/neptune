@@ -1,31 +1,31 @@
 <header class="site-header">
     <header-nav moduleTitle="Inventory Module"></header-nav>
     <nav class="site-nav">
-        @let restrictedNav = isCurrentUserAnonymousOrUnassigned();
         <div style="width: 100%">
             <ul class="site-nav__links site-nav__main">
                 <!-- BMP Inventory Dropdown -->
                 <li class="nav-item dropdown" routerLinkActive="active">
                     <a href="javascript:void(0);" [dropdownToggle]="bmpMenu" class="nav-link dropdown-toggle"> BMP Inventory <icon icon="AngleDown"></icon> </a>
                     <ul #bmpMenu class="dropdown-menu">
-                        <!-- NPT-1064: Anonymous + Unassigned users see only the publicly-relevant
-                             items (Find a BMP, View All BMPs, Water Quality Management Plans).
-                             The rest of BMP Inventory routes to pages they don't have permission
-                             for in MVC — hiding them prevents click-bounce. -->
-                        @if (!restrictedNav) {
+                        <!-- BMP Inventory item gates, mirroring MVC's per-controller [Feature]
+                             attributes. Anonymous + Unassigned see only the AnonymousUnclassified
+                             items (Find a BMP, View All BMPs, Water Quality Management Plans);
+                             Editor+ adds the NeptuneViewFeature-gated items; Admin adds
+                             Jurisdictions (NeptuneAdminFeature). -->
+                        @if (isCurrentUserAdmin()) {
                             <li><a [routerLink]="['/jurisdictions']" class="dropdown-item">Jurisdictions</a></li>
                         }
                         <li><a [routerLink]="['/find-bmp']" class="dropdown-item">Find a BMP</a></li>
-                        @if (!restrictedNav) {
+                        @if (isCurrentUserEditorOrHigher()) {
                             <li><a [routerLink]="['/modeling-parameters']" class="dropdown-item">Modeling Parameters</a></li>
                         }
                         <li><a [routerLink]="['/treatment-bmps']" class="dropdown-item">View All BMPs</a></li>
-                        @if (!restrictedNav) {
+                        @if (isCurrentUserEditorOrHigher()) {
                             <li><a [routerLink]="['/latest-bmp-assessments']" class="dropdown-item">View Latest BMP Assessments</a></li>
                             <li><a [routerLink]="['/field-records']" class="dropdown-item">View All Field Records</a></li>
                         }
                         <li><a [routerLink]="['/water-quality-management-plans']" class="dropdown-item">Water Quality Management Plans</a></li>
-                        @if (!restrictedNav) {
+                        @if (isCurrentUserEditorOrHigher()) {
                             <li><a [routerLink]="['/water-quality-management-plan-verifications']" class="dropdown-item">WQMP O&amp;M Verifications</a></li>
                             <li><a [routerLink]="['/wqmp-annual-report']" class="dropdown-item">WQMP Annual Report</a></li>
                             <li><a [routerLink]="['/parcels']" class="dropdown-item">Parcels</a></li>
@@ -42,17 +42,18 @@
                         <li><a [routerLink]="['/funding-sources']" class="dropdown-item">Funding Sources</a></li>
                     </ul>
                 </li>
-                <!-- NPT-1064: Dashboard / Delineation / Data Hub / Manage are hidden for
-                     anonymous and Unassigned users — none of those pages let them do
-                     anything they have permission for (MVC gates the corresponding controllers
-                     to JurisdictionEditor+ or Admin). Find a BMP / View All BMPs / WQMP List
-                     inside BMP Inventory above stay visible to satisfy the public list view. -->
-                @if (!restrictedNav) {
+                <!-- Role-specific gates that mirror MVC's per-controller [Feature] attributes.
+                     Dashboard = Manager+, Delineation Reconciliation Report = Editor+, Data
+                     Hub = Editor+, Manage = Admin-only. Anonymous and Unassigned see none. -->
+                @if (isCurrentUserManagerOrAdmin()) {
                     <!-- Dashboard -->
                     <li class="nav-item" routerLinkActive="active">
                         <a [routerLink]="['/dashboard']" class="nav-link">Dashboard</a>
                     </li>
-                    <!-- Delineation Dropdown -->
+                }
+                @if (isCurrentUserEditorOrHigher()) {
+                    <!-- Delineation Dropdown — Delineation Map is JurisdictionEditFeature-gated
+                         in MVC; Reconciliation Report same gate. -->
                     <li class="nav-item dropdown" routerLinkActive="active">
                         <a href="javascript:void(0);" [dropdownToggle]="delineationMenu" class="nav-link dropdown-toggle"> Delineation <icon icon="AngleDown"></icon> </a>
                         <ul #delineationMenu class="dropdown-menu">
@@ -64,7 +65,9 @@
                     <li class="nav-item" routerLinkActive="active">
                         <a [routerLink]="['/data-hub']" class="nav-link">Data Hub</a>
                     </li>
-                    <!-- Manage Dropdown -->
+                }
+                @if (isCurrentUserAdmin()) {
+                    <!-- Manage Dropdown — every item is NeptuneAdminFeature in MVC. -->
                     <li class="nav-item dropdown" routerLinkActive="active">
                         <a href="javascript:void(0);" [dropdownToggle]="manageMenu" class="nav-link dropdown-toggle"> Manage <icon icon="AngleDown"></icon> </a>
                         <ul #manageMenu class="dropdown-menu">
