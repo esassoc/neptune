@@ -13,6 +13,18 @@ import { FormControl, FormControlOptions, FormControlState, Validators } from "@
 export class RegionalSubbasinRevisionRequestDto { 
     RegionalSubbasinRevisionRequestID?: number;
     RegionalSubbasinRevisionRequestStatusID?: number;
+    RegionalSubbasinRevisionRequestStatusDisplayName?: string | null;
+    TreatmentBMPID?: number;
+    TreatmentBMPName?: string | null;
+    RequestPersonID?: number;
+    RequestPersonName?: string | null;
+    RequestDate?: string;
+    ClosedByPersonID?: number | null;
+    ClosedByPersonName?: string | null;
+    ClosedDate?: string | null;
+    Notes?: string | null;
+    CloseNotes?: string | null;
+    GeometryGeoJson?: string | null;
     constructor(obj?: any) {
         Object.assign(this, obj);
     }
@@ -21,6 +33,18 @@ export class RegionalSubbasinRevisionRequestDto {
 export interface RegionalSubbasinRevisionRequestDtoForm { 
     RegionalSubbasinRevisionRequestID?: FormControl<number>;
     RegionalSubbasinRevisionRequestStatusID?: FormControl<number>;
+    RegionalSubbasinRevisionRequestStatusDisplayName?: FormControl<string>;
+    TreatmentBMPID?: FormControl<number>;
+    TreatmentBMPName?: FormControl<string>;
+    RequestPersonID?: FormControl<number>;
+    RequestPersonName?: FormControl<string>;
+    RequestDate?: FormControl<string>;
+    ClosedByPersonID?: FormControl<number>;
+    ClosedByPersonName?: FormControl<string>;
+    ClosedDate?: FormControl<string>;
+    Notes?: FormControl<string>;
+    CloseNotes?: FormControl<string>;
+    GeometryGeoJson?: FormControl<string>;
 }
 
 export class RegionalSubbasinRevisionRequestDtoFormControls { 
@@ -35,6 +59,126 @@ export class RegionalSubbasinRevisionRequestDtoFormControls {
         }
     );
     public static RegionalSubbasinRevisionRequestStatusID = (value: FormControlState<number> | number = undefined, formControlOptions?: FormControlOptions | null) => new FormControl<number>(
+        value,
+        formControlOptions ?? 
+        {
+            nonNullable: false,
+            validators: 
+            [
+            ],
+        }
+    );
+    public static RegionalSubbasinRevisionRequestStatusDisplayName = (value: FormControlState<string> | string = undefined, formControlOptions?: FormControlOptions | null) => new FormControl<string>(
+        value,
+        formControlOptions ?? 
+        {
+            nonNullable: false,
+            validators: 
+            [
+            ],
+        }
+    );
+    public static TreatmentBMPID = (value: FormControlState<number> | number = undefined, formControlOptions?: FormControlOptions | null) => new FormControl<number>(
+        value,
+        formControlOptions ?? 
+        {
+            nonNullable: false,
+            validators: 
+            [
+            ],
+        }
+    );
+    public static TreatmentBMPName = (value: FormControlState<string> | string = undefined, formControlOptions?: FormControlOptions | null) => new FormControl<string>(
+        value,
+        formControlOptions ?? 
+        {
+            nonNullable: false,
+            validators: 
+            [
+            ],
+        }
+    );
+    public static RequestPersonID = (value: FormControlState<number> | number = undefined, formControlOptions?: FormControlOptions | null) => new FormControl<number>(
+        value,
+        formControlOptions ?? 
+        {
+            nonNullable: false,
+            validators: 
+            [
+            ],
+        }
+    );
+    public static RequestPersonName = (value: FormControlState<string> | string = undefined, formControlOptions?: FormControlOptions | null) => new FormControl<string>(
+        value,
+        formControlOptions ?? 
+        {
+            nonNullable: false,
+            validators: 
+            [
+            ],
+        }
+    );
+    public static RequestDate = (value: FormControlState<string> | string = undefined, formControlOptions?: FormControlOptions | null) => new FormControl<string>(
+        value,
+        formControlOptions ?? 
+        {
+            nonNullable: false,
+            validators: 
+            [
+            ],
+        }
+    );
+    public static ClosedByPersonID = (value: FormControlState<number> | number = undefined, formControlOptions?: FormControlOptions | null) => new FormControl<number>(
+        value,
+        formControlOptions ?? 
+        {
+            nonNullable: false,
+            validators: 
+            [
+            ],
+        }
+    );
+    public static ClosedByPersonName = (value: FormControlState<string> | string = undefined, formControlOptions?: FormControlOptions | null) => new FormControl<string>(
+        value,
+        formControlOptions ?? 
+        {
+            nonNullable: false,
+            validators: 
+            [
+            ],
+        }
+    );
+    public static ClosedDate = (value: FormControlState<string> | string = undefined, formControlOptions?: FormControlOptions | null) => new FormControl<string>(
+        value,
+        formControlOptions ?? 
+        {
+            nonNullable: false,
+            validators: 
+            [
+            ],
+        }
+    );
+    public static Notes = (value: FormControlState<string> | string = undefined, formControlOptions?: FormControlOptions | null) => new FormControl<string>(
+        value,
+        formControlOptions ?? 
+        {
+            nonNullable: false,
+            validators: 
+            [
+            ],
+        }
+    );
+    public static CloseNotes = (value: FormControlState<string> | string = undefined, formControlOptions?: FormControlOptions | null) => new FormControl<string>(
+        value,
+        formControlOptions ?? 
+        {
+            nonNullable: false,
+            validators: 
+            [
+            ],
+        }
+    );
+    public static GeometryGeoJson = (value: FormControlState<string> | string = undefined, formControlOptions?: FormControlOptions | null) => new FormControl<string>(
         value,
         formControlOptions ?? 
         {

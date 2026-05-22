@@ -11,7 +11,7 @@
           fieldLabel="Description"
           [required]="false"
         [type]="FormFieldType.Textarea"></form-field>
-        <h3 class="mt-4">Project Contact Information</h3>
+        <h3 class="section-title underline sm blue mt-4">Project Contact Information</h3>
         @if (organizationOptions$ | async; as organizationOptions) {
           <form-field
             [required]="true"
@@ -42,7 +42,7 @@
           fieldLabel="Additional Contact Information"
           [required]="false"
         [type]="FormFieldType.Textarea"></form-field>
-        <h3 class="mt-4">Grant Programs</h3>
+        <h3 class="section-title underline sm blue mt-4">Grant Programs</h3>
         <form-field
           class="g-col-12"
           [formControl]="formGroup.controls.CalculateOCTAM2Tier2Scores"

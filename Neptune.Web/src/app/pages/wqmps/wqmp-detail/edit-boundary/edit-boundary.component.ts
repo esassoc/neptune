@@ -47,7 +47,7 @@ export class EditBoundaryComponent implements OnInit {
     private leafletHelperService = inject(LeafletHelperService);
 
     public OverlayMode = OverlayMode;
-    public mapHeight = "500px";
+    public mapHeight = "650px";
     public map: L.Map;
     public layerControl: L.Control.Layers;
     public mapIsReady = false;

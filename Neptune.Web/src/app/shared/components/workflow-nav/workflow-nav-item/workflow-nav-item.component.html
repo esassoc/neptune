@@ -1,24 +1,34 @@
-<li class="sidebar-item workflow-sidebar-item">
-  <a [routerLink]="navRouterLink" routerLinkActive="active" class="sidebar-link" [class.disabled]="disabled">
-    <div>
-      @switch (required) {
-        @case (true) {
-          @switch (complete) {
-            @case (true) {
-              <icon class="complete" icon="StepComplete"></icon>
+<li class="sidebar-item workflow-sidebar-item" [class.has-sub-nav]="hasSubNav">
+    <a
+        [routerLink]="navRouterLink"
+        routerLinkActive="active"
+        (isActiveChange)="onIsActiveChange($event)"
+        class="sidebar-link"
+        [class.disabled]="disabled">
+        <div>
+            @switch (required) {
+                @case (true) {
+                    @switch (complete) {
+                        @case (true) {
+                            <icon class="complete" icon="StepComplete"></icon>
+                        }
+                        @default {
+                            <icon class="fade" icon="StepIncomplete"></icon>
+                        }
+                    }
+                }
+                @case (false) {
+                    <icon class="info" icon="Info"></icon>
+                }
             }
-            @default {
-              <icon class="fade" icon="StepIncomplete"></icon>
-            }
-          }
-        }
-        @case (false) {
-          <icon class="info" icon="Info"></icon>
-        }
-      }
-    </div>
-    <div>
-      <ng-content></ng-content>
-    </div>
-  </a>
+        </div>
+        <div>
+            <ng-content></ng-content>
+        </div>
+    </a>
+    @if (hasSubNav && isActive) {
+        <ul class="sidebar-sub-nav">
+            <ng-content select="[subnav]"></ng-content>
+        </ul>
+    }
 </li>

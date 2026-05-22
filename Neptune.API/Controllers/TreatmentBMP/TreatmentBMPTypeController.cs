@@ -43,6 +43,14 @@ public class TreatmentBMPTypeController(
         return Ok(dtos);
     }
 
+    [HttpGet("cards")]
+    [AllowAnonymous]
+    public async Task<ActionResult<List<TreatmentBMPTypeDetailDto>>> ListAsDetailDto()
+    {
+        var dtos = await TreatmentBMPTypesAdmin.ListAsDetailDtoAsync(DbContext);
+        return Ok(dtos);
+    }
+
     [HttpGet("{treatmentBMPTypeID}/detail")]
     [AllowAnonymous]
     public async Task<ActionResult<TreatmentBMPTypeDetailDto>> GetDetail([FromRoute] int treatmentBMPTypeID)
@@ -50,6 +58,20 @@ public class TreatmentBMPTypeController(
         var dto = await TreatmentBMPTypesAdmin.GetByIDAsDtoAsync(DbContext, treatmentBMPTypeID);
         if (dto == null) return NotFound();
         return Ok(dto);
+    }
+
+    /// <summary>
+    /// NPT-1038 round 4: rows for the "Treatment BMPs of this Type" grid on the SPA
+    /// Treatment BMP Type detail page. Filtered to the calling user's viewable jurisdictions
+    /// (mirrors legacy MVC TreatmentBMPTypeController.TreatmentBMPsInTreatmentBMPTypeGridJsonData).
+    /// </summary>
+    [HttpGet("{treatmentBMPTypeID}/treatment-bmps")]
+    [UserViewFeature]
+    public async Task<ActionResult<List<TreatmentBMPByTypeGridDto>>> ListBMPsByType([FromRoute] int treatmentBMPTypeID)
+    {
+        var stormwaterJurisdictionIDsPersonCanView = await StormwaterJurisdictionPeople.ListViewableStormwaterJurisdictionIDsByPersonIDForBMPsAsync(DbContext, CallingUser.PersonID);
+        var dtos = await TreatmentBMPs.ListByTypeAsGridDtoForJurisdictionsAsync(DbContext, treatmentBMPTypeID, stormwaterJurisdictionIDsPersonCanView);
+        return Ok(dtos);
     }
 
     [HttpPost]

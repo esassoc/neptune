@@ -1,1 +1,15 @@
-<!-- Placeholder for Latest BMP Assessments component template -->
+<page-header pageTitle="Latest BMP Assessments"></page-header>
+
+<app-alert-display></app-alert-display>
+
+<div class="page-body">
+    <div class="card">
+        <div class="card-body">
+            <neptune-grid
+                [rowData]="assessments$ | async"
+                [columnDefs]="columnDefs"
+                [pagination]="true"
+                downloadFileName="latest-bmp-assessments"></neptune-grid>
+        </div>
+    </div>
+</div>

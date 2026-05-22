@@ -46,6 +46,11 @@ export class TreatmentBmpUpdateTypeModalComponent implements OnInit {
     }
 
     public save(): void {
+        if (this.formGroup.invalid) {
+            this.formGroup.markAllAsTouched();
+            return;
+        }
+
         const treatmentBMPID = this.ref.data?.treatmentBMPID;
         const updateTypeDto = this.formGroup.value as TreatmentBMPTypeUpdateDto;
         this.treatmentBMPService.updateTypeTreatmentBMP(treatmentBMPID, updateTypeDto).subscribe(() => {
@@ -61,4 +66,7 @@ export class TreatmentBmpUpdateTypeModalComponent implements OnInit {
 export class TreatmentBmpUpdateTypeModalContext {
     treatmentBMPID: number;
     currentTreatmentBMPTypeID?: number;
+    treatmentBMPName?: string;
+    currentTreatmentBMPTypeName?: string;
+    treatmentBMPAssessmentCount?: number;
 }

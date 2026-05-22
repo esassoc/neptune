@@ -11,9 +11,8 @@ public class WaterQualityManagementPlanExtractionResultDto
     public string ExtractionResultJson { get; set; }
     public DateTime ExtractedAt { get; set; }
     public string FileResourceGuid { get; set; }
-    public string? DraftOverlayJson { get; set; }
-    public DateTime? DraftUpdatedDate { get; set; }
-    public string? DraftUpdatedByFullName { get; set; }
-    public DateTime? ApprovedDate { get; set; }
-    public string? ApprovedByFullName { get; set; }
+    // NPT-1051: populated on failed extraction so the wizard can show why instead of
+    // returning a misleading "no extraction" state on subsequent page loads.
+    public string ErrorMessage { get; set; }
+    public string ErrorCode { get; set; }
 }

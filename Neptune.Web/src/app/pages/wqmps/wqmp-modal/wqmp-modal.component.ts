@@ -49,7 +49,9 @@ export class WqmpModalComponent implements OnInit {
         WaterQualityManagementPlanLandUseID: WaterQualityManagementPlanUpsertDtoFormControls.WaterQualityManagementPlanLandUseID(),
         WaterQualityManagementPlanPermitTermID: WaterQualityManagementPlanUpsertDtoFormControls.WaterQualityManagementPlanPermitTermID(),
         WaterQualityManagementPlanModelingApproachID: WaterQualityManagementPlanUpsertDtoFormControls.WaterQualityManagementPlanModelingApproachID(
-            WaterQualityManagementPlanModelingApproachEnum.Detailed,
+            // KE 5/13/26 decision: default to Simplified rather than Detailed when creating a
+            // new WQMP — most new entries don't justify a full detailed-modeling parameterization.
+            WaterQualityManagementPlanModelingApproachEnum.Simplified,
             { validators: [Validators.required] }
         ),
         ApprovalDate: WaterQualityManagementPlanUpsertDtoFormControls.ApprovalDate(),
@@ -155,7 +157,10 @@ export class WqmpModalComponent implements OnInit {
     }
 
     save(): void {
-        if (this.formGroup.invalid) return;
+        if (this.formGroup.invalid) {
+            this.formGroup.markAllAsTouched();
+            return;
+        }
         const dto = new WaterQualityManagementPlanUpsertDto(this.formGroup.getRawValue());
 
         if (this.mode === "edit") {

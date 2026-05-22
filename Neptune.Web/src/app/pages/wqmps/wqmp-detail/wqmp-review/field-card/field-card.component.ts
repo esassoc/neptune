@@ -1,4 +1,5 @@
 import { Component, EventEmitter, Input, OnChanges, Output, signal, SimpleChanges } from "@angular/core";
+import { DatePipe } from "@angular/common";
 import { FormControl, ReactiveFormsModule } from "@angular/forms";
 import { FormFieldComponent, FormFieldType, FormInputOption } from "src/app/shared/components/forms/form-field/form-field.component";
 
@@ -23,7 +24,7 @@ export interface SourceNavigation {
 @Component({
     selector: "field-card",
     standalone: true,
-    imports: [FormFieldComponent, ReactiveFormsModule],
+    imports: [FormFieldComponent, ReactiveFormsModule, DatePipe],
     templateUrl: "./field-card.component.html",
     styleUrl: "./field-card.component.scss",
 })
@@ -43,6 +44,7 @@ export class FieldCardComponent implements OnChanges {
     @Input() readOnly = false;
     @Input() initialState: FieldState = "pending";
     @Input() initialValue: string | null = null;
+    @Input() selected = false;
 
     @Output() valueAccepted = new EventEmitter<string | null>();
     @Output() valueEdited = new EventEmitter<string>();

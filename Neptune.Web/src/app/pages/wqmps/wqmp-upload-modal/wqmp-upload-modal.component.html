@@ -1,5 +1,5 @@
 <div class="modal-header">
-    <h4 class="modal-title">Upload WQMP PDF</h4>
+    <h4 class="modal-title">Create WQMP from PDF</h4>
 </div>
 <div class="modal-body">
     <app-alert-display></app-alert-display>
@@ -8,11 +8,26 @@
         Upload a WQMP PDF to create a Draft WQMP. You'll be able to run AI extraction against the PDF from the review page.
     </p>
 
-    <div class="mb-3">
-        <strong>File:</strong> {{ file.name }}
+    <div class="alert alert-info">
+        <strong>PDF requirements for AI extraction:</strong>
+        <ul class="mb-0 mt-1">
+            @for (item of pdfLimitsBullets; track $index) {
+                <li>{{ item }}</li>
+            }
+        </ul>
     </div>
 
     <form-field
+        size="md"
+        fieldLabel="PDF"
+        [type]="FormFieldType.File"
+        [formControl]="fileControl"
+        uploadFileAccepts=".pdf"
+        (change)="onFileChange($event)">
+    </form-field>
+
+    <form-field
+        size="md"
         fieldLabel="WQMP Name"
         [type]="FormFieldType.Text"
         [formControl]="wqmpNameControl"
@@ -21,6 +36,7 @@
 
     @if (jurisdictionOptions$ | async; as opts) {
         <form-field
+            size="md"
             fieldLabel="Jurisdiction"
             [type]="FormFieldType.Select"
             [formControl]="jurisdictionControl"
@@ -36,6 +52,6 @@
     }
 </div>
 <div class="modal-footer">
-    <button class="btn btn-primary" (click)="upload()" [disabled]="jurisdictionControl.invalid || wqmpNameControl.invalid || isUploading()">Upload</button>
+    <button class="btn btn-primary" (click)="upload()" [disabled]="isUploading()">Upload</button>
     <button class="btn btn-secondary-outline" (click)="cancel()" [disabled]="isUploading()">Cancel</button>
 </div>

@@ -171,5 +171,64 @@ namespace Neptune.Tests
 
             Assert.IsNull(QuickBMPs.Validate(bmps));
         }
+
+        // NPT-1020 item 3: PartitionForMerge is the pure half of MergeWithReportAsync.
+        // It splits a candidate list into mergeable rows + a skip report so one bad row
+        // can't roll back the whole approval (Kathleen's tester feedback on the "Approve
+        // All → treatment bmps" AC).
+        [TestMethod]
+        public void PartitionForMerge_AllValid_NothingSkipped()
+        {
+            var bmps = new List<QuickBMPUpsertDto> { NewBMP(name: "BMP-1"), NewBMP(name: "BMP-2") };
+
+            var (mergeable, skipped) = QuickBMPs.PartitionForMerge(bmps);
+
+            Assert.AreEqual(2, mergeable.Count);
+            Assert.AreEqual(0, skipped.Count);
+        }
+
+        [TestMethod]
+        public void PartitionForMerge_NullList_ReturnsEmpty()
+        {
+            var (mergeable, skipped) = QuickBMPs.PartitionForMerge(null);
+
+            Assert.AreEqual(0, mergeable.Count);
+            Assert.AreEqual(0, skipped.Count);
+        }
+
+        [TestMethod]
+        public void PartitionForMerge_MissingTreatmentBMPType_SkippedWithReason()
+        {
+            var bmps = new List<QuickBMPUpsertDto>
+            {
+                NewBMP(name: "BMP-Good"),
+                NewBMP(name: "BMP-NoType", typeID: null),
+            };
+
+            var (mergeable, skipped) = QuickBMPs.PartitionForMerge(bmps);
+
+            Assert.AreEqual(1, mergeable.Count);
+            Assert.AreEqual("BMP-Good", mergeable[0].QuickBMPName);
+            Assert.AreEqual(1, skipped.Count);
+            Assert.AreEqual("BMP-NoType", skipped[0].ProposedName);
+            CollectionAssert.Contains(skipped[0].Reasons, "Treatment BMP Type");
+        }
+
+        [TestMethod]
+        public void PartitionForMerge_MissingNameAndCount_BothReasonsReported()
+        {
+            var bmps = new List<QuickBMPUpsertDto>
+            {
+                NewBMP(name: "", count: null),
+            };
+
+            var (mergeable, skipped) = QuickBMPs.PartitionForMerge(bmps);
+
+            Assert.AreEqual(0, mergeable.Count);
+            Assert.AreEqual(1, skipped.Count);
+            Assert.AreEqual("(unnamed)", skipped[0].ProposedName);
+            CollectionAssert.Contains(skipped[0].Reasons, "Name");
+            CollectionAssert.Contains(skipped[0].Reasons, "# of Individual BMPs");
+        }
     }
 }

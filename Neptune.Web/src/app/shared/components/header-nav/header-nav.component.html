@@ -82,6 +82,7 @@
                     </span>
                 </a>
                 <div #userToggle class="dropdown-menu dropdown-menu-right" aria-labelledby="navbarDropdown">
+                    <a [routerLink]="['/users', currentUser.PersonID]" class="dropdown-item">Account</a>
                     <a href="javascript:void(0);" (click)="logout()" class="dropdown-item"> Sign Out </a>
                 </div>
             </li>
@@ -107,7 +108,7 @@
 
                 <div #helpToggle class="dropdown-menu dropdown-menu__help" aria-labelledby="navbarDropdown">
                     <a [routerLink]="['/training']" class="dropdown-item"> Training </a>
-                    <a href="{{ ocStormwaterToolsMainUrl() }}/Help/Support" class="dropdown-item"> Request Support </a>
+                    <a [routerLink]="['/support']" class="dropdown-item"> Request Support </a>
                 </div>
             </li>
         </ul>

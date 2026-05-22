@@ -32,6 +32,8 @@ public partial class vMaintenanceRecordDetailed
     [Column(TypeName = "datetime")]
     public DateTime VisitDate { get; set; }
 
+    public bool IsFieldVisitVerified { get; set; }
+
     public int FieldVisitID { get; set; }
 
     public int PerformedByPersonID { get; set; }

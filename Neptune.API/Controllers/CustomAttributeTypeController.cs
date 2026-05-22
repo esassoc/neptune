@@ -51,6 +51,15 @@ public class CustomAttributeTypeController(
     [AdminFeature]
     public async Task<ActionResult<CustomAttributeTypeDto>> Create([FromBody] CustomAttributeTypeUpsertDto dto)
     {
+        // NPT-1038 rework: reject Modeling-purpose creates server-side. The SPA filters
+        // the Purpose dropdown to hide Modeling on create — this is defense in depth so
+        // a future direct-API call can't slip a phantom modeling attribute past us.
+        var validationError = CustomAttributeTypes.ValidateForCreate(dto);
+        if (validationError != null)
+        {
+            return BadRequest(validationError);
+        }
+
         var created = await CustomAttributeTypes.CreateAsync(DbContext, dto);
         return Ok(created);
     }

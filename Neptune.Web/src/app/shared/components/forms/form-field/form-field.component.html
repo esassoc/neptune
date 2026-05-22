@@ -1,17 +1,32 @@
-<div class="field">
-    @if (fieldDefinitionName) {
-        <field-definition [fieldDefinitionType]="fieldDefinitionName"></field-definition>
-    }
+<div class="field" [class.field--sm]="size === 'sm'" [class.field--md]="size === 'md'">
+    <ng-template #labelContent>
+        @if (fieldDefinitionName) {
+            <field-definition [fieldDefinitionType]="fieldDefinitionName" [labelOverride]="fieldLabel"></field-definition>
+        } @else {
+            {{ fieldLabel }}
+        }
+        @if (popoverDescription) {
+            <i
+                class="fas fa-question-circle small"
+                style="cursor: help; margin-left: 0.25rem"
+                [popper]="popoverContentTpl"
+                [popperTitle]="popoverTitle || fieldLabel"
+                [useBodyContainer]="true"></i>
+            <ng-template #popoverContentTpl>
+                <div>{{ popoverDescription }}</div>
+            </ng-template>
+        }
+    </ng-template>
     @if (!readOnly) {
         @switch (type) {
             <!-- Text -->
             @case (FormFieldType.Text) {
                 <div class="field-label" [class.required]="formControl | isRequired">
-                    {{ fieldLabel }}
+                    <ng-container *ngTemplateOutlet="labelContent"></ng-container>
                 </div>
                 <div class="units-wrapper">
                     <input [mask]="mask" type="text" [placeholder]="placeholder" [formControl]="formControl" [name]="name" />
-                    @if (units) {
+                    @if (units && units.toLowerCase() !== 'none') {
                         <span class="units">{{ units }}</span>
                     }
                 </div>
@@ -20,12 +35,12 @@
             @case (FormFieldType.Number) {
                 @if (fieldLabel) {
                     <div class="field-label" [class.required]="formControl | isRequired">
-                        {{ fieldLabel }}
+                        <ng-container *ngTemplateOutlet="labelContent"></ng-container>
                     </div>
                 }
                 <div class="units-wrapper">
                     <input type="number" [placeholder]="placeholder" [formControl]="formControl" [mask]="mask" [name]="name" />
-                    @if (units) {
+                    @if (units && units.toLowerCase() !== 'none') {
                         <span class="units">{{ units }}</span>
                     }
                 </div>
@@ -33,21 +48,21 @@
             <!-- Textarea -->
             @case (FormFieldType.Textarea) {
                 <div class="field-label" [class.required]="formControl | isRequired">
-                    {{ fieldLabel }}
+                    <ng-container *ngTemplateOutlet="labelContent"></ng-container>
                 </div>
-                <textarea [placeholder]="placeholder" [formControl]="formControl" [name]="name"></textarea>
+                <textarea [placeholder]="placeholder" [formControl]="formControl" [name]="name" [attr.rows]="rows"></textarea>
             }
             <!-- RTE -->
             @case (FormFieldType.RTE) {
                 <div class="field-label" [class.required]="formControl | isRequired">
-                    {{ fieldLabel }}
+                    <ng-container *ngTemplateOutlet="labelContent"></ng-container>
                 </div>
                 <editor #tinyMceEditor [init]="tinyMceEditor | tinyMceConfig" [formControl]="formControl"></editor>
             }
             <!-- Toggle -->
             @case (FormFieldType.Toggle) {
                 <label class="field-label" [class.required]="formControl | isRequired">
-                    {{ fieldLabel }}
+                    <ng-container *ngTemplateOutlet="labelContent"></ng-container>
                 </label>
                 <div class="switch-container" [style.minHeight]="toggleHeight">
                     <label class="switch">
@@ -59,7 +74,7 @@
             <!-- Check -->
             @case (FormFieldType.Check) {
                 <label class="field-label" [class.required]="formControl | isRequired">
-                    {{ fieldLabel }}
+                    <ng-container *ngTemplateOutlet="labelContent"></ng-container>
                 </label>
                 <label class="check-label">
                     <input type="checkbox" [formControl]="formControl" [name]="name" />
@@ -69,7 +84,7 @@
             <!-- Date -->
             @case (FormFieldType.Date) {
                 <label class="field-label" [class.required]="formControl | isRequired">
-                    {{ fieldLabel }}
+                    <ng-container *ngTemplateOutlet="labelContent"></ng-container>
                 </label>
                 <input type="date" [formControl]="formControl" [name]="name" />
             }
@@ -77,7 +92,7 @@
             @case (FormFieldType.Select) {
                 @if (fieldLabel) {
                     <label class="field-label" [class.required]="formControl | isRequired">
-                        {{ fieldLabel }}
+                        <ng-container *ngTemplateOutlet="labelContent"></ng-container>
                     </label>
                 }
                 @if (formInputOptions) {
@@ -98,7 +113,7 @@
             <!-- Radio -->
             @case (FormFieldType.Radio) {
                 <label class="field-label" [class.required]="formControl | isRequired">
-                    {{ fieldLabel }}
+                    <ng-container *ngTemplateOutlet="labelContent"></ng-container>
                 </label>
                 <div class="radio-options">
                     @for (formInputOption of formInputOptions; track formInputOption) {
@@ -113,7 +128,7 @@
 
             @case (FormFieldType.File) {
                 <div class="field-label" [class.required]="formControl | isRequired">
-                    {{ fieldLabel }}
+                    <ng-container *ngTemplateOutlet="labelContent"></ng-container>
                 </div>
                 <div class="custom-file-upload">
                     <input
@@ -145,11 +160,11 @@
         }
     } @else {
         <div class="field-label" [class.required]="formControl | isRequired">
-            {{ fieldLabel }}
+            <ng-container *ngTemplateOutlet="labelContent"></ng-container>
         </div>
         <div>
             <span>{{ formControl.getRawValue() }}</span>
-            @if (units) {
+            @if (units && units.toLowerCase() !== 'none') {
                 <span class="units">{{ units }}</span>
             }
         </div>

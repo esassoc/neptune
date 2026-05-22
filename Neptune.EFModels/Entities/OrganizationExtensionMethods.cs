@@ -33,7 +33,12 @@ public static class OrganizationExtensionMethods
             IsActive = organization.IsActive,
             OrganizationUrl = organization.OrganizationUrl,
             LogoFileResource = organization.LogoFileResource?.AsSimpleDto(),
-            OrganizationType = organization.OrganizationType.AsSimpleDto()
+            OrganizationType = organization.OrganizationType.AsSimpleDto(),
+            // NPT-999: populate when the org is also a Stormwater Jurisdiction so the SPA
+            // detail page can render the "is a Jurisdiction" alert without a second query.
+            // Callers that don't .Include(x => x.StormwaterJurisdiction) get null here, which
+            // matches the alert-suppressed default.
+            StormwaterJurisdictionID = organization.StormwaterJurisdiction?.StormwaterJurisdictionID,
         };
         return organizationDto;
     }

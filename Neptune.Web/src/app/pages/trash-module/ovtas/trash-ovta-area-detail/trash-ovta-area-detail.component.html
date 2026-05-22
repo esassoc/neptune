@@ -2,11 +2,11 @@
   <page-header [pageTitle]="onlandVisualTrashAssessmentArea.OnlandVisualTrashAssessmentAreaName" [templateRight]="templateRight" [templateAbove]="templateAbove">
     <ng-template #templateAbove>
       <div class="back">
-        <a [routerLink]="['../']" class="back__link">OVTA Area List</a>
+        <a [routerLink]="['../']" class="back__link"><i class="fa fa-arrow-left"></i> Back to OVTA Areas</a>
       </div>
     </ng-template>
     <ng-template #templateRight>
-      <div class="flex-between mb-3">
+      <div class="flex-between mb-3 header-actions">
         <a
           class="btn btn-primary"
                     (click)="
@@ -18,6 +18,12 @@
                     "
           >Add New OVTA</a
           >
+          @if (onlandVisualTrashAssessments$ | async; as assessments) {
+            <a
+              class="btn btn-primary-outline"
+              (click)="deleteOVTAArea(onlandVisualTrashAssessmentArea, assessments.length)"
+              >Delete OVTA Area</a>
+          }
         </div>
       </ng-template>
     </page-header>
@@ -89,7 +95,9 @@
             [columnDefs]="ovtaColumnDefs"
             downloadFileName="onland-visual-trash-assessments"
             [pagination]="true"
-          [sizeColumnsToFitGrid]="true"></neptune-grid>
+            [sizeColumnsToFitGrid]="true">
+            <a customGridActionsRight class="btn btn-sm btn-primary-outline" (click)="moveOVTAAssessments(onlandVisualTrashAssessmentArea, onlandVisualTrashAssessments)">Move Assessments</a>
+          </neptune-grid>
         </div>
       </div>
     }

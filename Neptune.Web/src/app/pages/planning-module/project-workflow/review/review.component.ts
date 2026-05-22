@@ -1,5 +1,5 @@
 import { Component, OnInit } from "@angular/core";
-import { ActivatedRoute } from "@angular/router";
+import { ActivatedRoute, RouterLink } from "@angular/router";
 import { CommonModule } from "@angular/common";
 import { BehaviorSubject, combineLatest, filter, map, Observable, of, shareReplay, switchMap } from "rxjs";
 import { ProjectService } from "src/app/shared/generated/api/project.service";
@@ -28,6 +28,7 @@ import { ProjectWorkflowProgressService } from "src/app/shared/services/project-
     styleUrls: ["./review.component.scss"],
     imports: [
         CommonModule,
+        RouterLink,
         CustomRichTextComponent,
         ProjectMapComponent,
         ProjectModelResultsComponent,

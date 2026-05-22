@@ -10,13 +10,15 @@ public class WaterQualityManagementPlanVerifyDetailDto
     public string WaterQualityManagementPlanVisitStatusDisplayName { get; set; }
     public int? WaterQualityManagementPlanVerifyStatusID { get; set; }
     public string WaterQualityManagementPlanVerifyStatusDisplayName { get; set; }
-    public DateTime VerificationDate { get; set; }
+    public DateOnly VerificationDate { get; set; }
     public DateTime LastEditedDate { get; set; }
     public string LastEditedByPersonFullName { get; set; }
     public string SourceControlCondition { get; set; }
     public string EnforcementOrFollowupActions { get; set; }
     public bool IsDraft { get; set; }
+    public int? FileResourceID { get; set; }
     public string FileResourceGUID { get; set; }
+    public string FileResourceFileName { get; set; }
 
     public List<WaterQualityManagementPlanVerifyTreatmentBMPSimpleDto> TreatmentBMPs { get; set; } = new();
     public List<WaterQualityManagementPlanVerifyQuickBMPDto> QuickBMPs { get; set; } = new();

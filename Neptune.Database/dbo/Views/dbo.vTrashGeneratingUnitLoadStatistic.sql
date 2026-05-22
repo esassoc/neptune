@@ -97,17 +97,22 @@ From (
 			when scoreBaseline.TrashGenerationRate is null then lub.TrashGenerationRate
 			else scoreBaseline.TrashGenerationRate
 		end	as BaselineLoadingRate,
+		-- NPT-1051: WQMP-sourced trash capture status only counts when the WQMP is Active.
+		-- Draft / Inactive WQMPs (legal-record gate) drop out of result calculations regardless
+		-- of their TrashCaptureStatusTypeID. WQMP identity columns (WaterQualityManagementPlanID,
+		-- WaterQualityManagementPlanName) are *not* gated — the TGU detail UI still surfaces
+		-- the associated WQMP for context.
 		case
-			when (tbmp.TrashCaptureStatusTypeID = 1 and d.IsVerified = 1) or wqmp.TrashCaptureStatusTypeID = 1 then 1
+			when (tbmp.TrashCaptureStatusTypeID = 1 and d.IsVerified = 1) or (wqmp.TrashCaptureStatusTypeID = 1 and wqmp.WaterQualityManagementPlanStatusID = 1) then 1
 			else 0
-		end as IsFullTrashCapture, 
+		end as IsFullTrashCapture,
 		case
-			when (tbmp.TrashCaptureStatusTypeID = 2 and d.IsVerified = 1) or wqmp.TrashCaptureStatusTypeID = 2 then 1
+			when (tbmp.TrashCaptureStatusTypeID = 2 and d.IsVerified = 1) or (wqmp.TrashCaptureStatusTypeID = 2 and wqmp.WaterQualityManagementPlanStatusID = 1) then 1
 			else 0
-		end as IsPartialTrashCapture, 
+		end as IsPartialTrashCapture,
 		IsNull(
 			case
-				when wqmp.TrashCaptureEffectiveness is not null then wqmp.TrashCaptureEffectiveness
+				when wqmp.TrashCaptureEffectiveness is not null and wqmp.WaterQualityManagementPlanStatusID = 1 then wqmp.TrashCaptureEffectiveness
 				else tbmp.TrashCaptureEffectiveness
 			end
 		, 0) as PartialTrashCaptureEffectivenessPercentage,
@@ -128,23 +133,23 @@ From (
         area.OnlandVisualTrashAssessmentAreaName,
         scoreBaseline.OnlandVisualTrashAssessmentScoreDisplayName as OnlandVisualTrashAssessmentAreaBaselineScore,
         scoreProgress.OnlandVisualTrashAssessmentScoreDisplayName as OnlandVisualTrashAssessmentAreaProgressScore,
-        wqmptcs.TrashCaptureStatusTypeDisplayName as TrashCaptureStatusWQMP,
-        wqmp.TrashCaptureEffectiveness as TrashCaptureEffectivenessWQMP,
+        case when wqmp.WaterQualityManagementPlanStatusID = 1 then wqmptcs.TrashCaptureStatusTypeDisplayName end as TrashCaptureStatusWQMP,
+        case when wqmp.WaterQualityManagementPlanStatusID = 1 then wqmp.TrashCaptureEffectiveness end as TrashCaptureEffectivenessWQMP,
         lub.MedianHouseholdIncomeResidential,
         lub.MedianHouseholdIncomeRetail,
         pt.PermitTypeDisplayName as PermitClass,
         lub.LandUseForTGR,
         lub.TrashGenerationRate,
         case
-		    when tbmp.TrashCaptureStatusTypeID = 1 or wqmp.TrashCaptureStatusTypeID = 1 then 'Full'
-		    when tbmp.TrashCaptureStatusTypeID = 2 or wqmp.TrashCaptureStatusTypeID = 2 then 'Partial'
-		    when tbmp.TrashCaptureStatusTypeID = 3 or wqmp.TrashCaptureStatusTypeID = 3 then 'None'
+		    when tbmp.TrashCaptureStatusTypeID = 1 or (wqmp.TrashCaptureStatusTypeID = 1 and wqmp.WaterQualityManagementPlanStatusID = 1) then 'Full'
+		    when tbmp.TrashCaptureStatusTypeID = 2 or (wqmp.TrashCaptureStatusTypeID = 2 and wqmp.WaterQualityManagementPlanStatusID = 1) then 'Partial'
+		    when tbmp.TrashCaptureStatusTypeID = 3 or (wqmp.TrashCaptureStatusTypeID = 3 and wqmp.WaterQualityManagementPlanStatusID = 1) then 'None'
 		    else 'NotProvided'
 	    end as TrashCaptureStatus,
 		case
-		    when tbmp.TrashCaptureStatusTypeID = 1 or wqmp.TrashCaptureStatusTypeID = 1 then 1
-		    when tbmp.TrashCaptureStatusTypeID = 2 or wqmp.TrashCaptureStatusTypeID = 2 then 2
-		    when tbmp.TrashCaptureStatusTypeID = 3 or wqmp.TrashCaptureStatusTypeID = 3 then 3
+		    when tbmp.TrashCaptureStatusTypeID = 1 or (wqmp.TrashCaptureStatusTypeID = 1 and wqmp.WaterQualityManagementPlanStatusID = 1) then 1
+		    when tbmp.TrashCaptureStatusTypeID = 2 or (wqmp.TrashCaptureStatusTypeID = 2 and wqmp.WaterQualityManagementPlanStatusID = 1) then 2
+		    when tbmp.TrashCaptureStatusTypeID = 3 or (wqmp.TrashCaptureStatusTypeID = 3 and wqmp.WaterQualityManagementPlanStatusID = 1) then 3
 		    else 4
 	    end as TrashCaptureStatusSortOrder,
 	    case when ovtaad.MostRecentAssessmentScore is null then 'NotProvided' else ovtaad.MostRecentAssessmentScore end as AssessmentScore,

@@ -37,10 +37,11 @@
                 [readOnly]="readOnly || isRejected()"
                 [initialState]="field.state"
                 [initialValue]="field.acceptedValue ?? field.value"
+                [selected]="selectedFieldKey === field.key"
                 (valueAccepted)="onFieldAccepted(field.key, $event)"
                 (valueEdited)="onFieldEdited(field.key, $event)"
                 (valueRejected)="onFieldRejected(field.key)"
-                (navigateToSource)="onNavigateToSource($event)">
+                (navigateToSource)="onNavigateToSource(field.key, $event)">
             </field-card>
         }
     </div>

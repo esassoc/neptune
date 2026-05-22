@@ -1,0 +1,13 @@
+@use "/src/scss/abstracts" as *;
+
+.copy-from-initial {
+    display: flex;
+    justify-content: flex-end;
+    margin-bottom: $spacing-300;
+}
+
+// observation-panel is an Angular component (display: inline by default); make it block
+// so margin-top applies, then space adjacent panels apart. Lives on the parent because the
+// component's own scoped styles can't reach its host tag's sibling spacing reliably.
+observation-panel { display: block; }
+observation-panel + observation-panel { margin-top: $spacing-400; }

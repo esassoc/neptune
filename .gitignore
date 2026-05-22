@@ -115,3 +115,6 @@ Source/Neptune.GeoServer/data_dir/logs/
 /.claude/settings.local.json
 /.claude/.claude_backup/
 /.claude/plans/
+
+# Per-developer corp SSL-inspection root cert for outbound HTTPS through proxy
+docker-compose/corp-root.crt

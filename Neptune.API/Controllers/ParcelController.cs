@@ -1,7 +1,11 @@
 using System.Collections.Generic;
+using System.Linq;
+using System.Threading.Tasks;
+using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
+using Microsoft.Net.Http.Headers;
 using Neptune.API.Services;
 using Neptune.API.Services.Authorization;
 using Neptune.EFModels.Entities;
@@ -17,6 +21,29 @@ namespace Neptune.API.Controllers
         IOptions<NeptuneConfiguration> neptuneConfiguration)
         : SitkaController<ParcelController>(dbContext, logger, neptuneConfiguration)
     {
+        [HttpGet]
+        [JurisdictionEditFeature]
+        public async Task<ActionResult<List<ParcelGridDto>>> List()
+        {
+            // ETag-based conditional GET: skip the ~14 MB serialize+download when the parcel
+            // table hasn't changed since the client's last fetch. Browsers handle 304 transparently
+            // and serve the cached body back to Angular's HttpClient, so the SPA needs no changes.
+            var etag = EntityTagHeaderValue.Parse(await Parcels.GetGridVersionETagAsync(DbContext));
+            Response.GetTypedHeaders().ETag = etag;
+            Response.Headers.CacheControl = "private, no-cache";
+
+            // Use typed headers + EntityTagHeaderValue.Compare so we tolerate clients sending
+            // multiple tags or weakly-compared variants (W/) per RFC 7232.
+            var ifNoneMatch = Request.GetTypedHeaders().IfNoneMatch;
+            if (ifNoneMatch != null && ifNoneMatch.Any(t => t.Compare(etag, useStrongComparison: false)))
+            {
+                return StatusCode(StatusCodes.Status304NotModified);
+            }
+
+            var parcels = await Parcels.ListAsGridDtoAsync(DbContext);
+            return Ok(parcels);
+        }
+
         [HttpGet("search")]
         [JurisdictionEditFeature]
         public ActionResult<List<ParcelDisplayDto>> Search([FromQuery] string term)

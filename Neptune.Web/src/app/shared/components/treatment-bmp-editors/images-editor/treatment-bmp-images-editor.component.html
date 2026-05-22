@@ -1,0 +1,14 @@
+@if (imageEditorItems$ | async; as imageEditorItems) {
+    <image-editor
+        [images]="imageEditorItems"
+        [isLoadingSubmit]="isLoadingSubmit"
+        [captionControlForm]="captionControlForm"
+        [useCaptionModal]="useCaptionModal"
+        (newImageAdded)="onNewImageAdded($event)"
+        (imageDeleted)="onImageDeleted($event)"
+        (saveClicked)="onSaveClicked($event)"
+        (cancelClicked)="onCancelClicked()"
+        (captionEditRequested)="onCaptionEditRequested($event)"></image-editor>
+} @else {
+    <div [loadingSpinner]="{ isLoading: true, loadingHeight: 500 }"></div>
+}

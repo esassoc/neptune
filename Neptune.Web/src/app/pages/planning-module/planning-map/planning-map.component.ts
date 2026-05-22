@@ -124,7 +124,9 @@ export class PlanningMapComponent implements OnInit {
             this.utilityFunctionsService.createLinkColumnDef("Project Name", "ProjectName", "ProjectID", {
                 InRouterLink: "/planning/projects/",
             }),
-            this.utilityFunctionsService.createBasicColumnDef("Organization", "Organization.OrganizationName"),
+            this.utilityFunctionsService.createLinkColumnDef("Organization", "Organization.OrganizationName", "Organization.OrganizationID", {
+                InRouterLink: "/organizations/",
+            }),
             this.utilityFunctionsService.createBasicColumnDef("Jurisdiction", "StormwaterJurisdiction.Organization.OrganizationName"),
             this.utilityFunctionsService.createDateColumnDef("Date Created", "DateCreated", "M/d/yyyy", { Width: 120 }),
             this.utilityFunctionsService.createBasicColumnDef("Project Description", "ProjectDescription", { MaxWidth: 250 }),

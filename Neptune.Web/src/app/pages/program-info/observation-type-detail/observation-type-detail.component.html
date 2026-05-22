@@ -1,0 +1,133 @@
+@if (viewModel$ | async; as vm) {
+    <page-header [pageTitle]="vm.detail.TreatmentBMPAssessmentObservationTypeName ?? ''"
+        [templateAbove]="templateAbove"
+        [templateRight]="templateRight"
+        [customRichTextTypeID]="NeptunePageTypeEnum.ManageObservationTypesList">
+        <ng-template #templateAbove>
+            <div class="back">
+                <a [routerLink]="['/program-info/observation-types']" class="back__link"><i class="fa fa-arrow-left"></i> Back to Observation Type List</a>
+            </div>
+        </ng-template>
+        <ng-template #templateRight>
+            @if (isAdmin) {
+                <button type="button" class="btn btn-secondary-outline" title="Preview what the Observation Type will look like in a Treatment BMP Assessment form" (click)="openPreview(vm)">
+                    <i class="fa fa-eye"></i> Preview
+                </button>
+                <button type="button" class="btn btn-primary-outline ml-2" (click)="openEdit()">
+                    <i class="fa fa-pencil"></i> Edit Observation Type
+                </button>
+            }
+        </ng-template>
+    </page-header>
+
+    <div class="grid-12">
+        <!-- Basics -->
+        <div class="card g-col-12">
+            <div class="card-header"><span class="card-title">Basics</span></div>
+            <div class="card-body">
+                <dl class="grid-12">
+                    <dt class="g-col-3">Name</dt>
+                    <dd class="g-col-9">{{ vm.detail.TreatmentBMPAssessmentObservationTypeName }}</dd>
+
+                    <dt class="g-col-3">Collection Method</dt>
+                    <dd class="g-col-9">{{ vm.detail.ObservationTypeCollectionMethodDisplayName ?? "—" }}</dd>
+
+                    <dt class="g-col-3">Threshold Type</dt>
+                    <dd class="g-col-9">{{ vm.detail.ObservationThresholdTypeDisplayName ?? "—" }}</dd>
+
+                    <dt class="g-col-3">Target Type</dt>
+                    <dd class="g-col-9">{{ vm.detail.ObservationTargetTypeDisplayName ?? "—" }}</dd>
+                </dl>
+            </div>
+        </div>
+
+        <!-- Instructions -->
+        @if (vm.passFailSchema || vm.discreteSchema || vm.percentageSchema) {
+            <div class="card g-col-12 mt-3">
+                <div class="card-header"><span class="card-title">Instructions</span></div>
+                <div class="card-body">
+                    <dl class="grid-12">
+                        @if (vm.passFailSchema) {
+                            <dt class="g-col-3">Assessment Instructions</dt>
+                            <dd class="g-col-9">{{ vm.passFailSchema.AssessmentDescription || "—" }}</dd>
+                        }
+                        @if (vm.discreteSchema) {
+                            <dt class="g-col-3">Assessment Instructions</dt>
+                            <dd class="g-col-9">{{ vm.discreteSchema.AssessmentDescription || "—" }}</dd>
+                            <dt class="g-col-3">Benchmark Instructions</dt>
+                            <dd class="g-col-9">{{ vm.discreteSchema.BenchmarkDescription || "—" }}</dd>
+                            <dt class="g-col-3">Threshold Instructions</dt>
+                            <dd class="g-col-9">{{ vm.discreteSchema.ThresholdDescription || "—" }}</dd>
+                        }
+                        @if (vm.percentageSchema) {
+                            <dt class="g-col-3">Assessment Instructions</dt>
+                            <dd class="g-col-9">{{ vm.percentageSchema.AssessmentDescription || "—" }}</dd>
+                            <dt class="g-col-3">Benchmark Instructions</dt>
+                            <dd class="g-col-9">{{ vm.percentageSchema.BenchmarkDescription || "—" }}</dd>
+                            <dt class="g-col-3">Threshold Instructions</dt>
+                            <dd class="g-col-9">{{ vm.percentageSchema.ThresholdDescription || "—" }}</dd>
+                        }
+                    </dl>
+                </div>
+            </div>
+
+            <!-- Labels and Units -->
+            <div class="card g-col-12 mt-3">
+                <div class="card-header"><span class="card-title">Labels and Units</span></div>
+                <div class="card-body">
+                    <dl class="grid-12">
+                        <dt class="g-col-3">Properties to Observe</dt>
+                        <dd class="g-col-9">{{ vm.propertiesToObserve.length ? vm.propertiesToObserve.join(", ") : "—" }}</dd>
+
+                        @if (vm.passFailSchema) {
+                            <dt class="g-col-3">Label for Passing Score</dt>
+                            <dd class="g-col-9">{{ vm.passFailSchema.PassingScoreLabel || "—" }}</dd>
+                            <dt class="g-col-3">Label for Failing Score</dt>
+                            <dd class="g-col-9">{{ vm.passFailSchema.FailingScoreLabel || "—" }}</dd>
+                        }
+                        @if (vm.discreteSchema) {
+                            <dt class="g-col-3">Measurement Unit Label</dt>
+                            <dd class="g-col-9">{{ vm.discreteSchema.MeasurementUnitLabel || "—" }}</dd>
+                            <dt class="g-col-3">Measurement Unit</dt>
+                            <dd class="g-col-9">{{ vm.measurementUnitTypeDisplayName ?? "—" }}</dd>
+                            <dt class="g-col-3">Min Number of Observations</dt>
+                            <dd class="g-col-9">{{ vm.discreteSchema.MinimumNumberOfObservations ?? "—" }}</dd>
+                            <dt class="g-col-3">Max Number of Observations</dt>
+                            <dd class="g-col-9">{{ vm.discreteSchema.MaximumNumberOfObservations ?? "—" }}</dd>
+                            <dt class="g-col-3">Min Value of Each Observation</dt>
+                            <dd class="g-col-9">{{ vm.discreteSchema.MinimumValueOfObservations ?? "—" }}</dd>
+                            <dt class="g-col-3">Max Value of Each Observation</dt>
+                            <dd class="g-col-9">{{ vm.discreteSchema.MaximumValueOfObservations ?? "—" }}</dd>
+                        }
+                        @if (vm.percentageSchema) {
+                            <dt class="g-col-3">Measurement Unit Label</dt>
+                            <dd class="g-col-9">{{ vm.percentageSchema.MeasurementUnitLabel || "—" }}</dd>
+                        }
+                    </dl>
+                </div>
+            </div>
+        }
+
+        <!-- Treatment BMP Types Using this Observation Type -->
+        <div class="card g-col-12 mt-3">
+            <div class="card-header">
+                <span class="card-title">Treatment BMP Types Using this Observation Type</span>
+            </div>
+            <div class="card-body">
+                @if (vm.detail.TreatmentBMPTypes?.length) {
+                    <ul>
+                        @for (bmpType of vm.detail.TreatmentBMPTypes; track bmpType.TreatmentBMPTypeID) {
+                            <li>
+                                <a [routerLink]="['/program-info/treatment-bmp-types', bmpType.TreatmentBMPTypeID]">{{ bmpType.TreatmentBMPTypeName }}</a>
+                            </li>
+                        }
+                    </ul>
+                } @else {
+                    <p class="system-text">This observation type is not assigned to any Treatment BMP Types.</p>
+                }
+            </div>
+        </div>
+    </div>
+} @else {
+    <div [loadingSpinner]="{ isLoading: isLoading, loadingHeight: 400 }"></div>
+}

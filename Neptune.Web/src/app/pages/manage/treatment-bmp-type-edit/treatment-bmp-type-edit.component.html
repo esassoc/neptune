@@ -1,7 +1,11 @@
 <page-header [pageTitle]="isCreate ? 'New Treatment BMP Type' : 'Edit Treatment BMP Type'" [templateAbove]="templateAbove">
     <ng-template #templateAbove>
         <div class="back">
-            <a [routerLink]="['/manage/treatment-bmp-types']" class="back__link">Back to Treatment BMP Types</a>
+            @if (isCreate) {
+                <a [routerLink]="['/manage/treatment-bmp-types']" class="back__link"><i class="fa fa-arrow-left"></i> Back to Treatment BMP Type List</a>
+            } @else {
+                <a [routerLink]="['/program-info/treatment-bmp-types', treatmentBMPTypeID]" class="back__link"><i class="fa fa-arrow-left"></i> Back to {{ nameControl.value || "Treatment BMP Type" }}</a>
+            }
         </div>
     </ng-template>
 </page-header>
@@ -15,8 +19,12 @@
             <div class="card-header"><span class="card-title">Basics</span></div>
             <div class="card-body">
                 <div class="grid-12">
-                    <form-field class="g-col-6" [formControl]="nameControl" fieldLabel="Name" [type]="FormFieldType.Text" [required]="true" placeholder="Treatment BMP Type Name"></form-field>
-                    <form-field class="g-col-12" [formControl]="descriptionControl" fieldLabel="Description" [type]="FormFieldType.Textarea" placeholder="Description"></form-field>
+                    <form-field class="g-col-6" [formControl]="nameControl"
+                        fieldLabel="Name" fieldDefinitionName="TreatmentBMPType"
+                        [type]="FormFieldType.Text" [required]="true" placeholder="Treatment BMP Type Name"></form-field>
+                    <form-field class="g-col-12" [formControl]="descriptionControl"
+                        fieldLabel="Description"
+                        [type]="FormFieldType.Textarea" [required]="true" placeholder="Description"></form-field>
                 </div>
             </div>
         </div>
@@ -27,7 +35,7 @@
             <div class="card-body">
                 <div class="picker-row mb-3">
                     <ng-select
-                        [items]="availableObservationTypes"
+                        [items]="availableObservationTypes()"
                         bindValue="TreatmentBMPAssessmentObservationTypeID"
                         bindLabel="TreatmentBMPAssessmentObservationTypeName"
                         [(ngModel)]="pickerObservationTypeID"
@@ -45,13 +53,24 @@
                     <table class="table table-condensed table-bordered">
                         <thead>
                             <tr>
-                                <th>Observation Type</th>
-                                <th>Collection Method</th>
-                                <th style="width: 100px">Weight %</th>
-                                <th style="width: 100px">Threshold</th>
-                                <th style="width: 100px">Benchmark</th>
-                                <th style="width: 60px">Override</th>
-                                <th style="width: 70px">Order</th>
+                                <th>
+                                    <field-definition fieldDefinitionType="TreatmentBMPAssessmentObservationType" labelOverride="Observation Type"></field-definition>
+                                </th>
+                                <th>
+                                    <field-definition fieldDefinitionType="ObservationCollectionMethod" labelOverride="Collection Method"></field-definition>
+                                </th>
+                                <th style="width: 140px">
+                                    <field-definition fieldDefinitionType="DefaultBenchmarkValue" labelOverride="Default Benchmark Value"></field-definition>
+                                </th>
+                                <th style="width: 140px">
+                                    <field-definition fieldDefinitionType="DefaultThresholdValue" labelOverride="Default Threshold Value"></field-definition>
+                                </th>
+                                <th style="width: 110px">
+                                    <field-definition fieldDefinitionType="AssessmentScoreWeight" labelOverride="Assessment Score Weight"></field-definition>
+                                </th>
+                                <th style="width: 90px" class="cell-center">
+                                    <field-definition fieldDefinitionType="AssessmentFailsIfObservationFails" labelOverride="Assessment Fails if Observation Fails"></field-definition>
+                                </th>
                                 <th style="width: 50px"></th>
                             </tr>
                         </thead>
@@ -60,11 +79,52 @@
                                 <tr>
                                     <td>{{ row.Name }}</td>
                                     <td>{{ row.CollectionMethod }}</td>
-                                    <td><input type="number" class="form-control form-control-sm" [(ngModel)]="row.AssessmentScoreWeight" min="0" max="100" step="0.01"></td>
-                                    <td><input type="number" class="form-control form-control-sm" [(ngModel)]="row.DefaultThresholdValue"></td>
-                                    <td><input type="number" class="form-control form-control-sm" [(ngModel)]="row.DefaultBenchmarkValue"></td>
-                                    <td class="text-center"><input type="checkbox" [(ngModel)]="row.OverrideAssessmentScoreIfFailing"></td>
-                                    <td><input type="number" class="form-control form-control-sm" [(ngModel)]="row.SortOrder" min="1"></td>
+
+                                    <!-- Default Benchmark Value: only meaningful when the OT has a benchmark/threshold (i.e. not Pass/Fail). -->
+                                    <td>
+                                        @if (row.HasBenchmarkAndThreshold) {
+                                            <div class="value-with-suffix">
+                                                <input type="number" class="form-control form-control-sm" [(ngModel)]="row.DefaultBenchmarkValue">
+                                                @if (row.BenchmarkUnitDisplayName) {
+                                                    <span class="value-suffix">{{ row.BenchmarkUnitDisplayName }}</span>
+                                                }
+                                            </div>
+                                        } @else {
+                                            <span class="muted">—</span>
+                                        }
+                                    </td>
+
+                                    <!-- Default Threshold Value: same gating; threshold suffix derived from spec. -->
+                                    <td>
+                                        @if (row.HasBenchmarkAndThreshold) {
+                                            <div class="value-with-suffix">
+                                                <input type="number" class="form-control form-control-sm" [(ngModel)]="row.DefaultThresholdValue">
+                                                @if (row.ThresholdUnitDisplayName) {
+                                                    <span class="value-suffix">{{ row.ThresholdUnitDisplayName }}</span>
+                                                }
+                                            </div>
+                                        } @else {
+                                            <span class="muted">—</span>
+                                        }
+                                    </td>
+
+                                    <!-- Assessment Score Weight: disabled for Pass/Fail rows that opt into Assessment-Fails-If-Observation-Fails. -->
+                                    <td>
+                                        <input type="number" class="form-control form-control-sm"
+                                            [(ngModel)]="row.AssessmentScoreWeight"
+                                            [disabled]="isPassFail(row) && row.OverrideAssessmentScoreIfFailing"
+                                            min="0" max="100" step="1">
+                                    </td>
+
+                                    <!-- Assessment Fails if Observation Fails: only meaningful for Pass/Fail rows. -->
+                                    <td class="cell-center">
+                                        @if (isPassFail(row)) {
+                                            <input type="checkbox" [(ngModel)]="row.OverrideAssessmentScoreIfFailing">
+                                        } @else {
+                                            <span class="muted">—</span>
+                                        }
+                                    </td>
+
                                     <td>
                                         <button class="btn btn-sm btn-danger-outline" (click)="removeObservationType(row.TreatmentBMPAssessmentObservationTypeID)">
                                             <i class="fa fa-trash"></i>
@@ -74,9 +134,9 @@
                             }
                         </tbody>
                     </table>
-                    <div class="weight-summary" [class.weight-summary--error]="hasWeightError">
-                        Weight Total: {{ weightTotal | number: '1.2-2' }}%
-                        @if (hasWeightError) {
+                    <div class="weight-summary" [class.weight-summary--error]="hasWeightError()">
+                        Assessment Score Weight Total: {{ weightTotal() }}%
+                        @if (hasWeightError()) {
                             <span class="weight-summary__message">(must equal 100%)</span>
                         }
                     </div>
@@ -92,7 +152,7 @@
             <div class="card-body">
                 <div class="picker-row mb-3">
                     <ng-select
-                        [items]="availableCustomAttributes"
+                        [items]="availableCustomAttributes()"
                         bindValue="CustomAttributeTypeID"
                         bindLabel="CustomAttributeTypeName"
                         [(ngModel)]="pickerCustomAttributeID"
@@ -101,7 +161,7 @@
                         appendTo="body"
                         placeholder="Search for a custom attribute...">
                         <ng-template ng-option-tmp let-item="item">
-                            {{ item.CustomAttributeTypeName }} <span class="text-muted">({{ item.Purpose }})</span>
+                            {{ item.CustomAttributeTypeName }} <span class="muted">({{ item.Purpose }})</span>
                         </ng-template>
                     </ng-select>
                     <button class="btn btn-primary-outline btn-sm" (click)="addCustomAttribute()" [disabled]="pickerCustomAttributeID == null">
@@ -109,32 +169,43 @@
                     </button>
                 </div>
 
-                @if (customAttributesByPurpose.length) {
-                    @for (group of customAttributesByPurpose; track group.purpose) {
-                        <h5 class="mt-3">{{ group.purpose }}</h5>
-                        <table class="table table-condensed table-bordered">
-                            <thead>
+                @if (customAttributeRows().length) {
+                    <table class="table table-condensed table-bordered">
+                        <thead>
+                            <tr>
+                                <th>
+                                    <field-definition fieldDefinitionType="CustomAttributeType" labelOverride="Attribute Name"></field-definition>
+                                </th>
+                                <th>Purpose</th>
+                                <th>
+                                    <field-definition fieldDefinitionType="CustomAttributeDataType" labelOverride="Data Type"></field-definition>
+                                </th>
+                                <th>
+                                    <field-definition fieldDefinitionType="MeasurementUnit" labelOverride="Measurement Unit"></field-definition>
+                                </th>
+                                <th class="cell-center">Required?</th>
+                                <th>Description</th>
+                                <th style="width: 50px"></th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @for (row of customAttributeRows(); track row.CustomAttributeTypeID) {
                                 <tr>
-                                    <th>Attribute Name</th>
-                                    <th style="width: 70px">Order</th>
-                                    <th style="width: 50px"></th>
+                                    <td>{{ row.Name }}</td>
+                                    <td>{{ row.Purpose }}</td>
+                                    <td>{{ row.DataTypeDisplayName || "—" }}</td>
+                                    <td>{{ row.MeasurementUnitDisplayName || "—" }}</td>
+                                    <td class="cell-center">{{ row.IsRequired ? "Yes" : "No" }}</td>
+                                    <td>{{ row.Description || "—" }}</td>
+                                    <td>
+                                        <button class="btn btn-sm btn-danger-outline" (click)="removeCustomAttribute(row.CustomAttributeTypeID)">
+                                            <i class="fa fa-trash"></i>
+                                        </button>
+                                    </td>
                                 </tr>
-                            </thead>
-                            <tbody>
-                                @for (row of group.rows; track row.CustomAttributeTypeID) {
-                                    <tr>
-                                        <td>{{ row.Name }}</td>
-                                        <td><input type="number" class="form-control form-control-sm" [(ngModel)]="row.SortOrder" min="1"></td>
-                                        <td>
-                                            <button class="btn btn-sm btn-danger-outline" (click)="removeCustomAttribute(row.CustomAttributeTypeID)">
-                                                <i class="fa fa-trash"></i>
-                                            </button>
-                                        </td>
-                                    </tr>
-                                }
-                            </tbody>
-                        </table>
-                    }
+                            }
+                        </tbody>
+                    </table>
                 } @else {
                     <p class="system-text">No custom attributes assigned. Use the picker above to add.</p>
                 }
@@ -143,7 +214,7 @@
 
         <!-- Actions -->
         <div class="page-footer">
-            <button class="btn btn-primary" (click)="save()" [disabled]="isSaving || nameControl.invalid || hasWeightError">Save</button>
+            <button class="btn btn-primary" (click)="save()" [disabled]="isSaving || nameControl.invalid || descriptionControl.invalid || hasWeightError()">Save</button>
             <button class="btn btn-secondary-outline" (click)="cancel()">Cancel</button>
             @if (!isCreate) {
                 <button class="btn btn-danger-outline" (click)="deleteBMPType()" style="margin-left: auto">

@@ -74,5 +74,66 @@ namespace Neptune.EFModels.Entities
             await dbContext.TreatmentBMPAssessments.Where(x => x.TreatmentBMPAssessmentID == TreatmentBMPAssessmentID)
                 .ExecuteDeleteAsync();
         }
+
+        public void CalculateIsAssessmentComplete()
+        {
+            IsAssessmentComplete = TreatmentBMP.TreatmentBMPType.GetObservationTypes().All(IsObservationComplete);
+        }
+
+        public void CalculateAssessmentScore(TreatmentBMPType treatmentBMPType, TreatmentBMP treatmentBMP)
+        {
+            if (!treatmentBMP.IsBenchmarkAndThresholdsComplete(treatmentBMPType))
+            {
+                return;
+            }
+
+            if (!IsAssessmentComplete)
+            {
+                return;
+            }
+
+            var observationTypesThatPotentiallyOverrideScore = treatmentBMPType.TreatmentBMPTypeAssessmentObservationTypes
+                .Where(x => x.OverrideAssessmentScoreIfFailing)
+                .Select(x => x.TreatmentBMPAssessmentObservationType)
+                .ToList();
+
+            double? score;
+            var observations = TreatmentBMPObservations;
+            if (observationTypesThatPotentiallyOverrideScore.Any(x =>
+                {
+                    var observation = observations.SingleOrDefault(y => y.TreatmentBMPAssessmentObservationType == x);
+                    return observation?.OverrideScoreForFailingObservation() ?? false;
+                }))
+            {
+                score = 0;
+            }
+            else if (treatmentBMPType.TreatmentBMPTypeAssessmentObservationTypes.All(x => x.OverrideAssessmentScoreIfFailing))
+            {
+                score = 5;
+            }
+            else
+            {
+                score = treatmentBMPType.TreatmentBMPTypeAssessmentObservationTypes
+                    .Where(x => !x.OverrideAssessmentScoreIfFailing)
+                    .Select(x => x.TreatmentBMPAssessmentObservationType)
+                    .Sum(x =>
+                    {
+                        var observation = observations.SingleOrDefault(y =>
+                            y.TreatmentBMPAssessmentObservationTypeID == x.TreatmentBMPAssessmentObservationTypeID);
+                        if (observation == null)
+                        {
+                            throw new NullReferenceException(
+                                $"Cannot find Treatment BMP observation type {x.TreatmentBMPAssessmentObservationTypeName}");
+                        }
+                        var observationScore = observation.CalculateObservationScore(treatmentBMP);
+                        var observationWeight = Convert.ToDouble(treatmentBMPType
+                            .GetTreatmentBMPTypeObservationType(x)
+                            .AssessmentScoreWeight!.Value);
+                        return observationScore * observationWeight;
+                    });
+            }
+
+            AssessmentScore = score;
+        }
     }
 }

@@ -1,0 +1,25 @@
+@if (workflow$ | async; as workflow) {
+    <page-header [pageTitle]="headerLabel"></page-header>
+
+    @if (isLoading()) {
+        <div [loadingSpinner]="{ isLoading: true }"></div>
+    } @else if (!assessment()) {
+        <p>No assessment exists yet for this field visit. Return to the Assessment landing page to begin one.</p>
+    } @else {
+        <div class="card">
+            <div class="card-body">
+                @if (isReadOnly()) {
+                    <image-carousel [images]="$any(photos())" noImagesMessage="No photos for this assessment."></image-carousel>
+                } @else {
+                    <image-editor
+                        [images]="photos()"
+                        [captionControlForm]="captionControlForm"
+                        [useCaptionModal]="true"
+                        (newImageAdded)="onPhotoUpload($event)"
+                        (imageDeleted)="onPhotoDelete($any($event))"
+                        (captionEditRequested)="onCaptionEditRequested($event)"></image-editor>
+                }
+            </div>
+        </div>
+    }
+}

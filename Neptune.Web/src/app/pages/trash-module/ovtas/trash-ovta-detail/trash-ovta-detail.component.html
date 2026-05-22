@@ -2,7 +2,7 @@
   <page-header [pageTitle]="onlandVisualTrashAssessment.OnlandVisualTrashAssessmentAreaName" [templateAbove]="templateAbove" [templateRight]="templateRight">
     <ng-template #templateAbove>
       <div class="back">
-        <a [routerLink]="['../']" class="back__link">OVTA List</a>
+        <a [routerLink]="['../']" class="back__link"><i class="fa fa-arrow-left"></i> Back to OVTAs</a>
       </div>
     </ng-template>
     <ng-template #templateRight>
@@ -17,17 +17,17 @@
               )
           "
           >Edit</a>
-        @if (onlandVisualTrashAssessment.OnlandVisualTrashAssessmentStatusID != OnlandVisualTrashAssessmentStatusEnum.Complete) {
-          <button
-            class="btn btn-danger ml-2"
-            (click)="
-                deleteOVTA(
-                    onlandVisualTrashAssessment.OnlandVisualTrashAssessmentID,
-                    onlandVisualTrashAssessment.CreatedDate
-                )
-            "
-            >Delete</button>
-        }
+        <button
+          class="btn btn-danger ml-2"
+          (click)="
+              deleteOVTA(
+                  onlandVisualTrashAssessment.OnlandVisualTrashAssessmentID,
+                  onlandVisualTrashAssessment.CreatedDate,
+                  onlandVisualTrashAssessment.OnlandVisualTrashAssessmentStatusID,
+                  onlandVisualTrashAssessment.CompletedDate
+              )
+          "
+          >Delete</button>
       </div>
     </ng-template>
     </page-header>
@@ -67,6 +67,16 @@
             <dd class="g-col-8">
               {{ onlandVisualTrashAssessment.Notes }}
             </dd>
+            <dt class="g-col-4">Created By</dt>
+            <dd class="g-col-8">
+              {{ onlandVisualTrashAssessment.CreatedByPersonFullName }}
+            </dd>
+            @if (onlandVisualTrashAssessment.SecondAssessorName) {
+              <dt class="g-col-4">Second Assessor</dt>
+              <dd class="g-col-8">
+                {{ onlandVisualTrashAssessment.SecondAssessorName }}
+              </dd>
+            }
           </dl>
         </div>
       </div>

@@ -1,51 +1,72 @@
-import { Component, inject, OnInit } from "@angular/core";
+import { Component, inject, OnInit, signal } from "@angular/core";
 import { AsyncPipe } from "@angular/common";
-import { ColDef } from "ag-grid-community";
-import { Observable, shareReplay } from "rxjs";
+import { RouterLink } from "@angular/router";
+import { catchError, EMPTY, finalize, Observable, shareReplay } from "rxjs";
 import { PageHeaderComponent } from "src/app/shared/components/page-header/page-header.component";
-import { NeptuneGridComponent } from "src/app/shared/components/neptune-grid/neptune-grid.component";
-import { UtilityFunctionsService } from "src/app/services/utility-functions.service";
+import { LoadingDirective } from "src/app/shared/directives/loading.directive";
+import { AlertService } from "src/app/shared/services/alert.service";
+import { Alert } from "src/app/shared/models/alert";
+import { AlertContext } from "src/app/shared/models/enums/alert-context.enum";
+import { AuthenticationService } from "src/app/services/authentication.service";
 import { TreatmentBMPTypeService } from "src/app/shared/generated/api/treatment-bmp-type.service";
-import { TreatmentBMPTypeGridDto } from "src/app/shared/generated/model/treatment-bmp-type-grid-dto";
+import { TreatmentBMPTypeDetailDto } from "src/app/shared/generated/model/treatment-bmp-type-detail-dto";
+import { TreatmentBMPTypeObservationTypeDetailDto } from "src/app/shared/generated/model/treatment-bmp-type-observation-type-detail-dto";
+import { NeptunePageTypeEnum } from "src/app/shared/generated/enum/neptune-page-type-enum";
+import { CustomAttributeTypePurposes } from "src/app/shared/generated/enum/custom-attribute-type-purpose-enum";
+
+interface PurposeCount {
+    purposeDisplayName: string;
+    count: number;
+}
 
 @Component({
     selector: "treatment-bmp-types",
     standalone: true,
-    imports: [PageHeaderComponent, NeptuneGridComponent, AsyncPipe],
-    template: `
-        <page-header pageTitle="Treatment BMP Types"></page-header>
-        <div class="page-body">
-            @if (bmpTypes$ | async; as data) {
-                <neptune-grid
-                    [rowData]="data"
-                    [columnDefs]="columnDefs"
-                    [pagination]="true"
-                    [height]="'600px'"
-                    [downloadFileName]="'TreatmentBMPTypes'">
-                </neptune-grid>
-            }
-        </div>
-    `,
+    imports: [PageHeaderComponent, RouterLink, AsyncPipe, LoadingDirective],
+    templateUrl: "./treatment-bmp-types.component.html",
+    styleUrl: "./treatment-bmp-types.component.scss",
 })
 export class TreatmentBmpTypesComponent implements OnInit {
     private bmpTypeService = inject(TreatmentBMPTypeService);
-    private utilityFunctionsService = inject(UtilityFunctionsService);
+    private authenticationService = inject(AuthenticationService);
+    private alertService = inject(AlertService);
 
-    public bmpTypes$: Observable<TreatmentBMPTypeGridDto[]>;
-    public columnDefs: ColDef[];
+    public bmpTypes$: Observable<TreatmentBMPTypeDetailDto[]>;
+    public isLoading = signal(true);
+    // The public BMP Types index in legacy MVC uses NeptunePageType.TreatmentBMPType (enum 7)
+    // for its RTE — distinct from the admin Manage page enum. Matches existing seeded content.
+    public NeptunePageTypeEnum = NeptunePageTypeEnum;
+
+    public get isAuthenticated(): boolean {
+        return this.authenticationService.isAuthenticated();
+    }
 
     ngOnInit(): void {
-        this.columnDefs = [
-            this.utilityFunctionsService.createBasicColumnDef("Name", "TreatmentBMPTypeName"),
-            this.utilityFunctionsService.createBasicColumnDef("Description", "TreatmentBMPTypeDescription", { MaxWidth: 400 }),
-            this.utilityFunctionsService.createDecimalColumnDef("# Observation Types", "ObservationTypeCount", { DecimalPlacesToDisplay: 0 }),
-            this.utilityFunctionsService.createDecimalColumnDef("# Custom Attributes", "CustomAttributeTypeCount", { DecimalPlacesToDisplay: 0 }),
-            this.utilityFunctionsService.createDecimalColumnDef("# BMPs", "TreatmentBMPCount", { DecimalPlacesToDisplay: 0 }),
-            this.utilityFunctionsService.createBasicColumnDef("In Modeling", "IsAnalyzedInModelingModule", {
-                UseCustomDropdownFilter: true,
-                ValueGetter: (params) => params.data?.IsAnalyzedInModelingModule ? "Yes" : "No",
+        // Drive isLoading off the pipeline (finalize fires on both success and error) so the
+        // spinner clears even if the request fails. catchError surfaces an alert and emits an
+        // empty list so the template's @if branch shows the "no BMP types configured" message.
+        this.bmpTypes$ = this.bmpTypeService.listAsDetailDtoTreatmentBMPType().pipe(
+            catchError(() => {
+                this.alertService.pushAlert(new Alert("Failed to load Treatment BMP Types.", AlertContext.Danger));
+                return EMPTY;
             }),
-        ];
-        this.bmpTypes$ = this.bmpTypeService.listAsGridDtoTreatmentBMPType().pipe(shareReplay(1));
+            finalize(() => this.isLoading.set(false)),
+            shareReplay(1),
+        );
+    }
+
+    public attributeCountsByPurpose(bmpType: TreatmentBMPTypeDetailDto): PurposeCount[] {
+        // MVC pattern: render one bullet per Purpose, even when count is zero — gives readers a
+        // consistent snapshot of which purposes are populated for each BMP Type.
+        return CustomAttributeTypePurposes.map((purpose) => ({
+            purposeDisplayName: purpose.DisplayName,
+            count: (bmpType.CustomAttributeTypes ?? [])
+                .filter((c) => c.CustomAttributeTypePurposeID === purpose.Value).length,
+        }));
+    }
+
+    public weightDisplay(ot: TreatmentBMPTypeObservationTypeDetailDto): string {
+        if (ot.AssessmentScoreWeight == null) return "pass/fail";
+        return `${Number(ot.AssessmentScoreWeight)}%`;
     }
 }

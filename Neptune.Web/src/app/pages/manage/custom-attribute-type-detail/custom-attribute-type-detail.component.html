@@ -1,0 +1,105 @@
+@if (attribute$ | async; as attribute) {
+    <page-header [pageTitle]="attribute.CustomAttributeTypeName ?? ''" [templateAbove]="templateAbove" [templateRight]="templateRight">
+        <ng-template #templateAbove>
+            <div class="back">
+                <a [routerLink]="['/manage/custom-attributes']" class="back__link"><i class="fa fa-arrow-left"></i> Back to Custom Attribute Type List</a>
+            </div>
+        </ng-template>
+        <ng-template #templateRight>
+            <button class="btn btn-primary-outline" (click)="openEdit(attribute)">
+                <i class="fa fa-pencil"></i> Edit
+            </button>
+            @if (attribute.CustomAttributeTypePurposeID !== CustomAttributeTypePurposeEnum.Modeling) {
+                <button class="btn btn-danger-outline ml-2" (click)="confirmDelete(attribute)">
+                    <i class="fa fa-trash"></i> Delete
+                </button>
+            }
+        </ng-template>
+    </page-header>
+
+    <app-alert-display></app-alert-display>
+
+    <div class="grid-12">
+        <div class="card g-col-12">
+            <div class="card-header">
+                <span class="card-title">Attribute Details</span>
+            </div>
+            <div class="card-body">
+                <dl class="grid-12">
+                    <dt class="g-col-4">Name</dt>
+                    <dd class="g-col-8">{{ attribute.CustomAttributeTypeName }}</dd>
+
+                    <dt class="g-col-4">Description</dt>
+                    <dd class="g-col-8">{{ attribute.CustomAttributeTypeDescription || "—" }}</dd>
+
+                    <dt class="g-col-4">Data Type</dt>
+                    <dd class="g-col-8">{{ attribute.DataTypeDisplayName ?? "—" }}</dd>
+
+                    <dt class="g-col-4">Purpose</dt>
+                    <dd class="g-col-8">{{ attribute.Purpose ?? "—" }}</dd>
+
+                    <dt class="g-col-4">Measurement Unit</dt>
+                    <dd class="g-col-8">{{ attribute.MeasurementUnitDisplayName || "—" }}</dd>
+
+                    <dt class="g-col-4">Is Required</dt>
+                    <dd class="g-col-8">{{ attribute.IsRequired ? "Yes" : "No" }}</dd>
+
+                    <dt class="g-col-4">Default Value</dt>
+                    <dd class="g-col-8">{{ attribute.CustomAttributeTypeDefaultValue || "—" }}</dd>
+                </dl>
+            </div>
+        </div>
+
+        @if (isOptionsType(attribute.CustomAttributeDataTypeID)) {
+            @let options = parseOptions(attribute.CustomAttributeTypeOptionsSchema);
+            <div class="card g-col-12 mt-3">
+                <div class="card-header">
+                    <span class="card-title">Options</span>
+                </div>
+                <div class="card-body">
+                    @if (options.length) {
+                        <ul>
+                            @for (opt of options; track $index) {
+                                <li>{{ opt }}</li>
+                            }
+                        </ul>
+                    } @else {
+                        <p class="system-text">No options defined.</p>
+                    }
+                </div>
+            </div>
+        }
+
+        <div class="card g-col-12 mt-3">
+            <div class="card-header">
+                <span class="card-title">Treatment BMP Types Using this Attribute</span>
+            </div>
+            <div class="card-body">
+                @if (attribute.TreatmentBMPTypeUsages?.length) {
+                    <table class="table table-sm">
+                        <thead>
+                            <tr>
+                                <th>Treatment BMP Type</th>
+                                <th class="text-right">Number of Observation Types</th>
+                                <th class="text-right">Number of Treatment BMPs</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @for (usage of attribute.TreatmentBMPTypeUsages; track usage.TreatmentBMPTypeID) {
+                                <tr>
+                                    <td><a [routerLink]="['/program-info/treatment-bmp-types', usage.TreatmentBMPTypeID]">{{ usage.TreatmentBMPTypeName }}</a></td>
+                                    <td class="text-right">{{ usage.ObservationTypeCount | number }}</td>
+                                    <td class="text-right">{{ usage.TreatmentBMPCount | number }}</td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                } @else {
+                    <p class="system-text">This attribute is not assigned to any Treatment BMP Types.</p>
+                }
+            </div>
+        </div>
+    </div>
+} @else {
+    <div [loadingSpinner]="{ isLoading: isLoading, loadingHeight: 400 }"></div>
+}

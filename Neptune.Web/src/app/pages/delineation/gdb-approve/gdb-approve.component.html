@@ -1,0 +1,47 @@
+<page-header pageTitle="Approve Uploaded Delineations">
+  <a class="back-link" [routerLink]="['/delineation', 'gdb-upload']">&laquo; Back to Upload</a>
+</page-header>
+
+<section class="content-section">
+  <app-alert-display></app-alert-display>
+
+  @let dto = report();
+  @if (dto) {
+    <div class="card">
+      <div class="card-header">
+        <h3 class="card-title">Staged Delineations</h3>
+      </div>
+      <div class="card-body">
+        <dl class="kv">
+          <dt>Total Staged</dt>
+          <dd>{{ dto.NumberOfDelineations ?? 0 }}</dd>
+          <dt>Will Replace Existing</dt>
+          <dd>{{ dto.NumberOfDelineationsToBeUpdated ?? 0 }}</dd>
+          <dt>Will Be Created New</dt>
+          <dd>{{ dto.NumberOfDelineationsToBeCreated ?? 0 }}</dd>
+        </dl>
+
+        @if (hasErrors()) {
+          <div class="alert alert-danger">
+            <strong>Cannot approve:</strong>
+            <ul>
+              @for (err of dto.Errors; track $index) {
+                <li>{{ err }}</li>
+              }
+            </ul>
+            <p class="mt-2">Use Cancel to discard the staged upload, then re-upload after correcting the file.</p>
+          </div>
+        } @else {
+          <p class="copy">
+            Approving will replace any existing Distributed delineations whose Treatment BMP Name matches a staged feature, and create new Distributed delineations for the remaining matches.
+          </p>
+        }
+
+        <div class="actions">
+          <button type="button" class="btn btn-primary" [disabled]="isWorking() || hasErrors()" (click)="approve()">Accept</button>
+          <button type="button" class="btn btn-secondary" [disabled]="isWorking()" (click)="cancel()">Cancel</button>
+        </div>
+      </div>
+    </div>
+  }
+</section>

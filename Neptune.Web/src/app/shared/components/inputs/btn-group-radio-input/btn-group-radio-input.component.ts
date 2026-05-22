@@ -58,8 +58,13 @@ export class BtnGroupRadioInputComponent implements OnInit {
     }
 
     ngOnInit(): void {
+        // NPT-984: `default` matches against `label`. If a caller passes a value that no
+        // option's label matches, the find() returns undefined — previously we then read
+        // `.value` on undefined and threw, aborting the host page's template render with no
+        // useful error. Bail safely instead — the radio group renders with no selection.
         if (this.default) {
-            this.val = this.options.find((x) => x.label == this.default).value;
+            const match = this.options?.find((x) => x.label == this.default);
+            if (match) this.val = match.value;
         }
     }
 }

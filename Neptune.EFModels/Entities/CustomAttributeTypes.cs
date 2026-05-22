@@ -143,6 +143,23 @@ namespace Neptune.EFModels.Entities
                 .ToList();
         }
 
+        /// <summary>
+        /// NPT-1038: validates the create-time payload. Modeling-purpose attributes are
+        /// system-managed (delivered by application data + scaffolding) and must not be
+        /// added through the admin editor — the SPA filters the Purpose dropdown to hide
+        /// Modeling on create, and this is the backend belt-and-suspenders. Returns null
+        /// on success or an error string suitable for a BadRequest body.
+        /// </summary>
+        public static string? ValidateForCreate(CustomAttributeTypeUpsertDto? dto)
+        {
+            if (dto == null) return "Custom Attribute Type payload was empty.";
+            if (dto.CustomAttributeTypePurposeID == (int)CustomAttributeTypePurposeEnum.Modeling)
+            {
+                return "Custom Attribute Types with the Modeling purpose are system-managed and cannot be created via this admin editor.";
+            }
+            return null;
+        }
+
         public static async Task<CustomAttributeTypeDto> CreateAsync(NeptuneDbContext dbContext, CustomAttributeTypeUpsertDto dto)
         {
             var entity = new CustomAttributeType
@@ -191,7 +208,10 @@ namespace Neptune.EFModels.Entities
         public static async Task DeleteAsync(NeptuneDbContext dbContext, int customAttributeTypeID)
         {
             var entity = GetByIDWithChangeTracking(dbContext, customAttributeTypeID);
-            entity.DeleteFull(dbContext);
+            // NPT-1038: DeleteFull is async; the prior call ignored the returned Task and
+            // raced the cascade against DbContext disposal — endpoint returned 204 while
+            // the row was still in place. Await each ExecuteDeleteAsync to completion.
+            await entity.DeleteFull(dbContext);
             await dbContext.SaveChangesAsync();
         }
     }

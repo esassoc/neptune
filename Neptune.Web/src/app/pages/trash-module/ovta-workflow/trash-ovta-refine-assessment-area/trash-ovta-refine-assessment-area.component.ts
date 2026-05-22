@@ -1,4 +1,4 @@
-import { Component, Input } from "@angular/core";
+import { Component, ElementRef, Input, ViewChild } from "@angular/core";
 import { Router } from "@angular/router";
 import { Observable, switchMap, tap } from "rxjs";
 import { NeptuneMapInitEvent, NeptuneMapComponent } from "src/app/shared/components/leaflet/neptune-map/neptune-map.component";
@@ -41,6 +41,7 @@ import { LeafletHelperService } from "src/app/shared/services/leaflet-helper.ser
 })
 export class TrashOvtaRefineAssessmentAreaComponent {
     @Input() onlandVisualTrashAssessmentID!: number;
+    @ViewChild("alertAnchor", { read: ElementRef }) alertAnchor?: ElementRef<HTMLElement>;
     public customRichTextTypeID = NeptunePageTypeEnum.EditOVTAArea;
     public isLoading: boolean = false;
 
@@ -108,7 +109,9 @@ export class TrashOvtaRefineAssessmentAreaComponent {
                 this.ovtaWorkflowProgressService.updateProgress(this.onlandVisualTrashAssessmentID);
                 if (andContinue) {
                     this.router.navigate([`/trash/onland-visual-trash-assessments/edit/${this.onlandVisualTrashAssessmentID}/review-and-finalize`]);
+                    return;
                 }
+                this.alertAnchor?.nativeElement.scrollIntoView({ behavior: "smooth", block: "start" });
             });
     }
 

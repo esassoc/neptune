@@ -1,0 +1,29 @@
+@if (workflow$ | async; as workflow) {
+    <page-header pageTitle="Review and Update Inventory?"></page-header>
+
+    <p>
+        You may review the BMP inventory data, including setting the location of the BMP, adding photos, and completing the attributes necessary to track and analyze the BMP's
+        performance.
+    </p>
+
+    @if (workflow.NumberOfRequiredAttributes > 0) {
+        <p class="required-attrs">
+            Required attributes entered: <strong>{{ workflow.NumberRequiredAttributesEntered }}</strong> of <strong>{{ workflow.NumberOfRequiredAttributes }}</strong>
+            @if (!workflow.RequiredAttributesEntered) {
+                <span class="warn"> &mdash; not all required attributes have values yet.</span>
+            }
+        </p>
+    }
+
+    <div class="step-footer">
+        <button type="button" class="btn btn-secondary" (click)="wrapUpVisit(workflow)">
+            Wrap Up Visit <i class="fa fa-flag-checkered ml-2"></i>
+        </button>
+        <button type="button" class="btn btn-primary" (click)="skipToAssessment(workflow)">
+            Skip to Assessment <i class="fa fa-forward ml-2"></i>
+        </button>
+        <button type="button" class="btn btn-primary" (click)="reviewInventory(workflow)">
+            Review Inventory <i class="fa fa-caret-right ml-2"></i>
+        </button>
+    </div>
+}

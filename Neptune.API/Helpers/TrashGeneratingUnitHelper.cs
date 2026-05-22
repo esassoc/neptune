@@ -100,7 +100,7 @@ public static class TrashGeneratingUnitHelper
     {
         return (trashGeneratingUnit.Delineation?.TreatmentBMP.TrashCaptureStatusTypeID ==
             (int)TrashCaptureStatusTypeEnum.Full ||
-            trashGeneratingUnit.WaterQualityManagementPlan?.TrashCaptureStatusTypeID ==
+            trashGeneratingUnit.ActiveWaterQualityManagementPlan()?.TrashCaptureStatusTypeID ==
             (int)TrashCaptureStatusTypeEnum.Full);
     }
 
@@ -108,8 +108,16 @@ public static class TrashGeneratingUnitHelper
     {
         return (trashGeneratingUnit.Delineation?.TreatmentBMP.TrashCaptureStatusTypeID ==
                 (int)TrashCaptureStatusTypeEnum.Partial ||
-                trashGeneratingUnit.WaterQualityManagementPlan?.TrashCaptureStatusTypeID ==
+                trashGeneratingUnit.ActiveWaterQualityManagementPlan()?.TrashCaptureStatusTypeID ==
                 (int)TrashCaptureStatusTypeEnum.Partial) && !trashGeneratingUnit.IsFullTrashCapture();
+    }
+
+    // NPT-1051: Only Active WQMPs contribute to trash result calculations. Treats Draft/Inactive WQMPs as if the TGU has no WQMP association.
+    private static WaterQualityManagementPlan ActiveWaterQualityManagementPlan(this TrashGeneratingUnit trashGeneratingUnit)
+    {
+        return trashGeneratingUnit.WaterQualityManagementPlan?.WaterQualityManagementPlanStatusID == (int)WaterQualityManagementPlanStatusEnum.Active
+            ? trashGeneratingUnit.WaterQualityManagementPlan
+            : null;
     }
 
     public static bool IsPLU(this TrashGeneratingUnit trashGeneratingUnit)

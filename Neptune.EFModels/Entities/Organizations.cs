@@ -14,6 +14,10 @@ public static class Organizations
             .Include(x => x.LogoFileResource)
             .Include(x => x.FundingSources)
             .Include(x => x.People)
+            // NPT-999: hydrate StormwaterJurisdiction so AsDto() can populate the optional
+            // StormwaterJurisdictionID for the SPA detail page's "is a Jurisdiction" alert.
+            // It's a left-join over a unique-keyed nav so the cost is negligible.
+            .Include(x => x.StormwaterJurisdiction)
             .Include(x => x.PrimaryContactPerson)
             .ThenInclude(x => x.Organization).ThenInclude(x => x.OrganizationType);
     }
@@ -100,6 +104,48 @@ public static class Organizations
     {
         var entity = await GetImpl(dbContext).AsNoTracking().SingleOrDefaultAsync(x => x.OrganizationID == organizationID);
         return entity?.AsDto();
+    }
+
+    /// <summary>
+    /// NPT-999: focused query for the SPA org-detail page's Funding Sources panel.
+    /// Returns active + inactive sources so the panel matches the legacy view's full list.
+    /// </summary>
+    public static async Task<List<FundingSourceSimpleDto>> ListFundingSourcesByOrganizationIDAsync(NeptuneDbContext dbContext, int organizationID)
+    {
+        return await dbContext.FundingSources.AsNoTracking()
+            .Where(fs => fs.OrganizationID == organizationID)
+            .OrderBy(fs => fs.FundingSourceName)
+            .Select(fs => new FundingSourceSimpleDto
+            {
+                FundingSourceID = fs.FundingSourceID,
+                OrganizationID = fs.OrganizationID,
+                FundingSourceName = fs.FundingSourceName,
+                IsActive = fs.IsActive,
+                FundingSourceDescription = fs.FundingSourceDescription,
+            })
+            .ToListAsync();
+    }
+
+    /// <summary>
+    /// NPT-999: focused query for the SPA org-detail page's Users panel — active users only,
+    /// ordered Last, First. Matches the legacy MVC Organization/Detail view's filter.
+    /// </summary>
+    public static async Task<List<PersonSimpleDto>> ListActivePeopleByOrganizationIDAsync(NeptuneDbContext dbContext, int organizationID)
+    {
+        return await dbContext.People.AsNoTracking()
+            .Where(p => p.OrganizationID == organizationID && p.IsActive)
+            .OrderBy(p => p.LastName).ThenBy(p => p.FirstName)
+            .Select(p => new PersonSimpleDto
+            {
+                PersonID = p.PersonID,
+                FirstName = p.FirstName,
+                LastName = p.LastName,
+                Email = p.Email,
+                Phone = p.Phone,
+                IsActive = p.IsActive,
+                OrganizationID = p.OrganizationID,
+            })
+            .ToListAsync();
     }
 
     public static async Task<OrganizationDto> CreateAsync(NeptuneDbContext dbContext, OrganizationUpsertDto dto)

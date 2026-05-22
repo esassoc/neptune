@@ -1,0 +1,99 @@
+<page-header [pageTitle]="isEdit ? 'Edit Observation Type' : 'Add Observation Type'" [templateAbove]="templateAbove" [templateRight]="templateRight">
+    <ng-template #templateAbove>
+        <div class="back">
+            <a [routerLink]="['/manage/observation-types']" class="back__link">Back to Observation Types</a>
+        </div>
+    </ng-template>
+    <ng-template #templateRight>
+        @if (collectionMethod() && derivedSpecID()) {
+            <button type="button" class="btn btn-secondary-outline" title="Preview what the Observation Type will look like in a Treatment BMP Assessment form" (click)="openPreview()">
+                <i class="fa fa-eye"></i> Preview
+            </button>
+        }
+    </ng-template>
+</page-header>
+
+<app-alert-display></app-alert-display>
+
+@if (!isLoading()) {
+    <div class="page-body">
+        <div class="editor-body" (keydown.enter)="$event.preventDefault()">
+            <!-- Section 1: Name & Collection -->
+            <div class="card mb-3">
+                <div class="card-header"><span class="card-title">Name &amp; Collection</span></div>
+                <div class="card-body">
+                    <div class="grid-12">
+                        <form-field class="g-col-12" [formControl]="formGroup.controls.TreatmentBMPAssessmentObservationTypeName"
+                            fieldLabel="Name" fieldDefinitionName="TreatmentBMPAssessmentObservationType"
+                            [type]="FormFieldType.Text" [required]="true" placeholder="Observation Type Name">
+                        </form-field>
+                        <form-field class="g-col-12" [formControl]="formGroup.controls.CollectionMethodID"
+                            fieldLabel="Collection Method" fieldDefinitionName="ObservationCollectionMethod"
+                            [type]="FormFieldType.Select" [required]="true"
+                            placeholder="Select Collection Method" [formInputOptions]="collectionMethodOptions">
+                        </form-field>
+                        @if (collectionMethod() && !isPassFail()) {
+                            <form-field class="g-col-12" [formControl]="formGroup.controls.TargetTypeID"
+                                fieldLabel="Target Type" fieldDefinitionName="ObservationTargetType"
+                                [type]="FormFieldType.Select" [required]="true"
+                                placeholder="Select Target Type" [formInputOptions]="targetTypeOptions">
+                            </form-field>
+                            <form-field class="g-col-12" [formControl]="formGroup.controls.ThresholdTypeID"
+                                fieldLabel="Threshold Type" fieldDefinitionName="ObservationThresholdType"
+                                [type]="FormFieldType.Select" [required]="true"
+                                placeholder="Select Threshold Type" [formInputOptions]="thresholdTypeOptions">
+                            </form-field>
+                        }
+                    </div>
+                </div>
+            </div>
+
+            @if (collectionMethod() && derivedSpecID()) {
+                <!-- Section 2: Data Collection Instructions -->
+                <div class="card mb-3">
+                    <div class="card-header"><span class="card-title">Enter Data Collection Instructions</span></div>
+                    <div class="card-body">
+                        @switch (collectionMethod()) {
+                            @case ("PassFail") {
+                                <pass-fail-schema-builder section="instructions" [formGroup]="passFailSchemaGroup"></pass-fail-schema-builder>
+                            }
+                            @case ("DiscreteValue") {
+                                <discrete-schema-builder section="instructions" [formGroup]="discreteSchemaGroup"></discrete-schema-builder>
+                            }
+                            @case ("Percentage") {
+                                <percentage-schema-builder section="instructions" [formGroup]="percentageSchemaGroup"></percentage-schema-builder>
+                            }
+                        }
+                    </div>
+                </div>
+
+                <!-- Section 3: Labels and Units for Data Collection -->
+                <div class="card mb-3">
+                    <div class="card-header"><span class="card-title">Enter Labels and Units for Data Collection</span></div>
+                    <div class="card-body">
+                        @switch (collectionMethod()) {
+                            @case ("PassFail") {
+                                <pass-fail-schema-builder section="labelsUnits" [formGroup]="passFailSchemaGroup"></pass-fail-schema-builder>
+                            }
+                            @case ("DiscreteValue") {
+                                <discrete-schema-builder section="labelsUnits" [formGroup]="discreteSchemaGroup"></discrete-schema-builder>
+                            }
+                            @case ("Percentage") {
+                                <percentage-schema-builder section="labelsUnits" [formGroup]="percentageSchemaGroup"></percentage-schema-builder>
+                            }
+                        }
+                    </div>
+                </div>
+            } @else if (collectionMethod() && !derivedSpecID() && !isPassFail()) {
+                <p class="system-text mt-3">Select a Target Type and Threshold Type to configure the schema.</p>
+            }
+        </div>
+
+        <div class="page-footer">
+            <button type="button" class="btn btn-primary" (click)="save()" [disabled]="isSaving() || formGroup.invalid || !derivedSpecID() || (activeSchemaGroup() && activeSchemaGroup()!.invalid)">Save</button>
+            <button type="button" class="btn btn-secondary-outline" (click)="cancel()" [disabled]="isSaving()">Cancel</button>
+        </div>
+    </div>
+} @else {
+    <p>Loading...</p>
+}

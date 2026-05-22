@@ -1,0 +1,136 @@
+@if (workflow$ | async; as workflow) {
+    <page-header [pageTitle]="isReadOnly() ? 'View Maintenance Record' : 'Edit Maintenance Record'" [templateRight]="headerActions"></page-header>
+    <ng-template #headerActions>
+        @if (maintenanceRecord() && !isReadOnly() && canManage) {
+            <button type="button" class="btn btn-danger btn-sm" (click)="deleteRecord(workflow)">
+                <i class="fa fa-trash mr-1"></i> Delete Record
+            </button>
+        }
+    </ng-template>
+    @if (isReadOnly()) {
+        <p class="alert alert-info">This visit is no longer editable; the maintenance record is shown in read-only view.</p>
+    } @else {
+        <p>Capture the maintenance type, a description of what was done, and observations for the applicable maintenance attributes.</p>
+    }
+
+    @if (isLoading()) {
+        <div [loadingSpinner]="{ isLoading: true }"></div>
+    } @else {
+        <form [formGroup]="formGroup">
+            <div class="card">
+                <div class="card-header"><span class="card-title">Details</span></div>
+                <div class="card-body grid-12">
+                    <form-field
+                        class="g-col-12 g-col-md-6"
+                        [formControl]="formGroup.controls.MaintenanceRecordTypeID"
+                        fieldLabel="Maintenance Type"
+                        [type]="FormFieldType.Select"
+                        [required]="true"
+                        [formInputOptions]="maintenanceRecordTypeOptions"
+                        placeholder="Select type"></form-field>
+                    <form-field
+                        class="g-col-12"
+                        [formControl]="formGroup.controls.MaintenanceRecordDescription"
+                        fieldLabel="Description"
+                        [type]="FormFieldType.Textarea"
+                        placeholder="Describe what was done"></form-field>
+                </div>
+            </div>
+
+            @if (observationFields().length > 0) {
+                <div class="card">
+                    <div class="card-header"><span class="card-title">Observations</span></div>
+                    <div class="card-body">
+                        <div class="grid-12">
+                            @for (field of observationFields(); track field.customAttributeTypeID) {
+                                @switch (field.dataTypeKind) {
+                                    @case ("integer") {
+                                        <form-field
+                                            class="g-col-12 g-col-md-6"
+                                            [formControl]="field.control"
+                                            [fieldLabel]="field.name"
+                                            [type]="FormFieldType.Number"
+                                            [required]="field.isRequired"
+                                            [units]="field.unitLabel"
+                                            [placeholder]="field.description || ''"></form-field>
+                                    }
+                                    @case ("decimal") {
+                                        <form-field
+                                            class="g-col-12 g-col-md-6"
+                                            [formControl]="field.control"
+                                            [fieldLabel]="field.name"
+                                            [type]="FormFieldType.Number"
+                                            [required]="field.isRequired"
+                                            [units]="field.unitLabel"
+                                            [placeholder]="field.description || ''"></form-field>
+                                    }
+                                    @case ("date") {
+                                        <form-field
+                                            class="g-col-12 g-col-md-6"
+                                            [formControl]="field.control"
+                                            [fieldLabel]="field.name"
+                                            [type]="FormFieldType.Date"
+                                            [required]="field.isRequired"></form-field>
+                                    }
+                                    @case ("pick-one") {
+                                        <form-field
+                                            class="g-col-12 g-col-md-6"
+                                            [formControl]="field.control"
+                                            [fieldLabel]="field.name"
+                                            [type]="FormFieldType.Select"
+                                            [required]="field.isRequired"
+                                            [formInputOptions]="field.options"
+                                            [placeholder]="field.description || 'Select…'"></form-field>
+                                    }
+                                    @case ("multi-select") {
+                                        <div class="g-col-12 g-col-md-6 multi-select-field">
+                                            <label class="field-label">
+                                                {{ field.name }}@if (field.isRequired) { <sup class="required">*</sup> }
+                                            </label>
+                                            @for (opt of field.options; track opt.Value) {
+                                                <label class="checkbox-row">
+                                                    <input
+                                                        type="checkbox"
+                                                        [checked]="(field.multiControl.value || []).includes($any(opt.Value))"
+                                                        (change)="onMultiSelectToggle(field, $any(opt.Value), $any($event.target).checked)" />
+                                                    <span>{{ opt.Label }}</span>
+                                                </label>
+                                            }
+                                        </div>
+                                    }
+                                    @default {
+                                        <form-field
+                                            class="g-col-12 g-col-md-6"
+                                            [formControl]="field.control"
+                                            [fieldLabel]="field.name"
+                                            [type]="FormFieldType.Text"
+                                            [required]="field.isRequired"
+                                            [placeholder]="field.description || ''"></form-field>
+                                    }
+                                }
+                            }
+                        </div>
+                    </div>
+                </div>
+            } @else {
+                <div class="card">
+                    <div class="card-body">
+                        <p>No maintenance attributes are configured for this BMP type.</p>
+                    </div>
+                </div>
+            }
+        </form>
+
+        @if (!isReadOnly()) {
+            <div class="step-footer">
+                <button type="button" class="btn btn-secondary" [disabled]="formGroup.invalid || isSaving()" (click)="save(workflow, 'wrap-up')">
+                    Save &amp; Wrap Up Visit <i class="fa fa-flag-checkered ml-2"></i>
+                </button>
+                <button type="button" class="btn btn-secondary" [disabled]="formGroup.invalid || isSaving()" (click)="save(workflow, 'stay')">Save</button>
+                <button type="button" class="btn btn-primary" [disabled]="formGroup.invalid || isSaving()" (click)="save(workflow, 'continue')">
+                    Save &amp; Continue <i class="fa fa-caret-right ml-2"></i>
+                </button>
+            </div>
+        }
+    }
+}

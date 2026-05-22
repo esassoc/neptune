@@ -23,6 +23,7 @@ export class OrganizationDto {
     OrganizationUrl?: string | null;
     LogoFileResource?: FileResourceSimpleDto;
     OrganizationType?: OrganizationTypeSimpleDto;
+    StormwaterJurisdictionID?: number | null;
     constructor(obj?: any) {
         Object.assign(this, obj);
     }
@@ -38,6 +39,7 @@ export interface OrganizationDtoForm {
     OrganizationUrl?: FormControl<string>;
     LogoFileResource?: FormControl<FileResourceSimpleDto>;
     OrganizationType?: FormControl<OrganizationTypeSimpleDto>;
+    StormwaterJurisdictionID?: FormControl<number>;
 }
 
 export class OrganizationDtoFormControls { 
@@ -122,6 +124,16 @@ export class OrganizationDtoFormControls {
         }
     );
     public static OrganizationType = (value: FormControlState<OrganizationTypeSimpleDto> | OrganizationTypeSimpleDto = undefined, formControlOptions?: FormControlOptions | null) => new FormControl<OrganizationTypeSimpleDto>(
+        value,
+        formControlOptions ?? 
+        {
+            nonNullable: false,
+            validators: 
+            [
+            ],
+        }
+    );
+    public static StormwaterJurisdictionID = (value: FormControlState<number> | number = undefined, formControlOptions?: FormControlOptions | null) => new FormControl<number>(
         value,
         formControlOptions ?? 
         {

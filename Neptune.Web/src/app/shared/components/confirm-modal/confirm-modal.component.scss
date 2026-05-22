@@ -3,8 +3,23 @@
 .modal-body__content {
     padding: $spacing-200;
     border-radius: $spacing-100;
-    border: 1px solid $red-light;
-    background-color: $red-lighter;
+
+    // Restore paragraph spacing inside cascade-warning messages — global resets zero
+    // <p> margins, so callers that pass multi-paragraph HTML (e.g. "X is related to N
+    // items." + "Are you sure...?") render as one unspaced block without this.
+    // ::ng-deep is required because [innerHtml]-injected <p> elements don't get this
+    // component's scoped _ngcontent attribute, so a regular selector wouldn't match.
+    ::ng-deep p { margin: 0; }
+    ::ng-deep p + p { margin-top: $spacing-300; }
+
+    // NPT-1051: red panel only when the confirm action is destructive
+    // (buttonClassYes contains btn-danger). Benign confirms (btn-primary,
+    // btn-secondary) get a neutral panel — the red wash was misleading
+    // when the confirmation wasn't actually dangerous.
+    &--danger {
+        border: 1px solid $red-light;
+        background-color: $red-lighter;
+    }
 }
 
 .confirmation-icon {

@@ -9,26 +9,20 @@ ENV XDG_RUNTIME_DIR=/tmp/runtime-root
 WORKDIR /app
 EXPOSE 80
 
+# Install ASP.NET Core 10.0 runtime via Microsoft's dotnet-install script.
+# Avoids the dotnet/backports PPA (which requires reaching launchpad.net at build
+# time and was timing out from the QA build agent).
 RUN apt-get update && \
-    apt-get install -y wget
+    apt-get install -y --no-install-recommends wget ca-certificates && \
+    rm -rf /var/lib/apt/lists/* && \
+    wget -O /tmp/dotnet-install.sh https://dot.net/v1/dotnet-install.sh && \
+    chmod +x /tmp/dotnet-install.sh && \
+    /tmp/dotnet-install.sh --channel 10.0 --runtime aspnetcore --install-dir /usr/share/dotnet && \
+    rm /tmp/dotnet-install.sh && \
+    ln -s /usr/share/dotnet/dotnet /usr/local/bin/dotnet
 
-# Download Microsoft signing key and repository
-RUN wget https://packages.microsoft.com/config/ubuntu/22.04/packages-microsoft-prod.deb -O packages-microsoft-prod.deb
-
-# Install Microsoft signing key and repository
-RUN dpkg -i packages-microsoft-prod.deb
-
-# Clean up
-RUN rm packages-microsoft-prod.deb
-
-RUN apt-get update && \
-    apt-get install software-properties-common -y
-
-RUN add-apt-repository ppa:dotnet/backports
-
-# Install the .NET runtime
-RUN apt-get update && \
-    apt-get install -y aspnetcore-runtime-10.0
+ENV DOTNET_ROOT=/usr/share/dotnet
+ENV PATH="${PATH}:/usr/share/dotnet"
 
 FROM mcr.microsoft.com/dotnet/sdk:10.0 AS build
 

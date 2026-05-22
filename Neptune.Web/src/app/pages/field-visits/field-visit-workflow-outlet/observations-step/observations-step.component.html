@@ -1,0 +1,41 @@
+@if (workflow$ | async; as workflow) {
+    <page-header pageTitle="Observations"></page-header>
+
+    @if (isLoading()) {
+        <div [loadingSpinner]="{ isLoading: true }"></div>
+    } @else if (!assessment()) {
+        <p>No assessment exists yet for this field visit. Return to the Assessment landing page to begin one.</p>
+    } @else if (assessment(); as assessmentDetail) {
+        @if (panels().length === 0) {
+            <p>No observation types are configured for this BMP type.</p>
+        }
+
+        @if (isReadOnly()) {
+            <p class="alert alert-info">This visit is no longer editable; observations are shown in read-only view.</p>
+        }
+
+        @if (isPostMaintenance && assessmentDetail.ObservationTypes.length > 0 && !isReadOnly()) {
+            <div class="copy-from-initial">
+                <button type="button" class="btn btn-secondary" (click)="copyFromInitial(workflow)">
+                    Copy data from Initial Assessment
+                </button>
+            </div>
+        }
+
+        @for (panel of panels(); track panel.observationTypeID) {
+            <observation-panel [panel]="panel" namePrefix="passfail"></observation-panel>
+        }
+
+        @if (!isReadOnly()) {
+            <div class="step-footer">
+                <button type="button" class="btn btn-secondary" (click)="save(workflow, 'wrap-up')">
+                    Save &amp; Wrap Up Visit <i class="fa fa-flag-checkered ml-2"></i>
+                </button>
+                <button type="button" class="btn btn-secondary" (click)="save(workflow, 'stay')">Save</button>
+                <button type="button" class="btn btn-primary" (click)="save(workflow, 'continue')">
+                    Save &amp; Continue <i class="fa fa-caret-right ml-2"></i>
+                </button>
+            </div>
+        }
+    }
+}

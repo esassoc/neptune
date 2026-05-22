@@ -2,7 +2,7 @@
     <page-header [pageTitle]="wqmp.WaterQualityManagementPlanName" [templateAbove]="templateAbove" [templateRight]="templateRight">
         <ng-template #templateAbove>
             <div class="back">
-                <a [routerLink]="['/water-quality-management-plans']" class="back__link">Back to WQMP Grid</a>
+                <a [routerLink]="['/water-quality-management-plans']" class="back__link"><i class="fa fa-arrow-left"></i> Back to WQMP List</a>
             </div>
         </ng-template>
         <ng-template #templateRight>
@@ -16,12 +16,23 @@
 
     <app-alert-display></app-alert-display>
 
-    @if (currentPersonCanEdit && wqmp.WaterQualityManagementPlanStatusID === WaterQualityManagementPlanStatusEnum.Draft) {
+    @if (currentPersonCanEdit) {
         <div class="draft-banner mb-3">
-            <span>This WQMP is in <strong>Draft</strong> status.</span>
-            <a [routerLink]="['/water-quality-management-plans', waterQualityManagementPlanID, 'review']" class="btn btn-primary-outline btn-sm">
-                Review AI Extraction
-            </a>
+            @if (wqmp.WaterQualityManagementPlanStatusID === WaterQualityManagementPlanStatusEnum.Draft) {
+                <span>This WQMP is in <strong>Draft</strong> status — it's a transcription, not yet the binding legal record. Draft WQMPs are excluded from modeling and trash result calculations until promoted to Active.</span>
+            } @else {
+                <span>AI extraction is also available for this WQMP.</span>
+            }
+            <div class="draft-banner__actions">
+                <a [routerLink]="['/water-quality-management-plans', waterQualityManagementPlanID, 'review']" class="btn btn-primary-outline btn-sm">
+                    Review AI Extraction
+                </a>
+                @if (wqmp.WaterQualityManagementPlanStatusID === WaterQualityManagementPlanStatusEnum.Draft) {
+                    <button type="button" class="btn btn-primary btn-sm" (click)="confirmPromote(wqmp)" [disabled]="isPromoting()">
+                        @if (isPromoting()) { <i class="fa fa-spinner fa-spin"></i> Promoting... } @else { Promote to Active }
+                    </button>
+                }
+            </div>
         </div>
     }
 
@@ -127,7 +138,17 @@
                     <span class="card-title"><field-definition fieldDefinitionType="ModeledPerformance"></field-definition></span>
                 </div>
                 <div class="card-body">
-                    @if (wqmp.WaterQualityManagementPlanModelingApproachID === WaterQualityManagementPlanModelingApproachEnum.Detailed && !wqmp.TreatmentBMPs?.length) {
+                    @if (wqmp.WaterQualityManagementPlanStatusID === WaterQualityManagementPlanStatusEnum.Draft) {
+                        <p class="system-text">Model results will not be calculated until the status is promoted to active.</p>
+                        @if (wqmp.WaterQualityManagementPlanModelingApproachID === WaterQualityManagementPlanModelingApproachEnum.Detailed) {
+                            <p class="system-text">View results for Verified Inventoried BMPs on their detail page.</p>
+                        }
+                    } @else if (wqmp.WaterQualityManagementPlanStatusID === WaterQualityManagementPlanStatusEnum.Inactive) {
+                        <p class="system-text">Model results will not be calculated because this WQMP is inactive.</p>
+                        @if (wqmp.WaterQualityManagementPlanModelingApproachID === WaterQualityManagementPlanModelingApproachEnum.Detailed) {
+                            <p class="system-text">View results for Verified Inventoried BMPs on their detail page.</p>
+                        }
+                    } @else if (wqmp.WaterQualityManagementPlanModelingApproachID === WaterQualityManagementPlanModelingApproachEnum.Detailed && !wqmp.TreatmentBMPs?.length) {
                         <p class="system-text">This WQMP is modeled using the detailed approach, but no structural BMPs have been inventoried, so no results are available.</p>
                     } @else if (wqmp.WaterQualityManagementPlanModelingApproachID === WaterQualityManagementPlanModelingApproachEnum.Simplified && !wqmp.WaterQualityManagementPlanBoundaryBBox) {
                         <p class="system-text">No treatment area has been defined for this Water Quality Management Plan. Add parcels to define the treatment area.</p>
@@ -150,7 +171,7 @@
                                 <p class="system-text mt-2">Some of this WQMP's simplified BMPs are not fully parameterized for modeling, so these results may be incomplete or inaccurate.</p>
                             }
                         } @else {
-                            <p class="system-text">No model results are available for this WQMP.</p>
+                            <p class="system-text">Model results for this WQMP are awaiting calculation.</p>
                         }
                     } @else {
                         <div [loadingSpinner]="{ isLoading: true, loadingHeight: 100 }"></div>
@@ -169,7 +190,7 @@
                 <div class="card-body">
                     @if (currentPersonCanEdit) {
                         <div class="mb-3" style="display: flex; justify-content: flex-end; gap: 0.5rem">
-                            <a class="btn btn-primary-outline" [routerLink]="['/water-quality-management-plans', waterQualityManagementPlanID, 'edit-parcels']">Add Parcels</a>
+                            <a class="btn btn-primary-outline" [routerLink]="['/water-quality-management-plans', waterQualityManagementPlanID, 'edit-parcels']">Edit Parcels</a>
                             <a class="btn btn-primary-outline" [class.disabled]="!wqmp.WaterQualityManagementPlanBoundaryBBox"
                                 [routerLink]="wqmp.WaterQualityManagementPlanBoundaryBBox ? ['/water-quality-management-plans', waterQualityManagementPlanID, 'edit-boundary'] : null">Refine Area</a>
                         </div>
@@ -199,7 +220,11 @@
                     <span class="card-title">Land Use Statistics</span>
                 </div>
                 <div class="card-body">
-                    @if (hasHRUData && wqmp.WaterQualityManagementPlanBoundaryBBox) {
+                    @if (wqmp.WaterQualityManagementPlanStatusID === WaterQualityManagementPlanStatusEnum.Draft) {
+                        <p class="system-text">Model results will not be calculated until the status is promoted to active.</p>
+                    } @else if (wqmp.WaterQualityManagementPlanStatusID === WaterQualityManagementPlanStatusEnum.Inactive) {
+                        <p class="system-text">Model results will not be calculated because this WQMP is inactive.</p>
+                    } @else if (hasHRUData && wqmp.WaterQualityManagementPlanBoundaryBBox) {
                         <land-use-table [hruCharacteristics]="hruCharacteristicsSummaries"></land-use-table>
                         @if (wqmp.WaterQualityManagementPlanModelingApproachID === WaterQualityManagementPlanModelingApproachEnum.Detailed) {
                             <p class="system-text">Land Use Statistics are derived from the inventoried structural BMPs and may not exactly match the Calculated Parcel Area shown above.</p>
@@ -207,7 +232,7 @@
                     } @else if (!wqmp.WaterQualityManagementPlanBoundaryBBox) {
                         <p class="system-text">No treatment area is provided for this Water Quality Management Plan. Land Use Statistics cannot be determined until a treatment area is provided.</p>
                     } @else {
-                        <p class="system-text">Land Use Statistics have not been calculated for this Water Quality Management Plan.</p>
+                        <p class="system-text">Land use statistics for this WQMP are awaiting calculation.</p>
                     }
                 </div>
             </div>
@@ -365,7 +390,7 @@
                                 @for (doc of docGroup.documents; track doc.WaterQualityManagementPlanDocumentID) {
                                     <div class="document-entry">
                                         @if (doc.FileResource?.FileResourceGUID) {
-                                            <a [href]="apiBaseUrl + '/file-resources/' + doc.FileResource.FileResourceGUID" target="_blank">
+                                            <a [href]="fileResourceUrl(doc.FileResource.FileResourceGUID)" target="_blank">
                                                 {{ doc.DisplayName }} <i class="fa fa-download"></i>
                                             </a>
                                         } @else {
@@ -396,6 +421,12 @@
         <div class="card g-col-12 mt-3">
             <div class="card-header">
                 <span class="card-title">WQMP O&amp;M Verification</span>
+                @if (currentPersonCanEdit) {
+                    <a class="btn btn-white-outline btn-sm"
+                       [routerLink]="['/water-quality-management-plans', waterQualityManagementPlanID, 'verifications', 'new']">
+                        <i class="fa fa-plus"></i> Begin O&amp;M Verification
+                    </a>
+                }
             </div>
             <div class="card-body">
                 @if (verifications$ | async; as verifications) {

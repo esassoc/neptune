@@ -1,6 +1,8 @@
-import { Component, Input } from "@angular/core";
-import { FormControl, FormGroup, ReactiveFormsModule } from "@angular/forms";
-import { FormFieldComponent, FormFieldType, SelectDropdownOption } from "src/app/shared/components/forms/form-field/form-field.component";
+import { Component, inject } from "@angular/core";
+import { FormControl, ReactiveFormsModule } from "@angular/forms";
+import { FormFieldComponent, FormFieldType } from "src/app/shared/components/forms/form-field/form-field.component";
+import { PageHeaderComponent } from "src/app/shared/components/page-header/page-header.component";
+import { WqmpVerificationWorkflowService } from "src/app/shared/services/wqmp-verification-workflow.service";
 
 export interface VerificationBasicsForm {
     WaterQualityManagementPlanVerifyTypeID: FormControl<number>;
@@ -14,45 +16,11 @@ export interface VerificationBasicsForm {
 @Component({
     selector: "verification-basics-step",
     standalone: true,
-    imports: [FormFieldComponent, ReactiveFormsModule],
-    template: `
-        <h3>Verification Basics</h3>
-        <div class="grid-12">
-            <form-field class="g-col-6" [formControl]="form.controls.WaterQualityManagementPlanVerifyTypeID"
-                fieldLabel="Verification Type" [type]="FormFieldType.Select" [required]="true"
-                placeholder="Select Type" [formInputOptions]="verifyTypeOptions">
-            </form-field>
-            <form-field class="g-col-6" [formControl]="form.controls.WaterQualityManagementPlanVisitStatusID"
-                fieldLabel="Visit Status" [type]="FormFieldType.Select" [required]="true"
-                placeholder="Select Visit Status" [formInputOptions]="visitStatusOptions">
-            </form-field>
-            <form-field class="g-col-6" [formControl]="form.controls.VerificationDate"
-                fieldLabel="Verification Date" [type]="FormFieldType.Date" [required]="true">
-            </form-field>
-            <form-field class="g-col-6" [formControl]="form.controls.WaterQualityManagementPlanVerifyStatusID"
-                fieldLabel="Verify Status" [type]="FormFieldType.Select"
-                placeholder="Select Status" [formInputOptions]="verifyStatusOptions">
-            </form-field>
-            <form-field class="g-col-12" [formControl]="form.controls.EnforcementOrFollowupActions"
-                fieldLabel="Enforcement or Follow-up Actions" [type]="FormFieldType.Textarea"
-                placeholder="Enter follow-up actions if applicable">
-            </form-field>
-            <form-field class="g-col-12" [formControl]="form.controls.SourceControlCondition"
-                fieldLabel="Source Control Condition Notes" [type]="FormFieldType.Textarea"
-                placeholder="Enter source control condition notes if applicable">
-            </form-field>
-        </div>
-    `,
-    styles: [`
-        :host { display: block; }
-        form-field { display: block; }
-    `],
+    imports: [FormFieldComponent, ReactiveFormsModule, PageHeaderComponent],
+    templateUrl: "./verification-basics-step.component.html",
+    styleUrl: "./verification-basics-step.component.scss",
 })
 export class VerificationBasicsStepComponent {
-    @Input() form: FormGroup<VerificationBasicsForm>;
-    @Input() verifyTypeOptions: SelectDropdownOption[];
-    @Input() visitStatusOptions: SelectDropdownOption[];
-    @Input() verifyStatusOptions: SelectDropdownOption[];
-    @Input() readonly = false;
+    public service = inject(WqmpVerificationWorkflowService);
     public FormFieldType = FormFieldType;
 }

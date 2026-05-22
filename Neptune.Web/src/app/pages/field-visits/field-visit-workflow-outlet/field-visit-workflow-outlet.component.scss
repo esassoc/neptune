@@ -1,0 +1,53 @@
+@use "/src/scss/abstracts" as *;
+
+.sidebar-header {
+    .back {
+        display: inline-block;
+        font-size: $type-size-200;
+        margin-bottom: $spacing-200;
+        color: $teal-700;
+        text-decoration: underline;
+        cursor: pointer;
+    }
+
+    .bmp-name {
+        font-size: $type-size-400;
+        margin: 0;
+    }
+
+    .bmp-type {
+        font-size: $type-size-200;
+        color: $gray-600;
+        margin: 0 0 $spacing-200;
+    }
+
+    .visit-meta {
+        font-size: $type-size-200;
+        margin: 0 0 $spacing-100;
+        display: flex;
+        align-items: center;
+        gap: $spacing-200;
+    }
+
+    .visit-status {
+        font-size: $type-size-200;
+        color: $gray-700;
+        margin: 0;
+    }
+
+    .btn-icon {
+        border: 0;
+        background: transparent;
+        padding: $spacing-100 $spacing-200;
+        color: $primary;
+        cursor: pointer;
+
+        &.btn-icon-danger {
+            color: $red-default;
+        }
+    }
+}
+
+.loading-shell {
+    min-height: 50vh;
+}

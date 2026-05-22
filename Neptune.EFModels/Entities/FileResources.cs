@@ -9,10 +9,10 @@ public class FileResources
     public static List<ErrorMessage> ValidateFileUpload(IFormFile inputFile, bool imagesOnly = false)
     {
         var errors = new List<ErrorMessage>();
-        var acceptedExtensions = new List<string> { ".pdf", ".png", ".jpg", ".docx", ".doc", ".xlsx", ".txt", ".csv" };
+        var acceptedExtensions = new List<string> { ".pdf", ".png", ".jpg", ".jpeg", ".docx", ".doc", ".xlsx", ".txt", ".csv" };
         if (imagesOnly)
         {
-            acceptedExtensions = [".png", ".jpg"];
+            acceptedExtensions = [".png", ".jpg", ".jpeg"];
         }
 
         var extension = Path.GetExtension(inputFile.FileName);
@@ -26,13 +26,13 @@ public class FileResources
             });
         }
 
-        const double maxFileSize = 200d * 1024d * 1024d;
+        const double maxFileSize = 500d * 1024d * 1024d;
         if (inputFile.Length > maxFileSize)
         {
             errors.Add(new ErrorMessage
             {
                 Type = "File Resource",
-                Message = "File size cannot exceed 200MB."
+                Message = "File size cannot exceed 500MB."
             });
         }
 

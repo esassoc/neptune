@@ -1,4 +1,5 @@
 using System;
+using System.IO;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
@@ -10,6 +11,7 @@ using Anthropic.Exceptions;
 using Anthropic.Models.Beta.Messages;
 using BetaRole = Anthropic.Models.Beta.Messages.Role;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using Neptune.EFModels.Entities;
@@ -32,6 +34,7 @@ public class WqmpExtractionService
     private readonly IPromptTemplateService _promptTemplateService;
     private readonly ILogger<WqmpExtractionService> _logger;
     private readonly NeptuneConfiguration _configuration;
+    private readonly IHostEnvironment _environment;
 
     public WqmpExtractionService(
         AnthropicClient anthropic,
@@ -39,7 +42,8 @@ public class WqmpExtractionService
         NeptuneDbContext dbContext,
         IPromptTemplateService promptTemplateService,
         ILogger<WqmpExtractionService> logger,
-        IOptions<NeptuneConfiguration> configuration)
+        IOptions<NeptuneConfiguration> configuration,
+        IHostEnvironment environment)
     {
         _anthropic = anthropic;
         _anthropicFileService = anthropicFileService;
@@ -47,6 +51,7 @@ public class WqmpExtractionService
         _promptTemplateService = promptTemplateService;
         _logger = logger;
         _configuration = configuration.Value;
+        _environment = environment;
     }
 
     public async Task<WaterQualityManagementPlanDocumentExtractionResultDto> ExtractFromDocument(
@@ -132,7 +137,12 @@ public class WqmpExtractionService
                 var parameters = new MessageCreateParams
                 {
                     Model = _configuration.ClaudeModelId,
-                    MaxTokens = 8192,
+                    // NPT-1054: bumped from 8192 → 16384. Sonnet 4.5+ uses interleaved thinking
+                    // by default when tool_use is in play; thinking tokens count toward the same
+                    // output budget. On the SourceControlBMPs call with a longer prompt + a
+                    // 65-page PDF, Claude consumed all 8192 tokens on thinking and never reached
+                    // the tool call (stop_reason=max_tokens, no text or input_json captured).
+                    MaxTokens = 16384,
                     // The Files-API source variant (BetaFileDocumentSource) is gated behind
                     // this beta header on the Messages endpoint. Without it the request gets
                     // routed to the standard validator and rejected with
@@ -225,19 +235,152 @@ public class WqmpExtractionService
                 results[i].cachedTokens, $"WQMP Extraction - {keys[i]}");
         }
 
-        // Array categories return { "items": [...] } — unwrap to just the array
-        string UnwrapItems(string json)
+        // Array categories return { "items": [...] } — unwrap to just the array.
+        // NPT-1054: Claude sometimes JSON-encodes `items` as a string instead of emitting a real
+        // array (observed on the SourceControlBMPs call with longer prompts + multi-line array
+        // examples). Detect that shape and parse it back to an array before consolidating;
+        // otherwise the downstream JSON_QUERY consumer sees a string literal where an array
+        // should be.
+        //
+        // Returns (Output, FailedFallback). FailedFallback is true ONLY when unwrap fell back to
+        // "[]" because the inner JSON couldn't be parsed; legitimate empty `items` arrays and
+        // successful parses report false so callers can distinguish flaky-model failures from a
+        // genuine empty result and retry accordingly.
+        (string Output, bool FailedFallback) UnwrapItems(string json)
         {
             try
             {
                 using var doc = JsonDocument.Parse(json);
-                if (doc.RootElement.TryGetProperty("items", out var items)) return items.GetRawText();
+                if (doc.RootElement.TryGetProperty("items", out var items))
+                {
+                    if (items.ValueKind == JsonValueKind.String)
+                    {
+                        var innerJson = items.GetString();
+                        if (string.IsNullOrEmpty(innerJson))
+                        {
+                            _logger.LogWarning("Tool output `items` was an empty string — emitting empty array.");
+                            return ("[]", false);
+                        }
+                        try
+                        {
+                            using var innerDoc = JsonDocument.Parse(innerJson);
+                            _logger.LogWarning("Tool output had `items` as a JSON-encoded string ({Len} chars) — unwrapped successfully.", innerJson.Length);
+                            return (innerJson, false);
+                        }
+                        catch (JsonException ex)
+                        {
+                            // The string content failed to parse as JSON. Try a best-effort cleanup:
+                            // strip a stray trailing comma + newline before the closing bracket,
+                            // which is a common Claude foible on long array outputs.
+                            var cleaned = System.Text.RegularExpressions.Regex.Replace(
+                                innerJson, @",\s*([\]\}])", "$1");
+                            try
+                            {
+                                using var cleanedDoc = JsonDocument.Parse(cleaned);
+                                _logger.LogWarning("Tool output `items` was a JSON-encoded string with trailing-comma issues — repaired and unwrapped ({Len} chars).", cleaned.Length);
+                                return (cleaned, false);
+                            }
+                            catch (JsonException ex2)
+                            {
+                                // NPT-1054 diagnostics: the head-only truncation was masking the actual
+                                // corruption point in long outputs. Capture head/tail/window-around-error
+                                // and persist the full failing content to /tmp so we can repair offline.
+                                static string Slice(string s, int start, int len)
+                                    => start < 0 || start >= s.Length ? "" : s.Substring(start, Math.Min(len, s.Length - start));
+
+                                // ex.BytePositionInLine is per-line; compute an approximate absolute offset
+                                // by walking lines to ex.LineNumber, then add the in-line position.
+                                int approxOffset = -1;
+                                if (ex.LineNumber.HasValue)
+                                {
+                                    long line = 0, offset = 0;
+                                    foreach (var ch in innerJson)
+                                    {
+                                        if (line == ex.LineNumber.Value) break;
+                                        if (ch == '\n') line++;
+                                        offset++;
+                                    }
+                                    approxOffset = (int)Math.Min(offset + (ex.BytePositionInLine ?? 0), innerJson.Length - 1);
+                                }
+                                var windowStart = Math.Max(0, approxOffset - 200);
+                                var windowAround = approxOffset >= 0 ? Slice(innerJson, windowStart, 400) : "(no position)";
+
+                                // The /tmp dump is a dev-only diagnostic. WQMP content can include
+                                // facility addresses and contacts; QA/prod pods would also accumulate
+                                // dumps on a long-lived volume with no retention. Gating to
+                                // Development keeps the artifact useful for local repro without
+                                // leaking content or filling shared disk in deployed envs.
+                                string dumpPath = null;
+                                if (_environment.IsDevelopment())
+                                {
+                                    try
+                                    {
+                                        dumpPath = Path.Combine(Path.GetTempPath(), $"wqmp-sc-extraction-failure-{DateTime.UtcNow:yyyyMMddHHmmss}-{Guid.NewGuid():N}.json");
+                                        File.WriteAllText(dumpPath, innerJson);
+                                    }
+                                    catch (Exception dumpEx)
+                                    {
+                                        _logger.LogWarning(dumpEx, "Failed to write extraction-failure dump file");
+                                    }
+                                }
+
+                                _logger.LogError(ex2,
+                                    "Tool output `items` was a JSON-encoded string but failed to parse even after cleanup. " +
+                                    "First error: {FirstErr}. Cleanup error: {CleanupErr}. Approx offset: {Offset} of {Len}. " +
+                                    "Dump file: {DumpPath}. Head: {Head} | Window around error: {Window} | Tail: {Tail}",
+                                    ex.Message, ex2.Message, approxOffset, innerJson.Length, dumpPath ?? "(disabled)",
+                                    Slice(innerJson, 0, 400),
+                                    windowAround,
+                                    Slice(innerJson, Math.Max(0, innerJson.Length - 400), 400));
+                                return ("[]", true);
+                            }
+                        }
+                    }
+                    return (items.GetRawText(), false);
+                }
             }
-            catch { /* fall through */ }
-            return json;
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "UnwrapItems failed to parse tool output JSON; using raw output.");
+            }
+            return (json, false);
         }
 
-        var finalOutput = $"{{ \"SchemaVersion\": \"{SchemaVersion}\", \"WQMP\": {map["WQMP"]}, \"Parcels\": {UnwrapItems(map["Parcels"])}, \"QuickBMPs\": {UnwrapItems(map["QuickBMPs"])}, \"SourceControlBMPs\": {UnwrapItems(map["SourceControlBMPs"])} }}";
+        // NPT-1054: retry SC once when UnwrapItems falls back to "[]" due to a corrupt inner JSON
+        // (the flaky-model failure mode that captures 25k–30k char tool outputs but emits a
+        // double-encoded `items` string with malformed content the cleanup can't repair). One
+        // retry catches the typical "rolled bad dice" case; legitimate empty arrays don't retry.
+        var parcelsUnwrap = UnwrapItems(map["Parcels"]);
+        var quickBmpsUnwrap = UnwrapItems(map["QuickBMPs"]);
+        var scUnwrap = UnwrapItems(map["SourceControlBMPs"]);
+        if (scUnwrap.FailedFallback)
+        {
+            _logger.LogWarning("SourceControlBMPs unwrap failed — retrying extraction once before giving up.");
+            try
+            {
+                var scConfig = categoryConfigs["SourceControlBMPs"];
+                var scRetry = await ExtractCategoryAsync("SourceControlBMPs", scConfig.template, scConfig.schema, scConfig.expectArray);
+                await LogTokenUsage(personID, scRetry.inputTokens, scRetry.outputTokens, scRetry.cachedTokens,
+                    "WQMP Extraction - SourceControlBMPs (retry)");
+                map["SourceControlBMPs"] = scRetry.output;
+                var scRetryUnwrap = UnwrapItems(scRetry.output);
+                if (!scRetryUnwrap.FailedFallback)
+                {
+                    _logger.LogInformation("SourceControlBMPs retry succeeded ({Chars} chars).", scRetryUnwrap.Output.Length);
+                    scUnwrap = scRetryUnwrap;
+                }
+                else
+                {
+                    _logger.LogWarning("SourceControlBMPs retry also produced a malformed payload; staying with empty fallback.");
+                }
+            }
+            catch (Exception retryEx)
+            {
+                _logger.LogError(retryEx, "SourceControlBMPs retry threw before completing; staying with empty fallback.");
+            }
+        }
+
+        var finalOutput = $"{{ \"SchemaVersion\": \"{SchemaVersion}\", \"WQMP\": {map["WQMP"]}, \"Parcels\": {parcelsUnwrap.Output}, \"QuickBMPs\": {quickBmpsUnwrap.Output}, \"SourceControlBMPs\": {scUnwrap.Output} }}";
 
         if (!IsValidJson(finalOutput))
         {
@@ -310,7 +453,22 @@ public class WqmpExtractionService
             WaterQualityManagementPlanDevelopmentType = WaterQualityManagementPlanDevelopmentType.All.Select(x => x.WaterQualityManagementPlanDevelopmentTypeDisplayName),
             WaterQualityManagementPlanPermitTerm = WaterQualityManagementPlanPermitTerm.All.Select(x => x.WaterQualityManagementPlanPermitTermDisplayName),
             TrashCaptureStatusType = TrashCaptureStatusType.All.Select(x => x.TrashCaptureStatusTypeDisplayName),
-            SourceControlBMPAttributes = await _dbContext.SourceControlBMPAttributes.AsNoTracking().Select(x => x.SourceControlBMPAttributeName).ToListAsync(),
+            // NPT-1054: send SC attribute names grouped by their category so Claude has the
+            // three-bucket taxonomy when matching extracted attribute wording. The v3 prompt
+            // explicitly enumerates the three categories with examples — the categorized
+            // DomainContext lets Claude resolve fuzzy PDF wording against the right bucket.
+            SourceControlBMPAttributes = (await _dbContext.SourceControlBMPAttributes
+                .AsNoTracking()
+                .Select(x => new { x.SourceControlBMPAttributeName, x.SourceControlBMPAttributeCategoryID })
+                .ToListAsync())
+                .GroupBy(x => x.SourceControlBMPAttributeCategoryID)
+                .Select(g => new
+                {
+                    Category = SourceControlBMPAttributeCategory.AllLookupDictionary[g.Key].SourceControlBMPAttributeCategoryName,
+                    Attributes = g.Select(a => a.SourceControlBMPAttributeName).OrderBy(n => n).ToList(),
+                })
+                .OrderBy(g => g.Category)
+                .ToList(),
         };
         return $"SCHEMA_VERSION: {SchemaVersion}\nDOMAIN TABLES: {JsonSerializer.Serialize(domainTables)}\n";
     }

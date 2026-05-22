@@ -1,1 +1,54 @@
-<!-- Placeholder for WQMP Annual Report component template -->
+<page-header pageTitle="Water Quality Management Plan Annual Report"></page-header>
+
+<app-alert-display></app-alert-display>
+
+@if (options$ | async) {
+    <form [formGroup]="filterForm" class="annual-report-filters">
+        <form-field
+            size="md"
+            fieldLabel="Reporting Year"
+            [type]="FormFieldType.Select"
+            [formControl]="filterForm.controls.reportingYear"
+            [formInputOptions]="reportingYearOptions"
+            placeholder="Select Reporting Year">
+        </form-field>
+        <form-field
+            size="md"
+            fieldLabel="Jurisdiction"
+            [type]="FormFieldType.Select"
+            [formControl]="filterForm.controls.stormwaterJurisdictionID"
+            [formInputOptions]="jurisdictionOptions"
+            placeholder="Select Jurisdiction">
+        </form-field>
+    </form>
+
+    <section class="report-section">
+        <h2 class="section-title">WQMP Approval Summary</h2>
+        <custom-rich-text [customRichTextTypeID]="approvalSummaryCustomRichTextID"></custom-rich-text>
+        <div class="grid-wrapper" [loadingSpinner]="{ isLoading: isLoadingApprovalSummary, loadingHeight: 100 }">
+            <neptune-grid
+                height="500px"
+                [rowData]="(approvalSummary$ | async) ?? []"
+                [columnDefs]="approvalSummaryColumnDefs"
+                downloadFileName="wqmp-approval-summary"
+                [pagination]="true"
+                [sizeColumnsToFitGrid]="true">
+            </neptune-grid>
+        </div>
+    </section>
+
+    <section class="report-section">
+        <h2 class="section-title">Post-Construction Inspection and Verification</h2>
+        <custom-rich-text [customRichTextTypeID]="postConstructionCustomRichTextID"></custom-rich-text>
+        <div class="grid-wrapper" [loadingSpinner]="{ isLoading: isLoadingPostConstruction, loadingHeight: 100 }">
+            <neptune-grid
+                height="500px"
+                [rowData]="(postConstruction$ | async) ?? []"
+                [columnDefs]="postConstructionColumnDefs"
+                downloadFileName="wqmp-post-construction-verifications"
+                [pagination]="true"
+                [sizeColumnsToFitGrid]="true">
+            </neptune-grid>
+        </div>
+    </section>
+}

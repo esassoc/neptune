@@ -1,8 +1,9 @@
-import { Component, Input, OnInit, OnChanges, SimpleChanges } from "@angular/core";
+import { Component, inject, Input, OnInit, OnChanges, signal, SimpleChanges, ViewContainerRef } from "@angular/core";
+import { HttpErrorResponse } from "@angular/common/http";
 import { Router, RouterLink } from "@angular/router";
 import { DatePipe, AsyncPipe, CommonModule } from "@angular/common";
-import { Observable, of } from "rxjs";
-import { shareReplay, switchMap, tap } from "rxjs/operators";
+import { BehaviorSubject, Observable, of } from "rxjs";
+import { finalize, shareReplay, switchMap, tap } from "rxjs/operators";
 import { DialogService } from "@ngneat/dialog";
 import { ColDef } from "ag-grid-community";
 import * as L from "leaflet";
@@ -20,9 +21,12 @@ import { LoadingDirective } from "src/app/shared/directives/loading.directive";
 import { UtilityFunctionsService } from "src/app/services/utility-functions.service";
 import { AuthenticationService } from "src/app/services/authentication.service";
 import { AlertService } from "src/app/shared/services/alert.service";
+import { ConfirmService } from "src/app/shared/services/confirm/confirm.service";
 import { Alert } from "src/app/shared/models/alert";
 import { AlertContext } from "src/app/shared/models/enums/alert-context.enum";
 import { MarkerHelper } from "src/app/shared/helpers/marker-helper";
+import { escapeHtml } from "src/app/shared/helpers/html-escape";
+import { fileResourceUrl } from "src/app/shared/helpers/file-resource-url";
 import { WaterQualityManagementPlanService } from "src/app/shared/generated/api/water-quality-management-plan.service";
 import { WaterQualityManagementPlanDto } from "src/app/shared/generated/model/water-quality-management-plan-dto";
 import { WaterQualityManagementPlanDocumentDto } from "src/app/shared/generated/model/water-quality-management-plan-document-dto";
@@ -82,8 +86,18 @@ export class WqmpDetailComponent implements OnInit, OnChanges {
     public WaterQualityManagementPlanModelingApproachEnum = WaterQualityManagementPlanModelingApproachEnum;
     public WaterQualityManagementPlanStatusEnum = WaterQualityManagementPlanStatusEnum;
     public aboutModelingBMPPerformanceUrl = `${environment.ocStormwaterToolsBaseUrl}/Home/AboutModelingBMPPerformance`;
-    public apiBaseUrl = environment.mainAppApiUrl;
+    public fileResourceUrl = fileResourceUrl;
 
+    // NPT-1051: wqmp$ is a stable observable driven by reload$ so the AsyncPipe stays
+    // subscribed to one reference. Modal saves call reload$.next() to refetch — this is
+    // robust against AsyncPipe re-subscription quirks that can leave the page showing
+    // stale Status / Modeling Approach values when wqmp$ is reassigned mid-stream.
+    private reload$ = new BehaviorSubject<void>(undefined);
+    // NPT-995 round 5: separate signal for verifications$ so a row-delete only refreshes
+    // the verifications grid — pushing reload$ would also refetch wqmp$ + rebuild the
+    // map layers, which is unnecessary work and a potential source of UI flicker on a
+    // verification mutation.
+    private verificationsReload$ = new BehaviorSubject<void>(undefined);
     wqmp$: Observable<WaterQualityManagementPlanDto>;
     quickBMPs$: Observable<QuickBMPDto[]>;
     quickBMPTotalRow: any[] = [];
@@ -144,12 +158,19 @@ export class WqmpDetailComponent implements OnInit, OnChanges {
             "This WQMP is modeled by entering simplified structural BMP modeling parameters directly on this WQMP page.",
     };
 
+    // NPT-1051: Promote (Draft → Active) is the act of declaring "this transcription is the
+    // binding legal record." Status flips from Draft to Active and the WQMP starts flowing
+    // into modeling and trash result calculations.
+    public isPromoting = signal(false);
+    private viewContainerRef = inject(ViewContainerRef);
+
     constructor(
         private wqmpService: WaterQualityManagementPlanService,
         private utilityFunctionsService: UtilityFunctionsService,
         private authenticationService: AuthenticationService,
         private dialogService: DialogService,
         private alertService: AlertService,
+        private confirmService: ConfirmService,
         private groupByPipe: GroupByPipe,
         private sumPipe: SumPipe,
         private router: Router
@@ -172,27 +193,34 @@ export class WqmpDetailComponent implements OnInit, OnChanges {
 
     private loadData(): void {
         this.boundingBox = undefined;
-        this.wqmp$ = this.wqmpService.getWaterQualityManagementPlan(this.waterQualityManagementPlanID).pipe(
-            tap((wqmp) => {
-                if (wqmp?.WaterQualityManagementPlanBoundaryBBox) {
-                    const parts = wqmp.WaterQualityManagementPlanBoundaryBBox.split(",").map(Number);
-                    if (parts.length === 4) {
-                        this.boundingBox = new BoundingBoxDto({
-                            Left: parts[0],
-                            Bottom: parts[1],
-                            Right: parts[2],
-                            Top: parts[3],
-                        });
+        // wqmp$ is initialized once; subsequent loadData() calls just push reload$ to
+        // refetch through the stable observable.
+        if (!this.wqmp$) {
+            this.wqmp$ = this.reload$.pipe(
+                switchMap(() => this.wqmpService.getWaterQualityManagementPlan(this.waterQualityManagementPlanID)),
+                tap((wqmp) => {
+                    if (wqmp?.WaterQualityManagementPlanBoundaryBBox) {
+                        const parts = wqmp.WaterQualityManagementPlanBoundaryBBox.split(",").map(Number);
+                        if (parts.length === 4) {
+                            this.boundingBox = new BoundingBoxDto({
+                                Left: parts[0],
+                                Bottom: parts[1],
+                                Right: parts[2],
+                                Top: parts[3],
+                            });
+                        }
                     }
-                }
-                if (this.map) {
-                    this.addTreatmentBMPsLayer(wqmp);
-                } else {
-                    this.pendingWqmpForMap = wqmp;
-                }
-            }),
-            shareReplay(1)
-        );
+                    if (this.map) {
+                        this.addTreatmentBMPsLayer(wqmp);
+                    } else {
+                        this.pendingWqmpForMap = wqmp;
+                    }
+                }),
+                shareReplay(1)
+            );
+        } else {
+            this.reload$.next();
+        }
 
         this.quickBMPs$ = this.wqmpService.listQuickBMPsWaterQualityManagementPlan(this.waterQualityManagementPlanID).pipe(
             tap((quickBMPs) => {
@@ -210,7 +238,16 @@ export class WqmpDetailComponent implements OnInit, OnChanges {
                 }));
             })
         );
-        this.verifications$ = this.wqmpService.listVerificationsWaterQualityManagementPlan(this.waterQualityManagementPlanID);
+        // NPT-995 round 5: stable observable driven by verificationsReload$. Delete
+        // mutations push the dedicated reload signal rather than inline-reassigning
+        // verifications$ — same AsyncPipe re-subscription fix as wqmp$ (NPT-1051 PR #488),
+        // scoped narrowly so unrelated wqmp$ refreshes don't drag the grid along.
+        if (!this.verifications$) {
+            this.verifications$ = this.verificationsReload$.pipe(
+                switchMap(() => this.wqmpService.listVerificationsWaterQualityManagementPlan(this.waterQualityManagementPlanID)),
+                shareReplay(1)
+            );
+        }
 
         this.modeledPerformance$ = this.wqmpService.getModeledPerformanceWaterQualityManagementPlan(this.waterQualityManagementPlanID);
 
@@ -350,6 +387,11 @@ export class WqmpDetailComponent implements OnInit, OnChanges {
                         ActionIcon: "fas fa-edit",
                         ActionHandler: () => this.router.navigate(["/water-quality-management-plans", wqmpID, "verifications", verifyID]),
                     });
+                    actions.push({
+                        ActionName: "Delete",
+                        ActionIcon: "fa fa-trash text-danger",
+                        ActionHandler: () => this.confirmDeleteVerification(verifyID, params.data.VerificationDate),
+                    });
                 }
                 return actions;
             }),
@@ -380,6 +422,45 @@ export class WqmpDetailComponent implements OnInit, OnChanges {
             this.addTreatmentBMPsLayer(this.pendingWqmpForMap);
             this.pendingWqmpForMap = null;
         }
+    }
+
+    async confirmPromote(wqmp: WaterQualityManagementPlanDto): Promise<void> {
+        const confirmed = await this.confirmService.confirm({
+            title: "Promote to Active?",
+            message: "This makes the WQMP the binding legal record and includes it in modeling and trash result calculations. This is reversible only by changing the Status back to Draft via the Edit form.",
+            buttonTextYes: "Promote to Active",
+            buttonTextNo: "Cancel",
+            buttonClassYes: "btn-primary",
+        }, this.viewContainerRef);
+        if (!confirmed) return;
+
+        this.isPromoting.set(true);
+        this.alertService.clearAlerts();
+        this.wqmpService.promoteWaterQualityManagementPlan(wqmp.WaterQualityManagementPlanID).pipe(
+            finalize(() => this.isPromoting.set(false)),
+        ).subscribe({
+            next: () => {
+                this.alertService.pushAlert(new Alert("WQMP promoted to Active.", AlertContext.Success));
+                this.loadData();
+            },
+            error: (err: HttpErrorResponse) => {
+                // Backend returns 400 with `{ MissingFields: string[] }` when promote fails the
+                // legal-record completeness check, or a string for the wrong-status case. Render
+                // the missing-field list as an actionable danger toast.
+                if (err.status === 400 && err.error?.MissingFields?.length) {
+                    const fields = err.error.MissingFields.map((f: string) => escapeHtml(f)).join(", ");
+                    this.alertService.pushAlert(new Alert(
+                        `Cannot promote: the following required field(s) are missing — ${fields}. Edit the WQMP to fill them in, then try again.`,
+                        AlertContext.Danger,
+                    ));
+                    return;
+                }
+                const msg = (err.status === 400 && typeof err.error === "string")
+                    ? err.error
+                    : "Failed to promote WQMP. Please try again.";
+                this.alertService.pushAlert(new Alert(escapeHtml(msg), AlertContext.Danger));
+            },
+        });
     }
 
     openEditModal(wqmp: WaterQualityManagementPlanDto): void {
@@ -448,5 +529,35 @@ export class WqmpDetailComponent implements OnInit, OnChanges {
         } else {
             this.router.navigate(["/water-quality-management-plans", this.waterQualityManagementPlanID, "verifications", verifyID, "view"]);
         }
+    }
+
+    // NPT-995 rework: Delete moved off the wizard sign-off step into a row action on
+    // the verifications grid. Mirrors the project-list deleteModal pattern. Gated by
+    // the same currentPersonCanEdit + IsDraft conditions as the action column itself,
+    // so finalized verifications can't be removed accidentally.
+    confirmDeleteVerification(verifyID: number, verificationDate: string | null | undefined): void {
+        const dateText = verificationDate ? new Date(verificationDate).toLocaleDateString() : "this draft";
+        this.confirmService
+            .confirm({
+                title: "Delete Verification",
+                message: `<p>You are about to delete the verification from <strong>${dateText}</strong>.</p><p>Are you sure you wish to proceed?</p>`,
+                buttonClassYes: "btn btn-danger",
+                buttonTextYes: "Delete",
+                buttonTextNo: "Cancel",
+            })
+            .then((confirmed) => {
+                if (!confirmed) return;
+                this.wqmpService.deleteVerificationWaterQualityManagementPlan(this.waterQualityManagementPlanID, verifyID).subscribe({
+                    next: () => {
+                        this.alertService.pushAlert(new Alert("Verification deleted.", AlertContext.Success));
+                        // NPT-995 round 5: scoped reload — refresh only the verifications grid,
+                        // not wqmp$ + map layers (delete doesn't affect WQMP fields/geometry).
+                        this.verificationsReload$.next();
+                    },
+                    error: () => {
+                        this.alertService.pushAlert(new Alert("An error occurred while deleting the verification.", AlertContext.Danger));
+                    },
+                });
+            });
     }
 }

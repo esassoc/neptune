@@ -1,0 +1,31 @@
+<div class="modal-header">
+    <h3 class="section-title">
+        <span>Move Assessments to another OVTA Area</span>
+    </h3>
+</div>
+
+<div class="modal-body grid-12">
+    <app-alert-display></app-alert-display>
+
+    <p class="g-col-12">
+        This will move <strong>{{ ref.data.SourceAssessmentCount }} assessment{{ ref.data.SourceAssessmentCount === 1 ? "" : "s" }}</strong>
+        from <strong>{{ ref.data.SourceOnlandVisualTrashAssessmentAreaName }}</strong> to the selected target area. The target area's baseline score, progress score,
+        and transect line may change.
+    </p>
+
+    <form class="form grid-12" [formGroup]="formGroup">
+        <form-field
+            class="g-col-12"
+            [formControl]="formGroup.controls.TargetOnlandVisualTrashAssessmentAreaID"
+            fieldLabel="Target OVTA Area"
+            placeholder="Select a target Area..."
+            [required]="true"
+            [type]="FormFieldType.Select"
+            [formInputOptions]="targetAreaOptions"></form-field>
+    </form>
+</div>
+
+<div class="modal-footer">
+    <button class="btn btn-primary" (click)="save()" [disabled]="formGroup.invalid || isLoadingOptions">Move Assessments</button>
+    <button class="btn btn-primary-outline" (click)="cancel()">Cancel</button>
+</div>

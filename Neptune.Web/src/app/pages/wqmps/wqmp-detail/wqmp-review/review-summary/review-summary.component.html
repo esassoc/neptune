@@ -1,0 +1,63 @@
+<div class="review-summary">
+    @for (group of groups; track group.title) {
+        <section class="review-summary__group" [class.review-summary__group--collapsible]="group.collapsible">
+            @if (group.collapsible) {
+                <!-- NPT-1054: native <details> collapsible for groups that can run long (Source
+                     Control BMP categories). Defaults to closed; user expands per category. -->
+                <details [attr.open]="group.initiallyOpen ? '' : null">
+                    <summary class="review-summary__group-summary">
+                        <h3 class="review-summary__group-title">
+                            {{ group.title }}
+                            <span class="review-summary__count">({{ group.rows.length }})</span>
+                        </h3>
+                    </summary>
+                    <ng-container *ngTemplateOutlet="groupTable; context: { rows: group.rows }"></ng-container>
+                </details>
+            } @else {
+                <h3 class="review-summary__group-title">{{ group.title }}</h3>
+                <ng-container *ngTemplateOutlet="groupTable; context: { rows: group.rows }"></ng-container>
+            }
+        </section>
+    }
+    @if (groups.length === 0) {
+        <p class="review-summary__empty">No extracted data to summarize.</p>
+    }
+
+    <ng-template #groupTable let-rows="rows">
+        <table class="review-summary__table">
+            <thead>
+                <tr>
+                    <th class="review-summary__col-label">Field</th>
+                    <th class="review-summary__col-value">Workflow Value</th>
+                    <th class="review-summary__col-value">WQMP Record</th>
+                    <th class="review-summary__col-status">Status</th>
+                </tr>
+            </thead>
+            <tbody>
+                @for (row of rows; track row.label) {
+                    <tr>
+                        <td class="review-summary__col-label">{{ row.label }}</td>
+                        <td class="review-summary__col-value"
+                            [class.review-summary__col-value--empty]="row.displayValue === '(not set)'"
+                            [class.review-summary__col-value--rejected]="isWorkflowRejected(row)">
+                            {{ row.displayValue }}
+                            @if (row.origin === "ai" && row.state !== "rejected" && row.displayValue !== "(not set)") {
+                                <span class="review-summary__ai-badge" title="AI-extracted from the uploaded PDF"><i class="fa fa-magic"></i> AI</span>
+                            }
+                        </td>
+                        <td class="review-summary__col-value" [class.review-summary__col-value--empty]="!row.wqmpRecordValue">
+                            {{ row.wqmpRecordValue ?? "—" }}
+                        </td>
+                        <td class="review-summary__col-status">
+                            @switch (getSaveStatus(row)) {
+                                @case ("saved") { <span class="status-pill status-pill--saved">Saved</span> }
+                                @case ("pending") { <span class="status-pill status-pill--pending">Pending save</span> }
+                                @case ("empty") { <span class="status-pill status-pill--empty">Empty</span> }
+                            }
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </ng-template>
+</div>

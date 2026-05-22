@@ -31,31 +31,32 @@
                 </div>
                 <span class="progress-bar__label">{{ confirmedCount }} of {{ totalFieldCount }} fields confirmed</span>
             </div>
-            @if (pageData.hasResult) {
-                <div class="review-sidebar__actions">
-                    @if (!isApproved()) {
-                        <button class="btn btn-primary btn-block" (click)="saveDraft()" [disabled]="isSavingDraft || isExtracting() || !hasUnsavedChanges()">
-                            @if (isSavingDraft) { <i class="fa fa-spinner fa-spin"></i> } Save Draft
-                        </button>
-                        <button class="btn btn-primary btn-block" (click)="approveAndApply()" [disabled]="isApplying || isExtracting() || confirmedCount === 0">
-                            @if (isApplying) { <i class="fa fa-spinner fa-spin"></i> } Approve &amp; Apply
-                        </button>
-                        <button class="btn btn-secondary-outline btn-block" (click)="discardDraft()" [disabled]="isSavingDraft || isExtracting() || (!currentResult()?.DraftUpdatedDate && !hasUnsavedChanges())">
-                            Discard Draft
-                        </button>
-                        <button class="btn btn-secondary-outline btn-block" (click)="confirmReExtract()" [disabled]="isExtracting()" title="Replace the existing extraction and clear draft edits">
-                            @if (isExtracting()) { <i class="fa fa-spinner fa-spin"></i> Extracting... } @else { <i class="fa fa-magic"></i> Re-run extraction }
-                        </button>
+            <!-- NPT-1051: Approve All removed. Each step's Save button now writes that
+                 section's accepted/edited fields straight through to the live WQMP — overwrite
+                 semantics matching the modal CRUD editors. The Save buttons live alongside
+                 their step's content.
+                 The Extract / Re-run button always anchors here (left sidebar) so it doesn't
+                 jump between right-panel CTA and sidebar between states. The label and confirm
+                 dialog text change with state but the click target stays put. -->
+            <div class="review-sidebar__rerun">
+                <button class="btn btn-secondary-outline btn-block" (click)="confirmExtract()" [disabled]="isExtracting()"
+                        [title]="pageData.hasResult ? 'Replace the AI-extracted suggestions with a fresh run. Saved sections on the WQMP are preserved.' : 'Run AI extraction against the uploaded PDF.'">
+                    @if (isExtracting()) {
+                        <i class="fa fa-spinner fa-spin"></i> Extracting...
+                    } @else if (pageData.hasResult) {
+                        <i class="fa fa-magic"></i> Re-run Extraction
+                    } @else {
+                        <i class="fa fa-magic"></i> Extract with AI
                     }
-                    <button class="btn btn-secondary-outline btn-block" (click)="cancel()" [disabled]="isExtracting()">
-                        @if (isApproved()) { Back } @else { Cancel }
-                    </button>
-                </div>
-            }
+                </button>
+            </div>
         </aside>
 
-        <!-- PDF Panel -->
-        <div class="pdf-panel">
+        <!-- PDF Panel — hidden on Step 4 (Final review) since the summary view doesn't
+             reference evidence on the PDF. Use [hidden] rather than @if so the iframe
+             stays mounted across step navigation; otherwise pdfLoaded / pendingNavigation /
+             pdfTextCache get out of sync with the new iframe instance on return. -->
+        <div class="pdf-panel" [hidden]="currentStep() === 5">
             @if (isNavigating()) {
                 <div class="pdf-panel__loading">
                     <i class="fa fa-spinner fa-spin"></i> Finding in document...
@@ -82,24 +83,48 @@
         </div>
 
         <!-- Review Panel -->
-        <div class="review-panel">
+        <div class="review-panel"
+             [class.review-panel--full-width]="currentStep() === 5"
+             [class.review-panel--wide-table]="currentStep() === 4">
             <div class="review-panel__header">
-                <h2>{{ steps[currentStep() - 1].title }}</h2>
-                @if (pageData.hasResult) {
-                    <p class="review-panel__desc">Review and confirm the AI-extracted values below.</p>
+                <div class="review-panel__header-text">
+                    <h2>{{ steps[currentStep() - 1].title }}</h2>
+                    @if (pageData.hasResult) {
+                        <p class="review-panel__desc">Review and confirm the AI-extracted values below.</p>
+                    }
+                </div>
+                <!-- NPT-1051: per-step Save button anchored to the section header so it's
+                     always visible without scrolling past the field list. Step 4 (Review)
+                     is a read-only summary — no Save action there. -->
+                @if (pageData.hasResult && currentStep() === 1) {
+                    <button class="btn btn-primary review-panel__header-action" (click)="saveLocation()" [disabled]="savingSection() !== null || isExtracting()">
+                        @if (savingSection() === "location") { <i class="fa fa-spinner fa-spin"></i> Saving... } @else { Save }
+                    </button>
+                } @else if (pageData.hasResult && currentStep() === 2) {
+                    <button class="btn btn-primary review-panel__header-action" (click)="saveBasics()" [disabled]="savingSection() !== null || isExtracting()">
+                        @if (savingSection() === "basics") { <i class="fa fa-spinner fa-spin"></i> Saving... } @else { Save }
+                    </button>
+                } @else if (pageData.hasResult && currentStep() === 3) {
+                    <button class="btn btn-primary review-panel__header-action" (click)="saveBmps()" [disabled]="savingSection() !== null || isExtracting()">
+                        @if (savingSection() === "bmps") { <i class="fa fa-spinner fa-spin"></i> Saving... } @else { Save }
+                    </button>
+                } @else if (pageData.hasResult && currentStep() === 4) {
+                    <button class="btn btn-primary review-panel__header-action" (click)="saveSourceControlBmps()" [disabled]="savingSection() !== null || isExtracting()">
+                        @if (savingSection() === "source-control") { <i class="fa fa-spinner fa-spin"></i> Saving... } @else { Save }
+                    </button>
                 }
             </div>
 
             <app-alert-display></app-alert-display>
 
-            @if (pageData.hasResult && !isApproved()) {
+            @if (pageData.hasResult) {
                 <div class="review-panel__tips">
                     <i class="fa fa-lightbulb-o"></i>
                     <div>
                         <strong>Tips:</strong>
                         Click a field's value or evidence to jump to the source on the PDF.
-                        Use <strong>&#10003;&nbsp;Accept</strong>, <strong>&#9998;&nbsp;Edit</strong>, or <strong>&#10007;&nbsp;Reject</strong> (clears the value) on each field.
-                        <strong>Save Draft</strong> preserves progress; <strong>Approve&nbsp;&amp;&nbsp;Apply</strong> commits values to the live WQMP.
+                        Use <strong>&#10003;&nbsp;Accept</strong>, <strong>&#9998;&nbsp;Edit</strong>, or <strong>&#10007;&nbsp;Reject</strong> (preserves the existing live value) on each field.
+                        <strong>Save</strong> in each step's header writes the section's accepted values to the WQMP — untouched fields auto-accept their AI value when you save.
                     </div>
                 </div>
             }
@@ -108,30 +133,14 @@
                 <div class="review-panel__extract-cta">
                     <i class="fa fa-magic review-panel__extract-cta-icon"></i>
                     <h3>Not yet extracted</h3>
-                    <p>Review the uploaded PDF on the right, then click below to run AI extraction against the document.</p>
-                    <button class="btn btn-primary" (click)="runExtraction()" [disabled]="isExtracting()">
-                        @if (isExtracting()) { <i class="fa fa-spinner fa-spin"></i> Extracting... } @else { <i class="fa fa-magic"></i> Extract with AI }
-                    </button>
+                    <p>Review the uploaded PDF, then click <strong>Extract with AI</strong> in the sidebar to run AI extraction against the document.</p>
                 </div>
             }
 
-            @if (pageData.hasResult && isApproved()) {
-                <div class="review-panel__banner review-panel__banner--approved">
-                    <i class="fa fa-check-circle"></i>
-                    Approved by {{ currentResult()?.ApprovedByFullName }} on {{ currentResult()?.ApprovedDate | date: "medium" }}. This review is read-only.
-                </div>
-            } @else if (currentResult()?.DraftUpdatedDate) {
-                <div class="review-panel__banner review-panel__banner--draft">
-                    <i class="fa fa-save"></i>
-                    Draft saved by {{ currentResult()?.DraftUpdatedByFullName }} on {{ currentResult()?.DraftUpdatedDate | date: "medium" }}.
-                    @if (hasUnsavedChanges()) {
-                        <span class="review-panel__banner-note">You have unsaved changes.</span>
-                    }
-                </div>
-            } @else if (hasUnsavedChanges()) {
+            @if (hasUnsavedChanges()) {
                 <div class="review-panel__banner review-panel__banner--dirty">
                     <i class="fa fa-exclamation-circle"></i>
-                    You have unsaved changes.
+                    You have unsaved changes. Click the Save button in this step's header to write them to the WQMP.
                 </div>
             }
 
@@ -149,19 +158,32 @@
                             [selectOptions]="field.selectOptions ?? []"
                             [mask]="field.mask ?? null"
                             [origin]="getFieldOrigin(field)"
-                            [readOnly]="isApproved()"
+                            [readOnly]="field.readOnly ?? false"
                             [initialState]="field.state"
                             [initialValue]="field.acceptedValue ?? field.value"
+                            [selected]="selectedFieldKey() === field.key"
                             (valueAccepted)="onFieldAccepted(field, $event)"
                             (valueEdited)="onFieldEdited(field, $event)"
                             (valueRejected)="onFieldRejected(field)"
-                            (navigateToSource)="navigateToSource($event)">
+                            (navigateToSource)="onSourceClick(field.key, $event)">
                         </field-card>
                     }
-                    @if (currentStep() === 1 && !isApproved()) {
-                        <button class="btn btn-primary-outline btn-sm review-panel__add-parcel" (click)="addParcel()">
+                    @if (currentStep() === 1) {
+                        <button class="btn btn-primary-outline btn-sm review-panel__add-parcel" (click)="addParcel()" [disabled]="isExtracting()">
                             <i class="fa fa-plus"></i> Add Parcel
                         </button>
+                    }
+
+                    @if (currentStep() === 5) {
+                        <review-summary
+                            [locationFields]="summaryLocationFields"
+                            [basicsFields]="summaryBasicsFields"
+                            [parcelFields]="summaryParcelFields"
+                            [bmpGroups]="summaryBmpGroups"
+                            [sourceControlRows]="summarySourceControlRows"
+                            [lookupOptionsByKey]="summaryLookupOptionsByKey"
+                            [getWqmpFieldValue]="getWqmpFieldValueBound">
+                        </review-summary>
                     }
 
                     @if (currentStep() === 3) {
@@ -170,14 +192,14 @@
                                 [bmpIndex]="group.bmpIndex"
                                 [displayName]="group.displayName"
                                 [fields]="group.fields"
-                                [readOnly]="isApproved()"
                                 [initialIsRejected]="group.isRejected"
+                                [selectedFieldKey]="selectedFieldKey()"
                                 (bmpRejected)="onBmpRejected($event)"
                                 (bmpRestored)="onBmpRestored($event)"
                                 (fieldAccepted)="onBmpFieldAccepted($event)"
                                 (fieldEdited)="onBmpFieldEdited($event)"
                                 (fieldRejected)="onBmpFieldRejected($event)"
-                                (navigateToSource)="navigateToSource($event)">
+                                (navigateToSource)="onSourceClick($event.key, $event.nav)">
                             </bmp-review-card>
                         }
                         @if (bmpGroupsForCurrentStep.length === 0) {
@@ -186,8 +208,92 @@
                             </div>
                         }
                     }
+
+                    @if (currentStep() === 4) {
+                        <p class="review-panel__sc-intro">
+                            All Source Control BMP attributes are listed below, grouped by category. AI-extracted suggestions are pre-filled and marked with <i class="fa fa-magic"></i>. Click the icon to jump to the supporting evidence in the PDF.
+                        </p>
+                        @for (group of sourceControlGroups; track group.category) {
+                            <div class="sc-category-panel">
+                                <div class="sc-category-panel__heading" (click)="toggleSourceControlCategory(group)">
+                                    <h5>
+                                        {{ group.category }}
+                                        <i class="fa" [class.fa-chevron-down]="!group.collapsed" [class.fa-chevron-right]="group.collapsed"></i>
+                                    </h5>
+                                </div>
+                                @if (!group.collapsed) {
+                                    <div class="sc-category-panel__body">
+                                        <table class="source-control-review-table">
+                                            <thead>
+                                                <tr>
+                                                    <th class="col-attribute">Source Control Attribute</th>
+                                                    <th class="col-present">Present?</th>
+                                                    <th class="col-notes">Note</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody>
+                                                @for (row of group.rows; track row.get("SourceControlBMPAttributeID")!.value) {
+                                                    <tr [formGroup]="row">
+                                                        <td class="col-attribute">
+                                                            <label>{{ row.get("SourceControlBMPAttributeName")!.value }}</label>
+                                                            @switch (getSourceControlRowOrigin(row)) {
+                                                                @case ("edited") { <span class="sc-origin-pill sc-origin-pill--edited">Edited</span> }
+                                                                @case ("record") { <span class="sc-origin-pill sc-origin-pill--record">On record</span> }
+                                                                @case ("ai") { <span class="sc-origin-pill sc-origin-pill--ai">AI-extracted</span> }
+                                                                @case ("blank") { <span class="sc-origin-pill sc-origin-pill--blank">Blank</span> }
+                                                            }
+                                                        </td>
+                                                        <td class="col-present">
+                                                            <div class="sc-cell">
+                                                                <form-field
+                                                                    size="sm"
+                                                                    [formControl]="$any(row.controls['IsPresent'])"
+                                                                    [type]="FormFieldType.Radio"
+                                                                    [name]="'isPresent_' + row.get('SourceControlBMPAttributeID')!.value"
+                                                                    [formInputOptions]="isPresentOptions"></form-field>
+                                                                @if (sourceControlIsPresentEvidence.get(row.get("SourceControlBMPAttributeID")!.value); as ev) {
+                                                                    <button type="button" class="sc-ai-badge"
+                                                                        [title]="ev.evidence ?? 'AI-extracted from the uploaded PDF'"
+                                                                        (click)="navigateToSourceControlEvidence(row.get('SourceControlBMPAttributeID')!.value, 'isPresent')">
+                                                                        <i class="fa fa-magic"></i>
+                                                                    </button>
+                                                                }
+                                                            </div>
+                                                        </td>
+                                                        <td class="col-notes">
+                                                            <div class="sc-cell">
+                                                                <form-field
+                                                                    size="sm"
+                                                                    [formControl]="$any(row.controls['SourceControlBMPNote'])"
+                                                                    [type]="FormFieldType.Text"
+                                                                    placeholder=""></form-field>
+                                                                @if (sourceControlNoteEvidence.get(row.get("SourceControlBMPAttributeID")!.value); as ev) {
+                                                                    <button type="button" class="sc-ai-badge"
+                                                                        [title]="ev.evidence ?? 'AI-extracted from the uploaded PDF'"
+                                                                        (click)="navigateToSourceControlEvidence(row.get('SourceControlBMPAttributeID')!.value, 'note')">
+                                                                        <i class="fa fa-magic"></i>
+                                                                    </button>
+                                                                }
+                                                            </div>
+                                                        </td>
+                                                    </tr>
+                                                }
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                }
+                            </div>
+                        }
+                        @if (sourceControlGroups.length === 0) {
+                            <div class="review-panel__empty-state">
+                                No Source Control BMP attributes are configured. You can proceed to the next step.
+                            </div>
+                        }
+                    }
+
                 </div>
             }
         </div>
     </div>
+
 }

@@ -1,0 +1,45 @@
+@use "/src/scss/abstracts" as *;
+
+// NPT-984: read-only Field Visit detail page leans on the global `.card` / `.card-header` /
+// `.card-body` styles from the shared abstracts (same as BMP / WQMP detail). Only need a
+// handful of overrides for the score chip and the MVC-style observation table that lives
+// inside the assessment cards' bodies.
+
+// Score chip sits inside `.card-header` (white-on-teal). Inherit color rather than
+// re-declaring so the "Score:" label + value both read white over the teal background.
+.readonly-score {
+    font-size: $type-size-300;
+    font-weight: 600;
+
+    strong {
+        font-weight: 700;
+    }
+}
+
+// MVC-style observation summary table — Type | Value | Notes columns. Mirrors
+// AssessmentDetail.cshtml. Compact rows, subtle separators, no Bootstrap chrome.
+.readonly-obs-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: $type-size-200;
+
+    th, td {
+        text-align: left;
+        padding: 0.5rem 0.75rem;
+        border-bottom: 1px solid $gray-100;
+        vertical-align: top;
+    }
+
+    thead th {
+        font-size: $type-size-100;
+        text-transform: uppercase;
+        letter-spacing: 0.04em;
+        color: $gray-600;
+        border-bottom: 1px solid $gray-300;
+        font-weight: 700;
+    }
+
+    tbody tr:last-child td {
+        border-bottom: 0;
+    }
+}

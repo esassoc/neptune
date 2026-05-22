@@ -107,10 +107,19 @@ public class OnlandVisualTrashAssessmentController(
     [HttpPost("{onlandVisualTrashAssessmentID}/parcels")]
     [JurisdictionEditFeature]
     [EntityNotFound(typeof(OnlandVisualTrashAssessment), "onlandVisualTrashAssessmentID")]
-    public async Task<ActionResult> UpdateOnlandVisualTrashAssessmentWithParcels([FromRoute] int onlandVisualTrashAssessmentID, [FromBody] List<int> parcelIDs)
+    public async Task<ActionResult> UpdateOnlandVisualTrashAssessmentWithParcels([FromRoute] int onlandVisualTrashAssessmentID, [FromBody] OnlandVisualTrashAssessmentAddRemoveParcelsDto dto)
     {
-        await OnlandVisualTrashAssessments.UpdateGeometry(DbContext, onlandVisualTrashAssessmentID, parcelIDs);
+        await OnlandVisualTrashAssessments.UpdateDraftGeometryFromSelection(DbContext, onlandVisualTrashAssessmentID, dto);
         return Ok();
+    }
+
+    [HttpGet("{onlandVisualTrashAssessmentID}/select-area-context")]
+    [JurisdictionEditFeature]
+    [EntityNotFound(typeof(OnlandVisualTrashAssessment), "onlandVisualTrashAssessmentID")]
+    public ActionResult<OnlandVisualTrashAssessmentSelectAreaContextDto> GetSelectAreaContext([FromRoute] int onlandVisualTrashAssessmentID)
+    {
+        var dto = OnlandVisualTrashAssessments.GetByID(DbContext, onlandVisualTrashAssessmentID).AsSelectAreaContextDto(DbContext);
+        return Ok(dto);
     }
 
     [HttpGet("{onlandVisualTrashAssessmentID}/review-and-finalize")]
@@ -182,20 +191,6 @@ public class OnlandVisualTrashAssessmentController(
         onlandVisualTrashAssessmentArea.OnlandVisualTrashAssessmentProgressScoreID =
             OnlandVisualTrashAssessments.CalculateProgressScore(onlandVisualTrashAssessments)?
                 .OnlandVisualTrashAssessmentScoreID;
-
-        if (onlandVisualTrashAssessment.IsTransectBackingAssessment)
-        {
-            onlandVisualTrashAssessment.IsTransectBackingAssessment = false;
-            onlandVisualTrashAssessmentArea.TransectLine = null;
-            onlandVisualTrashAssessmentArea.TransectLine4326 = null;
-
-            await DbContext.SaveChangesAsync();
-
-            var transectLine = OnlandVisualTrashAssessmentAreas.RecomputeTransectLine(onlandVisualTrashAssessments);
-            onlandVisualTrashAssessmentArea.TransectLine = transectLine;
-            onlandVisualTrashAssessmentArea.TransectLine4326 = transectLine.ProjectTo4326();
-
-        }
 
         await DbContext.SaveChangesAsync();
         return Ok();

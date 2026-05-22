@@ -18,11 +18,8 @@ export class WaterQualityManagementPlanExtractionResultDto {
     ExtractionResultJson?: string | null;
     ExtractedAt?: string;
     FileResourceGuid?: string | null;
-    DraftOverlayJson?: string | null;
-    DraftUpdatedDate?: string | null;
-    DraftUpdatedByFullName?: string | null;
-    ApprovedDate?: string | null;
-    ApprovedByFullName?: string | null;
+    ErrorMessage?: string | null;
+    ErrorCode?: string | null;
     constructor(obj?: any) {
         Object.assign(this, obj);
     }
@@ -36,11 +33,8 @@ export interface WaterQualityManagementPlanExtractionResultDtoForm {
     ExtractionResultJson?: FormControl<string>;
     ExtractedAt?: FormControl<string>;
     FileResourceGuid?: FormControl<string>;
-    DraftOverlayJson?: FormControl<string>;
-    DraftUpdatedDate?: FormControl<string>;
-    DraftUpdatedByFullName?: FormControl<string>;
-    ApprovedDate?: FormControl<string>;
-    ApprovedByFullName?: FormControl<string>;
+    ErrorMessage?: FormControl<string>;
+    ErrorCode?: FormControl<string>;
 }
 
 export class WaterQualityManagementPlanExtractionResultDtoFormControls { 
@@ -114,7 +108,7 @@ export class WaterQualityManagementPlanExtractionResultDtoFormControls {
             ],
         }
     );
-    public static DraftOverlayJson = (value: FormControlState<string> | string = undefined, formControlOptions?: FormControlOptions | null) => new FormControl<string>(
+    public static ErrorMessage = (value: FormControlState<string> | string = undefined, formControlOptions?: FormControlOptions | null) => new FormControl<string>(
         value,
         formControlOptions ?? 
         {
@@ -124,37 +118,7 @@ export class WaterQualityManagementPlanExtractionResultDtoFormControls {
             ],
         }
     );
-    public static DraftUpdatedDate = (value: FormControlState<string> | string = undefined, formControlOptions?: FormControlOptions | null) => new FormControl<string>(
-        value,
-        formControlOptions ?? 
-        {
-            nonNullable: false,
-            validators: 
-            [
-            ],
-        }
-    );
-    public static DraftUpdatedByFullName = (value: FormControlState<string> | string = undefined, formControlOptions?: FormControlOptions | null) => new FormControl<string>(
-        value,
-        formControlOptions ?? 
-        {
-            nonNullable: false,
-            validators: 
-            [
-            ],
-        }
-    );
-    public static ApprovedDate = (value: FormControlState<string> | string = undefined, formControlOptions?: FormControlOptions | null) => new FormControl<string>(
-        value,
-        formControlOptions ?? 
-        {
-            nonNullable: false,
-            validators: 
-            [
-            ],
-        }
-    );
-    public static ApprovedByFullName = (value: FormControlState<string> | string = undefined, formControlOptions?: FormControlOptions | null) => new FormControl<string>(
+    public static ErrorCode = (value: FormControlState<string> | string = undefined, formControlOptions?: FormControlOptions | null) => new FormControl<string>(
         value,
         formControlOptions ?? 
         {

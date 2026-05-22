@@ -5,11 +5,12 @@
 
 <div class="modal-body">
     <app-alert-display></app-alert-display>
-    <p>Select Treatment BMPs to associate with this WQMP. Only BMPs within the same jurisdiction that are not already assigned to another WQMP are available.</p>
+    <p class="mb-3">Select Treatment BMPs to associate with this WQMP. Only BMPs within the same jurisdiction that are not already assigned to another WQMP are available.</p>
 
     @if (availableBMPs$ | async; as availableBMPs) {
         <div style="display: flex; gap: 0.5rem; align-items: flex-end; margin-bottom: 1rem">
             <div style="flex: 1 1 0; min-width: 0; overflow: hidden">
+                <label class="field-label">Add BMPs</label>
                 <ng-select
                     [items]="availableBMPs"
                     bindValue="TreatmentBMPID"
@@ -48,9 +49,7 @@
                                 <td>{{ bmp.TreatmentBMPName }}</td>
                                 <td>{{ bmp.TreatmentBMPTypeName }}</td>
                                 <td>
-                                    <button class="btn btn-sm btn-danger" (click)="removeBMP(bmp.TreatmentBMPID)" title="Remove">
-                                        <icon icon="Delete"></icon>
-                                    </button>
+                                    <i class="fa fa-trash fa-lg" style="color: #7c7c7c; cursor: pointer" title="Remove" (click)="removeBMP(bmp.TreatmentBMPID)"></i>
                                 </td>
                             </tr>
                         }

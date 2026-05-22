@@ -1,0 +1,52 @@
+<div class="modal">
+    <div class="modal-header">
+        <h3>{{ hasInProgressVisit ? "Continue or Restart Field Visit?" : "Begin a New Field Visit" }}</h3>
+    </div>
+    <div class="modal-body">
+        <app-alert-display></app-alert-display>
+
+        @if (hasInProgressVisit) {
+            <p class="alert alert-warning">
+                A Field Visit is already in progress for this Treatment BMP. You can continue it, or start a new one — the existing visit will be marked Unresolved.
+            </p>
+        }
+
+        <form [formGroup]="formGroup" class="grid-12">
+            @if (hasInProgressVisit) {
+                <form-field
+                    class="g-col-12 action-radio"
+                    size="md"
+                    [formControl]="formGroup.controls.ContinueExistingInProgress"
+                    fieldLabel="Action"
+                    [type]="FormFieldType.Radio"
+                    name="continueExistingInProgress"
+                    [formInputOptions]="continueOptions"></form-field>
+            }
+            <form-field
+                class="g-col-12"
+                size="md"
+                [formControl]="formGroup.controls.VisitDate"
+                fieldLabel="Visit Date"
+                [type]="FormFieldType.Date"
+                [required]="true"></form-field>
+            <form-field
+                class="g-col-12"
+                size="md"
+                [formControl]="formGroup.controls.FieldVisitTypeID"
+                fieldLabel="Field Visit Type"
+                [type]="FormFieldType.Select"
+                [required]="true"
+                [formInputOptions]="fieldVisitTypeOptions"
+                placeholder="Select visit type"></form-field>
+        </form>
+    </div>
+    <div class="modal-footer">
+        <button type="button" class="btn btn-primary" [disabled]="isSaving" (click)="save()">
+            @if (isSaving) {
+                <i class="fa fa-spinner fa-spin"></i>
+            }
+            {{ hasInProgressVisit && formGroup.controls.ContinueExistingInProgress.value === true ? "Continue Visit" : "Begin Visit" }}
+        </button>
+        <button type="button" class="btn btn-secondary" [disabled]="isSaving" (click)="cancel()">Cancel</button>
+    </div>
+</div>

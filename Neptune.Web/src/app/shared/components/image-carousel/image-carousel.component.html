@@ -7,7 +7,7 @@
                     class="carousel-nav left"
                     (click)="setImageIndex(currentImageIndex - 1)"
                     style="position: absolute; left: 0; top: 50%; transform: translateY(-50%); background: none; border: none; font-size: 2rem; cursor: pointer">
-                    &#8592;
+                    <i class="fa fa-arrow-left"></i>
                 </button>
 
                 @if (images[currentImageIndex] && imagePreviewUrls()[images[currentImageIndex].FileResourceGUID]) {
@@ -24,7 +24,7 @@
                     class="carousel-nav right"
                     (click)="setImageIndex(currentImageIndex + 1)"
                     style="position: absolute; right: 0; top: 50%; transform: translateY(-50%); background: none; border: none; font-size: 2rem; cursor: pointer">
-                    &#8594;
+                    <i class="fa fa-arrow-right"></i>
                 </button>
             </div>
             <div class="carousel-indicator" style="margin-top: 0.5rem">Image {{ currentImageIndex + 1 }} of {{ images.length }}</div>

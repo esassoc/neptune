@@ -28,8 +28,7 @@ public partial class vWaterQualityManagementPlanAnnualReport
 
     public int? WaterQualityManagementPlanVerifyStatusID { get; set; }
 
-    [Column(TypeName = "datetime")]
-    public DateTime WaterQualityManagementPlanVerifyVerificationDate { get; set; }
+    public DateOnly WaterQualityManagementPlanVerifyVerificationDate { get; set; }
 
     [StringLength(1000)]
     [Unicode(false)]

@@ -2,7 +2,7 @@ import { AsyncPipe } from "@angular/common";
 import { Component } from "@angular/core";
 import { Router } from "@angular/router";
 import { ColDef } from "ag-grid-community";
-import { map, Observable, shareReplay, switchMap, tap } from "rxjs";
+import { BehaviorSubject, map, Observable, shareReplay, switchMap, tap } from "rxjs";
 import { DialogService } from "@ngneat/dialog";
 import { AuthenticationService } from "src/app/services/authentication.service";
 import { UtilityFunctionsService } from "src/app/services/utility-functions.service";
@@ -47,7 +47,12 @@ export class WqmpsComponent {
     public wqmpJurisdictionIDs: number[];
     public siteUrl = environment.ocStormwaterToolsBaseUrl;
     public currentPersonCanEdit$: Observable<boolean>;
+    // NPT-984: Create-from-PDF (the AI workflow entry point) is Manager-level — the backend
+    // upload endpoint is gated on [JurisdictionManageFeature]. Editor-level users see the
+    // rest of the Actions menu (Add WQMP, Bulk Uploads via legacy MVC) but not Create from PDF.
+    public currentPersonCanManage$: Observable<boolean>;
     private wqmps: WaterQualityManagementPlanGridDto[] = [];
+    private reload$ = new BehaviorSubject<void>(undefined);
     private static NO_BOUNDARY_ALERT = "WqmpNoBoundary";
 
     constructor(
@@ -89,8 +94,11 @@ export class WqmpsComponent {
         this.currentPersonCanEdit$ = currentUser$.pipe(
             map(() => this.authenticationService.doesCurrentUserHaveJurisdictionEditPermission())
         );
+        this.currentPersonCanManage$ = currentUser$.pipe(
+            map(() => this.authenticationService.doesCurrentUserHaveJurisdictionManagePermission())
+        );
 
-        this.wqmps$ = this.loadWqmps$();
+        this.wqmps$ = this.reload$.pipe(switchMap(() => this.loadWqmps$()));
         this.boundingBox$ = this.stormwaterJurisdictionService.getBoundingBoxStormwaterJurisdiction();
     }
 
@@ -235,24 +243,17 @@ export class WqmpsComponent {
                 this.alertService.pushAlert(new Alert("Water Quality Management Plan created successfully.", AlertContext.Success));
                 // Re-use loadWqmps$ so the map's wqmpJurisdictionIDs is recomputed after add —
                 // otherwise adding a WQMP in a new jurisdiction wouldn't show up on the filtered map.
-                this.wqmps$ = this.loadWqmps$();
+                this.reload$.next();
             }
         });
     }
 
-    public onPdfSelected(event: Event): void {
-        const input = event.target as HTMLInputElement;
-        if (!input.files?.length) return;
-        const file = input.files[0];
-        input.value = "";
-
-        if (!file.name.toLowerCase().endsWith(".pdf")) {
-            this.alertService.pushAlert(new Alert("Only PDF files are accepted.", AlertContext.Danger));
-            return;
-        }
-
+    // NPT-1051 rework: the modal now owns file selection so the user sees the upload
+    // requirements before committing to a file. Previously a hidden <input type="file">
+    // fired on Create-from-PDF click, which meant the OS file picker opened before the
+    // user saw any constraints — out-of-order UX.
+    public openCreateFromPdfModal(): void {
         const dialogRef = this.dialogService.open(WqmpUploadModalComponent, {
-            data: { file },
             width: "600px",
         });
         dialogRef.afterClosed$.subscribe((result) => {

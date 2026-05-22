@@ -31,6 +31,7 @@ using Neptune.WebMvc.Views.Help;
 using System.Net.Mail;
 using Neptune.Common;
 using Neptune.Common.Email;
+using Neptune.Common.Recaptcha;
 using Neptune.WebMvc.Common.Mvc;
 
 namespace Neptune.WebMvc.Controllers

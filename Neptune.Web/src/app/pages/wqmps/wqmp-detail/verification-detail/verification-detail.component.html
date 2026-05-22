@@ -1,17 +1,18 @@
-@if (verification$ | async; as verification) {
-    <page-header pageTitle="O&M Verification" [templateAbove]="templateAbove" [templateRight]="templateRight">
+@if (pageData$ | async; as data) {
+    <page-header [pageTitle]="data.wqmp.WaterQualityManagementPlanName" [templateAbove]="templateAbove" [templateRight]="templateRight">
         <ng-template #templateAbove>
             <div class="back">
-                <a [routerLink]="['/water-quality-management-plans', waterQualityManagementPlanID]" class="back__link">Back to WQMP</a>
+                <a [routerLink]="['/water-quality-management-plans', waterQualityManagementPlanID]" class="back__link"><i class="fa fa-arrow-left"></i> Back to WQMP</a>
             </div>
         </ng-template>
         <ng-template #templateRight>
-            @if (currentPersonCanEdit && verification.IsDraft) {
-                <a class="btn btn-primary" [routerLink]="['/water-quality-management-plans', waterQualityManagementPlanID, 'verifications', verification.WaterQualityManagementPlanVerifyID]">
+            @if (currentPersonCanEdit && data.verification.IsDraft) {
+                <a class="btn btn-primary" [routerLink]="['/water-quality-management-plans', waterQualityManagementPlanID, 'verifications', data.verification.WaterQualityManagementPlanVerifyID]">
                     Edit
                 </a>
             }
         </ng-template>
+        <em class="verification-status">O&amp;M Verification — {{ data.verification.IsDraft ? "Draft" : "Finalized" }}</em>
     </page-header>
 
     <app-alert-display></app-alert-display>
@@ -20,40 +21,39 @@
         <div class="card g-col-12">
             <div class="card-header">
                 <span class="card-title">Verification Basics</span>
-                <span class="card-tag">{{ verification.IsDraft ? "Draft" : "Finalized" }}</span>
             </div>
             <div class="card-body">
                 <dl class="grid-12">
                     <dt class="g-col-4">Verification Date</dt>
-                    <dd class="g-col-8">{{ verification.VerificationDate | date: "MM/dd/yyyy" }}</dd>
+                    <dd class="g-col-8">{{ data.verification.VerificationDate | date: "MM/dd/yyyy" }}</dd>
 
                     <dt class="g-col-4">Verification Type</dt>
-                    <dd class="g-col-8">{{ verification.WaterQualityManagementPlanVerifyTypeDisplayName }}</dd>
+                    <dd class="g-col-8">{{ data.verification.WaterQualityManagementPlanVerifyTypeDisplayName }}</dd>
 
                     <dt class="g-col-4">Visit Status</dt>
-                    <dd class="g-col-8">{{ verification.WaterQualityManagementPlanVisitStatusDisplayName }}</dd>
+                    <dd class="g-col-8">{{ data.verification.WaterQualityManagementPlanVisitStatusDisplayName }}</dd>
 
                     <dt class="g-col-4">Verification Status</dt>
-                    <dd class="g-col-8">{{ verification.WaterQualityManagementPlanVerifyStatusDisplayName ?? "—" }}</dd>
+                    <dd class="g-col-8">{{ data.verification.WaterQualityManagementPlanVerifyStatusDisplayName ?? "—" }}</dd>
 
                     <dt class="g-col-4">Source Control Condition</dt>
-                    <dd class="g-col-8">{{ verification.SourceControlCondition || "—" }}</dd>
+                    <dd class="g-col-8">{{ data.verification.SourceControlCondition || "—" }}</dd>
 
                     <dt class="g-col-4">Enforcement / Follow-up Actions</dt>
-                    <dd class="g-col-8">{{ verification.EnforcementOrFollowupActions || "—" }}</dd>
+                    <dd class="g-col-8">{{ data.verification.EnforcementOrFollowupActions || "—" }}</dd>
 
                     <dt class="g-col-4">Last Edited</dt>
-                    <dd class="g-col-8">{{ verification.LastEditedDate | date: "MM/dd/yyyy" }} by {{ verification.LastEditedByPersonFullName }}</dd>
+                    <dd class="g-col-8">{{ data.verification.LastEditedDate | date: "MM/dd/yyyy" }} by {{ data.verification.LastEditedByPersonFullName }}</dd>
                 </dl>
             </div>
         </div>
 
         <div class="card g-col-12 mt-3">
             <div class="card-header">
-                <span class="card-title">Structural BMPs ({{ verification.TreatmentBMPs?.length ?? 0 }})</span>
+                <span class="card-title">Structural BMPs ({{ data.verification.TreatmentBMPs?.length ?? 0 }})</span>
             </div>
             <div class="card-body">
-                @if (verification.TreatmentBMPs?.length) {
+                @if (data.verification.TreatmentBMPs?.length) {
                     <table class="table table-condensed">
                         <thead>
                             <tr>
@@ -64,7 +64,7 @@
                             </tr>
                         </thead>
                         <tbody>
-                            @for (bmp of verification.TreatmentBMPs; track bmp.WaterQualityManagementPlanVerifyTreatmentBMPID) {
+                            @for (bmp of data.verification.TreatmentBMPs; track bmp.WaterQualityManagementPlanVerifyTreatmentBMPID) {
                                 <tr>
                                     <td>{{ bmp.TreatmentBMPName }}</td>
                                     <td>{{ bmp.TreatmentBMPType }}</td>
@@ -82,10 +82,10 @@
 
         <div class="card g-col-12 mt-3">
             <div class="card-header">
-                <span class="card-title">Simplified BMPs ({{ verification.QuickBMPs?.length ?? 0 }})</span>
+                <span class="card-title">Simplified BMPs ({{ data.verification.QuickBMPs?.length ?? 0 }})</span>
             </div>
             <div class="card-body">
-                @if (verification.QuickBMPs?.length) {
+                @if (data.verification.QuickBMPs?.length) {
                     <table class="table table-condensed">
                         <thead>
                             <tr>
@@ -96,7 +96,7 @@
                             </tr>
                         </thead>
                         <tbody>
-                            @for (bmp of verification.QuickBMPs; track bmp.WaterQualityManagementPlanVerifyQuickBMPID) {
+                            @for (bmp of data.verification.QuickBMPs; track bmp.WaterQualityManagementPlanVerifyQuickBMPID) {
                                 <tr>
                                     <td>{{ bmp.QuickBMPName }}</td>
                                     <td>{{ bmp.TreatmentBMPType }}</td>
@@ -117,8 +117,8 @@
                 <span class="card-title">Source Control BMPs</span>
             </div>
             <div class="card-body">
-                @if (verification.SourceControlBMPs?.length) {
-                    @for (group of groupSourceControlsByCategory(verification.SourceControlBMPs); track group.category) {
+                @if (data.verification.SourceControlBMPs?.length) {
+                    @for (group of groupSourceControlsByCategory(data.verification.SourceControlBMPs); track group.category) {
                         <div class="source-control-group">
                             <h4>{{ group.category }}</h4>
                             <dl class="grid-12">
@@ -131,6 +131,24 @@
                     }
                 } @else {
                     <p class="system-text">No source control BMPs were inspected on this verification.</p>
+                }
+            </div>
+        </div>
+
+        <!-- NPT-995 Round 5: Supporting Documentation card mirrors the legacy MVC detail panel. -->
+        <div class="card g-col-12 mt-3">
+            <div class="card-header">
+                <span class="card-title">Supporting Documentation</span>
+            </div>
+            <div class="card-body">
+                @if (data.verification.FileResourceGUID) {
+                    <p>
+                        <a [href]="getDownloadUrl(data.verification.FileResourceGUID)" target="_blank" rel="noopener noreferrer">
+                            <i class="fa fa-file"></i> {{ data.verification.FileResourceFileName || "Download" }}
+                        </a>
+                    </p>
+                } @else {
+                    <p class="system-text">No supporting documentation uploaded.</p>
                 }
             </div>
         </div>
