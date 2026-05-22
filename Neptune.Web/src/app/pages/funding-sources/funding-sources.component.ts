@@ -6,7 +6,7 @@ import { AsyncPipe } from "@angular/common";
 import { FundingSourceService } from "src/app/shared/generated/api/funding-source.service";
 import { FundingSourceDto } from "src/app/shared/generated/model/funding-source-dto";
 import { ColDef } from "ag-grid-community";
-import { Observable } from "rxjs";
+import { BehaviorSubject, Observable, switchMap } from "rxjs";
 import { UtilityFunctionsService } from "src/app/services/utility-functions.service";
 import { FundingSourceModalComponent } from "./funding-source-modal/funding-source-modal.component";
 import { Alert } from "src/app/shared/models/alert";
@@ -26,6 +26,7 @@ export class FundingSourcesComponent {
     public fundingSources$: Observable<FundingSourceDto[]>;
     public columnDefs: ColDef[];
     public customRichTextTypeID = NeptunePageTypeEnum.FundingSourcesList;
+    private reload$ = new BehaviorSubject<void>(undefined);
 
     constructor(
         private fundingSourceService: FundingSourceService,
@@ -58,7 +59,7 @@ export class FundingSourcesComponent {
             this.utilityFunctions.createBasicColumnDef("Description", "FundingSourceDescription"),
             this.utilityFunctions.createBooleanColumnDef("Active?", "IsActive"),
         ];
-        this.fundingSources$ = this.fundingSourceService.listFundingSource();
+        this.fundingSources$ = this.reload$.pipe(switchMap(() => this.fundingSourceService.listFundingSource()));
     }
 
     openAddModal() {
@@ -72,7 +73,7 @@ export class FundingSourcesComponent {
             if (result) {
                 this.alertService.clearAlerts();
                 this.alertService.pushAlert(new Alert("Funding source added successfully.", AlertContext.Success));
-                this.fundingSources$ = this.fundingSourceService.listFundingSource();
+                this.reload$.next();
             }
         });
     }
@@ -88,7 +89,7 @@ export class FundingSourcesComponent {
             if (result) {
                 this.alertService.clearAlerts();
                 this.alertService.pushAlert(new Alert("Funding source updated successfully.", AlertContext.Success));
-                this.fundingSources$ = this.fundingSourceService.listFundingSource();
+                this.reload$.next();
             }
         });
     }
@@ -107,7 +108,7 @@ export class FundingSourcesComponent {
                     this.fundingSourceService.deleteFundingSource(fundingSource.FundingSourceID).subscribe(() => {
                         this.alertService.clearAlerts();
                         this.alertService.pushAlert(new Alert("Funding source deleted successfully.", AlertContext.Success));
-                        this.fundingSources$ = this.fundingSourceService.listFundingSource();
+                        this.reload$.next();
                     });
                 }
             });

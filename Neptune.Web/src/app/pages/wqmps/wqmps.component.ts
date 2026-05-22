@@ -2,7 +2,7 @@ import { AsyncPipe } from "@angular/common";
 import { Component } from "@angular/core";
 import { Router } from "@angular/router";
 import { ColDef } from "ag-grid-community";
-import { map, Observable, shareReplay, switchMap, tap } from "rxjs";
+import { BehaviorSubject, map, Observable, shareReplay, switchMap, tap } from "rxjs";
 import { DialogService } from "@ngneat/dialog";
 import { AuthenticationService } from "src/app/services/authentication.service";
 import { UtilityFunctionsService } from "src/app/services/utility-functions.service";
@@ -52,6 +52,7 @@ export class WqmpsComponent {
     // rest of the Actions menu (Add WQMP, Bulk Uploads via legacy MVC) but not Create from PDF.
     public currentPersonCanManage$: Observable<boolean>;
     private wqmps: WaterQualityManagementPlanGridDto[] = [];
+    private reload$ = new BehaviorSubject<void>(undefined);
     private static NO_BOUNDARY_ALERT = "WqmpNoBoundary";
 
     constructor(
@@ -97,7 +98,7 @@ export class WqmpsComponent {
             map(() => this.authenticationService.doesCurrentUserHaveJurisdictionManagePermission())
         );
 
-        this.wqmps$ = this.loadWqmps$();
+        this.wqmps$ = this.reload$.pipe(switchMap(() => this.loadWqmps$()));
         this.boundingBox$ = this.stormwaterJurisdictionService.getBoundingBoxStormwaterJurisdiction();
     }
 
@@ -242,7 +243,7 @@ export class WqmpsComponent {
                 this.alertService.pushAlert(new Alert("Water Quality Management Plan created successfully.", AlertContext.Success));
                 // Re-use loadWqmps$ so the map's wqmpJurisdictionIDs is recomputed after add —
                 // otherwise adding a WQMP in a new jurisdiction wouldn't show up on the filtered map.
-                this.wqmps$ = this.loadWqmps$();
+                this.reload$.next();
             }
         });
     }

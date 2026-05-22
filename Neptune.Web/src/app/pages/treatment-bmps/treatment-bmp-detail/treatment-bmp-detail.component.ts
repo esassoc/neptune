@@ -158,6 +158,7 @@ export class TreatmentBmpDetailComponent implements OnInit, OnChanges {
     refreshTreatmentBMPDocumentsTrigger$: BehaviorSubject<void> = new BehaviorSubject<void>(undefined);
     hruCharacteristics$: Observable<HRUCharacteristicDto[]>;
     fieldVisits$: Observable<FieldVisitDto[]>;
+    private fieldVisitsReload$ = new BehaviorSubject<void>(undefined);
     benchmarkAndThresholds$: Observable<TreatmentBMPBenchmarkAndThresholdDto[]>;
     fieldVisitColumnDefs: Array<ColDef>;
 
@@ -267,7 +268,9 @@ export class TreatmentBmpDetailComponent implements OnInit, OnChanges {
             })
         );
         // Wire up field visits grid as observable
-        this.fieldVisits$ = this.treatmentBMPService.fieldVisitGridJsonDataTreatmentBMP(this.treatmentBMPID);
+        this.fieldVisits$ = this.fieldVisitsReload$.pipe(
+            switchMap(() => this.treatmentBMPService.fieldVisitGridJsonDataTreatmentBMP(this.treatmentBMPID))
+        );
         this.benchmarkAndThresholds$ = this.benchmarkAndThresholdService.listTreatmentBMPBenchmarkAndThreshold(this.treatmentBMPID).pipe(
             tap((benchmarks) => (this.currentBenchmarks = benchmarks))
         );
@@ -383,7 +386,7 @@ export class TreatmentBmpDetailComponent implements OnInit, OnChanges {
                 this.fieldVisitService.deleteFieldVisit(visit.FieldVisitID).subscribe(() => {
                     this.alertService.pushAlert(new Alert("Field Visit deleted.", AlertContext.Success));
                     params.api.applyTransaction({ remove: [visit] });
-                    this.fieldVisits$ = this.treatmentBMPService.fieldVisitGridJsonDataTreatmentBMP(this.treatmentBMPID);
+                    this.fieldVisitsReload$.next();
                 });
             });
     }
