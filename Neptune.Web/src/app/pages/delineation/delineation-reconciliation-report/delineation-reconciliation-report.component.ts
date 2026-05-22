@@ -169,6 +169,7 @@ export class DelineationReconciliationReportComponent implements OnInit {
                 DecimalPlacesToDisplay: 2,
                 FieldDefinitionType: "Area",
                 FieldDefinitionLabelOverride: "Area of Overlap (ac)",
+                Width: 180,
             }),
             this.utility.createMultiLinkColumnDef("Overlapping Delineations", "OverlappingDelineations", "TreatmentBMPID", "TreatmentBMPName", {
                 InRouterLink: "../../treatment-bmps/",

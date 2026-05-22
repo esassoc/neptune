@@ -229,6 +229,18 @@ export class AuthenticationService {
         );
     }
 
+    public isCurrentUserUnassigned(): boolean {
+        return this.isUserUnassigned(this.currentUser);
+    }
+
+    // NPT-1064: nav-visibility check that matches MVC behavior. Anonymous (not logged in)
+    // and Unassigned (logged in, no role) users share the same accessible surface area —
+    // only AnonymousUnclassifiedFeature-allowed pages on the MVC side. The SPA uses this
+    // to hide top-nav links to pages those users would just bounce off of anyway.
+    public isCurrentUserAnonymousOrUnassigned(): boolean {
+        return !this.isAuthenticated() || this.isCurrentUserUnassigned();
+    }
+
     public isUserUnassigned(user: PersonDto): boolean {
         const role = user ? user.RoleID : null;
         return role === RoleEnum.Unassigned;

@@ -43,6 +43,14 @@ export class SiteLayoutComponent implements OnInit {
         return !this.authenticationService.isUserUnassigned(currentUser);
     }
 
+    // NPT-1064: synchronous gate for nav items. Anonymous and Unassigned users see only the
+    // public-facing list pages (WQMP List + BMP List + WQMP Map + Find a BMP); everything else
+    // in the top nav routes to pages they don't have permission to access. Mirrors the MVC
+    // behavior where each nav item is gated by its controller's feature attribute.
+    public isCurrentUserAnonymousOrUnassigned(): boolean {
+        return this.authenticationService.isCurrentUserAnonymousOrUnassigned();
+    }
+
     public isOCTAGrantReviewer(): boolean {
         return this.authenticationService.isCurrentUserAnOCTAGrantReviewer();
     }
