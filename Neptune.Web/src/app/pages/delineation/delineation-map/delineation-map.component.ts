@@ -3,9 +3,9 @@ import { ActivatedRoute, RouterLink } from "@angular/router";
 import { AsyncPipe } from "@angular/common";
 import { FormControl, FormsModule, ReactiveFormsModule } from "@angular/forms";
 import { BehaviorSubject, forkJoin, map, Observable, shareReplay, tap } from "rxjs";
-import * as L from "leaflet";
-import "@geoman-io/leaflet-geoman-free";
 import "leaflet.markercluster";
+import "@geoman-io/leaflet-geoman-free";
+import * as L from "leaflet";
 
 import { BoundingBoxDto } from "src/app/shared/generated/model/bounding-box-dto";
 import { DelineationDto } from "src/app/shared/generated/model/delineation-dto";
@@ -179,7 +179,7 @@ export class DelineationMapComponent implements OnInit {
             this.layerControl.removeLayer(this.bmpsClusterLayer);
         }
         this.bmpMarkerByID.clear();
-        this.bmpsClusterLayer = (L as any).markerClusterGroup({
+        this.bmpsClusterLayer = L.markerClusterGroup({
             iconCreateFunction: (cluster: any) =>
                 L.divIcon({
                     html: `<div><span>${cluster.getChildCount()}</span></div>`,

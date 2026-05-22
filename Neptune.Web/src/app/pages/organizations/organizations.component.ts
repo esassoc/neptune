@@ -4,7 +4,7 @@ import { AlertDisplayComponent } from "src/app/shared/components/alert-display/a
 import { NeptuneGridComponent } from "src/app/shared/components/neptune-grid/neptune-grid.component";
 import { AsyncPipe } from "@angular/common";
 import { ColDef } from "ag-grid-community";
-import { Observable } from "rxjs";
+import { BehaviorSubject, Observable, switchMap } from "rxjs";
 import { OrganizationDto } from "src/app/shared/generated/model/organization-dto";
 import { UtilityFunctionsService } from "src/app/services/utility-functions.service";
 import { OrganizationService } from "src/app/shared/generated/api/organization.service";
@@ -27,6 +27,7 @@ export class OrganizationsComponent {
     public organizations$: Observable<OrganizationDto[]>;
     public columnDefs: ColDef[];
     public customRichTextTypeID = NeptunePageTypeEnum.OrganizationsList;
+    private reload$ = new BehaviorSubject<void>(undefined);
 
     constructor(
         private utilityFunctions: UtilityFunctionsService,
@@ -59,7 +60,7 @@ export class OrganizationsComponent {
             this.utilityFunctions.createBasicColumnDef("Primary Contact", "PrimaryContactPerson.FullName"),
             this.utilityFunctions.createBooleanColumnDef("Active?", "IsActive"),
         ];
-        this.organizations$ = this.organizationService.listOrganization();
+        this.organizations$ = this.reload$.pipe(switchMap(() => this.organizationService.listOrganization()));
     }
 
     openAddModal() {
@@ -73,7 +74,7 @@ export class OrganizationsComponent {
             if (result) {
                 this.alertService.clearAlerts();
                 this.alertService.pushAlert(new Alert("Organization added successfully.", AlertContext.Success));
-                this.organizations$ = this.organizationService.listOrganization();
+                this.reload$.next();
             }
         });
     }
@@ -89,7 +90,7 @@ export class OrganizationsComponent {
             if (result) {
                 this.alertService.clearAlerts();
                 this.alertService.pushAlert(new Alert("Organization updated successfully.", AlertContext.Success));
-                this.organizations$ = this.organizationService.listOrganization();
+                this.reload$.next();
             }
         });
     }
@@ -108,7 +109,7 @@ export class OrganizationsComponent {
                     this.organizationService.deleteOrganization(organization.OrganizationID).subscribe(() => {
                         this.alertService.clearAlerts();
                         this.alertService.pushAlert(new Alert("Organization deleted successfully.", AlertContext.Success));
-                        this.organizations$ = this.organizationService.listOrganization();
+                        this.reload$.next();
                     });
                 }
             });

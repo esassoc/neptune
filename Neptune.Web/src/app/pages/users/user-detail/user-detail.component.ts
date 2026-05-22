@@ -4,7 +4,8 @@ import { ActivatedRoute, Router, RouterLink } from "@angular/router";
 import { toSignal } from "@angular/core/rxjs-interop";
 import { ColDef } from "ag-grid-community";
 import { DialogService } from "@ngneat/dialog";
-import { catchError, map, Observable, of, shareReplay, switchMap } from "rxjs";
+import { BehaviorSubject, catchError, map, Observable, of, shareReplay, switchMap } from "rxjs";
+import { environment } from "src/environments/environment";
 import { AuthenticationService } from "src/app/services/authentication.service";
 import { UtilityFunctionsService } from "src/app/services/utility-functions.service";
 import { UserService } from "src/app/shared/generated/api/user.service";
@@ -52,6 +53,20 @@ export class UserDetailComponent implements OnInit {
         return !!u && (u.RoleID === RoleEnum.Admin || u.RoleID === RoleEnum.SitkaAdmin);
     });
 
+    // Impersonation is a dev/QA debugging affordance — the backend service is non-production
+    // only (see ImpersonationService.GetEffectiveUser). Hide the button in prod even though
+    // the call would no-op, so the UI doesn't promise something it can't deliver.
+    public canImpersonate(detail: PersonDetailDto): boolean {
+        if (environment.production) return false;
+        if (!this.isAdmin()) return false;
+        const me = this.currentUser();
+        return !!me && me.PersonID !== detail.PersonID;
+    }
+
+    public impersonate(detail: PersonDetailDto): void {
+        this.authenticationService.impersonate(detail.PersonID);
+    }
+
     /** KE 5/20/26: the viewed user (not the viewer) — Admin / SitkaAdmin users implicitly
      *  manage every jurisdiction, so the Assigned Jurisdictions panel renders a stub
      *  message and suppresses the Edit pencil for those role IDs. */
@@ -61,6 +76,12 @@ export class UserDetailComponent implements OnInit {
 
     public isWorking = signal(false);
 
+    // NPT-998: reassigning `this.detail$ = ...` from inside .subscribe() callbacks does not
+    // re-render in zoneless production — the async pipe stays bound to the old reference and
+    // no CD tick swaps it. Drive reloads through a BehaviorSubject so the pipe's existing
+    // upstream re-emits and the pipe internally marks for check.
+    private reload$ = new BehaviorSubject<void>(undefined);
+
     ngOnInit(): void {
         this.personID = +this.route.snapshot.paramMap.get("personID")!;
 
@@ -69,25 +90,25 @@ export class UserDetailComponent implements OnInit {
             this.utilityFunctions.createBasicColumnDef("Notification Type", "NotificationTypeDisplayName"),
         ];
 
-        this.detail$ = this.loadDetail();
+        this.detail$ = this.reload$.pipe(
+            switchMap(() =>
+                this.userService.getDetailUser(this.personID).pipe(
+                    catchError((err) => {
+                        if (err?.status === 403) {
+                            this.alertService.pushAlert(new Alert("You don't have permission to view that user's profile.", AlertContext.Danger, true));
+                            // NPT-999 r3 (Copilot PR #519): /users is now ManagerOnlyGuard-protected.
+                            // Non-admin viewers redirected there would bounce to / via the guard, firing
+                            // a second unauthorized alert. Send admins to the list and everyone else home.
+                            this.router.navigate([this.isAdmin() ? "/users" : "/"]);
+                        }
+                        return of(null as unknown as PersonDetailDto);
+                    })
+                )
+            ),
+            shareReplay(1)
+        );
         this.notifications$ = this.userService.getNotificationsUser(this.personID).pipe(
             catchError(() => of([] as PersonNotificationDto[]))
-        );
-    }
-
-    private loadDetail(): Observable<PersonDetailDto> {
-        return this.userService.getDetailUser(this.personID).pipe(
-            catchError((err) => {
-                if (err?.status === 403) {
-                    this.alertService.pushAlert(new Alert("You don't have permission to view that user's profile.", AlertContext.Danger, true));
-                    // NPT-999 r3 (Copilot PR #519): /users is now ManagerOnlyGuard-protected.
-                    // Non-admin viewers redirected there would bounce to / via the guard, firing
-                    // a second unauthorized alert. Send admins to the list and everyone else home.
-                    this.router.navigate([this.isAdmin() ? "/users" : "/"]);
-                }
-                return of(null as unknown as PersonDetailDto);
-            }),
-            shareReplay(1)
         );
     }
 
@@ -99,7 +120,7 @@ export class UserDetailComponent implements OnInit {
         ref.afterClosed$.subscribe((saved) => {
             if (saved) {
                 this.alertService.clearAlerts();
-                this.detail$ = this.loadDetail();
+                this.reload$.next();
                 this.alertService.pushAlert(new Alert("Roles updated.", AlertContext.Success, true, "user-roles-saved"));
             }
         });
@@ -113,7 +134,7 @@ export class UserDetailComponent implements OnInit {
         ref.afterClosed$.subscribe((saved) => {
             if (saved) {
                 this.alertService.clearAlerts();
-                this.detail$ = this.loadDetail();
+                this.reload$.next();
                 this.alertService.pushAlert(new Alert("Assigned jurisdictions updated.", AlertContext.Success, true, "user-jurisdictions-saved"));
             }
         });
@@ -154,7 +175,7 @@ export class UserDetailComponent implements OnInit {
                 this.userService.updateActiveStatusUser(this.personID, { IsActive: !detail.IsActive }).subscribe({
                     next: () => {
                         this.isWorking.set(false);
-                        this.detail$ = this.loadDetail();
+                        this.reload$.next();
                         this.alertService.pushAlert(new Alert(`User ${goingInactive ? "inactivated" : "activated"}.`, AlertContext.Success, true, "user-active-toggle"));
                     },
                     error: (err) => {
