@@ -1,6 +1,7 @@
 <header class="site-header">
     <header-nav moduleTitle="Inventory Module"></header-nav>
     <nav class="site-nav">
+        @let restrictedNav = isCurrentUserAnonymousOrUnassigned();
         <div style="width: 100%">
             <ul class="site-nav__links site-nav__main">
                 <!-- BMP Inventory Dropdown -->
@@ -11,20 +12,20 @@
                              items (Find a BMP, View All BMPs, Water Quality Management Plans).
                              The rest of BMP Inventory routes to pages they don't have permission
                              for in MVC — hiding them prevents click-bounce. -->
-                        @if (!isCurrentUserAnonymousOrUnassigned()) {
+                        @if (!restrictedNav) {
                             <li><a [routerLink]="['/jurisdictions']" class="dropdown-item">Jurisdictions</a></li>
                         }
                         <li><a [routerLink]="['/find-bmp']" class="dropdown-item">Find a BMP</a></li>
-                        @if (!isCurrentUserAnonymousOrUnassigned()) {
+                        @if (!restrictedNav) {
                             <li><a [routerLink]="['/modeling-parameters']" class="dropdown-item">Modeling Parameters</a></li>
                         }
                         <li><a [routerLink]="['/treatment-bmps']" class="dropdown-item">View All BMPs</a></li>
-                        @if (!isCurrentUserAnonymousOrUnassigned()) {
+                        @if (!restrictedNav) {
                             <li><a [routerLink]="['/latest-bmp-assessments']" class="dropdown-item">View Latest BMP Assessments</a></li>
                             <li><a [routerLink]="['/field-records']" class="dropdown-item">View All Field Records</a></li>
                         }
                         <li><a [routerLink]="['/water-quality-management-plans']" class="dropdown-item">Water Quality Management Plans</a></li>
-                        @if (!isCurrentUserAnonymousOrUnassigned()) {
+                        @if (!restrictedNav) {
                             <li><a [routerLink]="['/water-quality-management-plan-verifications']" class="dropdown-item">WQMP O&amp;M Verifications</a></li>
                             <li><a [routerLink]="['/wqmp-annual-report']" class="dropdown-item">WQMP Annual Report</a></li>
                             <li><a [routerLink]="['/parcels']" class="dropdown-item">Parcels</a></li>
@@ -46,7 +47,7 @@
                      anything they have permission for (MVC gates the corresponding controllers
                      to JurisdictionEditor+ or Admin). Find a BMP / View All BMPs / WQMP List
                      inside BMP Inventory above stay visible to satisfy the public list view. -->
-                @if (!isCurrentUserAnonymousOrUnassigned()) {
+                @if (!restrictedNav) {
                     <!-- Dashboard -->
                     <li class="nav-item" routerLinkActive="active">
                         <a [routerLink]="['/dashboard']" class="nav-link">Dashboard</a>
