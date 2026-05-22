@@ -13,8 +13,10 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
 using Neptune.Common;
 using Neptune.Common.GeoSpatial;
+using Hangfire;
 using Neptune.EFModels.Entities;
 using Neptune.EFModels.Nereid;
+using Neptune.Jobs.Hangfire;
 using Neptune.Models.DataTransferObjects;
 using Neptune.WebMvc.Common.Models;
 using Neptune.WebMvc.Common.MvcResults;
@@ -321,7 +323,9 @@ namespace Neptune.WebMvc.Controllers
             var waterQualityManagementPlan = new WaterQualityManagementPlan
             {
                 TrashCaptureStatusTypeID = TrashCaptureStatusType.NotProvided.TrashCaptureStatusTypeID,
-                WaterQualityManagementPlanModelingApproachID = WaterQualityManagementPlanModelingApproach.Detailed
+                // KE 5/13/26 decision: default to Simplified rather than Detailed when creating a
+                // new WQMP — most new entries don't justify a full detailed-modeling parameterization.
+                WaterQualityManagementPlanModelingApproachID = WaterQualityManagementPlanModelingApproach.Simplified
                     .WaterQualityManagementPlanModelingApproachID
             };
 
@@ -366,9 +370,17 @@ namespace Neptune.WebMvc.Controllers
                 return ViewEdit(viewModel);
             }
 
+            // NPT-1051: Status transitions across the Active boundary need cleanup + re-solve;
+            // legacy Edit form is the primary path admins use to flip Active <-> Inactive.
+            var oldStatusID = waterQualityManagementPlan.WaterQualityManagementPlanStatusID;
             viewModel.UpdateModel(waterQualityManagementPlan);
             SetMessageForDisplay($"Successfully updated \"{waterQualityManagementPlan.WaterQualityManagementPlanName}\".");
             await _dbContext.SaveChangesAsync();
+
+            if (await WaterQualityManagementPlans.HandleStatusTransitionAsync(_dbContext, waterQualityManagementPlan.WaterQualityManagementPlanID, oldStatusID))
+            {
+                BackgroundJob.Enqueue<DeltaSolveJob>(x => x.RunJob());
+            }
 
             return new ModalDialogFormJsonResult(
                 SitkaRoute<WaterQualityManagementPlanController>.BuildUrlFromExpression(_linkGenerator, x => x.Detail(waterQualityManagementPlan)));

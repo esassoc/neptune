@@ -1,0 +1,31 @@
+@use "/src/scss/abstracts" as *;
+
+:host { display: block; }
+
+.radio-group {
+    display: flex;
+    gap: 0.75rem;
+
+    label {
+        display: flex;
+        align-items: center;
+        gap: 0.25rem;
+        font-weight: normal;
+        cursor: pointer;
+    }
+}
+
+textarea {
+    resize: vertical;
+    min-height: 4rem;
+}
+
+.page-footer {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    gap: $spacing-300;
+    margin-top: $spacing-500;
+    padding-top: $spacing-400;
+    border-top: 1px solid $gray-light;
+}

@@ -26,23 +26,55 @@ public static class TreatmentBMPImages
 
     public static async Task<List<TreatmentBMPImageDto>> ListAsync(NeptuneDbContext dbContext, int treatmentBMPID)
     {
-        var treatmentBMPImages = await dbContext.TreatmentBMPImages.AsNoTracking()
-            .Include(x => x.FileResource)
+        // Caption-asc order matches the legacy MVC BMP detail carousel
+        // (TreatmentBMPImages.ListByTreatmentBMPID, used by TreatmentBMPController.Detail).
+        return await dbContext.TreatmentBMPImages.AsNoTracking()
             .Where(x => x.TreatmentBMPID == treatmentBMPID)
+            .OrderBy(x => x.Caption)
+            .Select(TreatmentBMPImageProjections.AsDto)
+            .ToListAsync();
+    }
+
+    /// <summary>
+    /// Carousel feed: inventory <see cref="TreatmentBMPImage"/> rows UNION assessment photos from
+    /// the BMP's wrapped-up field visits. Used by the BMP detail page so a user can browse all of
+    /// a BMP's photos in one place once the visit's been wrapped up, while the edit-images page
+    /// (which has delete / caption-update affordances) keeps using <see cref="ListAsync"/> so it
+    /// only shows rows backed by the TreatmentBMPImage table.
+    /// </summary>
+    /// <remarks>
+    /// NPT-984: filter on <c>FieldVisitStatusID == Complete</c> rather than the previous
+    /// <c>IsFieldVisitVerified</c> flag. Verification is a separate Manager-only attestation
+    /// (Verify / Mark Provisional / Return to Edit); Kathleen's expectation is that wrap-up
+    /// alone surfaces the visit's photos in the BMP detail carousel, since the field
+    /// technician has already saved them with the visit and there's no editorial gate before
+    /// browsing.
+    /// </remarks>
+    public static async Task<List<TreatmentBMPImageDto>> ListForCarouselAsync(NeptuneDbContext dbContext, int treatmentBMPID)
+    {
+        var inventoryDtos = await dbContext.TreatmentBMPImages.AsNoTracking()
+            .Where(x => x.TreatmentBMPID == treatmentBMPID)
+            .Select(TreatmentBMPImageProjections.AsDto)
             .ToListAsync();
 
-        var treatmentBMPImageDtos = treatmentBMPImages.Select(x => x.AsDto()).ToList();
-        return treatmentBMPImageDtos;
+        var assessmentDtos = await dbContext.TreatmentBMPAssessmentPhotos.AsNoTracking()
+            .Where(x => x.TreatmentBMPAssessment.TreatmentBMPID == treatmentBMPID
+                        && x.TreatmentBMPAssessment.FieldVisit.FieldVisitStatusID == (int)FieldVisitStatusEnum.Complete)
+            .Select(TreatmentBMPImageProjections.AssessmentPhotoAsCarouselDto(treatmentBMPID))
+            .ToListAsync();
+
+        return inventoryDtos
+            .Concat(assessmentDtos)
+            .OrderBy(x => x.Caption)
+            .ToList();
     }
 
     public static async Task<TreatmentBMPImageDto?> GetAsync(NeptuneDbContext dbContext, int treatmentBMPID, int treatmentBMPImageID)
     {
-        var treatmentBMPImage = await dbContext.TreatmentBMPImages.AsNoTracking()
-            .Include(x => x.FileResource)
-            .SingleOrDefaultAsync(x => x.TreatmentBMPID == treatmentBMPID && x.TreatmentBMPImageID == treatmentBMPImageID);
-
-        var treatmentBMPImageDto = treatmentBMPImage?.AsDto();
-        return treatmentBMPImageDto;
+        return await dbContext.TreatmentBMPImages.AsNoTracking()
+            .Where(x => x.TreatmentBMPID == treatmentBMPID && x.TreatmentBMPImageID == treatmentBMPImageID)
+            .Select(TreatmentBMPImageProjections.AsDto)
+            .SingleOrDefaultAsync();
     }
 
     public static async Task<List<ErrorMessage>> ValidateUpdateAsync(NeptuneDbContext dbContext, int treatmentBMPID, List<TreatmentBMPImageUpdateDto> updateDtos)

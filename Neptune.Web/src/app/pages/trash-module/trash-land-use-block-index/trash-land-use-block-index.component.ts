@@ -55,6 +55,10 @@ export class TrashLandUseBlockIndexComponent {
     public isLoading: boolean = true;
     public url = environment.ocStormwaterToolsBaseUrl;
     public landUseBlockID: number;
+    /** Stable reference for the layer's [selectedLandUseBlockIDs] @Input. Built inline as
+     * `landUseBlockID ? [landUseBlockID] : []` would allocate a new array every change-detection
+     * pass and re-trigger ngOnChanges (and the layer's zoom-to-selection). */
+    public selectedLandUseBlockIDs: number[] = [];
     public selectionFromMap: boolean;
 
     public map: Map;
@@ -119,6 +123,7 @@ export class TrashLandUseBlockIndexComponent {
         if (this.landUseBlockID == selectedLandUseBlockID) return;
 
         this.landUseBlockID = selectedLandUseBlockID;
+        this.selectedLandUseBlockIDs = selectedLandUseBlockID ? [selectedLandUseBlockID] : [];
         this.selectionFromMap = false;
         return this.landUseBlockID;
     }
@@ -127,6 +132,7 @@ export class TrashLandUseBlockIndexComponent {
         if (this.landUseBlockID == selectedLandUseBlockID) return;
 
         this.landUseBlockID = selectedLandUseBlockID;
+        this.selectedLandUseBlockIDs = selectedLandUseBlockID ? [selectedLandUseBlockID] : [];
         this.selectionFromMap = true;
         return this.landUseBlockID;
     }

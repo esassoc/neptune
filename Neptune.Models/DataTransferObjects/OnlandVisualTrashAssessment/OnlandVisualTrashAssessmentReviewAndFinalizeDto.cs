@@ -14,6 +14,7 @@ public class OnlandVisualTrashAssessmentReviewAndFinalizeDto
     public bool AssessingNewArea { get; set; }
     public bool? IsProgressAssessment { get; set; }
     public string? Notes { get; set; }
+    public string? SecondAssessorName { get; set; }
     public DateOnly? AssessmentDate { get; set; }
     public List<OnlandVisualTrashAssessmentPreliminarySourceIdentificationUpsertDto> PreliminarySourceIdentifications { get; set; }
 }

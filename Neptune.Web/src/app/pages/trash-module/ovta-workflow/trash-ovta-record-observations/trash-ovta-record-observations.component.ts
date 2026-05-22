@@ -1,4 +1,4 @@
-import { Component, signal, ViewChild } from "@angular/core";
+import { Component, ElementRef, signal, ViewChild } from "@angular/core";
 import * as L from "leaflet";
 import { PageHeaderComponent } from "../../../../shared/components/page-header/page-header.component";
 import { NeptuneMapComponent, NeptuneMapInitEvent } from "../../../../shared/components/leaflet/neptune-map/neptune-map.component";
@@ -75,6 +75,7 @@ export class TrashOvtaRecordObservationsComponent {
     // Template ref used to ask the transect-line layer to re-fetch + redraw after a save so
     // the map reflects observation edits on the backing assessment without a full page reload.
     @ViewChild("transectLineLayer") transectLineLayer?: TransectLineLayerComponent;
+    @ViewChild("alertAnchor", { read: ElementRef }) alertAnchor?: ElementRef<HTMLElement>;
 
     constructor(
         private onlandVisualTrashAssessmentService: OnlandVisualTrashAssessmentService,
@@ -236,7 +237,9 @@ export class TrashOvtaRecordObservationsComponent {
                             this.router.navigate([`/trash/onland-visual-trash-assessments/edit/${this.onlandVisualTrashAssessmentID}/add-or-remove-parcels`]);
                         }
                     });
+                    return;
                 }
+                this.alertAnchor?.nativeElement.scrollIntoView({ behavior: "smooth", block: "start" });
             });
     }
 

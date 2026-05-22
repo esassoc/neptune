@@ -7,6 +7,7 @@
  * https://openapi-generator.tech
  * Do not edit the class manually.
  */
+import { TreatmentBMPTypeUsageDto } from './treatment-bmp-type-usage-dto';
 
 
 import { FormControl, FormControlOptions, FormControlState, Validators } from "@angular/forms";
@@ -25,7 +26,7 @@ export class CustomAttributeTypeDto {
     Purpose?: string | null;
     CustomAttributeTypeSortOrder?: number | null;
     CustomAttributeTypeDefaultValue?: string | null;
-    TreatmentBMPTypeNames?: Array<string> | null;
+    TreatmentBMPTypeUsages?: Array<TreatmentBMPTypeUsageDto> | null;
     constructor(obj?: any) {
         Object.assign(this, obj);
     }
@@ -46,7 +47,7 @@ export interface CustomAttributeTypeDtoForm {
     Purpose?: FormControl<string>;
     CustomAttributeTypeSortOrder?: FormControl<number>;
     CustomAttributeTypeDefaultValue?: FormControl<string>;
-    TreatmentBMPTypeNames?: FormControl<Array<string>>;
+    TreatmentBMPTypeUsages?: FormControl<Array<TreatmentBMPTypeUsageDto>>;
 }
 
 export class CustomAttributeTypeDtoFormControls { 
@@ -190,7 +191,7 @@ export class CustomAttributeTypeDtoFormControls {
             ],
         }
     );
-    public static TreatmentBMPTypeNames = (value: FormControlState<Array<string>> | Array<string> = undefined, formControlOptions?: FormControlOptions | null) => new FormControl<Array<string>>(
+    public static TreatmentBMPTypeUsages = (value: FormControlState<Array<TreatmentBMPTypeUsageDto>> | Array<TreatmentBMPTypeUsageDto> = undefined, formControlOptions?: FormControlOptions | null) => new FormControl<Array<TreatmentBMPTypeUsageDto>>(
         value,
         formControlOptions ?? 
         {

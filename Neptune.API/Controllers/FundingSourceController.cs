@@ -28,13 +28,25 @@ namespace Neptune.API.Controllers
         }
 
         [HttpGet("{fundingSourceID}")]
-        [AdminFeature]
+        // NPT-999: loosened from AdminFeature to UserViewFeature so the SPA FundingSource
+        // detail page is reachable by any authenticated user, matching the legacy MVC's
+        // FundingSourceController.Detail behavior. List stays admin-only above.
+        [UserViewFeature]
         [EntityNotFoundAttribute(typeof(FundingSource), "fundingSourceID")]
         public async Task<ActionResult<FundingSourceDto>> Get([FromRoute] int fundingSourceID)
         {
             var entity = await FundingSources.GetByIDAsDtoAsync(DbContext, fundingSourceID);
             if (entity == null) return NotFound();
             return Ok(entity);
+        }
+
+        [HttpGet("{fundingSourceID}/treatment-bmps")]
+        [UserViewFeature]
+        [EntityNotFoundAttribute(typeof(FundingSource), "fundingSourceID")]
+        public async Task<ActionResult<List<FundingSourceTreatmentBMPFundingDto>>> ListTreatmentBMPFunding([FromRoute] int fundingSourceID)
+        {
+            var rows = await FundingSources.ListTreatmentBMPFundingByIDAsync(DbContext, fundingSourceID);
+            return Ok(rows);
         }
 
         [HttpPost]

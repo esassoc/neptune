@@ -158,6 +158,7 @@ export class TreatmentBmpDetailComponent implements OnInit, OnChanges {
     refreshTreatmentBMPDocumentsTrigger$: BehaviorSubject<void> = new BehaviorSubject<void>(undefined);
     hruCharacteristics$: Observable<HRUCharacteristicDto[]>;
     fieldVisits$: Observable<FieldVisitDto[]>;
+    private fieldVisitsReload$ = new BehaviorSubject<void>(undefined);
     benchmarkAndThresholds$: Observable<TreatmentBMPBenchmarkAndThresholdDto[]>;
     fieldVisitColumnDefs: Array<ColDef>;
 
@@ -267,7 +268,9 @@ export class TreatmentBmpDetailComponent implements OnInit, OnChanges {
             })
         );
         // Wire up field visits grid as observable
-        this.fieldVisits$ = this.treatmentBMPService.fieldVisitGridJsonDataTreatmentBMP(this.treatmentBMPID);
+        this.fieldVisits$ = this.fieldVisitsReload$.pipe(
+            switchMap(() => this.treatmentBMPService.fieldVisitGridJsonDataTreatmentBMP(this.treatmentBMPID))
+        );
         this.benchmarkAndThresholds$ = this.benchmarkAndThresholdService.listTreatmentBMPBenchmarkAndThreshold(this.treatmentBMPID).pipe(
             tap((benchmarks) => (this.currentBenchmarks = benchmarks))
         );
@@ -315,7 +318,7 @@ export class TreatmentBmpDetailComponent implements OnInit, OnChanges {
             )
         );
 
-        this.treatmentBMPImages$ = this.treatmentBMPImageByTreatmentBMPService.listTreatmentBMPImageByTreatmentBMP(this.treatmentBMPID).pipe(
+        this.treatmentBMPImages$ = this.treatmentBMPImageByTreatmentBMPService.listForCarouselTreatmentBMPImageByTreatmentBMP(this.treatmentBMPID).pipe(
             tap({
                 next: () => {
                     this.imagesLoading = false;
@@ -339,7 +342,13 @@ export class TreatmentBmpDetailComponent implements OnInit, OnChanges {
     openUpdateTypeModal(treatmentBMP: TreatmentBMPDto): void {
         this.dialogService
             .open(TreatmentBmpUpdateTypeModalComponent, {
-                data: { treatmentBMPID: this.treatmentBMPID, currentTreatmentBMPTypeID: treatmentBMP.TreatmentBMPTypeID } as TreatmentBmpUpdateTypeModalContext,
+                data: {
+                    treatmentBMPID: this.treatmentBMPID,
+                    currentTreatmentBMPTypeID: treatmentBMP.TreatmentBMPTypeID,
+                    treatmentBMPName: treatmentBMP.TreatmentBMPName,
+                    currentTreatmentBMPTypeName: treatmentBMP.TreatmentBMPTypeName,
+                    treatmentBMPAssessmentCount: treatmentBMP.TreatmentBMPAssessmentCount,
+                } as TreatmentBmpUpdateTypeModalContext,
             })
             .afterClosed$.subscribe((result) => {
                 if (result) {
@@ -377,7 +386,7 @@ export class TreatmentBmpDetailComponent implements OnInit, OnChanges {
                 this.fieldVisitService.deleteFieldVisit(visit.FieldVisitID).subscribe(() => {
                     this.alertService.pushAlert(new Alert("Field Visit deleted.", AlertContext.Success));
                     params.api.applyTransaction({ remove: [visit] });
-                    this.fieldVisits$ = this.treatmentBMPService.fieldVisitGridJsonDataTreatmentBMP(this.treatmentBMPID);
+                    this.fieldVisitsReload$.next();
                 });
             });
     }

@@ -10,7 +10,7 @@
 </ng-template>
 <ng-template #templateAbove>
     <div class="back">
-        <a [routerLink]="['../']" class="back__link">Back to Project Grid</a>
+        <a [routerLink]="['../']" class="back__link"><i class="fa fa-arrow-left"></i> Back to Project List</a>
     </div>
 </ng-template>
 <app-alert-display></app-alert-display>
@@ -46,7 +46,11 @@
                 </dd>
                 <dt class="g-col-4">Project Owner</dt>
                 <dd class="g-col-8">
-                    {{ project?.Organization.OrganizationName }}
+                    @if (project?.Organization?.OrganizationID) {
+                        <a [routerLink]="['/organizations', project.Organization.OrganizationID]">{{ project.Organization.OrganizationName }}</a>
+                    } @else {
+                        —
+                    }
                 </dd>
                 <dt class="g-col-4"><field-definition fieldDefinitionType="Jurisdiction"></field-definition></dt>
                 <dd class="g-col-8">

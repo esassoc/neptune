@@ -11,4 +11,15 @@
       </div>
     </div>
   </div>
+} @else if (loadFailed) {
+  <div class="container mt-sm-4">
+    <div class="alert alert-warning">
+      Field definition not found.
+      <a [routerLink]="['/labels-and-definitions']">Return to Labels &amp; Definitions list</a>.
+    </div>
+  </div>
+} @else {
+  <div class="container mt-sm-4">
+    <p class="system-text">Loading...</p>
+  </div>
 }

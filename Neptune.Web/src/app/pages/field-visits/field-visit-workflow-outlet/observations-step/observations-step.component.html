@@ -10,7 +10,11 @@
             <p>No observation types are configured for this BMP type.</p>
         }
 
-        @if (isPostMaintenance && assessmentDetail.ObservationTypes.length > 0) {
+        @if (isReadOnly()) {
+            <p class="alert alert-info">This visit is no longer editable; observations are shown in read-only view.</p>
+        }
+
+        @if (isPostMaintenance && assessmentDetail.ObservationTypes.length > 0 && !isReadOnly()) {
             <div class="copy-from-initial">
                 <button type="button" class="btn btn-secondary" (click)="copyFromInitial(workflow)">
                     Copy data from Initial Assessment
@@ -19,78 +23,19 @@
         }
 
         @for (panel of panels(); track panel.observationTypeID) {
-            <div class="card observation-panel">
-                <div class="card-header"><span class="card-title">{{ panel.name }}</span></div>
-                <div class="card-body">
-                    @if (panel.assessmentDescription) {
-                        <p class="assessment-description">{{ panel.assessmentDescription }}</p>
-                    }
-                    @if (panel.benchmarkDescription || panel.thresholdDescription) {
-                        <dl class="thresholds">
-                            @if (panel.benchmarkDescription) {
-                                <dt>Benchmark</dt>
-                                <dd>{{ panel.benchmarkDescription }}</dd>
-                            }
-                            @if (panel.thresholdDescription) {
-                                <dt>Threshold</dt>
-                                <dd>{{ panel.thresholdDescription }}</dd>
-                            }
-                        </dl>
-                    }
-
-                    @for (property of panel.properties; track property.propertyObserved) {
-                        <div class="grid-12 property-row">
-                            @switch (panel.collectionMethod) {
-                                @case ("DiscreteValue") {
-                                    <form-field
-                                        class="g-col-12 g-col-md-6"
-                                        [formControl]="property.valueControl"
-                                        [fieldLabel]="property.propertyObserved"
-                                        [type]="FormFieldType.Number"
-                                        [units]="panel.measurementUnitLabel || ''"></form-field>
-                                }
-                                @case ("PassFail") {
-                                    <form-field
-                                        class="g-col-12 g-col-md-6"
-                                        [formControl]="property.valueControl"
-                                        [fieldLabel]="property.propertyObserved"
-                                        [type]="FormFieldType.Select"
-                                        [formInputOptions]="property.passFailOptions || []"
-                                        placeholder="— select —"></form-field>
-                                }
-                                @case ("Percentage") {
-                                    <form-field
-                                        class="g-col-12 g-col-md-6"
-                                        [formControl]="property.valueControl"
-                                        [fieldLabel]="property.propertyObserved"
-                                        [type]="FormFieldType.Number"
-                                        units="%"></form-field>
-                                }
-                                @default {
-                                    <form-field
-                                        class="g-col-12 g-col-md-6"
-                                        [formControl]="property.valueControl"
-                                        [fieldLabel]="property.propertyObserved"
-                                        [type]="FormFieldType.Text"></form-field>
-                                }
-                            }
-                            <form-field
-                                class="g-col-12 g-col-md-6"
-                                [formControl]="property.notesControl"
-                                fieldLabel="Notes"
-                                [type]="FormFieldType.Text"
-                                placeholder="Optional"></form-field>
-                        </div>
-                    }
-                </div>
-            </div>
+            <observation-panel [panel]="panel" namePrefix="passfail"></observation-panel>
         }
 
-        <div class="step-footer">
-            <button type="button" class="btn btn-secondary" (click)="save(workflow, false)">Save</button>
-            <button type="button" class="btn btn-primary" (click)="save(workflow, true)">
-                Save &amp; Continue <i class="fa fa-caret-right ml-2"></i>
-            </button>
-        </div>
+        @if (!isReadOnly()) {
+            <div class="step-footer">
+                <button type="button" class="btn btn-secondary" (click)="save(workflow, 'wrap-up')">
+                    Save &amp; Wrap Up Visit <i class="fa fa-flag-checkered ml-2"></i>
+                </button>
+                <button type="button" class="btn btn-secondary" (click)="save(workflow, 'stay')">Save</button>
+                <button type="button" class="btn btn-primary" (click)="save(workflow, 'continue')">
+                    Save &amp; Continue <i class="fa fa-caret-right ml-2"></i>
+                </button>
+            </div>
+        }
     }
 }

@@ -60,6 +60,20 @@ public class TreatmentBMPTypeController(
         return Ok(dto);
     }
 
+    /// <summary>
+    /// NPT-1038 round 4: rows for the "Treatment BMPs of this Type" grid on the SPA
+    /// Treatment BMP Type detail page. Filtered to the calling user's viewable jurisdictions
+    /// (mirrors legacy MVC TreatmentBMPTypeController.TreatmentBMPsInTreatmentBMPTypeGridJsonData).
+    /// </summary>
+    [HttpGet("{treatmentBMPTypeID}/treatment-bmps")]
+    [UserViewFeature]
+    public async Task<ActionResult<List<TreatmentBMPByTypeGridDto>>> ListBMPsByType([FromRoute] int treatmentBMPTypeID)
+    {
+        var stormwaterJurisdictionIDsPersonCanView = await StormwaterJurisdictionPeople.ListViewableStormwaterJurisdictionIDsByPersonIDForBMPsAsync(DbContext, CallingUser.PersonID);
+        var dtos = await TreatmentBMPs.ListByTypeAsGridDtoForJurisdictionsAsync(DbContext, treatmentBMPTypeID, stormwaterJurisdictionIDsPersonCanView);
+        return Ok(dtos);
+    }
+
     [HttpPost]
     [AdminFeature]
     public async Task<ActionResult<TreatmentBMPTypeDetailDto>> Create([FromBody] TreatmentBMPTypeUpsertDto dto)

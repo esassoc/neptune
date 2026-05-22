@@ -1,5 +1,6 @@
 <page-header pageTitle="Parcels"></page-header>
 <app-alert-display></app-alert-display>
+<custom-rich-text [customRichTextTypeID]="customRichTextTypeID"></custom-rich-text>
 <div class="page-body">
     @if (boundingBox$ | async; as boundingBox) {
         <hybrid-map-grid

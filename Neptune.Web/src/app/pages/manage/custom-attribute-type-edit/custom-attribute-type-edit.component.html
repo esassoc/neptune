@@ -1,0 +1,108 @@
+<page-header [pageTitle]="isEdit ? 'Edit Custom Attribute' : 'New Custom Attribute'" [templateAbove]="templateAbove">
+    <ng-template #templateAbove>
+        <div class="back">
+            <a [routerLink]="['/manage/custom-attributes']" class="back__link"><i class="fa fa-arrow-left"></i> Back to Custom Attribute Type List</a>
+        </div>
+    </ng-template>
+</page-header>
+
+<app-alert-display></app-alert-display>
+
+@if (!isLoading()) {
+    <div class="page-body">
+        <div class="editor-body">
+            @if (isModelingAttribute) {
+                <div class="alert alert-info mb-3">
+                    This is a modeling attribute. Only the description can be edited.
+                </div>
+            }
+
+            <form [formGroup]="formGroup">
+                <div class="card mb-3">
+                    <div class="card-header"><span class="card-title">Attribute Details</span></div>
+                    <div class="card-body">
+                        <div class="grid-12">
+                            <form-field class="g-col-12" [formControl]="formGroup.controls.CustomAttributeTypeName"
+                                fieldLabel="Name" [type]="FormFieldType.Text" [required]="true" placeholder="Attribute Name">
+                            </form-field>
+                            <form-field class="g-col-6" [formControl]="formGroup.controls.CustomAttributeDataTypeID"
+                                fieldLabel="Data Type" [type]="FormFieldType.Select" [required]="true"
+                                placeholder="Select Data Type" [formInputOptions]="dataTypeOptions">
+                            </form-field>
+                            <form-field class="g-col-6" [formControl]="formGroup.controls.CustomAttributeTypePurposeID"
+                                fieldLabel="Purpose" [type]="FormFieldType.Select" [required]="true"
+                                placeholder="Select Purpose" [formInputOptions]="purposeOptions">
+                            </form-field>
+                            <form-field class="g-col-6" [formControl]="formGroup.controls.MeasurementUnitTypeID"
+                                fieldLabel="Measurement Unit" [type]="FormFieldType.Select"
+                                placeholder="Select Unit (optional)" [formInputOptions]="unitOptions">
+                            </form-field>
+                            <form-field class="g-col-6" [formControl]="formGroup.controls.IsRequired"
+                                fieldLabel="Is Required" [type]="FormFieldType.Select"
+                                [formInputOptions]="booleanOptions">
+                            </form-field>
+                            <form-field class="g-col-12" [formControl]="formGroup.controls.CustomAttributeTypeDescription"
+                                fieldLabel="Description" [type]="FormFieldType.Textarea" placeholder="Description (optional)">
+                            </form-field>
+                            <form-field class="g-col-12" [formControl]="formGroup.controls.CustomAttributeTypeDefaultValue"
+                                fieldLabel="Default Value" [type]="FormFieldType.Text" placeholder="Default value (optional)">
+                            </form-field>
+                        </div>
+                    </div>
+                </div>
+
+                @if (showOptionsEditor) {
+                    <div class="card mb-3">
+                        <div class="card-header"><span class="card-title">Options</span></div>
+                        <div class="card-body">
+                            <p class="system-text">Add the available options for this pick-list or multi-select attribute. Click the pencil to edit an option's text.</p>
+                            <div class="options-editor">
+                                @for (option of optionsList(); track $index) {
+                                    <div class="options-editor__item">
+                                        @if (editingOptionIndex() === $index) {
+                                            <form-field class="options-editor__field" [formControl]="editingOptionControl"
+                                                [type]="FormFieldType.Text" size="sm"
+                                                (keydown.enter)="saveOptionEdit($index); $event.preventDefault()"
+                                                (keydown.escape)="cancelOptionEdit(); $event.preventDefault()">
+                                            </form-field>
+                                            <button type="button" class="btn btn-sm btn-primary" (click)="saveOptionEdit($index)" title="Save">
+                                                <i class="fa fa-check"></i>
+                                            </button>
+                                            <button type="button" class="btn btn-sm btn-secondary-outline" (click)="cancelOptionEdit()" title="Cancel">
+                                                <i class="fa fa-times"></i>
+                                            </button>
+                                        } @else {
+                                            <span class="options-editor__text">{{ option }}</span>
+                                            <button type="button" class="btn btn-sm btn-secondary-outline" (click)="startEditOption($index)" [attr.aria-label]="'Edit option ' + option" title="Edit">
+                                                <i class="fa fa-pencil"></i>
+                                            </button>
+                                            <button type="button" class="btn btn-sm btn-danger-outline" (click)="removeOption($index)" [attr.aria-label]="'Delete option ' + option" title="Delete">
+                                                <i class="fa fa-trash"></i>
+                                            </button>
+                                        }
+                                    </div>
+                                }
+                                <div class="options-editor__add">
+                                    <form-field class="options-editor__field" [formControl]="newOptionControl"
+                                        [type]="FormFieldType.Text" size="sm" placeholder="New option..."
+                                        (keydown.enter)="addOption(); $event.preventDefault()">
+                                    </form-field>
+                                    <button type="button" class="btn btn-sm btn-primary-outline" (click)="addOption()">
+                                        <i class="fa fa-plus"></i> Add
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                }
+            </form>
+        </div>
+
+        <div class="page-footer">
+            <button type="button" class="btn btn-primary" (click)="save()" [disabled]="isSaving() || formGroup.invalid">Save</button>
+            <button type="button" class="btn btn-secondary-outline" (click)="cancel()" [disabled]="isSaving()">Cancel</button>
+        </div>
+    </div>
+} @else {
+    <p>Loading...</p>
+}

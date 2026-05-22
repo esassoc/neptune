@@ -15,6 +15,8 @@ CREATE TABLE [dbo].[OnlandVisualTrashAssessment](
 	[DraftAreaDescription] [varchar](500) NULL,
 	[IsTransectBackingAssessment] [bit] NOT NULL,
 	[IsProgressAssessment] [bit] NOT NULL,
+	[SecondAssessorName] [varchar](200) NULL,
+	[OvtaAreaSourceTypeID] [int] NULL CONSTRAINT [FK_OnlandVisualTrashAssessment_OvtaAreaSourceType_OvtaAreaSourceTypeID] FOREIGN KEY REFERENCES [dbo].[OvtaAreaSourceType] ([OvtaAreaSourceTypeID]),
 	--CONSTRAINT [FK_OnlandVisualTrashAssessment_OnlandVisualTrashAssessmentArea_OnlandVisualTrashAssessmentAreaID_StormwaterJurisdictionID] FOREIGN KEY([OnlandVisualTrashAssessmentAreaID], [StormwaterJurisdictionID]) REFERENCES [dbo].[OnlandVisualTrashAssessmentArea] ([OnlandVisualTrashAssessmentAreaID], [StormwaterJurisdictionID]),
 	CONSTRAINT [CK_OnlandVisualTrashAssessment_AssessmentCannotHaveDraftGeometryAndOfficialArea] CHECK  ((NOT ([DraftGeometry] IS NOT NULL AND [OnlandVisualTrashAssessmentAreaID] IS NOT NULL))),
 	CONSTRAINT [CK_OnlandVisualTrashAssessment_AssessmentCannotHaveDraftGeometryWhenComplete] CHECK  ((NOT ([DraftGeometry] IS NOT NULL AND [OnlandVisualTrashAssessmentStatusID]=(2)))),

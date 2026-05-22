@@ -3,11 +3,12 @@ import { Component, Input, OnChanges, SimpleChanges } from "@angular/core";
 import { CustomAttributeTypePurposeEnum, CustomAttributeTypePurposes } from "src/app/shared/generated/enum/custom-attribute-type-purpose-enum";
 import { RouterLink } from "@angular/router";
 import { CustomAttributeDto, TreatmentBMPTypeCustomAttributeTypeDto } from "../../generated/model/models";
+import { PopperDirective } from "src/app/shared/directives/popper.directive";
 
 @Component({
     selector: "custom-attributes-display",
     standalone: true,
-    imports: [RouterLink],
+    imports: [RouterLink, PopperDirective],
     templateUrl: "./custom-attributes-display.component.html",
     styleUrls: ["./custom-attributes-display.component.scss"],
 })

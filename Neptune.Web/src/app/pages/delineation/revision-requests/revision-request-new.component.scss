@@ -1,0 +1,25 @@
+@use "/src/scss/abstracts" as *;
+
+.back-link {
+  font-size: $type-size-200;
+}
+
+.instructions {
+  margin-bottom: 1rem;
+}
+
+.side-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.notes-card form-field {
+  display: block;
+}
+
+.actions {
+  display: flex;
+  gap: 0.5rem;
+  justify-content: flex-end;
+}

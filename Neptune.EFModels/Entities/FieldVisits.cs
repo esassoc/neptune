@@ -115,15 +115,35 @@ public static class FieldVisits
 
     public static async Task<FieldVisitDto> CreateAsync(NeptuneDbContext dbContext, int treatmentBMPID, FieldVisitCreateDto createDto, int performerPersonID)
     {
-        var existing = GetInProgressForTreatmentBMPIfAny(dbContext, treatmentBMPID);
-        if (existing != null && createDto.ContinueExistingInProgress == true)
+        // NPT-984: check for the in-progress visit with AsNoTracking — we only need the ID and
+        // the routing decision. The earlier `GetInProgressForTreatmentBMPIfAny` call pulled the
+        // FieldVisit with its full include tree (TreatmentBMP + assessments + photos + ...) into
+        // the change tracker, and EF's NavigationFixer then choked when we AddAsync'd the new
+        // FieldVisit below — the existing tracked TreatmentBMP entity carried a navigation
+        // collection that fixup tried to re-link, conceptually nulling the existing FieldVisit's
+        // non-nullable TreatmentBMPID FK and surfacing "association ... has been severed".
+        var existingInProgress = await dbContext.FieldVisits.AsNoTracking()
+            .Where(x => x.TreatmentBMPID == treatmentBMPID
+                        && x.FieldVisitStatusID == FieldVisitStatus.InProgress.FieldVisitStatusID)
+            .Select(x => new { x.FieldVisitID })
+            .SingleOrDefaultAsync();
+
+        if (existingInProgress != null && createDto.ContinueExistingInProgress == true)
         {
-            return GetByIDAsDto(dbContext, existing.FieldVisitID);
+            return GetByIDAsDto(dbContext, existingInProgress.FieldVisitID);
         }
 
-        if (existing != null && createDto.ContinueExistingInProgress == false)
+        if (existingInProgress != null && createDto.ContinueExistingInProgress == false)
         {
-            existing.FieldVisitStatusID = FieldVisitStatus.Unresolved.FieldVisitStatusID;
+            // The FieldVisit table has a unique filtered index
+            // (CK_AtMostOneFieldVisitMayBeInProgressAtAnyTimePerBMP — at most one InProgress
+            // visit per BMP). Flush the Unresolved write before the AddAsync below so the
+            // unique slot is free. Use ExecuteUpdateAsync so the change tracker stays clean —
+            // round 5 originally loaded the entity and called SaveChangesAsync here, which is
+            // what dragged the loaded graph into the tracker and broke navigation fixup.
+            await dbContext.FieldVisits
+                .Where(x => x.FieldVisitID == existingInProgress.FieldVisitID)
+                .ExecuteUpdateAsync(setters => setters.SetProperty(f => f.FieldVisitStatusID, FieldVisitStatus.Unresolved.FieldVisitStatusID));
         }
 
         var fieldVisit = new FieldVisit

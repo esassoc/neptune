@@ -54,6 +54,7 @@ export class TreatmentBMPDto {
     UpstreamBMPID?: number | null;
     RegionalSubbasinID?: number | null;
     LastNereidLogID?: number | null;
+    TreatmentBMPAssessmentCount?: number;
     IsFullyParameterized?: boolean | null;
     TreatmentBMPModelingAttribute?: VTreatmentBMPModelingAttributeDto;
     OtherTreatmentBMPsExistInSubbasin?: boolean | null;
@@ -108,6 +109,7 @@ export interface TreatmentBMPDtoForm {
     UpstreamBMPID?: FormControl<number>;
     RegionalSubbasinID?: FormControl<number>;
     LastNereidLogID?: FormControl<number>;
+    TreatmentBMPAssessmentCount?: FormControl<number>;
     IsFullyParameterized?: FormControl<boolean>;
     TreatmentBMPModelingAttribute?: FormControl<VTreatmentBMPModelingAttributeDto>;
     OtherTreatmentBMPsExistInSubbasin?: FormControl<boolean>;
@@ -438,6 +440,16 @@ export class TreatmentBMPDtoFormControls {
         }
     );
     public static LastNereidLogID = (value: FormControlState<number> | number = undefined, formControlOptions?: FormControlOptions | null) => new FormControl<number>(
+        value,
+        formControlOptions ?? 
+        {
+            nonNullable: false,
+            validators: 
+            [
+            ],
+        }
+    );
+    public static TreatmentBMPAssessmentCount = (value: FormControlState<number> | number = undefined, formControlOptions?: FormControlOptions | null) => new FormControl<number>(
         value,
         formControlOptions ?? 
         {

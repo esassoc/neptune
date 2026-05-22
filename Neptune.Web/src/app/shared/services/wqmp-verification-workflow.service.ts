@@ -33,6 +33,7 @@ export const VERIFICATION_STEP_KEYS = [
     "structural-bmps",
     "simplified-bmps",
     "source-control",
+    "supporting-documentation",
     "review-and-finalize",
 ] as const;
 export type VerificationStepKey = (typeof VERIFICATION_STEP_KEYS)[number];
@@ -59,6 +60,7 @@ export class WqmpVerificationWorkflowService {
         { key: "structural-bmps", title: "Structural BMPs", helpID: NeptunePageTypeEnum.WQMPVerificationStructuralBmps },
         { key: "simplified-bmps", title: "Simplified BMPs", helpID: NeptunePageTypeEnum.WQMPVerificationSimplifiedBmps },
         { key: "source-control", title: "Source Control", helpID: NeptunePageTypeEnum.WQMPVerificationSourceControl },
+        { key: "supporting-documentation", title: "Supporting Documentation", helpID: NeptunePageTypeEnum.WQMPVerificationSupportingDocumentation },
         { key: "review-and-finalize", title: "Review & Finalize", helpID: NeptunePageTypeEnum.WQMPVerificationReview },
     ];
 
@@ -89,6 +91,11 @@ export class WqmpVerificationWorkflowService {
     public treatmentBMPRows = signal<BMPChecklistRow[]>([]);
     public quickBMPRows = signal<BMPChecklistRow[]>([]);
     public sourceControlRows = signal<SourceControlRow[]>([]);
+
+    // NPT-995 Round 5: Supporting Documentation — single FileResource per verification.
+    // Mirrors the legacy MVC supporting-documentation panel.
+    public supportingDocumentationFileResourceGUID = signal<string | null>(null);
+    public supportingDocumentationFileName = signal<string | null>(null);
 
     // -- lookup options --
     public verifyTypeOptions = WaterQualityManagementPlanVerifyTypesAsSelectDropdownOptions;
@@ -129,6 +136,12 @@ export class WqmpVerificationWorkflowService {
             },
             "source-control": {
                 completed: hasVerify && scbmpHasAny,
+                disabled: !hasVerify,
+            },
+            "supporting-documentation": {
+                // Optional step — "completed" simply means a file has been attached.
+                // Not required to enable the next step.
+                completed: hasVerify && this.supportingDocumentationFileResourceGUID() != null,
                 disabled: !hasVerify,
             },
             "review-and-finalize": {
@@ -211,6 +224,8 @@ export class WqmpVerificationWorkflowService {
                         EnforcementOrFollowupActions: verify.EnforcementOrFollowupActions ?? "",
                         SourceControlCondition: verify.SourceControlCondition ?? "",
                     });
+                    this.supportingDocumentationFileResourceGUID.set(verify.FileResourceGUID ?? null);
+                    this.supportingDocumentationFileName.set(verify.FileResourceFileName ?? null);
                 }
 
                 if (this.mode() === "view") {
@@ -257,6 +272,8 @@ export class WqmpVerificationWorkflowService {
         this.treatmentBMPRows.set([]);
         this.quickBMPRows.set([]);
         this.sourceControlRows.set([]);
+        this.supportingDocumentationFileResourceGUID.set(null);
+        this.supportingDocumentationFileName.set(null);
         this.basicsForm.reset({}, { emitEvent: false });
         this.basicsForm.enable({ emitEvent: false });
         this.basicsFormValidSignal.set(this.basicsForm.valid);
@@ -317,8 +334,6 @@ export class WqmpVerificationWorkflowService {
         save$.subscribe({
             next: (saved) => {
                 this.isSaving.set(false);
-                this.alertService.pushAlert(new Alert(opts.isDraft ? "Verification saved." : "Verification finalized.", AlertContext.Success));
-
                 this.isFinalized.set(!saved?.IsDraft);
 
                 if (saved?.WaterQualityManagementPlanVerifyID && this.waterQualityManagementPlanVerifyID() == null) {
@@ -326,17 +341,23 @@ export class WqmpVerificationWorkflowService {
                     this.mode.set("edit");
                 }
 
-                if (opts.returnToDetail) {
-                    this.router.navigate(["/water-quality-management-plans", wqmpID]);
-                    return;
-                }
-
-                const targetKey = opts.andContinue ? this.nextStepKey(opts.currentStepKey) ?? opts.currentStepKey : opts.currentStepKey;
-                this.router.navigate([
-                    "/water-quality-management-plans", wqmpID, "verifications",
-                    ...this.verifyIDPathSegment(),
-                    targetKey,
-                ], { replaceUrl: isCreate });
+                // Push the success alert *after* navigation completes — the alert-display on
+                // the source page calls clearAlerts() in ngOnDestroy, so a pre-navigate push
+                // gets wiped during route teardown (notably on initial create where the URL
+                // changes from .../new/... to .../{id}/... and on returnToDetail). Pushing
+                // post-navigate lands the alert on the destination page after its
+                // alert-display has mounted and subscribed.
+                const successMsg = opts.isDraft ? "Verification saved." : "Verification finalized.";
+                const navigation$ = opts.returnToDetail
+                    ? this.router.navigate(["/water-quality-management-plans", wqmpID])
+                    : this.router.navigate([
+                        "/water-quality-management-plans", wqmpID, "verifications",
+                        ...this.verifyIDPathSegment(),
+                        opts.andContinue ? this.nextStepKey(opts.currentStepKey) ?? opts.currentStepKey : opts.currentStepKey,
+                    ], { replaceUrl: isCreate });
+                navigation$.then(() => {
+                    this.alertService.pushAlert(new Alert(successMsg, AlertContext.Success));
+                });
             },
             error: () => {
                 this.isSaving.set(false);

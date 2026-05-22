@@ -1,0 +1,29 @@
+@use "/src/scss/abstracts" as *;
+
+.card-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+
+    .icon-button {
+        cursor: pointer;
+    }
+
+    .icon-button-button {
+        background: none;
+        border: none;
+        padding: 0;
+        cursor: pointer;
+        line-height: 0;
+    }
+}
+
+.plain-list {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+
+    li + li {
+        margin-top: 0.25rem;
+    }
+}

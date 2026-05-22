@@ -26,6 +26,8 @@ export class OnlandVisualTrashAssessmentSimpleDto {
     DraftAreaDescription?: string | null;
     IsTransectBackingAssessment?: boolean;
     IsProgressAssessment?: boolean;
+    SecondAssessorName?: string | null;
+    OvtaAreaSourceTypeID?: number | null;
     constructor(obj?: any) {
         Object.assign(this, obj);
     }
@@ -47,6 +49,8 @@ export interface OnlandVisualTrashAssessmentSimpleDtoForm {
     DraftAreaDescription?: FormControl<string>;
     IsTransectBackingAssessment?: FormControl<boolean>;
     IsProgressAssessment?: FormControl<boolean>;
+    SecondAssessorName?: FormControl<string>;
+    OvtaAreaSourceTypeID?: FormControl<number>;
 }
 
 export class OnlandVisualTrashAssessmentSimpleDtoFormControls { 
@@ -191,6 +195,26 @@ export class OnlandVisualTrashAssessmentSimpleDtoFormControls {
         }
     );
     public static IsProgressAssessment = (value: FormControlState<boolean> | boolean = undefined, formControlOptions?: FormControlOptions | null) => new FormControl<boolean>(
+        value,
+        formControlOptions ?? 
+        {
+            nonNullable: false,
+            validators: 
+            [
+            ],
+        }
+    );
+    public static SecondAssessorName = (value: FormControlState<string> | string = undefined, formControlOptions?: FormControlOptions | null) => new FormControl<string>(
+        value,
+        formControlOptions ?? 
+        {
+            nonNullable: false,
+            validators: 
+            [
+            ],
+        }
+    );
+    public static OvtaAreaSourceTypeID = (value: FormControlState<number> | number = undefined, formControlOptions?: FormControlOptions | null) => new FormControl<number>(
         value,
         formControlOptions ?? 
         {

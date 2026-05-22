@@ -26,6 +26,8 @@ Footnotes attached to a BMP table count as part of that table's content — extr
 
 **Variant templates exist.** The "North OC Priority WQMP Template August 2011" omits the free-form treatment-control table and describes structural treatment BMPs directly in the Biotreatment section. Some other templates use entirely custom numbering or merge categories. In any layout, prioritize content semantics — *is this site committing to this BMP?* — over the document's organizational scheme.
 
+**Older "South-OC 2003" templates** use a flat S-code numbering (S1 – S20) that mixes Source Controls and Treatment Controls. **S-codes roughly S1 – S14 are Source Controls** (Site Design + Structural Source Controls — trash enclosures, fueling areas, vehicle wash, etc.) and are extracted by the SourceControlBMPs tool, **not by this one**. Skip them here. Only S-codes ≥ S15 (typically Inlet Trash Racks, Water Quality Inlets, Hydrodynamic Separators, and other treatment devices) are QuickBMPs and should be extracted here.
+
 **Non-standard or unrecognized BMPs.** If the document selects a BMP that doesn't fit any vendor alias or canonical category cleanly, extract it anyway: put the document's name verbatim in `QuickBMPName`, put your best canonical guess (or the document's own type label if it gave one) in `TreatmentBMPType`, and leave staff to remap during review. Do not skip a BMP because it doesn't fit the template — a missed BMP is worse than a mis-typed one.
 
 Other supporting evidence: BMP fact sheets / cut-sheets in WQMP appendices, sizing calculation pages, treatment train diagrams, Section V (Operation & Maintenance) narratives that enumerate the project's BMPs. These often disambiguate which checkboxes were marked when a scanned page is unclear.

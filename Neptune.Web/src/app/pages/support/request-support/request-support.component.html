@@ -1,0 +1,85 @@
+<page-header pageTitle="Request Support" [templateAbove]="templateAbove">
+    <ng-template #templateAbove>
+        <div class="back">
+            <a [routerLink]="['/']" class="back__link">Back to Home</a>
+        </div>
+    </ng-template>
+</page-header>
+
+<section class="content-section">
+    <app-alert-display></app-alert-display>
+
+    @if (successMessage()) {
+        <div class="alert alert-success">{{ successMessage() }}</div>
+    } @else {
+        <form [formGroup]="formGroup" class="grid-12">
+            <form-field
+                class="g-col-6"
+                fieldLabel="Your Name"
+                [type]="FormFieldType.Text"
+                [formControl]="formGroup.controls.Name"
+                [required]="true"
+                placeholder="First and Last Name"
+            ></form-field>
+
+            <form-field
+                class="g-col-6"
+                fieldLabel="Email Address"
+                [type]="FormFieldType.Text"
+                [formControl]="formGroup.controls.Email"
+                [required]="true"
+                placeholder="you@example.com"
+            ></form-field>
+
+            <form-field
+                class="g-col-6"
+                fieldLabel="Organization"
+                [type]="FormFieldType.Text"
+                [formControl]="formGroup.controls.Organization"
+                placeholder="(optional)"
+            ></form-field>
+
+            <form-field
+                class="g-col-6"
+                fieldLabel="Phone"
+                [type]="FormFieldType.Text"
+                [formControl]="formGroup.controls.Phone"
+                placeholder="(optional)"
+            ></form-field>
+
+            <form-field
+                class="g-col-12"
+                fieldLabel="What can we help with?"
+                [type]="FormFieldType.Select"
+                [formControl]="formGroup.controls.SupportRequestTypeID"
+                [formInputOptions]="supportRequestTypeOptions"
+                placeholder="Select a request type"
+                [required]="true"
+            ></form-field>
+
+            <form-field
+                class="g-col-12"
+                fieldLabel="Description"
+                [type]="FormFieldType.Textarea"
+                [formControl]="formGroup.controls.Description"
+                [required]="true"
+                placeholder="Please describe your request in as much detail as possible."
+            ></form-field>
+
+            @if (!isAuthenticated()) {
+                <p class="g-col-12 recaptcha-disclaimer">
+                    This site is protected by reCAPTCHA and the Google
+                    <a href="https://policies.google.com/privacy" target="_blank" rel="noopener">Privacy Policy</a> and
+                    <a href="https://policies.google.com/terms" target="_blank" rel="noopener">Terms of Service</a> apply.
+                </p>
+            }
+        </form>
+
+        <div class="actions">
+            <button type="button" class="btn btn-primary" [disabled]="isSubmitting() || formGroup.invalid" (click)="submit()">
+                @if (isSubmitting()) { <i class="fa fa-spinner fa-spin"></i> Sending... } @else { Submit Request }
+            </button>
+            <a class="btn btn-secondary" [routerLink]="['/']">Cancel</a>
+        </div>
+    }
+</section>

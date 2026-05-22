@@ -4,9 +4,10 @@ import { AsyncPipe } from "@angular/common";
 import { FormControl, ReactiveFormsModule, ValidatorFn, Validators } from "@angular/forms";
 import { Observable, of, switchMap, take } from "rxjs";
 
-import { FormFieldComponent, FormFieldType, SelectDropdownOption } from "src/app/shared/components/forms/form-field/form-field.component";
+import { SelectDropdownOption } from "src/app/shared/components/forms/form-field/form-field.component";
 import { LoadingDirective } from "src/app/shared/directives/loading.directive";
 import { PageHeaderComponent } from "src/app/shared/components/page-header/page-header.component";
+import { ObservationPanelComponent, ObservationTypePanel } from "src/app/shared/observation-types/observation-panel.component";
 
 import { TreatmentBMPAssessmentByFieldVisitService } from "src/app/shared/generated/api/treatment-bmp-assessment-by-field-visit.service";
 import { TreatmentBMPAssessmentService } from "src/app/shared/generated/api/treatment-bmp-assessment.service";
@@ -36,33 +37,14 @@ import { AlertContext } from "src/app/shared/models/enums/alert-context.enum";
  * serialized as a JSON string in TreatmentBMPObservation.ObservationData.
  */
 
-interface PropertyControl {
-    propertyObserved: string;
-    valueControl: FormControl<string | null>;
-    notesControl: FormControl<string | null>;
-    /** PassFail only — Pass/Fail dropdown options */
-    passFailOptions?: SelectDropdownOption[];
-}
-
-interface ObservationTypePanel {
-    observationTypeID: number;
-    name: string;
-    collectionMethod: "DiscreteValue" | "PassFail" | "Percentage" | string;
-    measurementUnitLabel?: string;
-    minValue?: number;
-    maxValue?: number;
-    assessmentDescription?: string;
-    benchmarkDescription?: string;
-    thresholdDescription?: string;
-    passingLabel?: string;
-    failingLabel?: string;
-    properties: PropertyControl[];
-}
+// ObservationTypePanel + per-property controls now live in observation-panel.component.ts so the
+// preview modal can share the exact same renderer; importing the type here preserves the existing
+// internal panel-build logic without touching downstream consumers.
 
 @Component({
     selector: "field-visit-observations-step",
     standalone: true,
-    imports: [AsyncPipe, ReactiveFormsModule, LoadingDirective, PageHeaderComponent, FormFieldComponent],
+    imports: [AsyncPipe, ReactiveFormsModule, LoadingDirective, PageHeaderComponent, ObservationPanelComponent],
     templateUrl: "./observations-step.component.html",
     styleUrl: "./observations-step.component.scss",
 })
@@ -76,7 +58,7 @@ export class FieldVisitObservationsStepComponent implements OnInit {
     public assessment = signal<TreatmentBMPAssessmentDetailDto | null>(null);
     public panels = signal<ObservationTypePanel[]>([]);
     public isLoading = signal(true);
-    public FormFieldType = FormFieldType;
+    public isReadOnly = signal(false);
 
     constructor(
         private workflowService: FieldVisitWorkflowService,
@@ -99,21 +81,30 @@ export class FieldVisitObservationsStepComponent implements OnInit {
 
     ngOnInit(): void {
         this.workflow$ = this.workflowService.workflow$;
+        this.workflowService.clearStepAlerts();
         this.workflow$
             .pipe(
                 take(1),
                 switchMap((workflow) => {
+                    this.isReadOnly.set(this.workflowService.isReadOnly(workflow));
                     if (!workflow) return of(null);
                     return this.assessmentByFieldVisitService.getByTypeTreatmentBMPAssessmentByFieldVisit(workflow.FieldVisitID, this.assessmentTypeID);
                 })
             )
             .subscribe((assessment) => {
                 this.assessment.set(assessment);
-                this.panels.set(
-                    (assessment?.ObservationTypes ?? [])
-                        .map((t) => this.buildPanel(t, assessment?.Observations ?? []))
-                        .filter((p): p is ObservationTypePanel => p != null)
-                );
+                const panels = (assessment?.ObservationTypes ?? [])
+                    .map((t) => this.buildPanel(t, assessment?.Observations ?? []))
+                    .filter((p): p is ObservationTypePanel => p != null);
+                if (this.isReadOnly()) {
+                    for (const panel of panels) {
+                        for (const prop of panel.properties) {
+                            prop.valueControl.disable();
+                            prop.notesControl.disable();
+                        }
+                    }
+                }
+                this.panels.set(panels);
                 this.isLoading.set(false);
             });
     }
@@ -210,9 +201,11 @@ export class FieldVisitObservationsStepComponent implements OnInit {
         return String(value);
     }
 
-    save(workflow: FieldVisitWorkflowDto, andContinue: boolean): void {
+    save(workflow: FieldVisitWorkflowDto, nextAction: "stay" | "continue" | "wrap-up"): void {
         const assessment = this.assessment();
         if (!assessment) return;
+
+        this.workflowService.clearStepAlerts();
 
         // Touch every value control so out-of-range / range-validator errors surface in form-field
         // before we bail out. Notes have no validators, so no need to touch them.
@@ -247,9 +240,11 @@ export class FieldVisitObservationsStepComponent implements OnInit {
         this.assessmentService.upsertObservationsTreatmentBMPAssessment(assessment.TreatmentBMPAssessmentID, dto).subscribe(() => {
             this.alertService.pushAlert(new Alert("Observations saved.", AlertContext.Success));
             this.workflowService.refresh().subscribe(() => {
-                if (andContinue) {
+                if (nextAction === "continue") {
                     const next = this.isPostMaintenance ? "summary" : "maintenance";
                     this.router.navigate(["/field-visits", workflow.FieldVisitID, next]);
+                } else if (nextAction === "wrap-up") {
+                    this.workflowService.wrapUpVisit(workflow.FieldVisitID);
                 }
             });
         });

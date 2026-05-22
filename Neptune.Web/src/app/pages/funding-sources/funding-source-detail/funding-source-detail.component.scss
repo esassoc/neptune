@@ -1,0 +1,18 @@
+@use "/src/scss/abstracts" as *;
+
+// Matches the wqmp-detail / user-detail / organization-detail card-header pattern:
+// title left, edit pencil right.
+.card-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+
+    .icon-button {
+        cursor: pointer;
+    }
+}
+
+.text-end {
+    text-align: right;
+}
+

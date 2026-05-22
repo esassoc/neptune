@@ -1,0 +1,43 @@
+<page-header pageTitle="Supporting Documentation" [customRichTextTypeID]="service.stepHelpID('supporting-documentation')"></page-header>
+
+@if (service.supportingDocumentationFileResourceGUID(); as guid) {
+    <div class="card mb-3">
+        <div class="card-header"><span class="card-title">Current Document</span></div>
+        <div class="card-body">
+            <p>
+                <a [href]="getDownloadUrl(guid)" target="_blank" rel="noopener noreferrer">
+                    <i class="fa fa-file"></i> {{ service.supportingDocumentationFileName() || "Download" }}
+                </a>
+            </p>
+            @if (!readonly) {
+                <button class="btn btn-danger-outline btn-sm" (click)="remove()" [disabled]="isBusy()">
+                    <i class="fa fa-trash"></i> Remove
+                </button>
+            }
+        </div>
+    </div>
+} @else {
+    <p class="system-text">No supporting documentation uploaded yet.</p>
+}
+
+@if (!readonly) {
+    <div class="card mb-3">
+        <div class="card-header">
+            <span class="card-title">
+                {{ service.supportingDocumentationFileResourceGUID() ? "Replace File" : "Upload File" }}
+            </span>
+        </div>
+        <div class="card-body">
+            <form-field
+                [formControl]="fileControl"
+                [type]="FormFieldType.File"
+                [fieldLabel]="service.supportingDocumentationFileResourceGUID() ? 'Replacement file' : 'Document'"
+                [uploadFileAccepts]="uploadFileAccepts">
+            </form-field>
+        </div>
+    </div>
+
+    <div class="page-footer">
+        <button class="btn btn-primary-outline" (click)="continueToReview()" [disabled]="isBusy()">Save and Continue</button>
+    </div>
+}

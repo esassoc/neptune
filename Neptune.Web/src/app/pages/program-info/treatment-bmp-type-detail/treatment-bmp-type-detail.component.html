@@ -4,7 +4,7 @@
         [templateRight]="templateRight">
         <ng-template #templateAbove>
             <div class="back">
-                <a [routerLink]="['/program-info/treatment-bmp-types']" class="back__link">Back to Treatment BMP Types</a>
+                <a [routerLink]="['/program-info/treatment-bmp-types']" class="back__link"><i class="fa fa-arrow-left"></i> Back to Treatment BMP Type List</a>
             </div>
         </ng-template>
         <ng-template #templateRight>
@@ -100,6 +100,23 @@
                 </div>
             </div>
         }
+
+        <!--
+            NPT-1038 round 4: "Treatment BMPs of this Type" grid — every BMP of this type the
+            user can view by jurisdiction, with one dynamic column per custom attribute defined
+            on the type. Mirrors the legacy MVC TreatmentBMPType/Detail page grid.
+        -->
+        <div class="card g-col-12 mt-3">
+            <div class="card-header"><span class="card-title">Treatment BMPs of this Type</span></div>
+            <div class="card-body">
+                <neptune-grid
+                    [rowData]="bmps$ | async"
+                    [pinnedBottomRowData]="bmpTotalsRow$ | async"
+                    [columnDefs]="bmpColumnDefs"
+                    [pagination]="true"
+                    [downloadFileName]="bmpDownloadFileName"></neptune-grid>
+            </div>
+        </div>
     </div>
 } @else {
     <div [loadingSpinner]="{ isLoading: isLoading, loadingHeight: 400 }"></div>

@@ -48,6 +48,11 @@ export class TreatmentBmpUpdateUpstreamBmpModalComponent implements OnInit {
     }
 
     public save(): void {
+        if (this.formGroup.invalid) {
+            this.formGroup.markAllAsTouched();
+            return;
+        }
+
         const treatmentBMPID = this.ref.data?.treatmentBMPID;
         const updateUpstreamDto = this.formGroup.value as TreatmentBMPUpstreamBMPUpdateDto;
         this.treatmentBMPService.updateUpstreamBMPTreatmentBMP(treatmentBMPID, updateUpstreamDto).subscribe(() => {

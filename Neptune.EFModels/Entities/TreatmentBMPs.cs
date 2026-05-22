@@ -78,7 +78,8 @@ public static class TreatmentBMPs
             SystemOfRecordID = createDto.SystemOfRecordID,
             WaterQualityManagementPlanID = createDto.WaterQualityManagementPlanID,
             TreatmentBMPLifespanTypeID = createDto.TreatmentBMPLifespanTypeID,
-            TreatmentBMPLifespanEndDate = createDto.TreatmentBMPLifespanTypeID == TreatmentBMPLifespanType.FixedEndDate.TreatmentBMPLifespanTypeID
+            TreatmentBMPLifespanEndDate = createDto.TreatmentBMPLifespanTypeID.HasValue
+                && createDto.TreatmentBMPLifespanTypeID.Value == TreatmentBMPLifespanType.FixedEndDate.TreatmentBMPLifespanTypeID
                 ? createDto.TreatmentBMPLifespanEndDate
                 : null,
             SizingBasisTypeID = createDto.SizingBasisTypeID,
@@ -164,6 +165,44 @@ public static class TreatmentBMPs
             .Where(x => x.CanView(currentPerson))
             .OrderBy(x => x.TreatmentBMPName)
             .ToList();
+    }
+
+    public static async Task<List<TreatmentBMPDelineationMapDto>> ListForDelineationMapAsync(NeptuneDbContext dbContext, Person person)
+    {
+        var isAdmin = person.RoleID == (int)RoleEnum.Admin || person.RoleID == (int)RoleEnum.SitkaAdmin;
+        var jurisdictionIDs = isAdmin
+            ? null
+            : await StormwaterJurisdictionPeople.ListViewableStormwaterJurisdictionIDsByPersonIDForBMPsAsync(dbContext, person.PersonID);
+
+        var rows = await dbContext.TreatmentBMPs
+            .AsNoTracking()
+            .Where(x => x.ProjectID == null && (jurisdictionIDs == null || jurisdictionIDs.Contains(x.StormwaterJurisdictionID)))
+            .Select(x => new
+            {
+                x.TreatmentBMPID,
+                x.TreatmentBMPName,
+                TreatmentBMPTypeName = x.TreatmentBMPType.TreatmentBMPTypeName,
+                x.StormwaterJurisdictionID,
+                x.LocationPoint4326,
+                DelineationID = (int?)(x.Delineation != null ? x.Delineation.DelineationID : (int?)null),
+                DelineationTypeID = (int?)(x.Delineation != null ? x.Delineation.DelineationTypeID : (int?)null),
+                IsVerified = (bool?)(x.Delineation != null ? x.Delineation.IsVerified : (bool?)null),
+            })
+            .ToListAsync();
+
+        return rows.Select(x => new TreatmentBMPDelineationMapDto
+        {
+            TreatmentBMPID = x.TreatmentBMPID,
+            TreatmentBMPName = x.TreatmentBMPName,
+            TreatmentBMPTypeName = x.TreatmentBMPTypeName,
+            StormwaterJurisdictionID = x.StormwaterJurisdictionID,
+            Latitude = x.LocationPoint4326?.Coordinate.Y ?? 0,
+            Longitude = x.LocationPoint4326?.Coordinate.X ?? 0,
+            HasDelineation = x.DelineationID.HasValue,
+            DelineationID = x.DelineationID,
+            DelineationTypeID = x.DelineationTypeID,
+            IsVerified = x.IsVerified,
+        }).ToList();
     }
 
     public static IQueryable<TreatmentBMP> GetNonPlanningModuleBMPs(NeptuneDbContext dbContext)
@@ -515,6 +554,104 @@ public static class TreatmentBMPs
             .ToDictionary(x => x.Key, x => x.Count);
     }
 
+    /// <summary>
+    /// NPT-1038 round 4: rows for the "Treatment BMPs of this Type" grid on the SPA
+    /// `/program-info/treatment-bmp-types/{id}` page. Filters out planning-module BMPs
+    /// (those with a ProjectID — the legacy MVC GridSpec query uses
+    /// <see cref="GetNonPlanningModuleBMPs"/>), restricts to the caller's viewable
+    /// jurisdictions, then loads SystemOfRecordID + WQMP linkage off the TreatmentBMP
+    /// entity (not surfaced on the view) and CustomAttributeValues for each in-scope BMP
+    /// (one extra query each, no N+1). Multi-value attributes are pre-joined with ", "
+    /// server-side to mirror the legacy GridSpec.GetCustomAttributeValue helper.
+    /// </summary>
+    public static async Task<List<TreatmentBMPByTypeGridDto>> ListByTypeAsGridDtoForJurisdictionsAsync(
+        NeptuneDbContext dbContext,
+        int treatmentBMPTypeID,
+        IEnumerable<int> stormwaterJurisdictionIDsPersonCanView)
+    {
+        var jurisdictionIDs = stormwaterJurisdictionIDsPersonCanView.ToList();
+
+        // SystemOfRecordID + WQMP linkage live on the TreatmentBMP entity (not on the view),
+        // and we need the same query to filter ProjectID == null (planning-module exclusion),
+        // so run the entity query first and capture both the eligible BMP IDs and the entity
+        // fields in one pass. Legacy MVC TreatmentBMPTypeController.TreatmentBMPsInTreatmentBMPTypeGridJsonData
+        // uses GetNonPlanningModuleBMPs + Where(TreatmentBMPTypeID && jurisdictionIDs) — same shape.
+        var entityRows = await dbContext.TreatmentBMPs.AsNoTracking()
+            .Where(x => x.ProjectID == null
+                        && x.TreatmentBMPTypeID == treatmentBMPTypeID
+                        && jurisdictionIDs.Contains(x.StormwaterJurisdictionID))
+            .Select(x => new
+            {
+                x.TreatmentBMPID,
+                x.SystemOfRecordID,
+                x.WaterQualityManagementPlanID,
+                WaterQualityManagementPlanName = x.WaterQualityManagementPlan != null ? x.WaterQualityManagementPlan.WaterQualityManagementPlanName : null,
+            })
+            .ToListAsync();
+
+        if (entityRows.Count == 0) return new List<TreatmentBMPByTypeGridDto>();
+
+        var bmpIDs = entityRows.Select(x => x.TreatmentBMPID).ToList();
+        var entityLookup = entityRows.ToDictionary(x => x.TreatmentBMPID);
+
+        var rows = await dbContext.vTreatmentBMPDetaileds.AsNoTracking()
+            .Where(x => bmpIDs.Contains(x.TreatmentBMPID))
+            .OrderBy(x => x.TreatmentBMPName)
+            .ToListAsync();
+
+        // One query for every custom-attribute-value of every in-scope BMP. Group by BMPID +
+        // CustomAttributeTypeID so multi-value attributes collapse into a single ", "-joined
+        // string per attribute (matches the legacy MVC's `GetCustomAttributeValue` join).
+        var attributeRows = await dbContext.CustomAttributes.AsNoTracking()
+            .Where(ca => bmpIDs.Contains(ca.TreatmentBMPID))
+            .Select(ca => new
+            {
+                ca.TreatmentBMPID,
+                ca.CustomAttributeTypeID,
+                Values = ca.CustomAttributeValues
+                    .OrderBy(v => v.AttributeValue)
+                    .Select(v => v.AttributeValue)
+                    .ToList(),
+            })
+            .ToListAsync();
+
+        var attributeLookup = attributeRows
+            .GroupBy(x => x.TreatmentBMPID)
+            .ToDictionary(
+                g => g.Key,
+                g => g.ToDictionary(
+                    x => x.CustomAttributeTypeID,
+                    x => string.Join(", ", x.Values)));
+
+        return rows.Select(x => new TreatmentBMPByTypeGridDto
+        {
+            TreatmentBMPID = x.TreatmentBMPID,
+            TreatmentBMPName = x.TreatmentBMPName,
+            StormwaterJurisdictionID = x.StormwaterJurisdictionID,
+            StormwaterJurisdictionName = x.OrganizationName,
+            OwnerOrganizationName = x.OwnerOrganizationName,
+            YearBuilt = x.YearBuilt,
+            SystemOfRecordID = entityLookup.TryGetValue(x.TreatmentBMPID, out var e) ? e.SystemOfRecordID : null,
+            WaterQualityManagementPlanID = entityLookup.TryGetValue(x.TreatmentBMPID, out var e2) ? e2.WaterQualityManagementPlanID : null,
+            WaterQualityManagementPlanName = entityLookup.TryGetValue(x.TreatmentBMPID, out var e3) ? e3.WaterQualityManagementPlanName : null,
+            Notes = x.Notes,
+            LatestAssessmentDate = x.LatestAssessmentDate,
+            LatestAssessmentScore = x.LatestAssessmentScore,
+            NumberOfAssessments = x.NumberOfAssessments,
+            LatestMaintenanceDate = x.LatestMaintenanceDate,
+            NumberOfMaintenanceRecords = x.NumberOfMaintenanceRecords,
+            BenchmarkAndThresholdSet = x.NumberOfBenchmarkAndThresholds == x.NumberOfBenchmarkAndThresholdsEntered,
+            TreatmentBMPLifespanTypeDisplayName = x.TreatmentBMPLifespanTypeDisplayName,
+            TreatmentBMPLifespanEndDate = x.TreatmentBMPLifespanEndDate,
+            RequiredFieldVisitsPerYear = x.RequiredFieldVisitsPerYear,
+            RequiredPostStormFieldVisitsPerYear = x.RequiredPostStormFieldVisitsPerYear,
+            SizingBasisTypeDisplayName = x.SizingBasisTypeDisplayName,
+            TrashCaptureStatusTypeDisplayName = x.TrashCaptureStatusTypeDisplayName,
+            DelineationTypeDisplayName = x.DelineationTypeDisplayName,
+            CustomAttributeValues = attributeLookup.TryGetValue(x.TreatmentBMPID, out var attrs) ? attrs : new Dictionary<int, string>(),
+        }).ToList();
+    }
+
     public static TreatmentBMP GetByIDForFeatureContextCheck(NeptuneDbContext dbContext, int treatmentBMPID)
     {
         var treatmentBMP = dbContext.TreatmentBMPs
@@ -763,7 +900,8 @@ public static class TreatmentBMPs
         treatmentBMPToUpdate.SystemOfRecordID = updateDto.SystemOfRecordID;
         treatmentBMPToUpdate.WaterQualityManagementPlanID = updateDto.WaterQualityManagementPlanID;
         treatmentBMPToUpdate.TreatmentBMPLifespanTypeID = updateDto.TreatmentBMPLifespanTypeID;
-        treatmentBMPToUpdate.TreatmentBMPLifespanEndDate = updateDto.TreatmentBMPLifespanTypeID == TreatmentBMPLifespanType.FixedEndDate.TreatmentBMPLifespanTypeID
+        treatmentBMPToUpdate.TreatmentBMPLifespanEndDate = updateDto.TreatmentBMPLifespanTypeID.HasValue
+            && updateDto.TreatmentBMPLifespanTypeID.Value == TreatmentBMPLifespanType.FixedEndDate.TreatmentBMPLifespanTypeID
             ? updateDto.TreatmentBMPLifespanEndDate
             : null;
 
@@ -823,24 +961,30 @@ public static class TreatmentBMPs
             errors.Add(new ErrorMessage("TrashCaptureStatusTypeID", "Valid Trash Capture Status Type is required."));
         }
 
-        // Lifespan type
-        var hasValidLifespan = TreatmentBMPLifespanType.All.Any(x => x.TreatmentBMPLifespanTypeID == dto.TreatmentBMPLifespanTypeID);
-        if (!hasValidLifespan)
+        // Lifespan type (optional — only validate when supplied)
+        if (dto.TreatmentBMPLifespanTypeID.HasValue)
         {
-            errors.Add(new ErrorMessage("TreatmentBMPLifespanTypeID", "Valid Lifespan Type is required."));
+            var hasValidLifespan = TreatmentBMPLifespanType.All.Any(x => x.TreatmentBMPLifespanTypeID == dto.TreatmentBMPLifespanTypeID.Value);
+            if (!hasValidLifespan)
+            {
+                errors.Add(new ErrorMessage("TreatmentBMPLifespanTypeID", "Valid Lifespan Type is required."));
+            }
+
+            // Lifespan end date required if type is Fixed End Date
+            if (dto.TreatmentBMPLifespanTypeID.Value == TreatmentBMPLifespanType.FixedEndDate.TreatmentBMPLifespanTypeID && !dto.TreatmentBMPLifespanEndDate.HasValue)
+            {
+                errors.Add(new ErrorMessage("LifespanEndDate", "The Lifespan End Date must be set if the Lifespan Type is Fixed End Date."));
+            }
         }
 
-        // Lifespan end date required if type is Fixed End Date
-        if (dto.TreatmentBMPLifespanTypeID == TreatmentBMPLifespanType.FixedEndDate.TreatmentBMPLifespanTypeID && !dto.TreatmentBMPLifespanEndDate.HasValue)
+        // Water quality management plan (optional — only validate when supplied)
+        if (dto.WaterQualityManagementPlanID.HasValue)
         {
-            errors.Add(new ErrorMessage("LifespanEndDate", "The Lifespan End Date must be set if the Lifespan Type is Fixed End Date."));
-        }
-
-        // Water quality management plan
-        var hasValidWQMP = await dbContext.WaterQualityManagementPlans.AnyAsync(x => x.WaterQualityManagementPlanID == dto.WaterQualityManagementPlanID);
-        if (!hasValidWQMP)
-        {
-            errors.Add(new ErrorMessage("WaterQualityManagementPlanID", "Valid Water Quality Management Plan is required."));
+            var hasValidWQMP = await dbContext.WaterQualityManagementPlans.AnyAsync(x => x.WaterQualityManagementPlanID == dto.WaterQualityManagementPlanID.Value);
+            if (!hasValidWQMP)
+            {
+                errors.Add(new ErrorMessage("WaterQualityManagementPlanID", "Valid Water Quality Management Plan is required."));
+            }
         }
 
         return errors;
@@ -857,6 +1001,7 @@ public static class TreatmentBMPs
     {
         var treatmentBMPToUpdate = dbContext.TreatmentBMPs
             .Include(x => x.StormwaterJurisdiction)
+            .Include(x => x.InverseUpstreamBMP)
             .Single(x => x.TreatmentBMPID == treatmentBMPID);
 
         var locationPointGeometry4326 = CreateLocationPoint4326FromLatLong(locationUpdateDto.Latitude!.Value, locationUpdateDto.Longitude!.Value);
@@ -867,12 +1012,69 @@ public static class TreatmentBMPs
 
         treatmentBMPToUpdate.SetTreatmentBMPPointInPolygonDataByLocationPoint(locationPoint, dbContext);
 
+        UpdateUpstreamBMPReferencesIfNecessary(dbContext, treatmentBMPToUpdate);
+
+        var existingDelineation = Delineations.GetByTreatmentBMPIDWithChangeTracking(dbContext, treatmentBMPID);
+        await UpdateCentralizedBMPDelineationIfPresentAsync(dbContext, treatmentBMPToUpdate, existingDelineation);
+
         await dbContext.SaveChangesAsync();
         await dbContext.Entry(treatmentBMPToUpdate).ReloadAsync();
 
         var updatedTreatmentBMPDto = await GetByIDAsDtoAsync(dbContext, treatmentBMPID);
 
         return updatedTreatmentBMPDto;
+    }
+
+    private static void UpdateUpstreamBMPReferencesIfNecessary(NeptuneDbContext dbContext, TreatmentBMP treatmentBMP)
+    {
+        if (treatmentBMP.UpstreamBMPID != null)
+        {
+            var regionalSubbasin = treatmentBMP.GetRegionalSubbasin(dbContext);
+            if (regionalSubbasin == null
+                || !regionalSubbasin.GetTreatmentBMPs(dbContext).Select(x => x.TreatmentBMPID).Contains(treatmentBMP.UpstreamBMPID.Value))
+            {
+                treatmentBMP.UpstreamBMPID = null;
+            }
+        }
+
+        if (treatmentBMP.InverseUpstreamBMP.Any())
+        {
+            foreach (var dependent in treatmentBMP.InverseUpstreamBMP.ToList())
+            {
+                var regionalSubbasin = dependent.GetRegionalSubbasin(dbContext);
+                if (regionalSubbasin == null || !regionalSubbasin.CatchmentGeometry.Contains(treatmentBMP.LocationPoint))
+                {
+                    dependent.UpstreamBMPID = null;
+                }
+            }
+        }
+    }
+
+    private static async Task UpdateCentralizedBMPDelineationIfPresentAsync(NeptuneDbContext dbContext, TreatmentBMP treatmentBMP, Delineation? delineation)
+    {
+        if (delineation is not { DelineationTypeID: (int)DelineationTypeEnum.Centralized })
+        {
+            return;
+        }
+
+        var updated4326Geometry = treatmentBMP.GetCentralizedDelineationGeometry4326(dbContext);
+
+        if (updated4326Geometry != null && updated4326Geometry.EqualsExact(delineation.DelineationGeometry4326))
+        {
+            return;
+        }
+
+        if (updated4326Geometry != null)
+        {
+            delineation.DelineationGeometry = treatmentBMP.GetCentralizedDelineationGeometry2771(dbContext);
+            delineation.DelineationGeometry4326 = updated4326Geometry;
+            delineation.IsVerified = false;
+            delineation.DateLastModified = DateTime.UtcNow;
+        }
+        else
+        {
+            await delineation.DeleteFull(dbContext);
+        }
     }
 
     public static async Task<List<ErrorMessage>> ValidateUpdateTypeAsync(NeptuneDbContext dbContext, int treatmentBMPID, TreatmentBMPTypeUpdateDto typeUpdateDto)

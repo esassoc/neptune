@@ -13,7 +13,7 @@ as
 )
 
 select  mr.MaintenanceRecordID, mr.MaintenanceRecordDescription, mr.MaintenanceRecordTypeID, mrt.MaintenanceRecordTypeDisplayName,
-        bmp.TreatmentBMPID, bmp.TreatmentBMPTypeID, bmp.TreatmentBMPName, fv.VisitDate,
+        bmp.TreatmentBMPID, bmp.TreatmentBMPTypeID, bmp.TreatmentBMPName, fv.VisitDate, fv.IsFieldVisitVerified,
         fv.FieldVisitID, fv.PerformedByPersonID, fvp.FirstName + ' ' + fvp.LastName as PerformedByPersonName,
         sj.StormwaterJurisdictionID, o.OrganizationName as StormwaterJurisdictionName, sj.StormwaterJurisdictionPublicWQMPVisibilityTypeID,
         wqmp.WaterQualityManagementPlanID, wqmp.WaterQualityManagementPlanName,

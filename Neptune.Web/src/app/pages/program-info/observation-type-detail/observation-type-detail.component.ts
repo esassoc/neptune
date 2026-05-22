@@ -1,6 +1,6 @@
 import { Component, inject, Input, numberAttribute, OnInit } from "@angular/core";
 import { AsyncPipe } from "@angular/common";
-import { RouterLink } from "@angular/router";
+import { Router, RouterLink } from "@angular/router";
 import { BehaviorSubject, catchError, EMPTY, map, Observable, shareReplay, switchMap, tap } from "rxjs";
 import { DialogService } from "@ngneat/dialog";
 import { PageHeaderComponent } from "src/app/shared/components/page-header/page-header.component";
@@ -21,7 +21,6 @@ import {
     ObservationTypePreviewModalComponent,
     ObservationTypePreviewModalData,
 } from "src/app/shared/observation-types/observation-type-preview-modal.component";
-import { ObservationTypeModalComponent } from "src/app/pages/manage/observation-type-modal/observation-type-modal.component";
 
 interface ObservationTypeDetailViewModel {
     detail: TreatmentBMPAssessmentObservationTypeDetailDto;
@@ -46,6 +45,7 @@ export class ObservationTypeDetailComponent implements OnInit {
     private alertService = inject(AlertService);
     private authenticationService = inject(AuthenticationService);
     private dialogService = inject(DialogService);
+    private router = inject(Router);
 
     private reload$ = new BehaviorSubject<void>(undefined);
     public viewModel$: Observable<ObservationTypeDetailViewModel>;
@@ -73,16 +73,7 @@ export class ObservationTypeDetailComponent implements OnInit {
     }
 
     public openEdit(): void {
-        const dialogRef = this.dialogService.open(ObservationTypeModalComponent, {
-            data: { mode: "edit", observationTypeID: this.observationTypeID },
-            width: "800px",
-        });
-        dialogRef.afterClosed$.subscribe((result) => {
-            if (result) {
-                this.alertService.pushAlert(new Alert("Observation type updated.", AlertContext.Success));
-                this.reload$.next();
-            }
-        });
+        this.router.navigate(["/manage/observation-types", this.observationTypeID, "edit"]);
     }
 
     public openPreview(vm: ObservationTypeDetailViewModel): void {

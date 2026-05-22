@@ -8,6 +8,9 @@ import { AuthCallbackComponent } from "./auth-callback.component";
 
 export const routeParams = {
     definitionID: "definitionID",
+    fieldDefinitionTypeID: "fieldDefinitionTypeID",
+    fundingSourceID: "fundingSourceID",
+    organizationID: "organizationID",
     projectID: "projectID",
     onlandVisualTrashAssessmentID: "onlandVisualTrashAssessmentID",
     onlandVisualTrashAssessmentAreaID: "onlandVisualTrashAssessmentAreaID",
@@ -19,8 +22,14 @@ export const routeParams = {
     waterQualityManagementPlanID: "waterQualityManagementPlanID",
     waterQualityManagementPlanVerifyID: "waterQualityManagementPlanVerifyID",
     treatmentBMPTypeID: "treatmentBMPTypeID",
+    customAttributeTypeID: "customAttributeTypeID",
+    observationTypeID: "observationTypeID",
     fieldVisitID: "fieldVisitID",
+    personID: "personID",
 };
+
+// Anonymous-friendly routes (e.g., /support) live under the public site layout below alongside
+// auth'd ones; they intentionally have no canActivate so unauthenticated visitors can reach them.
 
 export const routes: Routes = [
     {
@@ -260,7 +269,7 @@ export const routes: Routes = [
                     },
                     {
                         path: "add-or-remove-parcels",
-                        title: "Add or Remove Parcels",
+                        title: "Select Assessment Area",
                         loadComponent: () =>
                             import("./pages/trash-module/ovta-workflow/trash-ovta-add-remove-parcels/trash-ovta-add-remove-parcels.component").then(
                                 (m) => m.TrashOvtaAddRemoveParcelsComponent
@@ -338,15 +347,53 @@ export const routes: Routes = [
             },
             { path: "modeling", loadComponent: () => import("./pages/modeling-about/modeling-about.component").then((m) => m.ModelingAboutComponent) },
             {
-                path: `labels-and-definitions/:${routeParams.definitionID}`,
+                // NPT-999: Canonical edit URL per AC. Reads `fieldDefinitionTypeID` from the param map.
+                path: `field-definitions/:${routeParams.fieldDefinitionTypeID}/edit`,
                 loadComponent: () => import("./pages/field-definition-edit/field-definition-edit.component").then((m) => m.FieldDefinitionEditComponent),
                 canActivate: [authGuardFn, ManagerOnlyGuard],
             },
-            { path: "users", title: "Users", loadComponent: () => import("./pages/users/users.component").then((m) => m.UsersComponent) },
+            {
+                // Legacy URL kept as a redirect so any persisted links (or the prior list-cell
+                // routing target before this rework) still land on the new canonical URL.
+                path: `labels-and-definitions/:${routeParams.definitionID}`,
+                redirectTo: `field-definitions/:${routeParams.definitionID}/edit`,
+                pathMatch: "full",
+            },
+            {
+                // NPT-999 r3 (KE 5/20/26): the users list is Admin / SitkaAdmin only.
+                // Jurisdiction users have no business seeing the full user roster; they
+                // reach their own profile via the Welcome dropdown's Account link.
+                path: "users",
+                title: "Users",
+                loadComponent: () => import("./pages/users/users.component").then((m) => m.UsersComponent),
+                canActivate: [authGuardFn, ManagerOnlyGuard],
+            },
+            {
+                path: `users/:${routeParams.personID}`,
+                title: "User Detail",
+                loadComponent: () => import("./pages/users/user-detail/user-detail.component").then((m) => m.UserDetailComponent),
+                canActivate: [authGuardFn],
+            },
+            {
+                path: "support",
+                title: "Request Support",
+                loadComponent: () => import("./pages/support/request-support/request-support.component").then((m) => m.RequestSupportComponent),
+            },
             {
                 path: "organizations",
                 title: "Organizations",
                 loadComponent: () => import("./pages/organizations/organizations.component").then((m) => m.OrganizationsComponent),
+            },
+            {
+                // NPT-999: org detail page. Backend GET is UserViewFeature (any authenticated
+                // user — matches the legacy MVC OrganizationViewFeature). The component's 403
+                // handler redirects to /organizations if a future tightening ever blocks a
+                // viewer. Linked from the User Detail page's Role / Organization and Primary
+                // Contact Organizations sections, plus several grids and the FS detail page.
+                path: `organizations/:${routeParams.organizationID}`,
+                title: "Organization Detail",
+                loadComponent: () => import("./pages/organizations/organization-detail/organization-detail.component").then((m) => m.OrganizationDetailComponent),
+                canActivate: [authGuardFn],
             },
             {
                 path: "labels-and-definitions",
@@ -435,6 +482,19 @@ export const routes: Routes = [
                 path: "field-records",
                 title: "View All Field Records",
                 loadComponent: () => import("./pages/field-records/field-records.component").then((m) => m.FieldRecordsComponent),
+            },
+            {
+                // NPT-984: dedicated read-only Field Visit detail page. The Field Records grid
+                // routes here for any visit not in InProgress; the workflow outlet's Wrap Up
+                // handler navigates here after finalize. Keeps editable workflow pages and the
+                // locked-down summary view as separate routes so wrap-up actually wraps up.
+                path: `field-visits/:${routeParams.fieldVisitID}/view`,
+                title: "Field Visit",
+                loadComponent: () =>
+                    import("./pages/field-visits/field-visit-detail-readonly/field-visit-detail-readonly.component").then(
+                        (m) => m.FieldVisitDetailReadOnlyComponent
+                    ),
+                canActivate: [JurisdictionManagerOrEditorOnlyGuard],
             },
             {
                 path: `field-visits/:${routeParams.fieldVisitID}`,
@@ -626,6 +686,11 @@ export const routes: Routes = [
                             import("./pages/wqmps/wqmp-detail/verification-wizard/steps/source-control-step.component").then((m) => m.SourceControlStepComponent),
                     },
                     {
+                        path: "supporting-documentation",
+                        loadComponent: () =>
+                            import("./pages/wqmps/wqmp-detail/verification-wizard/steps/supporting-documentation-step.component").then((m) => m.SupportingDocumentationStepComponent),
+                    },
+                    {
                         path: "review-and-finalize",
                         loadComponent: () =>
                             import("./pages/wqmps/wqmp-detail/verification-wizard/steps/review-step.component").then((m) => m.ReviewStepComponent),
@@ -661,6 +726,11 @@ export const routes: Routes = [
                             import("./pages/wqmps/wqmp-detail/verification-wizard/steps/source-control-step.component").then((m) => m.SourceControlStepComponent),
                     },
                     {
+                        path: "supporting-documentation",
+                        loadComponent: () =>
+                            import("./pages/wqmps/wqmp-detail/verification-wizard/steps/supporting-documentation-step.component").then((m) => m.SupportingDocumentationStepComponent),
+                    },
+                    {
                         path: "review-and-finalize",
                         loadComponent: () =>
                             import("./pages/wqmps/wqmp-detail/verification-wizard/steps/review-step.component").then((m) => m.ReviewStepComponent),
@@ -693,6 +763,7 @@ export const routes: Routes = [
                 path: "wqmp-annual-report",
                 title: "WQMP Annual Report",
                 loadComponent: () => import("./pages/wqmp-annual-report/wqmp-annual-report.component").then((m) => m.WqmpAnnualReportComponent),
+                canActivate: [authGuardFn, JurisdictionManagerOrEditorOnlyGuard],
             },
             {
                 path: "parcels",
@@ -725,6 +796,14 @@ export const routes: Routes = [
                 title: "Funding Sources",
                 loadComponent: () => import("./pages/funding-sources/funding-sources.component").then((m) => m.FundingSourcesComponent),
             },
+            {
+                // NPT-999: SPA Funding Source detail page mirroring the legacy MVC view.
+                // Linked from the Organization detail page's Funding Sources panel.
+                path: `funding-sources/:${routeParams.fundingSourceID}`,
+                title: "Funding Source Detail",
+                loadComponent: () => import("./pages/funding-sources/funding-source-detail/funding-source-detail.component").then((m) => m.FundingSourceDetailComponent),
+                canActivate: [authGuardFn],
+            },
             // Dashboard
             {
                 path: "dashboard",
@@ -735,12 +814,55 @@ export const routes: Routes = [
             {
                 path: "delineation/delineation-map",
                 title: "Delineation Map",
-                loadComponent: () => import("./pages/delineation/delineation-map.component").then((m) => m.DelineationMapComponent),
+                loadComponent: () => import("./pages/delineation/delineation-map/delineation-map.component").then((m) => m.DelineationMapComponent),
             },
             {
                 path: "delineation/delineation-reconciliation-report",
                 title: "Delineation Reconciliation Report",
-                loadComponent: () => import("./pages/delineation/delineation-reconciliation-report.component").then((m) => m.DelineationReconciliationReportComponent),
+                loadComponent: () =>
+                    import("./pages/delineation/delineation-reconciliation-report/delineation-reconciliation-report.component").then(
+                        (m) => m.DelineationReconciliationReportComponent
+                    ),
+                canActivate: [authGuardFn, JurisdictionManagerOrEditorOnlyGuard],
+            },
+            {
+                path: "delineation/revision-requests",
+                title: "Regional Subbasin Revision Requests",
+                loadComponent: () =>
+                    import("./pages/delineation/revision-requests/revision-requests.component").then((m) => m.RevisionRequestsComponent),
+                canActivate: [JurisdictionManagerOrEditorOnlyGuard],
+            },
+            {
+                path: "delineation/revision-requests/new/:treatmentBMPID",
+                title: "New Revision Request",
+                loadComponent: () =>
+                    import("./pages/delineation/revision-requests/revision-request-new.component").then((m) => m.RevisionRequestNewComponent),
+                canActivate: [JurisdictionManagerOrEditorOnlyGuard],
+            },
+            {
+                path: "delineation/revision-requests/:regionalSubbasinRevisionRequestID",
+                title: "Revision Request Detail",
+                loadComponent: () =>
+                    import("./pages/delineation/revision-requests/revision-request-detail.component").then((m) => m.RevisionRequestDetailComponent),
+                canActivate: [JurisdictionManagerOrEditorOnlyGuard],
+            },
+            {
+                path: "delineation/gdb-upload",
+                title: "Upload Delineations",
+                loadComponent: () => import("./pages/delineation/gdb-upload/gdb-upload.component").then((m) => m.GdbUploadComponent),
+                canActivate: [JurisdictionManagerOrEditorOnlyGuard],
+            },
+            {
+                path: "delineation/gdb-approve",
+                title: "Approve Uploaded Delineations",
+                loadComponent: () => import("./pages/delineation/gdb-approve/gdb-approve.component").then((m) => m.GdbApproveComponent),
+                canActivate: [JurisdictionManagerOrEditorOnlyGuard],
+            },
+            {
+                path: "delineation/gdb-download",
+                title: "Download Delineations",
+                loadComponent: () => import("./pages/delineation/gdb-download/gdb-download.component").then((m) => m.GdbDownloadComponent),
+                canActivate: [JurisdictionManagerOrEditorOnlyGuard],
             },
             // Data Hub
             { path: "data-hub", title: "Data Hub", loadComponent: () => import("./pages/data-hub/data-hub.component").then((m) => m.DataHubComponent) },
@@ -756,7 +878,17 @@ export const routes: Routes = [
                 loadComponent: () => import("./pages/manage/custom-attributes.component").then((m) => m.CustomAttributesComponent),
             },
             {
-                path: "manage/custom-attributes/:customAttributeTypeID",
+                path: "manage/custom-attributes/new",
+                title: "New Custom Attribute",
+                loadComponent: () => import("./pages/manage/custom-attribute-type-edit/custom-attribute-type-edit.component").then((m) => m.CustomAttributeTypeEditComponent),
+            },
+            {
+                path: `manage/custom-attributes/:${routeParams.customAttributeTypeID}/edit`,
+                title: "Edit Custom Attribute",
+                loadComponent: () => import("./pages/manage/custom-attribute-type-edit/custom-attribute-type-edit.component").then((m) => m.CustomAttributeTypeEditComponent),
+            },
+            {
+                path: `manage/custom-attributes/:${routeParams.customAttributeTypeID}`,
                 title: "Custom Attribute Type Detail",
                 loadComponent: () => import("./pages/manage/custom-attribute-type-detail/custom-attribute-type-detail.component").then((m) => m.CustomAttributeTypeDetailComponent),
             },
@@ -764,6 +896,16 @@ export const routes: Routes = [
                 path: "manage/observation-types",
                 title: "Observation Types",
                 loadComponent: () => import("./pages/manage/observation-types-manage.component").then((m) => m.ObservationTypesManageComponent),
+            },
+            {
+                path: "manage/observation-types/new",
+                title: "New Observation Type",
+                loadComponent: () => import("./pages/manage/observation-type-edit/observation-type-edit.component").then((m) => m.ObservationTypeEditComponent),
+            },
+            {
+                path: `manage/observation-types/:${routeParams.observationTypeID}/edit`,
+                title: "Edit Observation Type",
+                loadComponent: () => import("./pages/manage/observation-type-edit/observation-type-edit.component").then((m) => m.ObservationTypeEditComponent),
             },
             {
                 path: "manage/treatment-bmp-types",

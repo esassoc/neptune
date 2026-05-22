@@ -1,5 +1,11 @@
 @use "/src/scss/abstracts" as *;
 
+.parcels-heading {
+    border-bottom: 1px solid $gray-200;
+    padding-bottom: 0.5rem;
+    margin-bottom: 0.75rem;
+}
+
 .parcel-list {
     max-height: 400px;
     overflow-y: auto;
@@ -7,9 +13,11 @@
     &__item {
         padding: 0.4rem 0;
         font-size: $type-size-200;
-
-        & + & {
-            border-top: 1px solid $gray-100;
-        }
     }
+}
+
+// Cancel the 2rem bottom margin _maps.scss puts on every .map-wrapper —
+// the page-footer below the map provides the spacing.
+neptune-map ::ng-deep .map-wrapper {
+    margin-bottom: 0;
 }

@@ -1,4 +1,4 @@
-import { Component } from "@angular/core";
+import { Component, ElementRef, ViewChild } from "@angular/core";
 import { FormArray, FormBuilder, FormControl, FormGroup, FormsModule, ReactiveFormsModule, Validators } from "@angular/forms";
 import { OnlandVisualTrashAssessmentService } from "src/app/shared/generated/api/onland-visual-trash-assessment.service";
 import { PageHeaderComponent } from "../../../../shared/components/page-header/page-header.component";
@@ -58,11 +58,13 @@ export class TrashOvtaReviewAndFinalizeComponent {
         OnlandVisualTrashAssessmentScoreID: OnlandVisualTrashAssessmentReviewAndFinalizeDtoFormControls.OnlandVisualTrashAssessmentScoreID(),
         IsProgressAssessment: OnlandVisualTrashAssessmentReviewAndFinalizeDtoFormControls.IsProgressAssessment(),
         Notes: OnlandVisualTrashAssessmentReviewAndFinalizeDtoFormControls.Notes(),
+        SecondAssessorName: OnlandVisualTrashAssessmentReviewAndFinalizeDtoFormControls.SecondAssessorName(),
         PreliminarySourceIdentifications: new FormArray<FormGroup<OnlandVisualTrashAssessmentPreliminarySourceIdentificationUpsertDtoForm>>([]),
         OnlandVisualTrashAssessmentStatusID: OnlandVisualTrashAssessmentReviewAndFinalizeDtoFormControls.OnlandVisualTrashAssessmentStatusID(),
     });
 
     @Input() onlandVisualTrashAssessmentID!: number;
+    @ViewChild("alertAnchor", { read: ElementRef }) alertAnchor?: ElementRef<HTMLElement>;
 
     constructor(
         private onlandVisualTrashAssessmentService: OnlandVisualTrashAssessmentService,
@@ -87,6 +89,7 @@ export class TrashOvtaReviewAndFinalizeComponent {
                 this.formGroup.controls.OnlandVisualTrashAssessmentScoreID.setValue(ovta.OnlandVisualTrashAssessmentScoreID);
                 this.formGroup.controls.IsProgressAssessment.setValue(ovta.IsProgressAssessment);
                 this.formGroup.controls.Notes.setValue(ovta.Notes);
+                this.formGroup.controls.SecondAssessorName.setValue(ovta.SecondAssessorName);
                 const formArray = this.formGroup.controls.PreliminarySourceIdentifications as FormArray;
                 ovta.PreliminarySourceIdentifications.forEach((x) => {
                     let preliminarySourceIdenitfication = this.formBuilder.group<OnlandVisualTrashAssessmentPreliminarySourceIdentificationUpsertDtoForm>({
@@ -149,7 +152,9 @@ export class TrashOvtaReviewAndFinalizeComponent {
                 this.ovtaWorkflowProgressService.updateProgress(this.onlandVisualTrashAssessmentID);
                 if (andContinue) {
                     this.router.navigate([`/trash/onland-visual-trash-assessments/${this.onlandVisualTrashAssessmentID}`]);
+                    return;
                 }
+                this.alertAnchor?.nativeElement.scrollIntoView({ behavior: "smooth", block: "start" });
             });
     }
 }
@@ -164,6 +169,7 @@ export class OnlandVisualTrashAssessmentReviewAndFinalizeDtoCustomForm {
     OnlandVisualTrashAssessmentScoreID: FormControl<number>;
     IsProgressAssessment: FormControl<boolean>;
     Notes: FormControl<string>;
+    SecondAssessorName: FormControl<string>;
     OnlandVisualTrashAssessmentStatusID: FormControl<number>;
     PreliminarySourceIdentifications: FormArray<FormGroup<OnlandVisualTrashAssessmentPreliminarySourceIdentificationUpsertDtoForm>>;
 }

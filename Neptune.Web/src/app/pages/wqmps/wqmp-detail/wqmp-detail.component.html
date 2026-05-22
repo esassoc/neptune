@@ -2,7 +2,7 @@
     <page-header [pageTitle]="wqmp.WaterQualityManagementPlanName" [templateAbove]="templateAbove" [templateRight]="templateRight">
         <ng-template #templateAbove>
             <div class="back">
-                <a [routerLink]="['/water-quality-management-plans']" class="back__link">Back to WQMP Grid</a>
+                <a [routerLink]="['/water-quality-management-plans']" class="back__link"><i class="fa fa-arrow-left"></i> Back to WQMP List</a>
             </div>
         </ng-template>
         <ng-template #templateRight>
@@ -190,7 +190,7 @@
                 <div class="card-body">
                     @if (currentPersonCanEdit) {
                         <div class="mb-3" style="display: flex; justify-content: flex-end; gap: 0.5rem">
-                            <a class="btn btn-primary-outline" [routerLink]="['/water-quality-management-plans', waterQualityManagementPlanID, 'edit-parcels']">Add Parcels</a>
+                            <a class="btn btn-primary-outline" [routerLink]="['/water-quality-management-plans', waterQualityManagementPlanID, 'edit-parcels']">Edit Parcels</a>
                             <a class="btn btn-primary-outline" [class.disabled]="!wqmp.WaterQualityManagementPlanBoundaryBBox"
                                 [routerLink]="wqmp.WaterQualityManagementPlanBoundaryBBox ? ['/water-quality-management-plans', waterQualityManagementPlanID, 'edit-boundary'] : null">Refine Area</a>
                         </div>
@@ -390,7 +390,7 @@
                                 @for (doc of docGroup.documents; track doc.WaterQualityManagementPlanDocumentID) {
                                     <div class="document-entry">
                                         @if (doc.FileResource?.FileResourceGUID) {
-                                            <a [href]="apiBaseUrl + '/file-resources/' + doc.FileResource.FileResourceGUID" target="_blank">
+                                            <a [href]="fileResourceUrl(doc.FileResource.FileResourceGUID)" target="_blank">
                                                 {{ doc.DisplayName }} <i class="fa fa-download"></i>
                                             </a>
                                         } @else {

@@ -14,6 +14,7 @@ export class TreatmentBMPObservationDto {
     TreatmentBMPObservationID?: number;
     TreatmentBMPAssessmentObservationTypeID?: number;
     ObservationData?: string | null;
+    ObservationScore?: string | null;
     constructor(obj?: any) {
         Object.assign(this, obj);
     }
@@ -23,6 +24,7 @@ export interface TreatmentBMPObservationDtoForm {
     TreatmentBMPObservationID?: FormControl<number>;
     TreatmentBMPAssessmentObservationTypeID?: FormControl<number>;
     ObservationData?: FormControl<string>;
+    ObservationScore?: FormControl<string>;
 }
 
 export class TreatmentBMPObservationDtoFormControls { 
@@ -47,6 +49,16 @@ export class TreatmentBMPObservationDtoFormControls {
         }
     );
     public static ObservationData = (value: FormControlState<string> | string = undefined, formControlOptions?: FormControlOptions | null) => new FormControl<string>(
+        value,
+        formControlOptions ?? 
+        {
+            nonNullable: false,
+            validators: 
+            [
+            ],
+        }
+    );
+    public static ObservationScore = (value: FormControlState<string> | string = undefined, formControlOptions?: FormControlOptions | null) => new FormControl<string>(
         value,
         formControlOptions ?? 
         {

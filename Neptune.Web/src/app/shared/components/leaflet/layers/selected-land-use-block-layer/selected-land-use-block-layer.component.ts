@@ -4,7 +4,7 @@ import { MapLayerBase } from "../map-layer-base.component";
 
 import { WfsService } from "src/app/shared/services/wfs.service";
 import { GroupByPipe } from "src/app/shared/pipes/group-by.pipe";
-import { PriorityLandUseTypeEnum, PriorityLandUseTypes } from "src/app/shared/generated/enum/priority-land-use-type-enum";
+import { PriorityLandUseTypeEnum } from "src/app/shared/generated/enum/priority-land-use-type-enum";
 import { finalize } from "rxjs";
 
 @Component({
@@ -14,14 +14,23 @@ import { finalize } from "rxjs";
     styleUrl: "./selected-land-use-block-layer.component.scss",
 })
 export class SelectedLandUseBlockLayerComponent extends MapLayerBase implements OnChanges, AfterViewInit {
-    @Input() selectedLandUseBlockID: number;
+    /** IDs to highlight as selected. Pass [] for none, [id] for single-select callers. */
+    @Input() selectedLandUseBlockIDs: number[] = [];
+    /** When set, restricts the WFS fetch to a single jurisdiction. Omit to render all blocks. */
+    @Input() stormwaterJurisdictionID?: number;
+    /** Single-select callers (e.g. the LUB index page) want the map to fit-bounds on each
+     * external selection change. Multi-select callers (Select Assessment Area) opt out. */
+    @Input() zoomToSelectionOnChange: boolean = false;
 
     @Output() layerBoundsCalculated = new EventEmitter();
-    @Output() landUseBlockSelected = new EventEmitter<number>();
+    @Output() landUseBlockClicked = new EventEmitter<number>();
 
     public isLoading: boolean = false;
-    public landUseBlockSelectedWithinLayer: boolean = false;
     public layer: L.FeatureGroup;
+
+    /** Set true between an in-layer click and the parent's input write-back, so the
+     * write-back's ngOnChanges doesn't trigger a re-zoom or re-style of work we already did. */
+    private clickedWithinLayer: boolean = false;
 
     private styleDictionary = {
         [PriorityLandUseTypeEnum.Commercial]: {
@@ -83,14 +92,25 @@ export class SelectedLandUseBlockLayerComponent extends MapLayerBase implements 
     }
 
     ngOnChanges(changes: any): void {
-        if (changes.selectedLandUseBlockID) {
-            if (this.landUseBlockSelectedWithinLayer) {
-                this.landUseBlockSelectedWithinLayer = false;
+        if (changes.stormwaterJurisdictionID && !changes.stormwaterJurisdictionID.firstChange) {
+            // Jurisdiction changed mid-flight — re-fetch the feature set.
+            this.updateLayer();
+            return;
+        }
+        if (changes.selectedLandUseBlockIDs) {
+            if (this.clickedWithinLayer) {
+                this.clickedWithinLayer = false;
+                this.applySelectionStyle();
                 return;
             }
-            if (changes.selectedLandUseBlockID.previousValue == changes.selectedLandUseBlockID.currentValue) return;
-            this.selectedLandUseBlockID = changes.selectedLandUseBlockID.currentValue;
-            this.highlightSelectedLandUseBlock(true);
+            if (changes.selectedLandUseBlockIDs.firstChange) {
+                // Initial value flows through ngAfterViewInit's updateLayer instead.
+                return;
+            }
+            this.applySelectionStyle();
+            if (this.zoomToSelectionOnChange) {
+                this.zoomToSelection();
+            }
         } else if (Object.values(changes).some((x: SimpleChange) => x.firstChange === false)) {
             this.updateLayer();
         }
@@ -108,7 +128,9 @@ export class SelectedLandUseBlockLayerComponent extends MapLayerBase implements 
     }
 
     private addLandUseBlocksToLayer() {
-        let cql_filter = ``;
+        const cql_filter = this.stormwaterJurisdictionID
+            ? `StormwaterJurisdictionID = ${this.stormwaterJurisdictionID}`
+            : ``;
 
         const request$ = this.wfsService.getGeoserverWFSLayerWithCQLFilter("OCStormwater:LandUseBlocks", cql_filter, "LandUseBlockID");
         const tracked$ = this.trackLayerRequest$(request$);
@@ -120,56 +142,75 @@ export class SelectedLandUseBlockLayerComponent extends MapLayerBase implements 
             const featuresGroupedByLandUseBlockID = this.groupByPipe.transform(response, "properties.LandUseBlockID");
 
             Object.keys(featuresGroupedByLandUseBlockID).forEach((landUseBlockID) => {
-                const geoJson = L.geoJSON(featuresGroupedByLandUseBlockID[landUseBlockID], {
-                    style: this.styleDictionary[featuresGroupedByLandUseBlockID[landUseBlockID][0].properties.PriorityLandUseTypeID],
-                });
-                geoJson.on("mouseover", (e) => {
+                const idAsNumber = Number(landUseBlockID);
+                const features = featuresGroupedByLandUseBlockID[landUseBlockID];
+                const isSelected = this.selectedLandUseBlockIDs.includes(idAsNumber);
+                const baseStyle = isSelected ? this.highlightStyle : this.styleDictionary[features[0].properties.PriorityLandUseTypeID];
+                const geoJson = L.geoJSON(features, { style: baseStyle });
+                geoJson.on("mouseover", () => {
                     geoJson.setStyle({ fillOpacity: 0.75 });
                 });
-                geoJson.on("mouseout", (e) => {
+                geoJson.on("mouseout", () => {
                     geoJson.setStyle({ fillOpacity: 0.5 });
                 });
 
-                geoJson.on("click", (e) => {
-                    this.onLandUseBlockSelected(Number(landUseBlockID));
+                geoJson.on("click", () => {
+                    this.onLandUseBlockClicked(idAsNumber);
                 });
 
                 geoJson.addTo(this.layer);
             });
+
+            if (this.zoomToSelectionOnChange) {
+                this.zoomToSelection();
+            }
         });
     }
 
-    private onLandUseBlockSelected(landUseBlockID: number) {
-        if (landUseBlockID == this.selectedLandUseBlockID) {
-            return;
-        }
-        this.selectedLandUseBlockID = landUseBlockID;
-        this.landUseBlockSelectedWithinLayer = true;
-        this.highlightSelectedLandUseBlock();
-
-        this.landUseBlockSelected.emit(landUseBlockID);
+    private onLandUseBlockClicked(landUseBlockID: number) {
+        this.clickedWithinLayer = true;
+        this.landUseBlockClicked.emit(landUseBlockID);
     }
 
-    private highlightSelectedLandUseBlock(zoomToFeature: boolean = false) {
+    /** Re-apply category vs highlight style to every rendered feature based on the current
+     * selectedLandUseBlockIDs array. Cheap; iterates only what's already on the map. */
+    private applySelectionStyle() {
         this.layer.eachLayer((layer) => {
-            // skip if well layer
             if (layer instanceof L.Marker && layer.options.icon) {
-                // layer has an icon
                 return;
             }
 
             if (layer instanceof L.GeoJSON) {
                 const geoJsonLayers = layer.getLayers() as (L.Path & { feature?: GeoJSON.Feature })[];
-                if (geoJsonLayers[0].feature.properties.LandUseBlockID == this.selectedLandUseBlockID) {
+                const feature = geoJsonLayers[0].feature;
+                if (!feature) return;
+                const id = feature.properties.LandUseBlockID;
+                if (this.selectedLandUseBlockIDs.includes(id)) {
                     layer.setStyle(this.highlightStyle);
-                    if (zoomToFeature) {
-                        this.map.fitBounds(layer.getBounds());
-                    }
                 } else {
-                    layer.setStyle(this.styleDictionary[geoJsonLayers[0].feature.properties.PriorityLandUseTypeID]);
+                    layer.setStyle(this.styleDictionary[feature.properties.PriorityLandUseTypeID]);
                 }
             }
         });
+    }
+
+    private zoomToSelection() {
+        if (!this.selectedLandUseBlockIDs.length) return;
+        let combinedBounds: L.LatLngBounds | null = null;
+        this.layer.eachLayer((layer) => {
+            if (layer instanceof L.GeoJSON) {
+                const geoJsonLayers = layer.getLayers() as (L.Path & { feature?: GeoJSON.Feature })[];
+                const feature = geoJsonLayers[0].feature;
+                if (!feature) return;
+                if (this.selectedLandUseBlockIDs.includes(feature.properties.LandUseBlockID)) {
+                    const bounds = layer.getBounds();
+                    combinedBounds = combinedBounds ? combinedBounds.extend(bounds) : bounds;
+                }
+            }
+        });
+        if (combinedBounds) {
+            this.map.fitBounds(combinedBounds);
+        }
     }
 
     private setupLayer() {

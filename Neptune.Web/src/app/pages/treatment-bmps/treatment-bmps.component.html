@@ -1,4 +1,7 @@
-<page-header pageTitle="All Treatment BMPs" [customRichTextTypeID]="customRichTextTypeID"></page-header>
+<page-header pageTitle="All Treatment BMPs" [customRichTextTypeID]="customRichTextTypeID" [templateRight]="headerActions"></page-header>
+<ng-template #headerActions>
+    <button class="btn btn-primary btn-sm" [routerLink]="['/treatment-bmps/new']" type="button">+ Create New Treatment BMP</button>
+</ng-template>
 
 <app-alert-display></app-alert-display>
 
@@ -13,8 +16,5 @@
         [selectionFromMap]="selectionFromMap"
         (selectedValueChange)="onSelectedTreatmentBMPChangedFromGrid($event)"
         [boundingBox]="boundingBox$ | async">
-        <div headerActions>
-            <button class="btn btn-primary btn-sm" [routerLink]="['/treatment-bmps/new']" type="button">+ Create New Treatment BMP</button>
-        </div>
     </hybrid-map-grid>
 </div>

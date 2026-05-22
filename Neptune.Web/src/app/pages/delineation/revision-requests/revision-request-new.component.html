@@ -1,0 +1,59 @@
+<page-header pageTitle="New Regional Subbasin Revision Request">
+  <a class="back-link" [routerLink]="['/delineation', 'delineation-map']" [queryParams]="{ treatmentBMPID: treatmentBMP()?.TreatmentBMPID }">&laquo; Back to Delineation Map</a>
+</page-header>
+
+<section class="content-section">
+  <app-alert-display></app-alert-display>
+
+  <p class="instructions">
+    This interactive map enables users to propose changes to the Regional Subbasins network in order to refine Centralized BMP delineations. After a revision request is
+    submitted OC Survey will be notified and respond to the request. Drag the vertices on the map to identify the requested revisions to the delineation and then press
+    Submit to request a revision.
+  </p>
+
+  <div class="grid-12">
+    <div class="g-col-8">
+      <neptune-map (onMapLoad)="handleMapReady($event)" [mapHeight]="mapHeight" [showLegend]="true">
+        @if (mapIsReady) {
+          <regional-subbasins-layer [mode]="OverlayMode.ReferenceOnly" [map]="map" [layerControl]="layerControl" [sortOrder]="10"></regional-subbasins-layer>
+          <stormwater-network-layer [displayOnLoad]="false" [map]="map" [layerControl]="layerControl" [sortOrder]="20"></stormwater-network-layer>
+          <jurisdictions-layer [mode]="OverlayMode.ReferenceOnly" [displayOnLoad]="true" [map]="map" [layerControl]="layerControl" [sortOrder]="30"></jurisdictions-layer>
+        }
+      </neptune-map>
+      @if (initData$ | async) {}
+    </div>
+
+    <div class="g-col-4 side-panel">
+      @let bmp = treatmentBMP();
+      @if (bmp) {
+        <div class="card">
+          <div class="card-header">
+            <h3 class="card-title">BMP</h3>
+          </div>
+          <div class="card-body">
+            <dl class="kv">
+              <dt>Name</dt>
+              <dd>{{ bmp.TreatmentBMPName }}</dd>
+              <dt>Type</dt>
+              <dd>{{ bmp.TreatmentBMPTypeName }}</dd>
+            </dl>
+          </div>
+        </div>
+      }
+
+      <div class="card notes-card">
+        <div class="card-header">
+          <h3 class="card-title">Request Details</h3>
+        </div>
+        <div class="card-body">
+          <form-field [formControl]="notesControl" [type]="FormFieldType.Textarea" fieldLabel="Notes"></form-field>
+        </div>
+      </div>
+
+      <div class="actions">
+        <button type="button" class="btn btn-primary" [disabled]="saving$ | async" (click)="submit()">Submit</button>
+        <button type="button" class="btn btn-secondary" (click)="cancel()">Cancel</button>
+      </div>
+    </div>
+  </div>
+</section>

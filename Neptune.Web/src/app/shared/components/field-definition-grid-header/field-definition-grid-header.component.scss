@@ -6,6 +6,10 @@
 
 .custom-header-label {
     // margin-left: 5px;
+
+    ::ng-deep .fa-question-circle {
+        color: $white;
+    }
 }
 
 .filter-indicator {

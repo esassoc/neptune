@@ -1,41 +1,47 @@
 <page-header pageTitle="Add or Remove Parcels" [templateAbove]="templateAbove">
     <ng-template #templateAbove>
         <div class="back">
-            <a [routerLink]="['/water-quality-management-plans', waterQualityManagementPlanID]" class="back__link">Back to WQMP Detail</a>
+            <a [routerLink]="['/water-quality-management-plans', waterQualityManagementPlanID]" class="back__link"><i class="fa fa-arrow-left"></i> Back to WQMP</a>
         </div>
     </ng-template>
+    <div class="copy copy-2">
+        Click the map or search by APN/address to add parcels to the WQMP. Click a highlighted parcel on the map to remove it.
+    </div>
 </page-header>
 
 <app-alert-display></app-alert-display>
 
 @if (loaded$ | async) {
     <div class="page-body">
-        <div class="copy copy-2 mb-3">
-            Click the map or search by APN/address to add parcels to the WQMP. Click a highlighted parcel on the map to remove it.
-        </div>
-
         <div class="grid-12">
             <!-- Left panel: Search + selected parcels list -->
             <div class="g-col-4">
-                <div class="search-wrapper mb-3">
-                    <form-field
-                        placeholder="Search by APN or Address"
-                        [formControl]="searchControl"
-                        (blur)="hideSearchResults()">
-                    </form-field>
+                <div class="search-row mb-3">
+                    <div class="search-wrapper">
+                        <form-field
+                            size="md"
+                            fieldLabel="Add Parcels"
+                            placeholder="Search by APN or Address"
+                            [formControl]="searchControl"
+                            (blur)="hideSearchResults()">
+                        </form-field>
 
-                    @if (showSearchResults) {
-                        <div class="search-results">
-                            @for (result of searchResults; track result.ParcelID) {
-                                <button class="search-results__item" (mousedown)="selectSearchResult(result)">
-                                    <span class="search-results__apn">{{ result.ParcelNumber }}</span>
-                                    @if (result.ParcelAddress) {
-                                        <span class="search-results__address">{{ result.ParcelAddress }}</span>
-                                    }
-                                </button>
-                            }
-                        </div>
-                    }
+                        @if (showSearchResults()) {
+                            <div class="search-results">
+                                @for (result of searchResults(); track result.ParcelID) {
+                                    <button class="search-results__item" (mousedown)="pickSearchResult(result)">
+                                        <span class="search-results__apn">{{ result.ParcelNumber }}</span>
+                                        @if (result.ParcelAddress) {
+                                            <span class="search-results__address">{{ result.ParcelAddress }}</span>
+                                        }
+                                    </button>
+                                }
+                            </div>
+                        }
+                    </div>
+                    <button type="button" class="btn btn-primary search-add" (click)="addPickedParcel()" [disabled]="!pickedParcel()">
+                        <i class="fa fa-plus"></i> Add
+                    </button>
                 </div>
 
                 <div class="parcel-list">
@@ -49,9 +55,6 @@
                                 <span class="parcel-list__address">{{ parcel.ParcelAddress }}</span>
                             }
                         </div>
-                    }
-                    @if (!selectedParcelRows().length) {
-                        <p class="system-text p-2">No parcels selected.</p>
                     }
                 </div>
             </div>
@@ -69,7 +72,7 @@
     </div>
 
     <div class="page-footer">
-        <button class="btn btn-primary mr-2" (click)="save()" [disabled]="isLoadingSubmit">Save</button>
+        <button class="btn btn-primary" (click)="save()" [disabled]="isLoadingSubmit">Save</button>
         <button class="btn btn-secondary-outline" (click)="cancel()">Cancel</button>
     </div>
 }

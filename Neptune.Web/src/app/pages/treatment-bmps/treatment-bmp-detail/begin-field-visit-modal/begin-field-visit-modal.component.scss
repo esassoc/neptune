@@ -4,3 +4,34 @@
     min-width: 28rem;
     max-width: 100%;
 }
+
+// NPT-984: the Action radio renders "Continue the in-progress visit" alongside
+// "Start a new visit (the in-progress visit will be marked Unresolved)". With the
+// default flex-row layout from form-field, the second label wraps awkwardly and the
+// in-progress option's text wraps mid-word. Stack the options vertically here.
+//
+// Two layers to undo:
+//   1. `.field--md .radio-options` sets a fixed height and `align-items: center` for
+//      the row layout — we need column + flex-start + auto height.
+//   2. form-field's `:host, .field { height: 100% }` collapses the host to its
+//      grid track's measured height, so when the radio-options overflow downward
+//      the next grid row still starts at the original cell boundary (Visit Date
+//      label ends up on top of the second radio). Let the radio form-field host
+//      and its inner .field both size to actual content so the grid track grows
+//      with the stacked radios.
+:host ::ng-deep form-field.action-radio {
+    height: auto;
+    .field,
+    .field.field--md,
+    .field.field--sm {
+        height: auto;
+    }
+    .radio-options,
+    .field--md .radio-options,
+    .field--sm .radio-options {
+        flex-direction: column;
+        align-items: flex-start;
+        height: auto;
+        gap: $spacing-200;
+    }
+}

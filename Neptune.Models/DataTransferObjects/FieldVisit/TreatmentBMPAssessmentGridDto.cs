@@ -21,5 +21,12 @@ public class TreatmentBMPAssessmentGridDto
     public string? TreatmentBMPAssessmentTypeDisplayName { get; set; }
     public bool IsAssessmentComplete { get; set; }
     public double? AssessmentScore { get; set; }
+    public bool IsFieldVisitVerified { get; set; }
     public string Status => IsAssessmentComplete ? "Complete" : "In Progress";
+
+    // NPT-984: comma-separated list of failure notes from the assessment's PassFail
+    // observations whose recorded value was false. Mirrors the legacy MVC
+    // `TreatmentBMPController.TreatmentBMPAssessmentSummaryGridJsonData` "Failure Notes" column.
+    // Per-observation chunks look like "{ObservationTypeName} Failure Notes: {notes or [None provided]}".
+    public string? FailureNotes { get; set; }
 }
