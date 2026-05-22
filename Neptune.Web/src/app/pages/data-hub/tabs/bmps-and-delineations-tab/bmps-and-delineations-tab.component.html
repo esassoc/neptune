@@ -1,0 +1,42 @@
+<div class="tab-body">
+    <div class="tab-main">
+        <h3>Treatment BMPs</h3>
+        <custom-rich-text [customRichTextTypeID]="NeptunePageTypeEnum.BMPDataHub"></custom-rich-text>
+        <data-hub-action-button
+            label="Upload"
+            icon="upload"
+            [routerLink]="['/data-hub', 'treatment-bmp-upload']"
+            [disabled]="!isAdmin()"
+            [disabledTooltip]="adminOnlyTooltip"
+        ></data-hub-action-button>
+        <data-hub-action-button label="Download" icon="download" [routerLink]="['/data-hub', 'treatment-bmp-download']"></data-hub-action-button>
+
+        <h3>Delineations</h3>
+        <custom-rich-text [customRichTextTypeID]="NeptunePageTypeEnum.DelineationDataHub"></custom-rich-text>
+        <data-hub-action-button
+            label="Upload"
+            icon="upload"
+            [routerLink]="['/delineation', 'gdb-upload']"
+            [disabled]="!isAdminOrEditor()"
+            [disabledTooltip]="managerEditorTooltip"
+        ></data-hub-action-button>
+        <data-hub-action-button
+            label="Download"
+            icon="download"
+            [routerLink]="['/delineation', 'gdb-download']"
+            [disabled]="!isAdminOrEditor()"
+            [disabledTooltip]="managerEditorTooltip"
+        ></data-hub-action-button>
+
+        <h3>Trash Screen Field Visits</h3>
+        <custom-rich-text [customRichTextTypeID]="NeptunePageTypeEnum.FieldVisitDataHub"></custom-rich-text>
+        <data-hub-action-button
+            label="Upload"
+            icon="upload"
+            [routerLink]="['/data-hub', 'trash-screen-field-visit-upload']"
+            [disabled]="!isAdminOrEditor()"
+            [disabledTooltip]="managerEditorTooltip"
+        ></data-hub-action-button>
+    </div>
+    <data-hub-quick-links tab="bmps"></data-hub-quick-links>
+</div>

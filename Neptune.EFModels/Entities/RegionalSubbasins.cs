@@ -106,6 +106,11 @@ public static class RegionalSubbasins
         return true;
     }
 
+    public static async Task<DateTime?> GetLatestUpdateAsync(NeptuneDbContext dbContext)
+    {
+        return await dbContext.RegionalSubbasins.AsNoTracking().MaxAsync(x => x.LastUpdate);
+    }
+
     public static RegionalSubbasin GetFirstByContainsGeometry(NeptuneDbContext dbContext, Geometry dBGeometry)
     {
         return dbContext.RegionalSubbasins.SingleOrDefault(x => x.CatchmentGeometry.Contains(dBGeometry));

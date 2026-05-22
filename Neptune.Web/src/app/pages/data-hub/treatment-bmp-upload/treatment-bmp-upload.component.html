@@ -1,0 +1,40 @@
+<page-header pageTitle="Upload Treatment BMPs">
+    <a class="back-link" [routerLink]="['/data-hub']" [queryParams]="{ tab: 'bmps' }">&laquo; Back to Data Hub</a>
+</page-header>
+
+<section class="content-section">
+    <app-alert-display></app-alert-display>
+
+    <div class="grid-12">
+        <div class="g-col-6 instructions">
+            <custom-rich-text [customRichTextTypeID]="NeptunePageTypeEnum.UploadTreatmentBMPs"></custom-rich-text>
+        </div>
+        <div class="g-col-6">
+            @if (bmpTypeOptions$ | async; as opts) {
+                <form-field fieldLabel="Treatment BMP Type" [type]="FormFieldType.Select" [formControl]="bmpTypeControl" [formInputOptions]="opts" placeholder="Select a type"></form-field>
+            }
+            <form-field fieldLabel="CSV File" [type]="FormFieldType.File" [formControl]="fileControl" uploadFileAccepts=".csv" (change)="onFileChange($event)"></form-field>
+
+            @if (errors().length > 0) {
+                <div class="alert alert-danger upload-errors">
+                    <strong>Upload could not be completed:</strong>
+                    <ul>
+                        @for (err of errors(); track $index) {
+                            <li>{{ err }}</li>
+                        }
+                    </ul>
+                </div>
+            }
+
+            @if (successMessage()) {
+                <div class="alert alert-success">{{ successMessage() }}</div>
+            }
+
+            <div class="actions">
+                <button type="button" class="btn btn-primary" [disabled]="isUploading() || fileControl.invalid || bmpTypeControl.invalid" (click)="submit()">
+                    @if (isUploading()) { <i class="fa fa-spinner fa-spin"></i> Uploading... } @else { <i class="fa fa-upload"></i> Upload }
+                </button>
+            </div>
+        </div>
+    </div>
+</section>

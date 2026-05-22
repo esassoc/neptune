@@ -1,6 +1,7 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
+using Hangfire;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Logging;
@@ -9,6 +10,7 @@ using Microsoft.Net.Http.Headers;
 using Neptune.API.Services;
 using Neptune.API.Services.Authorization;
 using Neptune.EFModels.Entities;
+using Neptune.Jobs.Services;
 using Neptune.Models.DataTransferObjects;
 
 namespace Neptune.API.Controllers
@@ -72,6 +74,14 @@ namespace Neptune.API.Controllers
 
             var results = Parcels.LookupByParcelNumbers(DbContext, parcelNumbers);
             return Ok(results);
+        }
+
+        [HttpPost("enqueue-refresh")]
+        [AdminFeature]
+        public IActionResult EnqueueRefresh()
+        {
+            BackgroundJob.Enqueue<OCGISService>(x => x.RefreshParcels());
+            return Ok("Parcels refresh has been queued.");
         }
     }
 }

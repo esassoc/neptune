@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Net.Mail;
 using System.Threading;
 using System.Threading.Tasks;
 using Anthropic.Exceptions;
@@ -15,10 +16,13 @@ using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using Neptune.API.Common;
 using Neptune.API.Services;
+using Neptune.API.Services.AI;
 using Neptune.API.Services.Attributes;
 using Neptune.API.Services.Authorization;
+using Neptune.Common;
+using Neptune.Common.Email;
+using Neptune.Common.GeoSpatial;
 using Neptune.EFModels.Entities;
-using Neptune.API.Services.AI;
 using Neptune.EFModels.Nereid;
 using Neptune.Jobs.Hangfire;
 using Neptune.Models.DataTransferObjects;
@@ -32,7 +36,8 @@ namespace Neptune.API.Controllers
         ILogger<WaterQualityManagementPlanController> logger,
         IOptions<NeptuneConfiguration> neptuneConfiguration,
         AzureBlobStorageService azureBlobStorageService,
-        WqmpExtractionService wqmpExtractionService)
+        WqmpExtractionService wqmpExtractionService,
+        SitkaSmtpClientService sitkaSmtpClientService)
         : SitkaController<WaterQualityManagementPlanController>(dbContext, logger,
             neptuneConfiguration)
     {
@@ -906,6 +911,165 @@ namespace Neptune.API.Controllers
                 await transaction.RollbackAsync();
                 return BadRequest(ex.Message);
             }
+        }
+
+        [HttpPost("bulk-upload-xlsx")]
+        [JurisdictionEditFeature]
+        [RequestSizeLimit(100_000_000)]
+        [RequestFormLimits(MultipartBodyLengthLimit = 100_000_000)]
+        [Consumes("multipart/form-data")]
+        public async Task<ActionResult<WqmpBulkUploadResultDto>> BulkUploadXlsx([FromForm] WQMPBulkUploadFormDto form)
+        {
+            var result = new WqmpBulkUploadResultDto();
+            if (form.File == null || form.File.Length == 0)
+            {
+                result.Errors.Add("Please select an XLSX file to upload.");
+                return Ok(result);
+            }
+
+            await using var stream = form.File.OpenReadStream();
+            System.Data.DataTable dataTable;
+            try
+            {
+                dataTable = ExcelHelper.GetDataTableFromExcel(stream, "WQMP");
+            }
+            catch (Exception)
+            {
+                result.Errors.Add("Unexpected error parsing Excel Spreadsheet upload. Make sure the file matches the provided template and try again.");
+                return Ok(result);
+            }
+
+            var wqmps = WQMPXSLXParserHelper.ParseWQMPRowsFromXLSX(DbContext, dataTable, form.StormwaterJurisdictionID, out var errorList);
+            if (errorList.Any())
+            {
+                result.Errors = errorList;
+                return Ok(result);
+            }
+
+            var added = wqmps.Where(x => x.WaterQualityManagementPlanID <= 0).ToList();
+            var updated = wqmps.Where(x => x.WaterQualityManagementPlanID > 0).ToList();
+            await DbContext.WaterQualityManagementPlans.AddRangeAsync(added);
+            await DbContext.SaveChangesAsync();
+
+            result.AddedCount = added.Count;
+            result.UpdatedCount = updated.Count;
+            return Ok(result);
+        }
+
+        [HttpPost("upload-simplified-bmps")]
+        [JurisdictionEditFeature]
+        [RequestSizeLimit(100_000_000)]
+        [RequestFormLimits(MultipartBodyLengthLimit = 100_000_000)]
+        [Consumes("multipart/form-data")]
+        public async Task<ActionResult<WqmpBulkUploadResultDto>> UploadSimplifiedBMPs([FromForm] WQMPBulkUploadFormDto form)
+        {
+            var result = new WqmpBulkUploadResultDto();
+            if (form.File == null || form.File.Length == 0)
+            {
+                result.Errors.Add("Please select an XLSX file to upload.");
+                return Ok(result);
+            }
+
+            await using var stream = form.File.OpenReadStream();
+            System.Data.DataTable dataTable;
+            try
+            {
+                dataTable = ExcelHelper.GetDataTableFromExcel(stream, "BMP");
+            }
+            catch (Exception)
+            {
+                result.Errors.Add("Unexpected error parsing Excel Spreadsheet upload. Make sure the file matches the provided template and try again.");
+                return Ok(result);
+            }
+
+            var quickBMPs = SimplifiedBMPsExcelParserHelper.ParseWQMPRowsFromXLSX(DbContext, form.StormwaterJurisdictionID, dataTable, out var errorList);
+            if (errorList.Any())
+            {
+                result.Errors = errorList;
+                return Ok(result);
+            }
+
+            var added = quickBMPs.Where(x => x.QuickBMPID <= 0).ToList();
+            var updated = quickBMPs.Where(x => x.QuickBMPID > 0).ToList();
+            await DbContext.QuickBMPs.AddRangeAsync(added);
+            await DbContext.SaveChangesAsync();
+
+            result.AddedCount = added.Count;
+            result.UpdatedCount = updated.Count;
+            return Ok(result);
+        }
+
+        [HttpPost("upload-boundary-from-apns")]
+        [JurisdictionEditFeature]
+        [RequestSizeLimit(100_000_000)]
+        [RequestFormLimits(MultipartBodyLengthLimit = 100_000_000)]
+        [Consumes("multipart/form-data")]
+        public async Task<ActionResult<WQMPBoundaryUploadResultDto>> UploadBoundaryFromAPNs([FromForm] WQMPBulkUploadFormDto form)
+        {
+            var result = new WQMPBoundaryUploadResultDto();
+            if (form.File == null || form.File.Length == 0)
+            {
+                result.Errors.Add("Please select a CSV file to upload.");
+                return Ok(result);
+            }
+
+            await using var stream = form.File.OpenReadStream();
+            var wqmpBoundaries = WQMPAPNsCsvParserHelper.CSVUpload(DbContext, stream, form.StormwaterJurisdictionID,
+                out var errorList, out var missingApnList, out var oldBoundaries);
+
+            if (errorList.Any())
+            {
+                result.Errors = errorList;
+                result.MissingApns = missingApnList;
+                return Ok(result);
+            }
+
+            var added = wqmpBoundaries.Where(x => x.WaterQualityManagementPlanGeometryID <= 0).ToList();
+            var updated = wqmpBoundaries.Where(x => x.WaterQualityManagementPlanGeometryID > 0).ToList();
+            await DbContext.WaterQualityManagementPlanBoundaries.AddRangeAsync(added);
+            await DbContext.SaveChangesAsync();
+
+            // Queue LGU refresh for the union of old + new boundary geometries.
+            var newBoundaryArea = wqmpBoundaries.Select(x => x.GeometryNative).ToList().UnionListGeometries();
+            var oldBoundaryArea = oldBoundaries.UnionListGeometries();
+            if (!(oldBoundaryArea == null && newBoundaryArea == null))
+            {
+                await ModelingEngineUtilities.QueueLGURefreshForArea(oldBoundaryArea, newBoundaryArea, DbContext);
+            }
+
+            // Mark each WQMP dirty so the next network solve picks them up.
+            var dirtyModelNodes = wqmpBoundaries.Select(b => new DirtyModelNode
+            {
+                CreateDate = DateTime.UtcNow,
+                WaterQualityManagementPlanID = b.WaterQualityManagementPlanID,
+            }).ToList();
+            await DbContext.DirtyModelNodes.AddRangeAsync(dirtyModelNodes);
+            await DbContext.SaveChangesAsync();
+
+            // Email the caller a confirmation, mirroring the legacy controller. Any missing APNs
+            // are surfaced both inline (via MissingApns on the response) and in the email body.
+            var stormwaterJurisdictionDisplay = DbContext.StormwaterJurisdictions.Include(x => x.Organization)
+                .Single(x => x.StormwaterJurisdictionID == form.StormwaterJurisdictionID)
+                .GetOrganizationDisplayName();
+            var currentPerson = People.GetByID(DbContext, CallingUser.PersonID);
+            var missingApnMailMessage = missingApnList.Count > 0
+                ? $@"<br /><br /><div>The following APNs were not found in the system: {string.Join(", ", missingApnList.Distinct().OrderBy(x => x))}</div>"
+                : string.Empty;
+            var body = $@"<div>The WQMP Boundaries for Stormwater Jurisdiction {stormwaterJurisdictionDisplay} were successfully updated from the parcel geometries of the provided valid APNs.{missingApnMailMessage}</div>";
+            var mailMessage = new MailMessage
+            {
+                Subject = "WQMP Boundary Upload from APN List",
+                Body = body,
+                IsBodyHtml = true,
+                From = new MailAddress(NeptuneConfiguration.DoNotReplyEmail, "Orange County Stormwater Tools"),
+            };
+            mailMessage.To.Add(currentPerson.Email);
+            await sitkaSmtpClientService.Send(mailMessage);
+
+            result.AddedCount = added.Count;
+            result.UpdatedCount = updated.Count;
+            result.MissingApns = missingApnList;
+            return Ok(result);
         }
 
         [HttpGet("annual-report/options")]

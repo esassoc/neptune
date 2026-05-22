@@ -865,7 +865,85 @@ export const routes: Routes = [
                 canActivate: [JurisdictionManagerOrEditorOnlyGuard],
             },
             // Data Hub
-            { path: "data-hub", title: "Data Hub", loadComponent: () => import("./pages/data-hub/data-hub.component").then((m) => m.DataHubComponent) },
+            {
+                path: "data-hub",
+                title: "Data Hub",
+                loadComponent: () => import("./pages/data-hub/data-hub.component").then((m) => m.DataHubComponent),
+                canActivate: [JurisdictionManagerOrEditorOnlyGuard],
+            },
+            {
+                path: "data-hub/treatment-bmp-upload",
+                title: "Upload Treatment BMPs",
+                loadComponent: () => import("./pages/data-hub/treatment-bmp-upload/treatment-bmp-upload.component").then((m) => m.TreatmentBMPUploadComponent),
+                canActivate: [ManagerOnlyGuard],
+            },
+            {
+                path: "data-hub/treatment-bmp-download",
+                title: "Download Treatment BMPs",
+                loadComponent: () => import("./pages/data-hub/treatment-bmp-download/treatment-bmp-download.component").then((m) => m.TreatmentBMPDownloadComponent),
+                canActivate: [JurisdictionManagerOrEditorOnlyGuard],
+            },
+            {
+                path: "data-hub/trash-screen-field-visit-upload",
+                title: "Upload Trash Screen Field Visits",
+                loadComponent: () =>
+                    import("./pages/data-hub/trash-screen-field-visit-upload/trash-screen-field-visit-upload.component").then((m) => m.TrashScreenFieldVisitUploadComponent),
+                canActivate: [JurisdictionManagerOrEditorOnlyGuard],
+            },
+            {
+                path: "data-hub/wqmp-upload",
+                title: "Upload Water Quality Management Plans",
+                loadComponent: () => import("./pages/data-hub/wqmp-upload/wqmp-upload.component").then((m) => m.WqmpUploadComponent),
+                canActivate: [JurisdictionManagerOrEditorOnlyGuard],
+            },
+            {
+                path: "data-hub/simplified-bmp-upload",
+                title: "Upload Simplified BMPs",
+                loadComponent: () => import("./pages/data-hub/simplified-bmp-upload/simplified-bmp-upload.component").then((m) => m.SimplifiedBmpUploadComponent),
+                canActivate: [JurisdictionManagerOrEditorOnlyGuard],
+            },
+            {
+                path: "data-hub/wqmp-locations-upload",
+                title: "Upload WQMP Locations",
+                loadComponent: () => import("./pages/data-hub/wqmp-locations-upload/wqmp-locations-upload.component").then((m) => m.WqmpLocationsUploadComponent),
+                canActivate: [JurisdictionManagerOrEditorOnlyGuard],
+            },
+            {
+                path: "data-hub/ovta-area-upload",
+                title: "Upload OVTA Areas",
+                loadComponent: () => import("./pages/data-hub/ovta-area-upload/ovta-area-upload.component").then((m) => m.OvtaAreaUploadComponent),
+                canActivate: [JurisdictionManagerOrEditorOnlyGuard],
+            },
+            {
+                path: "data-hub/ovta-area-approve",
+                title: "Approve OVTA Areas",
+                loadComponent: () => import("./pages/data-hub/ovta-area-approve/ovta-area-approve.component").then((m) => m.OvtaAreaApproveComponent),
+                canActivate: [JurisdictionManagerOrEditorOnlyGuard],
+            },
+            {
+                path: "data-hub/ovta-area-download",
+                title: "Download OVTA Areas",
+                loadComponent: () => import("./pages/data-hub/ovta-area-download/ovta-area-download.component").then((m) => m.OvtaAreaDownloadComponent),
+                canActivate: [JurisdictionManagerOrEditorOnlyGuard],
+            },
+            {
+                path: "data-hub/ovta-upload",
+                title: "Upload OVTAs",
+                loadComponent: () => import("./pages/data-hub/ovta-upload/ovta-upload.component").then((m) => m.OvtaUploadComponent),
+                canActivate: [JurisdictionManagerOrEditorOnlyGuard],
+            },
+            {
+                path: "data-hub/land-use-block-upload",
+                title: "Upload Land Use Blocks",
+                loadComponent: () => import("./pages/data-hub/land-use-block-upload/land-use-block-upload.component").then((m) => m.LandUseBlockUploadComponent),
+                canActivate: [JurisdictionManagerOrEditorOnlyGuard],
+            },
+            {
+                path: "data-hub/land-use-block-download",
+                title: "Download Land Use Blocks",
+                loadComponent: () => import("./pages/data-hub/land-use-block-download/land-use-block-download.component").then((m) => m.LandUseBlockDownloadComponent),
+                canActivate: [JurisdictionManagerOrEditorOnlyGuard],
+            },
             // Manage
             {
                 path: "manage/homepage-configuration",

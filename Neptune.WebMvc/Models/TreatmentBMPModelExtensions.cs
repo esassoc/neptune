@@ -93,69 +93,6 @@ namespace Neptune.WebMvc.Models
             return featureCollection;
         }
 
-        public static FeatureCollection ToExportGeoJsonFeatureCollection(
-            this IEnumerable<vTreatmentBMPGdbExport> treatmentBMPs)
-        {
-            var featureCollection = new FeatureCollection();
-            foreach (var treatmentBMP in treatmentBMPs)
-            {
-                var attributesTable = AddAllCommonPropertiesToTreatmentBMPFeature(treatmentBMP);
-                var feature = new Feature(treatmentBMP.LocationPoint, attributesTable);
-                featureCollection.Add(feature);
-            }
-            return featureCollection;
-        }
-
-        /// <summary>
-        /// Overload taking a TreatmentBMPType so it can access the Custom Attributes
-        /// </summary>
-        /// <param name="treatmentBMPs"></param>
-        /// <param name="treatmentBMPTypeCustomAttributeTypes"></param>
-        /// <param name="customAttributes"></param>
-        /// <returns></returns>
-        public static FeatureCollection ToExportGeoJsonFeatureCollection(this IEnumerable<vTreatmentBMPGdbExport> treatmentBMPs, ICollection<TreatmentBMPTypeCustomAttributeType> treatmentBMPTypeCustomAttributeTypes, ILookup<int, CustomAttribute> customAttributes)
-        {
-            var featureCollection = new FeatureCollection();
-            foreach (var treatmentBMP in treatmentBMPs)
-            {
-                var attributesTable = AddAllCommonPropertiesToTreatmentBMPFeature(treatmentBMP);
-                var attributes = customAttributes[treatmentBMP.TreatmentBMPID].ToList();
-                foreach (var treatmentBMPTypeCustomAttributeType in treatmentBMPTypeCustomAttributeTypes.OrderBy(x => x.SortOrder))
-                {
-                    attributesTable.Add(treatmentBMPTypeCustomAttributeType.CustomAttributeType.CustomAttributeTypeName.SanitizeStringForGdb(), TreatmentBMP.GetCustomAttributeValueWithUnits(treatmentBMPTypeCustomAttributeType, attributes));
-                }
-                var feature = new Feature(treatmentBMP.LocationPoint, attributesTable);
-                featureCollection.Add(feature);
-            }
-            return featureCollection;
-        }
-
-        private static AttributesTable AddAllCommonPropertiesToTreatmentBMPFeature(vTreatmentBMPGdbExport x)
-        {
-            var attributesTable = new AttributesTable
-            {
-                { "Name", x.TreatmentBMPName },
-                { "Jurisdiction", x.OrganizationName },
-                { "Type", x.TreatmentBMPTypeName },
-                { "Owner", x.OwnerOrganizationName },
-                { "Year_Built", x.YearBuilt },
-                { "ID_in_System_of_Record", x.SystemOfRecordID },
-                { "Water_Quality_Management_Plan", x.WaterQualityManagementPlanName },
-                { "Trash_Capture_Effectiveness", x.TrashCaptureEffectiveness },
-                { "Notes", x.Notes },
-                { "Last_Assessment_Date", x.LatestAssessmentDate },
-                { "Last_Assessed_Score", x.LatestAssessmentScore },
-                // todo: { "Number_of_Assessments", x.TreatmentBMPAssessments.Count },
-                { "Benchmark_and_Threshold_Set", (x.NumberOfBenchmarkAndThresholds > 0).ToYesNo() },
-                { "Required_Lifespan_of_Installation", x.TreatmentBMPLifespanTypeDisplayName ?? "Unknown" },
-                { "Lifespan_End_Date", x.TreatmentBMPLifespanEndDate },
-                { "Required_Field_Visits_Per_Year", x.RequiredFieldVisitsPerYear },
-                { "Required_Post_Storm_Visits_Per_Year", x.RequiredPostStormFieldVisitsPerYear }
-            };
-            return attributesTable;
-        }
-
-
         public static void UpdateUpstreamBMPReferencesIfNecessary(this TreatmentBMP treatmentBMP, NeptuneDbContext dbContext)
         {
             //If this BMP has an Upstream BMP, after the location change, can that Upstream BMP still fulfill its duty?

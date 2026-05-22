@@ -57,6 +57,11 @@ services:
       - OCGISBaseUrl=${OCGISBaseUrl}
       - PlanningModuleBaseUrl=${PlanningModuleBaseUrl}
       - TrashModuleBaseUrl=${TrashModuleBaseUrl}
+      - PathToFieldVisitUploadTemplate=${PathToFieldVisitUploadTemplate}
+      - PathToOVTAUploadTemplate=${PathToOVTAUploadTemplate}
+      - PathToSimplifiedBMPTemplate=${PathToSimplifiedBMPTemplate}
+      - PathToBulkUploadWQMPTemplate=${PathToBulkUploadWQMPTemplate}
+      - PathToUploadWQMPBoundaryTemplate=${PathToUploadWQMPBoundaryTemplate}
       - AzureBlobStorageConnectionString=${AzureBlobStorageConnectionString}
     ports:
       - "8211:8080"

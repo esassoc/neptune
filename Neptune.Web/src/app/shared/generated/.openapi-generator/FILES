@@ -4,6 +4,7 @@ api.module.ts
 api/ai.service.ts
 api/custom-attribute-type.service.ts
 api/custom-rich-text.service.ts
+api/data-hub.service.ts
 api/delineation-geometry.service.ts
 api/delineation.service.ts
 api/field-definition.service.ts
@@ -16,6 +17,7 @@ api/impersonation.service.ts
 api/land-use-block.service.ts
 api/load-generating-unit.service.ts
 api/maintenance-record.service.ts
+api/model-basin.service.ts
 api/nereid.service.ts
 api/onland-visual-trash-assessment-area.service.ts
 api/onland-visual-trash-assessment-observation.service.ts
@@ -23,6 +25,7 @@ api/onland-visual-trash-assessment.service.ts
 api/organization-type.service.ts
 api/organization.service.ts
 api/parcel.service.ts
+api/precipitation-zone.service.ts
 api/project-document.service.ts
 api/project.service.ts
 api/regional-subbasin-revision-request.service.ts
@@ -63,6 +66,7 @@ model/custom-attribute-type-dto.ts
 model/custom-attribute-type-upsert-dto.ts
 model/custom-attribute-type-with-treatment-bmp-type-ids-dto.ts
 model/custom-attribute-upsert-dto.ts
+model/data-hub-last-updated-dto.ts
 model/delineation-dto.ts
 model/delineation-gdb-download-request-dto.ts
 model/delineation-gdb-upload-validation-dto.ts
@@ -101,6 +105,8 @@ model/hru-log-dto.ts
 model/hydrologic-subarea-simple-dto.ts
 model/i-attributes-table.ts
 model/i-feature.ts
+model/land-use-block-gdb-download-request-dto.ts
+model/land-use-block-gdb-upload-result-dto.ts
 model/land-use-block-grid-dto.ts
 model/land-use-block-upsert-dto.ts
 model/load-generating-unit-dto.ts
@@ -143,6 +149,9 @@ model/organization-simple-dto.ts
 model/organization-type-simple-dto.ts
 model/organization-upsert-dto.ts
 model/overlapping-delineation-link-dto.ts
+model/ovta-area-gdb-download-request-dto.ts
+model/ovta-area-gdb-staging-report-dto.ts
+model/ovta-bulk-upload-result-dto.ts
 model/ovta-results-dto.ts
 model/parcel-display-dto.ts
 model/parcel-geometry-simple-dto.ts
@@ -191,6 +200,7 @@ model/training-video-dto.ts
 model/trash-capture-status-type-dto.ts
 model/trash-generating-unit-dto.ts
 model/trash-generating-unit-grid-dto.ts
+model/trash-screen-field-visit-upload-result-dto.ts
 model/treatment-bmp-assessment-detail-dto.ts
 model/treatment-bmp-assessment-grid-dto.ts
 model/treatment-bmp-assessment-observation-type-detail-dto.ts
@@ -204,6 +214,7 @@ model/treatment-bmp-basic-info-update-dto.ts
 model/treatment-bmp-benchmark-and-threshold-dto.ts
 model/treatment-bmp-benchmark-and-threshold-upsert-dto.ts
 model/treatment-bmp-create-dto.ts
+model/treatment-bmp-csv-upload-result-dto.ts
 model/treatment-bmp-delineation-errors-dto.ts
 model/treatment-bmp-delineation-map-dto.ts
 model/treatment-bmp-display-dto.ts
@@ -266,6 +277,8 @@ model/water-quality-management-plan-verify-treatment-bmp-simple-dto.ts
 model/water-quality-management-plan-verify-upsert-dto.ts
 model/watershed-dto.ts
 model/workflow-step-status.ts
+model/wqmp-boundary-upload-result-dto.ts
+model/wqmp-bulk-upload-result-dto.ts
 model/wqmp-upload-result-dto.ts
 param.ts
 variables.ts

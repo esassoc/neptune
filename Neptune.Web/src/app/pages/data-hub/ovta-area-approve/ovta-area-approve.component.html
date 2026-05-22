@@ -1,0 +1,41 @@
+<page-header pageTitle="Review Staged OVTA Assessment Areas">
+    <a class="back-link" [routerLink]="['/data-hub']" [queryParams]="{ tab: 'trash' }">&laquo; Back to Data Hub</a>
+</page-header>
+
+<section class="content-section">
+    <app-alert-display></app-alert-display>
+
+    @if (report(); as r) {
+        @if ((r.NumberOfOvtaAreas ?? 0) === 0) {
+            <p>No OVTA Areas are currently staged for your account.</p>
+            <a class="btn btn-primary" [routerLink]="['/data-hub', 'ovta-area-upload']"><i class="fa fa-upload"></i> Upload a GDB</a>
+        } @else {
+            @if (r.Errors && r.Errors.length > 0) {
+                <div class="alert alert-danger">
+                    <strong>The staged upload has errors and cannot be approved:</strong>
+                    <ul>
+                        @for (err of r.Errors; track $index) {
+                            <li>{{ err }}</li>
+                        }
+                    </ul>
+                </div>
+            }
+
+            <p>Review the staged OVTA Areas below. Approving will commit them to the system; discarding will remove the staged batch without changes.</p>
+            <ul>
+                <li><strong>Total areas in upload:</strong> {{ r.NumberOfOvtaAreas }}</li>
+                <li><strong>To be created:</strong> {{ r.NumberOfOvtaAreasToBeCreated ?? 0 }}</li>
+                <li><strong>To be updated:</strong> {{ r.NumberOfOvtaAreasToBeUpdated ?? 0 }}</li>
+            </ul>
+
+            <div class="actions">
+                <button type="button" class="btn btn-primary" [disabled]="isWorking() || (r.Errors && r.Errors.length > 0)" (click)="approve()">
+                    @if (isWorking()) { <i class="fa fa-spinner fa-spin"></i> Working... } @else { <i class="fa fa-check"></i> Approve and commit }
+                </button>
+                <button type="button" class="btn btn-secondary" [disabled]="isWorking()" (click)="discard()">
+                    <i class="fa fa-times"></i> Discard staged areas
+                </button>
+            </div>
+        }
+    }
+</section>

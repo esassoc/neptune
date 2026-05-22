@@ -1,9 +1,8 @@
 ﻿using System.Data;
 using ClosedXML.Excel;
 using Neptune.Common;
-using Neptune.EFModels.Entities;
 
-namespace Neptune.WebMvc.Common;
+namespace Neptune.EFModels.Entities;
 
 public static class SimplifiedBMPsExcelParserHelper
 {
@@ -27,8 +26,23 @@ public static class SimplifiedBMPsExcelParserHelper
         }
         var numColumns = dataTableFromExcel.Columns.Count;
         var numRows = dataTableFromExcel.Rows.Count;
+
+        // Upfront pre-pass: surface ALL missing-WQMP errors at once so users don't iterate
+        // (fix one, re-upload, see the next). Skip empty rows here — a trailing blank row in
+        // the spreadsheet would otherwise produce a "WQMP with name '' does not exist" error.
         foreach (DataRow row in dataTableFromExcel.Rows)
         {
+            var rowEmpty = true;
+            for (var j = 0; j < numColumns; j++)
+            {
+                if (!string.IsNullOrWhiteSpace(row[j].ToString()))
+                {
+                    rowEmpty = false;
+                    break;
+                }
+            }
+            if (rowEmpty) continue;
+
             var wqmpName = row["WQMP Name"].ToString();
             var wqmp = dbContext.WaterQualityManagementPlans.SingleOrDefault(x =>
                 x.WaterQualityManagementPlanName == wqmpName && x.StormwaterJurisdictionID == stormwaterJurisdictionID);
