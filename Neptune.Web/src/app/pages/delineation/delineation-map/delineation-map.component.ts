@@ -179,12 +179,7 @@ export class DelineationMapComponent implements OnInit {
             this.layerControl.removeLayer(this.bmpsClusterLayer);
         }
         this.bmpMarkerByID.clear();
-        // NPT-998: route through window.L for plugin-attached statics. esbuild's __toESM
-        // wraps the leaflet CJS module with getters that snapshot its exports at import
-        // time; leaflet.markercluster attaches markerClusterGroup to window.L afterward,
-        // so the snapshotted L doesn't see it. Geoman/`pm` works because that mutation
-        // happens on instances, not on the L namespace.
-        this.bmpsClusterLayer = ((window as any).L as typeof L & { markerClusterGroup: (opts: any) => any }).markerClusterGroup({
+        this.bmpsClusterLayer = L.markerClusterGroup({
             iconCreateFunction: (cluster: any) =>
                 L.divIcon({
                     html: `<div><span>${cluster.getChildCount()}</span></div>`,

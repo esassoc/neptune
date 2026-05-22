@@ -43,7 +43,7 @@
                             "node_modules/leaflet-gesture-handling/dist/leaflet-gesture-handling.css",
                             "node_modules/@geoman-io/leaflet-geoman-free/dist/leaflet-geoman.css"
                         ],
-                        "scripts": ["node_modules/leaflet/dist/leaflet.js", "node_modules/leaflet.markercluster/dist/leaflet.markercluster.js", "src/scripts/leaflet.groupedlayercontrol.js"],
+                        "scripts": ["node_modules/leaflet/dist/leaflet.js", "src/scripts/leaflet.groupedlayercontrol.js"],
                         "extractLicenses": false,
                         "sourceMap": true,
                         "optimization": false,
