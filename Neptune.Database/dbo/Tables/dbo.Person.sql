@@ -13,6 +13,7 @@ CREATE TABLE [dbo].[Person](
 	[ReceiveSupportEmails] [bit] NOT NULL,
 	[ReceiveRSBRevisionRequestEmails] [bit] NOT NULL,
 	[WebServiceAccessToken] [uniqueidentifier] NOT NULL,
-	[IsOCTAGrantReviewer] [bit] NOT NULL, 
+	[IsOCTAGrantReviewer] [bit] NOT NULL,
     [GlobalID] VARCHAR(100) NULL,
+    [ImpersonatedPersonID] [int] NULL CONSTRAINT [FK_Person_Person_ImpersonatedPersonID_PersonID] FOREIGN KEY REFERENCES [dbo].[Person]([PersonID]),
 )

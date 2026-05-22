@@ -5,6 +5,17 @@
         {{ testingWarningText() }}
     </div>
     }
+    @if (currentUser$ | async; as impUser) {
+        @if (isBeingImpersonated(impUser)) {
+            <div class="impersonation-banner">
+                <span class="impersonation-banner__message">
+                    <i class="fas fa-user-secret impersonation-banner__icon"></i>
+                    Impersonating <strong>{{ impUser.FirstName }} {{ impUser.LastName }}</strong>
+                </span>
+                <button type="button" class="impersonation-banner__stop" (click)="stopImpersonation()">Stop Impersonating</button>
+            </div>
+        }
+    }
 </div>
 
 <nav class="admin-nav">

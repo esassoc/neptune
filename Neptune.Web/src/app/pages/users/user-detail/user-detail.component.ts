@@ -5,6 +5,7 @@ import { toSignal } from "@angular/core/rxjs-interop";
 import { ColDef } from "ag-grid-community";
 import { DialogService } from "@ngneat/dialog";
 import { BehaviorSubject, catchError, map, Observable, of, shareReplay, switchMap } from "rxjs";
+import { environment } from "src/environments/environment";
 import { AuthenticationService } from "src/app/services/authentication.service";
 import { UtilityFunctionsService } from "src/app/services/utility-functions.service";
 import { UserService } from "src/app/shared/generated/api/user.service";
@@ -51,6 +52,20 @@ export class UserDetailComponent implements OnInit {
         const u = this.currentUser();
         return !!u && (u.RoleID === RoleEnum.Admin || u.RoleID === RoleEnum.SitkaAdmin);
     });
+
+    // Impersonation is a dev/QA debugging affordance — the backend service is non-production
+    // only (see ImpersonationService.GetEffectiveUser). Hide the button in prod even though
+    // the call would no-op, so the UI doesn't promise something it can't deliver.
+    public canImpersonate(detail: PersonDetailDto): boolean {
+        if (environment.production) return false;
+        if (!this.isAdmin()) return false;
+        const me = this.currentUser();
+        return !!me && me.PersonID !== detail.PersonID;
+    }
+
+    public impersonate(detail: PersonDetailDto): void {
+        this.authenticationService.impersonate(detail.PersonID);
+    }
 
     /** KE 5/20/26: the viewed user (not the viewer) — Admin / SitkaAdmin users implicitly
      *  manage every jurisdiction, so the Assigned Jurisdictions panel renders a stub

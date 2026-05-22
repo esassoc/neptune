@@ -21,7 +21,12 @@ export class HeaderNavComponent implements OnInit {
     constructor(private authenticationService: AuthenticationService) {}
 
     ngOnInit() {
-        this.currentUser$ = this.authenticationService.getCurrentUser();
+        // Bind to the long-lived ReplaySubject(1) directly, NOT getCurrentUser() — the
+        // latter race-completes after the first emission, so the async pipe's subscription
+        // closes and never sees later impersonate/stop-impersonate updates. With the
+        // replay subject, the pipe stays subscribed and the banner + Welcome name
+        // re-render on every user change.
+        this.currentUser$ = this.authenticationService.currentUserSetObservable;
     }
 
     public isAuthenticated(): boolean {
@@ -30,6 +35,16 @@ export class HeaderNavComponent implements OnInit {
 
     public isUserAnAdministrator() {
         return this.authenticationService.isCurrentUserAnAdministrator();
+    }
+
+    public isBeingImpersonated(user: PersonDto): boolean {
+        return this.authenticationService.isCurrentUserBeingImpersonated(user);
+    }
+
+    public stopImpersonation(): void {
+        // logout() in AuthenticationService routes to the stop-impersonation endpoint when
+        // the user is currently impersonating — no separate endpoint call needed here.
+        this.authenticationService.logout();
     }
 
     public login(): void {

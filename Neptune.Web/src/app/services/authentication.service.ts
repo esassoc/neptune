@@ -9,6 +9,7 @@ import { environment } from "src/environments/environment";
 import { PersonDto } from "../shared/generated/model/person-dto";
 import { RoleEnum } from "../shared/generated/enum/role-enum";
 import { UserClaimsService } from "../shared/generated/api/user-claims.service";
+import { ImpersonationService } from "../shared/generated/api/impersonation.service";
 import { AuthService as Auth0Service } from "@auth0/auth0-angular";
 
 @Injectable({
@@ -26,6 +27,7 @@ export class AuthenticationService {
         private router: Router,
         private auth0: Auth0Service,
         private userClaimsService: UserClaimsService,
+        private impersonationService: ImpersonationService,
         private alertService: AlertService
     ) {
         // Subscribe to Auth0 user stream to update claims and current user
@@ -133,10 +135,42 @@ export class AuthenticationService {
     }
 
     public logout(): void {
+        // While impersonating, the "logout" button stops impersonation instead of signing
+        // out of Auth0 entirely. Mirrors WADNR's behavior — the admin's Auth0 session is
+        // preserved.
+        if (this.isCurrentUserBeingImpersonated()) {
+            this.impersonationService.stopImpersonationImpersonation().subscribe((response) => {
+                this.refreshUserInfo(response);
+                this.router.navigateByUrl("/").then(() => {
+                    this.alertService.pushAlert(new Alert("Finished impersonating.", AlertContext.Success));
+                });
+            });
+            return;
+        }
+
         const areaRoot = this.getAreaRootFromUrl(this.router.url);
         const returnTo = window.location.origin + areaRoot;
 
         this.auth0.logout({ logoutParams: { returnTo } } as any);
+    }
+
+    // Impersonation: the SPA detects active impersonation by comparing the Auth0 JWT's `sub`
+    // claim (always the authenticated user) against the currentUser's GlobalID (which flips
+    // to the impersonated user's GlobalID after the impersonate endpoint runs).
+    public isCurrentUserBeingImpersonated(user: PersonDto | null = this.currentUser): boolean {
+        if (user && this.claimsUser) {
+            return this.claimsUser.sub !== user.GlobalID;
+        }
+        return false;
+    }
+
+    public impersonate(personID: number): void {
+        this.impersonationService.impersonateUserImpersonation(personID).subscribe((response) => {
+            this.refreshUserInfo(response);
+            this.router.navigateByUrl("/").then(() => {
+                this.alertService.pushAlert(new Alert("Now impersonating user.", AlertContext.Success));
+            });
+        });
     }
 
     private getAreaRootFromUrl(url: string): string {

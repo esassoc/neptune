@@ -12,6 +12,7 @@ api/file-resource.service.ts
 api/funding-event-by-treatment-bmpid.service.ts
 api/funding-source.service.ts
 api/hru-characteristic.service.ts
+api/impersonation.service.ts
 api/land-use-block.service.ts
 api/load-generating-unit.service.ts
 api/maintenance-record.service.ts

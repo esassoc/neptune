@@ -21,4 +21,5 @@ public class PersonDto
     public Guid WebServiceAccessToken { get; set; }
     public bool IsOCTAGrantReviewer { get; set; }
     public bool HasAssignedStormwaterJurisdiction { get; set; }
+    public int? ImpersonatedPersonID { get; set; }
 }

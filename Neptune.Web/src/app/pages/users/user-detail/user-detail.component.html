@@ -12,6 +12,11 @@
             }
         </ng-template>
         <ng-template #headerActions>
+            @if (canImpersonate(detail)) {
+                <button type="button" class="btn btn-secondary" style="margin-right: 0.5rem" (click)="impersonate(detail)">
+                    <i class="fa fa-user-secret"></i> Impersonate
+                </button>
+            }
             @if (isAdmin()) {
                 <button type="button" class="btn" [class.btn-danger]="detail.IsActive" [class.btn-primary]="!detail.IsActive" [disabled]="isWorking()" (click)="toggleActive(detail)">
                     @if (detail.IsActive) {
