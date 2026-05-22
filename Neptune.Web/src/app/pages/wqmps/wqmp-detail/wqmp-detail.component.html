@@ -171,7 +171,7 @@
                                 <p class="system-text mt-2">Some of this WQMP's simplified BMPs are not fully parameterized for modeling, so these results may be incomplete or inaccurate.</p>
                             }
                         } @else {
-                            <p class="system-text">No model results are available for this WQMP.</p>
+                            <p class="system-text">Model results for this WQMP are awaiting calculation.</p>
                         }
                     } @else {
                         <div [loadingSpinner]="{ isLoading: true, loadingHeight: 100 }"></div>
@@ -232,7 +232,7 @@
                     } @else if (!wqmp.WaterQualityManagementPlanBoundaryBBox) {
                         <p class="system-text">No treatment area is provided for this Water Quality Management Plan. Land Use Statistics cannot be determined until a treatment area is provided.</p>
                     } @else {
-                        <p class="system-text">Land Use Statistics have not been calculated for this Water Quality Management Plan.</p>
+                        <p class="system-text">Land use statistics for this WQMP are awaiting calculation.</p>
                     }
                 </div>
             </div>
