@@ -34,6 +34,7 @@ import { WaterQualityManagementPlanLandUsesAsSelectDropdownOptions } from "src/a
 import { WaterQualityManagementPlanPermitTermsAsSelectDropdownOptions } from "src/app/shared/generated/enum/water-quality-management-plan-permit-term-enum";
 import { HydromodificationAppliesTypesAsSelectDropdownOptions } from "src/app/shared/generated/enum/hydromodification-applies-type-enum";
 import { TrashCaptureStatusTypeEnum, TrashCaptureStatusTypesAsSelectDropdownOptions } from "src/app/shared/generated/enum/trash-capture-status-type-enum";
+import { WaterQualityManagementPlanModelingApproachEnum, WaterQualityManagementPlanModelingApproachesAsSelectDropdownOptions } from "src/app/shared/generated/enum/water-quality-management-plan-modeling-approach-enum";
 import { US_STATES } from "src/app/shared/constants/us-states";
 import {
     PDF_EXTRACTION_FAILURE_HINT,
@@ -223,7 +224,7 @@ export class WqmpReviewComponent implements OnInit, IDeactivateComponent {
     private basicsFields = [
         "WaterQualityManagementPlanName", "WaterQualityManagementPlanPriority", "WaterQualityManagementPlanDevelopmentType",
         "WaterQualityManagementPlanLandUse", "WaterQualityManagementPlanPermitTerm", "ApprovalDate", "DateOfConstruction",
-        "HydromodificationAppliesType", "RecordNumber", "TrashCaptureStatusType", "TrashCaptureEffectiveness",
+        "HydromodificationAppliesType", "WaterQualityManagementPlanModelingApproach", "RecordNumber", "TrashCaptureStatusType", "TrashCaptureEffectiveness",
         "MaintenanceContactName", "MaintenanceContactOrganization", "MaintenanceContactPhone",
         "MaintenanceContactAddress1", "MaintenanceContactAddress2", "MaintenanceContactCity", "MaintenanceContactState", "MaintenanceContactZip",
     ];
@@ -245,6 +246,7 @@ export class WqmpReviewComponent implements OnInit, IDeactivateComponent {
         ApprovalDate: "Approval Date",
         DateOfConstruction: "Date of Construction",
         HydromodificationAppliesType: "Hydromodification Applies",
+        WaterQualityManagementPlanModelingApproach: "Modeling Approach",
         RecordNumber: "Record Number",
         TrashCaptureStatusType: "Trash Capture Status",
         TrashCaptureEffectiveness: "Trash Capture Effectiveness (%)",
@@ -302,6 +304,7 @@ export class WqmpReviewComponent implements OnInit, IDeactivateComponent {
                     WaterQualityManagementPlanLandUse: { options: WaterQualityManagementPlanLandUsesAsSelectDropdownOptions, dtoField: "WaterQualityManagementPlanLandUseID" },
                     WaterQualityManagementPlanPermitTerm: { options: WaterQualityManagementPlanPermitTermsAsSelectDropdownOptions, dtoField: "WaterQualityManagementPlanPermitTermID" },
                     HydromodificationAppliesType: { options: HydromodificationAppliesTypesAsSelectDropdownOptions, dtoField: "HydromodificationAppliesTypeID" },
+                    WaterQualityManagementPlanModelingApproach: { options: WaterQualityManagementPlanModelingApproachesAsSelectDropdownOptions, dtoField: "WaterQualityManagementPlanModelingApproachID" },
                     TrashCaptureStatusType: { options: TrashCaptureStatusTypesAsSelectDropdownOptions, dtoField: "TrashCaptureStatusTypeID" },
                 };
             }),
@@ -1702,6 +1705,16 @@ export class WqmpReviewComponent implements OnInit, IDeactivateComponent {
             }
             for (const key of this.basicsFields) {
                 allFields.push(this.makeField(key, wqmp[key], 2));
+            }
+
+            // Modeling Approach is in basicsFields but the AI extraction schema doesn't ask for
+            // it (see WqmpExtractionService.cs), so makeField always returns a null value here.
+            // Default to Simplified so the wizard's auto-accept-pending-on-save semantics write
+            // Simplified to the live WQMP unless the user picks Detailed or rejects (✗) the
+            // field to preserve an existing setting.
+            const modelingApproachField = allFields.find((f) => f.key === "WaterQualityManagementPlanModelingApproach");
+            if (modelingApproachField && !modelingApproachField.value) {
+                modelingApproachField.value = String(WaterQualityManagementPlanModelingApproachEnum.Simplified);
             }
 
             // Parcels: each entry is { ParcelNumber: { Value, Evidence, ... } }. Render one
