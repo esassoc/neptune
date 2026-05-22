@@ -1,11 +1,9 @@
-using System.Linq;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Hosting;
 using Neptune.EFModels.Entities;
 using Neptune.Models.DataTransferObjects;
-using Neptune.Models.Helpers;
 
 namespace Neptune.API.Services
 {
@@ -27,18 +25,23 @@ namespace Neptune.API.Services
 
         public async Task<PersonDto?> ImpersonateUserAsync(NeptuneDbContext dbContext, HttpContext httpContext, int targetPersonID)
         {
-            var globalID = httpContext.User.Claims.SingleOrDefault(c => c.Type == ClaimsConstants.Sub)?.Value;
-            // People.GetByGlobalID is AsNoTracking — fine for reads but the SaveChangesAsync
-            // below needs a tracked entity. Use FindAsync against the looked-up PersonID to
-            // get a tracked instance for mutation.
-            var originalUser = People.GetByGlobalID(dbContext, globalID);
+            // Use UserContext to resolve the authenticated user — handles both the standard
+            // sub-claim lookup AND the client-credentials path, AND guards against null/empty
+            // globalID matching multiple NULL-GlobalID rows.
+            var authenticatedUser = UserContext.GetUserFromHttpContext(dbContext, httpContext);
 
-            if (environment.IsProduction() || originalUser == null)
+            if (environment.IsProduction() || authenticatedUser == null)
             {
-                return originalUser?.AsDto();
+                return authenticatedUser?.AsDto();
             }
 
-            var tracked = await dbContext.People.FindAsync(originalUser.PersonID);
+            // People.GetByGlobalID returns AsNoTracking — FindAsync gets a tracked entity for
+            // mutation. Guard against the (unlikely) row-deleted-between-calls race.
+            var tracked = await dbContext.People.FindAsync(authenticatedUser.PersonID);
+            if (tracked == null)
+            {
+                return null;
+            }
             tracked.ImpersonatedPersonID = targetPersonID;
             await dbContext.SaveChangesAsync();
 
@@ -48,19 +51,26 @@ namespace Neptune.API.Services
 
         public async Task<PersonDto?> StopImpersonationAsync(NeptuneDbContext dbContext, HttpContext httpContext)
         {
-            var globalID = httpContext.User.Claims.SingleOrDefault(c => c.Type == ClaimsConstants.Sub)?.Value;
-            var originalUser = People.GetByGlobalID(dbContext, globalID);
+            var authenticatedUser = UserContext.GetUserFromHttpContext(dbContext, httpContext);
 
-            if (originalUser == null)
+            // Prod gate — no-op (return the authenticated user) without mutating state. Matches
+            // the gates on GetEffectiveUser/ImpersonateUserAsync so prod behavior is uniformly
+            // "impersonation does nothing." Server-side defense-in-depth even though the SPA
+            // also hides the entry point in prod.
+            if (environment.IsProduction() || authenticatedUser == null)
+            {
+                return authenticatedUser?.AsDto();
+            }
+
+            var tracked = await dbContext.People.FindAsync(authenticatedUser.PersonID);
+            if (tracked == null)
             {
                 return null;
             }
-
-            var tracked = await dbContext.People.FindAsync(originalUser.PersonID);
             tracked.ImpersonatedPersonID = null;
             await dbContext.SaveChangesAsync();
 
-            return People.GetByID(dbContext, originalUser.PersonID)?.AsDto();
+            return People.GetByID(dbContext, authenticatedUser.PersonID)?.AsDto();
         }
     }
 }

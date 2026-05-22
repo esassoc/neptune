@@ -15,5 +15,5 @@ CREATE TABLE [dbo].[Person](
 	[WebServiceAccessToken] [uniqueidentifier] NOT NULL,
 	[IsOCTAGrantReviewer] [bit] NOT NULL,
     [GlobalID] VARCHAR(100) NULL,
-    [ImpersonatedPersonID] [int] NULL CONSTRAINT [FK_Person_Person_ImpersonatedPersonID_PersonID] FOREIGN KEY REFERENCES [dbo].[Person]([PersonID]),
+    [ImpersonatedPersonID] [int] NULL CONSTRAINT [FK_Person_Person_ImpersonatedPersonID_PersonID] FOREIGN KEY REFERENCES [dbo].[Person]([PersonID])
 )

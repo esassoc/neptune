@@ -5,22 +5,18 @@ using Neptune.EFModels.Entities;
 
 namespace Neptune.API.Services.Authorization
 {
-    // Always-allow at the role layer (the role-check pre-flight uses the authenticated user,
-    // not the impersonated one, so we can't gate via the standard role list). The actual
-    // gate happens in OnAuthorizationCore: 403 unless the calling JWT belongs to an
-    // Admin/SitkaAdmin AND they currently have ImpersonatedPersonID set.
+    // Same role list as ImpersonateUserFeature — pre-flight role check operates on the
+    // authenticated (real) user, which is exactly the identity we need to authorize the
+    // stop action. OnAuthorizationCore tightens to "must currently be impersonating."
     public class StopImpersonationFeature : BaseAuthorizationAttribute
     {
-        public StopImpersonationFeature() : base(new RoleEnum[] { })
+        public StopImpersonationFeature() : base(new[] { RoleEnum.Admin, RoleEnum.SitkaAdmin })
         {
         }
 
         protected override void OnAuthorizationCore(AuthorizationFilterContext context, NeptuneDbContext dbContext, Person? person)
         {
-            var isAdmin = person?.RoleID == (int)RoleEnum.Admin || person?.RoleID == (int)RoleEnum.SitkaAdmin;
-            var isImpersonating = person?.ImpersonatedPersonID != null;
-
-            if (!isAdmin || !isImpersonating)
+            if (person?.ImpersonatedPersonID == null)
             {
                 context.Result = new StatusCodeResult((int)HttpStatusCode.Forbidden);
             }

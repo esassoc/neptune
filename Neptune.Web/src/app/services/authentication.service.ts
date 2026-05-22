@@ -134,24 +134,34 @@ export class AuthenticationService {
         } as any);
     }
 
+    private auth0Logout(): void {
+        const areaRoot = this.getAreaRootFromUrl(this.router.url);
+        const returnTo = window.location.origin + areaRoot;
+        this.auth0.logout({ logoutParams: { returnTo } } as any);
+    }
+
     public logout(): void {
         // While impersonating, the "logout" button stops impersonation instead of signing
         // out of Auth0 entirely. Mirrors WADNR's behavior — the admin's Auth0 session is
-        // preserved.
+        // preserved. On error, fall through to a full Auth0 logout so the user is never
+        // stuck with a stale banner / unable to log out.
         if (this.isCurrentUserBeingImpersonated()) {
-            this.impersonationService.stopImpersonationImpersonation().subscribe((response) => {
-                this.refreshUserInfo(response);
-                this.router.navigateByUrl("/").then(() => {
-                    this.alertService.pushAlert(new Alert("Finished impersonating.", AlertContext.Success));
-                });
+            this.impersonationService.stopImpersonationImpersonation().subscribe({
+                next: (response) => {
+                    this.refreshUserInfo(response);
+                    this.router.navigateByUrl("/").then(() => {
+                        this.alertService.pushAlert(new Alert("Finished impersonating.", AlertContext.Success));
+                    });
+                },
+                error: () => {
+                    this.alertService.pushAlert(new Alert("Failed to stop impersonating; logging you out instead.", AlertContext.Danger));
+                    this.auth0Logout();
+                },
             });
             return;
         }
 
-        const areaRoot = this.getAreaRootFromUrl(this.router.url);
-        const returnTo = window.location.origin + areaRoot;
-
-        this.auth0.logout({ logoutParams: { returnTo } } as any);
+        this.auth0Logout();
     }
 
     // Impersonation: the SPA detects active impersonation by comparing the Auth0 JWT's `sub`
@@ -165,11 +175,16 @@ export class AuthenticationService {
     }
 
     public impersonate(personID: number): void {
-        this.impersonationService.impersonateUserImpersonation(personID).subscribe((response) => {
-            this.refreshUserInfo(response);
-            this.router.navigateByUrl("/").then(() => {
-                this.alertService.pushAlert(new Alert("Now impersonating user.", AlertContext.Success));
-            });
+        this.impersonationService.impersonateUserImpersonation(personID).subscribe({
+            next: (response) => {
+                this.refreshUserInfo(response);
+                this.router.navigateByUrl("/").then(() => {
+                    this.alertService.pushAlert(new Alert("Now impersonating user.", AlertContext.Success));
+                });
+            },
+            error: () => {
+                this.alertService.pushAlert(new Alert("Failed to start impersonating that user.", AlertContext.Danger));
+            },
         });
     }
 
