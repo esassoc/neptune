@@ -1,0 +1,20 @@
+@if (rows$ | async; as rows) {
+    @if (rows.length === 0) {
+        <p class="system-text">
+            No BMPs with unverified delineations in your jurisdictions.
+            <a [routerLink]="['/delineation/delineation-map']">Open the Delineation Map</a>.
+        </p>
+    } @else {
+        <p class="instruction-text">{{ instructionText }}</p>
+        <neptune-grid
+            [rowData]="rows"
+            [columnDefs]="columnDefs"
+            rowSelection="multiple"
+            [suppressRowClickSelection]="true"
+            (selectionChanged)="onSelectionChanged($event)">
+            <button customGridActionsRight type="button" class="btn btn-sm btn-primary" [disabled]="selectedRowIDs().length === 0" (click)="verifySelected()">
+                Verify all Selected ({{ selectedRowIDs().length }})
+            </button>
+        </neptune-grid>
+    }
+}

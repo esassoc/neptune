@@ -1,5 +1,6 @@
 import { Routes } from "@angular/router";
 import { ManagerOnlyGuard } from "./shared/guards/unauthenticated-access/manager-only-guard";
+import { ManagerOrAdminOnlyGuard } from "./shared/guards/unauthenticated-access/manager-or-admin-only-guard";
 import { JurisdictionManagerOrEditorOnlyGuard } from "./shared/guards/unauthenticated-access/jurisdiction-manager-or-editor-only-guard.guard";
 import { UnsavedChangesGuard } from "./shared/guards/unsaved-changes.guard";
 import { OCTAGrantReviewerOnlyGuard } from "./shared/guards/unauthenticated-access/octa-grant-reviewer-only.guard";
@@ -804,11 +805,12 @@ export const routes: Routes = [
                 loadComponent: () => import("./pages/funding-sources/funding-source-detail/funding-source-detail.component").then((m) => m.FundingSourceDetailComponent),
                 canActivate: [authGuardFn],
             },
-            // Dashboard
+            // Dashboard (Manager Dashboard) — Admin / SitkaAdmin / JurisdictionManager only
             {
                 path: "dashboard",
                 title: "Dashboard",
                 loadComponent: () => import("./pages/dashboard/dashboard.component").then((m) => m.DashboardComponent),
+                canActivate: [authGuardFn, ManagerOrAdminOnlyGuard],
             },
             // Delineation
             {

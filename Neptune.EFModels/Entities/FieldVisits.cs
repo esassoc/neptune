@@ -216,4 +216,27 @@ public static class FieldVisits
         var fieldVisit = GetByIDWithChangeTracking(dbContext, fieldVisitID);
         await fieldVisit.DeleteFull(dbContext);
     }
+
+    // Manager Dashboard: bulk-verify a set of field visits. Jurisdiction-scoped — silently
+    // drops IDs the caller can't view (no per-row 403 noise). Returns the count actually
+    // verified so the SPA toast can say "X verified" when the user submitted X+Y.
+    public static async Task<int> BulkMarkAsVerifiedAsync(NeptuneDbContext dbContext, IList<int> fieldVisitIDs, Person currentPerson)
+    {
+        if (fieldVisitIDs == null || fieldVisitIDs.Count == 0) return 0;
+
+        // ToList() materializes — EF needs a List<int> (not raw IEnumerable<int>) to translate
+        // `.Contains(...)` into a SQL IN clause reliably.
+        var viewableJurisdictionIDs = StormwaterJurisdictionPeople.ListViewableStormwaterJurisdictionIDsByPersonForBMPs(dbContext, currentPerson).ToList();
+        var fieldVisits = await dbContext.FieldVisits
+            .Include(x => x.TreatmentBMP)
+            .Where(x => fieldVisitIDs.Contains(x.FieldVisitID)
+                && viewableJurisdictionIDs.Contains(x.TreatmentBMP.StormwaterJurisdictionID))
+            .ToListAsync();
+        foreach (var fieldVisit in fieldVisits)
+        {
+            fieldVisit.VerifyFieldVisit();
+        }
+        await dbContext.SaveChangesAsync();
+        return fieldVisits.Count;
+    }
 }
