@@ -92,28 +92,39 @@ export class TreatmentBmpsComponent {
             this.utilityFunctionsService.createLinkColumnDef("Jurisdiction", "StormwaterJurisdictionName", "StormwaterJurisdictionID", {
                 InRouterLink: "/jurisdictions/",
                 FieldDefinitionType: "Jurisdiction",
+                UseCustomDropdownFilter: true,
             }),
-            this.utilityFunctionsService.createBasicColumnDef("Owner Organization", "OwnerOrganizationName"),
+            this.utilityFunctionsService.createBasicColumnDef("Owner Organization", "OwnerOrganizationName", { UseCustomDropdownFilter: true }),
             this.utilityFunctionsService.createBasicColumnDef("Type", "TreatmentBMPTypeName", {
                 FieldDefinitionType: "TreatmentBMPType",
                 FieldDefinitionLabelOverride: "Type",
+                UseCustomDropdownFilter: true,
             }),
             this.utilityFunctionsService.createBasicColumnDef("Year Built", "YearBuilt"),
-            this.utilityFunctionsService.createBasicColumnDef("Notes", "Notes"),
             this.utilityFunctionsService.createDateColumnDef("Last Assessment Date", "LatestAssessmentDate", "MM/dd/yyyy"),
             this.utilityFunctionsService.createBasicColumnDef("Last Assessed Score", "LatestAssessmentScore"),
             this.utilityFunctionsService.createBasicColumnDef("# of Assessments", "NumberOfAssessments"),
             this.utilityFunctionsService.createDateColumnDef("Last Maintenance Date", "LatestMaintenanceDate", "MM/dd/yyyy"),
             this.utilityFunctionsService.createBasicColumnDef("# of Maintenance Events", "NumberOfMaintenanceRecords"),
-            this.utilityFunctionsService.createBasicColumnDef("Benchmark and Threshold Set?", "BenchmarkAndThresholdSet"),
-            this.utilityFunctionsService.createBasicColumnDef("Required Lifespan of Installation", "TreatmentBMPLifespanTypeDisplayName"),
+            this.utilityFunctionsService.createBooleanColumnDef("Benchmark and Threshold Set?", "BenchmarkAndThresholdSet"),
+            this.utilityFunctionsService.createBasicColumnDef("Required Lifespan of Installation", "TreatmentBMPLifespanTypeDisplayName", { UseCustomDropdownFilter: true }),
             this.utilityFunctionsService.createBasicColumnDef("Lifespan End Date (if Fixed End Date)", "TreatmentBMPLifespanEndDate"),
             this.utilityFunctionsService.createBasicColumnDef("Required Field Visits/Year", "RequiredFieldVisitsPerYear"),
             this.utilityFunctionsService.createBasicColumnDef("Required Post-Storm Field Visits/Year", "RequiredPostStormFieldVisitsPerYear"),
-            this.utilityFunctionsService.createBasicColumnDef("Sizing Basis", "SizingBasisTypeDisplayName"),
-            this.utilityFunctionsService.createBasicColumnDef("Trash Capture Status", "TrashCaptureStatusTypeDisplayName"),
+            this.utilityFunctionsService.createBasicColumnDef("Sizing Basis", "SizingBasisTypeDisplayName", { UseCustomDropdownFilter: true }),
+            this.utilityFunctionsService.createBasicColumnDef("Trash Capture Status", "TrashCaptureStatusTypeDisplayName", { UseCustomDropdownFilter: true }),
             this.utilityFunctionsService.createBasicColumnDef("Trash Capture Effectiveness (%)", "TrashCaptureEffectiveness"),
-            this.utilityFunctionsService.createBasicColumnDef("Delineation Type", "DelineationTypeDisplayName"),
+            this.utilityFunctionsService.createBasicColumnDef("Delineation Type", "DelineationTypeDisplayName", { UseCustomDropdownFilter: true }),
+            // NPT-1061: Notes was previously mid-grid and dominated visible width on rows with
+            // long entries. Moved to the far right + capped at 300px with wrap so long notes flow
+            // vertically instead of pushing every other column off-screen.
+            {
+                ...this.utilityFunctionsService.createBasicColumnDef("Notes", "Notes"),
+                maxWidth: 300,
+                wrapText: true,
+                autoHeight: true,
+                cellStyle: { whiteSpace: "normal", lineHeight: "1.3" },
+            },
         ];
         this.treatmentBmps$ = this.treatmentBMPService
             .listTreatmentBMP()
