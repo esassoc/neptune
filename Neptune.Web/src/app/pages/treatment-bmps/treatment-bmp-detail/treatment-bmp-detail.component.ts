@@ -30,7 +30,7 @@ import { ImageCarouselComponent } from "src/app/shared/components/image-carousel
 import { ModeledBmpPerformanceComponent } from "src/app/shared/components/modeled-bmp-performance/modeled-bmp-performance.component";
 import { WaterQualityManagementPlanModelingApproachEnum } from "src/app/shared/generated/enum/water-quality-management-plan-modeling-approach-enum";
 import { HRUCharacteristicDto } from "src/app/shared/generated/model/hru-characteristic-dto";
-import { ColDef } from "ag-grid-community";
+import { ColDef, ICellRendererParams } from "ag-grid-community";
 import { UtilityFunctionsService } from "src/app/services/utility-functions.service";
 import { LandUseTableComponent } from "src/app/shared/components/land-use-table/land-use-table.component";
 import { NeptuneGridComponent } from "src/app/shared/components/neptune-grid/neptune-grid.component";
@@ -228,10 +228,10 @@ export class TreatmentBmpDetailComponent implements OnInit, OnChanges {
             this.utilityFunctionsService.createBasicColumnDef("Field Visit Type", "FieldVisitTypeDisplayName"),
             this.utilityFunctionsService.createBooleanColumnDef("Inventory Updated?", "InventoryUpdated"),
             this.utilityFunctionsService.createBooleanColumnDef("Required Attributes Entered?", "RequiredAttributesEntered"),
-            this.utilityFunctionsService.createBasicColumnDef("Initial Assessment?", "InitialAssessmentStatus"),
+            this.buildAssessmentColumnDef("Initial Assessment?", "InitialAssessmentStatus", "TreatmentBMPAssessmentIDInitial"),
             this.utilityFunctionsService.createDecimalColumnDef("Initial Assessment Score", "AssessmentScoreInitial"),
-            this.utilityFunctionsService.createBasicColumnDef("Maintenance Occurred?", "MaintenanceOccurred"),
-            this.utilityFunctionsService.createBasicColumnDef("Post-Maintenance Assessment?", "PostMaintenanceAssessmentStatus"),
+            this.buildMaintenanceOccurredColumnDef(),
+            this.buildAssessmentColumnDef("Post-Maintenance Assessment?", "PostMaintenanceAssessmentStatus", "TreatmentBMPAssessmentIDPM"),
             this.utilityFunctionsService.createDecimalColumnDef("Post-Maintenance Assessment Score", "AssessmentScorePM"),
         ];
         this.loadData();
@@ -249,6 +249,56 @@ export class TreatmentBmpDetailComponent implements OnInit, OnChanges {
         if (changes["treatmentBMPID"] && !changes["treatmentBMPID"].firstChange) {
             this.loadData();
         }
+    }
+
+    /** NPT-1056: mirror the Manager Dashboard's assessment column — the cell text comes from
+     * the pre-computed status string (`Complete` / `In Progress` / `Not Performed`) and links
+     * to the SPA assessment detail page when an ID is present. */
+    private buildAssessmentColumnDef(headerName: string, statusField: keyof FieldVisitDto, idField: keyof FieldVisitDto): ColDef {
+        return {
+            headerName,
+            valueGetter: (params) => {
+                const visit = params.data as FieldVisitDto;
+                return (visit?.[statusField] as string) ?? "Not Performed";
+            },
+            cellRenderer: (params: ICellRendererParams) => {
+                const visit = params.data as FieldVisitDto;
+                const text = (visit?.[statusField] as string) ?? "Not Performed";
+                const assessmentID = visit?.[idField] as number | null | undefined;
+                if (!assessmentID) return text;
+                const a = document.createElement("a");
+                a.href = `/treatment-bmp-assessments/${assessmentID}`;
+                a.textContent = text;
+                a.addEventListener("click", (e) => {
+                    e.preventDefault();
+                    this.router.navigate(["/treatment-bmp-assessments", assessmentID]);
+                });
+                return a;
+            },
+        };
+    }
+
+    private buildMaintenanceOccurredColumnDef(): ColDef {
+        return {
+            headerName: "Maintenance Occurred?",
+            valueGetter: (params) => {
+                const visit = params.data as FieldVisitDto;
+                return visit?.MaintenanceOccurred ?? (visit?.MaintenanceRecordID != null ? "Performed" : "Not Performed");
+            },
+            cellRenderer: (params: ICellRendererParams) => {
+                const visit = params.data as FieldVisitDto;
+                const text = visit?.MaintenanceOccurred ?? (visit?.MaintenanceRecordID != null ? "Performed" : "Not Performed");
+                if (!visit?.MaintenanceRecordID) return text;
+                const a = document.createElement("a");
+                a.href = `/maintenance-records/${visit.MaintenanceRecordID}`;
+                a.textContent = text;
+                a.addEventListener("click", (e) => {
+                    e.preventDefault();
+                    this.router.navigate(["/maintenance-records", visit!.MaintenanceRecordID]);
+                });
+                return a;
+            },
+        };
     }
 
     private loadData(): void {

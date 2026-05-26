@@ -23,6 +23,7 @@ using Microsoft.EntityFrameworkCore;
 using Neptune.Common.DesignByContract;
 using Neptune.Common.GeoSpatial;
 using Neptune.Models.DataTransferObjects;
+using Neptune.Models.DataTransferObjects.ManagerDashboard;
 using NetTopologySuite.Features;
 using NetTopologySuite.Geometries;
 
@@ -165,6 +166,55 @@ public static class TreatmentBMPs
             .Where(x => x.CanView(currentPerson))
             .OrderBy(x => x.TreatmentBMPName)
             .ToList();
+    }
+
+    // Manager Dashboard: provisional BMPs projected straight to the grid DTO. Mirrors the legacy
+    // MVC ProvisionalTreatmentBMPGridSpec column list. SQL-side projection via
+    // TreatmentBMPDtoProjections.AsProvisionalGridDto so the HasPhotos / BenchmarkAndThresholdsSet
+    // booleans resolve in the database (the original implementation read those off un-included
+    // navigation properties and silently always returned false/true respectively).
+    public static async Task<List<TreatmentBMPProvisionalGridDto>> GetProvisionalTreatmentBMPsAsGridDtoAsync(NeptuneDbContext dbContext, Person currentPerson)
+    {
+        var jurisdictionIDs = (await StormwaterJurisdictionPeople.ListViewableStormwaterJurisdictionIDsByPersonIDForBMPsAsync(dbContext, currentPerson.PersonID)).ToList();
+        var thresholdRequiringSpecIDs = ObservationTypeSpecification.All
+            .Where(s => s.ObservationThresholdType != ObservationThresholdType.None)
+            .Select(s => s.ObservationTypeSpecificationID)
+            .ToList();
+
+        var rows = await dbContext.TreatmentBMPs.AsNoTracking()
+            .Where(x => x.ProjectID == null && x.InventoryIsVerified == false && jurisdictionIDs.Contains(x.StormwaterJurisdictionID))
+            .OrderBy(x => x.TreatmentBMPName)
+            .Select(TreatmentBMPDtoProjections.AsProvisionalGridDto(thresholdRequiringSpecIDs))
+            .ToListAsync();
+
+        // CanDelete depends on calling Person + the row's jurisdiction; computed in C# because
+        // EF can't translate Person.IsAssignedToStormwaterJurisdiction. Since the SQL filter
+        // already restricts to ProjectID == null, only the role + jurisdiction-match remain.
+        var isManagerOrAdmin = currentPerson.IsManagerOrAdmin();
+        foreach (var row in rows)
+        {
+            row.CanDelete = isManagerOrAdmin && currentPerson.IsAssignedToStormwaterJurisdiction(row.StormwaterJurisdictionID);
+        }
+        return rows;
+    }
+
+    // Manager Dashboard: bulk-verify a set of BMP inventory records. Jurisdiction-scoped via
+    // .CanView; silently drops anything outside the caller's reach. Returns verified count.
+    public static async Task<int> BulkMarkAsVerifiedAsync(NeptuneDbContext dbContext, IList<int> treatmentBMPIDs, Person currentPerson)
+    {
+        if (treatmentBMPIDs == null || treatmentBMPIDs.Count == 0) return 0;
+
+        var viewableJurisdictionIDs = StormwaterJurisdictionPeople.ListViewableStormwaterJurisdictionIDsByPersonForBMPs(dbContext, currentPerson).ToList();
+        var treatmentBMPs = await dbContext.TreatmentBMPs
+            .Where(x => treatmentBMPIDs.Contains(x.TreatmentBMPID)
+                && viewableJurisdictionIDs.Contains(x.StormwaterJurisdictionID))
+            .ToListAsync();
+        foreach (var treatmentBMP in treatmentBMPs)
+        {
+            treatmentBMP.MarkAsVerified(currentPerson);
+        }
+        await dbContext.SaveChangesAsync();
+        return treatmentBMPs.Count;
     }
 
     public static async Task<List<TreatmentBMPDelineationMapDto>> ListForDelineationMapAsync(NeptuneDbContext dbContext, Person person)

@@ -1,0 +1,90 @@
+@use "/src/scss/abstracts" as *;
+
+// NPT-1056: detail page mirrors `field-visit-detail-readonly` styling — global `.card` from
+// abstracts, plus the same readonly observation table treatment as the parent visit page.
+
+.card-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.readonly-obs-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: $type-size-200;
+
+    th, td {
+        text-align: left;
+        padding: 0.5rem 0.75rem;
+        border-bottom: 1px solid $gray-100;
+        vertical-align: top;
+    }
+
+    thead th {
+        font-size: $type-size-100;
+        text-transform: uppercase;
+        letter-spacing: 0.04em;
+        color: $gray-600;
+        border-bottom: 1px solid $gray-300;
+        font-weight: 700;
+    }
+
+    tbody tr:last-child td {
+        border-bottom: 0;
+    }
+}
+
+.score-summary {
+    dt { font-weight: 600; }
+    dd strong { font-size: $type-size-300; }
+}
+
+.empty-state {
+    color: $gray-600;
+    margin: 0;
+}
+
+.score-detail-table {
+    margin-top: 0.5rem;
+
+    th,
+    td {
+        &.text-center {
+            text-align: center;
+        }
+    }
+
+    .score-badge {
+        display: inline-block;
+        background: $primary;
+        color: $white;
+        padding: 0.125rem 0.5rem;
+        border-radius: 0.75rem;
+        font-weight: 700;
+        font-size: $type-size-100;
+    }
+
+    .gray-out {
+        opacity: 0.4;
+    }
+
+    .override-cell {
+        font-weight: 700;
+        font-style: italic;
+    }
+
+    .total-row {
+        font-weight: 700;
+        border-top: 2px solid $gray-300;
+
+        td {
+            background: $gray-100;
+        }
+
+        .score-badge {
+            font-size: $type-size-200;
+        }
+    }
+}
+

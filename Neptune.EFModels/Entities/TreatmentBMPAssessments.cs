@@ -354,4 +354,35 @@ public static class TreatmentBMPAssessments
         var assessment = GetByIDWithChangeTracking(dbContext, treatmentBMPAssessmentID);
         await assessment.DeleteFull(dbContext);
     }
+
+    /// <summary>
+    /// NPT-1056: per-observation scoring breakdown for the SPA assessment detail page. Mirrors
+    /// the data shape the legacy MVC <c>ScoreDetail.cshtml</c> partial renders. We materialize
+    /// the loaded entity (GetImpl already includes the BMP + benchmark/threshold + observation
+    /// tree) and then call the existing <see cref="TreatmentBMPAssessmentObservationTypeExtensionMethods.AsForScoringDto"/>
+    /// helper per observation type. Sort order matches the legacy (SortOrder ascending, then
+    /// name) so the SPA rows render in the same order assessors see in MVC.
+    /// </summary>
+    public static async Task<TreatmentBMPAssessmentScoreDetailDto?> GetScoreDetailAsync(NeptuneDbContext dbContext, int treatmentBMPAssessmentID)
+    {
+        var assessment = await GetImpl(dbContext).AsNoTracking()
+            .SingleOrDefaultAsync(x => x.TreatmentBMPAssessmentID == treatmentBMPAssessmentID);
+        if (assessment == null) return null;
+
+        var observationTypes = assessment.TreatmentBMPType.TreatmentBMPTypeAssessmentObservationTypes
+            .OrderBy(x => x.SortOrder ?? int.MaxValue)
+            .ThenBy(x => x.TreatmentBMPAssessmentObservationType.TreatmentBMPAssessmentObservationTypeName)
+            .Select(x => x.TreatmentBMPAssessmentObservationType.AsForScoringDto(assessment, x.OverrideAssessmentScoreIfFailing))
+            .ToList();
+
+        return new TreatmentBMPAssessmentScoreDetailDto
+        {
+            TreatmentBMPAssessmentID = assessment.TreatmentBMPAssessmentID,
+            IsAssessmentComplete = assessment.IsAssessmentComplete,
+            IsBenchmarkAndThresholdsComplete = assessment.TreatmentBMP.IsBenchmarkAndThresholdsComplete(assessment.TreatmentBMPType),
+            AssessmentScore = assessment.IsAssessmentComplete ? assessment.FormattedScore() : null,
+            OverrideScore = observationTypes.Any(x => x.TreatmentBMPObservationSimple?.OverrideScore ?? false),
+            ObservationTypes = observationTypes,
+        };
+    }
 }

@@ -19,6 +19,8 @@ import { TreatmentBMPAssessmentDetailDto } from '../model/treatment-bmp-assessme
 // @ts-ignore
 import { TreatmentBMPAssessmentGridDto } from '../model/treatment-bmp-assessment-grid-dto';
 // @ts-ignore
+import { TreatmentBMPAssessmentScoreDetailDto } from '../model/treatment-bmp-assessment-score-detail-dto';
+// @ts-ignore
 import { TreatmentBMPAssessmentUpsertDto } from '../model/treatment-bmp-assessment-upsert-dto';
 
 // @ts-ignore
@@ -187,6 +189,61 @@ export class TreatmentBMPAssessmentService extends BaseService {
         let localVarPath = `/treatment-bmp-assessments/${this.configuration.encodeParam({name: "treatmentBMPAssessmentID", value: treatmentBMPAssessmentID, in: "path", style: "simple", explode: false, dataType: "number", dataFormat: "int32"})}`;
         const { basePath, withCredentials } = this.configuration;
         return this.httpClient.request<TreatmentBMPAssessmentDetailDto>('get', `${basePath}${localVarPath}`,
+            {
+                context: localVarHttpContext,
+                responseType: <any>responseType_,
+                ...(withCredentials ? { withCredentials } : {}),
+                headers: localVarHeaders,
+                observe: observe,
+                transferCache: localVarTransferCache,
+                reportProgress: reportProgress
+            }
+        );
+    }
+
+    /**
+     * @param treatmentBMPAssessmentID 
+     * @param observe set whether or not to return the data Observable as the body, response or events. defaults to returning the body.
+     * @param reportProgress flag to report request and response progress.
+     */
+    public getScoreDetailTreatmentBMPAssessment(treatmentBMPAssessmentID: number, observe?: 'body', reportProgress?: boolean, options?: {httpHeaderAccept?: 'text/plain' | 'application/json' | 'text/json', context?: HttpContext, transferCache?: boolean}): Observable<TreatmentBMPAssessmentScoreDetailDto>;
+    public getScoreDetailTreatmentBMPAssessment(treatmentBMPAssessmentID: number, observe?: 'response', reportProgress?: boolean, options?: {httpHeaderAccept?: 'text/plain' | 'application/json' | 'text/json', context?: HttpContext, transferCache?: boolean}): Observable<HttpResponse<TreatmentBMPAssessmentScoreDetailDto>>;
+    public getScoreDetailTreatmentBMPAssessment(treatmentBMPAssessmentID: number, observe?: 'events', reportProgress?: boolean, options?: {httpHeaderAccept?: 'text/plain' | 'application/json' | 'text/json', context?: HttpContext, transferCache?: boolean}): Observable<HttpEvent<TreatmentBMPAssessmentScoreDetailDto>>;
+    public getScoreDetailTreatmentBMPAssessment(treatmentBMPAssessmentID: number, observe: any = 'body', reportProgress: boolean = false, options?: {httpHeaderAccept?: 'text/plain' | 'application/json' | 'text/json', context?: HttpContext, transferCache?: boolean}): Observable<any> {
+        if (treatmentBMPAssessmentID === null || treatmentBMPAssessmentID === undefined) {
+            throw new Error('Required parameter treatmentBMPAssessmentID was null or undefined when calling getScoreDetailTreatmentBMPAssessment.');
+        }
+
+        let localVarHeaders = this.defaultHeaders;
+
+        const localVarHttpHeaderAcceptSelected: string | undefined = options?.httpHeaderAccept ?? this.configuration.selectHeaderAccept([
+            'text/plain',
+            'application/json',
+            'text/json'
+        ]);
+        if (localVarHttpHeaderAcceptSelected !== undefined) {
+            localVarHeaders = localVarHeaders.set('Accept', localVarHttpHeaderAcceptSelected);
+        }
+
+        const localVarHttpContext: HttpContext = options?.context ?? new HttpContext();
+
+        const localVarTransferCache: boolean = options?.transferCache ?? true;
+
+
+        let responseType_: 'text' | 'json' | 'blob' = 'json';
+        if (localVarHttpHeaderAcceptSelected) {
+            if (localVarHttpHeaderAcceptSelected.startsWith('text')) {
+                responseType_ = 'text';
+            } else if (this.configuration.isJsonMime(localVarHttpHeaderAcceptSelected)) {
+                responseType_ = 'json';
+            } else {
+                responseType_ = 'blob';
+            }
+        }
+
+        let localVarPath = `/treatment-bmp-assessments/${this.configuration.encodeParam({name: "treatmentBMPAssessmentID", value: treatmentBMPAssessmentID, in: "path", style: "simple", explode: false, dataType: "number", dataFormat: "int32"})}/score-detail`;
+        const { basePath, withCredentials } = this.configuration;
+        return this.httpClient.request<TreatmentBMPAssessmentScoreDetailDto>('get', `${basePath}${localVarPath}`,
             {
                 context: localVarHttpContext,
                 responseType: <any>responseType_,

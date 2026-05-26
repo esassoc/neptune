@@ -1,11 +1,32 @@
 using System.Linq.Expressions;
 using Neptune.Common;
 using Neptune.Models.DataTransferObjects;
+using Neptune.Models.DataTransferObjects.ManagerDashboard;
 
 namespace Neptune.EFModels.Entities;
 
 public static class DelineationProjections
 {
+    // Manager Dashboard "Provisional BMP Delineations" grid. SQL-side projection so the geometry
+    // area calculation and the BMP/jurisdiction join happen in the database. DelineationTypeName
+    // is from a static lookup (DelineationType.AllLookupDictionary) and resolved post-materialize.
+    public static readonly Expression<Func<Delineation, DelineationProvisionalGridDto>> AsProvisionalGridDto = x => new DelineationProvisionalGridDto
+    {
+        DelineationID = x.DelineationID,
+        TreatmentBMPID = x.TreatmentBMPID,
+        TreatmentBMPName = x.TreatmentBMP.TreatmentBMPName,
+        TreatmentBMPTypeName = x.TreatmentBMP.TreatmentBMPType.TreatmentBMPTypeName,
+        DelineationTypeID = x.DelineationTypeID,
+        DelineationTypeName = null, // resolved post-materialize from the static lookup
+        DelineationAreaInAcres = x.DelineationGeometry != null
+            ? (double?)(x.DelineationGeometry.Area * Constants.SquareMetersToAcres)
+            : null,
+        DateLastModified = x.DateLastModified,
+        DateLastVerified = x.DateLastVerified,
+        StormwaterJurisdictionID = x.TreatmentBMP.StormwaterJurisdictionID,
+        StormwaterJurisdictionName = x.TreatmentBMP.StormwaterJurisdiction.Organization.OrganizationName,
+    };
+
     // Discrepancies grid: SQL-side projection with JOINs for non-enum lookups
     // (TreatmentBMPType.TreatmentBMPTypeName, Organization.OrganizationName). The
     // DelineationType display name is enum-style — projection emits the ID and the

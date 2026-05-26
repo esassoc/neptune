@@ -1,4 +1,4 @@
-import { Component, EventEmitter, Input, OnInit, Output } from "@angular/core";
+import { Component, EventEmitter, Input, OnChanges, OnInit, Output, SimpleChanges } from "@angular/core";
 import { NG_VALUE_ACCESSOR } from "@angular/forms";
 
 import { IconComponent } from "src/app/shared/components/icon/icon.component";
@@ -15,7 +15,7 @@ import { IconComponent } from "src/app/shared/components/icon/icon.component";
     ],
     imports: [IconComponent]
 })
-export class BtnGroupRadioInputComponent implements OnInit {
+export class BtnGroupRadioInputComponent implements OnInit, OnChanges {
     public uniqueName: string = crypto.randomUUID();
     @Input() label: string;
     @Input() options: IBtnGroupRadioInputOption[] = [];
@@ -58,14 +58,27 @@ export class BtnGroupRadioInputComponent implements OnInit {
     }
 
     ngOnInit(): void {
-        // NPT-984: `default` matches against `label`. If a caller passes a value that no
-        // option's label matches, the find() returns undefined — previously we then read
-        // `.value` on undefined and threw, aborting the host page's template render with no
-        // useful error. Bail safely instead — the radio group renders with no selection.
-        if (this.default) {
-            const match = this.options?.find((x) => x.label == this.default);
-            if (match) this.val = match.value;
+        this.applyDefault();
+    }
+
+    ngOnChanges(changes: SimpleChanges): void {
+        // NPT-1056: react to `default` or `options` changing after the first render so the
+        // button-group's selected state stays in sync with the host's reactive state (e.g., a
+        // tab page that flips `activeTab` from a `?tab=...` query-param subscription firing
+        // after ngOnInit). Without this, the tab content switched but the button-group
+        // selection didn't.
+        if (changes["default"] || changes["options"]) {
+            this.applyDefault();
         }
+    }
+
+    private applyDefault(): void {
+        // `default` matches against `label`. If a caller passes a value that no option's label
+        // matches (e.g., during a stale render before options load), bail safely — the radio
+        // group renders with no selection rather than throwing on undefined.value (NPT-984).
+        if (!this.default) return;
+        const match = this.options?.find((x) => x.label == this.default);
+        if (match) this.val = match.value;
     }
 }
 

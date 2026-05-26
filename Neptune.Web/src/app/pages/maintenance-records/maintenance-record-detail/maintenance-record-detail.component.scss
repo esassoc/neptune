@@ -1,0 +1,48 @@
+@use "/src/scss/abstracts" as *;
+
+// NPT-1056: mirrors the treatment-bmp-assessment-detail styling so the two sibling detail
+// pages render identically. Global `.card` lives in abstracts; only the header flex layout
+// and observation table need overrides.
+
+.card-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.readonly-obs-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: $type-size-200;
+
+    th, td {
+        text-align: left;
+        padding: 0.5rem 0.75rem;
+        border-bottom: 1px solid $gray-100;
+        vertical-align: top;
+    }
+
+    thead th {
+        font-size: $type-size-100;
+        text-transform: uppercase;
+        letter-spacing: 0.04em;
+        color: $gray-600;
+        border-bottom: 1px solid $gray-300;
+        font-weight: 700;
+    }
+
+    tbody tr:last-child td {
+        border-bottom: 0;
+    }
+}
+
+.empty-state {
+    color: $gray-600;
+    margin: 0;
+}
+
+.attribute-description {
+    color: $gray-600;
+    font-size: $type-size-100;
+    margin-top: 0.125rem;
+}

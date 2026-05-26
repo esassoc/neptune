@@ -1,0 +1,191 @@
+@let vm = vm$ | async;
+@if (vm) {
+    <page-header
+        [pageTitle]="(vm.isInitial ? 'Initial Assessment' : 'Post-Maintenance Assessment') + ' — ' + (vm.workflow.TreatmentBMPName ?? 'Treatment BMP')"
+        [templateAbove]="backLink"
+        [templateRight]="headerActions">
+        <ng-template #backLink>
+            <div class="back">
+                <a [routerLink]="['/treatment-bmps', vm.workflow.TreatmentBMPID]" class="back__link">
+                    <i class="fa fa-arrow-left"></i> Back to {{ vm.workflow.TreatmentBMPName ?? "BMP" }}
+                </a>
+            </div>
+        </ng-template>
+        <ng-template #headerActions>
+            @if (vm.canEdit) {
+                <a [routerLink]="editAssessmentRoute(vm)" class="btn btn-primary mr-2">
+                    <i class="fa fa-pencil mr-1"></i> Edit Assessment
+                </a>
+            }
+            @if (canEditOrDelete) {
+                <button type="button" class="btn btn-danger" (click)="delete(vm)">
+                    <i class="fa fa-trash mr-1"></i> Delete
+                </button>
+            }
+        </ng-template>
+    </page-header>
+
+    <app-alert-display></app-alert-display>
+
+    <div class="grid-12">
+        <div class="g-col-6">
+            <div class="card">
+                <div class="card-header">
+                    <span class="card-title">Assessment Overview</span>
+                </div>
+                <div class="card-body">
+                    <dl class="grid-12">
+                        <dt class="g-col-5">Conducted By</dt>
+                        <dd class="g-col-7">{{ vm.workflow.PerformedByPersonName || "—" }}</dd>
+                        <dt class="g-col-5">Assessment Date</dt>
+                        <dd class="g-col-7">{{ vm.workflow.VisitDate | date: "MM/dd/yyyy" : "UTC" }}</dd>
+                        <dt class="g-col-5">Field Notes</dt>
+                        <dd class="g-col-7">{{ vm.assessment.Notes || "—" }}</dd>
+                    </dl>
+                </div>
+            </div>
+        </div>
+
+        <div class="g-col-6">
+            <div class="card">
+                <div class="card-header">
+                    <span class="card-title">Photos</span>
+                </div>
+                <div class="card-body">
+                    @if (vm.photos.length) {
+                        <image-carousel [images]="vm.photos"></image-carousel>
+                    } @else {
+                        <p class="empty-state">No photos uploaded for this assessment.</p>
+                    }
+                </div>
+            </div>
+        </div>
+
+        <div class="g-col-12">
+            <div class="card">
+                <div class="card-header">
+                    <span class="card-title">Score Details</span>
+                </div>
+                <div class="card-body">
+                    @if (vm.scoreDetail.IsBenchmarkAndThresholdsComplete) {
+                        <dl class="grid-12 score-summary">
+                            <dt class="g-col-3">Assessment Score</dt>
+                            <dd class="g-col-9">
+                                @if (vm.assessment.IsAssessmentComplete) {
+                                    <strong>{{ vm.scoreDetail.AssessmentScore }}</strong>
+                                } @else {
+                                    <span class="empty-state">Assessment Not Complete</span>
+                                }
+                            </dd>
+                        </dl>
+                        <table class="readonly-obs-table score-detail-table">
+                            <thead>
+                                <tr>
+                                    <th>Observation</th>
+                                    <th class="text-center">Threshold</th>
+                                    <th class="text-center">Observed</th>
+                                    <th class="text-center">Benchmark</th>
+                                    <th class="text-center">Weight</th>
+                                    <th class="text-center">Score</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @for (ot of vm.scoreDetail.ObservationTypes ?? []; track ot.TreatmentBMPAssessmentObservationTypeID) {
+                                    @let obs = ot.TreatmentBMPObservationSimple;
+                                    <tr [class.gray-out]="vm.scoreDetail.OverrideScore && !(obs?.OverrideScore)">
+                                        <td>{{ ot.DisplayName }}</td>
+                                        @if (ot.HasBenchmarkAndThresholds) {
+                                            <td class="text-center"><span class="score-badge">{{ ot.ThresholdValueInObservedUnits | number: "1.0-3" }}</span></td>
+                                            @if (obs?.IsComplete) {
+                                                <td class="text-center"><span class="score-badge">{{ obs?.ObservationValue | number: "1.0-3" }}</span></td>
+                                            } @else {
+                                                <td class="text-center">—</td>
+                                            }
+                                            <td class="text-center"><span class="score-badge">{{ ot.BenchmarkValue | number: "1.0-3" }}</span></td>
+                                        } @else if (obs?.IsComplete) {
+                                            <td class="text-center override-cell" colspan="3"><em>{{ obs?.OverrideScoreText }}</em></td>
+                                        } @else {
+                                            <td class="text-center override-cell" colspan="3"><em>Observation incomplete</em></td>
+                                        }
+                                        @if (obs?.OverrideScore) {
+                                            <td class="text-center">—</td>
+                                        } @else {
+                                            <td class="text-center">{{ ot.Weight }}</td>
+                                        }
+                                        @if (obs?.IsComplete) {
+                                            <td class="text-center"><span class="score-badge">{{ obs?.ObservationScore }}</span></td>
+                                        } @else {
+                                            <td class="text-center">—</td>
+                                        }
+                                    </tr>
+                                }
+                                <tr class="total-row">
+                                    <td>Assessment Total</td>
+                                    <td class="text-center">—</td>
+                                    <td class="text-center">—</td>
+                                    <td class="text-center">—</td>
+                                    <td class="text-center">100%</td>
+                                    @if (vm.assessment.IsAssessmentComplete) {
+                                        <td class="text-center"><span class="score-badge">{{ vm.scoreDetail.AssessmentScore }}</span></td>
+                                    } @else {
+                                        <td class="text-center">—</td>
+                                    }
+                                </tr>
+                            </tbody>
+                        </table>
+                    } @else {
+                        <p>Unable to calculate Assessment Score: Benchmark &amp; Threshold are not yet set.</p>
+                        @if (canManage) {
+                            <a [routerLink]="['/treatment-bmps', vm.assessment.TreatmentBMPID]" class="btn btn-primary">
+                                <i class="fa fa-pencil mr-1"></i> Edit Benchmark &amp; Threshold
+                            </a>
+                        }
+                    }
+                </div>
+            </div>
+        </div>
+
+        @for (panel of vm.panels; track panel.observationTypeID) {
+            <div class="g-col-6">
+                <div class="card">
+                    <div class="card-header">
+                        <span class="card-title">Observation: {{ panel.name }}</span>
+                    </div>
+                    <div class="card-body">
+                        @if (panel.rows.length) {
+                            <table class="readonly-obs-table">
+                                <thead>
+                                    <tr>
+                                        <th>Type</th>
+                                        <th>{{ panel.valueColumnLabel }}</th>
+                                        <th>Note</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    @for (row of panel.rows; track row.propertyObserved) {
+                                        <tr>
+                                            <td>{{ row.propertyObserved }}</td>
+                                            <td>{{ row.displayValue }}</td>
+                                            <td>{{ row.notes || "—" }}</td>
+                                        </tr>
+                                    }
+                                </tbody>
+                            </table>
+                        } @else {
+                            <p class="empty-state">Observation data not entered.</p>
+                        }
+                    </div>
+                </div>
+            </div>
+        }
+    </div>
+} @else if (vm === null) {
+    <div class="alert alert-warning">
+        <div class="alert-content">
+            <i class="fa fa-exclamation-triangle"></i>
+            <span>This Assessment could not be loaded. It may have been deleted or you may not have permission to view it.</span>
+        </div>
+    </div>
+} @else {
+    <div [loadingSpinner]="{ isLoading: isLoading }"></div>
+}

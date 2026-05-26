@@ -19,6 +19,7 @@ Source code is available upon request via <support@sitkatech.com>.
 </license>
 -----------------------------------------------------------------------*/
 using Neptune.Models.DataTransferObjects;
+using Neptune.Models.DataTransferObjects.ManagerDashboard;
 using Microsoft.EntityFrameworkCore;
 using Neptune.Common;
 using Neptune.Common.DesignByContract;
@@ -128,6 +129,56 @@ namespace Neptune.EFModels.Entities
                 .Where(x => x.IsVerified == false).ToList()
                 .Where(x => x.TreatmentBMP.CanView(currentPerson))
                 .OrderBy(x => x.TreatmentBMP.TreatmentBMPName).ToList();
+        }
+
+        // Manager Dashboard: provisional delineations projected straight to the grid DTO via the
+        // DelineationProjections.AsProvisionalGridDto SQL projection. Mirrors the sibling
+        // ListDiscrepancyGridDtosAsync helper — DelineationTypeName is resolved from the static
+        // lookup in C# (EF can't translate it). Area rounding happens here too because Math.Round
+        // on a nullable doesn't compose cleanly inside the Expression.
+        public static async Task<List<DelineationProvisionalGridDto>> GetProvisionalBMPDelineationsAsGridDtoAsync(NeptuneDbContext dbContext, Person currentPerson)
+        {
+            var jurisdictionIDs = (await StormwaterJurisdictionPeople.ListViewableStormwaterJurisdictionIDsByPersonIDForBMPsAsync(dbContext, currentPerson.PersonID)).ToList();
+
+            var dtos = await dbContext.Delineations.AsNoTracking()
+                .Where(x => x.IsVerified == false && x.TreatmentBMP.ProjectID == null && jurisdictionIDs.Contains(x.TreatmentBMP.StormwaterJurisdictionID))
+                .OrderBy(x => x.TreatmentBMP.TreatmentBMPName)
+                .Select(DelineationProjections.AsProvisionalGridDto)
+                .ToListAsync();
+
+            foreach (var dto in dtos)
+            {
+                dto.DelineationTypeName = DelineationType.AllLookupDictionary.TryGetValue(dto.DelineationTypeID, out var t) ? t.DelineationTypeDisplayName : null;
+                if (dto.DelineationAreaInAcres.HasValue)
+                {
+                    dto.DelineationAreaInAcres = Math.Round(dto.DelineationAreaInAcres.Value, 2);
+                }
+            }
+            return dtos;
+        }
+
+        // Manager Dashboard: bulk-verify a set of delineations. Jurisdiction-scoped via
+        // TreatmentBMP.CanView. Calls NereidUtilities.MarkDelineationDirty so the model
+        // queue knows these need re-running. Returns verified count.
+        public static async Task<int> BulkMarkAsVerifiedAsync(NeptuneDbContext dbContext, IList<int> delineationIDs, Person currentPerson)
+        {
+            if (delineationIDs == null || delineationIDs.Count == 0) return 0;
+
+            var viewableJurisdictionIDs = StormwaterJurisdictionPeople.ListViewableStormwaterJurisdictionIDsByPersonForBMPs(dbContext, currentPerson).ToList();
+            var delineations = await dbContext.Delineations
+                .Include(x => x.TreatmentBMP)
+                .Where(x => delineationIDs.Contains(x.DelineationID)
+                    && viewableJurisdictionIDs.Contains(x.TreatmentBMP.StormwaterJurisdictionID))
+                .ToListAsync();
+            foreach (var delineation in delineations)
+            {
+                delineation.MarkAsVerified(currentPerson);
+            }
+            await Nereid.NereidUtilities.MarkDelineationDirty(delineations, dbContext);
+            // MarkDelineationDirty does its own SaveChangesAsync internally; defensive call
+            // ensures the IsVerified/DateLastVerified flags persist if the helper changes shape.
+            await dbContext.SaveChangesAsync();
+            return delineations.Count;
         }
 
         public static async Task<List<DelineationDto>> ListByPersonIDAsDto(NeptuneDbContext dbContext, int personID)

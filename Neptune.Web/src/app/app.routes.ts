@@ -1,5 +1,6 @@
 import { Routes } from "@angular/router";
 import { ManagerOnlyGuard } from "./shared/guards/unauthenticated-access/manager-only-guard";
+import { ManagerOrAdminOnlyGuard } from "./shared/guards/unauthenticated-access/manager-or-admin-only-guard";
 import { JurisdictionManagerOrEditorOnlyGuard } from "./shared/guards/unauthenticated-access/jurisdiction-manager-or-editor-only-guard.guard";
 import { UnsavedChangesGuard } from "./shared/guards/unsaved-changes.guard";
 import { OCTAGrantReviewerOnlyGuard } from "./shared/guards/unauthenticated-access/octa-grant-reviewer-only.guard";
@@ -25,6 +26,8 @@ export const routeParams = {
     customAttributeTypeID: "customAttributeTypeID",
     observationTypeID: "observationTypeID",
     fieldVisitID: "fieldVisitID",
+    treatmentBMPAssessmentID: "treatmentBMPAssessmentID",
+    maintenanceRecordID: "maintenanceRecordID",
     personID: "personID",
 };
 
@@ -497,6 +500,31 @@ export const routes: Routes = [
                 canActivate: [JurisdictionManagerOrEditorOnlyGuard],
             },
             {
+                // NPT-1056: SPA detail page for a single Treatment BMP Assessment — ports
+                // the legacy MVC `/TreatmentBMPAssessment/Detail/{id}` view. Manager Dashboard
+                // Field Visits tab now deep-links here for the Initial / Post-Maintenance
+                // Assessment grid columns instead of bouncing the user back to MVC.
+                path: `treatment-bmp-assessments/:${routeParams.treatmentBMPAssessmentID}`,
+                title: "Treatment BMP Assessment",
+                loadComponent: () =>
+                    import("./pages/treatment-bmp-assessments/treatment-bmp-assessment-detail/treatment-bmp-assessment-detail.component").then(
+                        (m) => m.TreatmentBmpAssessmentDetailComponent
+                    ),
+                canActivate: [JurisdictionManagerOrEditorOnlyGuard],
+            },
+            {
+                // NPT-1056: SPA detail page for a single Maintenance Record — ports the legacy
+                // MVC `/MaintenanceRecord/Detail/{id}` view. Manager Dashboard Field Visits tab
+                // deep-links here for the "Maintenance Occurred" column.
+                path: `maintenance-records/:${routeParams.maintenanceRecordID}`,
+                title: "Maintenance Record",
+                loadComponent: () =>
+                    import("./pages/maintenance-records/maintenance-record-detail/maintenance-record-detail.component").then(
+                        (m) => m.MaintenanceRecordDetailComponent
+                    ),
+                canActivate: [JurisdictionManagerOrEditorOnlyGuard],
+            },
+            {
                 path: `field-visits/:${routeParams.fieldVisitID}`,
                 title: "Field Visit",
                 loadComponent: () =>
@@ -804,11 +832,12 @@ export const routes: Routes = [
                 loadComponent: () => import("./pages/funding-sources/funding-source-detail/funding-source-detail.component").then((m) => m.FundingSourceDetailComponent),
                 canActivate: [authGuardFn],
             },
-            // Dashboard
+            // Dashboard (Manager Dashboard) — Admin / SitkaAdmin / JurisdictionManager only
             {
                 path: "dashboard",
                 title: "Dashboard",
                 loadComponent: () => import("./pages/dashboard/dashboard.component").then((m) => m.DashboardComponent),
+                canActivate: [authGuardFn, ManagerOrAdminOnlyGuard],
             },
             // Delineation
             {

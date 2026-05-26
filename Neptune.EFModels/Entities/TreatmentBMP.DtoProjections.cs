@@ -1,11 +1,43 @@
 using System.Linq.Expressions;
 using Neptune.Common;
 using Neptune.Models.DataTransferObjects;
+using Neptune.Models.DataTransferObjects.ManagerDashboard;
 
 namespace Neptune.EFModels.Entities;
 
 public static class TreatmentBMPDtoProjections
 {
+    // Manager Dashboard "Provisional BMP Records" grid. Returns an Expression so the entire
+    // projection — including HasPhotos (EXISTS) and BenchmarkAndThresholdsSet (NOT EXISTS via
+    // a captured IDs list) — translates to SQL, avoiding the empty-navigation pitfall the
+    // original in-memory implementation hit (Copilot review on PR #529).
+    //
+    // CanDelete depends on the calling Person's role + assigned jurisdictions, which can't be
+    // expressed in SQL; the caller stamps it post-materialize.
+    public static Expression<Func<TreatmentBMP, TreatmentBMPProvisionalGridDto>> AsProvisionalGridDto(IReadOnlyCollection<int> observationTypeSpecificationIDsThatRequireBenchmark)
+    {
+        return x => new TreatmentBMPProvisionalGridDto
+        {
+            TreatmentBMPID = x.TreatmentBMPID,
+            TreatmentBMPName = x.TreatmentBMPName,
+            TreatmentBMPTypeName = x.TreatmentBMPType.TreatmentBMPTypeName,
+            DateOfLastInventoryVerification = x.DateOfLastInventoryVerification,
+            InventoryLastChangedDate = x.InventoryLastChangedDate,
+            HasPhotos = x.TreatmentBMPImages.Any(),
+            // "All required-benchmark observation types for this BMP type have a matching
+            // TreatmentBMPBenchmarkAndThreshold row." Equivalent to the legacy
+            // TreatmentBMP.IsBenchmarkAndThresholdsComplete logic, but SQL-translatable —
+            // requiring-benchmark spec IDs come from the captured collection so EF doesn't
+            // have to translate the static ObservationTypeSpecification lookup.
+            BenchmarkAndThresholdsSet = x.TreatmentBMPType.TreatmentBMPTypeAssessmentObservationTypes
+                .Where(t => observationTypeSpecificationIDsThatRequireBenchmark.Contains(t.TreatmentBMPAssessmentObservationType.ObservationTypeSpecificationID))
+                .All(t => x.TreatmentBMPBenchmarkAndThresholds.Any(b => b.TreatmentBMPAssessmentObservationTypeID == t.TreatmentBMPAssessmentObservationTypeID)),
+            StormwaterJurisdictionID = x.StormwaterJurisdictionID,
+            StormwaterJurisdictionName = x.StormwaterJurisdiction.Organization.OrganizationName,
+            CanDelete = false, // resolved post-materialize from the calling Person
+        };
+    }
+
     public static readonly Expression<Func<TreatmentBMP, TreatmentBMPDto>> AsDto = x => new TreatmentBMPDto
     {
         TreatmentBMPID = x.TreatmentBMPID,

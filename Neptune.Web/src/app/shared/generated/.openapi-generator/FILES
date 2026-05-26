@@ -17,6 +17,7 @@ api/impersonation.service.ts
 api/land-use-block.service.ts
 api/load-generating-unit.service.ts
 api/maintenance-record.service.ts
+api/manager-dashboard.service.ts
 api/model-basin.service.ts
 api/nereid.service.ts
 api/onland-visual-trash-assessment-area.service.ts
@@ -55,6 +56,8 @@ configuration.ts
 encoder.ts
 model/area-based-acre-calculations-dto.ts
 model/bounding-box-dto.ts
+model/bulk-verify-request-dto.ts
+model/bulk-verify-response-dto.ts
 model/chat-message-dto.ts
 model/chat-request-dto.ts
 model/coordinate-dto.ts
@@ -70,6 +73,7 @@ model/data-hub-last-updated-dto.ts
 model/delineation-dto.ts
 model/delineation-gdb-download-request-dto.ts
 model/delineation-gdb-upload-validation-dto.ts
+model/delineation-provisional-grid-dto.ts
 model/delineation-reconciliation-discrepancy-grid-dto.ts
 model/delineation-reconciliation-overlap-grid-dto.ts
 model/delineation-reconciliation-report-context-dto.ts
@@ -85,6 +89,7 @@ model/field-definition-type-simple-dto.ts
 model/field-visit-create-dto.ts
 model/field-visit-dto.ts
 model/field-visit-inventory-updated-dto.ts
+model/field-visit-provisional-grid-dto.ts
 model/field-visit-upsert-dto.ts
 model/field-visit-workflow-dto.ts
 model/file-resource-dto.ts
@@ -122,6 +127,7 @@ model/models.ts
 model/neptune-page-dto.ts
 model/neptune-page-type-simple-dto.ts
 model/nts-geometry-services.ts
+model/observation-score-dto.ts
 model/ogc-geometry-type.ts
 model/onland-visual-trash-assessment-add-remove-parcels-dto.ts
 model/onland-visual-trash-assessment-area-detail-dto.ts
@@ -205,10 +211,12 @@ model/treatment-bmp-assessment-detail-dto.ts
 model/treatment-bmp-assessment-grid-dto.ts
 model/treatment-bmp-assessment-observation-type-detail-dto.ts
 model/treatment-bmp-assessment-observation-type-for-form-dto.ts
+model/treatment-bmp-assessment-observation-type-for-scoring-dto.ts
 model/treatment-bmp-assessment-observation-type-grid-dto.ts
 model/treatment-bmp-assessment-observation-type-upsert-dto.ts
 model/treatment-bmp-assessment-photo-dto.ts
 model/treatment-bmp-assessment-photo-update-dto.ts
+model/treatment-bmp-assessment-score-detail-dto.ts
 model/treatment-bmp-assessment-upsert-dto.ts
 model/treatment-bmp-basic-info-update-dto.ts
 model/treatment-bmp-benchmark-and-threshold-dto.ts
@@ -231,6 +239,7 @@ model/treatment-bmp-modeling-attributes-dto.ts
 model/treatment-bmp-observation-dto.ts
 model/treatment-bmp-observation-upsert-dto.ts
 model/treatment-bmp-parameterization-errors-dto.ts
+model/treatment-bmp-provisional-grid-dto.ts
 model/treatment-bmp-type-custom-attribute-type-detail-dto.ts
 model/treatment-bmp-type-custom-attribute-type-dto.ts
 model/treatment-bmp-type-custom-attribute-type-upsert-dto.ts

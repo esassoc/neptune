@@ -1,0 +1,19 @@
+<page-header pageTitle="Dashboard"></page-header>
+
+<app-alert-display></app-alert-display>
+
+<div class="dashboard-tabs">
+    <btn-group-radio-input [options]="tabOptions" [default]="activeTabLabel" (change)="selectTab($event)"></btn-group-radio-input>
+</div>
+
+@switch (activeTab()) {
+    @case ("field-visits") {
+        <field-visits-tab></field-visits-tab>
+    }
+    @case ("bmp-records") {
+        <bmp-records-tab></bmp-records-tab>
+    }
+    @case ("delineations") {
+        <delineations-tab></delineations-tab>
+    }
+}
