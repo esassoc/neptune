@@ -82,12 +82,16 @@ export class FieldVisitsTabComponent {
                 const row = params.data as FieldVisitProvisionalGridDto;
                 if (!row) return [];
                 // Continue when the visit is still in progress (the editor route); View otherwise.
+                // In-progress visits route into the workflow outlet (/field-visits/:id, which
+                // redirects to the inventory step); wrapped-up visits route to the read-only
+                // detail surface (/field-visits/:id/view, NPT-984).
                 const inProgress = !row.IsFieldVisitVerified && row.FieldVisitStatusID !== FieldVisitStatusEnum.Complete;
+                const target = inProgress ? ["/field-visits", row.FieldVisitID] : ["/field-visits", row.FieldVisitID, "view"];
                 return [
                     {
                         ActionName: inProgress ? "Continue" : "View",
                         ActionIcon: inProgress ? "fa fa-pencil" : "fa fa-eye",
-                        ActionHandler: () => this.router.navigate(["/field-records", row.FieldVisitID]),
+                        ActionHandler: () => this.router.navigate(target),
                     },
                     {
                         ActionName: "Delete",
