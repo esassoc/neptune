@@ -5,13 +5,13 @@ import { BehaviorSubject, Observable, shareReplay, switchMap } from "rxjs";
 import { ColDef, ICellRendererParams, SelectionChangedEvent } from "ag-grid-community";
 
 import { NeptuneGridComponent } from "src/app/shared/components/neptune-grid/neptune-grid.component";
+import { LoadingDirective } from "src/app/shared/directives/loading.directive";
 import { UtilityFunctionsService } from "src/app/services/utility-functions.service";
 import { AlertService } from "src/app/shared/services/alert.service";
 import { Alert } from "src/app/shared/models/alert";
 import { AlertContext } from "src/app/shared/models/enums/alert-context.enum";
 import { ConfirmService } from "src/app/shared/services/confirm/confirm.service";
 import { escapeHtml } from "src/app/shared/helpers/html-escape";
-import { environment } from "src/environments/environment";
 
 import { ManagerDashboardService } from "src/app/shared/generated/api/manager-dashboard.service";
 import { FieldVisitService } from "src/app/shared/generated/api/field-visit.service";
@@ -21,8 +21,9 @@ import { FieldVisitStatusEnum } from "src/app/shared/generated/enum/field-visit-
 @Component({
     selector: "field-visits-tab",
     standalone: true,
-    imports: [AsyncPipe, RouterLink, NeptuneGridComponent],
+    imports: [AsyncPipe, RouterLink, NeptuneGridComponent, LoadingDirective],
     templateUrl: "./field-visits-tab.component.html",
+    styleUrl: "./field-visits-tab.component.scss",
 })
 export class FieldVisitsTabComponent {
     private utility = inject(UtilityFunctionsService);
@@ -121,10 +122,10 @@ export class FieldVisitsTabComponent {
         ];
     }
 
-    // Builds a status column that becomes a hyperlink to the legacy MVC assessment detail
-    // page when the assessment ID is present, or plain "Not Performed" text otherwise.
-    // SPA doesn't have a migrated assessment detail page yet — link points cross-app to
-    // `{ocStormwaterToolsBaseUrl}/TreatmentBMPAssessment/Detail/{id}`.
+    // Builds a status column that links to the SPA assessment detail page when an assessment
+    // ID is present (Complete / In Progress link), or plain "Not Performed" text otherwise.
+    // The anchor uses the SPA route directly so Angular's router intercepts the click and
+    // keeps navigation in-app (no full page reload).
     private buildAssessmentColumnDef(
         headerName: string,
         idField: keyof FieldVisitProvisionalGridDto,
@@ -142,14 +143,18 @@ export class FieldVisitsTabComponent {
                 if (!row?.[idField]) return "Not Performed";
                 const text = row[completeFlagField] ? "Complete" : "In Progress";
                 const a = document.createElement("a");
-                a.href = `${environment.ocStormwaterToolsBaseUrl}/TreatmentBMPAssessment/Detail/${row[idField]}`;
+                a.href = `/treatment-bmp-assessments/${row[idField]}`;
                 a.textContent = text;
+                a.addEventListener("click", (e) => {
+                    e.preventDefault();
+                    this.router.navigate(["/treatment-bmp-assessments", row[idField]]);
+                });
                 return a;
             },
         };
     }
 
-    // Builds the "Maintenance Occurred" column — hyperlinks "Performed" to the legacy MVC
+    // Builds the "Maintenance Occurred" column — hyperlinks "Performed" to the SPA
     // maintenance record detail page when MaintenanceRecordID exists, plain "Not Performed"
     // otherwise.
     private buildMaintenanceOccurredColumnDef(): ColDef {
@@ -163,8 +168,12 @@ export class FieldVisitsTabComponent {
                 const row = params.data as FieldVisitProvisionalGridDto;
                 if (!row?.MaintenanceRecordID) return "Not Performed";
                 const a = document.createElement("a");
-                a.href = `${environment.ocStormwaterToolsBaseUrl}/MaintenanceRecord/Detail/${row.MaintenanceRecordID}`;
+                a.href = `/maintenance-records/${row.MaintenanceRecordID}`;
                 a.textContent = "Performed";
+                a.addEventListener("click", (e) => {
+                    e.preventDefault();
+                    this.router.navigate(["/maintenance-records", row.MaintenanceRecordID]);
+                });
                 return a;
             },
         };

@@ -38,13 +38,16 @@ export class DashboardComponent implements OnInit {
         return this.authenticationService.doesCurrentUserHaveJurisdictionEditPermission();
     });
 
+    // Labels match the legacy MVC dashboard panel headers (Index.cshtml:36-91) so muscle-memory
+     // and any external "go to the Provisional X tab" references still resolve. Tab `value` keys
+     // stay short — they're the URL query-param values + the @switch keys in the template.
     public tabOptions: Signal<IBtnGroupRadioInputOption[]> = computed(() => {
         const base: IBtnGroupRadioInputOption[] = [
-            { label: "Field Visits", value: "field-visits" },
-            { label: "BMP Records", value: "bmp-records" },
+            { label: "Provisional Assessment and Maintenance Records", value: "field-visits" },
+            { label: "Provisional BMP Records", value: "bmp-records" },
         ];
         if (this.canViewDelineationsTab()) {
-            base.push({ label: "Delineations", value: "delineations" });
+            base.push({ label: "Provisional BMP Delineations", value: "delineations" });
         }
         return base;
     });

@@ -26,6 +26,8 @@ export const routeParams = {
     customAttributeTypeID: "customAttributeTypeID",
     observationTypeID: "observationTypeID",
     fieldVisitID: "fieldVisitID",
+    treatmentBMPAssessmentID: "treatmentBMPAssessmentID",
+    maintenanceRecordID: "maintenanceRecordID",
     personID: "personID",
 };
 
@@ -494,6 +496,31 @@ export const routes: Routes = [
                 loadComponent: () =>
                     import("./pages/field-visits/field-visit-detail-readonly/field-visit-detail-readonly.component").then(
                         (m) => m.FieldVisitDetailReadOnlyComponent
+                    ),
+                canActivate: [JurisdictionManagerOrEditorOnlyGuard],
+            },
+            {
+                // NPT-1056: SPA detail page for a single Treatment BMP Assessment — ports
+                // the legacy MVC `/TreatmentBMPAssessment/Detail/{id}` view. Manager Dashboard
+                // Field Visits tab now deep-links here for the Initial / Post-Maintenance
+                // Assessment grid columns instead of bouncing the user back to MVC.
+                path: `treatment-bmp-assessments/:${routeParams.treatmentBMPAssessmentID}`,
+                title: "Treatment BMP Assessment",
+                loadComponent: () =>
+                    import("./pages/treatment-bmp-assessments/treatment-bmp-assessment-detail/treatment-bmp-assessment-detail.component").then(
+                        (m) => m.TreatmentBmpAssessmentDetailComponent
+                    ),
+                canActivate: [JurisdictionManagerOrEditorOnlyGuard],
+            },
+            {
+                // NPT-1056: SPA detail page for a single Maintenance Record — ports the legacy
+                // MVC `/MaintenanceRecord/Detail/{id}` view. Manager Dashboard Field Visits tab
+                // deep-links here for the "Maintenance Occurred" column.
+                path: `maintenance-records/:${routeParams.maintenanceRecordID}`,
+                title: "Maintenance Record",
+                loadComponent: () =>
+                    import("./pages/maintenance-records/maintenance-record-detail/maintenance-record-detail.component").then(
+                        (m) => m.MaintenanceRecordDetailComponent
                     ),
                 canActivate: [JurisdictionManagerOrEditorOnlyGuard],
             },

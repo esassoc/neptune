@@ -5,6 +5,7 @@ import { BehaviorSubject, Observable, shareReplay, switchMap } from "rxjs";
 import { ColDef, SelectionChangedEvent } from "ag-grid-community";
 
 import { NeptuneGridComponent } from "src/app/shared/components/neptune-grid/neptune-grid.component";
+import { LoadingDirective } from "src/app/shared/directives/loading.directive";
 import { UtilityFunctionsService } from "src/app/services/utility-functions.service";
 import { AlertService } from "src/app/shared/services/alert.service";
 import { Alert } from "src/app/shared/models/alert";
@@ -19,8 +20,9 @@ import { DelineationProvisionalGridDto } from "src/app/shared/generated/model/de
 @Component({
     selector: "delineations-tab",
     standalone: true,
-    imports: [AsyncPipe, RouterLink, NeptuneGridComponent],
+    imports: [AsyncPipe, RouterLink, NeptuneGridComponent, LoadingDirective],
     templateUrl: "./delineations-tab.component.html",
+    styleUrl: "./delineations-tab.component.scss",
 })
 export class DelineationsTabComponent {
     private utility = inject(UtilityFunctionsService);

@@ -162,6 +162,7 @@ const SECURED_REGEX: RegexMap = {
     new RegExp("^/regional-subbasins/upstream-delineation-for-bmp/[^/]+$"),
     new RegExp("^/treatment-bmp-assessments/[^/]+$"),
     new RegExp("^/treatment-bmp-assessments/[^/]+/photos$"),
+    new RegExp("^/treatment-bmp-assessments/[^/]+/score-detail$"),
     new RegExp("^/treatment-bmp-types/[^/]+/treatment-bmps$"),
     new RegExp("^/treatment-bmps/[^/]+/delineation-errors$"),
     new RegExp("^/treatment-bmps/[^/]+/field-visits/in-progress$"),
