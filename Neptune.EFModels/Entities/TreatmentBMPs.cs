@@ -168,25 +168,34 @@ public static class TreatmentBMPs
             .ToList();
     }
 
-    // Manager Dashboard: provisional BMPs projected to the grid DTO. Mirrors the legacy MVC
-    // ProvisionalTreatmentBMPGridSpec column list — including the computed HasPhotos and
-    // BenchmarkAndThresholds completion flags that the legacy grid resolves lazily.
+    // Manager Dashboard: provisional BMPs projected straight to the grid DTO. Mirrors the legacy
+    // MVC ProvisionalTreatmentBMPGridSpec column list. SQL-side projection via
+    // TreatmentBMPDtoProjections.AsProvisionalGridDto so the HasPhotos / BenchmarkAndThresholdsSet
+    // booleans resolve in the database (the original implementation read those off un-included
+    // navigation properties and silently always returned false/true respectively).
     public static async Task<List<TreatmentBMPProvisionalGridDto>> GetProvisionalTreatmentBMPsAsGridDtoAsync(NeptuneDbContext dbContext, Person currentPerson)
     {
-        var bmps = GetProvisionalTreatmentBMPs(dbContext, currentPerson);
-        return bmps.Select(x => new TreatmentBMPProvisionalGridDto
+        var jurisdictionIDs = (await StormwaterJurisdictionPeople.ListViewableStormwaterJurisdictionIDsByPersonIDForBMPsAsync(dbContext, currentPerson.PersonID)).ToList();
+        var thresholdRequiringSpecIDs = ObservationTypeSpecification.All
+            .Where(s => s.ObservationThresholdType != ObservationThresholdType.None)
+            .Select(s => s.ObservationTypeSpecificationID)
+            .ToList();
+
+        var rows = await dbContext.TreatmentBMPs.AsNoTracking()
+            .Where(x => x.ProjectID == null && x.InventoryIsVerified == false && jurisdictionIDs.Contains(x.StormwaterJurisdictionID))
+            .OrderBy(x => x.TreatmentBMPName)
+            .Select(TreatmentBMPDtoProjections.AsProvisionalGridDto(thresholdRequiringSpecIDs))
+            .ToListAsync();
+
+        // CanDelete depends on calling Person + the row's jurisdiction; computed in C# because
+        // EF can't translate Person.IsAssignedToStormwaterJurisdiction. Since the SQL filter
+        // already restricts to ProjectID == null, only the role + jurisdiction-match remain.
+        var isManagerOrAdmin = currentPerson.IsManagerOrAdmin();
+        foreach (var row in rows)
         {
-            TreatmentBMPID = x.TreatmentBMPID,
-            TreatmentBMPName = x.TreatmentBMPName,
-            TreatmentBMPTypeName = x.TreatmentBMPType.TreatmentBMPTypeName,
-            DateOfLastInventoryVerification = x.DateOfLastInventoryVerification,
-            InventoryLastChangedDate = x.InventoryLastChangedDate,
-            HasPhotos = x.TreatmentBMPImages.Any(),
-            BenchmarkAndThresholdsSet = x.IsBenchmarkAndThresholdsComplete(x.TreatmentBMPType),
-            StormwaterJurisdictionID = x.StormwaterJurisdictionID,
-            StormwaterJurisdictionName = x.StormwaterJurisdiction.GetOrganizationDisplayName(),
-            CanDelete = x.CanDelete(currentPerson),
-        }).ToList();
+            row.CanDelete = isManagerOrAdmin && currentPerson.IsAssignedToStormwaterJurisdiction(row.StormwaterJurisdictionID);
+        }
+        return rows;
     }
 
     // Manager Dashboard: bulk-verify a set of BMP inventory records. Jurisdiction-scoped via

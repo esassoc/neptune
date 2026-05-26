@@ -3,7 +3,7 @@
 <app-alert-display></app-alert-display>
 
 <div class="dashboard-tabs">
-    <btn-group-radio-input [options]="tabOptions()" [default]="activeTabLabel" (change)="selectTab($event)"></btn-group-radio-input>
+    <btn-group-radio-input [options]="tabOptions" [default]="activeTabLabel" (change)="selectTab($event)"></btn-group-radio-input>
 </div>
 
 @switch (activeTab()) {
@@ -14,8 +14,6 @@
         <bmp-records-tab></bmp-records-tab>
     }
     @case ("delineations") {
-        @if (canViewDelineationsTab()) {
-            <delineations-tab></delineations-tab>
-        }
+        <delineations-tab></delineations-tab>
     }
 }

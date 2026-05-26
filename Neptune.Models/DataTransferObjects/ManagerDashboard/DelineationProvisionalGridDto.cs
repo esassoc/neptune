@@ -6,6 +6,10 @@ public class DelineationProvisionalGridDto
     public int TreatmentBMPID { get; set; }
     public string? TreatmentBMPName { get; set; }
     public string? TreatmentBMPTypeName { get; set; }
+    // DelineationTypeID is projected from SQL; DelineationTypeName is filled in C# via
+    // the static DelineationType.AllLookupDictionary. Mirrors the sibling Discrepancy /
+    // Overlap grid DTOs in this folder.
+    public int DelineationTypeID { get; set; }
     public string? DelineationTypeName { get; set; }
     public double? DelineationAreaInAcres { get; set; }
     public DateTime DateLastModified { get; set; }

@@ -15,6 +15,7 @@ export class DelineationProvisionalGridDto {
     TreatmentBMPID?: number;
     TreatmentBMPName?: string | null;
     TreatmentBMPTypeName?: string | null;
+    DelineationTypeID?: number;
     DelineationTypeName?: string | null;
     DelineationAreaInAcres?: number | null;
     DateLastModified?: string;
@@ -31,6 +32,7 @@ export interface DelineationProvisionalGridDtoForm {
     TreatmentBMPID?: FormControl<number>;
     TreatmentBMPName?: FormControl<string>;
     TreatmentBMPTypeName?: FormControl<string>;
+    DelineationTypeID?: FormControl<number>;
     DelineationTypeName?: FormControl<string>;
     DelineationAreaInAcres?: FormControl<number>;
     DateLastModified?: FormControl<string>;
@@ -71,6 +73,16 @@ export class DelineationProvisionalGridDtoFormControls {
         }
     );
     public static TreatmentBMPTypeName = (value: FormControlState<string> | string = undefined, formControlOptions?: FormControlOptions | null) => new FormControl<string>(
+        value,
+        formControlOptions ?? 
+        {
+            nonNullable: false,
+            validators: 
+            [
+            ],
+        }
+    );
+    public static DelineationTypeID = (value: FormControlState<number> | number = undefined, formControlOptions?: FormControlOptions | null) => new FormControl<number>(
         value,
         formControlOptions ?? 
         {

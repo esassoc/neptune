@@ -14951,6 +14951,10 @@
             "type": "string",
             "nullable": true
           },
+          "DelineationTypeID": {
+            "type": "integer",
+            "format": "int32"
+          },
           "DelineationTypeName": {
             "type": "string",
             "nullable": true

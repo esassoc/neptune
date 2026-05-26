@@ -131,25 +131,30 @@ namespace Neptune.EFModels.Entities
                 .OrderBy(x => x.TreatmentBMP.TreatmentBMPName).ToList();
         }
 
-        // Manager Dashboard: provisional delineations projected to the grid DTO. Mirrors the
-        // legacy MVC ProvisionalBMPDelineationsGridSpec column list including the computed
-        // geometry-area-in-acres value (via Delineation.GetDelineationArea()).
+        // Manager Dashboard: provisional delineations projected straight to the grid DTO via the
+        // DelineationProjections.AsProvisionalGridDto SQL projection. Mirrors the sibling
+        // ListDiscrepancyGridDtosAsync helper — DelineationTypeName is resolved from the static
+        // lookup in C# (EF can't translate it). Area rounding happens here too because Math.Round
+        // on a nullable doesn't compose cleanly inside the Expression.
         public static async Task<List<DelineationProvisionalGridDto>> GetProvisionalBMPDelineationsAsGridDtoAsync(NeptuneDbContext dbContext, Person currentPerson)
         {
-            var delineations = GetProvisionalBMPDelineations(dbContext, currentPerson);
-            return delineations.Select(x => new DelineationProvisionalGridDto
+            var jurisdictionIDs = (await StormwaterJurisdictionPeople.ListViewableStormwaterJurisdictionIDsByPersonIDForBMPsAsync(dbContext, currentPerson.PersonID)).ToList();
+
+            var dtos = await dbContext.Delineations.AsNoTracking()
+                .Where(x => x.IsVerified == false && x.TreatmentBMP.ProjectID == null && jurisdictionIDs.Contains(x.TreatmentBMP.StormwaterJurisdictionID))
+                .OrderBy(x => x.TreatmentBMP.TreatmentBMPName)
+                .Select(DelineationProjections.AsProvisionalGridDto)
+                .ToListAsync();
+
+            foreach (var dto in dtos)
             {
-                DelineationID = x.DelineationID,
-                TreatmentBMPID = x.TreatmentBMPID,
-                TreatmentBMPName = x.TreatmentBMP.TreatmentBMPName,
-                TreatmentBMPTypeName = x.TreatmentBMP.TreatmentBMPType.TreatmentBMPTypeName,
-                DelineationTypeName = DelineationType.AllLookupDictionary[x.DelineationTypeID].DelineationTypeDisplayName,
-                DelineationAreaInAcres = x.GetDelineationArea(),
-                DateLastModified = x.DateLastModified,
-                DateLastVerified = x.DateLastVerified,
-                StormwaterJurisdictionID = x.TreatmentBMP.StormwaterJurisdictionID,
-                StormwaterJurisdictionName = x.TreatmentBMP.StormwaterJurisdiction.GetOrganizationDisplayName(),
-            }).ToList();
+                dto.DelineationTypeName = DelineationType.AllLookupDictionary.TryGetValue(dto.DelineationTypeID, out var t) ? t.DelineationTypeDisplayName : null;
+                if (dto.DelineationAreaInAcres.HasValue)
+                {
+                    dto.DelineationAreaInAcres = Math.Round(dto.DelineationAreaInAcres.Value, 2);
+                }
+            }
+            return dtos;
         }
 
         // Manager Dashboard: bulk-verify a set of delineations. Jurisdiction-scoped via
