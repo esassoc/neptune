@@ -7,6 +7,7 @@ import { escapeHtml } from "src/app/shared/helpers/html-escape";
 import { PageHeaderComponent } from "src/app/shared/components/page-header/page-header.component";
 import { LoadingDirective } from "src/app/shared/directives/loading.directive";
 import { NeptuneGridComponent } from "src/app/shared/components/neptune-grid/neptune-grid.component";
+import { AlertDisplayComponent } from "src/app/shared/components/alert-display/alert-display.component";
 import { ConfirmService } from "src/app/shared/services/confirm/confirm.service";
 import { AlertService } from "src/app/shared/services/alert.service";
 import { Alert } from "src/app/shared/models/alert";
@@ -31,7 +32,7 @@ interface AttributesByPurpose {
 @Component({
     selector: "treatment-bmp-type-detail",
     standalone: true,
-    imports: [AsyncPipe, RouterLink, PageHeaderComponent, LoadingDirective, NeptuneGridComponent],
+    imports: [AsyncPipe, RouterLink, PageHeaderComponent, LoadingDirective, NeptuneGridComponent, AlertDisplayComponent],
     templateUrl: "./treatment-bmp-type-detail.component.html",
     styleUrl: "./treatment-bmp-type-detail.component.scss",
 })
