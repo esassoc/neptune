@@ -1,0 +1,44 @@
+@use "/src/scss/abstracts" as *;
+
+// NPT-1066: match the Select Assessment Area page's source-type toggle — a centered,
+// light-gray-bordered pill where the active option is filled primary and inactive options
+// reveal the same fill on hover. Mirrors trash-ovta-add-remove-parcels.component.scss.
+.source-type-toggle {
+    text-align: center;
+    margin-bottom: $spacing-200;
+
+    ::ng-deep .button-group {
+        display: inline-flex;
+        border: 1px solid $gray-200;
+        border-radius: 0.25rem;
+        padding: 4px;
+        margin-bottom: 0;
+        gap: 4px;
+    }
+
+    ::ng-deep .button-group__item {
+        background-color: transparent;
+        color: $primary;
+        border: none;
+        border-radius: 0.25rem;
+        font-weight: 600;
+        padding: 0.5rem 1.25rem;
+        transition: background-color 200ms ease, color 200ms ease;
+
+        &:hover:not(:disabled),
+        &.active {
+            background-color: $primary;
+            color: $white;
+        }
+
+        &:disabled {
+            opacity: 0.5;
+            pointer-events: none;
+        }
+    }
+
+    .helper-text {
+        color: $gray-600;
+        margin: $spacing-100 0 0;
+    }
+}

@@ -8,13 +8,29 @@
 
 @if (onlandVisualTrashAssessmentArea$ | async; as onlandVisualTrashAssessmentArea) {
 <div class="page-body">
+    <div class="source-type-toggle">
+        <btn-group-radio-input [options]="sourceTypeOptions" [(ngModel)]="mode" (ngModelChange)="onModeChange($event)"></btn-group-radio-input>
+        @if (!jurisdictionHasLandUseBlocks) {
+            <p class="copy copy-3 helper-text">No land use blocks uploaded for this jurisdiction.</p>
+        }
+    </div>
     <neptune-map
         (onMapLoad)="handleMapReady($event, onlandVisualTrashAssessmentArea.Geometry)"
         (onLegendControlReady)="handleLegendControlReady($event)"
         [mapHeight]="mapHeight"
         [showLegend]="true"
         [boundingBox]="onlandVisualTrashAssessmentArea.BoundingBox">
-        @if (mapIsReady) {
+        @if (mapIsReady && mode === OvtaAreaSourceTypeEnum.LandUseBlock) {
+        <selected-land-use-block-layer
+            [displayOnLoad]="true"
+            [map]="map"
+            [layerControl]="layerControl"
+            [sortOrder]="20"
+            [stormwaterJurisdictionID]="stormwaterJurisdictionID"
+            [selectedLandUseBlockIDs]="selectedLandUseBlockIDs"
+            [restrictToViewport]="true"
+            (landUseBlockClicked)="onLandUseBlockClicked($event)"></selected-land-use-block-layer>
+        } @else if (mapIsReady) {
         <land-use-block-layer [displayOnLoad]="true" [map]="map" [layerControl]="layerControl" [sortOrder]="20"></land-use-block-layer>
         } @if (mapIsReady) {
         <transect-line-layer
@@ -27,17 +43,6 @@
     </neptune-map>
     <div class="flex-between">
         <button class="btn btn-primary" (click)="resetZoom()">Reset Map Zoom</button>
-        <button
-            class="btn btn-primary"
-            (click)="
-                setCanPickParcels(
-                    onlandVisualTrashAssessmentArea.OnlandVisualTrashAssessmentAreaID,
-                    onlandVisualTrashAssessmentArea.BoundingBox,
-                    onlandVisualTrashAssessmentArea.Geometry
-                )
-            ">
-            {{ buttonText }}
-        </button>
     </div>
     <hr />
     <div class="flex-end">

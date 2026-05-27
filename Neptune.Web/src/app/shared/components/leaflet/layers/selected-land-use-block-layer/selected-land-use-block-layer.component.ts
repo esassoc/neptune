@@ -21,6 +21,11 @@ export class SelectedLandUseBlockLayerComponent extends MapLayerBase implements 
     /** Single-select callers (e.g. the LUB index page) want the map to fit-bounds on each
      * external selection change. Multi-select callers (Select Assessment Area) opt out. */
     @Input() zoomToSelectionOnChange: boolean = false;
+    /** NPT-1066: only fetch + render blocks within the current map view, re-fetching on pan/zoom.
+     * Without this, picking jurisdictions with thousands of blocks (e.g. Tustin ~3k, Irvine ~61k)
+     * renders every block as an interactive vector and locks up the browser. Opt-in so the LUB
+     * index page (browse-all, single-select) keeps loading the full set. */
+    @Input() restrictToViewport: boolean = false;
 
     @Output() layerBoundsCalculated = new EventEmitter();
     @Output() landUseBlockClicked = new EventEmitter<number>();
@@ -31,6 +36,12 @@ export class SelectedLandUseBlockLayerComponent extends MapLayerBase implements 
     /** Set true between an in-layer click and the parent's input write-back, so the
      * write-back's ngOnChanges doesn't trigger a re-zoom or re-style of work we already did. */
     private clickedWithinLayer: boolean = false;
+
+    /** NPT-1066: cache of the jurisdiction's blocks (grouped by LandUseBlockID) + each group's
+     * bounds, so restrictToViewport callers can re-render the visible subset on pan/zoom without
+     * re-fetching. */
+    private featureGroups: { [landUseBlockID: string]: any[] } | null = null;
+    private featureGroupBounds: { [landUseBlockID: string]: L.LatLngBounds | null } = {};
 
     private styleDictionary = {
         [PriorityLandUseTypeEnum.Commercial]: {
@@ -119,7 +130,25 @@ export class SelectedLandUseBlockLayerComponent extends MapLayerBase implements 
     ngAfterViewInit(): void {
         this.setupLayer();
         this.updateLayer();
+        if (this.restrictToViewport) {
+            this.map.on("moveend", this.onMapMoveEnd);
+        }
     }
+
+    override ngOnDestroy(): void {
+        if (this.restrictToViewport && this.map) {
+            this.map.off("moveend", this.onMapMoveEnd);
+        }
+        super.ngOnDestroy();
+    }
+
+    /** NPT-1066: re-render (not re-fetch) the visible blocks after the user pans/zooms. The whole
+     * jurisdiction's features are cached from the single fetch; we just re-filter to the viewport. */
+    private onMapMoveEnd = () => {
+        if (this.featureGroups) {
+            this.renderFeatures();
+        }
+    };
 
     private updateLayer() {
         this.layer.clearLayers();
@@ -128,43 +157,92 @@ export class SelectedLandUseBlockLayerComponent extends MapLayerBase implements 
     }
 
     private addLandUseBlocksToLayer() {
-        const cql_filter = this.stormwaterJurisdictionID
-            ? `StormwaterJurisdictionID = ${this.stormwaterJurisdictionID}`
-            : ``;
+        // Fetch the jurisdiction's blocks once (no spatial filter — the GeoServer BBOX CQL path
+        // returned nothing here, and rendering, not fetching, was the bottleneck). When
+        // restrictToViewport is set we cache everything and only render what's in view, so dense
+        // jurisdictions (Tustin ~3k, Irvine ~61k) don't lock up the browser drawing every polygon.
+        const cql_filter = this.stormwaterJurisdictionID ? `StormwaterJurisdictionID = ${this.stormwaterJurisdictionID}` : ``;
 
         const request$ = this.wfsService.getGeoserverWFSLayerWithCQLFilter("OCStormwater:LandUseBlocks", cql_filter, "LandUseBlockID");
         const tracked$ = this.trackLayerRequest$(request$);
 
         this.isLoading = true;
         tracked$.pipe(finalize(() => (this.isLoading = false))).subscribe((response) => {
-            if (response.length == 0) return;
+            if (response.length == 0) {
+                this.featureGroups = {};
+                this.featureGroupBounds = {};
+                return;
+            }
 
-            const featuresGroupedByLandUseBlockID = this.groupByPipe.transform(response, "properties.LandUseBlockID");
-
-            Object.keys(featuresGroupedByLandUseBlockID).forEach((landUseBlockID) => {
-                const idAsNumber = Number(landUseBlockID);
-                const features = featuresGroupedByLandUseBlockID[landUseBlockID];
-                const isSelected = this.selectedLandUseBlockIDs.includes(idAsNumber);
-                const baseStyle = isSelected ? this.highlightStyle : this.styleDictionary[features[0].properties.PriorityLandUseTypeID];
-                const geoJson = L.geoJSON(features, { style: baseStyle });
-                geoJson.on("mouseover", () => {
-                    geoJson.setStyle({ fillOpacity: 0.75 });
-                });
-                geoJson.on("mouseout", () => {
-                    geoJson.setStyle({ fillOpacity: 0.5 });
-                });
-
-                geoJson.on("click", () => {
-                    this.onLandUseBlockClicked(idAsNumber);
-                });
-
-                geoJson.addTo(this.layer);
+            // GroupByPipe.transform's declared ReadonlyMap return type is inaccurate — it returns a
+            // plain keyed object at runtime (hence the Object.keys / index access used here).
+            this.featureGroups = this.groupByPipe.transform(response, "properties.LandUseBlockID") as unknown as { [landUseBlockID: string]: any[] };
+            // Pre-compute each block's bounds once so the per-pan viewport filter is a cheap
+            // intersects() check rather than re-deriving geometry bounds on every moveend.
+            this.featureGroupBounds = {};
+            Object.keys(this.featureGroups).forEach((id) => {
+                this.featureGroupBounds[id] = this.computeGroupBounds(this.featureGroups[id]);
             });
+
+            this.renderFeatures();
 
             if (this.zoomToSelectionOnChange) {
                 this.zoomToSelection();
             }
         });
+    }
+
+    /** Draw the cached blocks, restricted to the current viewport when restrictToViewport is set. */
+    private renderFeatures() {
+        if (!this.featureGroups) return;
+        this.layer.clearLayers();
+        const viewportBounds = this.restrictToViewport && this.map ? this.map.getBounds() : null;
+
+        Object.keys(this.featureGroups).forEach((landUseBlockID) => {
+            if (viewportBounds) {
+                const groupBounds = this.featureGroupBounds[landUseBlockID];
+                if (!groupBounds || !viewportBounds.intersects(groupBounds)) {
+                    return;
+                }
+            }
+            const idAsNumber = Number(landUseBlockID);
+            const features = this.featureGroups[landUseBlockID];
+            const isSelected = this.selectedLandUseBlockIDs.includes(idAsNumber);
+            const baseStyle = isSelected ? this.highlightStyle : this.styleDictionary[features[0].properties.PriorityLandUseTypeID];
+            const geoJson = L.geoJSON(features, { style: baseStyle });
+            geoJson.on("mouseover", () => {
+                geoJson.setStyle({ fillOpacity: 0.75 });
+            });
+            geoJson.on("mouseout", () => {
+                geoJson.setStyle({ fillOpacity: 0.5 });
+            });
+            geoJson.on("click", () => {
+                this.onLandUseBlockClicked(idAsNumber);
+            });
+            geoJson.addTo(this.layer);
+        });
+    }
+
+    /** Bounding box of a block's GeoJSON features (lng/lat coords), used for the viewport filter. */
+    private computeGroupBounds(features: any[]): L.LatLngBounds | null {
+        let minLat = Infinity, minLng = Infinity, maxLat = -Infinity, maxLng = -Infinity;
+        const visit = (node: any) => {
+            if (typeof node[0] === "number") {
+                const [lng, lat] = node;
+                if (lat < minLat) minLat = lat;
+                if (lat > maxLat) maxLat = lat;
+                if (lng < minLng) minLng = lng;
+                if (lng > maxLng) maxLng = lng;
+                return;
+            }
+            node.forEach(visit);
+        };
+        for (const feature of features) {
+            if (feature?.geometry?.coordinates) {
+                visit(feature.geometry.coordinates);
+            }
+        }
+        return minLat === Infinity ? null : L.latLngBounds([minLat, minLng], [maxLat, maxLng]);
     }
 
     private onLandUseBlockClicked(landUseBlockID: number) {
