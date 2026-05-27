@@ -20,7 +20,9 @@
                 <div class="card-header">
                     <span class="card-title">Basics</span>
                     @if (isAdmin) {
-                        <a (click)="openEditModal(vm.fundingSource)" style="cursor: pointer" title="Edit Funding Source"><icon class="icon-button" icon="CirclePencil"></icon></a>
+                        <button type="button" class="btn btn-primary btn-sm" (click)="openEditModal(vm.fundingSource)">
+                            <i class="fa fa-pencil mr-1"></i> Edit
+                        </button>
                     }
                 </div>
                 <div class="card-body">

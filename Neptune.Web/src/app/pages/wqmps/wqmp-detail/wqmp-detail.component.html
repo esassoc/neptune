@@ -7,7 +7,7 @@
         </ng-template>
         <ng-template #templateRight>
             @if (currentPersonCanEdit) {
-                <a class="btn btn-primary" [routerLink]="['/water-quality-management-plans', waterQualityManagementPlanID, 'verifications', 'new']">
+                <a class="btn btn-orange" [routerLink]="['/water-quality-management-plans', waterQualityManagementPlanID, 'verifications', 'new']">
                     Begin O&amp;M Verification
                 </a>
             }
@@ -44,7 +44,9 @@
                 <div class="card-header">
                     <span class="card-title">Basics</span>
                     @if (currentPersonCanEdit) {
-                        <a (click)="openEditModal(wqmp)" style="cursor: pointer"><icon class="icon-button" icon="CirclePencil"></icon></a>
+                        <button type="button" class="btn btn-primary btn-sm" (click)="openEditModal(wqmp)">
+                            <i class="fa fa-pencil mr-1"></i> Edit
+                        </button>
                     }
                 </div>
                 <div class="card-body">
@@ -261,9 +263,11 @@
             </div>
             <div class="card-body">
                 <!-- Modeling Approach -->
-                <h4>Modeling Approach
+                <h4 class="flex-between">Modeling Approach
                     @if (currentPersonCanEdit) {
-                        <a (click)="openEditModelingApproachModal(wqmp)" style="cursor: pointer"><icon class="icon-button" icon="CirclePencil"></icon></a>
+                        <button type="button" class="btn btn-primary btn-sm" (click)="openEditModelingApproachModal(wqmp)">
+                            <i class="fa fa-pencil mr-1"></i> Edit
+                        </button>
                     }
                 </h4>
                 @for (approach of modelingApproaches; track approach.Value) {
@@ -282,9 +286,11 @@
                 }
 
                 <!-- Inventoried Structural BMPs -->
-                <h4 class="mt-4">Inventoried Structural BMPs
+                <h4 class="mt-4 flex-between">Inventoried Structural BMPs
                     @if (currentPersonCanEdit) {
-                        <a (click)="openEditTreatmentBMPsModal(wqmp)" style="cursor: pointer"><icon class="icon-button" icon="CirclePencil"></icon></a>
+                        <button type="button" class="btn btn-primary btn-sm" (click)="openEditTreatmentBMPsModal(wqmp)">
+                            <i class="fa fa-pencil mr-1"></i> Edit
+                        </button>
                     }
                 </h4>
                 @if (!isAnonymousOrUnassigned && wqmp.WaterQualityManagementPlanModelingApproachID === WaterQualityManagementPlanModelingApproachEnum.Simplified) {
@@ -304,9 +310,11 @@
                 }
 
                 <!-- Simplified Structural BMPs (Quick BMPs) -->
-                <h4 class="mt-4">Simplified Structural BMPs
+                <h4 class="mt-4 flex-between">Simplified Structural BMPs
                     @if (currentPersonCanEdit) {
-                        <a (click)="navigateToEditQuickBMPs()" style="cursor: pointer"><icon class="icon-button" icon="CirclePencil"></icon></a>
+                        <button type="button" class="btn btn-primary btn-sm" (click)="navigateToEditQuickBMPs()">
+                            <i class="fa fa-pencil mr-1"></i> Edit
+                        </button>
                     }
                 </h4>
                 @if (!isAnonymousOrUnassigned && wqmp.WaterQualityManagementPlanModelingApproachID === WaterQualityManagementPlanModelingApproachEnum.Detailed) {
@@ -331,9 +339,11 @@
                 }
 
                 <!-- Source Control BMPs -->
-                <h4 class="mt-4">Source Control BMPs
+                <h4 class="mt-4 flex-between">Source Control BMPs
                     @if (currentPersonCanEdit) {
-                        <a (click)="navigateToEditSourceControlBMPs()" style="cursor: pointer"><icon class="icon-button" icon="CirclePencil"></icon></a>
+                        <button type="button" class="btn btn-primary btn-sm" (click)="navigateToEditSourceControlBMPs()">
+                            <i class="fa fa-pencil mr-1"></i> Edit
+                        </button>
                     }
                 </h4>
                 @if (sourceControlBMPs$ | async; as sourceControlBMPs) {
@@ -422,7 +432,7 @@
             <div class="card-header">
                 <span class="card-title">WQMP O&amp;M Verification</span>
                 @if (currentPersonCanEdit) {
-                    <a class="btn btn-white-outline btn-sm"
+                    <a class="btn btn-primary-outline btn-sm"
                        [routerLink]="['/water-quality-management-plans', waterQualityManagementPlanID, 'verifications', 'new']">
                         <i class="fa fa-plus"></i> Begin O&amp;M Verification
                     </a>

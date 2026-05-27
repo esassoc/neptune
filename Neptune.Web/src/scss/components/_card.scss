@@ -17,17 +17,16 @@
             padding-bottom: 0;
         }
 
-        padding: 0.625rem 1rem;
+        padding: $spacing-400 $spacing-600;
         margin-bottom: 0;
-        background-color: $primary;
-        border-bottom: 1px solid rgba(0, 0, 0, 0.125);
-        color: $white;
+        background-color: $white;
+        border-bottom: 1px solid $gray-200;
+        color: $gray-900;
         font-weight: 700;
-
-        // Plain link anchors inherit the white header color; buttons opt out via .btn so they can use their own colors
-        a:not(.btn) {
-            color: $white;
-        }
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        gap: $spacing-300;
     }
 
     &-actions {
@@ -41,7 +40,7 @@
         font-weight: 700;
         margin: 0;
         padding: 0;
-        color: $white;
+        color: $gray-900;
 
         i {
             font-size: $type-size-200;
@@ -64,11 +63,5 @@
         gap: 0.5rem;
         border-bottom-left-radius: 0.25rem;
         border-bottom-right-radius: 0.25rem;
-    }
-
-    .card-body {
-        .card-header {
-            background-color: $gray-500;
-        }
     }
 }

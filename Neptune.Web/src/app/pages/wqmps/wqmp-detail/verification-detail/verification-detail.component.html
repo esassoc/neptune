@@ -7,7 +7,7 @@
         </ng-template>
         <ng-template #templateRight>
             @if (currentPersonCanEdit && data.verification.IsDraft) {
-                <a class="btn btn-primary" [routerLink]="['/water-quality-management-plans', waterQualityManagementPlanID, 'verifications', data.verification.WaterQualityManagementPlanVerifyID]">
+                <a class="btn btn-orange" [routerLink]="['/water-quality-management-plans', waterQualityManagementPlanID, 'verifications', data.verification.WaterQualityManagementPlanVerifyID]">
                     Edit
                 </a>
             }

@@ -12,7 +12,7 @@
             rowSelection="multiple"
             [suppressRowClickSelection]="true"
             (selectionChanged)="onSelectionChanged($event)">
-            <button customGridActionsRight type="button" class="btn btn-sm btn-primary" [disabled]="selectedRowIDs().length === 0" (click)="verifySelected()">
+            <button customGridActionsRight type="button" class="btn btn-sm btn-orange" [disabled]="selectedRowIDs().length === 0" (click)="verifySelected()">
                 Verify all Selected ({{ selectedRowIDs().length }})
             </button>
         </neptune-grid>

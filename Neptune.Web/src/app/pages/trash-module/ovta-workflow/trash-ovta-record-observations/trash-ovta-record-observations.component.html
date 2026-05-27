@@ -54,11 +54,11 @@
                 <span class="card-title">Selected Observation</span>
                 <div style="display: flex; gap: 0.5rem">
                   @if (isEditingLocation) {
-                    <button type="button" class="btn btn-sm btn-white-outline" (click)="cancelEditMode()">Done Editing</button>
+                    <button type="button" class="btn btn-sm btn-primary-outline" (click)="cancelEditMode()">Done Editing</button>
                   } @else {
-                    <button type="button" class="btn btn-sm btn-white-outline" [disabled]="isAddingObservation" (click)="editObservationLocation(i)">Edit</button>
+                    <button type="button" class="btn btn-sm btn-primary-outline" [disabled]="isAddingObservation" (click)="editObservationLocation(i)">Edit</button>
                   }
-                  <button type="button" class="btn btn-sm btn-white-outline" [disabled]="isEditingLocation || isAddingObservation" (click)="deleteObservation(i)">Delete</button>
+                  <button type="button" class="btn btn-sm btn-primary-outline" [disabled]="isEditingLocation || isAddingObservation" (click)="deleteObservation(i)">Delete</button>
                 </div>
               </div>
               <div class="card-body grid-12">

@@ -11,7 +11,7 @@
         <ng-template #headerActions>
             @if (canManage) {
                 @if (!data.workflow.IsFieldVisitVerified) {
-                    <button type="button" class="btn btn-primary mr-2" (click)="verify(data.workflow)">
+                    <button type="button" class="btn btn-orange mr-2" (click)="verify(data.workflow)">
                         <i class="fa fa-check mr-1"></i> Verify
                     </button>
                 }

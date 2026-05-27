@@ -87,7 +87,9 @@
                 <div class="card-header">
                     <span class="card-title">Basics</span>
                     @if (currentPersonCanManage) {
-                        <a [routerLink]="['edit-basic-info']"><icon class="icon-button" icon="CirclePencil"></icon></a>
+                        <a class="btn btn-primary btn-sm" [routerLink]="['edit-basic-info']">
+                            <i class="fa fa-pencil mr-1"></i> Edit
+                        </a>
                     }
                 </div>
                 <div class="card-body">
@@ -157,11 +159,9 @@
                             <div class="card-header">
                                 <span class="card-title">Modeling Attributes</span>
                                 @if (currentPersonCanManage) {
-                                    <span class="card-actions">
-                                        <a [routerLink]="['/treatment-bmps', treatmentBMP.TreatmentBMPID, 'edit-custom-attributes', CustomAttributeTypePurposeEnum.Modeling]">
-                                            <icon class="icon-button" icon="CirclePencil"></icon>
-                                        </a>
-                                    </span>
+                                    <a class="btn btn-primary btn-sm" [routerLink]="['/treatment-bmps', treatmentBMP.TreatmentBMPID, 'edit-custom-attributes', CustomAttributeTypePurposeEnum.Modeling]">
+                                        <i class="fa fa-pencil mr-1"></i> Edit
+                                    </a>
                                 }
                             </div>
                             <div class="card-body">
@@ -207,17 +207,16 @@
                             <div class="card-header">
                                 <span class="card-title">Other Design Attributes</span>
                                 @if (currentPersonCanManage) {
-                                    <span class="card-actions">
-                                        <a
-                                            [routerLink]="[
-                                                '/treatment-bmps',
-                                                treatmentBMP.TreatmentBMPID,
-                                                'edit-custom-attributes',
-                                                CustomAttributeTypePurposeEnum.OtherDesignAttributes,
-                                            ]">
-                                            <icon class="icon-button" icon="CirclePencil"></icon>
-                                        </a>
-                                    </span>
+                                    <a
+                                        class="btn btn-primary btn-sm"
+                                        [routerLink]="[
+                                            '/treatment-bmps',
+                                            treatmentBMP.TreatmentBMPID,
+                                            'edit-custom-attributes',
+                                            CustomAttributeTypePurposeEnum.OtherDesignAttributes,
+                                        ]">
+                                        <i class="fa fa-pencil mr-1"></i> Edit
+                                    </a>
                                 }
                             </div>
                             <div class="card-body">
@@ -239,7 +238,9 @@
                 <div class="card-header">
                     <span class="card-title">Images</span>
                     @if (currentPersonCanManage) {
-                        <a [routerLink]="['edit-images']"><icon class="icon-button" icon="CirclePencil"></icon></a>
+                        <a class="btn btn-primary btn-sm" [routerLink]="['edit-images']">
+                            <i class="fa fa-pencil mr-1"></i> Edit
+                        </a>
                     }
                 </div>
                 <div class="card-body" [loadingSpinner]="{ isLoading: imagesLoading, loadingHeight: 100 }">
@@ -252,7 +253,9 @@
                 <div class="card-header">
                     <span class="card-title">Location & Map</span>
                     @if (currentPersonCanManage) {
-                        <a [routerLink]="['edit-location']"><icon class="icon-button" icon="CirclePencil"></icon></a>
+                        <a class="btn btn-primary btn-sm" [routerLink]="['edit-location']">
+                            <i class="fa fa-pencil mr-1"></i> Edit
+                        </a>
                     }
                 </div>
                 <div class="card-body">
@@ -407,7 +410,7 @@
             <div class="card-header">
                 <span class="card-title">Field Visits</span>
                 @if (currentPersonCanManage) {
-                    <button class="btn btn-white-outline btn-sm" (click)="openBeginFieldVisitModal()"><i class="fa fa-plus"></i> Begin Field Visit</button>
+                    <button class="btn btn-primary-outline btn-sm" (click)="openBeginFieldVisitModal()"><i class="fa fa-plus"></i> Begin Field Visit</button>
                 }
             </div>
             <div class="card-body">
@@ -427,7 +430,7 @@
             <div class="card-header">
                 <span class="card-title">Funding Events</span>
                 @if (currentPersonCanManage) {
-                    <button class="btn btn-white-outline btn-sm" (click)="openAddFundingEventModal()"><i class="fa fa-plus"></i> Add Funding Event</button>
+                    <button class="btn btn-primary-outline btn-sm" (click)="openAddFundingEventModal()"><i class="fa fa-plus"></i> Add Funding Event</button>
                 }
             </div>
             <div class="card-body">
@@ -489,11 +492,9 @@
             <div class="card-header">
                 <span class="card-title">Benchmark &amp; Threshold Values</span>
                 @if (canEditBenchmarkAndThresholds) {
-                    <span class="card-actions">
-                        <a style="cursor: pointer" (click)="openEditBenchmarkAndThresholdsModal(currentBenchmarks)">
-                            <icon class="icon-button" icon="CirclePencil"></icon>
-                        </a>
-                    </span>
+                    <button type="button" class="btn btn-primary btn-sm" (click)="openEditBenchmarkAndThresholdsModal(currentBenchmarks)">
+                        <i class="fa fa-pencil mr-1"></i> Edit
+                    </button>
                 }
             </div>
             <div class="card-body">
@@ -532,7 +533,7 @@
                 <div class="card-header">
                     <span class="card-title">Documents</span>
                     @if (currentPersonCanManage) {
-                        <button class="btn btn-white-outline btn-sm" (click)="openDocumentUploadModal()"><i class="fa fa-plus"></i> Upload Document</button>
+                        <button class="btn btn-primary-outline btn-sm" (click)="openDocumentUploadModal()"><i class="fa fa-plus"></i> Upload Document</button>
                     }
                 </div>
                 <div class="card-body">

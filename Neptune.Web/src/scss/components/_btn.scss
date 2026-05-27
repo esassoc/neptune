@@ -114,24 +114,24 @@
 
     &-primary {
         color: $white;
-        border: 1px solid color.adjust($neptune-orange, $lightness: -4%);
-        text-shadow: 0px 1px 2px rgba($neptune-orange, 0.8);
-        background: linear-gradient(0deg, color.adjust($neptune-orange, $lightness: 2%) 0%, color.adjust($neptune-orange, $lightness: 0%) 100%);
+        border: 1px solid color.adjust($primary, $lightness: -4%);
+        text-shadow: 0px 1px 2px rgba($primary, 0.8);
+        background: linear-gradient(0deg, color.adjust($primary, $lightness: 2%) 0%, color.adjust($primary, $lightness: 0%) 100%);
 
         &:hover {
             color: $white;
-            background: linear-gradient(0deg, color.adjust($neptune-orange, $lightness: 0%) 0%, color.adjust($neptune-orange, $lightness: -2%) 100%);
+            background: linear-gradient(0deg, color.adjust($primary, $lightness: 0%) 0%, color.adjust($primary, $lightness: -2%) 100%);
         }
 
         &-outline {
             background: $white;
-            color: $neptune-orange;
-            border: 1px solid $neptune-orange;
+            color: $primary;
+            border: 1px solid $primary;
 
             &:hover {
-                background: $neptune-orange;
+                background: $primary;
                 color: $white;
-                border: 1px solid $neptune-orange;
+                border: 1px solid $primary;
                 svg path {
                     fill: $white;
                 }
@@ -169,24 +169,24 @@
 
     &-orange {
         color: $white;
-        border: 1px solid color.adjust($orange-default, $lightness: -4%);
-        text-shadow: 0px 1px 2px rgba($orange-default, 0.8);
-        background: linear-gradient(0deg, color.adjust($orange-default, $lightness: 2%) 0%, color.adjust($orange-default, $lightness: 0%) 100%);
+        border: 1px solid color.adjust($neptune-orange, $lightness: -4%);
+        text-shadow: 0px 1px 2px rgba($neptune-orange, 0.8);
+        background: linear-gradient(0deg, color.adjust($neptune-orange, $lightness: 2%) 0%, color.adjust($neptune-orange, $lightness: 0%) 100%);
 
         &:hover {
             color: $white;
-            background: linear-gradient(0deg, color.adjust($orange-default, $lightness: 0%) 0%, color.adjust($orange-default, $lightness: -2%) 100%);
+            background: linear-gradient(0deg, color.adjust($neptune-orange, $lightness: 0%) 0%, color.adjust($neptune-orange, $lightness: -2%) 100%);
         }
 
         &-outline {
             background: $white;
-            color: $orange-default;
-            border: 1px solid $orange-default;
+            color: $neptune-orange;
+            border: 1px solid $neptune-orange;
 
             &:hover {
-                background: $orange-default;
+                background: $neptune-orange;
                 color: $white;
-                border: 1px solid $orange-default;
+                border: 1px solid $neptune-orange;
                 svg path {
                     fill: $white;
                 }

@@ -11,7 +11,7 @@
                 {{ ctx.RegionalSubbasinsLastUpdated | date: "MM/dd/yyyy h:mm a" }}</em
             >
             @if (ctx.CallerIsAdministrator) {
-                <button class="btn btn-primary" (click)="onCheckForDiscrepancies()" [disabled]="isEnqueueing">
+                <button class="btn btn-orange" (click)="onCheckForDiscrepancies()" [disabled]="isEnqueueing">
                     Check for Discrepancies
                 </button>
             }
