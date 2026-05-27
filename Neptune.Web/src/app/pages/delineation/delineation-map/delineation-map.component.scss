@@ -13,6 +13,12 @@
     &:first-child {
         margin-top: 0;
     }
+
+    // NPT-981 r3 (KE): visual divider between the Selected BMP and Selected Delineation sections.
+    &--divided {
+        border-top: 1px solid $gray-300;
+        padding-top: $spacing-300;
+    }
 }
 
 .kv {
@@ -65,6 +71,8 @@
 
 .inline-actions {
     display: flex;
+    flex-wrap: wrap;
+    align-items: center;
     gap: $spacing-200;
     margin-top: $spacing-200;
 }

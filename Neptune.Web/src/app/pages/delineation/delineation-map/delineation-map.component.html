@@ -31,8 +31,11 @@
                             <dt>Type</dt>
                             <dd>{{ bmp.TreatmentBMPTypeName }}</dd>
                         </dl>
+                        @if (mode === "idle" && !choosingFlowType()) {
+                            <button type="button" class="btn btn-sm btn-primary" (click)="startEditLocation()">Edit Location</button>
+                        }
 
-                        <h4 class="panel-section-header">Selected Delineation</h4>
+                        <h4 class="panel-section-header panel-section-header--divided">Selected Delineation</h4>
                         <dl class="kv">
                             <dt>Type</dt>
                             <dd>{{ delineationTypeName() }}</dd>
@@ -51,16 +54,14 @@
                         @if (mode === "idle") {
                             @if (delineation && !choosingFlowType()) {
                                 <div class="inline-actions">
-                                    <button type="button" class="btn btn-sm btn-primary" (click)="openFlowTypeChooser()">Edit Delineation</button>
+                                    <button type="button" class="btn btn-sm btn-primary" (click)="openFlowTypeChooser()">Edit</button>
                                     <button type="button" class="btn btn-sm btn-danger icon-btn" [disabled]="saving$ | async" (click)="deleteDelineation()" title="Delete Delineation">
                                         <i class="fa fa-trash"></i>
                                     </button>
+                                    @if (delineation.DelineationTypeID === DelineationTypeEnum.Centralized) {
+                                        <a class="btn btn-sm btn-primary" [routerLink]="requestRevisionUrl()">Request Revision</a>
+                                    }
                                 </div>
-                                @if (delineation.DelineationTypeID === DelineationTypeEnum.Centralized) {
-                                    <a class="btn btn-sm btn-primary action-btn request-revision-btn" [routerLink]="requestRevisionUrl()">Request Revision</a>
-                                }
-                                <hr />
-                                <button type="button" class="btn btn-sm btn-primary action-btn" (click)="startEditLocation()">Edit BMP Location</button>
                             } @else {
                                 <!-- NPT-981 r3 (KE): flow-type chooser mirrors the legacy "Delineate Drainage
                                      Area" control — radio select + a single Delineate button. Shown directly
@@ -87,10 +88,6 @@
                                         <button type="button" class="btn btn-sm btn-secondary" (click)="closeFlowTypeChooser()">Cancel</button>
                                     }
                                 </div>
-                                @if (!choosingFlowType()) {
-                                    <hr />
-                                    <button type="button" class="btn btn-sm btn-primary action-btn" (click)="startEditLocation()">Edit BMP Location</button>
-                                }
                             }
                         } @else {
                             <hr />
