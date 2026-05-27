@@ -144,7 +144,10 @@ export class TreatmentBmpTypeEditComponent implements OnInit {
                         HasBenchmarkAndThreshold: o.HasBenchmarkAndThreshold,
                         BenchmarkUnitDisplayName: o.BenchmarkUnitDisplayName,
                         ThresholdUnitDisplayName: o.ThresholdUnitDisplayName,
-                        AssessmentScoreWeight: o.AssessmentScoreWeight ?? null,
+                        // NPT-1040: the API stores AssessmentScoreWeight as a decimal 0–1; the UI
+                        // shows + sums whole percents (matching MVC). Convert to percent on load
+                        // (toFixed(4) trims float noise like 0.07*100=7.0000001) and back on save.
+                        AssessmentScoreWeight: o.AssessmentScoreWeight != null ? Number((o.AssessmentScoreWeight * 100).toFixed(4)) : null,
                         DefaultThresholdValue: o.DefaultThresholdValue,
                         DefaultBenchmarkValue: o.DefaultBenchmarkValue,
                         OverrideAssessmentScoreIfFailing: o.OverrideAssessmentScoreIfFailing,
@@ -181,6 +184,16 @@ export class TreatmentBmpTypeEditComponent implements OnInit {
 
     public isPassFail(row: ObservationTypeRow): boolean {
         return row.CollectionMethodID === ObservationTypeCollectionMethodEnum.PassFail;
+    }
+
+    /**
+     * The weight + "fails-if-fails" inputs use [(ngModel)], which mutates the row object in place
+     * without changing the observationTypeRows signal reference — so the weightTotal / hasWeightError
+     * computeds never recompute and the total goes stale. Re-set the signal with a fresh array (same
+     * row objects) on each edit so those computeds re-run and the live total stays correct.
+     */
+    public onObservationRowChanged(): void {
+        this.observationTypeRows.set([...this.observationTypeRows()]);
     }
 
     addObservationType(): void {
@@ -264,11 +277,34 @@ export class TreatmentBmpTypeEditComponent implements OnInit {
     }
 
     save(): void {
-        if (this.nameControl.invalid || this.descriptionControl.invalid) return;
-        if (this.hasWeightError()) {
-            this.alertService.pushAlert(new Alert(`Observation type weights must sum to 100%. Currently: ${this.weightTotal()}%.`, AlertContext.Danger));
+        // NPT-1040: the Save button stays enabled even when the form is invalid — this form is
+        // complex enough that a silently-disabled button is confusing. Validate on click and
+        // surface a clear alert per failure instead.
+        this.nameControl.markAsTouched();
+        this.descriptionControl.markAsTouched();
+
+        const validationErrors: string[] = [];
+        if (this.nameControl.invalid) {
+            validationErrors.push("Name is required.");
+        }
+        if (this.descriptionControl.invalid) {
+            validationErrors.push("Description is required.");
+        }
+        // Every row that counts toward the weight total (non-override) must have a weight: a blank
+        // one is excluded from the sum, so it can slip past the "= 100%" check yet save as a null
+        // weight that CalculateAssessmentScore later dereferences. Matches the legacy MVC validator.
+        const countingRowsMissingWeight = this.observationTypeRows().filter((r) => this.rowCountsTowardWeight(r) && r.AssessmentScoreWeight == null);
+        if (countingRowsMissingWeight.length > 0) {
+            validationErrors.push("Each observation type that does not override the assessment score when failing must have an assessment score weight.");
+        } else if (this.hasWeightError()) {
+            validationErrors.push(`Observation type weights must sum to 100%. Currently: ${this.weightTotal()}%.`);
+        }
+        if (validationErrors.length > 0) {
+            this.alertService.clearAlerts();
+            validationErrors.forEach((message) => this.alertService.pushAlert(new Alert(message, AlertContext.Danger)));
             return;
         }
+
         this.isSaving = true;
         this.alertService.clearAlerts();
 
@@ -278,7 +314,8 @@ export class TreatmentBmpTypeEditComponent implements OnInit {
             ObservationTypes: this.observationTypeRows().map((r) => ({
                 TreatmentBMPAssessmentObservationTypeID: r.TreatmentBMPAssessmentObservationTypeID,
                 // Pass/Fail-with-override rows have null weight (the row's failure short-circuits scoring).
-                AssessmentScoreWeight: this.rowCountsTowardWeight(r) ? r.AssessmentScoreWeight : null,
+                // Convert the whole-percent UI value back to the decimal 0–1 the API stores.
+                AssessmentScoreWeight: this.rowCountsTowardWeight(r) && r.AssessmentScoreWeight != null ? Number(r.AssessmentScoreWeight) / 100 : null,
                 DefaultThresholdValue: r.HasBenchmarkAndThreshold ? r.DefaultThresholdValue : null,
                 DefaultBenchmarkValue: r.HasBenchmarkAndThreshold ? r.DefaultBenchmarkValue : null,
                 OverrideAssessmentScoreIfFailing: r.OverrideAssessmentScoreIfFailing,
@@ -297,10 +334,13 @@ export class TreatmentBmpTypeEditComponent implements OnInit {
         save$.subscribe({
             next: (saved) => {
                 this.isSaving = false;
-                this.alertService.pushAlert(new Alert(`Treatment BMP Type ${this.isCreate ? "created" : "updated"}.`, AlertContext.Success));
                 // Match MVC behavior: redirect to the detail page after save (works for both
-                // create and update — the response carries the persisted ID).
-                this.router.navigate(["/program-info/treatment-bmp-types", saved.TreatmentBMPTypeID]);
+                // create and update — the response carries the persisted ID). Push the success
+                // alert *after* navigation resolves: this page's own <app-alert-display> clears
+                // alerts on destroy, so an alert pushed before navigating gets wiped en route.
+                this.router.navigate(["/program-info/treatment-bmp-types", saved.TreatmentBMPTypeID]).then(() => {
+                    this.alertService.pushAlert(new Alert(`Treatment BMP Type ${this.isCreate ? "created" : "updated"}.`, AlertContext.Success));
+                });
             },
             error: () => {
                 this.isSaving = false;

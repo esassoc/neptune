@@ -83,7 +83,13 @@ namespace Neptune.EFModels.Entities
         public override double? GetObservationValueFromObservationData(string observationData)
         {
             var observation = GeoJsonSerializer.Deserialize<DiscreteObservationSchema>(observationData);
-            return observation.SingleValueObservations.Average(x => double.Parse(x.ObservationValue.ToString()));
+            // A blank ObservationValue is a valid persisted state (validation flags it but doesn't block
+            // save), so skip null/unparseable values rather than NRE on .ToString().
+            var values = observation.SingleValueObservations
+                .Where(x => double.TryParse(x.ObservationValue?.ToString(), out _))
+                .Select(x => double.Parse(x.ObservationValue.ToString()))
+                .ToList();
+            return values.Count > 0 ? values.Average() : null;
         }
 
         public override double? CalculateScore(TreatmentBMPObservation treatmentBMPObservation, TreatmentBMP treatmentBMP)
@@ -160,7 +166,17 @@ namespace Neptune.EFModels.Entities
         public override double? GetObservationValueFromObservationData(string observationData)
         {
             var observation = GeoJsonSerializer.Deserialize<PassFailObservationSchema>(observationData);
-            var conveyanceFails = observation.SingleValueObservations.Any(x => bool.Parse(x.ObservationValue.ToString()) == false);
+            // Distinguish "no valid value" (return null) from "all values passed": skip blank/unparseable
+            // values, and if none remain don't report a passing score that would mask incomplete data.
+            var passFailValues = observation.SingleValueObservations
+                .Where(x => bool.TryParse(x.ObservationValue?.ToString(), out _))
+                .Select(x => bool.Parse(x.ObservationValue.ToString()))
+                .ToList();
+            if (passFailValues.Count == 0)
+            {
+                return null;
+            }
+            var conveyanceFails = passFailValues.Any(passed => !passed);
             return conveyanceFails ? 0 : 5;
         }
 
@@ -175,8 +191,17 @@ namespace Neptune.EFModels.Entities
             bool overrideAssessmentScoreIfFailing)
         {
             var observation = GeoJsonSerializer.Deserialize<PassFailObservationSchema>(observationData);
-            var conveyanceFails = observation.SingleValueObservations.Any(x => bool.Parse(x.ObservationValue.ToString()) == false);
+            var passFailValues = observation.SingleValueObservations
+                .Where(x => bool.TryParse(x.ObservationValue?.ToString(), out _))
+                .Select(x => bool.Parse(x.ObservationValue.ToString()))
+                .ToList();
+            if (passFailValues.Count == 0)
+            {
+                // No valid value yet — don't label a blank observation as passing.
+                return string.Empty;
+            }
             var schema = GeoJsonSerializer.Deserialize<PassFailObservationTypeSchema>(observationTypeSchema);
+            var conveyanceFails = passFailValues.Any(passed => !passed);
             return conveyanceFails ? schema.FailingScoreLabel : schema.PassingScoreLabel;
         }
     }
@@ -239,7 +264,13 @@ namespace Neptune.EFModels.Entities
         public override double? GetObservationValueFromObservationData(string observationData)
         {
             var observation = GeoJsonSerializer.Deserialize<PercentageObservationSchema>(observationData);
-            return observation.SingleValueObservations.Sum(x => double.Parse(x.ObservationValue.ToString()));
+            // A blank ObservationValue is a valid persisted state (validation flags it but doesn't block
+            // save), so skip null/unparseable values rather than NRE on .ToString().
+            var values = observation.SingleValueObservations
+                .Where(x => double.TryParse(x.ObservationValue?.ToString(), out _))
+                .Select(x => double.Parse(x.ObservationValue.ToString()))
+                .ToList();
+            return values.Count > 0 ? values.Sum() : null;
         }
 
         public override double? CalculateScore(TreatmentBMPObservation treatmentBMPObservation, TreatmentBMP treatmentBMP)
