@@ -83,8 +83,14 @@ public static class OnlandVisualTrashAssessmentAreas
             var geometry = LandUseBlocks.UnionAggregateByLandUseBlockIDs(dbContext,
                 onlandVisualTrashAssessmentAreaGeometryDto.SelectedLandUseBlockIDs ?? new List<int>(),
                 onlandVisualTrashAssessmentArea.StormwaterJurisdictionID);
-            onlandVisualTrashAssessmentArea.OnlandVisualTrashAssessmentAreaGeometry = geometry;
-            onlandVisualTrashAssessmentArea.OnlandVisualTrashAssessmentAreaGeometry4326 = geometry.ProjectTo4326();
+            // UnionAggregateByLandUseBlockIDs returns null for an empty / out-of-jurisdiction
+            // selection. Leave the existing geometry untouched rather than projecting null (NRE)
+            // or wiping the non-nullable area geometry — an empty save is a no-op.
+            if (geometry != null)
+            {
+                onlandVisualTrashAssessmentArea.OnlandVisualTrashAssessmentAreaGeometry = geometry;
+                onlandVisualTrashAssessmentArea.OnlandVisualTrashAssessmentAreaGeometry4326 = geometry.ProjectTo4326();
+            }
         }
         else if (onlandVisualTrashAssessmentAreaGeometryDto.OvtaAreaSourceTypeID == (int)OvtaAreaSourceTypeEnum.Parcel)
         {

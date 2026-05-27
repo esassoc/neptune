@@ -152,6 +152,10 @@ export class SelectedLandUseBlockLayerComponent extends MapLayerBase implements 
 
     private updateLayer() {
         this.layer.clearLayers();
+        // Drop the cached features up front so a moveend during the in-flight refetch (e.g. after a
+        // jurisdiction change) can't re-render the previous jurisdiction's blocks.
+        this.featureGroups = null;
+        this.featureGroupBounds = {};
         this.addLandUseBlocksToLayer();
         this.layer.addTo(this.map);
     }

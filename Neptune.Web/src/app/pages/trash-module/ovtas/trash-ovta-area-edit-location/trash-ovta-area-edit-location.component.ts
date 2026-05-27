@@ -262,6 +262,13 @@ export class TrashOvtaAreaEditLocationComponent {
         }
         this.mode = newMode;
 
+        // The toggle renders as soon as the area loads, which can be before the map fires
+        // onMapLoad. ngModel has set this.mode; bail before touching Geoman/map APIs if the map
+        // isn't ready yet (handleMapReady sets up the default Draw mode once it is).
+        if (!this.map) {
+            return;
+        }
+
         this.layer.clearLayers();
         if (this.map.pm.globalEditModeEnabled()) {
             this.map.pm.disableGlobalEditMode();
