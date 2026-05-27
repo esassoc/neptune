@@ -1,4 +1,4 @@
-import { Component, OnInit, signal } from "@angular/core";
+import { Component, OnInit, QueryList, signal, ViewChildren } from "@angular/core";
 import { ActivatedRoute, RouterLink } from "@angular/router";
 import { AsyncPipe } from "@angular/common";
 import { FormControl, FormsModule, ReactiveFormsModule } from "@angular/forms";
@@ -78,10 +78,19 @@ export class DelineationMapComponent implements OnInit {
     public layerControl: L.Control.Layers;
     public mapIsReady = false;
 
+    @ViewChildren(DelineationsLayerComponent) private delineationLayers!: QueryList<DelineationsLayerComponent>;
+
     public bmps: TreatmentBMPDelineationMapDto[] = [];
     public selectedBMP = signal<TreatmentBMPDelineationMapDto | null>(null);
     public selectedDelineation = signal<DelineationDto | null>(null);
     public editMode = signal<EditMode>("idle");
+    // NPT-981 r3 (KE): "Edit Delineation" on an existing delineation reopens the flow-type
+    // chooser (Distributed / Centralized) so the user can re-delineate OR switch the type —
+    // mirroring the legacy "Delineate Drainage Area" control (radio select + Delineate button).
+    public choosingFlowType = signal<boolean>(false);
+    // Bound to the chooser radios via ngModel. Null until the user picks, which keeps the
+    // Delineate button disabled (matches the legacy disabled-until-selected behavior).
+    public selectedFlowType: DelineationTypeEnum | null = null;
 
     private bmpsClusterLayer: any = null;
     private bmpMarkerByID: Map<number, L.Marker> = new Map();
@@ -134,6 +143,9 @@ export class DelineationMapComponent implements OnInit {
                 this.savingSubject.next(false);
                 this.alertService.pushAlert(new Alert(`Delineation marked ${isVerified ? "Verified" : "Provisional"}.`, AlertContext.Success, true));
                 this.reloadSelectedDelineation();
+                // Verified/Provisional are two separate WMS layers with status-based cql_filters;
+                // the row moves between them, so refresh both.
+                this.refreshDelineationLayers();
             },
             error: () => {
                 this.savingSubject.next(false);
@@ -180,6 +192,9 @@ export class DelineationMapComponent implements OnInit {
         }
         this.bmpMarkerByID.clear();
         this.bmpsClusterLayer = L.markerClusterGroup({
+            // NPT-981 r3 (KE id-7): suppress the blue convex-hull coverage polygon that markercluster
+            // draws on hover/click — KE found it confusing when clicking a clustered pin.
+            showCoverageOnHover: false,
             iconCreateFunction: (cluster: any) =>
                 L.divIcon({
                     html: `<div><span>${cluster.getChildCount()}</span></div>`,
@@ -191,12 +206,10 @@ export class DelineationMapComponent implements OnInit {
             if (!bmp.Latitude || !bmp.Longitude) {
                 continue;
             }
-            // NPT-981 r2: construct with draggable: true so Leaflet's _initInteraction
-            // builds the marker.dragging Handler when the cluster eventually exposes the
-            // marker on the map. Immediately disable on `add` so the marker is click-only
-            // outside edit mode; startEditLocation re-enables on demand.
-            const marker = L.marker([bmp.Latitude, bmp.Longitude], { icon: MarkerHelper.treatmentBMPMarker, draggable: true });
-            marker.on("add", () => marker.dragging?.disable());
+            // NPT-981 r3: BMP pins are click-to-select only. Relocating a BMP is done via a
+            // separate preview marker in startEditLocation (KE id-26), so the cluster marker
+            // itself is never dragged.
+            const marker = L.marker([bmp.Latitude, bmp.Longitude], { icon: MarkerHelper.inventoriedTreatmentBMPMarker });
             marker.on("click", () => {
                 if (this.editMode() !== "idle") {
                     return;
@@ -206,7 +219,7 @@ export class DelineationMapComponent implements OnInit {
             this.bmpMarkerByID.set(bmp.TreatmentBMPID, marker);
             this.bmpsClusterLayer.addLayer(marker);
         }
-        this.bmpsClusterLayer["legendHtml"] = "<img src='./assets/main/map-icons/marker-icon-violet.png' style='height:17px'>";
+        this.bmpsClusterLayer["legendHtml"] = "<img src='./assets/main/map-icons/marker-icon-orange.png' style='height:17px'>";
         this.layerControl.addOverlay(this.bmpsClusterLayer, "Treatment BMPs");
         this.map.addLayer(this.bmpsClusterLayer);
     }
@@ -222,18 +235,30 @@ export class DelineationMapComponent implements OnInit {
      * already permission-gated on the API).
      */
     public onDelineationSelected(delineationID: number): void {
+        // NPT-981 r3 (KE id-19): ignore delineation-polygon clicks unless we're idle. While
+        // drawing/editing/tracing/moving, a stray polygon click must not hijack the selection
+        // (KE got yanked into a centralized delineation mid-draw and stuck in a broken state).
+        if (this.editMode() !== "idle") {
+            return;
+        }
         const bmp = this.bmps.find((b) => b.DelineationID === delineationID);
         if (bmp) {
-            this.selectBMP(bmp);
+            // Polygon click → populate the panel but do NOT auto-zoom (KE id-19b / id-23: the
+            // map flew away erratically). Only pin clicks zoom.
+            this.selectBMP(bmp, false);
         }
     }
 
-    public selectBMP(bmp: TreatmentBMPDelineationMapDto): void {
+    /** @param zoomToSelection fly the map to the selection. True for pin clicks + deep-link;
+     *  false for delineation-polygon clicks (KE id-19b). */
+    public selectBMP(bmp: TreatmentBMPDelineationMapDto, zoomToSelection: boolean = true): void {
         this.cancelEdit();
+        this.choosingFlowType.set(false);
+        this.selectedFlowType = null;
         this.selectedBMP.set(bmp);
         this.selectedDelineation.set(null);
         this.clearSelectedDelineationLayer();
-        this.refreshMarkerHighlight();
+        this.refreshMarkerHighlight(zoomToSelection);
 
         const requestedID = bmp.TreatmentBMPID;
         this.delineationService.getForTreatmentBMPDelineation(requestedID).subscribe((dto) => {
@@ -242,18 +267,18 @@ export class DelineationMapComponent implements OnInit {
             }
             this.selectedDelineation.set(dto);
             this.applyDelineationToSelectedBMP(dto);
-            this.renderSelectedDelineation();
+            this.renderSelectedDelineation(zoomToSelection);
         });
     }
 
-    private refreshMarkerHighlight(): void {
+    private refreshMarkerHighlight(zoomToSelection: boolean = true): void {
         const selected = this.selectedBMP();
         for (const [id, marker] of this.bmpMarkerByID) {
             const isSelected = id === selected?.TreatmentBMPID;
-            marker.setIcon(isSelected ? MarkerHelper.selectedMarker : MarkerHelper.treatmentBMPMarker);
+            marker.setIcon(isSelected ? MarkerHelper.selectedMarker : MarkerHelper.inventoriedTreatmentBMPMarker);
             marker.setZIndexOffset(isSelected ? 10000 : 1000);
         }
-        if (!selected) {
+        if (!selected || !zoomToSelection) {
             return;
         }
         const selectedMarker = this.bmpMarkerByID.get(selected.TreatmentBMPID);
@@ -266,14 +291,22 @@ export class DelineationMapComponent implements OnInit {
         }
     }
 
-    private renderSelectedDelineation(): void {
+    private renderSelectedDelineation(zoomToSelection: boolean = true): void {
         this.clearSelectedDelineationLayer();
         const delineation = this.selectedDelineation();
         if (!delineation?.Geometry) {
             return;
         }
         const geom = JSON.parse(delineation.Geometry);
-        this.selectedDelineationLayer = L.geoJSON(geom, { style: this.delineationSelectedStyle }).addTo(this.map);
+        // NPT-981 r3 (KE): non-interactive so it doesn't swallow map clicks. This highlight
+        // overlay is purely decorative (re-selection happens via the WMS GetFeatureInfo handler),
+        // and an interactive vector layer consumes the click so the map `click` event never fires
+        // — which broke click-to-place during Edit BMP Location whenever the BMP sat inside its
+        // own delineation polygon.
+        this.selectedDelineationLayer = L.geoJSON(geom, { style: this.delineationSelectedStyle, interactive: false }).addTo(this.map);
+        if (!zoomToSelection) {
+            return;
+        }
         try {
             this.map.flyToBounds(this.selectedDelineationLayer.getBounds(), { padding: [50, 50], duration: 0.6 });
         } catch {
@@ -285,6 +318,48 @@ export class DelineationMapComponent implements OnInit {
         if (this.selectedDelineationLayer) {
             this.map.removeLayer(this.selectedDelineationLayer);
             this.selectedDelineationLayer = null;
+        }
+    }
+
+    /** NPT-981 r3: force the Verified + Provisional WMS layers to re-fetch their tiles after a
+     *  delineation mutation. The selected-delineation highlight overlay is just decoration on top
+     *  of the GeoServer tiles; without busting those tiles the saved/edited/deleted geometry keeps
+     *  showing its pre-mutation shape (KE id-21 ghost-after-edit, id-23 deleted-polygon-lingers). */
+    private refreshDelineationLayers(): void {
+        this.delineationLayers?.forEach((layer) => layer.redraw());
+    }
+
+    /** Open the flow-type chooser for an existing delineation (the "Edit Delineation" action),
+     *  pre-selecting the delineation's current type so re-delineating the same type is one click
+     *  and switching is just picking the other radio. */
+    public openFlowTypeChooser(): void {
+        this.selectedFlowType = this.selectedDelineation()?.DelineationTypeID ?? null;
+        this.choosingFlowType.set(true);
+    }
+
+    public closeFlowTypeChooser(): void {
+        this.choosingFlowType.set(false);
+    }
+
+    /** Hint text under the radios, mirroring the legacy "Choose a delineation option" copy. */
+    public flowTypeHint(): string {
+        if (this.selectedFlowType === DelineationTypeEnum.Distributed) {
+            return "Draw the drainage area on the map.";
+        }
+        if (this.selectedFlowType === DelineationTypeEnum.Centralized) {
+            return "The delineation will be computed by tracing Regional Subbasins upstream.";
+        }
+        return "";
+    }
+
+    /** The legacy "Delineate" button: enter draw (Distributed) or trace (Centralized) mode for
+     *  the selected flow type. The selected type becomes the saved DelineationTypeID, so picking
+     *  the opposite radio switches the delineation's type on save. */
+    public beginDelineate(): void {
+        if (this.selectedFlowType === DelineationTypeEnum.Distributed) {
+            this.startEditDistributed();
+        } else if (this.selectedFlowType === DelineationTypeEnum.Centralized) {
+            this.startEditCentralized();
         }
     }
 
@@ -314,6 +389,7 @@ export class DelineationMapComponent implements OnInit {
                         this.selectedDelineation.set(null);
                         this.clearSelectedDelineationLayer();
                         this.applyDelineationToSelectedBMP(null);
+                        this.refreshDelineationLayers();
                     },
                     error: () => this.savingSubject.next(false),
                 });
@@ -336,6 +412,11 @@ export class DelineationMapComponent implements OnInit {
             const geom = JSON.parse(delineation!.Geometry);
             this.selectedDelineationLayer = L.geoJSON(geom, { style: this.delineationDraftStyle }).addTo(this.map);
             this.selectedDelineationLayer.eachLayer((l) => (l as any).pm?.enable());
+        } else {
+            // NPT-981 r3 (KE id-18): drop straight into draw mode instead of making the user
+            // hunt for the Geoman "Add Delineation" toolbar button. setupGeomanControls only
+            // *adds* the control; enableDraw actually arms the cursor.
+            this.map.pm.enableDraw("Polygon", { snappable: true, snapDistance: 20 });
         }
     }
 
@@ -356,8 +437,10 @@ export class DelineationMapComponent implements OnInit {
                     return;
                 }
                 this.selectedDelineationLayer = L.geoJSON(feature.geometry, { style: this.delineationDraftStyle }).addTo(this.map);
-                this.leafletHelperService.setupGeomanControls(this.map, false, true, false, "Delineation");
-                this.selectedDelineationLayer.eachLayer((l) => (l as any).pm?.enable());
+                // NPT-981 r3 (KE id-22): centralized delineations are traced from the RSB network,
+                // not hand-edited. Don't add Geoman controls or enable vertex editing — the traced
+                // geometry is display-only. The user accepts it with Save or asks for changes via
+                // Request Revision (both rendered in the panel during trace mode).
                 try {
                     this.map.flyToBounds(this.selectedDelineationLayer.getBounds(), { padding: [50, 50] });
                 } catch {
@@ -379,47 +462,32 @@ export class DelineationMapComponent implements OnInit {
         this.cancelEdit();
         this.editMode.set("editingLocation");
 
-        // NPT-981 r2: cursor goes on the map container (not the .leaflet-interactive SVG
-        // overlay) so the crosshair is visible everywhere the user might click — matches
-        // Jamie's OVTA assessment-point pattern.
-        this.map.getContainer().style.cursor = "crosshair";
+        // NPT-981 r3 (KE id-27): crosshair via a container class (not inline style) so the rule
+        // can also cover the .leaflet-interactive SVG overlay — otherwise the cursor reverts to
+        // default when hovering on top of the selected delineation polygon.
+        this.setLocationEditCursor(true);
 
-        // NPT-981 r2: drag the BMP's own cluster marker directly. The earlier preview-marker
-        // approach left an orphan marker on the map after save when reference tracking
-        // raced with cluster re-renders. Dragging the cluster marker keeps exactly one
-        // marker visible at all times; saveEdit's renderBMPMarkers rebuilds it cleanly.
-        const marker = this.bmpMarkerByID.get(bmp.TreatmentBMPID);
-        if (marker) {
-            marker.dragging?.enable();
-            marker.on("drag", this.onMarkerDrag);
-            marker.on("dragend", this.onMarkerDragEnd);
-        }
+        // NPT-981 r3 (KE id-26): drop a distinct, draggable PREVIEW marker at the current
+        // location and leave the real BMP pin in place until Save. Moving the real pin on every
+        // map click read as an autosave. The preview lives directly on the map (not the cluster)
+        // so cluster re-renders can't orphan it; clearLocationPreview removes it on save + cancel.
+        this.locationPreviewMarker = L.marker([bmp.Latitude, bmp.Longitude], {
+            icon: MarkerHelper.selectedMarker,
+            draggable: true,
+            zIndexOffset: 20000,
+        }).addTo(this.map);
+        this.locationPreviewMarker.on("drag", this.onPreviewMarkerMove);
+        this.locationPreviewMarker.on("dragend", this.onPreviewMarkerMove);
 
         // Seed pending location to the current position so Save without further interaction
         // is a no-op rather than an error.
         this.pendingLocation = { lat: bmp.Latitude, lng: bmp.Longitude };
     }
 
-    /** Bound references so we can off() them cleanly on cancel — instance methods would lose
-     *  this-binding when passed to off() unless we wrap them. Property-assigned arrow
-     *  functions keep the same Function identity across enable/disable cycles. */
-
-    /** `drag` event carries the live latlng during the drag and fires on every mousemove.
-     *  Markercluster can return stale lat/lngs from getLatLng() on dragend (its internal
-     *  index doesn't update mid-drag), so we capture the position continuously here as the
-     *  authoritative source for pendingLocation. */
-    private onMarkerDrag = (event: any): void => {
-        this.handleLocationChange(event.latlng);
-    };
-
-    /** Belt-and-suspenders dragend handler — also refreshes the cluster's index so the
-     *  marker's new position propagates to the cluster's spatial query structures. */
-    private onMarkerDragEnd = (event: any): void => {
-        const latLng = event.target.getLatLng();
-        this.handleLocationChange(latLng);
-        if (this.bmpsClusterLayer?.refreshClusters) {
-            this.bmpsClusterLayer.refreshClusters(event.target);
-        }
+    /** Property-assigned arrow keeps a stable Function identity so off() unbinds cleanly.
+     *  Handles both `drag` (live latlng) and `dragend` (target.getLatLng()). */
+    private onPreviewMarkerMove = (event: any): void => {
+        this.handleLocationChange(event.latlng ?? event.target.getLatLng());
     };
 
     private attachMapClickForLocation(): void {
@@ -431,19 +499,15 @@ export class DelineationMapComponent implements OnInit {
         });
     }
 
-    /** NPT-981 r2: shared handler for both drag-end and map-click during Edit BMP Location.
-     *  Updates pending location and moves the BMP's cluster marker to the new spot so the
-     *  user sees the preview without a second marker on the map. */
+    /** NPT-981 r3: stage the candidate location and move only the PREVIEW marker. The real BMP
+     *  pin stays put until the user clicks Save (saveEdit persists `pendingLocation`). */
     private handleLocationChange(latLng: L.LatLng): void {
         this.pendingLocation = { lat: latLng.lat, lng: latLng.lng };
-        const bmp = this.selectedBMP();
-        if (!bmp) {
-            return;
-        }
-        const marker = this.bmpMarkerByID.get(bmp.TreatmentBMPID);
-        if (marker) {
-            marker.setLatLng(latLng);
-        }
+        this.locationPreviewMarker?.setLatLng(latLng);
+    }
+
+    private setLocationEditCursor(on: boolean): void {
+        this.map?.getContainer().classList.toggle("location-edit-cursor", on);
     }
 
     private attachGeomanHandlers(): void {
@@ -493,7 +557,9 @@ export class DelineationMapComponent implements OnInit {
                     this.clearLocationPreview();
                     this.editMode.set("idle");
                     this.renderBMPMarkers();
-                    this.refreshMarkerHighlight();
+                    // NPT-981 r3 (KE): don't fly the map after a save — the user is already looking
+                    // at the spot they just edited. Refresh highlight + delineation without zooming.
+                    this.refreshMarkerHighlight(false);
                     this.reloadSelectedDelineation();
                 },
                 error: () => this.savingSubject.next(false),
@@ -521,7 +587,8 @@ export class DelineationMapComponent implements OnInit {
                         this.map.pm.removeControls();
                         this.selectedDelineation.set(dto);
                         this.applyDelineationToSelectedBMP(dto);
-                        this.renderSelectedDelineation();
+                        this.renderSelectedDelineation(false);
+                        this.refreshDelineationLayers();
                     },
                     error: () => this.savingSubject.next(false),
                 });
@@ -540,29 +607,22 @@ export class DelineationMapComponent implements OnInit {
         }
         this.clearLocationPreview();
         this.editMode.set("idle");
+        // Return to the default action view rather than dropping back into the flow-type chooser.
+        this.choosingFlowType.set(false);
         this.renderSelectedDelineation();
     }
 
     private clearLocationPreview(): void {
-        // NPT-981 r2: we drag the cluster's own BMP marker now. Cleanup is just: disable
-        // dragging on it, unbind dragend, restore cursor, and revert the marker's visual
-        // position if the user cancelled (saveEdit's renderBMPMarkers rebuild handles the
-        // successful-save case). Reverting on cancel uses the BMP's authoritative lat/lng
-        // from the bmps array, which saveEdit has not yet mutated when cancelEdit is invoked.
+        // NPT-981 r3: tear down the preview marker + cursor. The real BMP pin was never moved
+        // (it's a separate preview marker now), so there's nothing to revert on cancel; on save,
+        // renderBMPMarkers rebuilds the real pin at its new position.
         this.pendingLocation = null;
-        if (this.map) {
-            this.map.getContainer().style.cursor = "";
-        }
-        const bmp = this.selectedBMP();
-        if (!bmp) return;
-        const marker = this.bmpMarkerByID.get(bmp.TreatmentBMPID);
-        if (marker) {
-            marker.dragging?.disable();
-            marker.off("drag", this.onMarkerDrag);
-            marker.off("dragend", this.onMarkerDragEnd);
-            // Revert any visual drag (no-op if user saved — by then the marker was
-            // rebuilt by renderBMPMarkers at the new position).
-            marker.setLatLng([bmp.Latitude, bmp.Longitude]);
+        this.setLocationEditCursor(false);
+        if (this.locationPreviewMarker) {
+            this.locationPreviewMarker.off("drag", this.onPreviewMarkerMove);
+            this.locationPreviewMarker.off("dragend", this.onPreviewMarkerMove);
+            this.map.removeLayer(this.locationPreviewMarker);
+            this.locationPreviewMarker = null;
         }
     }
 
@@ -590,7 +650,9 @@ export class DelineationMapComponent implements OnInit {
         this.delineationService.getForTreatmentBMPDelineation(bmp.TreatmentBMPID).subscribe((dto) => {
             this.selectedDelineation.set(dto);
             this.applyDelineationToSelectedBMP(dto);
-            this.renderSelectedDelineation();
+            // reloadSelectedDelineation only runs after a save/verify-toggle — never zoom (the
+            // user is already on the area they edited).
+            this.renderSelectedDelineation(false);
         });
     }
 
@@ -647,15 +709,4 @@ export class DelineationMapComponent implements OnInit {
         return `${delineation.DelineationArea} ac`;
     }
 
-    public editExistingDelineation(): void {
-        const delineation = this.selectedDelineation();
-        if (!delineation) {
-            return;
-        }
-        if (delineation.DelineationTypeID === DelineationTypeEnum.Distributed) {
-            this.startEditDistributed();
-        } else {
-            this.startEditCentralized();
-        }
-    }
 }

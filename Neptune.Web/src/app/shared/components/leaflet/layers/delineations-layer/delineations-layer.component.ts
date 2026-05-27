@@ -1,4 +1,4 @@
-import { Component, EventEmitter, Input, OnChanges, Output } from "@angular/core";
+import { Component, EventEmitter, Input, OnChanges, Output, ViewChild } from "@angular/core";
 import * as L from "leaflet";
 import { GenericWmsWfsLayerComponent } from "../generic-wms-wfs-layer/generic-wms-wfs-layer.component";
 
@@ -36,9 +36,18 @@ export class DelineationsLayerComponent implements OnChanges {
      *  in draw order, so `features[0]` is the topmost. */
     @Output() selected = new EventEmitter<number>();
 
+    @ViewChild("wmsLayer") private wmsLayer?: GenericWmsWfsLayerComponent;
+
     public cqlFilter: string = "1=1";
     public overlayLabel: string = "Delineations";
     public legendHtml: string = "";
+
+    /** NPT-981 r3: pass-through so the Delineation Map can force a tile refresh after a
+     *  delineation mutation (save / delete / verify-toggle). Without it the GeoServer WMS tiles
+     *  keep showing the pre-mutation geometry (ghost polygon after edit; deleted polygon lingers). */
+    public redraw(): void {
+        this.wmsLayer?.redraw();
+    }
 
     ngOnChanges(): void {
         let cqlFilter = `DelineationStatus = '${this.delineationStatus}'`;
@@ -55,9 +64,13 @@ export class DelineationsLayerComponent implements OnChanges {
         // Centralized + Distributed labels. Colors approximate the legacy MVC delineation map
         // palette: verified gets the saturated purple / blue pair; provisional uses the
         // lighter magenta / light-blue pair so the two statuses are visually distinct.
+        // NPT-981 r3 (KE id-6): the provisional swatch outlines were noticeably darker than the
+        // lighter outline GeoServer renders for provisional delineations on the map. Lighten the
+        // provisional strokes (verified keeps its saturated pair so the two statuses stay
+        // distinguishable in the legend).
         this.legendHtml = this.delineationStatus === "Verified"
             ? this.buildSwatchHtml("#d4b8e4", "#7e4d8a", "#b8c5e0", "#3a55a0")
-            : this.buildSwatchHtml("#e6bdd4", "#b04880", "#c5d4ea", "#6378b8");
+            : this.buildSwatchHtml("#e6bdd4", "#cf7faa", "#c5d4ea", "#9aa9d6");
     }
 
     private buildSwatchHtml(centralizedFill: string, centralizedStroke: string, distributedFill: string, distributedStroke: string): string {
