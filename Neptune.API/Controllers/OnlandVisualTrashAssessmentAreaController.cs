@@ -46,6 +46,10 @@ public class OnlandVisualTrashAssessmentAreaController(
     public ActionResult<OnlandVisualTrashAssessmentAreaDetailDto> Get([FromRoute] int onlandVisualTrashAssessmentAreaID)
     {
         var onlandVisualTrashAssessmentAreaDetailDto = OnlandVisualTrashAssessmentAreas.GetByID(DbContext, onlandVisualTrashAssessmentAreaID).AsDetailDto();
+        // NPT-1066: set here (not in AsDetailDto) so the extension stays dbContext-free; the edit
+        // page uses this to disable the Land Use Block toggle option when none exist.
+        onlandVisualTrashAssessmentAreaDetailDto.JurisdictionHasLandUseBlocks =
+            LandUseBlocks.JurisdictionHasLandUseBlocks(DbContext, onlandVisualTrashAssessmentAreaDetailDto.StormwaterJurisdictionID!.Value);
         return Ok(onlandVisualTrashAssessmentAreaDetailDto);
     }
 

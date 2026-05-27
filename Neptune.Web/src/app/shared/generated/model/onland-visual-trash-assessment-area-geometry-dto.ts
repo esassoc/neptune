@@ -12,9 +12,10 @@
 import { FormControl, FormControlOptions, FormControlState, Validators } from "@angular/forms";
 export class OnlandVisualTrashAssessmentAreaGeometryDto { 
     OnlandVisualTrashAssessmentAreaID?: number;
+    OvtaAreaSourceTypeID?: number | null;
     ParcelIDs?: Array<number> | null;
+    SelectedLandUseBlockIDs?: Array<number> | null;
     GeometryAsGeoJson?: string | null;
-    UsingParcels?: boolean;
     constructor(obj?: any) {
         Object.assign(this, obj);
     }
@@ -22,13 +23,24 @@ export class OnlandVisualTrashAssessmentAreaGeometryDto {
 
 export interface OnlandVisualTrashAssessmentAreaGeometryDtoForm { 
     OnlandVisualTrashAssessmentAreaID?: FormControl<number>;
+    OvtaAreaSourceTypeID?: FormControl<number>;
     ParcelIDs?: FormControl<Array<number>>;
+    SelectedLandUseBlockIDs?: FormControl<Array<number>>;
     GeometryAsGeoJson?: FormControl<string>;
-    UsingParcels?: FormControl<boolean>;
 }
 
 export class OnlandVisualTrashAssessmentAreaGeometryDtoFormControls { 
     public static OnlandVisualTrashAssessmentAreaID = (value: FormControlState<number> | number = undefined, formControlOptions?: FormControlOptions | null) => new FormControl<number>(
+        value,
+        formControlOptions ?? 
+        {
+            nonNullable: false,
+            validators: 
+            [
+            ],
+        }
+    );
+    public static OvtaAreaSourceTypeID = (value: FormControlState<number> | number = undefined, formControlOptions?: FormControlOptions | null) => new FormControl<number>(
         value,
         formControlOptions ?? 
         {
@@ -48,7 +60,7 @@ export class OnlandVisualTrashAssessmentAreaGeometryDtoFormControls {
             ],
         }
     );
-    public static GeometryAsGeoJson = (value: FormControlState<string> | string = undefined, formControlOptions?: FormControlOptions | null) => new FormControl<string>(
+    public static SelectedLandUseBlockIDs = (value: FormControlState<Array<number>> | Array<number> = undefined, formControlOptions?: FormControlOptions | null) => new FormControl<Array<number>>(
         value,
         formControlOptions ?? 
         {
@@ -58,7 +70,7 @@ export class OnlandVisualTrashAssessmentAreaGeometryDtoFormControls {
             ],
         }
     );
-    public static UsingParcels = (value: FormControlState<boolean> | boolean = undefined, formControlOptions?: FormControlOptions | null) => new FormControl<boolean>(
+    public static GeometryAsGeoJson = (value: FormControlState<string> | string = undefined, formControlOptions?: FormControlOptions | null) => new FormControl<string>(
         value,
         formControlOptions ?? 
         {
