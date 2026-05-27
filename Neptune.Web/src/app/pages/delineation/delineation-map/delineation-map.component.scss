@@ -69,13 +69,6 @@
     margin-top: $spacing-200;
 }
 
-.stacked-actions {
-    display: flex;
-    flex-direction: column;
-    gap: $spacing-200;
-    margin-top: $spacing-200;
-}
-
 .action-btn {
     display: block;
     width: 100%;
@@ -84,12 +77,6 @@
 .icon-btn {
     padding-left: $spacing-200;
     padding-right: $spacing-200;
-}
-
-.explanatory {
-    font-size: $type-size-200;
-    color: $gray-700;
-    margin: 0 0 $spacing-200;
 }
 
 .request-revision-btn {
@@ -109,12 +96,55 @@
     margin: 0;
 }
 
+// NPT-981 r3: flow-type chooser (radio + Delineate), mirroring the legacy "Delineate Drainage
+// Area" control. Long option labels wrap cleanly in the narrow side panel.
+.chooser-step {
+    font-size: $type-size-200;
+    font-weight: 600;
+    margin: $spacing-200 0 $spacing-100;
+}
+
+.flow-options {
+    display: flex;
+    flex-direction: column;
+    gap: $spacing-100;
+}
+
+.flow-option {
+    display: flex;
+    align-items: flex-start;
+    gap: $spacing-100;
+    font-size: $type-size-200;
+    font-weight: 400;
+    margin: 0;
+    cursor: pointer;
+
+    input {
+        margin-top: 0.2rem;
+        flex-shrink: 0;
+    }
+}
+
+.chooser-hint {
+    font-size: $type-size-200;
+    color: $gray-700;
+    margin: $spacing-200 0 0;
+}
+
 hr {
     margin: $spacing-300 0;
 }
 
 .header-action {
     margin-left: $spacing-200;
+}
+
+// NPT-981 r3 (KE id-27): force the crosshair everywhere during Edit BMP Location, including on
+// top of the selected delineation's interactive SVG overlay (which otherwise imposes its own
+// cursor). Toggled via .location-edit-cursor on the leaflet container in startEditLocation.
+::ng-deep .leaflet-container.location-edit-cursor,
+::ng-deep .leaflet-container.location-edit-cursor .leaflet-interactive {
+    cursor: crosshair !important;
 }
 
 ::ng-deep .treatment-bmp-cluster {
