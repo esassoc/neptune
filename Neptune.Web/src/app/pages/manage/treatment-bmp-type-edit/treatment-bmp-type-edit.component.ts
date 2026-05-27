@@ -290,7 +290,13 @@ export class TreatmentBmpTypeEditComponent implements OnInit {
         if (this.descriptionControl.invalid) {
             validationErrors.push("Description is required.");
         }
-        if (this.hasWeightError()) {
+        // Every row that counts toward the weight total (non-override) must have a weight: a blank
+        // one is excluded from the sum, so it can slip past the "= 100%" check yet save as a null
+        // weight that CalculateAssessmentScore later dereferences. Matches the legacy MVC validator.
+        const countingRowsMissingWeight = this.observationTypeRows().filter((r) => this.rowCountsTowardWeight(r) && r.AssessmentScoreWeight == null);
+        if (countingRowsMissingWeight.length > 0) {
+            validationErrors.push("Each observation type that does not override the assessment score when failing must have an assessment score weight.");
+        } else if (this.hasWeightError()) {
             validationErrors.push(`Observation type weights must sum to 100%. Currently: ${this.weightTotal()}%.`);
         }
         if (validationErrors.length > 0) {

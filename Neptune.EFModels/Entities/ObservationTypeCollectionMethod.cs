@@ -166,7 +166,17 @@ namespace Neptune.EFModels.Entities
         public override double? GetObservationValueFromObservationData(string observationData)
         {
             var observation = GeoJsonSerializer.Deserialize<PassFailObservationSchema>(observationData);
-            var conveyanceFails = observation.SingleValueObservations.Any(x => bool.TryParse(x.ObservationValue?.ToString(), out var passed) && !passed);
+            // Distinguish "no valid value" (return null) from "all values passed": skip blank/unparseable
+            // values, and if none remain don't report a passing score that would mask incomplete data.
+            var passFailValues = observation.SingleValueObservations
+                .Where(x => bool.TryParse(x.ObservationValue?.ToString(), out _))
+                .Select(x => bool.Parse(x.ObservationValue.ToString()))
+                .ToList();
+            if (passFailValues.Count == 0)
+            {
+                return null;
+            }
+            var conveyanceFails = passFailValues.Any(passed => !passed);
             return conveyanceFails ? 0 : 5;
         }
 
@@ -181,8 +191,17 @@ namespace Neptune.EFModels.Entities
             bool overrideAssessmentScoreIfFailing)
         {
             var observation = GeoJsonSerializer.Deserialize<PassFailObservationSchema>(observationData);
-            var conveyanceFails = observation.SingleValueObservations.Any(x => bool.TryParse(x.ObservationValue?.ToString(), out var passed) && !passed);
+            var passFailValues = observation.SingleValueObservations
+                .Where(x => bool.TryParse(x.ObservationValue?.ToString(), out _))
+                .Select(x => bool.Parse(x.ObservationValue.ToString()))
+                .ToList();
+            if (passFailValues.Count == 0)
+            {
+                // No valid value yet — don't label a blank observation as passing.
+                return string.Empty;
+            }
             var schema = GeoJsonSerializer.Deserialize<PassFailObservationTypeSchema>(observationTypeSchema);
+            var conveyanceFails = passFailValues.Any(passed => !passed);
             return conveyanceFails ? schema.FailingScoreLabel : schema.PassingScoreLabel;
         }
     }
