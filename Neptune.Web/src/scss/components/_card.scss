@@ -4,7 +4,7 @@
     box-shadow: $shadow-300;
     border: 1px solid $gray-200;
     border-radius: $border-radius-200;
-    padding: $spacing-500 $spacing-600;
+    padding: $spacing-400 $spacing-500;
 
     &-55 {
         max-width: 55rem;
@@ -15,8 +15,8 @@
             padding-bottom: 0;
         }
 
-        padding: 0 0 $spacing-400;
-        margin-bottom: $spacing-400;
+        padding: 0 0 $spacing-300;
+        margin-bottom: $spacing-300;
         background-color: $white;
         border-bottom: 1px solid $gray-200;
         color: $gray-900;
