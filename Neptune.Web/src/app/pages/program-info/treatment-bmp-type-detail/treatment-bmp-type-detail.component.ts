@@ -62,6 +62,12 @@ export class TreatmentBmpTypeDetailComponent implements OnInit {
         return this.authenticationService.isCurrentUserAnAdministrator();
     }
 
+    // The "Treatment BMPs of this Type" grid is jurisdiction-scoped data; hide it from anonymous
+    // and unassigned users (NPT-1061 item 5).
+    public get isAnonymousOrUnassigned(): boolean {
+        return this.authenticationService.isCurrentUserAnonymousOrUnassigned();
+    }
+
     ngOnInit(): void {
         this.bmpType$ = this.bmpTypeService.getDetailTreatmentBMPType(this.treatmentBMPTypeID).pipe(
             tap((bmpType) => {

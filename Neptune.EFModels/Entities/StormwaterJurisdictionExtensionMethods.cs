@@ -21,6 +21,8 @@ public static class StormwaterJurisdictionExtensionMethods
             StormwaterJurisdictionID = stormwaterJurisdiction.StormwaterJurisdictionID,
             StormwaterJurisdictionName = stormwaterJurisdiction.Organization.OrganizationName,
             OrganizationID = stormwaterJurisdiction.OrganizationID,
+            StormwaterJurisdictionPublicBMPVisibilityTypeID = stormwaterJurisdiction.StormwaterJurisdictionPublicBMPVisibilityTypeID,
+            StormwaterJurisdictionPublicWQMPVisibilityTypeID = stormwaterJurisdiction.StormwaterJurisdictionPublicWQMPVisibilityTypeID,
             StormwaterJurisdictionPublicBMPVisibilityTypeName = stormwaterJurisdiction.StormwaterJurisdictionPublicBMPVisibilityType.StormwaterJurisdictionPublicBMPVisibilityTypeDisplayName,
             StormwaterJurisdictionPublicWQMPVisibilityTypeName = stormwaterJurisdiction.StormwaterJurisdictionPublicWQMPVisibilityType.StormwaterJurisdictionPublicWQMPVisibilityTypeDisplayName,
         };

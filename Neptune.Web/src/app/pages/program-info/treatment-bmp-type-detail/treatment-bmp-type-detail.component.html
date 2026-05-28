@@ -31,6 +31,26 @@
             </div>
         </div>
 
+        <!--
+            NPT-1038 round 4: "Treatment BMPs of this Type" grid — every BMP of this type the
+            user can view by jurisdiction, with one dynamic column per custom attribute defined
+            on the type. Mirrors the legacy MVC TreatmentBMPType/Detail page grid. Positioned
+            directly below Basics and hidden from anonymous/unassigned users (NPT-1061 item 5).
+        -->
+        @if (!isAnonymousOrUnassigned) {
+            <div class="card g-col-12 mt-3">
+                <div class="card-header"><span class="card-title">Treatment BMPs of this Type</span></div>
+                <div class="card-body">
+                    <neptune-grid
+                        [rowData]="bmps$ | async"
+                        [pinnedBottomRowData]="bmpTotalsRow$ | async"
+                        [columnDefs]="bmpColumnDefs"
+                        [pagination]="true"
+                        [downloadFileName]="bmpDownloadFileName"></neptune-grid>
+                </div>
+            </div>
+        }
+
         <!-- Applicable Observation Types -->
         <div class="card g-col-12 mt-3">
             <div class="card-header"><span class="card-title">Applicable Observation Types</span></div>
@@ -100,23 +120,6 @@
                 </div>
             </div>
         }
-
-        <!--
-            NPT-1038 round 4: "Treatment BMPs of this Type" grid — every BMP of this type the
-            user can view by jurisdiction, with one dynamic column per custom attribute defined
-            on the type. Mirrors the legacy MVC TreatmentBMPType/Detail page grid.
-        -->
-        <div class="card g-col-12 mt-3">
-            <div class="card-header"><span class="card-title">Treatment BMPs of this Type</span></div>
-            <div class="card-body">
-                <neptune-grid
-                    [rowData]="bmps$ | async"
-                    [pinnedBottomRowData]="bmpTotalsRow$ | async"
-                    [columnDefs]="bmpColumnDefs"
-                    [pagination]="true"
-                    [downloadFileName]="bmpDownloadFileName"></neptune-grid>
-            </div>
-        </div>
     </div>
 } @else {
     <div [loadingSpinner]="{ isLoading: isLoading, loadingHeight: 400 }"></div>

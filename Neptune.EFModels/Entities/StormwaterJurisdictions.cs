@@ -109,6 +109,16 @@ public static class StormwaterJurisdictions
         }).ToList();
     }
 
+    public static async Task<StormwaterJurisdictionGridDto> UpdateAsync(NeptuneDbContext dbContext, int stormwaterJurisdictionID, StormwaterJurisdictionUpsertDto dto)
+    {
+        var entity = await dbContext.StormwaterJurisdictions
+            .SingleAsync(x => x.StormwaterJurisdictionID == stormwaterJurisdictionID);
+        entity.StormwaterJurisdictionPublicBMPVisibilityTypeID = dto.StormwaterJurisdictionPublicBMPVisibilityTypeID;
+        entity.StormwaterJurisdictionPublicWQMPVisibilityTypeID = dto.StormwaterJurisdictionPublicWQMPVisibilityTypeID;
+        await dbContext.SaveChangesAsync();
+        return await GetByIDAsDtoAsync(dbContext, stormwaterJurisdictionID);
+    }
+
     public static async Task<StormwaterJurisdictionGridDto> GetByIDAsDtoAsync(NeptuneDbContext dbContext,
         int stormwaterJurisdictionID)
     {

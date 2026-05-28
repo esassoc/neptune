@@ -12,9 +12,6 @@
                              items (Find a BMP, View All BMPs, Water Quality Management Plans);
                              Editor+ adds the NeptuneViewFeature-gated items; Admin adds
                              Jurisdictions (NeptuneAdminFeature). -->
-                        @if (isCurrentUserAdmin()) {
-                            <li><a [routerLink]="['/jurisdictions']" class="dropdown-item">Jurisdictions</a></li>
-                        }
                         <li><a [routerLink]="['/find-bmp']" class="dropdown-item">Find a BMP</a></li>
                         @if (isCurrentUserEditorOrHigher()) {
                             <li><a [routerLink]="['/modeling-parameters']" class="dropdown-item">Modeling Parameters</a></li>
@@ -23,6 +20,7 @@
                         @if (isCurrentUserEditorOrHigher()) {
                             <li><a [routerLink]="['/latest-bmp-assessments']" class="dropdown-item">View Latest BMP Assessments</a></li>
                             <li><a [routerLink]="['/field-records']" class="dropdown-item">View All Field Records</a></li>
+                            <li><hr class="dropdown-divider" /></li>
                         }
                         <li><a [routerLink]="['/water-quality-management-plans']" class="dropdown-item">Water Quality Management Plans</a></li>
                         @if (isCurrentUserEditorOrHigher()) {
@@ -40,6 +38,9 @@
                         <li><a [routerLink]="['/program-info/observation-types']" class="dropdown-item">Observation Types</a></li>
                         <li><a [routerLink]="['/program-info/treatment-bmp-types']" class="dropdown-item">Treatment BMP Types</a></li>
                         <li><a [routerLink]="['/funding-sources']" class="dropdown-item">Funding Sources</a></li>
+                        @if (isCurrentUserEditorOrHigher()) {
+                            <li><a [routerLink]="['/jurisdictions']" class="dropdown-item">Jurisdictions</a></li>
+                        }
                     </ul>
                 </li>
                 <!-- Role-specific gates that mirror MVC's per-controller [Feature] attributes.
@@ -71,8 +72,6 @@
                     <li class="nav-item dropdown" routerLinkActive="active">
                         <a href="javascript:void(0);" [dropdownToggle]="manageMenu" class="nav-link dropdown-toggle"> Manage <icon icon="AngleDown"></icon> </a>
                         <ul #manageMenu class="dropdown-menu">
-                            <li><a [routerLink]="['/manage/homepage-configuration']" class="dropdown-item">Homepage Configuration</a></li>
-                            <li><a [routerLink]="['/manage/page-content']" class="dropdown-item">Page Content</a></li>
                             <li><a [routerLink]="['/labels-and-definitions']" class="dropdown-item">Custom Labels & Definitions</a></li>
                             <li><hr class="dropdown-divider" /></li>
                             <li><a [routerLink]="['/users']" class="dropdown-item">Users</a></li>

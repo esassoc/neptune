@@ -64,6 +64,14 @@ namespace Neptune.API.Controllers
             return Ok(gridDtos);
         }
 
+        [HttpGet("lgu-audit-grid")]
+        [SitkaAdminFeature]
+        public async Task<ActionResult<List<WaterQualityManagementPlanLGUAuditGridDto>>> ListLGUAuditAsGridDto()
+        {
+            var dtos = await vWaterQualityManagementPlanLGUAudits.ListAsGridDtoAsync(DbContext);
+            return Ok(dtos);
+        }
+
         [HttpGet("display-dtos")]
         [AdminFeature]
         public async Task<ActionResult<List<WaterQualityManagementPlanDisplayDto>>> ListAsDisplayDtos()

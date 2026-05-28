@@ -1,0 +1,29 @@
+<div class="modal">
+    <div class="modal-header">
+        <h3>Edit Users Assigned to {{ ref.data.jurisdictionName }}</h3>
+    </div>
+    <div class="modal-body">
+        @if (errorMessage(); as msg) {
+            <div class="alert alert-danger">{{ msg }}</div>
+        }
+        <p>Select the users assigned to this jurisdiction.</p>
+        @if (options$ | async; as options) {
+            <ul class="user-list">
+                @for (option of options; track option.PersonID) {
+                    <li>
+                        <label>
+                            <input type="checkbox" [checked]="option.selected" (change)="toggle(option)" />
+                            {{ option.Label }}
+                        </label>
+                    </li>
+                }
+            </ul>
+        }
+    </div>
+    <div class="modal-footer">
+        <button type="button" class="btn btn-primary" [disabled]="isSaving()" (click)="save()">
+            @if (isSaving()) { <i class="fa fa-spinner fa-spin"></i> Saving... } @else { Save }
+        </button>
+        <button type="button" class="btn btn-secondary" [disabled]="isSaving()" (click)="cancel()">Cancel</button>
+    </div>
+</div>

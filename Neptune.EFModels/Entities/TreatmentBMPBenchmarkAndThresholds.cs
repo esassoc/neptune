@@ -60,6 +60,54 @@ public static class TreatmentBMPBenchmarkAndThresholds
             .ToListAsync();
     }
 
+    /// <summary>
+    /// One row per benchmark/threshold-bearing observation type for the BMP's type, set or not.
+    /// NPT-1061: the SPA previously only loaded existing benchmark rows, so BMP types with
+    /// observation types that hadn't been given values yet (e.g. Permeable Pavement) showed/edited
+    /// nothing. Enumerate all observation types like the legacy MVC editor and left-join existing
+    /// values. Entities are materialized (not pure projection) because the benchmark/threshold unit
+    /// labels parse the observation type's schema JSON via instance helpers.
+    /// </summary>
+    public static async Task<List<TreatmentBMPBenchmarkAndThresholdWithObservationTypeDto>> ListWithObservationTypesByTreatmentBMPIDAsDtoAsync(NeptuneDbContext dbContext, int treatmentBMPID)
+    {
+        var treatmentBMP = await dbContext.TreatmentBMPs
+            .AsNoTracking()
+            .Include(x => x.TreatmentBMPType)
+                .ThenInclude(x => x.TreatmentBMPTypeAssessmentObservationTypes)
+                    .ThenInclude(x => x.TreatmentBMPAssessmentObservationType)
+            .SingleAsync(x => x.TreatmentBMPID == treatmentBMPID);
+
+        var existingByObservationTypeID = await dbContext.TreatmentBMPBenchmarkAndThresholds
+            .AsNoTracking()
+            .Where(x => x.TreatmentBMPID == treatmentBMPID)
+            .ToDictionaryAsync(x => x.TreatmentBMPAssessmentObservationTypeID);
+
+        var result = new List<TreatmentBMPBenchmarkAndThresholdWithObservationTypeDto>();
+        foreach (var typeObservationType in treatmentBMP.TreatmentBMPType.GetObservationTypesForAssessment())
+        {
+            var observationType = typeObservationType.TreatmentBMPAssessmentObservationType;
+            if (!observationType.GetHasBenchmarkAndThreshold())
+            {
+                continue;
+            }
+            existingByObservationTypeID.TryGetValue(observationType.TreatmentBMPAssessmentObservationTypeID, out var existing);
+            result.Add(new TreatmentBMPBenchmarkAndThresholdWithObservationTypeDto
+            {
+                TreatmentBMPBenchmarkAndThresholdID = existing?.TreatmentBMPBenchmarkAndThresholdID,
+                TreatmentBMPID = treatmentBMPID,
+                TreatmentBMPTypeID = treatmentBMP.TreatmentBMPTypeID,
+                TreatmentBMPTypeAssessmentObservationTypeID = typeObservationType.TreatmentBMPTypeAssessmentObservationTypeID,
+                TreatmentBMPAssessmentObservationTypeID = observationType.TreatmentBMPAssessmentObservationTypeID,
+                ObservationTypeName = observationType.TreatmentBMPAssessmentObservationTypeName,
+                BenchmarkUnitLabel = observationType.BenchmarkMeasurementUnitLabel(),
+                ThresholdUnitLabel = observationType.ThresholdMeasurementUnitLabel(),
+                BenchmarkValue = existing?.BenchmarkValue,
+                ThresholdValue = existing?.ThresholdValue,
+            });
+        }
+        return result;
+    }
+
     public static async Task<TreatmentBMPBenchmarkAndThresholdDto?> GetByIDAsync(NeptuneDbContext dbContext, int treatmentBMPBenchmarkAndThresholdID)
     {
         return await dbContext.TreatmentBMPBenchmarkAndThresholds

@@ -120,4 +120,27 @@ public static class StormwaterJurisdictionPeople
             .AsNoTracking().Where(x => x.StormwaterJurisdictionID == stormwaterJurisdictionID).ToListAsync();
         return entities.Select(x => x.Person.AsDisplayDto()).OrderBy(x => x.FullName).ToList();
     }
+
+    /// <summary>
+    /// Replaces the set of people assigned to a jurisdiction with the supplied PersonIDs — adds the
+    /// newly-selected, removes the deselected, leaves unchanged rows in place (NPT-1061 item 4).
+    /// </summary>
+    public static async Task SetJurisdictionPeopleAsync(NeptuneDbContext dbContext, int stormwaterJurisdictionID, List<int> personIDs)
+    {
+        var desiredPersonIDs = (personIDs ?? new List<int>()).Distinct().ToList();
+        var existing = await dbContext.StormwaterJurisdictionPeople
+            .Where(x => x.StormwaterJurisdictionID == stormwaterJurisdictionID)
+            .ToListAsync();
+        var existingPersonIDs = existing.Select(x => x.PersonID).ToHashSet();
+
+        var toRemove = existing.Where(x => !desiredPersonIDs.Contains(x.PersonID)).ToList();
+        dbContext.StormwaterJurisdictionPeople.RemoveRange(toRemove);
+
+        var toAdd = desiredPersonIDs
+            .Where(id => !existingPersonIDs.Contains(id))
+            .Select(id => new StormwaterJurisdictionPerson { StormwaterJurisdictionID = stormwaterJurisdictionID, PersonID = id });
+        await dbContext.StormwaterJurisdictionPeople.AddRangeAsync(toAdd);
+
+        await dbContext.SaveChangesAsync();
+    }
 }
