@@ -199,6 +199,8 @@ model/source-control-bmp-dto.ts
 model/source-control-bmp-upsert-dto.ts
 model/stormwater-jurisdiction-display-dto.ts
 model/stormwater-jurisdiction-grid-dto.ts
+model/stormwater-jurisdiction-person-bulk-upsert-dto.ts
+model/stormwater-jurisdiction-upsert-dto.ts
 model/support-request-submission-dto.ts
 model/support-request-submission-result-dto.ts
 model/system-info-dto.ts
@@ -221,6 +223,7 @@ model/treatment-bmp-assessment-upsert-dto.ts
 model/treatment-bmp-basic-info-update-dto.ts
 model/treatment-bmp-benchmark-and-threshold-dto.ts
 model/treatment-bmp-benchmark-and-threshold-upsert-dto.ts
+model/treatment-bmp-benchmark-and-threshold-with-observation-type-dto.ts
 model/treatment-bmp-create-dto.ts
 model/treatment-bmp-csv-upload-result-dto.ts
 model/treatment-bmp-delineation-errors-dto.ts
@@ -273,6 +276,7 @@ model/water-quality-management-plan-document-upsert-dto.ts
 model/water-quality-management-plan-dto.ts
 model/water-quality-management-plan-extraction-result-dto.ts
 model/water-quality-management-plan-grid-dto.ts
+model/water-quality-management-plan-lgu-audit-grid-dto.ts
 model/water-quality-management-plan-post-construction-verification-grid-dto.ts
 model/water-quality-management-plan-section-save-location-dto.ts
 model/water-quality-management-plan-section-save-response-dto.ts

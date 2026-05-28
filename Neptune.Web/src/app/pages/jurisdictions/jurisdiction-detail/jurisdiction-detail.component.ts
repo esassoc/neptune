@@ -1,24 +1,40 @@
-import { Component, OnInit, OnChanges, SimpleChanges, ViewChild, TemplateRef, Input } from "@angular/core";
-import { RouterLink } from "@angular/router";
+import { Component, OnInit, OnChanges, SimpleChanges, ViewChild, TemplateRef, Input, inject } from "@angular/core";
+import { Router, RouterLink } from "@angular/router";
 import { AsyncPipe, CommonModule } from "@angular/common";
-import { Observable } from "rxjs";
+import { catchError, EMPTY, Observable, tap } from "rxjs";
+import { DialogService } from "@ngneat/dialog";
 import { PageHeaderComponent } from "src/app/shared/components/page-header/page-header.component";
 import { AlertDisplayComponent } from "src/app/shared/components/alert-display/alert-display.component";
 import { ColDef } from "ag-grid-community";
 import { UtilityFunctionsService } from "src/app/services/utility-functions.service";
+import { AuthenticationService } from "src/app/services/authentication.service";
+import { AlertService } from "src/app/shared/services/alert.service";
 import { NeptuneGridComponent } from "src/app/shared/components/neptune-grid/neptune-grid.component";
+import { IconComponent } from "src/app/shared/components/icon/icon.component";
 import { PersonDisplayDto, StormwaterJurisdictionGridDto, TreatmentBMPGridDto } from "src/app/shared/generated/model/models";
 import { StormwaterJurisdictionService } from "src/app/shared/generated/api/stormwater-jurisdiction.service";
-import { tap } from "rxjs";
+import { JurisdictionBasicsModalComponent, JurisdictionBasicsModalContext } from "./jurisdiction-basics-modal/jurisdiction-basics-modal.component";
+import { JurisdictionUsersModalComponent, JurisdictionUsersModalContext } from "./jurisdiction-users-modal/jurisdiction-users-modal.component";
 
 @Component({
     selector: "jurisdiction-detail",
     templateUrl: "./jurisdiction-detail.component.html",
     styleUrls: ["./jurisdiction-detail.component.scss"],
     standalone: true,
-    imports: [CommonModule, RouterLink, AsyncPipe, PageHeaderComponent, AlertDisplayComponent, NeptuneGridComponent],
+    imports: [CommonModule, RouterLink, AsyncPipe, PageHeaderComponent, AlertDisplayComponent, NeptuneGridComponent, IconComponent],
 })
 export class JurisdictionDetailComponent implements OnInit, OnChanges {
+    private dialogService = inject(DialogService);
+    private authenticationService = inject(AuthenticationService);
+    private alertService = inject(AlertService);
+    private router = inject(Router);
+
+    public currentJurisdiction: StormwaterJurisdictionGridDto;
+    private assignedPersonIDs: number[] = [];
+
+    public get canManage(): boolean {
+        return this.authenticationService.doesCurrentUserHaveJurisdictionManagePermission();
+    }
     ngOnChanges(changes: SimpleChanges): void {
         if (changes["jurisdictionID"] && !changes["jurisdictionID"].firstChange) {
             this.loadData();
@@ -69,9 +85,18 @@ export class JurisdictionDetailComponent implements OnInit, OnChanges {
     }
 
     private loadData(): void {
-        this.jurisdiction$ = this.stormwaterJurisdictionService.getStormwaterJurisdiction(this.jurisdictionID);
+        this.jurisdiction$ = this.stormwaterJurisdictionService.getStormwaterJurisdiction(this.jurisdictionID).pipe(
+            tap((jurisdiction) => (this.currentJurisdiction = jurisdiction)),
+            // NPT-1061 item 4c: JE/JM hitting a jurisdiction they're not assigned to get a 403 from
+            // the API; show the standard not-found/unauthorized alert and bounce to the list.
+            catchError(() => {
+                this.router.navigate(["/jurisdictions"]).then(() => this.alertService.pushNotFoundUnauthorizedAlert());
+                return EMPTY;
+            })
+        );
         this.users$ = this.stormwaterJurisdictionService.listUsersStormwaterJurisdiction(this.jurisdictionID).pipe(
             tap((users) => {
+                this.assignedPersonIDs = users.map((u) => u.PersonID);
                 const third = Math.ceil(users.length / 3);
                 this.usersCol1 = users.slice(0, third);
                 this.usersCol2 = users.slice(third, third * 2);
@@ -79,5 +104,29 @@ export class JurisdictionDetailComponent implements OnInit, OnChanges {
             })
         );
         this.treatmentBMPs$ = this.stormwaterJurisdictionService.listTreatmentBMPsStormwaterJurisdiction(this.jurisdictionID);
+    }
+
+    public openBasicsModal(): void {
+        if (!this.currentJurisdiction) return;
+        const ref = this.dialogService.open(JurisdictionBasicsModalComponent, {
+            data: { jurisdiction: this.currentJurisdiction } as JurisdictionBasicsModalContext,
+        });
+        ref.afterClosed$.subscribe((result) => {
+            if (result) this.loadData();
+        });
+    }
+
+    public openUsersModal(): void {
+        if (!this.currentJurisdiction) return;
+        const ref = this.dialogService.open(JurisdictionUsersModalComponent, {
+            data: {
+                jurisdictionID: this.jurisdictionID,
+                jurisdictionName: this.currentJurisdiction.StormwaterJurisdictionName,
+                assignedPersonIDs: this.assignedPersonIDs,
+            } as JurisdictionUsersModalContext,
+        });
+        ref.afterClosed$.subscribe((result) => {
+            if (result) this.loadData();
+        });
     }
 }
