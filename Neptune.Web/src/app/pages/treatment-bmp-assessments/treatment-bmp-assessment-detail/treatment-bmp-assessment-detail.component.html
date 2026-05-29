@@ -14,12 +14,12 @@
         <ng-template #headerActions>
             @if (vm.canEdit) {
                 <a [routerLink]="editAssessmentRoute(vm)" class="btn btn-primary mr-2">
-                    <i class="fa fa-pencil mr-1"></i> Edit Assessment
+                    Edit Assessment
                 </a>
             }
             @if (canEditOrDelete) {
                 <button type="button" class="btn btn-danger-outline" (click)="delete(vm)">
-                    <i class="fa fa-trash mr-1"></i> Delete
+                    Delete
                 </button>
             }
         </ng-template>
@@ -137,7 +137,7 @@
                         <p>Unable to calculate Assessment Score: Benchmark &amp; Threshold are not yet set.</p>
                         @if (canManage) {
                             <a [routerLink]="['/treatment-bmps', vm.assessment.TreatmentBMPID]" class="btn btn-primary">
-                                <i class="fa fa-pencil mr-1"></i> Edit Benchmark &amp; Threshold
+                                Edit Benchmark &amp; Threshold
                             </a>
                         }
                     }

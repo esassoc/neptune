@@ -18,7 +18,7 @@
                 </button>
             }
             @if (isAdmin()) {
-                <button type="button" class="btn" [class.btn-danger]="detail.IsActive" [class.btn-primary]="!detail.IsActive" [disabled]="isWorking()" (click)="toggleActive(detail)">
+                <button type="button" class="btn" [class.btn-danger-outline]="detail.IsActive" [class.btn-primary]="!detail.IsActive" [disabled]="isWorking()" (click)="toggleActive(detail)">
                     @if (detail.IsActive) {
                         <i class="fa fa-ban"></i> Inactivate
                     } @else {
@@ -75,7 +75,7 @@
                     <span class="card-title">Role / Organization</span>
                     @if (isAdmin()) {
                         <button type="button" class="btn btn-primary btn-sm" (click)="openEditRolesModal(detail)">
-                            <i class="fa fa-pencil mr-1"></i> Edit
+                            Edit
                         </button>
                     }
                 </div>
@@ -117,7 +117,7 @@
                     <span class="card-title">Assigned Jurisdictions</span>
                     @if (isAdmin() && !isDetailUserAdmin(detail)) {
                         <button type="button" class="btn btn-primary btn-sm" (click)="openEditJurisdictionsModal(detail)">
-                            <i class="fa fa-pencil mr-1"></i> Edit
+                            Edit
                         </button>
                     }
                 </div>

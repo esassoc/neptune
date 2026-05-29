@@ -23,7 +23,7 @@ import { NeptunePageTypeEnum } from "src/app/shared/generated/enum/neptune-page-
     template: `
         <page-header pageTitle="Treatment BMP Types" [templateRight]="addButton" [customRichTextTypeID]="NeptunePageTypeEnum.ManageTreatmentBMPTypesList"></page-header>
         <ng-template #addButton>
-            <button class="btn btn-primary" (click)="navigateToNew()">
+            <button class="btn btn-orange" (click)="navigateToNew()">
                 <i class="fa fa-plus"></i> Add Treatment BMP Type
             </button>
         </ng-template>
