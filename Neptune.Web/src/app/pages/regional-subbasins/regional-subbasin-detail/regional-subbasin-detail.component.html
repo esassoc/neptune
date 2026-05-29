@@ -7,7 +7,7 @@
     <page-header [pageTitle]="'Regional Subbasin: ' + regionalSubbasin.DisplayName" [templateAbove]="templateAbove"></page-header>
     <app-alert-display></app-alert-display>
     <div class="grid-12">
-        <div class="g-col-6">
+        <div class="g-col-6 grid-12">
             <div class="card">
                 <div class="card-header"><span class="card-title">Basics</span></div>
                 <div class="card-body">
@@ -35,7 +35,7 @@
                     }
                 </div>
             </div>
-            <div class="card mt-3">
+            <div class="card">
                 <div class="card-header"><span class="card-title">Land Use Statistics</span></div>
                 <div class="card-body">
                     <land-use-table [hruCharacteristics]="hruCharacteristicsSummaries"></land-use-table>
@@ -71,7 +71,7 @@
                 </div>
             </div>
 
-            <div class="card mt-3">
+            <div class="card">
                 <div class="card-header"><span class="card-title">Load Generating Units</span></div>
                 <div class="card-body">
                     <neptune-grid
@@ -83,7 +83,7 @@
                 </div>
             </div>
         }
-        <div class="card mt-3">
+        <div class="card">
             <div class="card-header"><span class="card-title">HRU Characteristics</span></div>
             <div class="card-body">
                 <hru-characteristics-grid

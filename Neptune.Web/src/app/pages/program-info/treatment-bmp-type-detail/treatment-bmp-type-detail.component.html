@@ -32,7 +32,7 @@
         </div>
 
         <!-- Applicable Observation Types -->
-        <div class="card g-col-12 mt-3">
+        <div class="card g-col-12">
             <div class="card-header"><span class="card-title">Applicable Observation Types</span></div>
             <div class="card-body">
                 @if (bmpType.ObservationTypes?.length) {
@@ -68,7 +68,7 @@
 
         <!-- Custom Attributes — one card per Purpose, matching MVC -->
         @for (group of attributesByPurpose(bmpType); track group.purposeID) {
-            <div class="card g-col-12 mt-3">
+            <div class="card g-col-12">
                 <div class="card-header"><span class="card-title">{{ group.purposeDisplayName }}</span></div>
                 <div class="card-body">
                     @if (group.rows.length) {
@@ -106,7 +106,7 @@
             user can view by jurisdiction, with one dynamic column per custom attribute defined
             on the type. Mirrors the legacy MVC TreatmentBMPType/Detail page grid.
         -->
-        <div class="card g-col-12 mt-3">
+        <div class="card g-col-12">
             <div class="card-header"><span class="card-title">Treatment BMPs of this Type</span></div>
             <div class="card-body">
                 <neptune-grid

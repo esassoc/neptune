@@ -38,7 +38,7 @@
 
     <div class="grid-12">
         <!-- Left Column -->
-        <div class="g-col-6">
+        <div class="g-col-6 grid-12">
             <!-- Basics Card -->
             <div class="card">
                 <div class="card-header">
@@ -135,7 +135,7 @@
             </div>
 
             <!-- Modeled Performance Card -->
-            <div class="card mt-3">
+            <div class="card">
                 <div class="card-header">
                     <span class="card-title"><field-definition fieldDefinitionType="ModeledPerformance"></field-definition></span>
                 </div>
@@ -183,7 +183,7 @@
         </div>
 
         <!-- Right Column -->
-        <div class="g-col-6">
+        <div class="g-col-6 grid-12">
             <!-- Location & Map Card -->
             <div class="card">
                 <div class="card-header">
@@ -217,7 +217,7 @@
             </div>
 
             <!-- Land Use Statistics Card -->
-            <div class="card mt-3">
+            <div class="card">
                 <div class="card-header">
                     <span class="card-title">Land Use Statistics</span>
                 </div>
@@ -240,7 +240,7 @@
             </div>
 
             <!-- Associated Parcels Card (right column, under Land Use Statistics) -->
-            <div class="card mt-3">
+            <div class="card">
                 <div class="card-header">
                     <span class="card-title">Associated Parcels</span>
                 </div>
@@ -257,7 +257,7 @@
         <!-- Full-width sections -->
 
         <!-- BMPs Section -->
-        <div class="card g-col-12 mt-3">
+        <div class="card g-col-12">
             <div class="card-header">
                 <span class="card-title">BMPs</span>
             </div>
@@ -388,7 +388,7 @@
 
         <!-- Documents (authenticated only) -->
         @if (!isAnonymousOrUnassigned) {
-            <div class="card g-col-12 mt-3">
+            <div class="card g-col-12">
                 <div class="card-header">
                     <span class="card-title">Documents</span>
                 </div>
@@ -428,7 +428,7 @@
         }
 
         <!-- O&M Verification -->
-        <div class="card g-col-12 mt-3">
+        <div class="card g-col-12">
             <div class="card-header">
                 <span class="card-title">WQMP O&amp;M Verification</span>
                 @if (currentPersonCanEdit) {
