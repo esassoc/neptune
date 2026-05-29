@@ -1,7 +1,7 @@
 @if (currentProject$ | async; as project) {
 <page-header [pageTitle]="project.ProjectName" [templateRight]="templateRight" [templateAbove]="templateAbove"> </page-header>
 <ng-template #templateRight>
-    <a [routerLink]="getWorkflowLink(project)" class="btn btn-orange mr-2">Edit</a>
+    <a [routerLink]="getWorkflowLink(project)" class="btn btn-primary mr-2">Edit</a>
     <a (click)="makeProjectCopy(project)" class="btn btn-primary-outline" [class.disabled]="isCopyingProject">
         @if (isCopyingProject) {
         <span class="fa fa-spinner loading-spinner"></span>

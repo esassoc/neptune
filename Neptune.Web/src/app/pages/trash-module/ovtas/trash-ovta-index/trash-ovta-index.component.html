@@ -3,7 +3,7 @@
 <ng-template #templateRight>
   <a class="float-right btn btn-orange mr-2" [routerLink]="['new/instructions']">Add New OVTA</a>
   @if (currentUserHasJurisdictionManagePermission()) {
-    <a class="float-right btn btn-primary mr-2" [href]="url + '/OnlandVisualTrashAssessment/BulkUploadOTVAs'"> <icon [icon]="'Upload'"></icon> Upload OVTAs </a>
+    <a class="float-right btn btn-primary-outline mr-2" [href]="url + '/OnlandVisualTrashAssessment/BulkUploadOTVAs'"> <icon [icon]="'Upload'"></icon> Upload OVTAs </a>
   }
 </ng-template>
 

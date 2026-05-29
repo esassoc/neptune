@@ -2,10 +2,10 @@
 
 <ng-template #templateRight>
   @if (currentUserHasJurisdictionManagePermission()) {
-    <a class="float-right btn btn-primary mr-2" [href]="url + '/OnlandVisualTrashAssessmentArea/BulkUploadOVTAAreas'"> <icon [icon]="'Upload'"></icon> Upload OVTA Areas </a>
+    <a class="float-right btn btn-primary-outline mr-2" [href]="url + '/OnlandVisualTrashAssessmentArea/BulkUploadOVTAAreas'"> <icon [icon]="'Upload'"></icon> Upload OVTA Areas </a>
   }
   @if (currentUserHasJurisdictionEditPermission()) {
-    <a class="float-right btn btn-primary mr-2" [href]="url + '/OnlandVisualTrashAssessmentExport/ExportAssessmentGeospatialData'">
+    <a class="float-right btn btn-primary-outline mr-2" [href]="url + '/OnlandVisualTrashAssessmentExport/ExportAssessmentGeospatialData'">
       <icon [icon]="'Download'"></icon> Download OVTA Areas
     </a>
   }
