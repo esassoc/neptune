@@ -1,7 +1,7 @@
 import { Component, OnInit, OnChanges, SimpleChanges, ViewChild, TemplateRef, Input, inject } from "@angular/core";
 import { Router, RouterLink } from "@angular/router";
 import { AsyncPipe, CommonModule } from "@angular/common";
-import { catchError, EMPTY, Observable, tap } from "rxjs";
+import { BehaviorSubject, catchError, EMPTY, Observable, shareReplay, switchMap, tap } from "rxjs";
 import { DialogService } from "@ngneat/dialog";
 import { PageHeaderComponent } from "src/app/shared/components/page-header/page-header.component";
 import { AlertDisplayComponent } from "src/app/shared/components/alert-display/alert-display.component";
@@ -9,6 +9,8 @@ import { ColDef } from "ag-grid-community";
 import { UtilityFunctionsService } from "src/app/services/utility-functions.service";
 import { AuthenticationService } from "src/app/services/authentication.service";
 import { AlertService } from "src/app/shared/services/alert.service";
+import { Alert } from "src/app/shared/models/alert";
+import { AlertContext } from "src/app/shared/models/enums/alert-context.enum";
 import { NeptuneGridComponent } from "src/app/shared/components/neptune-grid/neptune-grid.component";
 import { IconComponent } from "src/app/shared/components/icon/icon.component";
 import { PersonDisplayDto, StormwaterJurisdictionGridDto, TreatmentBMPGridDto } from "src/app/shared/generated/model/models";
@@ -32,12 +34,20 @@ export class JurisdictionDetailComponent implements OnInit, OnChanges {
     public currentJurisdiction: StormwaterJurisdictionGridDto;
     private assignedPersonIDs: number[] = [];
 
+    // NPT-1061-2: zoneless Angular doesn't re-bind the template's async pipe when we reassign
+    // `this.foo$ = ...` inside a `.subscribe()` callback, so the previous loadData() reassign
+    // pattern left the page showing stale data after the Basics / Users modals closed. Driving
+    // the three template observables off this BehaviorSubject + switchMap means modal-close
+    // handlers just call `reload$.next()` and the async pipe stays bound across refreshes.
+    private reload$ = new BehaviorSubject<void>(undefined);
+
     public get canManage(): boolean {
         return this.authenticationService.doesCurrentUserHaveJurisdictionManagePermission();
     }
+
     ngOnChanges(changes: SimpleChanges): void {
         if (changes["jurisdictionID"] && !changes["jurisdictionID"].firstChange) {
-            this.loadData();
+            this.reload$.next();
         }
     }
 
@@ -81,29 +91,42 @@ export class JurisdictionDetailComponent implements OnInit, OnChanges {
             this.utilityFunctionsService.createBasicColumnDef("Trash Capture Effectiveness (%)", "TrashCaptureEffectiveness"),
             this.utilityFunctionsService.createBasicColumnDef("Delineation Type", "DelineationTypeDisplayName"),
         ];
-        this.loadData();
-    }
 
-    private loadData(): void {
-        this.jurisdiction$ = this.stormwaterJurisdictionService.getStormwaterJurisdiction(this.jurisdictionID).pipe(
-            tap((jurisdiction) => (this.currentJurisdiction = jurisdiction)),
-            // NPT-1061 item 4c: JE/JM hitting a jurisdiction they're not assigned to get a 403 from
-            // the API; show the standard not-found/unauthorized alert and bounce to the list.
-            catchError(() => {
-                this.router.navigate(["/jurisdictions"]).then(() => this.alertService.pushNotFoundUnauthorizedAlert());
-                return EMPTY;
-            })
+        this.jurisdiction$ = this.reload$.pipe(
+            switchMap(() =>
+                this.stormwaterJurisdictionService.getStormwaterJurisdiction(this.jurisdictionID).pipe(
+                    tap((jurisdiction) => (this.currentJurisdiction = jurisdiction)),
+                    // NPT-1061 item 4c: JE/JM hitting a jurisdiction they're not assigned to get a
+                    // 403 from the API; show the standard not-found/unauthorized alert and bounce
+                    // to the list.
+                    catchError(() => {
+                        this.router.navigate(["/jurisdictions"]).then(() => this.alertService.pushNotFoundUnauthorizedAlert());
+                        return EMPTY;
+                    })
+                )
+            ),
+            shareReplay(1)
         );
-        this.users$ = this.stormwaterJurisdictionService.listUsersStormwaterJurisdiction(this.jurisdictionID).pipe(
-            tap((users) => {
-                this.assignedPersonIDs = users.map((u) => u.PersonID);
-                const third = Math.ceil(users.length / 3);
-                this.usersCol1 = users.slice(0, third);
-                this.usersCol2 = users.slice(third, third * 2);
-                this.usersCol3 = users.slice(third * 2);
-            })
+
+        this.users$ = this.reload$.pipe(
+            switchMap(() =>
+                this.stormwaterJurisdictionService.listUsersStormwaterJurisdiction(this.jurisdictionID).pipe(
+                    tap((users) => {
+                        this.assignedPersonIDs = users.map((u) => u.PersonID);
+                        const third = Math.ceil(users.length / 3);
+                        this.usersCol1 = users.slice(0, third);
+                        this.usersCol2 = users.slice(third, third * 2);
+                        this.usersCol3 = users.slice(third * 2);
+                    })
+                )
+            ),
+            shareReplay(1)
         );
-        this.treatmentBMPs$ = this.stormwaterJurisdictionService.listTreatmentBMPsStormwaterJurisdiction(this.jurisdictionID);
+
+        this.treatmentBMPs$ = this.reload$.pipe(
+            switchMap(() => this.stormwaterJurisdictionService.listTreatmentBMPsStormwaterJurisdiction(this.jurisdictionID)),
+            shareReplay(1)
+        );
     }
 
     public openBasicsModal(): void {
@@ -112,7 +135,10 @@ export class JurisdictionDetailComponent implements OnInit, OnChanges {
             data: { jurisdiction: this.currentJurisdiction } as JurisdictionBasicsModalContext,
         });
         ref.afterClosed$.subscribe((result) => {
-            if (result) this.loadData();
+            if (result) {
+                this.reload$.next();
+                this.alertService.pushAlert(new Alert("Jurisdiction basics updated.", AlertContext.Success));
+            }
         });
     }
 
@@ -126,7 +152,10 @@ export class JurisdictionDetailComponent implements OnInit, OnChanges {
             } as JurisdictionUsersModalContext,
         });
         ref.afterClosed$.subscribe((result) => {
-            if (result) this.loadData();
+            if (result) {
+                this.reload$.next();
+                this.alertService.pushAlert(new Alert("Assigned users updated.", AlertContext.Success));
+            }
         });
     }
 }
