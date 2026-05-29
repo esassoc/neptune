@@ -155,7 +155,7 @@
                 @if (customAttributes$ | async; as customAttributes) {
                     @if (hasModelingAttributes) {
                         <!-- Modeling Attributes Panel -->
-                        <div class="card mt-3">
+                        <div class="card">
                             <div class="card-header">
                                 <span class="card-title">Modeling Attributes</span>
                                 @if (currentPersonCanManage) {
@@ -173,7 +173,7 @@
                             </div>
                         </div>
 
-                        <div class="card mt-3">
+                        <div class="card">
                             <div class="card-header">
                                 <span class="card-title">Modeled BMP Performance</span>
                             </div>
@@ -203,7 +203,7 @@
                     }
                     @if (!isAnonymousOrUnassigned) {
                         <!-- Other Design Attributes Panel -->
-                        <div class="card mt-3">
+                        <div class="card">
                             <div class="card-header">
                                 <span class="card-title">Other Design Attributes</span>
                                 @if (currentPersonCanManage) {
@@ -249,7 +249,7 @@
                     }
                 </div>
             </div>
-            <div class="card mt-3">
+            <div class="card">
                 <div class="card-header">
                     <span class="card-title">Location & Map</span>
                     @if (currentPersonCanManage) {
@@ -361,7 +361,7 @@
 
             @if (upstreamestBMPErrors$ | async; as upstreamestBMPErrors) {
                 @if (isAnalyzedInModelingModule && (!upstreamestBMPErrors.UpstreamestBMP || upstreamestBMPErrors.IsUpstreamestBMPAnalyzedInModelingModule)) {
-                    <div class="card mt-3">
+                    <div class="card">
                         <div class="card-header">
                             <span class="card-title">Drainage Area Land Uses</span>
                         </div>
@@ -392,7 +392,7 @@
 
         <!-- HRU Characteristics (Sitka Admin only) -->
         @if (isSitkaAdmin && isAnalyzedInModelingModule) {
-            <div class="card mt-3">
+            <div class="card">
                 <div class="card-header">
                     <span class="card-title">HRU Characteristics (Sitka Admin only)</span>
                 </div>
@@ -426,7 +426,7 @@
         </div>
 
         <!-- Funding Events -->
-        <div class="card g-col-6 mt-3">
+        <div class="card g-col-6">
             <div class="card-header">
                 <span class="card-title">Funding Events</span>
                 @if (currentPersonCanManage) {
@@ -488,7 +488,7 @@
         </div>
 
         <!-- Benchmark & Threshold Values -->
-        <div class="card g-col-6 mt-3">
+        <div class="card g-col-6">
             <div class="card-header">
                 <span class="card-title">Benchmark &amp; Threshold Values</span>
                 @if (canEditBenchmarkAndThresholds) {
@@ -529,7 +529,7 @@
 
         <!-- Documents -->
         @if (!isAnonymousOrUnassigned) {
-            <div class="card mt-3">
+            <div class="card">
                 <div class="card-header">
                     <span class="card-title">Documents</span>
                     @if (currentPersonCanManage) {
