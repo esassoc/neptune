@@ -1,4 +1,5 @@
 using Microsoft.EntityFrameworkCore;
+using Neptune.Common;
 using Neptune.Models.DataTransferObjects;
 
 namespace Neptune.EFModels.Entities;
@@ -67,16 +68,54 @@ public static class TreatmentBMPTypesAdmin
 
         entity.TreatmentBMPTypeName = dto.TreatmentBMPTypeName;
         entity.TreatmentBMPTypeDescription = dto.TreatmentBMPTypeDescription;
-        await dbContext.SaveChangesAsync();
 
-        // Delete-and-recreate child relationship records
-        dbContext.TreatmentBMPTypeAssessmentObservationTypes.RemoveRange(
-            dbContext.TreatmentBMPTypeAssessmentObservationTypes.Where(x => x.TreatmentBMPTypeID == treatmentBMPTypeID));
-        dbContext.TreatmentBMPTypeCustomAttributeTypes.RemoveRange(
-            dbContext.TreatmentBMPTypeCustomAttributeTypes.Where(x => x.TreatmentBMPTypeID == treatmentBMPTypeID));
-        await dbContext.SaveChangesAsync();
+        // Merge (upsert) rather than delete-and-recreate the child relationship rows. A
+        // TreatmentBMPTypeAssessmentObservationType is referenced by real TreatmentBMPObservation
+        // field data, so blanket-deleting the rows trips that FK on any type that already has
+        // assessments. Merge updates existing rows in place (preserving their PK), adds genuinely
+        // new ones, and deletes only rows the user actually removed — matching the legacy MVC editor.
+        var existingObservationTypes = await dbContext.TreatmentBMPTypeAssessmentObservationTypes
+            .Where(x => x.TreatmentBMPTypeID == treatmentBMPTypeID)
+            .ToListAsync();
+        var updatedObservationTypes = (dto.ObservationTypes ?? new List<TreatmentBMPTypeObservationTypeUpsertDto>())
+            .Select(x => new TreatmentBMPTypeAssessmentObservationType
+            {
+                TreatmentBMPTypeID = treatmentBMPTypeID,
+                TreatmentBMPAssessmentObservationTypeID = x.TreatmentBMPAssessmentObservationTypeID,
+                AssessmentScoreWeight = x.AssessmentScoreWeight,
+                DefaultThresholdValue = x.DefaultThresholdValue,
+                DefaultBenchmarkValue = x.DefaultBenchmarkValue,
+                OverrideAssessmentScoreIfFailing = x.OverrideAssessmentScoreIfFailing,
+                SortOrder = x.SortOrder,
+            }).ToList();
+        existingObservationTypes.Merge(updatedObservationTypes,
+            dbContext.TreatmentBMPTypeAssessmentObservationTypes,
+            (x, y) => x.TreatmentBMPTypeID == y.TreatmentBMPTypeID && x.TreatmentBMPAssessmentObservationTypeID == y.TreatmentBMPAssessmentObservationTypeID,
+            (x, y) =>
+            {
+                x.AssessmentScoreWeight = y.AssessmentScoreWeight;
+                x.DefaultThresholdValue = y.DefaultThresholdValue;
+                x.DefaultBenchmarkValue = y.DefaultBenchmarkValue;
+                x.OverrideAssessmentScoreIfFailing = y.OverrideAssessmentScoreIfFailing;
+                x.SortOrder = y.SortOrder;
+            });
 
-        await SaveChildRecordsAsync(dbContext, treatmentBMPTypeID, dto);
+        var existingCustomAttributeTypes = await dbContext.TreatmentBMPTypeCustomAttributeTypes
+            .Where(x => x.TreatmentBMPTypeID == treatmentBMPTypeID)
+            .ToListAsync();
+        var updatedCustomAttributeTypes = (dto.CustomAttributeTypes ?? new List<TreatmentBMPTypeCustomAttributeTypeUpsertDto>())
+            .Select(x => new TreatmentBMPTypeCustomAttributeType
+            {
+                TreatmentBMPTypeID = treatmentBMPTypeID,
+                CustomAttributeTypeID = x.CustomAttributeTypeID,
+                SortOrder = x.SortOrder,
+            }).ToList();
+        existingCustomAttributeTypes.Merge(updatedCustomAttributeTypes,
+            dbContext.TreatmentBMPTypeCustomAttributeTypes,
+            (x, y) => x.TreatmentBMPTypeID == y.TreatmentBMPTypeID && x.CustomAttributeTypeID == y.CustomAttributeTypeID,
+            (x, y) => x.SortOrder = y.SortOrder);
+
+        await dbContext.SaveChangesAsync();
         return await GetByIDAsDtoAsync(dbContext, treatmentBMPTypeID);
     }
 

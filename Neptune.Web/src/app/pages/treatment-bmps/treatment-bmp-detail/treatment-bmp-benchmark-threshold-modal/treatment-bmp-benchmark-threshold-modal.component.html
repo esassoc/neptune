@@ -12,14 +12,20 @@
             </tr>
         </thead>
         <tbody>
-            @for (bt of benchmarks; track bt.TreatmentBMPBenchmarkAndThresholdID; let i = $index) {
+            @for (bt of benchmarks; track bt.TreatmentBMPAssessmentObservationTypeID; let i = $index) {
                 <tr [formGroup]="formArray.at(i)">
                     <td>{{ bt.ObservationTypeName }}</td>
                     <td>
                         <input type="number" class="form-control" formControlName="BenchmarkValue" />
+                        @if (bt.BenchmarkUnitLabel) {
+                            {{ bt.BenchmarkUnitLabel }}
+                        }
                     </td>
                     <td>
                         <input type="number" class="form-control" formControlName="ThresholdValue" />
+                        @if (bt.ThresholdUnitLabel) {
+                            {{ bt.ThresholdUnitLabel }}
+                        }
                     </td>
                 </tr>
             }

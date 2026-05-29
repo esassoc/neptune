@@ -127,14 +127,14 @@ export class FieldRecordsComponent implements OnInit {
                 // #507 #3).
                 const editable = visit.FieldVisitStatusID === FieldVisitStatusEnum.InProgress
                     || visit.FieldVisitStatusID === FieldVisitStatusEnum.ReturnedToEdit;
-                const actions: { ActionName: string; ActionIcon?: string; ActionHandler: () => void }[] = [
+                // ActionLink (vs ActionHandler) makes the context menu render a real <a [routerLink]>,
+                // so ctrl+click opens the field visit in a new tab (NPT-1061 item 7).
+                const actions: { ActionName: string; ActionIcon?: string; ActionLink?: string; ActionHandler?: () => void }[] = [
                     {
                         ActionName: editable ? "Continue" : "View",
-                        ActionHandler: () => this.router.navigate(
-                            editable
-                                ? ["/field-visits", visit.FieldVisitID]
-                                : ["/field-visits", visit.FieldVisitID, "view"],
-                        ),
+                        ActionLink: editable
+                            ? `/field-visits/${visit.FieldVisitID}`
+                            : `/field-visits/${visit.FieldVisitID}/view`,
                     },
                 ];
                 if (this.canManage) {

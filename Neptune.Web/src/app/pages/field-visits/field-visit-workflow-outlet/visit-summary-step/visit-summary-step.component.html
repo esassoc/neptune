@@ -36,7 +36,7 @@
             @if (workflow.InitialAssessmentID) {
                 {{ workflow.InitialAssessmentComplete ? "Complete" : "In Progress" }}
                 @if (workflow.InitialAssessmentScore != null) {
-                    &mdash; Score {{ workflow.InitialAssessmentScore | number: "1.1-1" }}
+                    &mdash; Score {{ workflow.InitialAssessmentScore | number: "1.2-2" }}
                 }
             } @else {
                 Not Performed
@@ -71,7 +71,7 @@
             @if (workflow.PostMaintenanceAssessmentID) {
                 {{ workflow.PostMaintenanceAssessmentComplete ? "Complete" : "In Progress" }}
                 @if (workflow.PostMaintenanceAssessmentScore != null) {
-                    &mdash; Score {{ workflow.PostMaintenanceAssessmentScore | number: "1.1-1" }}
+                    &mdash; Score {{ workflow.PostMaintenanceAssessmentScore | number: "1.2-2" }}
                 }
             } @else {
                 Not Performed

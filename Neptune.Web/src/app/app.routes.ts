@@ -408,11 +408,13 @@ export const routes: Routes = [
                 path: "jurisdictions",
                 title: "Jurisdictions",
                 loadComponent: () => import("./pages/jurisdictions/jurisdictions.component").then((m) => m.JurisdictionsComponent),
+                canActivate: [JurisdictionManagerOrEditorOnlyGuard],
             },
             {
                 path: `jurisdictions/:${routeParams.jurisdictionID}`,
                 title: "Jurisdiction Detail",
                 loadComponent: () => import("./pages/jurisdictions/jurisdiction-detail/jurisdiction-detail.component").then((m) => m.JurisdictionDetailComponent),
+                canActivate: [JurisdictionManagerOrEditorOnlyGuard],
             },
             {
                 path: "find-bmp",
@@ -974,11 +976,6 @@ export const routes: Routes = [
                 canActivate: [JurisdictionManagerOrEditorOnlyGuard],
             },
             // Manage
-            {
-                path: "manage/homepage-configuration",
-                title: "Homepage Configuration",
-                loadComponent: () => import("./pages/manage/homepage-configuration.component").then((m) => m.HomepageConfigurationComponent),
-            },
             {
                 path: "manage/custom-attributes",
                 title: "Custom Attributes",

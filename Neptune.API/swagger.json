@@ -7403,6 +7403,181 @@
             }
           }
         }
+      },
+      "put": {
+        "tags": [
+          "StormwaterJurisdiction"
+        ],
+        "operationId": "Update_StormwaterJurisdiction",
+        "parameters": [
+          {
+            "name": "jurisdictionID",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/StormwaterJurisdictionUpsertDto"
+              }
+            },
+            "text/json": {
+              "schema": {
+                "$ref": "#/components/schemas/StormwaterJurisdictionUpsertDto"
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "$ref": "#/components/schemas/StormwaterJurisdictionUpsertDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/StormwaterJurisdictionGridDto"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/StormwaterJurisdictionGridDto"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/StormwaterJurisdictionGridDto"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/jurisdictions/{jurisdictionID}/users": {
+      "put": {
+        "tags": [
+          "StormwaterJurisdiction"
+        ],
+        "operationId": "UpdateUsers_StormwaterJurisdiction",
+        "parameters": [
+          {
+            "name": "jurisdictionID",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/StormwaterJurisdictionPersonBulkUpsertDto"
+              }
+            },
+            "text/json": {
+              "schema": {
+                "$ref": "#/components/schemas/StormwaterJurisdictionPersonBulkUpsertDto"
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "$ref": "#/components/schemas/StormwaterJurisdictionPersonBulkUpsertDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/PersonDisplayDto"
+                  }
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/PersonDisplayDto"
+                  }
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/PersonDisplayDto"
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "get": {
+        "tags": [
+          "StormwaterJurisdiction"
+        ],
+        "operationId": "ListUsers_StormwaterJurisdiction",
+        "parameters": [
+          {
+            "name": "jurisdictionID",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/PersonDisplayDto"
+                  }
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/PersonDisplayDto"
+                  }
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/PersonDisplayDto"
+                  }
+                }
+              }
+            }
+          }
+        }
       }
     },
     "/jurisdictions/{jurisdictionID}/bounding-box": {
@@ -7489,56 +7664,6 @@
                   "type": "array",
                   "items": {
                     "$ref": "#/components/schemas/TreatmentBMPGridDto"
-                  }
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/jurisdictions/{jurisdictionID}/users": {
-      "get": {
-        "tags": [
-          "StormwaterJurisdiction"
-        ],
-        "operationId": "ListUsers_StormwaterJurisdiction",
-        "parameters": [
-          {
-            "name": "jurisdictionID",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "integer",
-              "format": "int32"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "OK",
-            "content": {
-              "text/plain": {
-                "schema": {
-                  "type": "array",
-                  "items": {
-                    "$ref": "#/components/schemas/PersonDisplayDto"
-                  }
-                }
-              },
-              "application/json": {
-                "schema": {
-                  "type": "array",
-                  "items": {
-                    "$ref": "#/components/schemas/PersonDisplayDto"
-                  }
-                }
-              },
-              "text/json": {
-                "schema": {
-                  "type": "array",
-                  "items": {
-                    "$ref": "#/components/schemas/PersonDisplayDto"
                   }
                 }
               }
@@ -10087,6 +10212,57 @@
         }
       }
     },
+    "/treatment-bmps/{treatmentBMPID}/benchmarks-and-thresholds/with-observation-types": {
+      "get": {
+        "tags": [
+          "TreatmentBMPBenchmarkAndThreshold"
+        ],
+        "operationId": "ListWithObservationTypes_TreatmentBMPBenchmarkAndThreshold",
+        "parameters": [
+          {
+            "name": "treatmentBMPID",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/TreatmentBMPBenchmarkAndThresholdWithObservationTypeDto"
+                  }
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/TreatmentBMPBenchmarkAndThresholdWithObservationTypeDto"
+                  }
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/TreatmentBMPBenchmarkAndThresholdWithObservationTypeDto"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "x-anonymous": true
+      }
+    },
     "/treatment-bmps/{treatmentBMPID}/benchmarks-and-thresholds/{treatmentBMPBenchmarkAndThresholdID}": {
       "get": {
         "tags": [
@@ -11986,6 +12162,45 @@
         },
         "x-anonymous": true,
         "x-optional-auth": true
+      }
+    },
+    "/water-quality-management-plans/lgu-audit-grid": {
+      "get": {
+        "tags": [
+          "WaterQualityManagementPlan"
+        ],
+        "operationId": "ListLGUAuditAsGridDto_WaterQualityManagementPlan",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/WaterQualityManagementPlanLGUAuditGridDto"
+                  }
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/WaterQualityManagementPlanLGUAuditGridDto"
+                  }
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/WaterQualityManagementPlanLGUAuditGridDto"
+                  }
+                }
+              }
+            }
+          }
+        }
       }
     },
     "/water-quality-management-plans/display-dtos": {
@@ -19740,6 +19955,14 @@
             "type": "integer",
             "format": "int32"
           },
+          "StormwaterJurisdictionPublicBMPVisibilityTypeID": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "StormwaterJurisdictionPublicWQMPVisibilityTypeID": {
+            "type": "integer",
+            "format": "int32"
+          },
           "StormwaterJurisdictionPublicBMPVisibilityTypeName": {
             "type": "string",
             "nullable": true
@@ -19753,6 +19976,34 @@
             "format": "int32"
           },
           "NumberOfBMPs": {
+            "type": "integer",
+            "format": "int32"
+          }
+        },
+        "additionalProperties": false
+      },
+      "StormwaterJurisdictionPersonBulkUpsertDto": {
+        "type": "object",
+        "properties": {
+          "PersonIDs": {
+            "type": "array",
+            "items": {
+              "type": "integer",
+              "format": "int32"
+            },
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "StormwaterJurisdictionUpsertDto": {
+        "type": "object",
+        "properties": {
+          "StormwaterJurisdictionPublicBMPVisibilityTypeID": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "StormwaterJurisdictionPublicWQMPVisibilityTypeID": {
             "type": "integer",
             "format": "int32"
           }
@@ -20698,6 +20949,55 @@
           "ThresholdValue": {
             "type": "number",
             "format": "double"
+          }
+        },
+        "additionalProperties": false
+      },
+      "TreatmentBMPBenchmarkAndThresholdWithObservationTypeDto": {
+        "type": "object",
+        "properties": {
+          "TreatmentBMPBenchmarkAndThresholdID": {
+            "type": "integer",
+            "format": "int32",
+            "nullable": true
+          },
+          "TreatmentBMPID": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "TreatmentBMPTypeID": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "TreatmentBMPTypeAssessmentObservationTypeID": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "TreatmentBMPAssessmentObservationTypeID": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "ObservationTypeName": {
+            "type": "string",
+            "nullable": true
+          },
+          "BenchmarkUnitLabel": {
+            "type": "string",
+            "nullable": true
+          },
+          "ThresholdUnitLabel": {
+            "type": "string",
+            "nullable": true
+          },
+          "BenchmarkValue": {
+            "type": "number",
+            "format": "double",
+            "nullable": true
+          },
+          "ThresholdValue": {
+            "type": "number",
+            "format": "double",
+            "nullable": true
           }
         },
         "additionalProperties": false
@@ -23048,6 +23348,29 @@
             "type": "boolean"
           },
           "IsDraft": {
+            "type": "boolean"
+          }
+        },
+        "additionalProperties": false
+      },
+      "WaterQualityManagementPlanLGUAuditGridDto": {
+        "type": "object",
+        "properties": {
+          "WaterQualityManagementPlanID": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "WaterQualityManagementPlanName": {
+            "type": "string",
+            "nullable": true
+          },
+          "LoadGeneratingUnitsPopulated": {
+            "type": "boolean"
+          },
+          "BoundaryIsDefined": {
+            "type": "boolean"
+          },
+          "IntersectsModelBasins": {
             "type": "boolean"
           }
         },

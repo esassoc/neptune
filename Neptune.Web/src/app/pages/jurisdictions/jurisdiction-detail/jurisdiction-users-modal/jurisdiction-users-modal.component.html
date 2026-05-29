@@ -1,0 +1,46 @@
+<div class="modal">
+    <div class="modal-header">
+        <h3>Edit Users Assigned to {{ ref.data.jurisdictionName }}</h3>
+    </div>
+    <div class="modal-body">
+        @if (errorMessage(); as msg) {
+            <div class="alert alert-danger">{{ msg }}</div>
+        }
+        <div class="picker-row mb-3">
+            <ng-select
+                [items]="availablePeople()"
+                bindValue="PersonID"
+                bindLabel="FullName"
+                [(ngModel)]="pickerPersonID"
+                [searchable]="true"
+                [clearable]="true"
+                appendTo="body"
+                placeholder="Search for a user...">
+            </ng-select>
+            <button type="button" class="btn btn-primary-outline btn-sm" (click)="addPerson()" [disabled]="pickerPersonID == null">
+                <i class="fa fa-plus"></i> Add
+            </button>
+        </div>
+
+        @if (assignedPeople().length) {
+            <ul class="user-list">
+                @for (person of assignedPeople(); track person.PersonID) {
+                    <li style="display: flex; justify-content: space-between; align-items: center; gap: 1rem; margin-bottom: 0.25rem">
+                        <span><strong>{{ person.FullName }}</strong> ({{ person.OrganizationName }})</span>
+                        <button type="button" class="remove-btn" (click)="removePerson(person.PersonID)" [attr.aria-label]="'Remove ' + person.FullName" [title]="'Remove ' + person.FullName">
+                            <i class="fa fa-trash" aria-hidden="true"></i>
+                        </button>
+                    </li>
+                }
+            </ul>
+        } @else {
+            <p class="system-text">No users assigned.</p>
+        }
+    </div>
+    <div class="modal-footer">
+        <button type="button" class="btn btn-primary" [disabled]="isSaving()" (click)="save()">
+            @if (isSaving()) { <i class="fa fa-spinner fa-spin"></i> Saving... } @else { Save }
+        </button>
+        <button type="button" class="btn btn-secondary" [disabled]="isSaving()" (click)="cancel()">Cancel</button>
+    </div>
+</div>

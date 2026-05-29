@@ -49,6 +49,7 @@ import {
     TreatmentBMPUpstreamestErrorsDto,
 } from "src/app/shared/generated/model/models";
 import { FieldVisitDto } from "src/app/shared/generated/model/field-visit-dto";
+import { FieldVisitStatusEnum } from "src/app/shared/generated/enum/field-visit-status-enum";
 import { FundingEventByTreatmentBMPIDService } from "src/app/shared/generated/api/funding-event-by-treatment-bmpid.service";
 import { FundingEventDto } from "src/app/shared/generated/model/funding-event-dto";
 import { CustomAttributeTypePurposeEnum } from "src/app/shared/generated/enum/custom-attribute-type-purpose-enum";
@@ -78,7 +79,7 @@ import { RegionalSubbasinRevisionRequestStatusEnum } from "src/app/shared/genera
 import { AuthenticationService } from "src/app/services/authentication.service";
 import { RoleEnum } from "src/app/shared/generated/enum/role-enum";
 import { TreatmentBMPBenchmarkAndThresholdService } from "src/app/shared/generated/api/treatment-bmp-benchmark-and-threshold.service";
-import { TreatmentBMPBenchmarkAndThresholdDto } from "src/app/shared/generated/model/treatment-bmp-benchmark-and-threshold-dto";
+import { TreatmentBMPBenchmarkAndThresholdWithObservationTypeDto } from "src/app/shared/generated/model/treatment-bmp-benchmark-and-threshold-with-observation-type-dto";
 import {
     TreatmentBmpBenchmarkThresholdModalComponent,
     TreatmentBmpBenchmarkThresholdModalContext,
@@ -161,7 +162,7 @@ export class TreatmentBmpDetailComponent implements OnInit, OnChanges {
     hruCharacteristics$: Observable<HRUCharacteristicDto[]>;
     fieldVisits$: Observable<FieldVisitDto[]>;
     private fieldVisitsReload$ = new BehaviorSubject<void>(undefined);
-    benchmarkAndThresholds$: Observable<TreatmentBMPBenchmarkAndThresholdDto[]>;
+    benchmarkAndThresholds$: Observable<TreatmentBMPBenchmarkAndThresholdWithObservationTypeDto[]>;
     fieldVisitColumnDefs: Array<ColDef>;
 
     imagesLoading = true;
@@ -207,11 +208,18 @@ export class TreatmentBmpDetailComponent implements OnInit, OnChanges {
         this.fieldVisitColumnDefs = [
             this.utilityFunctionsService.createActionsColumnDef((params: any) => {
                 const visit: FieldVisitDto = params.data;
-                const inProgress = visit.FieldVisitStatusID === 1; // FieldVisitStatusEnum.InProgress
-                const actions: { ActionName: string; ActionIcon?: string; ActionHandler: () => void }[] = [
+                // Editable (still in progress or returned to edit) → workflow outlet; otherwise the
+                // visit is wrapped up and "View" must go to the read-only detail page, not the
+                // workflow (NPT-1061 item 6c). ActionLink renders an <a [routerLink]> so ctrl+click
+                // opens it in a new tab.
+                const editable = visit.FieldVisitStatusID === FieldVisitStatusEnum.InProgress
+                    || visit.FieldVisitStatusID === FieldVisitStatusEnum.ReturnedToEdit;
+                const actions: { ActionName: string; ActionIcon?: string; ActionLink?: string; ActionHandler?: () => void }[] = [
                     {
-                        ActionName: inProgress ? "Continue" : "View",
-                        ActionHandler: () => this.router.navigate(["/field-visits", visit.FieldVisitID]),
+                        ActionName: editable ? "Continue" : "View",
+                        ActionLink: editable
+                            ? `/field-visits/${visit.FieldVisitID}`
+                            : `/field-visits/${visit.FieldVisitID}/view`,
                     },
                 ];
                 if (this.currentPersonCanManage) {
@@ -323,7 +331,7 @@ export class TreatmentBmpDetailComponent implements OnInit, OnChanges {
         this.fieldVisits$ = this.fieldVisitsReload$.pipe(
             switchMap(() => this.treatmentBMPService.fieldVisitGridJsonDataTreatmentBMP(this.treatmentBMPID))
         );
-        this.benchmarkAndThresholds$ = this.benchmarkAndThresholdService.listTreatmentBMPBenchmarkAndThreshold(this.treatmentBMPID).pipe(
+        this.benchmarkAndThresholds$ = this.benchmarkAndThresholdService.listWithObservationTypesTreatmentBMPBenchmarkAndThreshold(this.treatmentBMPID).pipe(
             tap((benchmarks) => (this.currentBenchmarks = benchmarks))
         );
 
@@ -523,7 +531,7 @@ export class TreatmentBmpDetailComponent implements OnInit, OnChanges {
 
     canEditBenchmarkAndThresholds = false;
     hasSettableBenchmarkAndThresholdValues = false;
-    currentBenchmarks: TreatmentBMPBenchmarkAndThresholdDto[] = [];
+    currentBenchmarks: TreatmentBMPBenchmarkAndThresholdWithObservationTypeDto[] = [];
 
     // NOTE: TreatmentBMPTypeIsAnalyzedInModelingModule is expected on treatmentBMP DTO. If missing, add to DTO or adjust template logic.
 
@@ -571,8 +579,9 @@ export class TreatmentBmpDetailComponent implements OnInit, OnChanges {
         });
     }
 
-    openEditBenchmarkAndThresholdsModal(benchmarks: TreatmentBMPBenchmarkAndThresholdDto[]): void {
+    openEditBenchmarkAndThresholdsModal(benchmarks: TreatmentBMPBenchmarkAndThresholdWithObservationTypeDto[]): void {
         const dialogRef = this.dialogService.open(TreatmentBmpBenchmarkThresholdModalComponent, {
+            size: "lg",
             data: {
                 treatmentBMPID: this.treatmentBMPID,
                 benchmarks: benchmarks,

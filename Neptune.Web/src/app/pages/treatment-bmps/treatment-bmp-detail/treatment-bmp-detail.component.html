@@ -490,11 +490,11 @@
                                 </tr>
                             </thead>
                             <tbody>
-                                @for (bt of benchmarks; track bt.TreatmentBMPBenchmarkAndThresholdID) {
+                                @for (bt of benchmarks; track bt.TreatmentBMPAssessmentObservationTypeID) {
                                     <tr>
                                         <td>{{ bt.ObservationTypeName }}</td>
-                                        <td>{{ bt.BenchmarkValue }}</td>
-                                        <td>{{ bt.ThresholdValue }}</td>
+                                        <td>{{ bt.BenchmarkValue != null ? bt.BenchmarkValue + (bt.BenchmarkUnitLabel ? " " + bt.BenchmarkUnitLabel : "") : "—" }}</td>
+                                        <td>{{ bt.ThresholdValue != null ? bt.ThresholdValue + (bt.ThresholdUnitLabel ? " " + bt.ThresholdUnitLabel : "") : "—" }}</td>
                                     </tr>
                                 }
                             </tbody>

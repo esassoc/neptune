@@ -1,0 +1,30 @@
+<div class="modal">
+    <div class="modal-header">
+        <h3>Edit Basics</h3>
+    </div>
+    <div class="modal-body">
+        <app-alert-display></app-alert-display>
+        <form [formGroup]="formGroup" class="grid-12">
+            <form-field
+                class="g-col-12"
+                [formControl]="formGroup.controls.StormwaterJurisdictionPublicBMPVisibilityTypeID"
+                fieldLabel="Which BMPs are Visible to the Public?"
+                [type]="FormFieldType.Select"
+                [required]="true"
+                placeholder="Select an option"
+                [formInputOptions]="bmpVisibilityOptions"></form-field>
+            <form-field
+                class="g-col-12"
+                [formControl]="formGroup.controls.StormwaterJurisdictionPublicWQMPVisibilityTypeID"
+                fieldLabel="Which WQMPs are Visible to the Public?"
+                [type]="FormFieldType.Select"
+                [required]="true"
+                placeholder="Select an option"
+                [formInputOptions]="wqmpVisibilityOptions"></form-field>
+        </form>
+    </div>
+    <div class="modal-footer">
+        <button class="btn btn-primary" (click)="save()" [disabled]="formGroup.invalid || isSaving">Save</button>
+        <button class="btn btn-secondary" (click)="cancel()" [disabled]="isSaving">Cancel</button>
+    </div>
+</div>

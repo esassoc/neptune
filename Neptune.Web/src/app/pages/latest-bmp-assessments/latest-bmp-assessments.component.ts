@@ -6,6 +6,7 @@ import { Observable } from "rxjs";
 import { PageHeaderComponent } from "src/app/shared/components/page-header/page-header.component";
 import { AlertDisplayComponent } from "src/app/shared/components/alert-display/alert-display.component";
 import { NeptuneGridComponent } from "src/app/shared/components/neptune-grid/neptune-grid.component";
+import { LinkRendererComponent } from "src/app/shared/components/ag-grid/link-renderer/link-renderer.component";
 
 import { TreatmentBMPAssessmentService } from "src/app/shared/generated/api/treatment-bmp-assessment.service";
 import { TreatmentBMPAssessmentGridDto } from "src/app/shared/generated/model/treatment-bmp-assessment-grid-dto";
@@ -30,6 +31,19 @@ export class LatestBmpAssessmentsComponent implements OnInit {
 
     ngOnInit(): void {
         this.columnDefs = [
+            {
+                headerName: "",
+                valueGetter: (params: any) => ({
+                    LinkValue: params.data.TreatmentBMPAssessmentID,
+                    LinkDisplay: "View",
+                }),
+                cellRenderer: LinkRendererComponent,
+                cellRendererParams: { inRouterLink: "/treatment-bmp-assessments/" },
+                sortable: false,
+                filter: false,
+                resizable: false,
+                width: 80,
+            },
             this.utility.createLinkColumnDef("BMP Name", "TreatmentBMPName", "TreatmentBMPID", {
                 InRouterLink: "/treatment-bmps/",
                 FieldDefinitionType: "TreatmentBMP",

@@ -53,8 +53,37 @@ namespace Neptune.API.Controllers
         [JurisdictionEditFeature]
         public async Task<ActionResult<StormwaterJurisdictionGridDto>> Get([FromRoute] int jurisdictionID)
         {
+            if (!await CurrentUserCanViewJurisdictionAsync(jurisdictionID))
+            {
+                return StatusCode(403);
+            }
             var stormwaterJurisdictionGridDto = await StormwaterJurisdictions.GetByIDAsDtoAsync(DbContext, jurisdictionID);
             return Ok(stormwaterJurisdictionGridDto);
+        }
+
+        [HttpPut("{jurisdictionID}")]
+        [JurisdictionEditFeature]
+        public async Task<ActionResult<StormwaterJurisdictionGridDto>> Update([FromRoute] int jurisdictionID, [FromBody] StormwaterJurisdictionUpsertDto dto)
+        {
+            if (!await CurrentUserCanManageJurisdictionAsync(jurisdictionID))
+            {
+                return StatusCode(403);
+            }
+            var updated = await StormwaterJurisdictions.UpdateAsync(DbContext, jurisdictionID, dto);
+            return Ok(updated);
+        }
+
+        [HttpPut("{jurisdictionID}/users")]
+        [JurisdictionEditFeature]
+        public async Task<ActionResult<List<PersonDisplayDto>>> UpdateUsers([FromRoute] int jurisdictionID, [FromBody] StormwaterJurisdictionPersonBulkUpsertDto dto)
+        {
+            if (!await CurrentUserCanManageJurisdictionAsync(jurisdictionID))
+            {
+                return StatusCode(403);
+            }
+            await StormwaterJurisdictionPeople.SetJurisdictionPeopleAsync(DbContext, jurisdictionID, dto.PersonIDs);
+            var users = await StormwaterJurisdictionPeople.ListByStormwaterJurisdictionIDAsPersonDto(DbContext, jurisdictionID);
+            return Ok(users);
         }
 
         [HttpGet("{jurisdictionID}/bounding-box")]
@@ -69,6 +98,10 @@ namespace Neptune.API.Controllers
         [JurisdictionEditFeature]
         public async Task<ActionResult<List<TreatmentBMPGridDto>>> ListTreatmentBMPs([FromRoute] int jurisdictionID)
         {
+            if (!await CurrentUserCanViewJurisdictionAsync(jurisdictionID))
+            {
+                return StatusCode(403);
+            }
             var entities = await DbContext.vTreatmentBMPDetaileds
                 .Where(x => x.StormwaterJurisdictionID == jurisdictionID)
                 .ToListAsync();
@@ -81,8 +114,40 @@ namespace Neptune.API.Controllers
         [JurisdictionEditFeature]
         public async Task<ActionResult<List<PersonDisplayDto>>> ListUsers([FromRoute] int jurisdictionID)
         {
+            if (!await CurrentUserCanViewJurisdictionAsync(jurisdictionID))
+            {
+                return StatusCode(403);
+            }
             var entities = await StormwaterJurisdictionPeople.ListByStormwaterJurisdictionIDAsPersonDto(DbContext, jurisdictionID);
             return Ok(entities);
+        }
+
+        // NPT-1061 item 4c: Admin/SitkaAdmin can view any jurisdiction; JurisdictionManager and
+        // JurisdictionEditor only the jurisdiction(s) they're assigned to.
+        private async Task<bool> CurrentUserCanViewJurisdictionAsync(int jurisdictionID)
+        {
+            if (CallingUser.RoleID == (int)RoleEnum.Admin || CallingUser.RoleID == (int)RoleEnum.SitkaAdmin)
+            {
+                return true;
+            }
+            return await DbContext.StormwaterJurisdictionPeople
+                .AnyAsync(x => x.PersonID == CallingUser.PersonID && x.StormwaterJurisdictionID == jurisdictionID);
+        }
+
+        // Editing (Basics + assigned Users) is limited to Admin/SitkaAdmin and the
+        // JurisdictionManager assigned to the jurisdiction — JurisdictionEditors can view but not edit.
+        private async Task<bool> CurrentUserCanManageJurisdictionAsync(int jurisdictionID)
+        {
+            if (CallingUser.RoleID == (int)RoleEnum.Admin || CallingUser.RoleID == (int)RoleEnum.SitkaAdmin)
+            {
+                return true;
+            }
+            if (CallingUser.RoleID == (int)RoleEnum.JurisdictionManager)
+            {
+                return await DbContext.StormwaterJurisdictionPeople
+                    .AnyAsync(x => x.PersonID == CallingUser.PersonID && x.StormwaterJurisdictionID == jurisdictionID);
+            }
+            return false;
         }
     }
 }

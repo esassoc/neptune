@@ -30,6 +30,19 @@ namespace Neptune.API.Controllers
             return Ok(items);
         }
 
+        /// <summary>
+        /// Every benchmark/threshold observation type for the BMP's type — set or not — so the SPA
+        /// detail panel and edit modal can show/edit them all (NPT-1061 items 6a/6b).
+        /// </summary>
+        [HttpGet("with-observation-types")]
+        [AllowAnonymous]
+        [EntityNotFoundAttribute(typeof(TreatmentBMP), "treatmentBMPID")]
+        public async Task<ActionResult<IEnumerable<TreatmentBMPBenchmarkAndThresholdWithObservationTypeDto>>> ListWithObservationTypes([FromRoute] int treatmentBMPID)
+        {
+            var items = await TreatmentBMPBenchmarkAndThresholds.ListWithObservationTypesByTreatmentBMPIDAsDtoAsync(DbContext, treatmentBMPID);
+            return Ok(items);
+        }
+
         [HttpPost]
         [JurisdictionEditFeature]
         [EntityNotFoundAttribute(typeof(TreatmentBMP), "treatmentBMPID")]

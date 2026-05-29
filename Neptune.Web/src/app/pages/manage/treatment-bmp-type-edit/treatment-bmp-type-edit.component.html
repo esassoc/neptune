@@ -112,6 +112,7 @@
                                     <td>
                                         <input type="number" class="form-control form-control-sm"
                                             [(ngModel)]="row.AssessmentScoreWeight"
+                                            (ngModelChange)="onObservationRowChanged()"
                                             [disabled]="isPassFail(row) && row.OverrideAssessmentScoreIfFailing"
                                             min="0" max="100" step="1">
                                     </td>
@@ -119,7 +120,7 @@
                                     <!-- Assessment Fails if Observation Fails: only meaningful for Pass/Fail rows. -->
                                     <td class="cell-center">
                                         @if (isPassFail(row)) {
-                                            <input type="checkbox" [(ngModel)]="row.OverrideAssessmentScoreIfFailing">
+                                            <input type="checkbox" [(ngModel)]="row.OverrideAssessmentScoreIfFailing" (ngModelChange)="onObservationRowChanged()">
                                         } @else {
                                             <span class="muted">—</span>
                                         }
@@ -210,7 +211,7 @@
 
         <!-- Actions -->
         <div class="page-footer">
-            <button class="btn btn-primary" (click)="save()" [disabled]="isSaving || nameControl.invalid || descriptionControl.invalid || hasWeightError()">Save</button>
+            <button class="btn btn-primary" (click)="save()" [disabled]="isSaving">Save</button>
             <button class="btn btn-secondary-outline" (click)="cancel()">Cancel</button>
             @if (!isCreate) {
                 <button class="btn btn-danger-outline" (click)="deleteBMPType()" style="margin-left: auto">

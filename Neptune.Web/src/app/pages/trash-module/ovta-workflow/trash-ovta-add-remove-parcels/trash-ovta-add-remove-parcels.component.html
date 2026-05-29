@@ -39,6 +39,7 @@
           [sortOrder]="10"
           [stormwaterJurisdictionID]="selectAreaContext.StormwaterJurisdictionID"
           [selectedLandUseBlockIDs]="selectedLandUseBlockIDs"
+          [restrictToViewport]="true"
           (landUseBlockClicked)="onLandUseBlockClicked($event)"></selected-land-use-block-layer>
       }
       @if (mapIsReady && sourceTypeID === OvtaAreaSourceTypeEnum.Parcel) {

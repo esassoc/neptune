@@ -26,6 +26,7 @@ export class OnlandVisualTrashAssessmentAreaDetailDto {
     CompletedProgressAssessmentCount?: number;
     BoundingBox?: BoundingBoxDto;
     Geometry?: string | null;
+    JurisdictionHasLandUseBlocks?: boolean;
     constructor(obj?: any) {
         Object.assign(this, obj);
     }
@@ -46,6 +47,7 @@ export interface OnlandVisualTrashAssessmentAreaDetailDtoForm {
     CompletedProgressAssessmentCount?: FormControl<number>;
     BoundingBox?: FormControl<BoundingBoxDto>;
     Geometry?: FormControl<string>;
+    JurisdictionHasLandUseBlocks?: FormControl<boolean>;
 }
 
 export class OnlandVisualTrashAssessmentAreaDetailDtoFormControls { 
@@ -180,6 +182,16 @@ export class OnlandVisualTrashAssessmentAreaDetailDtoFormControls {
         }
     );
     public static Geometry = (value: FormControlState<string> | string = undefined, formControlOptions?: FormControlOptions | null) => new FormControl<string>(
+        value,
+        formControlOptions ?? 
+        {
+            nonNullable: false,
+            validators: 
+            [
+            ],
+        }
+    );
+    public static JurisdictionHasLandUseBlocks = (value: FormControlState<boolean> | boolean = undefined, formControlOptions?: FormControlOptions | null) => new FormControl<boolean>(
         value,
         formControlOptions ?? 
         {

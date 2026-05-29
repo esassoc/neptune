@@ -73,18 +73,36 @@ public static class OnlandVisualTrashAssessmentAreas
     {
         var onlandVisualTrashAssessmentArea = dbContext.OnlandVisualTrashAssessmentAreas.Single(x =>
             x.OnlandVisualTrashAssessmentAreaID == onlandVisualTrashAssessmentAreaGeometryDto.OnlandVisualTrashAssessmentAreaID);
-        if (onlandVisualTrashAssessmentAreaGeometryDto.UsingParcels)
+
+        // NPT-1066: the edit page now offers Land Use Block / Parcel / Draw, mirroring the create
+        // workflow. Branch on the source type; Parcel + LandUseBlock geometries are already State
+        // Plane (2771) and only need projecting to 4326, while a manually-drawn shape comes from
+        // the browser in Web Mercator and projects the other way.
+        if (onlandVisualTrashAssessmentAreaGeometryDto.OvtaAreaSourceTypeID == (int)OvtaAreaSourceTypeEnum.LandUseBlock)
         {
-            // since this is parcel picks, we don't need to reproject; the parcels are already in the correct system (State Plane)
+            var geometry = LandUseBlocks.UnionAggregateByLandUseBlockIDs(dbContext,
+                onlandVisualTrashAssessmentAreaGeometryDto.SelectedLandUseBlockIDs ?? new List<int>(),
+                onlandVisualTrashAssessmentArea.StormwaterJurisdictionID);
+            // UnionAggregateByLandUseBlockIDs returns null for an empty / out-of-jurisdiction
+            // selection. Leave the existing geometry untouched rather than projecting null (NRE)
+            // or wiping the non-nullable area geometry — an empty save is a no-op.
+            if (geometry != null)
+            {
+                onlandVisualTrashAssessmentArea.OnlandVisualTrashAssessmentAreaGeometry = geometry;
+                onlandVisualTrashAssessmentArea.OnlandVisualTrashAssessmentAreaGeometry4326 = geometry.ProjectTo4326();
+            }
+        }
+        else if (onlandVisualTrashAssessmentAreaGeometryDto.OvtaAreaSourceTypeID == (int)OvtaAreaSourceTypeEnum.Parcel)
+        {
+            // parcels are already in the correct system (State Plane); no reprojection needed
             onlandVisualTrashAssessmentArea.OnlandVisualTrashAssessmentAreaGeometry = ParcelGeometries.UnionAggregateByParcelIDs(dbContext, onlandVisualTrashAssessmentAreaGeometryDto.ParcelIDs);
             onlandVisualTrashAssessmentArea.OnlandVisualTrashAssessmentAreaGeometry4326 = ParcelGeometries.UnionAggregate4326ByParcelIDs(dbContext, onlandVisualTrashAssessmentAreaGeometryDto.ParcelIDs);
         }
         else
         {
+            // manually drawn (Geoman) — comes from the browser, so transform to State Plane
             var newGeometry4326 = GeoJsonSerializer.Deserialize<IFeature>(onlandVisualTrashAssessmentAreaGeometryDto.GeometryAsGeoJson);
             newGeometry4326.Geometry.SRID = Proj4NetHelper.WEB_MERCATOR;
-
-            // since this is coming from the browser, we have to transform to State Plane
             onlandVisualTrashAssessmentArea.OnlandVisualTrashAssessmentAreaGeometry4326 = newGeometry4326.Geometry;
             onlandVisualTrashAssessmentArea.OnlandVisualTrashAssessmentAreaGeometry = newGeometry4326.Geometry.ProjectTo2771();
         }
