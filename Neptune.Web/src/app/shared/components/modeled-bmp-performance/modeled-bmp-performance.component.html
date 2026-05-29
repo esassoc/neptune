@@ -7,7 +7,7 @@
 <btn-group-radio-input [options]="tabs" (change)="setActiveTab($event)" [default]="activeTab" [showIcons]="true"></btn-group-radio-input>
 <div [hidden]="activeTab !== 'Wet'">
     <!-- Wet Weather Table -->
-    <table class="table table-responsive table-striped table-condensed modelResults">
+    <table class="table framed modelResults">
         <thead>
             <tr style="text-align: center">
                 <th class="left">Water Balance Components</th>
@@ -66,7 +66,7 @@
         </tbody>
     </table>
     <!-- Pollutant Table -->
-    <table class="table table-responsive table-striped table-condensed modelResults mt-4">
+    <table class="table framed modelResults mt-4">
         <thead>
             <tr style="text-align: center">
                 <th class="left">Pollutant</th>
@@ -163,7 +163,7 @@
     </table>
 </div>
 <div [hidden]="activeTab !== 'Dry'">
-    <table class="table table-responsive table-striped table-condensed modelResults">
+    <table class="table framed modelResults">
         <thead>
             <tr style="text-align: center">
                 <th class="left">Water Balance Components</th>
@@ -221,7 +221,7 @@
             </tr>
         </tbody>
     </table>
-    <table class="table table-responsive table-striped table-condensed modelResults mt-4">
+    <table class="table framed modelResults mt-4">
         <thead>
             <tr style="text-align: center">
                 <th class="left">Pollutant</th>
@@ -319,7 +319,7 @@
 </div>
 <div [hidden]="activeTab !== 'Total'">
     @if (activeID === ModeledPerformanceDisplayTypeEnum.Total) {
-    <table class="table table-responsive table-striped table-condensed modelResults">
+    <table class="table framed modelResults">
         <thead>
             <tr style="text-align: center">
                 <th class="left">Water Balance Components</th>
@@ -378,7 +378,7 @@
         </tbody>
     </table>
     }
-    <table class="table table-responsive table-striped table-condensed modelResults mt-4">
+    <table class="table framed modelResults mt-4">
         <thead>
             <tr style="text-align: center">
                 <th class="left">Pollutant</th>

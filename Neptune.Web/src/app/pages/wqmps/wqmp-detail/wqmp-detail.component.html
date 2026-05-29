@@ -348,7 +348,7 @@
                 </h4>
                 @if (sourceControlBMPs$ | async; as sourceControlBMPs) {
                     @if (sourceControlBMPs.length) {
-                        <table class="table table-condensed source-control-table">
+                        <table class="table framed source-control-table">
                             @for (group of sourceControlBMPsByCategory; track group.category) {
                                 <thead>
                                     <tr>

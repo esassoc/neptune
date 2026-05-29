@@ -17,7 +17,7 @@
 @if (service.treatmentBMPRows().length) {
     <div class="review-section">
         <h4>Structural BMPs ({{ service.treatmentBMPRows().length }})</h4>
-        <table class="table table-condensed">
+        <table class="table framed">
             <thead><tr><th>Name</th><th>Adequate?</th><th>Notes</th></tr></thead>
             <tbody>
                 @for (row of service.treatmentBMPRows(); track row.id) {
@@ -35,7 +35,7 @@
 @if (service.quickBMPRows().length) {
     <div class="review-section">
         <h4>Simplified BMPs ({{ service.quickBMPRows().length }})</h4>
-        <table class="table table-condensed">
+        <table class="table framed">
             <thead><tr><th>Name</th><th>Adequate?</th><th>Notes</th></tr></thead>
             <tbody>
                 @for (row of service.quickBMPRows(); track row.id) {

@@ -3,24 +3,8 @@
     td.left {
         text-align: left;
     }
-    th,
-    td {
-        vertical-align: middle;
-    }
-    th:not(.left) {
-        text-align: right;
-    }
+    th:not(.left),
     td:not(.left) {
         text-align: right;
-    }
-    thead tr {
-        background: #f8f9fa;
-        font-weight: 600;
-    }
-    tbody tr {
-        border-bottom: 1px solid #e9ecef;
-    }
-    .mt-4 {
-        margin-top: 1.5rem;
     }
 }
