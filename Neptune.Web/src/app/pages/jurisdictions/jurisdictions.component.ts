@@ -32,6 +32,12 @@ export class JurisdictionsComponent {
     public mapIsReady: boolean = false;
     public boundingBox$: Observable<BoundingBoxDto>;
     public selectedJurisdictionID: number;
+    // NPT-1061-2: track whether the latest selection came from the map vs the grid. When `true`
+    // hybrid-map-grid programmatically re-selects + scrolls the matching row, which is what we
+    // want for map clicks but destroys the row's link cell-renderer mid-click for grid clicks
+    // (causing plain clicks on the Name link to no-op while ctrl+click still works). Same shape
+    // as treatment-bmps.component.ts.
+    public selectionFromMap: boolean = false;
     public isLoading: boolean = true;
     public OverlayMode = OverlayMode;
 
@@ -67,6 +73,7 @@ export class JurisdictionsComponent {
         if (this.selectedJurisdictionID == selectedJurisdictionID) {
             return;
         }
+        this.selectionFromMap = fromMap;
         this.selectedJurisdictionID = selectedJurisdictionID;
         return this.selectedJurisdictionID;
     }

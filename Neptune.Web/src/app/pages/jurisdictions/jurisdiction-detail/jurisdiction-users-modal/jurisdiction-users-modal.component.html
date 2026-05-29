@@ -6,18 +6,35 @@
         @if (errorMessage(); as msg) {
             <div class="alert alert-danger">{{ msg }}</div>
         }
-        <p>Select the users assigned to this jurisdiction.</p>
-        @if (options$ | async; as options) {
+        <div class="picker-row mb-3">
+            <ng-select
+                [items]="availablePeople()"
+                bindValue="PersonID"
+                bindLabel="FullName"
+                [(ngModel)]="pickerPersonID"
+                [searchable]="true"
+                [clearable]="true"
+                appendTo="body"
+                placeholder="Search for a user...">
+            </ng-select>
+            <button type="button" class="btn btn-primary-outline btn-sm" (click)="addPerson()" [disabled]="pickerPersonID == null">
+                <i class="fa fa-plus"></i> Add
+            </button>
+        </div>
+
+        @if (assignedPeople().length) {
             <ul class="user-list">
-                @for (option of options; track option.PersonID) {
-                    <li>
-                        <label>
-                            <input type="checkbox" [checked]="option.selected" (change)="toggle(option)" />
-                            {{ option.Label }}
-                        </label>
+                @for (person of assignedPeople(); track person.PersonID) {
+                    <li style="display: flex; justify-content: space-between; align-items: center; gap: 1rem; margin-bottom: 0.25rem">
+                        <span><strong>{{ person.FullName }}</strong> ({{ person.OrganizationName }})</span>
+                        <button type="button" class="remove-btn" (click)="removePerson(person.PersonID)" title="Remove">
+                            <i class="fa fa-trash"></i>
+                        </button>
                     </li>
                 }
             </ul>
+        } @else {
+            <p class="system-text">No users assigned.</p>
         }
     </div>
     <div class="modal-footer">
