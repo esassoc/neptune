@@ -24,14 +24,14 @@
 
     <app-alert-display></app-alert-display>
 
-    <note noteType="info">
-        This Field Visit has been wrapped up and is shown in read-only view.
-        @if (canManage) {
-            Use <strong>Mark Provisional</strong> to return it to an editable state.
-        }
-    </note>
-
     <div class="grid-12">
+        <note noteType="info" class="g-col-12">
+            This Field Visit has been wrapped up and is shown in read-only view.
+            @if (canManage) {
+                Use <strong>Mark Provisional</strong> to return it to an editable state.
+            }
+        </note>
+
         <!--
             Left column: visit-level + maintenance record. Visit Info card is the index of the
             page (BMP, date, type, performer, status, scores) so it's first. Maintenance sits

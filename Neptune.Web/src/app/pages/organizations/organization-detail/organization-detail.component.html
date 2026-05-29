@@ -11,19 +11,19 @@
 
     <app-alert-display></app-alert-display>
 
-    @if (vm.organization.StormwaterJurisdictionID) {
-        <note noteType="info">
-            <strong>{{ vm.organization.OrganizationName }}</strong> is a Stormwater Jurisdiction.
-            <a [routerLink]="['/jurisdictions', vm.organization.StormwaterJurisdictionID]">View the Stormwater Jurisdiction page</a>
-            to see stormwater assets and assessments.
-        </note>
-    }
-
-    @if (!vm.organization.IsActive) {
-        <note noteType="warning">This organization is currently inactive.</note>
-    }
-
     <div class="grid-12">
+        @if (vm.organization.StormwaterJurisdictionID) {
+            <note noteType="info" class="g-col-12">
+                <strong>{{ vm.organization.OrganizationName }}</strong> is a Stormwater Jurisdiction.
+                <a [routerLink]="['/jurisdictions', vm.organization.StormwaterJurisdictionID]">View the Stormwater Jurisdiction page</a>
+                to see stormwater assets and assessments.
+            </note>
+        }
+
+        @if (!vm.organization.IsActive) {
+            <note noteType="warning" class="g-col-12">This organization is currently inactive.</note>
+        }
+
         <div class="g-col-6">
             <div class="card">
                 <div class="card-header">

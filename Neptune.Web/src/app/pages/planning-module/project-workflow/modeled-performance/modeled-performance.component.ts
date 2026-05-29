@@ -21,7 +21,6 @@ import { CustomRichTextComponent } from "src/app/shared/components/custom-rich-t
 import { PageHeaderComponent } from "src/app/shared/components/page-header/page-header.component";
 import { WorkflowBodyComponent } from "src/app/shared/components/workflow-body/workflow-body.component";
 import { AlertDisplayComponent } from "src/app/shared/components/alert-display/alert-display.component";
-import { NoteComponent } from "src/app/shared/components/note/note.component";
 import { DelineationsLayerComponent } from "src/app/shared/components/leaflet/layers/delineations-layer/delineations-layer.component";
 import { JurisdictionsLayerComponent } from "src/app/shared/components/leaflet/layers/jurisdictions-layer/jurisdictions-layer.component";
 import { RegionalSubbasinsLayerComponent } from "src/app/shared/components/leaflet/layers/regional-subbasins-layer/regional-subbasins-layer.component";
@@ -45,7 +44,6 @@ import { routeParams } from "src/app/app.routes";
         PageHeaderComponent,
         WorkflowBodyComponent,
         AlertDisplayComponent,
-        NoteComponent,
         NeptuneMapComponent,
         RegionalSubbasinsLayerComponent,
         DelineationsLayerComponent,

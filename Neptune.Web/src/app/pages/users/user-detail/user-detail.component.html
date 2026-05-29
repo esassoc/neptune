@@ -31,11 +31,11 @@
 
     <app-alert-display></app-alert-display>
 
-    @if (!detail.IsActive) {
-        <note noteType="warning">This user is currently inactive.</note>
-    }
-
     <div class="grid-12">
+        @if (!detail.IsActive) {
+            <note noteType="warning" class="g-col-12">This user is currently inactive.</note>
+        }
+
         <!-- Basics -->
         <div class="g-col-6">
             <div class="card">
