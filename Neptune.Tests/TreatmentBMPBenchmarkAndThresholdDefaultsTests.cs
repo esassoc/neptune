@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
@@ -23,6 +24,9 @@ namespace Neptune.Tests
             optionsBuilder.UseSqlServer(
                 "Data Source=localhost;Initial Catalog=NeptuneDB;Persist Security Info=True;Integrated Security=true;Encrypt=False;", x =>
                 {
+                    // Match the existing test DbContext pattern (TestTreatmentCSVParser, etc.) — keep
+                    // the suite from going flaky on slower dev DBs.
+                    x.CommandTimeout((int)TimeSpan.FromMinutes(3).TotalSeconds);
                     x.UseNetTopologySuite();
                 });
             return new NeptuneDbContext(optionsBuilder.Options);
@@ -62,6 +66,14 @@ namespace Neptune.Tests
             var expectedQualifying = joinRowsWithDefaults
                 .Where(j => observationTypes[j.TreatmentBMPAssessmentObservationTypeID].GetHasBenchmarkAndThreshold())
                 .ToList();
+            if (expectedQualifying.Count == 0)
+            {
+                // The candidate type's join rows all reference OTs that aren't benchmark/threshold-bearing,
+                // so the helper correctly returns zero seeds — but we wouldn't be exercising the positive
+                // seeding path. Mark inconclusive rather than passing trivially.
+                Assert.Inconclusive($"Candidate TreatmentBMPTypeID={candidateTypeID} has join rows with defaults but no benchmark/threshold-bearing observation types — positive seeding path not exercised.");
+                return;
+            }
 
             var seedTemplates = await TreatmentBMPBenchmarkAndThresholds.BuildSeedTemplatesAsync(_dbContext, candidateTypeID);
 

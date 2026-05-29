@@ -469,13 +469,18 @@ public class TreatmentBMPController(
         var treatmentBmpsAdded = treatmentBMPs.Where(x => x.TreatmentBMPID <= 0).ToList();
         var treatmentBmpsUpdated = treatmentBMPs.Where(x => x.TreatmentBMPID > 0).ToList();
 
-        // NPT-1069: seed default Benchmark & Threshold rows on each newly-added BMP. One DB
-        // round-trip builds the templates for this type; existing BMPs (matched on name + jurisdiction
-        // by the parser) are deliberately left untouched so we don't clobber user-edited values.
-        var seedTemplates = await TreatmentBMPBenchmarkAndThresholds.BuildSeedTemplatesAsync(DbContext, form.TreatmentBMPTypeID);
-        foreach (var newBmp in treatmentBmpsAdded)
+        // NPT-1069: seed default Benchmark & Threshold rows on each newly-added BMP. Templates
+        // are built once for the type and shared across all new BMPs in this upload; existing
+        // BMPs (matched on name + jurisdiction by the parser) are deliberately left untouched so
+        // we don't clobber user-edited values. Skip the seed-template query entirely on
+        // update-only uploads.
+        if (treatmentBmpsAdded.Count > 0)
         {
-            TreatmentBMPBenchmarkAndThresholds.AttachSeedsToBMP(newBmp, seedTemplates);
+            var seedTemplates = await TreatmentBMPBenchmarkAndThresholds.BuildSeedTemplatesAsync(DbContext, form.TreatmentBMPTypeID);
+            foreach (var newBmp in treatmentBmpsAdded)
+            {
+                TreatmentBMPBenchmarkAndThresholds.AttachSeedsToBMP(newBmp, seedTemplates);
+            }
         }
 
         await DbContext.TreatmentBMPs.AddRangeAsync(treatmentBmpsAdded);
