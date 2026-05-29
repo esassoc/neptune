@@ -102,6 +102,13 @@ public static class TreatmentBMPs
         }
 
         await dbContext.TreatmentBMPs.AddAsync(treatmentBMP);
+
+        // NPT-1069: seed default Benchmark & Threshold rows from the BMP type's observation-type
+        // configuration, mirroring the legacy MVC NewViewModel.UpdateModel behavior so BMPs created
+        // through the API land with the same defaults as MVC-created ones.
+        var seedTemplates = await TreatmentBMPBenchmarkAndThresholds.BuildSeedTemplatesAsync(dbContext, createDto.TreatmentBMPTypeID);
+        TreatmentBMPBenchmarkAndThresholds.AttachSeedsToBMP(treatmentBMP, seedTemplates);
+
         await dbContext.SaveChangesAsync();
         await dbContext.Entry(treatmentBMP).ReloadAsync();
 

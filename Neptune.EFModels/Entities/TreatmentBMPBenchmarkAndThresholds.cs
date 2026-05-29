@@ -154,4 +154,77 @@ public static class TreatmentBMPBenchmarkAndThresholds
         }
         return true;
     }
+
+    /// <summary>
+    /// One row's worth of default-value data, ready to be cloned onto a freshly-created
+    /// TreatmentBMP. Decoupled from the TreatmentBMP so the caller can build the templates once
+    /// per bulk upload (single DB round-trip) and stamp them onto every new BMP in the batch.
+    /// </summary>
+    public sealed record TreatmentBMPBenchmarkAndThresholdSeed(
+        int TreatmentBMPTypeID,
+        int TreatmentBMPTypeAssessmentObservationTypeID,
+        int TreatmentBMPAssessmentObservationTypeID,
+        double BenchmarkValue,
+        double ThresholdValue);
+
+    /// <summary>
+    /// Build the set of default benchmark/threshold rows the BMP type would seed on a brand-new
+    /// BMP. Ports <c>NewViewModel.UpdateModel</c> (Neptune.WebMvc/Views/TreatmentBMP/NewViewModel.cs:113-129).
+    /// Uses focused queries instead of an Include() graph: one query for the type's observation-type
+    /// join rows that have both defaults, then a single dictionary lookup of the referenced OT
+    /// entities (needed for the schema-driven <c>GetHasBenchmarkAndThreshold()</c> check). NPT-1069.
+    /// </summary>
+    public static async Task<List<TreatmentBMPBenchmarkAndThresholdSeed>> BuildSeedTemplatesAsync(NeptuneDbContext dbContext, int treatmentBMPTypeID)
+    {
+        var joinRows = await dbContext.TreatmentBMPTypeAssessmentObservationTypes
+            .AsNoTracking()
+            .Where(x => x.TreatmentBMPTypeID == treatmentBMPTypeID
+                     && x.DefaultBenchmarkValue.HasValue
+                     && x.DefaultThresholdValue.HasValue)
+            .ToListAsync();
+        if (joinRows.Count == 0)
+        {
+            return new List<TreatmentBMPBenchmarkAndThresholdSeed>();
+        }
+
+        var observationTypeIDs = joinRows
+            .Select(x => x.TreatmentBMPAssessmentObservationTypeID)
+            .Distinct()
+            .ToList();
+        var observationTypes = await dbContext.TreatmentBMPAssessmentObservationTypes
+            .AsNoTracking()
+            .Where(x => observationTypeIDs.Contains(x.TreatmentBMPAssessmentObservationTypeID))
+            .ToDictionaryAsync(x => x.TreatmentBMPAssessmentObservationTypeID);
+
+        return joinRows
+            .Where(j => observationTypes.TryGetValue(j.TreatmentBMPAssessmentObservationTypeID, out var ot) && ot.GetHasBenchmarkAndThreshold())
+            .Select(j => new TreatmentBMPBenchmarkAndThresholdSeed(
+                TreatmentBMPTypeID: treatmentBMPTypeID,
+                TreatmentBMPTypeAssessmentObservationTypeID: j.TreatmentBMPTypeAssessmentObservationTypeID,
+                TreatmentBMPAssessmentObservationTypeID: j.TreatmentBMPAssessmentObservationTypeID,
+                BenchmarkValue: j.DefaultBenchmarkValue!.Value,
+                ThresholdValue: j.DefaultThresholdValue!.Value))
+            .ToList();
+    }
+
+    /// <summary>
+    /// Attach one TreatmentBMPBenchmarkAndThreshold row per template to the BMP's navigation
+    /// collection. The BMP must be tracked (or about to be added); EF cascades the inserts via
+    /// the navigation when SaveChangesAsync runs on the parent context.
+    /// </summary>
+    public static void AttachSeedsToBMP(TreatmentBMP treatmentBMP, IEnumerable<TreatmentBMPBenchmarkAndThresholdSeed> templates)
+    {
+        foreach (var template in templates)
+        {
+            treatmentBMP.TreatmentBMPBenchmarkAndThresholds.Add(new TreatmentBMPBenchmarkAndThreshold
+            {
+                TreatmentBMP = treatmentBMP,
+                TreatmentBMPTypeID = template.TreatmentBMPTypeID,
+                TreatmentBMPTypeAssessmentObservationTypeID = template.TreatmentBMPTypeAssessmentObservationTypeID,
+                TreatmentBMPAssessmentObservationTypeID = template.TreatmentBMPAssessmentObservationTypeID,
+                BenchmarkValue = template.BenchmarkValue,
+                ThresholdValue = template.ThresholdValue,
+            });
+        }
+    }
 }
