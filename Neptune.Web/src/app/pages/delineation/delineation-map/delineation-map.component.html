@@ -2,7 +2,7 @@
 
 <ng-template #headerActions>
     <a class="btn btn-primary header-action" [routerLink]="['/delineation', 'gdb-upload']"><i class="fa fa-upload"></i> Bulk Upload Treatment BMP Delineations</a>
-    <a class="btn btn-primary header-action" [routerLink]="['/delineation', 'gdb-download']"><i class="fa fa-download"></i> Download GDB</a>
+    <a class="btn btn-primary-outline header-action" [routerLink]="['/delineation', 'gdb-download']"><i class="fa fa-download"></i> Download GDB</a>
 </ng-template>
 
 <section class="content-section">
@@ -55,9 +55,7 @@
                             @if (delineation && !choosingFlowType()) {
                                 <div class="inline-actions">
                                     <button type="button" class="btn btn-sm btn-primary" (click)="openFlowTypeChooser()">Edit</button>
-                                    <button type="button" class="btn btn-sm btn-danger icon-btn" [disabled]="saving$ | async" (click)="deleteDelineation()" title="Delete Delineation">
-                                        <i class="fa fa-trash"></i>
-                                    </button>
+                                    <button type="button" class="btn btn-sm btn-danger-outline" [disabled]="saving$ | async" (click)="deleteDelineation()">Delete</button>
                                     @if (delineation.DelineationTypeID === DelineationTypeEnum.Centralized) {
                                         <a class="btn btn-sm btn-primary" [routerLink]="requestRevisionUrl()">Request Revision</a>
                                     }

@@ -38,9 +38,7 @@
             <div class="quick-bmp-entry" [formGroup]="row">
                 <div class="quick-bmp-entry-body">
                     <div class="quick-bmp-delete-col">
-                        <a class="delete-icon" (click)="removeRow($index)" title="Remove row">
-                            <i class="fa fa-trash"></i>
-                        </a>
+                        <button type="button" class="btn-delete-row delete-icon" aria-label="Remove row" title="Remove row" (click)="removeRow($index)"></button>
                     </div>
                     <div class="quick-bmp-fields">
                         <div class="field-group field-name">

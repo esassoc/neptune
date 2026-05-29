@@ -58,7 +58,7 @@
                   } @else {
                     <button type="button" class="btn btn-sm btn-primary-outline" [disabled]="isAddingObservation" (click)="editObservationLocation(i)">Edit</button>
                   }
-                  <button type="button" class="btn btn-sm btn-primary-outline" [disabled]="isEditingLocation || isAddingObservation" (click)="deleteObservation(i)">Delete</button>
+                  <button type="button" class="btn-delete-row" [disabled]="isEditingLocation || isAddingObservation" (click)="deleteObservation(i)">Delete</button>
                 </div>
               </div>
               <div class="card-body grid-12">

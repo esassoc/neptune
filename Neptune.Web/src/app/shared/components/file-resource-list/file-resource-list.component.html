@@ -56,7 +56,7 @@
 
                         @if (allowEditing) {
                             <icon class="edit-file-icon-button mr-2" [icon]="'CirclePencil'" (click)="openFileDescriptionUpdateModal(fileResource)"></icon>
-                            <icon class="delete-file-icon-button" [icon]="'CircleX'" (click)="deleteFileResource(fileResource)"></icon>
+                            <button type="button" class="btn-delete-row delete-file-icon-button" aria-label="Delete file" title="Delete" (click)="deleteFileResource(fileResource)"></button>
                         }
                     </div>
                     @if (fileResource.IsImage && imagePreviewUrls[fileResource.FileResourceGUID]) {

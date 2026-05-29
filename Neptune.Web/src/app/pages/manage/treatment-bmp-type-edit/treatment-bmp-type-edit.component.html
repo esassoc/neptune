@@ -126,9 +126,7 @@
                                     </td>
 
                                     <td>
-                                        <button class="btn btn-sm btn-danger-outline" (click)="removeObservationType(row.TreatmentBMPAssessmentObservationTypeID)">
-                                            <i class="fa fa-trash"></i>
-                                        </button>
+                                        <button type="button" class="btn-delete-row" aria-label="Remove observation type" title="Remove" (click)="removeObservationType(row.TreatmentBMPAssessmentObservationTypeID)"></button>
                                     </td>
                                 </tr>
                             }
@@ -198,9 +196,7 @@
                                     <td class="cell-center">{{ row.IsRequired ? "Yes" : "No" }}</td>
                                     <td>{{ row.Description || "—" }}</td>
                                     <td>
-                                        <button class="btn btn-sm btn-danger-outline" (click)="removeCustomAttribute(row.CustomAttributeTypeID)">
-                                            <i class="fa fa-trash"></i>
-                                        </button>
+                                        <button type="button" class="btn-delete-row" aria-label="Remove custom attribute" title="Remove" (click)="removeCustomAttribute(row.CustomAttributeTypeID)"></button>
                                     </td>
                                 </tr>
                             }
