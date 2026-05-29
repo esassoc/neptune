@@ -44,7 +44,7 @@
                     <span class="card-title">Visit Information</span>
                 </div>
                 <div class="card-body">
-                    <dl class="grid-12">
+                    <dl class="grid-12 key-value-list">
                         <dt class="g-col-5">Treatment BMP</dt>
                         <dd class="g-col-7">
                             <a [routerLink]="['/treatment-bmps', data.workflow.TreatmentBMPID]">{{ data.workflow.TreatmentBMPName }}</a>
@@ -80,7 +80,7 @@
                         <span class="card-title">Maintenance Record</span>
                     </div>
                     <div class="card-body">
-                        <dl class="grid-12">
+                        <dl class="grid-12 key-value-list">
                             <dt class="g-col-5">Maintenance Type</dt>
                             <dd class="g-col-7">{{ data.maintenance.MaintenanceRecordTypeDisplayName || "—" }}</dd>
                             <dt class="g-col-5">Description</dt>

@@ -5,43 +5,43 @@
       <div [hidden]="activeTab !== 'OCTA M2 Tier 2 Grant Program'" class="grid-12">
         <div class="g-col-6">
           <h3>Score Summary</h3>
-          <dl class="grid-12 mt-3">
-            <dt class="g-col-5">
+          <dl class="grid-12 mt-3 key-value-list">
+            <dt class="g-col-7">
               <field-definition fieldDefinitionType="OCTAWatershed" labelOverride="Watershed(s)"></field-definition>
             </dt>
-            <dd class="g-col-7">
+            <dd class="g-col-5">
               @if (project.OCTAWatersheds) {
                 <span>{{ project.OCTAWatersheds }}</span>
               }
             </dd>
-            <dt class="g-col-5">
+            <dt class="g-col-7">
               <field-definition fieldDefinitionType="SEAScore" labelOverride="SEA Score"></field-definition>
             </dt>
-            <dd class="g-col-7">
+            <dd class="g-col-5">
               @if (project.SEA) {
                 <span>{{ project.SEA | number : "1.0-0" }}</span>
               }
             </dd>
-            <dt class="g-col-5">
+            <dt class="g-col-7">
               <field-definition fieldDefinitionType="TPIScore" labelOverride="TPI Score"></field-definition>
             </dt>
-            <dd class="g-col-7">
+            <dd class="g-col-5">
               @if (project.TPI) {
                 <span>{{ project.TPI | number : "1.0-0" }}</span>
               }
             </dd>
-            <dt class="g-col-5">
+            <dt class="g-col-7">
               <field-definition fieldDefinitionType="WQLRI" labelOverride="Dry Weather WQLRI"></field-definition>
             </dt>
-            <dd class="g-col-7">
+            <dd class="g-col-5">
               @if (project.DryWeatherWQLRI) {
                 <span>{{ project.DryWeatherWQLRI | number : "1.0-0" }}</span>
               }
             </dd>
-            <dt class="g-col-5">
+            <dt class="g-col-7">
               <field-definition fieldDefinitionType="WQLRI" labelOverride="Wet Weather WQLRI"></field-definition>
             </dt>
-            <dd class="g-col-7">
+            <dd class="g-col-5">
               @if (project.WetWeatherWQLRI) {
                 <span>{{ project.WetWeatherWQLRI | number : "1.0-0" }}</span>
               }
@@ -52,7 +52,7 @@
           <h3>
             <field-definition fieldDefinitionType="PollutantContributiontoSEA" labelOverride="Pollutant Contribution to SEA"></field-definition>
           </h3>
-          <dl class="grid-12 mt-3">
+          <dl class="grid-12 mt-3 key-value-list">
             <dt class="g-col-5">TSS</dt>
             <dd class="g-col-7">
               @if (project.PollutantTSS) {

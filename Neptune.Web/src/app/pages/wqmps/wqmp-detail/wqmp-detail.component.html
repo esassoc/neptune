@@ -50,7 +50,7 @@
                     }
                 </div>
                 <div class="card-body">
-                    <dl class="grid-12">
+                    <dl class="grid-12 key-value-list">
                         <dt class="g-col-5"><field-definition fieldDefinitionType="WaterQualityManagementPlan" fieldDefinitionLabelOverride="Name"></field-definition></dt>
                         <dd class="g-col-7">{{ wqmp.WaterQualityManagementPlanName }}</dd>
 
@@ -206,7 +206,7 @@
                                 [layerControl]="layerControl"></wqmps-layer>
                         }
                     </neptune-map>
-                    <dl class="grid-12 mt-3">
+                    <dl class="grid-12 mt-3 key-value-list">
                         <dt class="g-col-5">Calculated Acreage of Assigned Boundary</dt>
                         <dd class="g-col-7">{{ wqmp.CalculatedWQMPAcreage ?? "" }}</dd>
 

@@ -36,3 +36,18 @@ dl.kv {
         margin: 0;
     }
 }
+
+dl.key-value-list {
+    &.grid-12 {
+        row-gap: $spacing-300;
+    }
+
+    dt {
+        padding-bottom: 0;
+        text-align: left;
+
+        @include desktop-small {
+            text-align: right;
+        }
+    }
+}

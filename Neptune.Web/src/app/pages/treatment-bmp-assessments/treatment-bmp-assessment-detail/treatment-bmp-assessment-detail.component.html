@@ -34,7 +34,7 @@
                     <span class="card-title">Assessment Overview</span>
                 </div>
                 <div class="card-body">
-                    <dl class="grid-12">
+                    <dl class="grid-12 key-value-list">
                         <dt class="g-col-5">Conducted By</dt>
                         <dd class="g-col-7">{{ vm.workflow.PerformedByPersonName || "—" }}</dd>
                         <dt class="g-col-5">Assessment Date</dt>
@@ -68,7 +68,7 @@
                 </div>
                 <div class="card-body">
                     @if (vm.scoreDetail.IsBenchmarkAndThresholdsComplete) {
-                        <dl class="grid-12 score-summary">
+                        <dl class="grid-12 score-summary key-value-list">
                             <dt class="g-col-3">Assessment Score</dt>
                             <dd class="g-col-9">
                                 @if (vm.assessment.IsAssessmentComplete) {

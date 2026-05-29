@@ -25,7 +25,7 @@
         <div class="card g-col-12">
             <div class="card-header"><span class="card-title">Basics</span></div>
             <div class="card-body">
-                <dl class="grid-12">
+                <dl class="grid-12 key-value-list">
                     <dt class="g-col-3">Name</dt>
                     <dd class="g-col-9">{{ vm.detail.TreatmentBMPAssessmentObservationTypeName }}</dd>
 
@@ -46,7 +46,7 @@
             <div class="card g-col-12">
                 <div class="card-header"><span class="card-title">Instructions</span></div>
                 <div class="card-body">
-                    <dl class="grid-12">
+                    <dl class="grid-12 key-value-list">
                         @if (vm.passFailSchema) {
                             <dt class="g-col-3">Assessment Instructions</dt>
                             <dd class="g-col-9">{{ vm.passFailSchema.AssessmentDescription || "—" }}</dd>
@@ -75,7 +75,7 @@
             <div class="card g-col-12">
                 <div class="card-header"><span class="card-title">Labels and Units</span></div>
                 <div class="card-body">
-                    <dl class="grid-12">
+                    <dl class="grid-12 key-value-list">
                         <dt class="g-col-3">Properties to Observe</dt>
                         <dd class="g-col-9">{{ vm.propertiesToObserve.length ? vm.propertiesToObserve.join(", ") : "—" }}</dd>
 
