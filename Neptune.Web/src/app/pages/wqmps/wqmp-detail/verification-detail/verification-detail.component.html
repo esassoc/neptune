@@ -7,7 +7,7 @@
         </ng-template>
         <ng-template #templateRight>
             @if (currentPersonCanEdit && data.verification.IsDraft) {
-                <a class="btn btn-primary" [routerLink]="['/water-quality-management-plans', waterQualityManagementPlanID, 'verifications', data.verification.WaterQualityManagementPlanVerifyID]">
+                <a class="btn btn-orange" [routerLink]="['/water-quality-management-plans', waterQualityManagementPlanID, 'verifications', data.verification.WaterQualityManagementPlanVerifyID]">
                     Edit
                 </a>
             }
@@ -23,7 +23,7 @@
                 <span class="card-title">Verification Basics</span>
             </div>
             <div class="card-body">
-                <dl class="grid-12">
+                <dl class="grid-12 key-value-list">
                     <dt class="g-col-4">Verification Date</dt>
                     <dd class="g-col-8">{{ data.verification.VerificationDate | date: "MM/dd/yyyy" }}</dd>
 
@@ -48,13 +48,13 @@
             </div>
         </div>
 
-        <div class="card g-col-12 mt-3">
+        <div class="card g-col-12">
             <div class="card-header">
                 <span class="card-title">Structural BMPs ({{ data.verification.TreatmentBMPs?.length ?? 0 }})</span>
             </div>
             <div class="card-body">
                 @if (data.verification.TreatmentBMPs?.length) {
-                    <table class="table table-condensed">
+                    <table class="table">
                         <thead>
                             <tr>
                                 <th>BMP Name</th>
@@ -80,13 +80,13 @@
             </div>
         </div>
 
-        <div class="card g-col-12 mt-3">
+        <div class="card g-col-12">
             <div class="card-header">
                 <span class="card-title">Simplified BMPs ({{ data.verification.QuickBMPs?.length ?? 0 }})</span>
             </div>
             <div class="card-body">
                 @if (data.verification.QuickBMPs?.length) {
-                    <table class="table table-condensed">
+                    <table class="table">
                         <thead>
                             <tr>
                                 <th>BMP Name</th>
@@ -112,7 +112,7 @@
             </div>
         </div>
 
-        <div class="card g-col-12 mt-3">
+        <div class="card g-col-12">
             <div class="card-header">
                 <span class="card-title">Source Control BMPs</span>
             </div>
@@ -121,7 +121,7 @@
                     @for (group of groupSourceControlsByCategory(data.verification.SourceControlBMPs); track group.category) {
                         <div class="source-control-group">
                             <h4>{{ group.category }}</h4>
-                            <dl class="grid-12">
+                            <dl class="grid-12 key-value-list">
                                 @for (item of group.items; track item.WaterQualityManagementPlanVerifySourceControlBMPID) {
                                     <dt class="g-col-5">{{ item.SourceControlBMPAttributeName }}</dt>
                                     <dd class="g-col-7">{{ item.WaterQualityManagementPlanSourceControlCondition || "—" }}</dd>
@@ -136,7 +136,7 @@
         </div>
 
         <!-- NPT-995 Round 5: Supporting Documentation card mirrors the legacy MVC detail panel. -->
-        <div class="card g-col-12 mt-3">
+        <div class="card g-col-12">
             <div class="card-header">
                 <span class="card-title">Supporting Documentation</span>
             </div>

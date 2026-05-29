@@ -6,6 +6,7 @@ import { BehaviorSubject, catchError, forkJoin, map, Observable, of, shareReplay
 import { AuthenticationService } from "src/app/services/authentication.service";
 import { AlertDisplayComponent } from "src/app/shared/components/alert-display/alert-display.component";
 import { IconComponent } from "src/app/shared/components/icon/icon.component";
+import { NoteComponent } from "src/app/shared/components/note/note.component";
 import { PageHeaderComponent } from "src/app/shared/components/page-header/page-header.component";
 import { fileResourceUrl } from "src/app/shared/helpers/file-resource-url";
 import { OrganizationService } from "src/app/shared/generated/api/organization.service";
@@ -37,7 +38,7 @@ interface OrganizationDetailViewModel {
 @Component({
     selector: "organization-detail",
     standalone: true,
-    imports: [AsyncPipe, RouterLink, PageHeaderComponent, AlertDisplayComponent, IconComponent],
+    imports: [AsyncPipe, RouterLink, PageHeaderComponent, AlertDisplayComponent, IconComponent, NoteComponent],
     templateUrl: "./organization-detail.component.html",
     styleUrl: "./organization-detail.component.scss",
 })

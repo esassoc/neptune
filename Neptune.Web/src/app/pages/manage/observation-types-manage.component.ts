@@ -22,7 +22,7 @@ import { NeptunePageTypeEnum } from "src/app/shared/generated/enum/neptune-page-
     template: `
         <page-header pageTitle="Observation Types" [templateRight]="addButton" [customRichTextTypeID]="NeptunePageTypeEnum.ManageObservationTypesList"></page-header>
         <ng-template #addButton>
-            <a class="btn btn-primary" [routerLink]="['/manage/observation-types/new']">
+            <a class="btn btn-orange" [routerLink]="['/manage/observation-types/new']">
                 <i class="fa fa-plus"></i> Add Observation Type
             </a>
         </ng-template>

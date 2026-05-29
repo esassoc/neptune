@@ -76,9 +76,7 @@
                                             <button type="button" class="btn btn-sm btn-secondary-outline" (click)="startEditOption($index)" [attr.aria-label]="'Edit option ' + option" title="Edit">
                                                 <i class="fa fa-pencil"></i>
                                             </button>
-                                            <button type="button" class="btn btn-sm btn-danger-outline" (click)="removeOption($index)" [attr.aria-label]="'Delete option ' + option" title="Delete">
-                                                <i class="fa fa-trash"></i>
-                                            </button>
+                                            <button type="button" class="btn-delete-row" (click)="removeOption($index)" [attr.aria-label]="'Delete option ' + option" title="Delete"></button>
                                         }
                                     </div>
                                 }

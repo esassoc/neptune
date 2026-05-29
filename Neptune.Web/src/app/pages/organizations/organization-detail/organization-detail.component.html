@@ -11,30 +11,27 @@
 
     <app-alert-display></app-alert-display>
 
-    @if (vm.organization.StormwaterJurisdictionID) {
-        <!-- Wrap the message in a single <span> because the global .alert rule is
-             display:flex with justify-content:space-between — multiple inline children
-             would otherwise spread out across the full width of the alert. -->
-        <div class="alert alert-info">
-            <span>
+    <div class="grid-12">
+        @if (vm.organization.StormwaterJurisdictionID) {
+            <note noteType="info" class="g-col-12">
                 <strong>{{ vm.organization.OrganizationName }}</strong> is a Stormwater Jurisdiction.
                 <a [routerLink]="['/jurisdictions', vm.organization.StormwaterJurisdictionID]">View the Stormwater Jurisdiction page</a>
                 to see stormwater assets and assessments.
-            </span>
-        </div>
-    }
+            </note>
+        }
 
-    @if (!vm.organization.IsActive) {
-        <div class="alert alert-warning">This organization is currently inactive.</div>
-    }
+        @if (!vm.organization.IsActive) {
+            <note noteType="warning" class="g-col-12">This organization is currently inactive.</note>
+        }
 
-    <div class="grid-12">
         <div class="g-col-6">
             <div class="card">
                 <div class="card-header">
                     <span class="card-title">Basics</span>
                     @if (isAdmin) {
-                        <a (click)="openEditModal(vm.organization)" style="cursor: pointer" title="Edit Organization"><icon class="icon-button" icon="CirclePencil"></icon></a>
+                        <button type="button" class="btn btn-primary btn-sm" (click)="openEditModal(vm.organization)">
+                            Edit
+                        </button>
                     }
                 </div>
                 <div class="card-body">
@@ -45,7 +42,7 @@
                                     style="max-width: 100px; max-height: 200px; display: block; margin: 0 auto" />
                             </div>
                         }
-                        <dl class="grid-12" [class.g-col-10]="vm.organization.LogoFileResource" [class.g-col-12]="!vm.organization.LogoFileResource">
+                        <dl class="grid-12 key-value-list" [class.g-col-10]="vm.organization.LogoFileResource" [class.g-col-12]="!vm.organization.LogoFileResource">
                             <dt class="g-col-4">Name</dt>
                             <dd class="g-col-8">{{ vm.organization.OrganizationName || "—" }}</dd>
 
@@ -112,7 +109,7 @@
         </div>
 
         <div class="g-col-12">
-            <div class="card mt-3">
+            <div class="card">
                 <div class="card-header"><span class="card-title">Users</span></div>
                 <div class="card-body">
                     @if (vm.users.length > 0) {

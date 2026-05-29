@@ -59,6 +59,7 @@ import { SumPipe } from "src/app/shared/pipes/sum.pipe";
 import { OverlayMode } from "src/app/shared/components/leaflet/layers/generic-wms-wfs-layer/overlay-mode.enum";
 import { HruCharacteristicsGridComponent } from "src/app/shared/components/hru-characteristics-grid/hru-characteristics-grid.component";
 import { IconComponent } from "src/app/shared/components/icon/icon.component";
+import { NoteComponent } from "src/app/shared/components/note/note.component";
 import { TrashCaptureStatusTypeEnum } from "src/app/shared/generated/enum/trash-capture-status-type-enum";
 import {
     TreatmentBmpUpdateTypeModalComponent,
@@ -112,6 +113,7 @@ import {
         CustomAttributesDisplayComponent,
         HruCharacteristicsGridComponent,
         IconComponent,
+        NoteComponent,
         FileResourceListComponent,
     ],
 })

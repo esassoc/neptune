@@ -1,5 +1,5 @@
 <h3>Basics</h3>
-<dl class="grid-12 mb-0">
+<dl class="grid-12 mb-0 key-value-list">
     <dt class="g-col-6">Catch IDN</dt>
     <dd class="g-col-6">
         {{ feature.properties.CatchIDN }}
@@ -10,7 +10,7 @@
     </dd>
 </dl>
 <h3>Prioritization Metrics</h3>
-<dl class="grid-12 mb-0">
+<dl class="grid-12 mb-0 key-value-list">
     <dt class="g-col-8">Transportation Nexus</dt>
     <dd class="g-col-4">
         {{ feature.properties.TransportationNexusScore | number : "0.0-2" }}
@@ -29,7 +29,7 @@
     </dd>
 </dl>
 <h3>Pollutant Contribution Percentages</h3>
-<dl class="grid-12 mb-0">
+<dl class="grid-12 mb-0 key-value-list">
     <dt class="g-col-6">Bacteria</dt>
     <dd class="g-col-6">{{ feature.properties.PC_BAC_PCT }}%</dd>
     <dt class="g-col-6">Metals</dt>

@@ -10,9 +10,7 @@
                     </div>
                     @if (!readOnly) {
                     <div class="g-col-2">
-                        <span class="ml-3" style="cursor: pointer" (click)="emitDeleteAttachmentTriggered(attachment.ProjectDocumentID)">
-                            <i class="fa fa-trash"></i>
-                        </span>
+                        <button type="button" class="btn-delete-row ml-3" aria-label="Delete attachment" title="Delete" (click)="emitDeleteAttachmentTriggered(attachment.ProjectDocumentID)"></button>
                         <span class="ml-3" style="cursor: pointer" (click)="emitEditAttachmentTriggered(attachment)">
                             <i class="fa fa-edit"></i>
                         </span>

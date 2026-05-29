@@ -10,21 +10,23 @@
 
     <app-alert-display></app-alert-display>
 
-    @if (!vm.fundingSource.IsActive) {
-        <div class="alert alert-warning">This funding source is currently inactive.</div>
-    }
-
     <div class="grid-12">
+        @if (!vm.fundingSource.IsActive) {
+            <note noteType="warning" class="g-col-12">This funding source is currently inactive.</note>
+        }
+
         <div class="g-col-6">
             <div class="card">
                 <div class="card-header">
                     <span class="card-title">Basics</span>
                     @if (isAdmin) {
-                        <a (click)="openEditModal(vm.fundingSource)" style="cursor: pointer" title="Edit Funding Source"><icon class="icon-button" icon="CirclePencil"></icon></a>
+                        <button type="button" class="btn btn-primary btn-sm" (click)="openEditModal(vm.fundingSource)">
+                            Edit
+                        </button>
                     }
                 </div>
                 <div class="card-body">
-                    <dl class="grid-12">
+                    <dl class="grid-12 key-value-list">
                         <dt class="g-col-4">Name</dt>
                         <dd class="g-col-8">{{ vm.fundingSource.FundingSourceName || "—" }}</dd>
 

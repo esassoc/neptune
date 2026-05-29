@@ -10,9 +10,7 @@
                 </a>
             </p>
             @if (!readonly) {
-                <button class="btn btn-danger-outline btn-sm" (click)="remove()" [disabled]="isBusy()">
-                    <i class="fa fa-trash"></i> Remove
-                </button>
+                <button type="button" class="btn-delete-row" (click)="remove()" [disabled]="isBusy()">Remove</button>
             }
         </div>
     </div>

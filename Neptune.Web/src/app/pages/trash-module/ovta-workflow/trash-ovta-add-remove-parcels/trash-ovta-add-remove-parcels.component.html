@@ -1,6 +1,6 @@
 <page-header pageTitle="Select Assessment Area" [templateRight]="templateRight"></page-header>
 <ng-template #templateRight>
-  <button class="btn btn-primary" (click)="refreshTrigger$.next()">Refresh Assessment Area Based on Observations</button>
+  <button class="btn btn-orange" (click)="refreshTrigger$.next()">Refresh Assessment Area Based on Observations</button>
 </ng-template>
 @if (selectAreaContext$ | async; as selectAreaContext) {
   <workflow-body>

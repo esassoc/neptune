@@ -49,7 +49,7 @@
                             fieldLabel="Amount"
                             placeholder="Amount"
                             [type]="FormFieldType.Number"></form-field>
-                        <i class="fa fa-trash fa-lg funding-source-delete" style="color: #7c7c7c; cursor: pointer" title="Remove" (click)="removeFundingSource($index)"></i>
+                        <button type="button" class="btn-delete-row funding-source-delete" aria-label="Remove funding source" title="Remove" (click)="removeFundingSource($index)"></button>
                     </div>
                 }
                 <button type="button" class="btn btn-primary-outline btn-sm" (click)="addFundingSource()">+ Add Funding Source</button>

@@ -6,13 +6,9 @@
             </div>
         </ng-template>
         <ng-template #templateRight>
-            <button class="btn btn-primary-outline" (click)="openEdit(attribute)">
-                <i class="fa fa-pencil"></i> Edit
-            </button>
+            <button type="button" class="btn btn-primary" (click)="openEdit(attribute)">Edit</button>
             @if (attribute.CustomAttributeTypePurposeID !== CustomAttributeTypePurposeEnum.Modeling) {
-                <button class="btn btn-danger-outline ml-2" (click)="confirmDelete(attribute)">
-                    <i class="fa fa-trash"></i> Delete
-                </button>
+                <button type="button" class="btn btn-danger-outline ml-2" (click)="confirmDelete(attribute)">Delete</button>
             }
         </ng-template>
     </page-header>
@@ -25,7 +21,7 @@
                 <span class="card-title">Attribute Details</span>
             </div>
             <div class="card-body">
-                <dl class="grid-12">
+                <dl class="grid-12 key-value-list">
                     <dt class="g-col-4">Name</dt>
                     <dd class="g-col-8">{{ attribute.CustomAttributeTypeName }}</dd>
 
@@ -52,7 +48,7 @@
 
         @if (isOptionsType(attribute.CustomAttributeDataTypeID)) {
             @let options = parseOptions(attribute.CustomAttributeTypeOptionsSchema);
-            <div class="card g-col-12 mt-3">
+            <div class="card g-col-12">
                 <div class="card-header">
                     <span class="card-title">Options</span>
                 </div>
@@ -70,13 +66,13 @@
             </div>
         }
 
-        <div class="card g-col-12 mt-3">
+        <div class="card g-col-12">
             <div class="card-header">
                 <span class="card-title">Treatment BMP Types Using this Attribute</span>
             </div>
             <div class="card-body">
                 @if (attribute.TreatmentBMPTypeUsages?.length) {
-                    <table class="table table-sm">
+                    <table class="table">
                         <thead>
                             <tr>
                                 <th>Treatment BMP Type</th>

@@ -14,12 +14,12 @@
         <ng-template #headerActions>
             @if (vm.canEdit) {
                 <a [routerLink]="editAssessmentRoute(vm)" class="btn btn-primary mr-2">
-                    <i class="fa fa-pencil mr-1"></i> Edit Assessment
+                    Edit Assessment
                 </a>
             }
             @if (canEditOrDelete) {
-                <button type="button" class="btn btn-danger" (click)="delete(vm)">
-                    <i class="fa fa-trash mr-1"></i> Delete
+                <button type="button" class="btn btn-danger-outline" (click)="delete(vm)">
+                    Delete
                 </button>
             }
         </ng-template>
@@ -34,7 +34,7 @@
                     <span class="card-title">Assessment Overview</span>
                 </div>
                 <div class="card-body">
-                    <dl class="grid-12">
+                    <dl class="grid-12 key-value-list">
                         <dt class="g-col-5">Conducted By</dt>
                         <dd class="g-col-7">{{ vm.workflow.PerformedByPersonName || "—" }}</dd>
                         <dt class="g-col-5">Assessment Date</dt>
@@ -68,7 +68,7 @@
                 </div>
                 <div class="card-body">
                     @if (vm.scoreDetail.IsBenchmarkAndThresholdsComplete) {
-                        <dl class="grid-12 score-summary">
+                        <dl class="grid-12 score-summary key-value-list">
                             <dt class="g-col-3">Assessment Score</dt>
                             <dd class="g-col-9">
                                 @if (vm.assessment.IsAssessmentComplete) {
@@ -137,7 +137,7 @@
                         <p>Unable to calculate Assessment Score: Benchmark &amp; Threshold are not yet set.</p>
                         @if (canManage) {
                             <a [routerLink]="['/treatment-bmps', vm.assessment.TreatmentBMPID]" class="btn btn-primary">
-                                <i class="fa fa-pencil mr-1"></i> Edit Benchmark &amp; Threshold
+                                Edit Benchmark &amp; Threshold
                             </a>
                         }
                     }

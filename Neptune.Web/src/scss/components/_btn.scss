@@ -114,24 +114,24 @@
 
     &-primary {
         color: $white;
-        border: 1px solid color.adjust($neptune-orange, $lightness: -4%);
-        text-shadow: 0px 1px 2px rgba($neptune-orange, 0.8);
-        background: linear-gradient(0deg, color.adjust($neptune-orange, $lightness: 2%) 0%, color.adjust($neptune-orange, $lightness: 0%) 100%);
+        border: 1px solid color.adjust($primary, $lightness: -4%);
+        text-shadow: 0px 1px 2px rgba($primary, 0.8);
+        background: linear-gradient(0deg, color.adjust($primary, $lightness: 2%) 0%, color.adjust($primary, $lightness: 0%) 100%);
 
         &:hover {
             color: $white;
-            background: linear-gradient(0deg, color.adjust($neptune-orange, $lightness: 0%) 0%, color.adjust($neptune-orange, $lightness: -2%) 100%);
+            background: linear-gradient(0deg, color.adjust($primary, $lightness: 0%) 0%, color.adjust($primary, $lightness: -2%) 100%);
         }
 
         &-outline {
             background: $white;
-            color: $neptune-orange;
-            border: 1px solid $neptune-orange;
+            color: $primary;
+            border: 1px solid $primary;
 
             &:hover {
-                background: $neptune-orange;
+                background: $primary;
                 color: $white;
-                border: 1px solid $neptune-orange;
+                border: 1px solid $primary;
                 svg path {
                     fill: $white;
                 }
@@ -169,24 +169,24 @@
 
     &-orange {
         color: $white;
-        border: 1px solid color.adjust($orange-default, $lightness: -4%);
-        text-shadow: 0px 1px 2px rgba($orange-default, 0.8);
-        background: linear-gradient(0deg, color.adjust($orange-default, $lightness: 2%) 0%, color.adjust($orange-default, $lightness: 0%) 100%);
+        border: 1px solid color.adjust($neptune-orange, $lightness: -4%);
+        text-shadow: 0px 1px 2px rgba($neptune-orange, 0.8);
+        background: linear-gradient(0deg, color.adjust($neptune-orange, $lightness: 2%) 0%, color.adjust($neptune-orange, $lightness: 0%) 100%);
 
         &:hover {
             color: $white;
-            background: linear-gradient(0deg, color.adjust($orange-default, $lightness: 0%) 0%, color.adjust($orange-default, $lightness: -2%) 100%);
+            background: linear-gradient(0deg, color.adjust($neptune-orange, $lightness: 0%) 0%, color.adjust($neptune-orange, $lightness: -2%) 100%);
         }
 
         &-outline {
             background: $white;
-            color: $orange-default;
-            border: 1px solid $orange-default;
+            color: $neptune-orange;
+            border: 1px solid $neptune-orange;
 
             &:hover {
-                background: $orange-default;
+                background: $neptune-orange;
                 color: $white;
-                border: 1px solid $orange-default;
+                border: 1px solid $neptune-orange;
                 svg path {
                     fill: $white;
                 }
@@ -270,6 +270,24 @@
         }
     }
 
+    &-xs {
+        font-size: 0.75rem;
+        padding: 0.35rem 0.55rem 0.25rem;
+        line-height: 1;
+        display: inline-flex;
+        align-items: center;
+        gap: 0.25rem;
+
+        icon {
+            display: inline-flex;
+
+            svg {
+                width: 12px;
+                height: 12px;
+            }
+        }
+    }
+
     &-rounded {
         border-radius: 100px;
     }
@@ -307,5 +325,77 @@ button.btn:not(.btn-sm):not(.btn-text) {
     &.align-right {
         display: flex;
         justify-content: flex-end;
+    }
+}
+
+// Inline row-delete button. Use for buttons that delete a single row/item
+// from a table, FormArray, or list. Renders as a small danger-outline button
+// with a trash icon injected via ::before — callsite needs no <i> child.
+//
+// Usage:
+//   <button class="btn-delete-row" type="button" aria-label="Delete" (click)="remove()"></button>
+//
+// For an icon-plus-label variant, add text content:
+//   <button class="btn-delete-row" type="button" (click)="remove()">Delete</button>
+.btn-delete-row {
+    @extend .btn;
+    @extend .btn-sm;
+    @extend .btn-danger-outline;
+
+    // Quiet default state: no visible border, neutral gray icon. Hover still
+    // brings in the red border + red fill + white icon from .btn-danger-outline.
+    border-color: $gray-400;
+    color: $gray-400;
+
+    &:hover {
+        border-color: $red-dark;
+    }
+
+    &::before {
+        font-family: FontAwesome;
+        content: "\f1f8"; // fa-trash
+        font-size: 1rem;
+        font-weight: normal;
+        font-style: normal;
+    }
+
+    &:not(:empty)::before {
+        margin-right: 0.375rem;
+    }
+
+    // Icon-only variant: square (width follows height), with a sensible minimum
+    // so the button has breathing room in narrow contexts like table cells.
+    &:empty {
+        min-width: 2.25rem;
+        aspect-ratio: 1;
+        padding-left: 0;
+        padding-right: 0;
+    }
+}
+
+// Inline edit button. Use for an icon-only circular edit affordance that
+// sits inline inside a value (e.g. a <dd>) next to text it edits. Renders
+// as a small filled-teal circle with a pencil icon injected via ::before —
+// callsite needs no <i> child.
+//
+// Usage:
+//   <a class="btn-edit-inline" [routerLink]="..." title="Edit X" aria-label="Edit X"></a>
+.btn-edit-inline {
+    @extend .btn;
+    @extend .btn-sm;
+    @extend .btn-primary;
+
+    width: 1.5rem;
+    height: 1.5rem;
+    padding: 0;
+    border-radius: 50%;
+
+    &::before {
+        font-family: FontAwesome;
+        content: "\f040"; // fa-pencil
+        font-size: 0.875rem;
+        font-weight: normal;
+        font-style: normal;
+        margin-left: 1px; // visually center the pencil glyph
     }
 }

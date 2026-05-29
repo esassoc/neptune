@@ -50,7 +50,7 @@
                 </div>
 
                 @if (observationTypeRows().length) {
-                    <table class="table table-condensed table-bordered">
+                    <table class="table framed">
                         <thead>
                             <tr>
                                 <th>
@@ -127,9 +127,7 @@
                                     </td>
 
                                     <td>
-                                        <button class="btn btn-sm btn-danger-outline" (click)="removeObservationType(row.TreatmentBMPAssessmentObservationTypeID)">
-                                            <i class="fa fa-trash"></i>
-                                        </button>
+                                        <button type="button" class="btn-delete-row" aria-label="Remove observation type" title="Remove" (click)="removeObservationType(row.TreatmentBMPAssessmentObservationTypeID)"></button>
                                     </td>
                                 </tr>
                             }
@@ -171,7 +169,7 @@
                 </div>
 
                 @if (customAttributeRows().length) {
-                    <table class="table table-condensed table-bordered">
+                    <table class="table framed">
                         <thead>
                             <tr>
                                 <th>
@@ -199,9 +197,7 @@
                                     <td class="cell-center">{{ row.IsRequired ? "Yes" : "No" }}</td>
                                     <td>{{ row.Description || "—" }}</td>
                                     <td>
-                                        <button class="btn btn-sm btn-danger-outline" (click)="removeCustomAttribute(row.CustomAttributeTypeID)">
-                                            <i class="fa fa-trash"></i>
-                                        </button>
+                                        <button type="button" class="btn-delete-row" aria-label="Remove custom attribute" title="Remove" (click)="removeCustomAttribute(row.CustomAttributeTypeID)"></button>
                                     </td>
                                 </tr>
                             }
@@ -219,7 +215,7 @@
             <button class="btn btn-secondary-outline" (click)="cancel()">Cancel</button>
             @if (!isCreate) {
                 <button class="btn btn-danger-outline" (click)="deleteBMPType()" style="margin-left: auto">
-                    <i class="fa fa-trash"></i> Delete
+                    Delete
                 </button>
             }
         </div>

@@ -9,21 +9,18 @@
         @let treatmentBMPs = (treatmentBMPs$ | async) ?? [];
         @let projectNetworkSolveHistories = (projectNetworkSolveHistories$ | async) ?? [];
 
-        @if (project.ShareOCTAM2Tier2Scores) {
-            <div class="alert alert-warning">
-                <div class="alert-content">
-                    <i class="fa fa-warning"></i>
+        <div class="grid-12 mt-3 mb-3">
+            @if (project.ShareOCTAM2Tier2Scores) {
+                <note noteType="info" class="g-col-12">
                     This project has been shared with the OCTA M2 Tier 2 Grant Program. If you would like to edit this project, you must first revoke sharing for all grant
                     programs.
-                </div>
-            </div>
-        }
-        <div class="grid-12 mt-3 mb-3">
+                </note>
+            }
             <div class="g-col-7">
                 <div class="card">
                     <div class="card-header">Project Basics</div>
                     <div class="card-body">
-                        <dl class="grid-12">
+                        <dl class="grid-12 key-value-list">
                             <dt class="g-col-4">Name</dt>
                             <dd class="g-col-7">
                                 {{ project.ProjectName }}

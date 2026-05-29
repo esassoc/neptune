@@ -35,17 +35,6 @@
 }
 
 .funding-source-delete {
-    cursor: pointer;
     flex: 0 0 auto;
-    margin-bottom: 0.5rem;
-    ::ng-deep svg {
-        width: 1.2rem;
-        height: 1.2rem;
-        path {
-            fill: $gray-400;
-        }
-    }
-    &:hover ::ng-deep svg path {
-        fill: $red-default;
-    }
+    height: 2.5rem;
 }
