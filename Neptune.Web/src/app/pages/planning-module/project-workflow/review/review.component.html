@@ -10,13 +10,10 @@
         @let projectNetworkSolveHistories = (projectNetworkSolveHistories$ | async) ?? [];
 
         @if (project.ShareOCTAM2Tier2Scores) {
-            <div class="alert alert-warning">
-                <div class="alert-content">
-                    <i class="fa fa-warning"></i>
-                    This project has been shared with the OCTA M2 Tier 2 Grant Program. If you would like to edit this project, you must first revoke sharing for all grant
-                    programs.
-                </div>
-            </div>
+            <note noteType="info">
+                This project has been shared with the OCTA M2 Tier 2 Grant Program. If you would like to edit this project, you must first revoke sharing for all grant
+                programs.
+            </note>
         }
         <div class="grid-12 mt-3 mb-3">
             <div class="g-col-7">

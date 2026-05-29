@@ -17,6 +17,7 @@ import { FieldDefinitionComponent } from "src/app/shared/components/field-defini
 import { IconComponent } from "src/app/shared/components/icon/icon.component";
 import { ModeledBmpPerformanceComponent } from "src/app/shared/components/modeled-bmp-performance/modeled-bmp-performance.component";
 import { LandUseTableComponent } from "src/app/shared/components/land-use-table/land-use-table.component";
+import { NoteComponent } from "src/app/shared/components/note/note.component";
 import { LoadingDirective } from "src/app/shared/directives/loading.directive";
 import { UtilityFunctionsService } from "src/app/services/utility-functions.service";
 import { AuthenticationService } from "src/app/services/authentication.service";
@@ -75,6 +76,7 @@ import { environment } from "src/environments/environment";
         IconComponent,
         ModeledBmpPerformanceComponent,
         LandUseTableComponent,
+        NoteComponent,
         LoadingDirective,
     ],
 })

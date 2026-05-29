@@ -11,12 +11,9 @@
                 @if (delineations$ | async; as delineations) {
                     @if (projectNetworkSolveHistories$ | async; as projectNetworkSolveHistories) {
                         @if (isMostRecentHistoryOfType(projectNetworkSolveHistories, ProjectNetworkHistoryStatusTypeEnum.Queued)) {
-                            <div class="alert alert-info">
-                                <div class="alert-content">
-                                    <i class="fa fa-info"></i>
-                                    Results for this project are currently being calculated. Triggering a new calculation will be disabled until the current calculation completes.
-                                </div>
-                            </div>
+                            <note noteType="info">
+                                Results for this project are currently being calculated. Triggering a new calculation will be disabled until the current calculation completes.
+                            </note>
                         }
                         <custom-rich-text [customRichTextTypeID]="customRichTextTypeID"></custom-rich-text>
                         <hr />

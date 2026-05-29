@@ -7,6 +7,7 @@ import { PageHeaderComponent } from "src/app/shared/components/page-header/page-
 import { AlertDisplayComponent } from "src/app/shared/components/alert-display/alert-display.component";
 import { LoadingDirective } from "src/app/shared/directives/loading.directive";
 import { ImageCarouselComponent, ImageCarouselItem } from "src/app/shared/components/image-carousel/image-carousel.component";
+import { NoteComponent } from "src/app/shared/components/note/note.component";
 
 import { FieldVisitService } from "src/app/shared/generated/api/field-visit.service";
 import { TreatmentBMPAssessmentPhotoService } from "src/app/shared/generated/api/treatment-bmp-assessment-photo.service";
@@ -41,7 +42,7 @@ import { AlertContext } from "src/app/shared/models/enums/alert-context.enum";
 @Component({
     selector: "field-visit-detail-readonly",
     standalone: true,
-    imports: [AsyncPipe, DatePipe, DecimalPipe, RouterLink, PageHeaderComponent, AlertDisplayComponent, LoadingDirective, ImageCarouselComponent],
+    imports: [AsyncPipe, DatePipe, DecimalPipe, RouterLink, PageHeaderComponent, AlertDisplayComponent, LoadingDirective, ImageCarouselComponent, NoteComponent],
     templateUrl: "./field-visit-detail-readonly.component.html",
     styleUrl: "./field-visit-detail-readonly.component.scss",
 })

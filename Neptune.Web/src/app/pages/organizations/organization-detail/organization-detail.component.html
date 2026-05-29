@@ -12,20 +12,15 @@
     <app-alert-display></app-alert-display>
 
     @if (vm.organization.StormwaterJurisdictionID) {
-        <!-- Wrap the message in a single <span> because the global .alert rule is
-             display:flex with justify-content:space-between — multiple inline children
-             would otherwise spread out across the full width of the alert. -->
-        <div class="alert alert-info">
-            <span>
-                <strong>{{ vm.organization.OrganizationName }}</strong> is a Stormwater Jurisdiction.
-                <a [routerLink]="['/jurisdictions', vm.organization.StormwaterJurisdictionID]">View the Stormwater Jurisdiction page</a>
-                to see stormwater assets and assessments.
-            </span>
-        </div>
+        <note noteType="info">
+            <strong>{{ vm.organization.OrganizationName }}</strong> is a Stormwater Jurisdiction.
+            <a [routerLink]="['/jurisdictions', vm.organization.StormwaterJurisdictionID]">View the Stormwater Jurisdiction page</a>
+            to see stormwater assets and assessments.
+        </note>
     }
 
     @if (!vm.organization.IsActive) {
-        <div class="alert alert-warning">This organization is currently inactive.</div>
+        <note noteType="warning">This organization is currently inactive.</note>
     }
 
     <div class="grid-12">

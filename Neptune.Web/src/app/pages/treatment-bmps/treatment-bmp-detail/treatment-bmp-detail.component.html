@@ -11,9 +11,10 @@
 
 <app-alert-display></app-alert-display>
 @if (treatmentBMP$ | async; as treatmentBMP) {
+    <div class="grid-12">
     @if (delineationErrors$ | async; as delineationErrors) {
         @if (delineationErrors.HasDiscrepancies || delineationErrors.OverlappingTreatmentBMPs.length > 0) {
-            <div class="alert alert-info alert-column">
+            <note noteType="warning" class="g-col-12">
                 <strong>This BMP delineation may have errors:</strong>
                 <ul>
                     @if (delineationErrors?.HasDiscrepancies) {
@@ -32,16 +33,14 @@
                         </li>
                     }
                 </ul>
-                <div>
-                    <a class="btn btn-sm btn-primary" [routerLink]="['/delineation', 'delineation-map']" [queryParams]="{ treatmentBMPID: treatmentBMP.TreatmentBMPID }">Review and Edit on the Delineation Map</a>
-                </div>
-            </div>
+                <a note-action class="btn btn-sm btn-orange" [routerLink]="['/delineation', 'delineation-map']" [queryParams]="{ treatmentBMPID: treatmentBMP.TreatmentBMPID }">Review and Edit on the Delineation Map</a>
+            </note>
         }
     }
 
     @if (parameterizationErrors$ | async; as parameterizationErrors) {
         @if (!parameterizationErrors.HasDelineation || parameterizationErrors.MissingModelAttributes) {
-            <div class="alert alert-info alert-column">
+            <note noteType="info" class="g-col-12">
                 <strong>This BMP is not fully parameterized:</strong>
                 <ul class="ml-4">
                     @if (!parameterizationErrors.HasDelineation) {
@@ -61,28 +60,24 @@
                         <li>Some required modeling attributes are missing. Please provide the required Modeling Parameters.</li>
                     }
                 </ul>
-            </div>
+            </note>
         }
     }
 
     @if (openRevisionRequest) {
-        <div class="alert alert-info">
-            <span>
-                There is an open
-                <a [routerLink]="['/delineation/revision-requests', openRevisionRequest.RegionalSubbasinRevisionRequestID]">Regional Subbasin Revision Request</a> relating to
-                this BMP.
-            </span>
-        </div>
+        <note noteType="info" class="g-col-12">
+            There is an open
+            <a [routerLink]="['/delineation/revision-requests', openRevisionRequest.RegionalSubbasinRevisionRequestID]">Regional Subbasin Revision Request</a> relating to this BMP.
+        </note>
     }
 
     @if (upstreamestBMPErrors$ | async; as upstreamestBMPErrors) {
         @if (upstreamestBMPErrors.UpstreamestBMP && !upstreamestBMPErrors.IsUpstreamestBMPAnalyzedInModelingModule) {
-            <div class="alert alert-info">This BMP is downstream of a non-modeled BMP, and therefore will not have model results or land use statistics.</div>
+            <note noteType="info" class="g-col-12">This BMP is downstream of a non-modeled BMP, and therefore will not have model results or land use statistics.</note>
         }
     }
 
-    <div class="grid-12">
-        <div class="g-col-6">
+        <div class="g-col-6 grid-12">
             <div class="card">
                 <div class="card-header">
                     <span class="card-title">Basics</span>
@@ -233,7 +228,7 @@
         </div>
 
         <!-- Map and Images -->
-        <div class="g-col-6">
+        <div class="g-col-6 grid-12">
             <div class="card">
                 <div class="card-header">
                     <span class="card-title">Images</span>
