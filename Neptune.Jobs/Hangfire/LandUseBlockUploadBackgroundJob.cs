@@ -28,7 +28,13 @@ namespace Neptune.Jobs.Hangfire
                 // The controller re-runs ValidateStagings on approve and 400s with the report if
                 // errors exist, so in normal flow the job's pre-validation here is a safety net.
                 var landUseBlockStagings = LandUseBlockStagings.ListByPersonID(dbContext, personID);
-                var errorList = LandUseBlockStagings.ValidateStagings(landUseBlockStagings);
+
+                // Copilot review on PR #541: if staging is empty by the time the job runs (e.g.
+                // a race where the user discarded the staging between approve and job execution),
+                // emit an error instead of cascading through to the "successful import" email.
+                var errorList = landUseBlockStagings.Count == 0
+                    ? new List<string> { "There are no staged Land Use Blocks to process. The staging table was empty when the import job ran." }
+                    : LandUseBlockStagings.ValidateStagings(landUseBlockStagings);
 
                 if (!errorList.Any())
                 {

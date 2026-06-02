@@ -112,6 +112,17 @@ namespace Neptune.Tests
         // ----- ValidateStagings — pure unit -----
 
         [TestMethod]
+        public void ValidateStagings_EmptyList_ReturnsNoErrors()
+        {
+            // Empty staging is NOT flagged here — ValidateStagings only inspects per-row field
+            // validity. The "no rows to import" guard is owned by the controller's ApproveStaging
+            // endpoint and the background job (Copilot review on PR #541). Documenting the
+            // contract here so a future regression that flips it doesn't go unnoticed.
+            var errors = LandUseBlockStagings.ValidateStagings(new List<LandUseBlockStaging>());
+            Assert.AreEqual(0, errors.Count);
+        }
+
+        [TestMethod]
         public void ValidateStagings_AllValid_ReturnsNoErrors()
         {
             var stagings = new List<LandUseBlockStaging>

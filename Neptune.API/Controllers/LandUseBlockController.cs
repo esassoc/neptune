@@ -156,6 +156,13 @@ public class LandUseBlockController(
         // Re-validate server-side so a client that bypasses the SPA's gate can't commit a staging
         // batch with errors. The background job itself also runs ValidateStagings as a safety net.
         var report = await LandUseBlockStagings.BuildReportForCurrentUserAsync(DbContext, CallingUser.PersonID);
+        // Treat zero-staged-rows as a validation failure so we never enqueue a no-op job that
+        // would email the user "successful import" with nothing actually imported (Copilot PR #541
+        // review). The SPA gates this in the UI too, but a client posting directly can reach here.
+        if (report.TotalStagedRowCount == 0)
+        {
+            report.Errors.Add("There are no staged Land Use Blocks to approve. Please upload a File Geodatabase first.");
+        }
         if (report.Errors.Count > 0)
         {
             return BadRequest(report);
