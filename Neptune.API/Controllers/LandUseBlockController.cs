@@ -135,10 +135,49 @@ public class LandUseBlockController(
             return Ok(result);
         }
 
-        // Hand off to the existing Hangfire job that processes the staging table and emails the user the results.
-        BackgroundJob.Enqueue<LandUseBlockUploadBackgroundJob>(x => x.RunJob(currentPerson.PersonID));
-        result.BackgroundJobEnqueued = true;
+        // NPT-1077: the job is no longer enqueued here. The SPA redirects to the approve page,
+        // which calls GET /land-use-blocks/staging-report to fetch the validation report, then
+        // POST /land-use-blocks/staging/approve to enqueue the job if the report is error-free.
         return Ok(result);
+    }
+
+    [HttpGet("staging-report")]
+    [JurisdictionEditFeature]
+    public async Task<ActionResult<LandUseBlockGdbUploadValidationDto>> StagingReport()
+    {
+        var report = await LandUseBlockStagings.BuildReportForCurrentUserAsync(DbContext, CallingUser.PersonID);
+        return Ok(report);
+    }
+
+    [HttpPost("staging/approve")]
+    [JurisdictionEditFeature]
+    public async Task<ActionResult<int>> ApproveStaging()
+    {
+        // Re-validate server-side so a client that bypasses the SPA's gate can't commit a staging
+        // batch with errors. The background job itself also runs ValidateStagings as a safety net.
+        var report = await LandUseBlockStagings.BuildReportForCurrentUserAsync(DbContext, CallingUser.PersonID);
+        // Treat zero-staged-rows as a validation failure so we never enqueue a no-op job that
+        // would email the user "successful import" with nothing actually imported (Copilot PR #541
+        // review). The SPA gates this in the UI too, but a client posting directly can reach here.
+        if (report.TotalStagedRowCount == 0)
+        {
+            report.Errors.Add("There are no staged Land Use Blocks to approve. Please upload a File Geodatabase first.");
+        }
+        if (report.Errors.Count > 0)
+        {
+            return BadRequest(report);
+        }
+
+        BackgroundJob.Enqueue<LandUseBlockUploadBackgroundJob>(x => x.RunJob(CallingUser.PersonID));
+        return Ok(report.TotalStagedRowCount);
+    }
+
+    [HttpDelete("staging")]
+    [JurisdictionEditFeature]
+    public async Task<ActionResult> DiscardStaging()
+    {
+        await LandUseBlockStagings.DiscardForUserAsync(DbContext, CallingUser.PersonID);
+        return NoContent();
     }
 
     [HttpPost("download-gdb")]

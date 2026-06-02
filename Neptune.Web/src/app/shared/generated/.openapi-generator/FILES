@@ -112,6 +112,7 @@ model/i-attributes-table.ts
 model/i-feature.ts
 model/land-use-block-gdb-download-request-dto.ts
 model/land-use-block-gdb-upload-result-dto.ts
+model/land-use-block-gdb-upload-validation-dto.ts
 model/land-use-block-grid-dto.ts
 model/land-use-block-upsert-dto.ts
 model/load-generating-unit-dto.ts

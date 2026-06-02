@@ -970,6 +970,12 @@ export const routes: Routes = [
                 canActivate: [JurisdictionManagerOrEditorOnlyGuard],
             },
             {
+                path: "data-hub/land-use-block-upload/approve",
+                title: "Approve Uploaded Land Use Blocks",
+                loadComponent: () => import("./pages/data-hub/land-use-block-upload-approve/land-use-block-upload-approve.component").then((m) => m.LandUseBlockUploadApproveComponent),
+                canActivate: [JurisdictionManagerOrEditorOnlyGuard],
+            },
+            {
                 path: "data-hub/land-use-block-download",
                 title: "Download Land Use Blocks",
                 loadComponent: () => import("./pages/data-hub/land-use-block-download/land-use-block-download.component").then((m) => m.LandUseBlockDownloadComponent),
