@@ -47,6 +47,10 @@ public static class OvtaBulkUploadImporter
         var numColumns = dataTable.Columns.Count;
         var errors = new List<string>();
         var ovtaAreaIDsForScoreRecalculation = new List<int?>();
+        // NPT-1076 Bug #2: track actually-processed (non-blank) rows so we can surface a
+        // row-error when the file has nothing to import. Covers header-only XLSX and the case
+        // where Excel's used range stretches past data leaving trailing blank rows.
+        var processedRowCount = 0;
 
         try
         {
@@ -81,17 +85,25 @@ public static class OvtaBulkUploadImporter
                     foreach (var category in categories)
                     {
                         if (string.IsNullOrWhiteSpace(row[category].ToString())) continue;
-                        var identificationTypes = row[category].ToString().Trim().Split(',');
+                        // NPT-1076 Bug #1: previously `cell.Trim().Split(',')` only trimmed the
+                        // full cell, so "Parked Cars, Uncovered Loads" produced a leading-space
+                        // second entry that failed the `==` compare. Trim each entry and compare
+                        // case-insensitively so the template's display values round-trip cleanly.
+                        var identificationTypes = row[category].ToString()
+                            .Split(',')
+                            .Select(x => x.Trim())
+                            .Where(x => x.Length > 0)
+                            .ToList();
                         foreach (var identificationType in identificationTypes)
                         {
-                            if (identificationType.ToLower().Contains("other"))
+                            if (identificationType.Contains("other", StringComparison.OrdinalIgnoreCase))
                             {
-                                errors.Add($"Cannot use {identificationType.Trim()} in row {i + 1} as bulk uploader does not allow for Other as a preliminary type.");
+                                errors.Add($"Cannot use {identificationType} in row {i + 1} as bulk uploader does not allow for Other as a preliminary type.");
                                 continue;
                             }
                             var id = PreliminarySourceIdentificationType.All.SingleOrDefault(x =>
-                                x.PreliminarySourceIdentificationTypeDisplayName.Trim() == identificationType
-                                && x.PreliminarySourceIdentificationCategory.PreliminarySourceIdentificationCategoryDisplayName.Trim() == category);
+                                string.Equals(x.PreliminarySourceIdentificationTypeDisplayName.Trim(), identificationType, StringComparison.OrdinalIgnoreCase)
+                                && string.Equals(x.PreliminarySourceIdentificationCategory.PreliminarySourceIdentificationCategoryDisplayName.Trim(), category, StringComparison.OrdinalIgnoreCase));
                             if (id == null)
                             {
                                 errors.Add($"{identificationType} is not a valid Preliminary Source Identification Type for {category} in row {i + 1}");
@@ -127,6 +139,7 @@ public static class OvtaBulkUploadImporter
                         IsTransectBackingAssessment = false,
                     };
                     dbContext.Add(assessment);
+                    processedRowCount++;
                 }
                 catch (InvalidOperationException ioe)
                 {
@@ -143,6 +156,14 @@ public static class OvtaBulkUploadImporter
         if (errors.Count > 0)
         {
             result.Errors = errors;
+            return result;
+        }
+
+        // NPT-1076 Bug #2: file had no actionable data (header-only or all-blank rows). Surface
+        // an error so the SPA doesn't show "Successfully bulk uploaded OVTAs from 0 row(s)".
+        if (processedRowCount == 0)
+        {
+            result.Errors.Add("The uploaded file had no data rows. Add at least one OVTA Assessment row beneath the header and try again.");
             return result;
         }
 
@@ -195,6 +216,15 @@ public static class OvtaBulkUploadImporter
         if (string.IsNullOrWhiteSpace(scoreRaw) || !validScores.Contains(scoreRaw))
         {
             errors.Add($"Score is not a valid value in row {rowIndex + 1}. It must be one of the following A, B, C or D.");
+        }
+        // NPT-1076 Bug #3: a non-date Completed Date used to throw FormatException inside the
+        // OnlandVisualTrashAssessment initializer (line below) and fall through to the outer
+        // catch, which surfaced the generic "Unexpected error parsing Excel Spreadsheet upload"
+        // and bailed the whole upload. Pre-validate here so the user gets a row-scoped message.
+        var completedDateRaw = row["Completed Date"].ToString().Trim();
+        if (string.IsNullOrWhiteSpace(completedDateRaw) || !DateTime.TryParse(completedDateRaw, out _))
+        {
+            errors.Add($"Invalid Completed Date '{completedDateRaw}' in row {rowIndex + 1}.");
         }
         return errors;
     }
