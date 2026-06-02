@@ -66,4 +66,6 @@ GO
 GO
 :r ".\029 - WQMP Verification Supporting Documentation help text.sql"
 GO
+:r ".\030 - Seed ExportAssessmentGeospatialData rich text.sql"
+GO
 

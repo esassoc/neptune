@@ -18,6 +18,7 @@ import { AlertService } from "src/app/shared/services/alert.service";
     standalone: true,
     imports: [AsyncPipe, FormsModule, ReactiveFormsModule, RouterLink, PageHeaderComponent, AlertDisplayComponent, FormFieldComponent],
     templateUrl: "./land-use-block-download.component.html",
+    styleUrl: "./land-use-block-download.component.scss",
 })
 export class LandUseBlockDownloadComponent implements OnInit {
     public FormFieldType = FormFieldType;

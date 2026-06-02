@@ -17,6 +17,7 @@ import { AlertService } from "src/app/shared/services/alert.service";
     standalone: true,
     imports: [AsyncPipe, FormsModule, ReactiveFormsModule, RouterLink, PageHeaderComponent, AlertDisplayComponent, FormFieldComponent],
     templateUrl: "./ovta-area-upload.component.html",
+    styleUrl: "./ovta-area-upload.component.scss",
 })
 export class OvtaAreaUploadComponent implements OnInit {
     public FormFieldType = FormFieldType;

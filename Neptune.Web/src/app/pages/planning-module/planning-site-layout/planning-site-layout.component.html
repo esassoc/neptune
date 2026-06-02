@@ -17,7 +17,7 @@
                     <ul class="site-nav__links site-nav__main">
                         @if (isAuthenticated() && isNotUnassigned(currentUser)) {
                             <li class="nav-item" routerLinkActive="active">
-                                <a [href]="siteUrl + '/DataHub/Index'" class="nav-link" role="button"> Data Hub </a>
+                                <a [routerLink]="['/data-hub']" class="nav-link" role="button"> Data Hub </a>
                             </li>
                             <li class="nav-item" routerLinkActive="active">
                                 <a [routerLink]="['/planning/projects']" class="nav-link" role="button"> Projects </a>

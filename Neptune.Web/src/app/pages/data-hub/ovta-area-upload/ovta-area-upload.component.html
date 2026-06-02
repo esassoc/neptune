@@ -1,5 +1,7 @@
 <page-header pageTitle="Upload OVTA Assessment Areas">
     <a class="back-link" [routerLink]="['/data-hub']" [queryParams]="{ tab: 'trash' }">&laquo; Back to Data Hub</a>
+    &nbsp;|&nbsp;
+    <a class="back-link" [routerLink]="['/data-hub/ovta-area-download']">Go to Download OVTA Assessment Areas &raquo;</a>
 </page-header>
 
 <section class="content-section">
@@ -7,11 +9,19 @@
 
     <div class="grid-12">
         <div class="g-col-6 instructions">
-            <p>Use this form to bulk upload OVTA assessment areas from a zipped File Geodatabase. Requirements:</p>
+            <p>Use this form to bulk upload Onland Visual Trash Assessment Areas. Requirements:</p>
             <ul>
-                <li>A single ArcGIS file geodatabase containing only OVTA Area features (.gdb inside a .zip).</li>
-                <li>The feature class must contain a unique area-name attribute and an optional Description attribute.</li>
-                <li>The default area-name field is <code>OVTAAreaName</code> &mdash; supply the field name your GDB uses if different.</li>
+                <li>A single ArcGIS file geodatabase containing only Onland Visual Trash Assessment Area features.</li>
+                <li>The file geodatabase (.gdb) must be contained within a compressed zip file (.zip).</li>
+                <li>The zip file must contain only one file geodatabase and no other data.</li>
+                <li>The file geodatabase must contain only one feature class.</li>
+                <li>You must supply the name of the attribute representing the area name. The default is <code>OVTAAreaName</code>.</li>
+                <li>
+                    Geodatabases using ESRI Smart Database Compression (SDC) are not supported. Please
+                    <a href="http://desktop.arcgis.com/en/arcmap/10.3/tools/data-management-toolbox/uncompress-file-geodatabase-data.htm" target="_blank" rel="noopener noreferrer">uncompress</a>
+                    before zipping and uploading.
+                </li>
+                <li>Version 10.1+ file geodatabases are supported.</li>
                 <li>Areas with names that already exist in the selected jurisdiction will have their geometry and description updated; new names are created.</li>
                 <li>After upload you'll be taken to a review page to confirm before any changes commit.</li>
             </ul>

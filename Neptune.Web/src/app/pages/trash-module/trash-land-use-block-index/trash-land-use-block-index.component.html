@@ -2,9 +2,9 @@
 
 <ng-template #templateRight>
     @if (currentUserHasJurisdictionEditPermission()) {
-    <a class="float-right btn btn-primary mr-2" [href]="url + '/LandUseBlockGeometry/UpdateLandUseBlockGeometry'"> <icon [icon]="'Upload'"></icon> Upload Land Use Blocks </a>
+    <a class="float-right btn btn-primary mr-2" [routerLink]="['/data-hub/land-use-block-upload']"> <icon [icon]="'Upload'"></icon> Upload Land Use Blocks </a>
     } @if (currentUserHasJurisdictionEditPermission()) {
-    <a class="float-right btn btn-primary" [href]="url + '/LandUseBlockGeometry/DownloadLandUseBlockGeometry'"> <icon [icon]="'Download'"></icon> Download Land Use Blocks </a>
+    <a class="float-right btn btn-primary" [routerLink]="['/data-hub/land-use-block-download']"> <icon [icon]="'Download'"></icon> Download Land Use Blocks </a>
     }
 </ng-template>
 
