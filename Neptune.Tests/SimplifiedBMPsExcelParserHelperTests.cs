@@ -236,6 +236,58 @@ namespace Neptune.Tests
         }
 
         [TestMethod]
+        public void SameBMPNameAcrossDifferentWQMPs_NotFlaggedAsDuplicate()
+        {
+            // NPT-1073 follow-up (Copilot review on PR #539): QuickBMP uniqueness is scoped by
+            // (WaterQualityManagementPlanID, QuickBMPName), so the same BMP Name under two
+            // *different* WQMPs in one upload is legitimate. The duplicate tracker must be
+            // per-WQMP, not global.
+            var pair = _dbContext.WaterQualityManagementPlans
+                .AsNoTracking()
+                .GroupBy(x => x.StormwaterJurisdictionID)
+                .Where(g => g.Count() >= 2)
+                .Select(g => new { JurisdictionID = g.Key, Wqmps = g.Take(2).ToList() })
+                .FirstOrDefault();
+            if (pair == null)
+            {
+                Assert.Inconclusive("No jurisdiction has at least 2 WQMPs in dev DB; cross-WQMP same-name path cannot be exercised.");
+                return;
+            }
+            var bmpType = GetAnyBMPTypeName();
+            const string sharedBmpName = "___NPT_1073_CROSS_WQMP_NAME___";
+            var dt = BuildDataTable(AllCols,
+                new[] { pair.Wqmps[0].WaterQualityManagementPlanName, sharedBmpName, bmpType, "1", "", "", "", "", "" },
+                new[] { pair.Wqmps[1].WaterQualityManagementPlanName, sharedBmpName, bmpType, "1", "", "", "", "", "" });
+            var result = SimplifiedBMPsExcelParserHelper.ParseWQMPRowsFromXLSX(_dbContext, pair.JurisdictionID, dt, out var errors);
+
+            Assert.AreEqual(0, errors.Count, $"Same BMP Name under different WQMPs is legitimate. Errors: {string.Join("; ", errors)}");
+            Assert.IsNotNull(result);
+            Assert.AreEqual(2, result.Count);
+        }
+
+        [TestMethod]
+        public void DuplicateBMPName_CaseInsensitive_WithinSameWQMP_ProducesError()
+        {
+            // SQL Server's default collation is case-insensitive, so two BMPs that differ only in
+            // case under the same WQMP would still violate the UNIQUE constraint. The parser must
+            // catch these the same way it catches exact-case duplicates.
+            var existingWqmp = _dbContext.WaterQualityManagementPlans.AsNoTracking().FirstOrDefault();
+            if (existingWqmp == null)
+            {
+                Assert.Inconclusive("No existing WQMP in dev DB.");
+                return;
+            }
+            var bmpType = GetAnyBMPTypeName();
+            var dt = BuildDataTable(AllCols,
+                new[] { existingWqmp.WaterQualityManagementPlanName, "___NPT_1073_CASE_TEST___", bmpType, "1", "", "", "", "", "" },
+                new[] { existingWqmp.WaterQualityManagementPlanName, "___npt_1073_case_test___", bmpType, "2", "", "", "", "", "" });
+            SimplifiedBMPsExcelParserHelper.ParseWQMPRowsFromXLSX(_dbContext, existingWqmp.StormwaterJurisdictionID, dt, out var errors);
+
+            Assert.IsTrue(errors.Any(x => x.Contains("duplicate name is found at row: 3")),
+                $"Case-insensitive duplicate within a WQMP should be flagged. Got: {string.Join("; ", errors)}");
+        }
+
+        [TestMethod]
         public void CountOfBMPsOne_AcceptedBoundary()
         {
             // Inclusive lower-bound guard — 1 is valid.

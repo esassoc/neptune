@@ -31,12 +31,16 @@ public static class SimplifiedBMPsExcelParserHelper
         // every error the per-row parser already produces (with row-number context), so users saw
         // each bad WQMP twice. Removed in favor of the single per-row check.
 
-        // NPT-1073: hoist these out of the per-row loop. `quickBMPNamesInCsv` was being reset
-        // every row, so the in-CSV duplicate-name detection never fired and rows slipped through
-        // to SaveChanges as a UNIQUE constraint 500. `treatmentBMPTypes` was being re-fetched
-        // from the DB on every row.
+        // NPT-1073: hoist these out of the per-row loop. The names tracker was being reset every
+        // row, so the in-CSV duplicate-name detection never fired and rows slipped through to
+        // SaveChanges as a UNIQUE constraint 500. `treatmentBMPTypes` was being re-fetched from
+        // the DB on every row.
+        // Track names *per WQMP* — QuickBMP uniqueness is scoped by
+        // (WaterQualityManagementPlanID, QuickBMPName), so the same BMP Name under two different
+        // WQMPs in one upload is legitimate and must not be flagged. Case-insensitive comparison
+        // matches the default SQL Server collation.
         var treatmentBMPTypes = TreatmentBMPTypes.List(dbContext);
-        var quickBMPNamesInCsv = new List<string>();
+        var quickBMPNamesByWqmpID = new Dictionary<int, HashSet<string>>();
 
         var quickBMPs = new List<QuickBMP>();
         for (var i = 0; i < numRows; i++)
@@ -57,7 +61,7 @@ public static class SimplifiedBMPsExcelParserHelper
                 continue;
             }
             quickBMPs.Add(ParseRequiredAndOptionalFieldsAndCreateSimplifiedBMPs(dbContext, row, i+2, out var errorsList,
-                treatmentBMPTypes, quickBMPNamesInCsv, stormwaterJurisdictionID));
+                treatmentBMPTypes, quickBMPNamesByWqmpID, stormwaterJurisdictionID));
             errors.AddRange(errorsList);
 
         }
@@ -70,7 +74,7 @@ public static class SimplifiedBMPsExcelParserHelper
         return quickBMPs;
     }
 
-    private static QuickBMP ParseRequiredAndOptionalFieldsAndCreateSimplifiedBMPs(NeptuneDbContext dbContext, DataRow row, int rowNumber, out List<string> errorList, List<TreatmentBMPType> treatmentBMPTypes, List<string> quickBMPNamesInCsv, int stormwaterJurisdictionID)
+    private static QuickBMP ParseRequiredAndOptionalFieldsAndCreateSimplifiedBMPs(NeptuneDbContext dbContext, DataRow row, int rowNumber, out List<string> errorList, List<TreatmentBMPType> treatmentBMPTypes, Dictionary<int, HashSet<string>> quickBMPNamesByWqmpID, int stormwaterJurisdictionID)
     {
         errorList = new List<string>();
 
@@ -99,12 +103,18 @@ public static class SimplifiedBMPsExcelParserHelper
 
         if (!string.IsNullOrWhiteSpace(bmpName))
         {
-            if (quickBMPNamesInCsv.Contains(bmpName))
+            // Duplicate-name detection is scoped to (WQMP, BMP Name) to match the SQL UNIQUE index;
+            // same BMP Name under different WQMPs is fine. Case-insensitive set matches SQL collation.
+            if (!quickBMPNamesByWqmpID.TryGetValue(wqmp.WaterQualityManagementPlanID, out var namesForThisWqmp))
+            {
+                namesForThisWqmp = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+                quickBMPNamesByWqmpID[wqmp.WaterQualityManagementPlanID] = namesForThisWqmp;
+            }
+            if (!namesForThisWqmp.Add(bmpName))
             {
                 errorList.Add(
                     $"The Simplified BMP with Name '{bmpName}' was already added in this upload, duplicate name is found at row: {rowNumber}");
             }
-            quickBMPNamesInCsv.Add(bmpName);
             quickBMP.QuickBMPName = bmpName;
         }
 
