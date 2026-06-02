@@ -62,6 +62,9 @@ export class WqmpUploadComponent implements OnInit {
 
     public submit(): void {
         if (this.fileControl.invalid || this.jurisdictionControl.invalid) return;
+        // NPT-1072: drop any banners from prior attempts (file-rejection + upload-failed pushAlerts
+        // accumulated across submits, so KE was seeing "Showing 3 of 4 alerts" after one good run).
+        this.alertService.clearAlerts();
         this.errors.set([]);
         this.successMessage.set(null);
         this.isUploading.set(true);
@@ -73,6 +76,7 @@ export class WqmpUploadComponent implements OnInit {
                     this.errors.set(result.Errors);
                     return;
                 }
+                this.alertService.clearAlerts();
                 this.successMessage.set(`Upload successful: ${result.AddedCount} WQMPs added, ${result.UpdatedCount} WQMPs updated.`);
                 this.fileControl.reset();
             },

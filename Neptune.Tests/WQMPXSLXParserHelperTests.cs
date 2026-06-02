@@ -269,7 +269,8 @@ namespace Neptune.Tests
             row[Array.IndexOf(AllCols, "Approval Date")] = "not a date";
             var dt = BuildDataTable(AllCols, row.ToArray());
             var result = WQMPXSLXParserHelper.ParseWQMPRowsFromXLSX(_dbContext, dt, GetAnyJurisdictionID(), out var errors);
-            Assert.IsTrue(errors.Any(x => x.Contains("can not be converted to Date Time format")));
+            // NPT-1072: error wording now echoes the user's raw input + the expected mm/dd/yyyy format.
+            Assert.IsTrue(errors.Any(x => x.Contains("Approval Date") && x.Contains("not a date") && x.Contains("mm/dd/yyyy")));
             Assert.AreEqual(0, result.Count, "Top-level returns empty list when any row had errors.");
         }
 
@@ -299,6 +300,101 @@ namespace Neptune.Tests
             Assert.AreEqual("___NPT_998_TEST_MIN_COLS___", result[0].WaterQualityManagementPlanName);
             Assert.IsNull(result[0].MaintenanceContactName);
             Assert.IsNull(result[0].ApprovalDate);
+        }
+
+        // ----- NPT-1072 -----
+
+        [TestMethod]
+        public void InvalidApprovalDate_ErrorContainsRawValueAndFormatHint_NotMinValue()
+        {
+            var dt = BuildDataTable(AllCols, RowWithOverride("___NPT_1072_BAD_APPROVAL_DATE___", "Approval Date", "not-a-date"));
+            WQMPXSLXParserHelper.ParseWQMPRowsFromXLSX(_dbContext, dt, GetAnyJurisdictionID(), out var errors);
+            var dateError = errors.SingleOrDefault(x => x.Contains("Approval Date") && x.Contains("not a valid date"));
+            Assert.IsNotNull(dateError, "Expected an Approval Date validation error mentioning the bad value.");
+            Assert.IsTrue(dateError.Contains("not-a-date"), "Error should echo the user's raw input.");
+            Assert.IsTrue(dateError.Contains("mm/dd/yyyy"), "Error should hint at the expected format.");
+            Assert.IsFalse(dateError.Contains("01/01/0001"), "Error should not leak DateTime.MinValue.");
+        }
+
+        [TestMethod]
+        public void InvalidDateOfConstruction_ErrorContainsRawValueAndFormatHint_NotMinValue()
+        {
+            var dt = BuildDataTable(AllCols, RowWithOverride("___NPT_1072_BAD_CONSTRUCTION_DATE___", "Date of Construction", "garbage"));
+            WQMPXSLXParserHelper.ParseWQMPRowsFromXLSX(_dbContext, dt, GetAnyJurisdictionID(), out var errors);
+            var dateError = errors.SingleOrDefault(x => x.Contains("Date of Construction") && x.Contains("not a valid date"));
+            Assert.IsNotNull(dateError, "Expected a Date of Construction validation error mentioning the bad value.");
+            Assert.IsTrue(dateError.Contains("garbage"));
+            Assert.IsTrue(dateError.Contains("mm/dd/yyyy"));
+            Assert.IsFalse(dateError.Contains("01/01/0001"));
+        }
+
+        [TestMethod]
+        public void IsoFormatApprovalDate_StillAccepted()
+        {
+            // Ray + KE decided to keep accepting ISO silently (only the error wording was the bug).
+            // This is a regression guard so a future strict-format change doesn't quietly land.
+            var dt = BuildDataTable(AllCols, RowWithOverride("___NPT_1072_ISO_DATE___", "Approval Date", "2021-06-15"));
+            var result = WQMPXSLXParserHelper.ParseWQMPRowsFromXLSX(_dbContext, dt, GetAnyJurisdictionID(), out var errors);
+            Assert.AreEqual(0, errors.Count, string.Join("; ", errors));
+            Assert.AreEqual(1, result.Count);
+            Assert.IsNotNull(result[0].ApprovalDate);
+            // Assert year/month only — the parser converts PST→UTC, which shifts the clock by
+            // the offset (7-8 hours) but leaves the calendar year/month unchanged for a midnight
+            // input. Day-of-month is intentionally not asserted to avoid coupling to whichever
+            // DST window the test runs in.
+            Assert.AreEqual(2021, result[0].ApprovalDate!.Value.Year);
+            Assert.AreEqual(6, result[0].ApprovalDate!.Value.Month);
+        }
+
+        [TestMethod]
+        public void NegativeRecordedAreaInAcres_Rejected()
+        {
+            var dt = BuildDataTable(AllCols, RowWithOverride("___NPT_1072_NEG_ACREAGE___", "Recorded WQMP Area (Acres)", "-1.5"));
+            var result = WQMPXSLXParserHelper.ParseWQMPRowsFromXLSX(_dbContext, dt, GetAnyJurisdictionID(), out var errors);
+            Assert.IsTrue(errors.Any(x => x.Contains("Recorded WQMP Area") && x.Contains("-1.5") && x.Contains("cannot be negative")),
+                "Expected a clear negative-acreage validation error.");
+            // Field should not be set on the entity for the bad row.
+            var bmp = result.SingleOrDefault(x => x.WaterQualityManagementPlanName == "___NPT_1072_NEG_ACREAGE___");
+            Assert.IsTrue(bmp == null || bmp.RecordedWQMPAreaInAcres == null,
+                "Negative acreage must not be assigned to the WQMP entity.");
+        }
+
+        [TestMethod]
+        public void TrashCaptureEffectiveness_AboveOneHundred_Rejected()
+        {
+            var dt = BuildDataTable(AllCols, RowWithOverride("___NPT_1072_TCE_HIGH___", "Trash Capture Effectiveness", "150"));
+            var result = WQMPXSLXParserHelper.ParseWQMPRowsFromXLSX(_dbContext, dt, GetAnyJurisdictionID(), out var errors);
+            Assert.IsTrue(errors.Any(x => x.Contains("Trash Capture Effectiveness") && x.Contains("150") && x.Contains("between 0 and 100")),
+                "Expected a clear range-violation error for effectiveness > 100.");
+            var bmp = result.SingleOrDefault(x => x.WaterQualityManagementPlanName == "___NPT_1072_TCE_HIGH___");
+            Assert.IsTrue(bmp == null || bmp.TrashCaptureEffectiveness == null,
+                "Out-of-range effectiveness must not reach the WQMP entity (which would 500 in SaveChanges).");
+        }
+
+        [TestMethod]
+        public void TrashCaptureEffectiveness_Negative_Rejected()
+        {
+            var dt = BuildDataTable(AllCols, RowWithOverride("___NPT_1072_TCE_NEG___", "Trash Capture Effectiveness", "-5"));
+            var result = WQMPXSLXParserHelper.ParseWQMPRowsFromXLSX(_dbContext, dt, GetAnyJurisdictionID(), out var errors);
+            Assert.IsTrue(errors.Any(x => x.Contains("Trash Capture Effectiveness") && x.Contains("-5") && x.Contains("between 0 and 100")),
+                "Expected a clear range-violation error for effectiveness < 0.");
+            var bmp = result.SingleOrDefault(x => x.WaterQualityManagementPlanName == "___NPT_1072_TCE_NEG___");
+            Assert.IsTrue(bmp == null || bmp.TrashCaptureEffectiveness == null);
+        }
+
+        [TestMethod]
+        public void TrashCaptureEffectiveness_InclusiveBoundaries_Accepted()
+        {
+            // 0 and 100 are both valid.
+            var dt = BuildDataTable(AllCols,
+                RowWithOverride("___NPT_1072_TCE_ZERO___", "Trash Capture Effectiveness", "0"),
+                RowWithOverride("___NPT_1072_TCE_HUNDRED___", "Trash Capture Effectiveness", "100"));
+            var result = WQMPXSLXParserHelper.ParseWQMPRowsFromXLSX(_dbContext, dt, GetAnyJurisdictionID(), out var errors);
+            Assert.AreEqual(0, errors.Count, string.Join("; ", errors));
+            var zero = result.Single(x => x.WaterQualityManagementPlanName == "___NPT_1072_TCE_ZERO___");
+            var hundred = result.Single(x => x.WaterQualityManagementPlanName == "___NPT_1072_TCE_HUNDRED___");
+            Assert.AreEqual(0, zero.TrashCaptureEffectiveness);
+            Assert.AreEqual(100, hundred.TrashCaptureEffectiveness);
         }
     }
 }
