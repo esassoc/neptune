@@ -17,7 +17,6 @@ import { environment } from "src/environments/environment";
 })
 export class TrashSiteLayoutComponent implements OnInit {
     public currentUser$: Observable<PersonDto>;
-    public siteUrl = environment.ocStormwaterToolsBaseUrl;
 
     constructor(private authenticationService: AuthenticationService) {}
 

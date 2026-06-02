@@ -10,7 +10,7 @@ import { LandUseBlockGridDto } from "../../../shared/generated/model/land-use-bl
 import { NeptunePageTypeEnum } from "src/app/shared/generated/enum/neptune-page-type-enum";
 import { LoadingDirective } from "src/app/shared/directives/loading.directive";
 import { IconComponent } from "../../../shared/components/icon/icon.component";
-import { environment } from "src/environments/environment";
+import { RouterLink } from "@angular/router";
 import { AuthenticationService } from "src/app/services/authentication.service";
 import { NeptuneMapInitEvent } from "src/app/shared/components/leaflet/neptune-map/neptune-map.component";
 import { HybridMapGridComponent } from "src/app/shared/components/hybrid-map-grid/hybrid-map-grid.component";
@@ -43,6 +43,7 @@ import { OverlayMode } from "src/app/shared/components/leaflet/layers/generic-wm
         JurisdictionsLayerComponent,
         WqmpsLayerComponent,
         DelineationsLayerComponent,
+        RouterLink,
     ],
     templateUrl: "./trash-land-use-block-index.component.html",
     styleUrl: "./trash-land-use-block-index.component.scss",
@@ -53,7 +54,6 @@ export class TrashLandUseBlockIndexComponent {
     public landUseBlockColumnDefs: ColDef[];
     public richTextID = NeptunePageTypeEnum.LandUseBlock;
     public isLoading: boolean = true;
-    public url = environment.ocStormwaterToolsBaseUrl;
     public landUseBlockID: number;
     /** Stable reference for the layer's [selectedLandUseBlockIDs] @Input. Built inline as
      * `landUseBlockID ? [landUseBlockID] : []` would allocate a new array every change-detection

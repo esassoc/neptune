@@ -1,5 +1,7 @@
 <page-header pageTitle="Download Land Use Blocks">
     <a class="back-link" [routerLink]="['/data-hub']" [queryParams]="{ tab: 'trash' }">&laquo; Back to Data Hub</a>
+    &nbsp;|&nbsp;
+    <a class="back-link" [routerLink]="['/data-hub/land-use-block-upload']">Go to Upload Land Use Blocks &raquo;</a>
 </page-header>
 
 <section class="content-section">
@@ -7,12 +9,11 @@
 
     <div class="grid-12">
         <div class="g-col-6 instructions">
-            <p>Build a zipped File Geodatabase containing every Land Use Block for the selected jurisdiction. The export includes:</p>
+            <p>Use this form to download Land Use Blocks for a given jurisdiction:</p>
             <ul>
-                <li>Block identifier, priority land use type, land use description.</li>
-                <li>Block area in acres and computed trash generating unit area in acres.</li>
-                <li>Trash generation rate, land use for TGR, household income context fields, and permit type.</li>
-                <li>Polygon geometry in NAD 83 HARN California Zone VI (SRID 2771).</li>
+                <li>A single ArcGIS file geodatabase containing land use block features will be produced for the selected jurisdiction.</li>
+                <li>It will contain attributes for Block ID, Land Use Type, Jurisdiction, Block Area, Trash Generation Rate, Land Use Description, Median Household Income Residential, Median Household Income Retail, Trash Results Area, and Permit Type.</li>
+                <li>This file download is intended to support bulk editing in desktop GIS software and can be re-uploaded to the platform to replace the existing land use blocks utilized in trash results calculations.</li>
             </ul>
         </div>
         <div class="g-col-6">

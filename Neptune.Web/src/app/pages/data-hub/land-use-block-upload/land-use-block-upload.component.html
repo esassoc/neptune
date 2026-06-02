@@ -1,5 +1,7 @@
 <page-header pageTitle="Upload Land Use Blocks">
     <a class="back-link" [routerLink]="['/data-hub']" [queryParams]="{ tab: 'trash' }">&laquo; Back to Data Hub</a>
+    &nbsp;|&nbsp;
+    <a class="back-link" [routerLink]="['/data-hub/land-use-block-download']">Go to Download Land Use Blocks &raquo;</a>
 </page-header>
 
 <section class="content-section">
@@ -7,12 +9,23 @@
 
     <div class="grid-12">
         <div class="g-col-6 instructions">
-            <p>Use this form to bulk upload Land Use Blocks for a jurisdiction from a zipped File Geodatabase. Requirements:</p>
+            <p>Use this form to bulk upload Land Use Blocks. Requirements:</p>
             <ul>
-                <li>A single ArcGIS file geodatabase (.gdb inside a .zip) containing exactly one Land Use Block feature class.</li>
-                <li>The feature class must include attributes: PriorityLandUseType, LandUseDescription, TrashGenerationRate, LandUseForTGR, MedianHouseholdIncomeResidential, MedianHouseholdIncomeRetail, PermitType.</li>
-                <li>Validated rows are written to the staging table; a background job then processes them and emails the result to you. You can close this page once the upload is staged.</li>
+                <li>A single ArcGIS file geodatabase containing only Land Use Block features.</li>
+                <li>The file geodatabase (.gdb) must be contained within a compressed zip file (.zip).</li>
+                <li>The zip file must contain only one file geodatabase and no other data.</li>
+                <li>The file geodatabase must contain only one feature class.</li>
+                <li>
+                    The feature class must include attributes <code>PriorityLandUseType</code>, <code>LandUseDescription</code>, <code>TrashGenerationRate</code>, <code>LandUseForTGR</code>, <code>MedianHouseholdIncomeResidential</code>, <code>MedianHouseholdIncomeRetail</code>, and <code>PermitType</code>. All required values must be present.
+                </li>
+                <li>
+                    Geodatabases using ESRI Smart Database Compression (SDC) are not supported. Please
+                    <a href="https://desktop.arcgis.com/en/arcmap/10.3/tools/data-management-toolbox/uncompress-file-geodatabase-data.htm" target="_blank" rel="noopener noreferrer">uncompress</a>
+                    before zipping and uploading.
+                </li>
+                <li>Version 10.1+ file geodatabases are supported.</li>
             </ul>
+            <p>After you upload your file the new Land Use Blocks will be staged for review. Once approved, they replace any existing Land Use Blocks for your Jurisdiction. It may take up to twenty-four hours to see updated Trash Results on the home page.</p>
         </div>
         <div class="g-col-6">
             @if (jurisdictionOptions$ | async; as opts) {

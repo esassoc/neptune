@@ -8,7 +8,6 @@ import { OnlandVisualTrashAssessmentAreaService } from "src/app/shared/generated
 import { OnlandVisualTrashAssessmentAreaGridDto } from "src/app/shared/generated/model/onland-visual-trash-assessment-area-grid-dto";
 import { AsyncPipe } from "@angular/common";
 import { LoadingDirective } from "src/app/shared/directives/loading.directive";
-import { environment } from "src/environments/environment";
 import { IconComponent } from "../../../../shared/components/icon/icon.component";
 import { HybridMapGridComponent } from "../../../../shared/components/hybrid-map-grid/hybrid-map-grid.component";
 import { NeptuneMapInitEvent } from "src/app/shared/components/leaflet/neptune-map/neptune-map.component";
@@ -36,7 +35,6 @@ export class TrashOvtaAreaIndexComponent {
     public onlandVisualTrashAssessmentAreas$: Observable<OnlandVisualTrashAssessmentAreaGridDto[]>;
     public ovtaAreaColumnDefs: ColDef[];
     public isLoading: boolean = true;
-    public url = environment.ocStormwaterToolsBaseUrl;
     public ovtaAreaID: number;
     public selectionFromMap: boolean;
 
