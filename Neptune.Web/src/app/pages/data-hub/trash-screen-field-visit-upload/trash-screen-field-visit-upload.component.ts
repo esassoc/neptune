@@ -40,6 +40,7 @@ export class TrashScreenFieldVisitUploadComponent {
     public onFileChange(file: File | null): void {
         if (!file) return;
         if (!file.name.toLowerCase().endsWith(".xlsx")) {
+            this.alertService.clearAlerts();
             this.alertService.pushAlert(new Alert("Only XLSX files are accepted.", AlertContext.Danger, true));
             this.fileControl.setValue(null);
         }
@@ -47,6 +48,7 @@ export class TrashScreenFieldVisitUploadComponent {
 
     public submit(): void {
         if (this.fileControl.invalid) return;
+        this.alertService.clearAlerts();
         this.errors.set([]);
         this.successMessage.set(null);
         this.isUploading.set(true);
