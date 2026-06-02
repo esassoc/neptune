@@ -63,6 +63,9 @@ export class WqmpLocationsUploadComponent implements OnInit {
 
     public submit(): void {
         if (this.fileControl.invalid || this.jurisdictionControl.invalid) return;
+        // NPT-1074: clear stale banners from prior attempts so file-rejection / upload-failed
+        // alerts don't stack across submits. Same shape as the NPT-1072 + NPT-1073 fixes.
+        this.alertService.clearAlerts();
         this.errors.set([]);
         this.missingApns.set([]);
         this.successMessage.set(null);
@@ -78,7 +81,15 @@ export class WqmpLocationsUploadComponent implements OnInit {
                 }
                 const added = result.AddedCount ?? 0;
                 const updated = result.UpdatedCount ?? 0;
-                this.successMessage.set(`Upload successful: ${added} WQMP boundaries added, ${updated} updated.`);
+                this.alertService.clearAlerts();
+                // NPT-1074 TC11: server returns no Errors when all APNs are unmatched (it's a
+                // soft-miss per the spec, not a row-level error), so we land here with 0/0.
+                // Be explicit that nothing was created rather than calling it "successful".
+                if (added === 0 && updated === 0) {
+                    this.successMessage.set("Upload completed: 0 boundaries created - all APNs unmatched.");
+                } else {
+                    this.successMessage.set(`Upload successful: ${added} WQMP boundaries added, ${updated} updated.`);
+                }
                 this.missingApns.set(result.MissingApns ?? []);
                 this.fileControl.reset();
             },
