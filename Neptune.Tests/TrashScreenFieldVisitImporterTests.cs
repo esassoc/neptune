@@ -320,5 +320,83 @@ namespace Neptune.Tests
             Assert.AreEqual(beforeCount + 1, afterCount,
                 "Exactly one new FieldVisit should have been added for this BMP.");
         }
+
+        // ----- NPT-1071 Bug #2: numeric range validation (pure helpers) -----
+
+        [TestMethod]
+        public void ValidateMaintenanceRecordNumericRange_PercentTrashOver100_Errors()
+        {
+            var result = TrashScreenFieldVisitImporter.ValidateMaintenanceRecordNumericRange("Percent Trash", "150", 3);
+            Assert.IsNotNull(result);
+            Assert.IsTrue(result!.Contains("Percent Trash"));
+            Assert.IsTrue(result.Contains("150"));
+            Assert.IsTrue(result.Contains("between 0 and 100"));
+            Assert.IsTrue(result.Contains("row 5"), $"Expected 1-indexed row (rowNumber+2). Got: {result}");
+        }
+
+        [TestMethod]
+        public void ValidateMaintenanceRecordNumericRange_NegativePercentSediment_Errors()
+        {
+            var result = TrashScreenFieldVisitImporter.ValidateMaintenanceRecordNumericRange("Percent Sediment", "-5", 0);
+            Assert.IsNotNull(result);
+            Assert.IsTrue(result!.Contains("Percent Sediment"));
+            Assert.IsTrue(result.Contains("-5"));
+        }
+
+        [TestMethod]
+        public void ValidateMaintenanceRecordNumericRange_NegativeVolumeGal_Errors()
+        {
+            var result = TrashScreenFieldVisitImporter.ValidateMaintenanceRecordNumericRange("Total Material Volume Removed (gal)", "-1.5", 0);
+            Assert.IsNotNull(result);
+            Assert.IsTrue(result!.Contains("0 or greater"), $"Volumes use the >= 0 message, not the percent message. Got: {result}");
+        }
+
+        [TestMethod]
+        public void ValidateMaintenanceRecordNumericRange_VolumeOver100_NoError()
+        {
+            // Volumes have no upper bound — 1000 cu-ft is legitimate.
+            var result = TrashScreenFieldVisitImporter.ValidateMaintenanceRecordNumericRange("Total Material Volume Removed (cu-ft)", "1000", 0);
+            Assert.IsNull(result);
+        }
+
+        [TestMethod]
+        public void ValidateMaintenanceRecordNumericRange_PercentZeroAndHundred_BoundaryOk()
+        {
+            // Inclusive bounds.
+            Assert.IsNull(TrashScreenFieldVisitImporter.ValidateMaintenanceRecordNumericRange("Percent Green Waste", "0", 0));
+            Assert.IsNull(TrashScreenFieldVisitImporter.ValidateMaintenanceRecordNumericRange("Percent Green Waste", "100", 0));
+        }
+
+        [TestMethod]
+        public void ValidateMaintenanceRecordNumericRange_BlankValue_NoError()
+        {
+            // Blank cells are valid (the maintenance-record columns are all optional).
+            Assert.IsNull(TrashScreenFieldVisitImporter.ValidateMaintenanceRecordNumericRange("Percent Trash", "", 0));
+            Assert.IsNull(TrashScreenFieldVisitImporter.ValidateMaintenanceRecordNumericRange("Percent Trash", null, 0));
+        }
+
+        [TestMethod]
+        public void ValidatePercentRange_AccumulationOver100_Errors()
+        {
+            var result = TrashScreenFieldVisitImporter.ValidatePercentRange("Material Accumulation as Percent of Total System Volume", "120", 1);
+            Assert.IsNotNull(result);
+            Assert.IsTrue(result!.Contains("between 0 and 100"));
+            Assert.IsTrue(result.Contains("row 3"));
+        }
+
+        [TestMethod]
+        public void ValidatePercentRange_NegativeAccumulation_Errors()
+        {
+            var result = TrashScreenFieldVisitImporter.ValidatePercentRange("Material Accumulation as Percent of Total System Volume", "-1", 0);
+            Assert.IsNotNull(result);
+        }
+
+        [TestMethod]
+        public void ValidatePercentRange_InRange_NoError()
+        {
+            Assert.IsNull(TrashScreenFieldVisitImporter.ValidatePercentRange("Anything", "50", 0));
+            Assert.IsNull(TrashScreenFieldVisitImporter.ValidatePercentRange("Anything", "0", 0));
+            Assert.IsNull(TrashScreenFieldVisitImporter.ValidatePercentRange("Anything", "100", 0));
+        }
     }
 }

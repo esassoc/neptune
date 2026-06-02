@@ -348,6 +348,15 @@ public static class TrashScreenFieldVisitImporter
             return errors;
         }
 
+        // NPT-1071: range-check the numeric maintenance-record columns. Blank cells parse to empty
+        // string above and skip this check entirely; only non-empty out-of-range values are flagged.
+        var rangeError = ValidateMaintenanceRecordNumericRange(observationName, valueParsedForDataType, rowNumber);
+        if (rangeError != null)
+        {
+            errors.Add(rangeError);
+            return errors;
+        }
+
         if (maintenanceRecordObservation != null)
         {
             var maintenanceRecordObservationValue = maintenanceRecordObservation.MaintenanceRecordObservationValues.SingleOrDefault();
@@ -402,6 +411,18 @@ public static class TrashScreenFieldVisitImporter
             return errors;
         }
 
+        // NPT-1071: Material Accumulation % must be in [0, 100]. Other observation types in this
+        // method are Pass/Fail and don't need a numeric bound.
+        if (dataType == ObservationTypeDataTypeEnum.Numeric && observationTypeName == ACCUMULATION)
+        {
+            var accumRangeError = ValidatePercentRange($"{observationTypeName}{suffix}", rawValidationResult.ParsedValue?.ToString(), rowNumber);
+            if (accumRangeError != null)
+            {
+                errors.Add(accumRangeError);
+                return errors;
+            }
+        }
+
         var conditionBoxed = new
         {
             SingleValueObservations = new[]
@@ -437,6 +458,47 @@ public static class TrashScreenFieldVisitImporter
         }
 
         return errors;
+    }
+
+    /// <summary>
+    /// NPT-1071: range-check for the numeric maintenance-record columns. Volumes must be ≥ 0;
+    /// percent columns must be in [0, 100]. Returns the user-facing error string or null when the
+    /// value is in range (or blank / unparseable — unparseable values are caught upstream).
+    /// Exposed for unit testing.
+    /// </summary>
+    public static string? ValidateMaintenanceRecordNumericRange(string observationName, string? parsedValue, int rowNumber)
+    {
+        if (!decimal.TryParse(parsedValue, out var value))
+        {
+            return null;
+        }
+        return observationName switch
+        {
+            TRASH or GREEN_WASTE or SEDIMENT when value < 0 || value > 100
+                => $"{observationName} '{value}' must be between 0 and 100 at row {rowNumber + 2}",
+            VOLUME_CUFT or VOLUME_GAL when value < 0
+                => $"{observationName} '{value}' must be 0 or greater at row {rowNumber + 2}",
+            _ => null,
+        };
+    }
+
+    /// <summary>
+    /// NPT-1071: range-check for percentage observations on the assessment blocks (currently just
+    /// Material Accumulation %). Same shape as ValidateMaintenanceRecordNumericRange so the
+    /// user-facing error wording stays consistent across the two parse paths. Exposed for unit
+    /// testing.
+    /// </summary>
+    public static string? ValidatePercentRange(string fieldName, string? parsedValue, int rowNumber)
+    {
+        if (!decimal.TryParse(parsedValue, out var value))
+        {
+            return null;
+        }
+        if (value < 0 || value > 100)
+        {
+            return $"{fieldName} '{value}' must be between 0 and 100 at row {rowNumber + 2}";
+        }
+        return null;
     }
 
     private static async Task<TreatmentBMPObservation> GetExistingTreatmentBMPObservationOrCreateNew(
