@@ -290,11 +290,14 @@ namespace Neptune.EFModels.Entities
             var approvalDateString = ExcelHelper.SetStringValue(row, rowNumber, errorList, "Approval Date", 100, false);
             if (!string.IsNullOrWhiteSpace(approvalDateString))
             {
+                // NPT-1072: show the user's raw input + expected format hint. The previous message
+                // interpolated `approvalDateParsed`, which is DateTime.MinValue on a failed TryParse
+                // — so users saw "01/01/0001 00:00:00" instead of the value they actually entered.
                 if (!DateTime.TryParse(approvalDateString,
                         out var approvalDateParsed))
                 {
                     errorList.Add(
-                        $"{approvalDateParsed} can not be converted to Date Time format at row: {rowNumber}");
+                        $"Approval Date '{approvalDateString}' is not a valid date (expected mm/dd/yyyy) at row: {rowNumber}");
                 }
                 else
                 {
@@ -327,13 +330,32 @@ namespace Neptune.EFModels.Entities
             var recordedWqmpArea = ExcelHelper.GetOptionalDecimalFieldValue(row, rowNumber, errorList, "Recorded WQMP Area (Acres)");
             if (recordedWqmpArea.HasValue)
             {
-                wqmp.RecordedWQMPAreaInAcres = recordedWqmpArea;
+                // NPT-1072: reject negative acreage at parse time. Previously a negative value was
+                // silently accepted into the entity.
+                if (recordedWqmpArea < 0)
+                {
+                    errorList.Add($"Recorded WQMP Area (Acres) '{recordedWqmpArea}' cannot be negative at row: {rowNumber}");
+                }
+                else
+                {
+                    wqmp.RecordedWQMPAreaInAcres = recordedWqmpArea;
+                }
             }
 
             var trashCaptureEffectiveness = ExcelHelper.GetOptionalIntFieldValue(row, rowNumber, errorList, "Trash Capture Effectiveness");
             if (trashCaptureEffectiveness.HasValue)
             {
-                wqmp.TrashCaptureEffectiveness = trashCaptureEffectiveness;
+                // NPT-1072: enforce the 0–100 percentage range here so out-of-range values surface as
+                // a clean parser-level validation error instead of propagating to SaveChangesAsync
+                // and emerging as a generic 500.
+                if (trashCaptureEffectiveness < 0 || trashCaptureEffectiveness > 100)
+                {
+                    errorList.Add($"Trash Capture Effectiveness '{trashCaptureEffectiveness}' must be between 0 and 100 at row: {rowNumber}");
+                }
+                else
+                {
+                    wqmp.TrashCaptureEffectiveness = trashCaptureEffectiveness;
+                }
             }
 
             var modelingApproach = row["Modeling Approach"].ToString();
@@ -354,11 +376,12 @@ namespace Neptune.EFModels.Entities
             var constructionDateString = ExcelHelper.SetStringValue(row, rowNumber, errorList, "Date of Construction", 100, false);
             if (!string.IsNullOrWhiteSpace(constructionDateString))
             {
+                // NPT-1072: same fix as Approval Date above — show the raw input + format hint.
                 if (!DateTime.TryParse(constructionDateString,
                         out var constructionDateParsed))
                 {
                     errorList.Add(
-                        $"{constructionDateParsed} can not be converted to Date Time format at row: {rowNumber}");
+                        $"Date of Construction '{constructionDateString}' is not a valid date (expected mm/dd/yyyy) at row: {rowNumber}");
                 }
                 else
                 {
