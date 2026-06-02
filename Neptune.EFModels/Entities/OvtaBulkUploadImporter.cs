@@ -45,15 +45,12 @@ public static class OvtaBulkUploadImporter
 
         var numRows = dataTable.Rows.Count;
         var numColumns = dataTable.Columns.Count;
-        // NPT-1076 Bug #2: header-only XLSX used to silently report "Successfully bulk uploaded
-        // OVTAs from 0 row(s)". Surface a row-error so the SPA renders an actionable message.
-        if (numRows == 0)
-        {
-            result.Errors.Add("The uploaded file had no data rows. Add at least one OVTA Assessment row beneath the header and try again.");
-            return result;
-        }
         var errors = new List<string>();
         var ovtaAreaIDsForScoreRecalculation = new List<int?>();
+        // NPT-1076 Bug #2: track actually-processed (non-blank) rows so we can surface a
+        // row-error when the file has nothing to import. Covers header-only XLSX and the case
+        // where Excel's used range stretches past data leaving trailing blank rows.
+        var processedRowCount = 0;
 
         try
         {
@@ -142,6 +139,7 @@ public static class OvtaBulkUploadImporter
                         IsTransectBackingAssessment = false,
                     };
                     dbContext.Add(assessment);
+                    processedRowCount++;
                 }
                 catch (InvalidOperationException ioe)
                 {
@@ -158,6 +156,14 @@ public static class OvtaBulkUploadImporter
         if (errors.Count > 0)
         {
             result.Errors = errors;
+            return result;
+        }
+
+        // NPT-1076 Bug #2: file had no actionable data (header-only or all-blank rows). Surface
+        // an error so the SPA doesn't show "Successfully bulk uploaded OVTAs from 0 row(s)".
+        if (processedRowCount == 0)
+        {
+            result.Errors.Add("The uploaded file had no data rows. Add at least one OVTA Assessment row beneath the header and try again.");
             return result;
         }
 

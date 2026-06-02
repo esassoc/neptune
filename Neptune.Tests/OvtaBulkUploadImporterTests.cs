@@ -342,6 +342,21 @@ namespace Neptune.Tests
         }
 
         [TestMethod]
+        public async Task AllBlankDataRows_Errors()
+        {
+            // Copilot review on PR #544: Excel's used range can stretch past actual data,
+            // producing blank data rows that the rowEmpty check skips. Previously this slipped
+            // through the upfront numRows == 0 guard and returned a false success. The
+            // post-loop processedRowCount guard now catches it too.
+            var blank = new string[BaseColumns.Length];
+            for (var i = 0; i < blank.Length; i++) blank[i] = "";
+            using var xlsx = BuildXlsx(BaseColumns, new[] { blank, blank, blank });
+            var result = await OvtaBulkUploadImporter.BulkUploadAsync(_dbContext, xlsx, GetAdminPerson());
+            Assert.AreEqual(1, result.Errors.Count, string.Join("; ", result.Errors));
+            Assert.IsTrue(result.Errors[0].Contains("no data rows"), result.Errors[0]);
+        }
+
+        [TestMethod]
         public async Task InvalidCompletedDate_RowScopedError()
         {
             // Bug #3: garbage Completed Date used to fall through to the outer catch and surface
