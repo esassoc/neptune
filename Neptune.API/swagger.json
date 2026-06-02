@@ -2548,6 +2548,82 @@
         }
       }
     },
+    "/land-use-blocks/staging-report": {
+      "get": {
+        "tags": [
+          "LandUseBlock"
+        ],
+        "operationId": "StagingReport_LandUseBlock",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/LandUseBlockGdbUploadValidationDto"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LandUseBlockGdbUploadValidationDto"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LandUseBlockGdbUploadValidationDto"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/land-use-blocks/staging/approve": {
+      "post": {
+        "tags": [
+          "LandUseBlock"
+        ],
+        "operationId": "ApproveStaging_LandUseBlock",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "type": "integer",
+                  "format": "int32"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "type": "integer",
+                  "format": "int32"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "type": "integer",
+                  "format": "int32"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/land-use-blocks/staging": {
+      "delete": {
+        "tags": [
+          "LandUseBlock"
+        ],
+        "operationId": "DiscardStaging_LandUseBlock",
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
     "/land-use-blocks/download-gdb": {
       "post": {
         "tags": [
@@ -16492,9 +16568,27 @@
           "StagedRowCount": {
             "type": "integer",
             "format": "int32"
+          }
+        },
+        "additionalProperties": false
+      },
+      "LandUseBlockGdbUploadValidationDto": {
+        "type": "object",
+        "properties": {
+          "TotalStagedRowCount": {
+            "type": "integer",
+            "format": "int32"
           },
-          "BackgroundJobEnqueued": {
-            "type": "boolean"
+          "ExistingRowsToReplace": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "Errors": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "nullable": true
           }
         },
         "additionalProperties": false
@@ -17256,6 +17350,9 @@
           "Geometry": {
             "type": "string",
             "nullable": true
+          },
+          "JurisdictionHasLandUseBlocks": {
+            "type": "boolean"
           }
         },
         "additionalProperties": false
@@ -17267,7 +17364,20 @@
             "type": "integer",
             "format": "int32"
           },
+          "OvtaAreaSourceTypeID": {
+            "type": "integer",
+            "format": "int32",
+            "nullable": true
+          },
           "ParcelIDs": {
+            "type": "array",
+            "items": {
+              "type": "integer",
+              "format": "int32"
+            },
+            "nullable": true
+          },
+          "SelectedLandUseBlockIDs": {
             "type": "array",
             "items": {
               "type": "integer",
@@ -17278,9 +17388,6 @@
           "GeometryAsGeoJson": {
             "type": "string",
             "nullable": true
-          },
-          "UsingParcels": {
-            "type": "boolean"
           }
         },
         "additionalProperties": false

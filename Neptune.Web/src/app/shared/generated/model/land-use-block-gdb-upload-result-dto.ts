@@ -13,7 +13,6 @@ import { FormControl, FormControlOptions, FormControlState, Validators } from "@
 export class LandUseBlockGdbUploadResultDto { 
     Errors?: Array<string> | null;
     StagedRowCount?: number;
-    BackgroundJobEnqueued?: boolean;
     constructor(obj?: any) {
         Object.assign(this, obj);
     }
@@ -22,7 +21,6 @@ export class LandUseBlockGdbUploadResultDto {
 export interface LandUseBlockGdbUploadResultDtoForm { 
     Errors?: FormControl<Array<string>>;
     StagedRowCount?: FormControl<number>;
-    BackgroundJobEnqueued?: FormControl<boolean>;
 }
 
 export class LandUseBlockGdbUploadResultDtoFormControls { 
@@ -37,16 +35,6 @@ export class LandUseBlockGdbUploadResultDtoFormControls {
         }
     );
     public static StagedRowCount = (value: FormControlState<number> | number = undefined, formControlOptions?: FormControlOptions | null) => new FormControl<number>(
-        value,
-        formControlOptions ?? 
-        {
-            nonNullable: false,
-            validators: 
-            [
-            ],
-        }
-    );
-    public static BackgroundJobEnqueued = (value: FormControlState<boolean> | boolean = undefined, formControlOptions?: FormControlOptions | null) => new FormControl<boolean>(
         value,
         formControlOptions ?? 
         {

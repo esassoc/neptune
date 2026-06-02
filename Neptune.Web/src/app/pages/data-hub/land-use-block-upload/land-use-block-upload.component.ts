@@ -1,7 +1,7 @@
 import { AsyncPipe } from "@angular/common";
 import { Component, OnInit, signal } from "@angular/core";
 import { FormControl, FormsModule, ReactiveFormsModule, Validators } from "@angular/forms";
-import { RouterLink } from "@angular/router";
+import { Router, RouterLink } from "@angular/router";
 import { map, Observable } from "rxjs";
 import { LandUseBlockService } from "src/app/shared/generated/api/land-use-block.service";
 import { StormwaterJurisdictionService } from "src/app/shared/generated/api/stormwater-jurisdiction.service";
@@ -32,7 +32,8 @@ export class LandUseBlockUploadComponent implements OnInit {
     constructor(
         private alertService: AlertService,
         private landUseBlockService: LandUseBlockService,
-        private stormwaterJurisdictionService: StormwaterJurisdictionService
+        private stormwaterJurisdictionService: StormwaterJurisdictionService,
+        private router: Router
     ) {}
 
     ngOnInit(): void {
@@ -51,6 +52,8 @@ export class LandUseBlockUploadComponent implements OnInit {
 
     public submit(): void {
         if (this.fileControl.invalid || this.jurisdictionControl.invalid) return;
+        // NPT-1077: clear stale banners + signals so this submit starts clean.
+        this.alertService.clearAlerts();
         this.errors.set([]);
         this.successMessage.set(null);
         this.isUploading.set(true);
@@ -62,10 +65,10 @@ export class LandUseBlockUploadComponent implements OnInit {
                     this.errors.set(result.Errors);
                     return;
                 }
-                this.successMessage.set(
-                    `${result.StagedRowCount} Land Use Block(s) staged. Processing has been queued; you'll receive an email when the import completes.`
-                );
-                this.fileControl.reset();
+                // NPT-1077: the upload endpoint no longer enqueues the background job. Hand the
+                // user to the approve page, which fetches the validation report and (if clean)
+                // enqueues the job via POST /land-use-blocks/staging/approve.
+                this.router.navigate(["/data-hub/land-use-block-upload/approve"]);
             },
             error: () => {
                 this.isUploading.set(false);

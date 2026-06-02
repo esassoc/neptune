@@ -8,6 +8,37 @@ namespace Neptune.EFModels.Entities;
 
 public static class LandUseBlocks
 {
+    /// <summary>
+    /// NPT-1077: project a validated <see cref="LandUseBlockStaging"/> row into the
+    /// production <see cref="LandUseBlock"/> entity. Income values are copied verbatim — the
+    /// legacy job's branching on <c>LandUseForTGR</c> that zeroed out non-RESIDENTIAL/RETAIL rows
+    /// has been removed. The caller (background job) must have already validated lookup-name
+    /// matches via <see cref="LandUseBlockStagings.ValidateStagings"/>; lookup misses here throw
+    /// because they'd indicate a bypass of the validation gate.
+    /// </summary>
+    public static LandUseBlock FromStaging(LandUseBlockStaging staging)
+    {
+        return new LandUseBlock
+        {
+            StormwaterJurisdictionID = staging.StormwaterJurisdictionID,
+            PriorityLandUseTypeID = PriorityLandUseType.All
+                .Single(x => string.Equals(x.PriorityLandUseTypeDisplayName, staging.PriorityLandUseType, StringComparison.InvariantCultureIgnoreCase))
+                .PriorityLandUseTypeID,
+            PermitTypeID = PermitType.All
+                .Single(x => string.Equals(x.PermitTypeDisplayName, staging.PermitType, StringComparison.InvariantCultureIgnoreCase))
+                .PermitTypeID,
+            LandUseDescription = staging.LandUseDescription,
+            TrashGenerationRate = staging.TrashGenerationRate,
+            LandUseForTGR = staging.LandUseForTGR,
+            // NPT-1077: preserve both income values verbatim. The legacy job zeroed these based on
+            // LandUseForTGR — display-only fields shouldn't be overwritten.
+            MedianHouseholdIncomeResidential = staging.MedianHouseholdIncomeResidential,
+            MedianHouseholdIncomeRetail = staging.MedianHouseholdIncomeRetail,
+            LandUseBlockGeometry = staging.Geometry,
+            LandUseBlockGeometry4326 = staging.Geometry.ProjectTo4326(),
+        };
+    }
+
     public static LandUseBlock GetByIDWithChangeTracking(NeptuneDbContext dbContext, int landUseBlockID)
     {
         var landUseBlock = dbContext.LandUseBlocks

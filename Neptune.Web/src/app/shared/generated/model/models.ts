@@ -56,6 +56,7 @@ export * from './i-attributes-table';
 export * from './i-feature';
 export * from './land-use-block-gdb-download-request-dto';
 export * from './land-use-block-gdb-upload-result-dto';
+export * from './land-use-block-gdb-upload-validation-dto';
 export * from './land-use-block-grid-dto';
 export * from './land-use-block-upsert-dto';
 export * from './load-generating-unit-dto';
