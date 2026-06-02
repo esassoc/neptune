@@ -338,7 +338,10 @@ namespace Neptune.Tests
             Assert.AreEqual(0, errors.Count, string.Join("; ", errors));
             Assert.AreEqual(1, result.Count);
             Assert.IsNotNull(result[0].ApprovalDate);
-            // PST → UTC conversion shifts the day forward by the offset.
+            // Assert year/month only — the parser converts PST→UTC, which shifts the clock by
+            // the offset (7-8 hours) but leaves the calendar year/month unchanged for a midnight
+            // input. Day-of-month is intentionally not asserted to avoid coupling to whichever
+            // DST window the test runs in.
             Assert.AreEqual(2021, result[0].ApprovalDate!.Value.Year);
             Assert.AreEqual(6, result[0].ApprovalDate!.Value.Month);
         }
