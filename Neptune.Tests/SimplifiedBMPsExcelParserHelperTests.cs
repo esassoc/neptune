@@ -150,5 +150,160 @@ namespace Neptune.Tests
             SimplifiedBMPsExcelParserHelper.ParseWQMPRowsFromXLSX(_dbContext, existingWqmp.StormwaterJurisdictionID, dt, out var errors);
             Assert.IsTrue(errors.Any(x => x.Contains("Count of BMPs")));
         }
+
+        // ----- NPT-1073 -----
+
+        [TestMethod]
+        public void NonexistentWQMP_ProducesSingleErrorWithRowNumber()
+        {
+            // NPT-1073 Bug 1 regression guard: the redundant pre-pass loop was removed, so a row
+            // referencing an unknown WQMP should produce exactly one error from the per-row parser
+            // (with row number), not two (one from the pre-pass, one from the per-row).
+            var dt = BuildDataTable(AllCols,
+                new[] { "___NPT_1073_MISSING_WQMP___", "BMP-A", GetAnyBMPTypeName(), "1", "", "", "", "", "" });
+            SimplifiedBMPsExcelParserHelper.ParseWQMPRowsFromXLSX(_dbContext, GetAnyJurisdictionID(), dt, out var errors);
+
+            var wqmpErrors = errors.Where(x => x.Contains("___NPT_1073_MISSING_WQMP___")).ToList();
+            Assert.AreEqual(1, wqmpErrors.Count, $"Expected one WQMP-not-found error, got {wqmpErrors.Count}: {string.Join("; ", wqmpErrors)}");
+            Assert.IsTrue(wqmpErrors[0].Contains("row 2"), $"Per-row error should include row number. Got: {wqmpErrors[0]}");
+            Assert.IsFalse(errors.Any(x => x.Contains("does not exist in given jurisdiction")),
+                "Pre-pass error wording should no longer appear.");
+        }
+
+        [TestMethod]
+        public void DuplicateBMPName_WithinUpload_ProducesParserErrorWithRow()
+        {
+            // NPT-1073 Bug 3 regression guard: quickBMPNamesInCsv was being re-initialized inside the
+            // per-row loop, so the in-CSV duplicate-name check never fired and rows slipped through
+            // to SaveChanges as a UNIQUE constraint 500. With the list hoisted out, the parser now
+            // catches duplicates and reports the row number.
+            var existingWqmp = _dbContext.WaterQualityManagementPlans.AsNoTracking().FirstOrDefault();
+            if (existingWqmp == null)
+            {
+                Assert.Inconclusive("No existing WQMP in dev DB.");
+                return;
+            }
+            var bmpType = GetAnyBMPTypeName();
+            var bmpName = "___NPT_1073_DUPLICATE_NAME___";
+            var dt = BuildDataTable(AllCols,
+                new[] { existingWqmp.WaterQualityManagementPlanName, bmpName, bmpType, "1", "", "", "", "", "" },
+                new[] { existingWqmp.WaterQualityManagementPlanName, bmpName, bmpType, "2", "", "", "", "", "" });
+            var result = SimplifiedBMPsExcelParserHelper.ParseWQMPRowsFromXLSX(_dbContext, existingWqmp.StormwaterJurisdictionID, dt, out var errors);
+
+            Assert.IsTrue(errors.Any(x => x.Contains(bmpName) && x.Contains("duplicate name is found at row: 3")),
+                $"Expected duplicate-name error naming row 3. Got: {string.Join("; ", errors)}");
+            Assert.IsNull(result, "Parser must return null when any errors are present so SaveChanges is never reached.");
+        }
+
+        [TestMethod]
+        public void InvalidDryWeatherFlowOverride_ErrorMentionsCorrectField()
+        {
+            // NPT-1073 Bug 4 regression guard: error was mis-labelled "BMP Type ..." due to copy-paste.
+            var existingWqmp = _dbContext.WaterQualityManagementPlans.AsNoTracking().FirstOrDefault();
+            if (existingWqmp == null)
+            {
+                Assert.Inconclusive("No existing WQMP in dev DB.");
+                return;
+            }
+            var dt = BuildDataTable(AllCols,
+                new[] { existingWqmp.WaterQualityManagementPlanName, "BMP-BadDWF", GetAnyBMPTypeName(), "1", "", "", "", "___NOT_A_DWF_OVERRIDE___", "" });
+            SimplifiedBMPsExcelParserHelper.ParseWQMPRowsFromXLSX(_dbContext, existingWqmp.StormwaterJurisdictionID, dt, out var errors);
+
+            var dwfError = errors.SingleOrDefault(x => x.Contains("___NOT_A_DWF_OVERRIDE___"));
+            Assert.IsNotNull(dwfError, "Expected an error referencing the bad DWF value.");
+            Assert.IsTrue(dwfError.Contains("Dry Weather Flow Override"), $"Error must name the correct field. Got: {dwfError}");
+            Assert.IsFalse(dwfError.StartsWith("BMP Type"), $"Error must not mis-label the field as 'BMP Type'. Got: {dwfError}");
+        }
+
+        [TestMethod]
+        public void CountOfBMPsZero_Rejected()
+        {
+            // NPT-1073 Bug 5 regression guard: 0 was silently accepted; now must be rejected with a
+            // clear "at least 1" message. The entity's NumberOfIndividualBMPs must not be set on
+            // the bad row.
+            var existingWqmp = _dbContext.WaterQualityManagementPlans.AsNoTracking().FirstOrDefault();
+            if (existingWqmp == null)
+            {
+                Assert.Inconclusive("No existing WQMP in dev DB.");
+                return;
+            }
+            var dt = BuildDataTable(AllCols,
+                new[] { existingWqmp.WaterQualityManagementPlanName, "___NPT_1073_ZERO_COUNT___", GetAnyBMPTypeName(), "0", "", "", "", "", "" });
+            SimplifiedBMPsExcelParserHelper.ParseWQMPRowsFromXLSX(_dbContext, existingWqmp.StormwaterJurisdictionID, dt, out var errors);
+
+            Assert.IsTrue(errors.Any(x => x.Contains("Count of BMPs") && x.Contains("at least 1") && x.Contains("row: 2")),
+                $"Expected a clear 'at least 1' validation error for count = 0. Got: {string.Join("; ", errors)}");
+        }
+
+        [TestMethod]
+        public void SameBMPNameAcrossDifferentWQMPs_NotFlaggedAsDuplicate()
+        {
+            // NPT-1073 follow-up (Copilot review on PR #539): QuickBMP uniqueness is scoped by
+            // (WaterQualityManagementPlanID, QuickBMPName), so the same BMP Name under two
+            // *different* WQMPs in one upload is legitimate. The duplicate tracker must be
+            // per-WQMP, not global.
+            var pair = _dbContext.WaterQualityManagementPlans
+                .AsNoTracking()
+                .GroupBy(x => x.StormwaterJurisdictionID)
+                .Where(g => g.Count() >= 2)
+                .Select(g => new { JurisdictionID = g.Key, Wqmps = g.Take(2).ToList() })
+                .FirstOrDefault();
+            if (pair == null)
+            {
+                Assert.Inconclusive("No jurisdiction has at least 2 WQMPs in dev DB; cross-WQMP same-name path cannot be exercised.");
+                return;
+            }
+            var bmpType = GetAnyBMPTypeName();
+            const string sharedBmpName = "___NPT_1073_CROSS_WQMP_NAME___";
+            var dt = BuildDataTable(AllCols,
+                new[] { pair.Wqmps[0].WaterQualityManagementPlanName, sharedBmpName, bmpType, "1", "", "", "", "", "" },
+                new[] { pair.Wqmps[1].WaterQualityManagementPlanName, sharedBmpName, bmpType, "1", "", "", "", "", "" });
+            var result = SimplifiedBMPsExcelParserHelper.ParseWQMPRowsFromXLSX(_dbContext, pair.JurisdictionID, dt, out var errors);
+
+            Assert.AreEqual(0, errors.Count, $"Same BMP Name under different WQMPs is legitimate. Errors: {string.Join("; ", errors)}");
+            Assert.IsNotNull(result);
+            Assert.AreEqual(2, result.Count);
+        }
+
+        [TestMethod]
+        public void DuplicateBMPName_CaseInsensitive_WithinSameWQMP_ProducesError()
+        {
+            // SQL Server's default collation is case-insensitive, so two BMPs that differ only in
+            // case under the same WQMP would still violate the UNIQUE constraint. The parser must
+            // catch these the same way it catches exact-case duplicates.
+            var existingWqmp = _dbContext.WaterQualityManagementPlans.AsNoTracking().FirstOrDefault();
+            if (existingWqmp == null)
+            {
+                Assert.Inconclusive("No existing WQMP in dev DB.");
+                return;
+            }
+            var bmpType = GetAnyBMPTypeName();
+            var dt = BuildDataTable(AllCols,
+                new[] { existingWqmp.WaterQualityManagementPlanName, "___NPT_1073_CASE_TEST___", bmpType, "1", "", "", "", "", "" },
+                new[] { existingWqmp.WaterQualityManagementPlanName, "___npt_1073_case_test___", bmpType, "2", "", "", "", "", "" });
+            SimplifiedBMPsExcelParserHelper.ParseWQMPRowsFromXLSX(_dbContext, existingWqmp.StormwaterJurisdictionID, dt, out var errors);
+
+            Assert.IsTrue(errors.Any(x => x.Contains("duplicate name is found at row: 3")),
+                $"Case-insensitive duplicate within a WQMP should be flagged. Got: {string.Join("; ", errors)}");
+        }
+
+        [TestMethod]
+        public void CountOfBMPsOne_AcceptedBoundary()
+        {
+            // Inclusive lower-bound guard — 1 is valid.
+            var existingWqmp = _dbContext.WaterQualityManagementPlans.AsNoTracking().FirstOrDefault();
+            if (existingWqmp == null)
+            {
+                Assert.Inconclusive("No existing WQMP in dev DB.");
+                return;
+            }
+            var dt = BuildDataTable(AllCols,
+                new[] { existingWqmp.WaterQualityManagementPlanName, "___NPT_1073_ONE_COUNT___", GetAnyBMPTypeName(), "1", "", "", "", "", "" });
+            var result = SimplifiedBMPsExcelParserHelper.ParseWQMPRowsFromXLSX(_dbContext, existingWqmp.StormwaterJurisdictionID, dt, out var errors);
+
+            Assert.AreEqual(0, errors.Count, string.Join("; ", errors));
+            Assert.AreEqual(1, result.Count);
+            Assert.AreEqual(1, result[0].NumberOfIndividualBMPs);
+        }
     }
 }

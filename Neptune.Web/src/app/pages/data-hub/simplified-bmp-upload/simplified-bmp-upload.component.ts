@@ -62,6 +62,9 @@ export class SimplifiedBmpUploadComponent implements OnInit {
 
     public submit(): void {
         if (this.fileControl.invalid || this.jurisdictionControl.invalid) return;
+        // NPT-1073: clear stale banners from prior attempts so the "Upload failed" / file-rejection
+        // alerts don't stack across submits. Same fix as the WQMP uploader (NPT-1072).
+        this.alertService.clearAlerts();
         this.errors.set([]);
         this.successMessage.set(null);
         this.isUploading.set(true);
@@ -73,6 +76,7 @@ export class SimplifiedBmpUploadComponent implements OnInit {
                     this.errors.set(result.Errors);
                     return;
                 }
+                this.alertService.clearAlerts();
                 this.successMessage.set(`Upload successful: ${result.AddedCount} Simplified BMPs added, ${result.UpdatedCount} Simplified BMPs updated.`);
                 this.fileControl.reset();
             },
