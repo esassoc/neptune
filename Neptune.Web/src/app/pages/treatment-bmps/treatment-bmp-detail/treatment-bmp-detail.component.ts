@@ -16,7 +16,8 @@ import { TreatmentBMPService } from "src/app/shared/generated/api/treatment-bmp.
 import { TreatmentBMPImageByTreatmentBMPService } from "src/app/shared/generated/api/treatment-bmp-image-by-treatment-bmp.service";
 import { TreatmentBMPDto } from "src/app/shared/generated/model/treatment-bmp-dto";
 import { ProjectLoadReducingResultDto } from "src/app/shared/generated/model/project-load-reducing-result-dto";
-import { catchError, of } from "rxjs";
+import { TreatmentBMPNereidLogContentDto } from "src/app/shared/generated/model/treatment-bmp-nereid-log-content-dto";
+import { environment } from "src/environments/environment";
 import { FieldDefinitionComponent } from "src/app/shared/components/field-definition/field-definition.component";
 import { NeptuneMapComponent } from "src/app/shared/components/leaflet/neptune-map/neptune-map.component";
 import { RegionalSubbasinsLayerComponent } from "src/app/shared/components/leaflet/layers/regional-subbasins-layer/regional-subbasins-layer.component";
@@ -161,6 +162,7 @@ export class TreatmentBmpDetailComponent implements OnInit, OnChanges {
     treatmentBMPImages$: Observable<TreatmentBMPImageDto[]>;
     treatmentBMPDocuments$: Observable<TreatmentBMPDocumentDto[]>;
     loadReducingResult$!: Observable<ProjectLoadReducingResultDto | null>;
+    public ocstBaseUrl = environment.ocStormwaterToolsBaseUrl;
     refreshTreatmentBMPDocumentsTrigger$: BehaviorSubject<void> = new BehaviorSubject<void>(undefined);
     hruCharacteristics$: Observable<HRUCharacteristicDto[]>;
     fieldVisits$: Observable<FieldVisitDto[]>;
@@ -403,13 +405,10 @@ export class TreatmentBmpDetailComponent implements OnInit, OnChanges {
             switchMap(() => this.treatmentBMPDocumentByTreatmentBMPService.listTreatmentBMPDocumentByTreatmentBMP(this.treatmentBMPID))
         );
 
-        // NPT-1068: Modeled BMP Performance source. 404 from the API means "no Nereid result for
-        // this BMP yet" (e.g. it just hasn't been modeled, or it's a non-modeled BMP type) — fall
-        // back to null so the template can render the "missing fields" / "not modeled" message
-        // instead of throwing a console error.
-        this.loadReducingResult$ = this.treatmentBMPService.getLoadReducingResultTreatmentBMP(this.treatmentBMPID).pipe(
-            catchError(() => of(null as ProjectLoadReducingResultDto | null))
-        );
+        // NPT-1068: Modeled BMP Performance source. Endpoint returns 200 with a null body when
+        // Nereid hasn't produced a non-baseline result yet, so the async pipe just sees null and
+        // the template falls back to the "missing fields" / "not modeled" message.
+        this.loadReducingResult$ = this.treatmentBMPService.getLoadReducingResultTreatmentBMP(this.treatmentBMPID);
 
         this.refreshTreatmentBMPDocumentsTrigger$.next();
     }
@@ -650,6 +649,32 @@ export class TreatmentBmpDetailComponent implements OnInit, OnChanges {
         this.treatmentBMPDocumentByTreatmentBMPService.deleteTreatmentBMPDocumentByTreatmentBMP(this.treatmentBMPID, treatmentBMPDocument.TreatmentBMPDocumentID).subscribe(() => {
             this.alertService.pushAlert(new Alert("Successfully deleted document.", AlertContext.Success));
             this.refreshTreatmentBMPDocumentsTrigger$.next();
+        });
+    }
+
+    /**
+     * NPT-1068: Sitka-admin "Latest Nereid Request" / "Latest Nereid Response" downloads on the
+     * Modeled BMP Performance panel. Fetches the BMP's most-recent NereidLog content via the
+     * API and triggers a browser blob download, matching the legacy MVC pattern.
+     */
+    public downloadLatestNereidLog(which: "request" | "response"): void {
+        this.treatmentBMPService.getLatestNereidLogTreatmentBMP(this.treatmentBMPID).subscribe((log: TreatmentBMPNereidLogContentDto | null) => {
+            if (!log) {
+                this.alertService.pushAlert(new Alert("No Nereid log found for this BMP yet.", AlertContext.Warning, true));
+                return;
+            }
+            const content = which === "request" ? log.NereidRequest : log.NereidResponse;
+            if (!content) {
+                this.alertService.pushAlert(new Alert(`No Nereid ${which} content available for this BMP yet.`, AlertContext.Warning, true));
+                return;
+            }
+            const blob = new Blob([content], { type: "application/json" });
+            const url = window.URL.createObjectURL(blob);
+            const a = document.createElement("a");
+            a.href = url;
+            a.download = `nereid${which === "request" ? "Request" : "Response"}_BMP${this.treatmentBMPID}.json`;
+            a.click();
+            window.URL.revokeObjectURL(url);
         });
     }
 }

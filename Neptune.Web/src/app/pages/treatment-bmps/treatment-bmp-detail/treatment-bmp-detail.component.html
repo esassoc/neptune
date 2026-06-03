@@ -202,8 +202,28 @@
                                 } @else {
                                     @if (loadReducingResult$ | async; as loadReducingResult) {
                                         <modeled-bmp-performance [selectedTreatmentBMPID]="treatmentBMP.TreatmentBMPID" [loadReducingResult]="loadReducingResult" siteRunoffLabel="To BMP"></modeled-bmp-performance>
+                                        <div class="modeled-performance-footer">
+                                            @if (loadReducingResult.LastCalculatedDate) {
+                                                <p class="system-text"><em>Results last calculated at {{ loadReducingResult.LastCalculatedDate | date: "MM/dd/yyyy h:mm a" }}</em></p>
+                                            }
+                                            @if (isSitkaAdmin && treatmentBMP.LastNereidLogID != null) {
+                                                <p>
+                                                    <a href="javascript:void(0)" (click)="downloadLatestNereidLog('request')">Latest Nereid Request</a>
+                                                    |
+                                                    <a href="javascript:void(0)" (click)="downloadLatestNereidLog('response')">Latest Nereid Response</a>
+                                                </p>
+                                            }
+                                            <p>
+                                                <a [href]="ocstBaseUrl + '/Home/AboutModelingBMPPerformance'">About Modeling BMP Performance</a>
+                                            </p>
+                                        </div>
                                     } @else {
                                         <p class="system-text">Model results are not yet available for this Treatment BMP. They will appear once Nereid finishes processing.</p>
+                                        <div class="modeled-performance-footer">
+                                            <p>
+                                                <a [href]="ocstBaseUrl + '/Home/AboutModelingBMPPerformance'">About Modeling BMP Performance</a>
+                                            </p>
+                                        </div>
                                     }
                                 }
                             </div>

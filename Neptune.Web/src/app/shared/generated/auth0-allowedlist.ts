@@ -169,6 +169,7 @@ const SECURED_REGEX: RegexMap = {
     new RegExp("^/treatment-bmps/[^/]+/delineation-errors$"),
     new RegExp("^/treatment-bmps/[^/]+/field-visits/in-progress$"),
     new RegExp("^/treatment-bmps/[^/]+/hru-characteristics$"),
+    new RegExp("^/treatment-bmps/[^/]+/latest-nereid-log$"),
     new RegExp("^/treatment-bmps/[^/]+/other-treatment-bmps-in-regional-subbasin$"),
     new RegExp("^/treatment-bmps/[^/]+/parameterization-errors$"),
     new RegExp("^/treatment-bmps/[^/]+/upstreamRSBCatchmentGeoJSON$"),

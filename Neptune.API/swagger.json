@@ -8649,6 +8649,47 @@
         "x-anonymous": true
       }
     },
+    "/treatment-bmps/{treatmentBMPID}/latest-nereid-log": {
+      "get": {
+        "tags": [
+          "TreatmentBMP"
+        ],
+        "operationId": "GetLatestNereidLog_TreatmentBMP",
+        "parameters": [
+          {
+            "name": "treatmentBMPID",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/TreatmentBMPNereidLogContentDto"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TreatmentBMPNereidLogContentDto"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TreatmentBMPNereidLogContentDto"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/treatment-bmps/{treatmentBMPID}/basic-info": {
       "put": {
         "tags": [
@@ -22246,6 +22287,24 @@
             "type": "boolean"
           },
           "DryWeatherFlowOverride": {
+            "type": "string",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "TreatmentBMPNereidLogContentDto": {
+        "type": "object",
+        "properties": {
+          "NereidLogID": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "NereidRequest": {
+            "type": "string",
+            "nullable": true
+          },
+          "NereidResponse": {
             "type": "string",
             "nullable": true
           }

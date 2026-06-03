@@ -139,20 +139,33 @@ public class TreatmentBMPController(
 
     /// <summary>
     /// NPT-1068: Modeled BMP Performance panel on the SPA detail page. Returns the per-BMP
-    /// Nereid load-reducing result summed from <c>vLoadReducingResults</c>; returns 404 if
-    /// Nereid hasn't produced a non-baseline result yet so the SPA can fall back to the
-    /// "missing fields" / "not modeled" message.
+    /// Nereid load-reducing result summed from <c>vLoadReducingResults</c>; returns 200 with a
+    /// null body when Nereid hasn't produced a non-baseline result yet so the SPA can fall back
+    /// to the "missing fields" / "not modeled" message without a console-spamming 404.
     /// </summary>
     [HttpGet("{treatmentBMPID}/load-reducing-result")]
     [AllowAnonymous]
     [EntityNotFound(typeof(TreatmentBMP), "treatmentBMPID")]
-    public async Task<ActionResult<ProjectLoadReducingResultDto>> GetLoadReducingResult([FromRoute] int treatmentBMPID)
+    public async Task<ActionResult<ProjectLoadReducingResultDto?>> GetLoadReducingResult([FromRoute] int treatmentBMPID)
     {
         var dto = await TreatmentBMPModeledPerformance.GetByBMPIDAsync(DbContext, treatmentBMPID);
-        if (dto == null)
-        {
-            return NotFound();
-        }
+        return Ok(dto);
+    }
+
+    /// <summary>
+    /// NPT-1068: Sitka-admin-only "Latest Nereid Request / Response" download links on the
+    /// Modeled BMP Performance panel. Returns the BMP's most recent NereidLog row's raw
+    /// request/response JSON strings so the SPA can wrap them in a blob and trigger download
+    /// (legacy MVC inlined the JSON into a script tag and did the same thing client-side).
+    /// Returns 200 with a null body when the BMP has no NereidLog yet — the SPA suppresses the
+    /// download links in that case (avoids a noisy 404 in devtools for the common new-BMP case).
+    /// </summary>
+    [HttpGet("{treatmentBMPID}/latest-nereid-log")]
+    [SitkaAdminFeature]
+    [EntityNotFound(typeof(TreatmentBMP), "treatmentBMPID")]
+    public async Task<ActionResult<TreatmentBMPNereidLogContentDto?>> GetLatestNereidLog([FromRoute] int treatmentBMPID)
+    {
+        var dto = await NereidLogs.GetLatestForTreatmentBMPAsDtoAsync(DbContext, treatmentBMPID);
         return Ok(dto);
     }
 

@@ -240,6 +240,7 @@ model/treatment-bmp-life-span-type-dto.ts
 model/treatment-bmp-location-update-dto.ts
 model/treatment-bmp-minimal-dto.ts
 model/treatment-bmp-modeling-attributes-dto.ts
+model/treatment-bmp-nereid-log-content-dto.ts
 model/treatment-bmp-observation-dto.ts
 model/treatment-bmp-observation-upsert-dto.ts
 model/treatment-bmp-parameterization-errors-dto.ts
