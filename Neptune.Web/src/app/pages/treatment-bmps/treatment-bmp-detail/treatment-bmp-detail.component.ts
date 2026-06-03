@@ -15,6 +15,8 @@ import { MarkerHelper } from "src/app/shared/helpers/marker-helper";
 import { TreatmentBMPService } from "src/app/shared/generated/api/treatment-bmp.service";
 import { TreatmentBMPImageByTreatmentBMPService } from "src/app/shared/generated/api/treatment-bmp-image-by-treatment-bmp.service";
 import { TreatmentBMPDto } from "src/app/shared/generated/model/treatment-bmp-dto";
+import { ProjectLoadReducingResultDto } from "src/app/shared/generated/model/project-load-reducing-result-dto";
+import { catchError, of } from "rxjs";
 import { FieldDefinitionComponent } from "src/app/shared/components/field-definition/field-definition.component";
 import { NeptuneMapComponent } from "src/app/shared/components/leaflet/neptune-map/neptune-map.component";
 import { RegionalSubbasinsLayerComponent } from "src/app/shared/components/leaflet/layers/regional-subbasins-layer/regional-subbasins-layer.component";
@@ -158,6 +160,7 @@ export class TreatmentBmpDetailComponent implements OnInit, OnChanges {
     treatmentBMPTypeCustomAttributeTypes$: Observable<TreatmentBMPTypeCustomAttributeTypeDto[]>;
     treatmentBMPImages$: Observable<TreatmentBMPImageDto[]>;
     treatmentBMPDocuments$: Observable<TreatmentBMPDocumentDto[]>;
+    loadReducingResult$!: Observable<ProjectLoadReducingResultDto | null>;
     refreshTreatmentBMPDocumentsTrigger$: BehaviorSubject<void> = new BehaviorSubject<void>(undefined);
     hruCharacteristics$: Observable<HRUCharacteristicDto[]>;
     fieldVisits$: Observable<FieldVisitDto[]>;
@@ -174,7 +177,10 @@ export class TreatmentBmpDetailComponent implements OnInit, OnChanges {
     openRevisionRequestDetailUrl = "";
     currentPersonCanManage = false;
     canEditStormwaterJurisdiction = false;
-    isAnalyzedInModelingModule = true;
+    // Sourced from TreatmentBMPType.IsAnalyzedInModelingModule via the BMP DTO. Gates the
+    // "Modeled BMP Performance" panel. Distinct from `hasModelingAttributes` — a BMP type can
+    // be modeled without exposing any user-configurable Modeling-purpose custom attributes.
+    isAnalyzedInModelingModule = false;
     isSitkaAdmin = false;
     hasModelingAttributes = false;
     upstreamSectionExpanded = false;
@@ -354,6 +360,7 @@ export class TreatmentBmpDetailComponent implements OnInit, OnChanges {
 
                 this.hasSettableBenchmarkAndThresholdValues = bmp?.HasSettableBenchmarkAndThresholdValues ?? false;
                 this.canEditBenchmarkAndThresholds = this.currentPersonCanManage && this.hasSettableBenchmarkAndThresholdValues;
+                this.isAnalyzedInModelingModule = bmp?.IsAnalyzedInModelingModule ?? false;
             }),
             shareReplay(1)
         );
@@ -394,6 +401,14 @@ export class TreatmentBmpDetailComponent implements OnInit, OnChanges {
 
         this.treatmentBMPDocuments$ = this.refreshTreatmentBMPDocumentsTrigger$.pipe(
             switchMap(() => this.treatmentBMPDocumentByTreatmentBMPService.listTreatmentBMPDocumentByTreatmentBMP(this.treatmentBMPID))
+        );
+
+        // NPT-1068: Modeled BMP Performance source. 404 from the API means "no Nereid result for
+        // this BMP yet" (e.g. it just hasn't been modeled, or it's a non-modeled BMP type) — fall
+        // back to null so the template can render the "missing fields" / "not modeled" message
+        // instead of throwing a console error.
+        this.loadReducingResult$ = this.treatmentBMPService.getLoadReducingResultTreatmentBMP(this.treatmentBMPID).pipe(
+            catchError(() => of(null as ProjectLoadReducingResultDto | null))
         );
 
         this.refreshTreatmentBMPDocumentsTrigger$.next();
@@ -532,8 +547,6 @@ export class TreatmentBmpDetailComponent implements OnInit, OnChanges {
     canEditBenchmarkAndThresholds = false;
     hasSettableBenchmarkAndThresholdValues = false;
     currentBenchmarks: TreatmentBMPBenchmarkAndThresholdWithObservationTypeDto[] = [];
-
-    // NOTE: TreatmentBMPTypeIsAnalyzedInModelingModule is expected on treatmentBMP DTO. If missing, add to DTO or adjust template logic.
 
     private delineationLayer: L.GeoJSON | null = null;
 

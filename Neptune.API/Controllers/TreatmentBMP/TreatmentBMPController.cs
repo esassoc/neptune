@@ -137,6 +137,25 @@ public class TreatmentBMPController(
         return Ok(treatmentBMPDto);
     }
 
+    /// <summary>
+    /// NPT-1068: Modeled BMP Performance panel on the SPA detail page. Returns the per-BMP
+    /// Nereid load-reducing result summed from <c>vLoadReducingResults</c>; returns 404 if
+    /// Nereid hasn't produced a non-baseline result yet so the SPA can fall back to the
+    /// "missing fields" / "not modeled" message.
+    /// </summary>
+    [HttpGet("{treatmentBMPID}/load-reducing-result")]
+    [AllowAnonymous]
+    [EntityNotFound(typeof(TreatmentBMP), "treatmentBMPID")]
+    public async Task<ActionResult<ProjectLoadReducingResultDto>> GetLoadReducingResult([FromRoute] int treatmentBMPID)
+    {
+        var dto = await TreatmentBMPModeledPerformance.GetByBMPIDAsync(DbContext, treatmentBMPID);
+        if (dto == null)
+        {
+            return NotFound();
+        }
+        return Ok(dto);
+    }
+
     [HttpPut("{treatmentBMPID}/basic-info")]
     [AllowAnonymous]
     [OptionalAuth]

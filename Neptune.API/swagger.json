@@ -8607,6 +8607,48 @@
         }
       }
     },
+    "/treatment-bmps/{treatmentBMPID}/load-reducing-result": {
+      "get": {
+        "tags": [
+          "TreatmentBMP"
+        ],
+        "operationId": "GetLoadReducingResult_TreatmentBMP",
+        "parameters": [
+          {
+            "name": "treatmentBMPID",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProjectLoadReducingResultDto"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProjectLoadReducingResultDto"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProjectLoadReducingResultDto"
+                }
+              }
+            }
+          }
+        },
+        "x-anonymous": true
+      }
+    },
     "/treatment-bmps/{treatmentBMPID}/basic-info": {
       "put": {
         "tags": [
@@ -21676,6 +21718,9 @@
           "IsFullyParameterized": {
             "type": "boolean",
             "nullable": true
+          },
+          "IsAnalyzedInModelingModule": {
+            "type": "boolean"
           },
           "TreatmentBMPModelingAttribute": {
             "$ref": "#/components/schemas/vTreatmentBMPModelingAttributeDto"

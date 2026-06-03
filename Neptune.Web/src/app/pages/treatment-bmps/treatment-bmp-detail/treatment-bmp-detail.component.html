@@ -151,7 +151,8 @@
             @if (treatmentBMPTypeCustomAttributeTypes$ | async; as treatmentBMPTypeCustomAttributeTypes) {
                 @if (customAttributes$ | async; as customAttributes) {
                     @if (hasModelingAttributes) {
-                        <!-- Modeling Attributes Panel -->
+                        <!-- Modeling Attributes Panel — gated on the BMP type exposing any
+                             Modeling-purpose custom attributes (i.e. something to edit). -->
                         <div class="card">
                             <div class="card-header">
                                 <span class="card-title">Modeling Attributes</span>
@@ -169,7 +170,13 @@
                                     [customAttributes]="customAttributes"></custom-attributes-display>
                             </div>
                         </div>
+                    }
 
+                    <!-- Modeled BMP Performance — gated on the BMP type being analyzed in the
+                         modeling module. Mirrors the legacy MVC Detail.cshtml gate; distinct
+                         from HasModelingAttributes since a type can be modeled without exposing
+                         user-configurable Modeling-purpose custom attributes. -->
+                    @if (isAnalyzedInModelingModule) {
                         <div class="card">
                             <div class="card-header">
                                 <span class="card-title">Modeled BMP Performance</span>
@@ -193,7 +200,11 @@
                                         </p>
                                     }
                                 } @else {
-                                    <modeled-bmp-performance [selectedTreatmentBMPID]="treatmentBMP.TreatmentBMPID" [loadReducingResult]="null" siteRunoffLabel="To BMP"></modeled-bmp-performance>
+                                    @if (loadReducingResult$ | async; as loadReducingResult) {
+                                        <modeled-bmp-performance [selectedTreatmentBMPID]="treatmentBMP.TreatmentBMPID" [loadReducingResult]="loadReducingResult" siteRunoffLabel="To BMP"></modeled-bmp-performance>
+                                    } @else {
+                                        <p class="system-text">Model results are not yet available for this Treatment BMP. They will appear once Nereid finishes processing.</p>
+                                    }
                                 }
                             </div>
                         </div>

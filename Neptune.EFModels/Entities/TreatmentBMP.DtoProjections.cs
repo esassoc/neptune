@@ -44,6 +44,7 @@ public static class TreatmentBMPDtoProjections
         TreatmentBMPName = x.TreatmentBMPName,
         TreatmentBMPTypeID = x.TreatmentBMPTypeID,
         TreatmentBMPTypeName = x.TreatmentBMPType.TreatmentBMPTypeName,
+        IsAnalyzedInModelingModule = x.TreatmentBMPType.IsAnalyzedInModelingModule,
         StormwaterJurisdictionID = x.StormwaterJurisdictionID,
         StormwaterJurisdictionName = x.StormwaterJurisdiction.Organization.OrganizationName,
         OwnerOrganizationID = x.OwnerOrganizationID,
