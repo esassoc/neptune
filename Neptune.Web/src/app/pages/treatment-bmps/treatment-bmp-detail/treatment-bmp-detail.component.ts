@@ -658,23 +658,32 @@ export class TreatmentBmpDetailComponent implements OnInit, OnChanges {
      * API and triggers a browser blob download, matching the legacy MVC pattern.
      */
     public downloadLatestNereidLog(which: "request" | "response"): void {
-        this.treatmentBMPService.getLatestNereidLogTreatmentBMP(this.treatmentBMPID).subscribe((log: TreatmentBMPNereidLogContentDto | null) => {
-            if (!log) {
-                this.alertService.pushAlert(new Alert("No Nereid log found for this BMP yet.", AlertContext.Warning, true));
-                return;
-            }
-            const content = which === "request" ? log.NereidRequest : log.NereidResponse;
-            if (!content) {
-                this.alertService.pushAlert(new Alert(`No Nereid ${which} content available for this BMP yet.`, AlertContext.Warning, true));
-                return;
-            }
-            const blob = new Blob([content], { type: "application/json" });
-            const url = window.URL.createObjectURL(blob);
-            const a = document.createElement("a");
-            a.href = url;
-            a.download = `nereid${which === "request" ? "Request" : "Response"}_BMP${this.treatmentBMPID}.json`;
-            a.click();
-            window.URL.revokeObjectURL(url);
+        this.treatmentBMPService.getLatestNereidLogTreatmentBMP(this.treatmentBMPID).subscribe({
+            next: (log: TreatmentBMPNereidLogContentDto | null) => {
+                if (!log) {
+                    this.alertService.pushAlert(new Alert("No Nereid log found for this BMP yet.", AlertContext.Warning, true));
+                    return;
+                }
+                const content = which === "request" ? log.NereidRequest : log.NereidResponse;
+                if (!content) {
+                    this.alertService.pushAlert(new Alert(`No Nereid ${which} content available for this BMP yet.`, AlertContext.Warning, true));
+                    return;
+                }
+                const blob = new Blob([content], { type: "application/json" });
+                const url = window.URL.createObjectURL(blob);
+                const a = document.createElement("a");
+                a.href = url;
+                a.download = `nereid${which === "request" ? "Request" : "Response"}_BMP${this.treatmentBMPID}.json`;
+                a.click();
+                window.URL.revokeObjectURL(url);
+            },
+            error: () => {
+                // Endpoint returns 200 + null body in the no-log case, so we only hit this on a
+                // real failure (auth expiry, network drop, 5xx). Don't leave the user wondering.
+                this.alertService.pushAlert(
+                    new Alert(`Could not download the latest Nereid ${which}. Please try again or contact support.`, AlertContext.Danger, true)
+                );
+            },
         });
     }
 }

@@ -513,11 +513,20 @@ public static class TreatmentBMPs
         // AllLookupDictionary at C# runtime), not an EF navigation — don't try to ThenInclude it.
         var bmpForParameterizationCheck = await dbContext.TreatmentBMPs.AsNoTracking()
             .Include(x => x.TreatmentBMPType)
-            .Include(x => x.Delineation)
             .SingleAsync(x => x.TreatmentBMPID == treatmentBMPID);
+        // IsFullyParameterized's comment: "assumes the delineation passed in is the from the
+        // 'upstreamest' BMP" — downstream BMPs inherit their upstream's verified delineation.
+        // Mirror the pattern in vTreatmentBMPUpstreams.ListWithDelineationAsDictionary: read
+        // the upstream BMP ID from the tree view, and load that BMP's delineation if present;
+        // otherwise this BMP's own.
+        var upstreamRow = await dbContext.vTreatmentBMPUpstreams.AsNoTracking()
+            .SingleOrDefaultAsync(x => x.TreatmentBMPID == treatmentBMPID);
+        var delineationBMPID = upstreamRow?.UpstreamBMPID ?? treatmentBMPID;
+        var delineationForParameterizationCheck = await dbContext.Delineations.AsNoTracking()
+            .SingleOrDefaultAsync(x => x.TreatmentBMPID == delineationBMPID);
         var modelingAttribute = await dbContext.vTreatmentBMPModelingAttributes.AsNoTracking()
             .SingleOrDefaultAsync(x => x.TreatmentBMPID == treatmentBMPID);
-        dto.IsFullyParameterized = bmpForParameterizationCheck.IsFullyParameterized(bmpForParameterizationCheck.Delineation, modelingAttribute);
+        dto.IsFullyParameterized = bmpForParameterizationCheck.IsFullyParameterized(delineationForParameterizationCheck, modelingAttribute);
 
         if (dto.UpstreamBMPID.HasValue)
         {
