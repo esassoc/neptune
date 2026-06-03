@@ -1,6 +1,5 @@
 import { Component, OnInit } from "@angular/core";
 import { AuthenticationService } from "src/app/services/authentication.service";
-import { environment } from "src/environments/environment";
 import { ActivatedRoute, Router, RouterLink } from "@angular/router";
 import { PersonDto } from "src/app/shared/generated/model/person-dto";
 import { NeptunePageTypeEnum } from "src/app/shared/generated/enum/neptune-page-type-enum";
@@ -37,13 +36,5 @@ export class HomeIndexComponent implements OnInit {
 
     public signUp(): void {
         this.authenticationService.signUp();
-    }
-
-    public requestSupportUrl(): string {
-        return `${this.ocstBaseUrl()}/Help/Support`;
-    }
-
-    public ocstBaseUrl(): string {
-        return environment.ocStormwaterToolsBaseUrl;
     }
 }

@@ -17,7 +17,6 @@ import { TreatmentBMPImageByTreatmentBMPService } from "src/app/shared/generated
 import { TreatmentBMPDto } from "src/app/shared/generated/model/treatment-bmp-dto";
 import { ProjectLoadReducingResultDto } from "src/app/shared/generated/model/project-load-reducing-result-dto";
 import { TreatmentBMPNereidLogContentDto } from "src/app/shared/generated/model/treatment-bmp-nereid-log-content-dto";
-import { environment } from "src/environments/environment";
 import { FieldDefinitionComponent } from "src/app/shared/components/field-definition/field-definition.component";
 import { NeptuneMapComponent } from "src/app/shared/components/leaflet/neptune-map/neptune-map.component";
 import { RegionalSubbasinsLayerComponent } from "src/app/shared/components/leaflet/layers/regional-subbasins-layer/regional-subbasins-layer.component";
@@ -162,7 +161,6 @@ export class TreatmentBmpDetailComponent implements OnInit, OnChanges {
     treatmentBMPImages$: Observable<TreatmentBMPImageDto[]>;
     treatmentBMPDocuments$: Observable<TreatmentBMPDocumentDto[]>;
     loadReducingResult$!: Observable<ProjectLoadReducingResultDto | null>;
-    public ocstBaseUrl = environment.ocStormwaterToolsBaseUrl;
     refreshTreatmentBMPDocumentsTrigger$: BehaviorSubject<void> = new BehaviorSubject<void>(undefined);
     hruCharacteristics$: Observable<HRUCharacteristicDto[]>;
     fieldVisits$: Observable<FieldVisitDto[]>;

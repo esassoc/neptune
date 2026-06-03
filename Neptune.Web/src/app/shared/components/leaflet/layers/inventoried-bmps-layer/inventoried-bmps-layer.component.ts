@@ -1,6 +1,5 @@
 import { CommonModule } from "@angular/common";
 import { Component, OnChanges } from "@angular/core";
-import { environment } from "src/environments/environment";
 import "leaflet.markercluster";
 import * as L from "leaflet";
 import { MapLayerBase } from "../map-layer-base.component";
@@ -47,8 +46,11 @@ export class InventoriedBMPsLayerComponent extends MapLayerBase implements OnCha
                         return L.marker(latlng, { icon: MarkerHelper.inventoriedTreatmentBMPMarker });
                     },
                     onEachFeature: (feature, layer) => {
+                        // SPA detail route. Leaflet popups are raw HTML so we can't use
+                        // [routerLink]; root-relative path + target="_blank" still opens
+                        // the SPA in a fresh tab.
                         layer.bindPopup(
-                            `<b>Name:</b> <a target="_blank" href="${this.ocstBaseUrl()}/TreatmentBMP/Detail/${feature.properties.TreatmentBMPID}">${
+                            `<b>Name:</b> <a target="_blank" href="/treatment-bmps/${feature.properties.TreatmentBMPID}">${
                                 feature.properties.TreatmentBMPName
                             }</a><br>` + `<b>Type:</b> ${feature.properties.TreatmentBMPTypeName}`
                         );
@@ -58,9 +60,5 @@ export class InventoriedBMPsLayerComponent extends MapLayerBase implements OnCha
                 this.initLayer();
             })
         );
-    }
-
-    public ocstBaseUrl(): string {
-        return environment.ocStormwaterToolsBaseUrl;
     }
 }

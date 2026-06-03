@@ -36,18 +36,6 @@ export const routeParams = {
 
 export const routes: Routes = [
     {
-        path: "ai",
-        title: "AI Module",
-        loadComponent: () => import("./pages/ai-module/ai-site-layout.component").then((m) => m.AiSiteLayoutComponent),
-        children: [
-            {
-                path: "",
-                title: "AI Home",
-                loadComponent: () => import("./pages/ai-module/ai-home/ai-home.component").then((m) => m.AiHomeComponent),
-            },
-        ],
-    },
-    {
         path: `planning`,
         title: "Stormwater Tools",
         loadComponent: () => import("./pages/planning-module/planning-site-layout/planning-site-layout.component").then((m) => m.PlanningSiteLayoutComponent),
@@ -343,6 +331,7 @@ export const routes: Routes = [
         children: [
             { path: "", loadComponent: () => import("./pages/home/home-index/home-index.component").then((m) => m.HomeIndexComponent) },
             { path: "about", loadComponent: () => import("./pages/about/about.component").then((m) => m.AboutComponent) },
+            { path: "legal", title: "Legal", loadComponent: () => import("./pages/legal/legal.component").then((m) => m.LegalComponent) },
             {
                 path: "training",
                 title: "Training",
@@ -422,9 +411,19 @@ export const routes: Routes = [
                 loadComponent: () => import("./pages/find-bmp/find-bmp.component").then((m) => m.FindBmpComponent),
             },
             {
-                path: "modeling-parameters",
-                title: "Modeling Parameters",
-                loadComponent: () => import("./pages/modeling-parameters/modeling-parameters.component").then((m) => m.ModelingParametersComponent),
+                path: "modeling-attributes",
+                title: "Modeling Attributes",
+                loadComponent: () => import("./pages/modeling-attributes/modeling-attributes.component").then((m) => m.ModelingAttributesComponent),
+            },
+            {
+                path: "modeling-calculations",
+                title: "Calculations for Planned Projects",
+                loadComponent: () => import("./pages/modeling-calculations/modeling-calculations.component").then((m) => m.ModelingCalculationsComponent),
+            },
+            {
+                path: "wqmp-modeling-options",
+                title: "WQMP Modeling Options",
+                loadComponent: () => import("./pages/wqmp-modeling-options/wqmp-modeling-options.component").then((m) => m.WqmpModelingOptionsComponent),
             },
             {
                 path: "treatment-bmps",

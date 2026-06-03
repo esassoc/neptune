@@ -9,7 +9,6 @@ import { PageHeaderComponent } from "../../../shared/components/page-header/page
 import { TrashGeneratingUnitService } from "../../../shared/generated/api/trash-generating-unit.service";
 import { TrashGeneratingUnitGridDto } from "../../../shared/generated/model/trash-generating-unit-grid-dto";
 import { LoadingDirective } from "src/app/shared/directives/loading.directive";
-import { environment } from "src/environments/environment";
 
 @Component({
     selector: "trash-trash-generating-unit-index",
@@ -37,11 +36,11 @@ export class TrashTrashGeneratingUnitIndexComponent {
             this.utilityFunctionsService.createBasicColumnDef("Governing OVTA Area Baseline Score", "OnlandVisualTrashAssessmentAreaBaselineScore", {
                 CustomDropdownFilterField: "OnlandVisualTrashAssessmentAreaBaselineScore",
             }),
-            this.utilityFunctionsService.createLinkHrefColumnDef("Governing Treatment BMP", "TreatmentBMPName", "TreatmentBMPID", {
-                HrefTemplate: `${environment.ocStormwaterToolsBaseUrl}/TreatmentBMP/Detail`,
+            this.utilityFunctionsService.createLinkColumnDef("Governing Treatment BMP", "TreatmentBMPName", "TreatmentBMPID", {
+                InRouterLink: "/treatment-bmps/",
             }),
-            this.utilityFunctionsService.createLinkHrefColumnDef("Governing WQMP", "WaterQualityManagementPlanName", "WaterQualityManagementPlanID", {
-                HrefTemplate: `${environment.ocStormwaterToolsBaseUrl}/WaterQualityManagementPlan/Detail`,
+            this.utilityFunctionsService.createLinkColumnDef("Governing WQMP", "WaterQualityManagementPlanName", "WaterQualityManagementPlanID", {
+                InRouterLink: "/water-quality-management-plans/",
             }),
             this.utilityFunctionsService.createBasicColumnDef("Jurisdiction", "StormwaterJurisdictionName", {
                 CustomDropdownFilterField: "StormwaterJurisdictionName",

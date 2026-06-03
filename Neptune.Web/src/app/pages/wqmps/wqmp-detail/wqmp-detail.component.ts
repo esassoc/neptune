@@ -87,11 +87,6 @@ export class WqmpDetailComponent implements OnInit, OnChanges {
     public TrashCaptureStatusTypeEnum = TrashCaptureStatusTypeEnum;
     public WaterQualityManagementPlanModelingApproachEnum = WaterQualityManagementPlanModelingApproachEnum;
     public WaterQualityManagementPlanStatusEnum = WaterQualityManagementPlanStatusEnum;
-    public aboutModelingBMPPerformanceUrl = `${environment.ocStormwaterToolsBaseUrl}/Home/AboutModelingBMPPerformance`;
-    // NPT-1068: legacy MVC WQMP detail had a "Learn about WQMP Modeling Options" link next to
-    // the Modeling Approach heading. Pointing at the legacy MVC URL for now; NPT-1068-1 stands up
-    // the SPA /wqmp-modeling-options page and will repoint this when that PR lands.
-    public wqmpModelingOptionsUrl = `${environment.ocStormwaterToolsBaseUrl}/WaterQualityManagementPlan/WqmpModelingOptions`;
     public fileResourceUrl = fileResourceUrl;
 
     // NPT-1051: wqmp$ is a stable observable driven by reload$ so the AsyncPipe stays

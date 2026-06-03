@@ -33,10 +33,6 @@ export class HeaderNavComponent implements OnInit {
         return this.authenticationService.isAuthenticated();
     }
 
-    public isUserAnAdministrator() {
-        return this.authenticationService.isCurrentUserAnAdministrator();
-    }
-
     public isBeingImpersonated(user: PersonDto): boolean {
         return this.authenticationService.isCurrentUserBeingImpersonated(user);
     }
@@ -57,10 +53,6 @@ export class HeaderNavComponent implements OnInit {
         const firstPathPart = url.pathname.split("/")[1];
         sessionStorage["authRedirectUrl"] = `/${firstPathPart}`;
         this.authenticationService.logout();
-    }
-
-    public ocStormwaterToolsMainUrl(): string {
-        return environment.ocStormwaterToolsBaseUrl;
     }
 
     public showTestingWarning(): boolean {

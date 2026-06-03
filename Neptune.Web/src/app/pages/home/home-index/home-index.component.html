@@ -15,10 +15,10 @@
                             <a class="btn btn-primary" [routerLink]="['/trash']">Trash Module</a>
                         </div>
                         <div class="hero__btns-wrapper">
-                            <a class="btn btn-primary" href="{{ ocstBaseUrl() }}">OCST Home</a>
+                            <a class="btn btn-primary" [routerLink]="['/']">OCST Home</a>
                         </div>
                         <div class="hero__btns-wrapper">
-                            <a class="btn btn-primary" href="{{ requestSupportUrl() }}">Request Support</a>
+                            <a class="btn btn-primary" [routerLink]="['/support']">Request Support</a>
                         </div>
                     </div>
                 </div>
@@ -37,7 +37,7 @@
                 </div>
                 <div class="card-footer">
                     <p>Need help logging in?</p>
-                    <a href="{{ requestSupportUrl() }}">Request Support</a>
+                    <a [routerLink]="['/support']">Request Support</a>
                 </div>
             }
         </div>
@@ -60,7 +60,7 @@
                     <ul>
                         <li><a [routerLink]="['/treatment-bmps']">BMP List</a></li>
                         <li><a [routerLink]="['/water-quality-management-plans']">WQMP List</a></li>
-                        <li><a [routerLink]="['/delineation-map']">Delineation Map</a></li>
+                        <li><a [routerLink]="['/delineation', 'delineation-map']">Delineation Map</a></li>
                         <li><a [routerLink]="['/data-hub']">Data Hub</a></li>
                     </ul>
                 </div>
@@ -70,10 +70,10 @@
                 <div class="card-header">Modeling Module</div>
                 <div class="card-body">
                     <ul>
-                        <li><a routerLink="/modeling">About Modeling Performance</a></li>
-                        <li><a href="{{ ocstBaseUrl() }}/TreatmentBMP/ViewTreatmentBMPModelingAttributes">Modeling Attributes</a></li>
-                        <li><a href="{{ ocstBaseUrl() }}/Home/AboutModelingBMPPerformance">Calculations for Planned Projects</a></li>
-                        <li><a href="{{ ocstBaseUrl() }}/WaterQualityManagementPlan/WqmpModelingOptions">WQMP Modeling Options</a></li>
+                        <li><a [routerLink]="['/modeling']">About Modeling Performance</a></li>
+                        <li><a [routerLink]="['/modeling-attributes']">Modeling Attributes</a></li>
+                        <li><a [routerLink]="['/modeling-calculations']">Calculations for Planned Projects</a></li>
+                        <li><a [routerLink]="['/wqmp-modeling-options']">WQMP Modeling Options</a></li>
                     </ul>
                 </div>
             </div>

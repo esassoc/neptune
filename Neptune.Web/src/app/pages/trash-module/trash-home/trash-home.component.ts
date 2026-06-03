@@ -1,6 +1,5 @@
 import { Component, DestroyRef, OnInit, inject } from "@angular/core";
 import { AuthenticationService } from "src/app/services/authentication.service";
-import { environment } from "src/environments/environment";
 import { ActivatedRoute, Router, RouterLink } from "@angular/router";
 import { PersonDto } from "src/app/shared/generated/model/person-dto";
 import { RoleEnum } from "src/app/shared/generated/enum/role-enum";
@@ -327,8 +326,10 @@ export class TrashHomeComponent implements OnInit {
                 return L.marker(latlng, { icon: MarkerHelper.buildDefaultLeafletMarkerFromMarkerPath(iconSrc) });
             },
             onEachFeature: (feature, layer) => {
+                // SPA detail route. Leaflet popups are raw HTML so we can't use [routerLink];
+                // root-relative path + target="_blank" still opens the SPA in a fresh tab.
                 layer.bindPopup(
-                    `<b>Name:</b> <a target="_blank" href="${this.ocstBaseUrl()}/TreatmentBMP/Detail/${feature.properties.TreatmentBMPID}">${
+                    `<b>Name:</b> <a target="_blank" href="/treatment-bmps/${feature.properties.TreatmentBMPID}">${
                         feature.properties.TreatmentBMPName
                     }</a><br>` + `<b>Type:</b> ${feature.properties.TreatmentBMPTypeName}`
                 );
@@ -484,14 +485,6 @@ export class TrashHomeComponent implements OnInit {
 
     public signUp(): void {
         this.authenticationService.signUp();
-    }
-
-    public requestSupportUrl(): string {
-        return `${this.ocstBaseUrl()}/Help/Support`;
-    }
-
-    public ocstBaseUrl(): string {
-        return environment.ocStormwaterToolsBaseUrl;
     }
 
     showScoreDefinitions() {

@@ -20,7 +20,7 @@ import {
     OnlandVisualTrashAssessmentObservationWithPhotoDto,
     OnlandVisualTrashAssessmentObservationWithPhotoDtoForm,
 } from "src/app/shared/generated/model/onland-visual-trash-assessment-observation-with-photo-dto";
-import { environment } from "src/environments/environment";
+import { fileResourceUrl } from "src/app/shared/helpers/file-resource-url";
 import { OnlandVisualTrashAssessmentObservationService } from "src/app/shared/generated/api/onland-visual-trash-assessment-observation.service";
 import { WorkflowBodyComponent } from "src/app/shared/components/workflow-body/workflow-body.component";
 import { WfsService } from "src/app/shared/services/wfs.service";
@@ -354,7 +354,7 @@ export class TrashOvtaRecordObservationsComponent {
     }
 
     public getUrl(fileResourceGUID) {
-        return environment.ocStormwaterToolsBaseUrl + "/FileResource/DisplayResource/" + fileResourceGUID;
+        return fileResourceUrl(fileResourceGUID);
     }
 
     public deletePhotoFromSelectedObservation(index: number) {

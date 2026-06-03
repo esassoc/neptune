@@ -1,5 +1,5 @@
 import { ApplicationRef, Component, OnDestroy, OnInit } from "@angular/core";
-import { ActivatedRoute, Router } from "@angular/router";
+import { ActivatedRoute, Router, RouterLink } from "@angular/router";
 import { Input } from "@angular/core";
 import { BoundingBoxDto, DelineationUpsertDto, ProjectNetworkSolveHistorySimpleDto, ProjectDto, TreatmentBMPDisplayDto } from "src/app/shared/generated/model/models";
 import { Alert } from "src/app/shared/models/alert";
@@ -36,6 +36,7 @@ import { routeParams } from "src/app/app.routes";
     templateUrl: "./modeled-performance.component.html",
     styleUrls: ["./modeled-performance.component.scss"],
     imports: [
+        RouterLink,
         CustomRichTextComponent,
         AsyncPipe,
         FieldDefinitionComponent,
@@ -249,10 +250,6 @@ export class ModeledPerformanceComponent implements OnInit, OnDestroy {
     ngOnDestroy(): void {
         this.destroyed$.next();
         this.destroyed$.complete();
-    }
-
-    public getAboutModelingPerformanceURL(): string {
-        return `${environment.ocStormwaterToolsBaseUrl}/Home/AboutModelingBMPPerformance`;
     }
 
     public onSelectTreatmentBMP(treatmentBMPID: number): void {

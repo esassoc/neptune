@@ -57,7 +57,7 @@
                     }
 
                     @if (parameterizationErrors.MissingModelAttributes) {
-                        <li>Some required modeling attributes are missing. Please provide the required Modeling Parameters.</li>
+                        <li>Some required modeling attributes are missing. Please provide the required Modeling Attributes.</li>
                     }
                 </ul>
             </note>
@@ -196,7 +196,7 @@
                                     } @else {
                                         <p class="system-text">
                                             This Treatment BMP record is missing fields required to calculate model results. Please provide a verified delineation and required
-                                            Modeling Parameters above.
+                                            Modeling Attributes above.
                                         </p>
                                     }
                                 } @else {
@@ -214,14 +214,14 @@
                                                 </p>
                                             }
                                             <p>
-                                                <a [href]="ocstBaseUrl + '/Home/AboutModelingBMPPerformance'">About Modeling BMP Performance</a>
+                                                <a [routerLink]="['/modeling-calculations']">About Modeling BMP Performance</a>
                                             </p>
                                         </div>
                                     } @else {
                                         <p class="system-text">Model results are not yet available for this Treatment BMP. They will appear once Nereid finishes processing.</p>
                                         <div class="modeled-performance-footer">
                                             <p>
-                                                <a [href]="ocstBaseUrl + '/Home/AboutModelingBMPPerformance'">About Modeling BMP Performance</a>
+                                                <a [routerLink]="['/modeling-calculations']">About Modeling BMP Performance</a>
                                             </p>
                                         </div>
                                     }
