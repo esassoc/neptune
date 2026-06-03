@@ -16,6 +16,24 @@
     font-size: $type-size-400;
 }
 
+// NPT-1068: Modeling Approach heading row. Lift the Edit button + "Learn about WQMP Modeling
+// Options" link OUT of the h4 so they don't inherit its large teal heading styling.
+.modeling-approach-heading {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+
+    h4 {
+        margin-bottom: 0;
+    }
+}
+
+.modeling-approach-header-actions {
+    display: inline-flex;
+    align-items: center;
+    gap: $spacing-200;
+}
+
 .modeling-approach-row {
     display: flex;
     gap: 1rem;
