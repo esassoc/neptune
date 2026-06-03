@@ -1,6 +1,5 @@
 import { Component, OnInit, OnDestroy } from "@angular/core";
 import { AuthenticationService } from "src/app/services/authentication.service";
-import { environment } from "src/environments/environment";
 import { ActivatedRoute, Router, RouterLink } from "@angular/router";
 import { PersonDto } from "src/app/shared/generated/model/person-dto";
 import { RoleEnum } from "src/app/shared/generated/enum/role-enum";
@@ -84,11 +83,4 @@ export class PLanningHomeComponent implements OnInit, OnDestroy {
         this.authenticationService.signUp();
     }
 
-    public requestSupportUrl(): string {
-        return `${this.ocstBaseUrl()}/Help/Support`;
-    }
-
-    public ocstBaseUrl(): string {
-        return environment.ocStormwaterToolsBaseUrl;
-    }
 }

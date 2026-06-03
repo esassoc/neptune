@@ -166,7 +166,7 @@
                             @if (modeledPerformance.LastCalculatedDate) {
                                 <p class="system-text mt-2"><em>Results last calculated at {{ modeledPerformance.LastCalculatedDate | date: "MM/dd/yyyy h:mm a" }}</em></p>
                             }
-                            <a [href]="aboutModelingBMPPerformanceUrl">About Modeling BMP Performance</a>
+                            <a [routerLink]="['/modeling-calculations']">About Modeling BMP Performance</a>
                             @if (wqmp.WaterQualityManagementPlanModelingApproachID === WaterQualityManagementPlanModelingApproachEnum.Detailed && wqmp.AnyDetailedBMPsNotFullyParameterized) {
                                 <p class="system-text mt-2">Some of this WQMP's structural BMPs are not fully parameterized for modeling, or have missing or unverified delineations, so these results may be incomplete or inaccurate.</p>
                             } @else if (wqmp.WaterQualityManagementPlanModelingApproachID === WaterQualityManagementPlanModelingApproachEnum.Simplified && wqmp.AnySimpleBMPsNotFullyParameterized) {
@@ -266,7 +266,7 @@
                 <div class="modeling-approach-heading">
                     <h4 class="mb-2">Modeling Approach</h4>
                     <div class="modeling-approach-header-actions">
-                        <a [href]="wqmpModelingOptionsUrl">Learn about WQMP Modeling Options</a>
+                        <a [routerLink]="['/wqmp-modeling-options']">Learn about WQMP Modeling Options</a>
                         @if (currentPersonCanEdit) {
                             <button type="button" class="btn btn-primary btn-sm" (click)="openEditModelingApproachModal(wqmp)">
                                 Edit

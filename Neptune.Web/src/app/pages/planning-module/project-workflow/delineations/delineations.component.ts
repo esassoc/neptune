@@ -7,7 +7,6 @@ import "@geoman-io/leaflet-geoman-free";
 import { BehaviorSubject, distinctUntilChanged, forkJoin, map, Observable } from "rxjs";
 import { BoundingBoxDto } from "src/app/shared/generated/model/bounding-box-dto";
 import { DelineationUpsertDto } from "src/app/shared/generated/model/delineation-upsert-dto";
-import { environment } from "src/environments/environment";
 import { AlertService } from "src/app/shared/services/alert.service";
 import { Alert } from "src/app/shared/models/alert";
 import { AlertContext } from "src/app/shared/models/enums/alert-context.enum";
@@ -559,10 +558,6 @@ export class DelineationsComponent implements OnInit {
     public isPerformingGeomanAction(skipDrawCheck: boolean = false): boolean {
         //MP 10/1/25 - Added skipDrawCheck because the global draw mode remains enabled momentarily after drawing a shape is complete
         return (this.map?.pm?.globalDrawModeEnabled() && !skipDrawCheck) || this.map?.pm?.globalEditModeEnabled() || this.map?.pm?.globalRemovalModeEnabled();
-    }
-
-    public ocstBaseUrl(): string {
-        return environment.ocStormwaterToolsBaseUrl;
     }
 
     // 7. Getters

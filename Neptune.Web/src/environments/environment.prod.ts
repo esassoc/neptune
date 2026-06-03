@@ -4,7 +4,6 @@ export const environment = {
     dev: false,
     mainAppApiUrl: "https://api.ocstormwatertools.org",
     geoserverMapServiceUrl: "https://mapserver.ocstormwatertools.org/geoserver/OCStormwater",
-    ocStormwaterToolsBaseUrl: "https://www.ocstormwatertools.org",
     datadogClientToken: "pub6bc5bcb39be6b4c926271a35cb8cb46a",
     auth0: {
         domain: "ocstormwatertools.us.auth0.com",

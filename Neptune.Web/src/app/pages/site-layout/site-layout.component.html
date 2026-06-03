@@ -14,7 +14,7 @@
                              Jurisdictions (NeptuneAdminFeature). -->
                         <li><a [routerLink]="['/find-bmp']" class="dropdown-item">Find a BMP</a></li>
                         @if (isCurrentUserEditorOrHigher()) {
-                            <li><a [routerLink]="['/modeling-parameters']" class="dropdown-item">Modeling Parameters</a></li>
+                            <li><a [routerLink]="['/modeling-attributes']" class="dropdown-item">Modeling Attributes</a></li>
                         }
                         <li><a [routerLink]="['/treatment-bmps']" class="dropdown-item">View All BMPs</a></li>
                         @if (isCurrentUserEditorOrHigher()) {

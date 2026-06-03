@@ -11,13 +11,13 @@ import { UtilityFunctionsService } from "src/app/services/utility-functions.serv
 import { NeptunePageTypeEnum } from "src/app/shared/generated/enum/neptune-page-type-enum";
 
 @Component({
-    selector: "modeling-parameters",
+    selector: "modeling-attributes",
     standalone: true,
     imports: [PageHeaderComponent, AlertDisplayComponent, NeptuneGridComponent, AsyncPipe],
-    templateUrl: "./modeling-parameters.component.html",
+    templateUrl: "./modeling-attributes.component.html",
 })
-export class ModelingParametersComponent {
-    public modelingParameters$: Observable<TreatmentBMPModelingAttributesDto[]>;
+export class ModelingAttributesComponent {
+    public modelingAttributes$: Observable<TreatmentBMPModelingAttributesDto[]>;
     public columnDefs: ColDef[];
     public customRichTextTypeID = NeptunePageTypeEnum.ViewTreatmentBMPModelingAttributes;
 
@@ -168,6 +168,6 @@ export class ModelingParametersComponent {
                 FieldDefinitionLabelOverride: "Dry Weather Flow Override",
             }),
         ];
-        this.modelingParameters$ = this.treatmentBMPService.listWithModelingAttributesTreatmentBMP();
+        this.modelingAttributes$ = this.treatmentBMPService.listWithModelingAttributesTreatmentBMP();
     }
 }

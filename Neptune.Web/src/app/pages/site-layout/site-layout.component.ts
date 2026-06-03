@@ -1,7 +1,6 @@
 import { Component, computed, OnInit, Signal } from "@angular/core";
 import { toSignal } from "@angular/core/rxjs-interop";
 import { AuthenticationService } from "src/app/services/authentication.service";
-import { environment } from "src/environments/environment";
 import { PersonDto } from "src/app/shared/generated/model/person-dto";
 import { RouterLink, RouterLinkActive, RouterOutlet } from "@angular/router";
 import { DropdownToggleDirective } from "src/app/shared/directives/dropdown-toggle.directive";
@@ -18,7 +17,6 @@ import { RoleEnum } from "src/app/shared/generated/enum/role-enum";
 })
 export class SiteLayoutComponent implements OnInit {
     public currentUser$: Observable<PersonDto>;
-    public siteUrl = environment.ocStormwaterToolsBaseUrl;
 
     constructor(private authenticationService: AuthenticationService) {}
 
@@ -84,13 +82,5 @@ export class SiteLayoutComponent implements OnInit {
 
     public isOCTAGrantReviewer(): boolean {
         return this.authenticationService.isCurrentUserAnOCTAGrantReviewer();
-    }
-
-    public usersListUrl(): string {
-        return `${environment.ocStormwaterToolsBaseUrl}/User/Index`;
-    }
-
-    public organizationsIndexUrl(): string {
-        return `${environment.ocStormwaterToolsBaseUrl}/Organization/Index`;
     }
 }

@@ -5,90 +5,6 @@
     "version": "1.0"
   },
   "paths": {
-    "/ai/water-quality-management-plan-documents/{waterQualityManagementPlanDocumentID}/extract-all": {
-      "post": {
-        "tags": [
-          "AI"
-        ],
-        "operationId": "ExtractAll_AI",
-        "parameters": [
-          {
-            "name": "waterQualityManagementPlanDocumentID",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "integer",
-              "format": "int32"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "OK",
-            "content": {
-              "text/plain": {
-                "schema": {
-                  "$ref": "#/components/schemas/WaterQualityManagementPlanDocumentExtractionResultDto"
-                }
-              },
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/WaterQualityManagementPlanDocumentExtractionResultDto"
-                }
-              },
-              "text/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/WaterQualityManagementPlanDocumentExtractionResultDto"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/ai/water-quality-management-plan-documents/{waterQualityManagementPlanDocumentID}/ask": {
-      "post": {
-        "tags": [
-          "AI"
-        ],
-        "operationId": "Ask_AI",
-        "parameters": [
-          {
-            "name": "waterQualityManagementPlanDocumentID",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "integer",
-              "format": "int32"
-            }
-          }
-        ],
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/ChatRequestDto"
-              }
-            },
-            "text/json": {
-              "schema": {
-                "$ref": "#/components/schemas/ChatRequestDto"
-              }
-            },
-            "application/*+json": {
-              "schema": {
-                "$ref": "#/components/schemas/ChatRequestDto"
-              }
-            }
-          }
-        },
-        "responses": {
-          "200": {
-            "description": "OK"
-          }
-        }
-      }
-    },
     "/custom-attribute-types": {
       "get": {
         "tags": [
@@ -14752,54 +14668,6 @@
         },
         "additionalProperties": false
       },
-      "ChatMessageDto": {
-        "type": "object",
-        "properties": {
-          "Role": {
-            "type": "string",
-            "nullable": true
-          },
-          "Content": {
-            "type": "string",
-            "nullable": true
-          },
-          "Id": {
-            "type": "string",
-            "nullable": true
-          },
-          "Date": {
-            "type": "string",
-            "format": "date-time"
-          },
-          "Intro": {
-            "type": "string",
-            "nullable": true
-          },
-          "SummaryHtml": {
-            "type": "string",
-            "nullable": true
-          }
-        },
-        "additionalProperties": false
-      },
-      "ChatRequestDto": {
-        "type": "object",
-        "properties": {
-          "Messages": {
-            "type": "array",
-            "items": {
-              "$ref": "#/components/schemas/ChatMessageDto"
-            },
-            "nullable": true
-          },
-          "Filters": {
-            "type": "object",
-            "additionalProperties": { },
-            "nullable": true
-          }
-        },
-        "additionalProperties": false
-      },
       "Coordinate": {
         "type": "object",
         "properties": {
@@ -23147,24 +23015,6 @@
         },
         "additionalProperties": false
       },
-      "WaterQualityManagementPlanDocumentExtractionResultDto": {
-        "type": "object",
-        "properties": {
-          "FinalOutput": {
-            "type": "string",
-            "nullable": true
-          },
-          "RawResults": {
-            "type": "string",
-            "nullable": true
-          },
-          "ExtractedAt": {
-            "type": "string",
-            "format": "date-time"
-          }
-        },
-        "additionalProperties": false
-      },
       "WaterQualityManagementPlanDocumentUpsertDto": {
         "type": "object",
         "properties": {
@@ -24440,9 +24290,6 @@
     }
   },
   "tags": [
-    {
-      "name": "AI"
-    },
     {
       "name": "CustomAttributeType"
     },

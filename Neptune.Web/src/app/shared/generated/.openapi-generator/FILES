@@ -1,7 +1,6 @@
 .gitignore
 api.base.service.ts
 api.module.ts
-api/ai.service.ts
 api/custom-attribute-type.service.ts
 api/custom-rich-text.service.ts
 api/data-hub.service.ts
@@ -58,8 +57,6 @@ model/area-based-acre-calculations-dto.ts
 model/bounding-box-dto.ts
 model/bulk-verify-request-dto.ts
 model/bulk-verify-response-dto.ts
-model/chat-message-dto.ts
-model/chat-request-dto.ts
 model/coordinate-dto.ts
 model/coordinate-sequence-factory.ts
 model/coordinate-sequence.ts
@@ -273,7 +270,6 @@ model/water-quality-management-plan-boundary-response-dto.ts
 model/water-quality-management-plan-boundary-upsert-dto.ts
 model/water-quality-management-plan-display-dto.ts
 model/water-quality-management-plan-document-dto.ts
-model/water-quality-management-plan-document-extraction-result-dto.ts
 model/water-quality-management-plan-document-upsert-dto.ts
 model/water-quality-management-plan-dto.ts
 model/water-quality-management-plan-extraction-result-dto.ts

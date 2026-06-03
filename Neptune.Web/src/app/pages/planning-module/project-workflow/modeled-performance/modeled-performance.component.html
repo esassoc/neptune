@@ -1,6 +1,6 @@
 <page-header pageTitle="Modeled Performance and Grant Metrics" [templateRight]="templateRight"> </page-header>
 <ng-template #templateRight>
-    <a href="{{ getAboutModelingPerformanceURL() }}" target="_blank" class="float-right">About Modeling Performance</a>
+    <a [routerLink]="['/modeling-calculations']" class="float-right">About Modeling Performance</a>
 </ng-template>
 @if (project$ | async; as project) {
     <workflow-body>

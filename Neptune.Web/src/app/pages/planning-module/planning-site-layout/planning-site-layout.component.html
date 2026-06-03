@@ -65,10 +65,10 @@
                                 <div #manageToggle class="dropdown-menu" aria-labelledby="navbarDropdown">
                                     <div class="dropdown-divider"></div>
                                     @if (isAdministrator(currentUser) || isJurisdicionManager(currentUser)) {
-                                        <a href="{{ usersListUrl() }}" class="dropdown-item"> Users </a>
+                                        <a [routerLink]="['/users']" class="dropdown-item"> Users </a>
                                     }
                                     @if (isAdministrator(currentUser)) {
-                                        <a href="{{ organizationsIndexUrl() }}" class="dropdown-item"> Organizations </a>
+                                        <a [routerLink]="['/organizations']" class="dropdown-item"> Organizations </a>
                                     }
                                     @if (isAdministrator(currentUser)) {
                                         <a [routerLink]="['/labels-and-definitions']" class="dropdown-item"> Labels and Definitions </a>
