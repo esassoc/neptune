@@ -15,6 +15,9 @@ import { MarkerHelper } from "src/app/shared/helpers/marker-helper";
 import { TreatmentBMPService } from "src/app/shared/generated/api/treatment-bmp.service";
 import { TreatmentBMPImageByTreatmentBMPService } from "src/app/shared/generated/api/treatment-bmp-image-by-treatment-bmp.service";
 import { TreatmentBMPDto } from "src/app/shared/generated/model/treatment-bmp-dto";
+import { ProjectLoadReducingResultDto } from "src/app/shared/generated/model/project-load-reducing-result-dto";
+import { TreatmentBMPNereidLogContentDto } from "src/app/shared/generated/model/treatment-bmp-nereid-log-content-dto";
+import { environment } from "src/environments/environment";
 import { FieldDefinitionComponent } from "src/app/shared/components/field-definition/field-definition.component";
 import { NeptuneMapComponent } from "src/app/shared/components/leaflet/neptune-map/neptune-map.component";
 import { RegionalSubbasinsLayerComponent } from "src/app/shared/components/leaflet/layers/regional-subbasins-layer/regional-subbasins-layer.component";
@@ -158,6 +161,8 @@ export class TreatmentBmpDetailComponent implements OnInit, OnChanges {
     treatmentBMPTypeCustomAttributeTypes$: Observable<TreatmentBMPTypeCustomAttributeTypeDto[]>;
     treatmentBMPImages$: Observable<TreatmentBMPImageDto[]>;
     treatmentBMPDocuments$: Observable<TreatmentBMPDocumentDto[]>;
+    loadReducingResult$!: Observable<ProjectLoadReducingResultDto | null>;
+    public ocstBaseUrl = environment.ocStormwaterToolsBaseUrl;
     refreshTreatmentBMPDocumentsTrigger$: BehaviorSubject<void> = new BehaviorSubject<void>(undefined);
     hruCharacteristics$: Observable<HRUCharacteristicDto[]>;
     fieldVisits$: Observable<FieldVisitDto[]>;
@@ -174,7 +179,10 @@ export class TreatmentBmpDetailComponent implements OnInit, OnChanges {
     openRevisionRequestDetailUrl = "";
     currentPersonCanManage = false;
     canEditStormwaterJurisdiction = false;
-    isAnalyzedInModelingModule = true;
+    // Sourced from TreatmentBMPType.IsAnalyzedInModelingModule via the BMP DTO. Gates the
+    // "Modeled BMP Performance" panel. Distinct from `hasModelingAttributes` — a BMP type can
+    // be modeled without exposing any user-configurable Modeling-purpose custom attributes.
+    isAnalyzedInModelingModule = false;
     isSitkaAdmin = false;
     hasModelingAttributes = false;
     upstreamSectionExpanded = false;
@@ -354,6 +362,7 @@ export class TreatmentBmpDetailComponent implements OnInit, OnChanges {
 
                 this.hasSettableBenchmarkAndThresholdValues = bmp?.HasSettableBenchmarkAndThresholdValues ?? false;
                 this.canEditBenchmarkAndThresholds = this.currentPersonCanManage && this.hasSettableBenchmarkAndThresholdValues;
+                this.isAnalyzedInModelingModule = bmp?.IsAnalyzedInModelingModule ?? false;
             }),
             shareReplay(1)
         );
@@ -395,6 +404,11 @@ export class TreatmentBmpDetailComponent implements OnInit, OnChanges {
         this.treatmentBMPDocuments$ = this.refreshTreatmentBMPDocumentsTrigger$.pipe(
             switchMap(() => this.treatmentBMPDocumentByTreatmentBMPService.listTreatmentBMPDocumentByTreatmentBMP(this.treatmentBMPID))
         );
+
+        // NPT-1068: Modeled BMP Performance source. Endpoint returns 200 with a null body when
+        // Nereid hasn't produced a non-baseline result yet, so the async pipe just sees null and
+        // the template falls back to the "missing fields" / "not modeled" message.
+        this.loadReducingResult$ = this.treatmentBMPService.getLoadReducingResultTreatmentBMP(this.treatmentBMPID);
 
         this.refreshTreatmentBMPDocumentsTrigger$.next();
     }
@@ -533,8 +547,6 @@ export class TreatmentBmpDetailComponent implements OnInit, OnChanges {
     hasSettableBenchmarkAndThresholdValues = false;
     currentBenchmarks: TreatmentBMPBenchmarkAndThresholdWithObservationTypeDto[] = [];
 
-    // NOTE: TreatmentBMPTypeIsAnalyzedInModelingModule is expected on treatmentBMP DTO. If missing, add to DTO or adjust template logic.
-
     private delineationLayer: L.GeoJSON | null = null;
 
     // Handler for Neptune map load event
@@ -637,6 +649,41 @@ export class TreatmentBmpDetailComponent implements OnInit, OnChanges {
         this.treatmentBMPDocumentByTreatmentBMPService.deleteTreatmentBMPDocumentByTreatmentBMP(this.treatmentBMPID, treatmentBMPDocument.TreatmentBMPDocumentID).subscribe(() => {
             this.alertService.pushAlert(new Alert("Successfully deleted document.", AlertContext.Success));
             this.refreshTreatmentBMPDocumentsTrigger$.next();
+        });
+    }
+
+    /**
+     * NPT-1068: Sitka-admin "Latest Nereid Request" / "Latest Nereid Response" downloads on the
+     * Modeled BMP Performance panel. Fetches the BMP's most-recent NereidLog content via the
+     * API and triggers a browser blob download, matching the legacy MVC pattern.
+     */
+    public downloadLatestNereidLog(which: "request" | "response"): void {
+        this.treatmentBMPService.getLatestNereidLogTreatmentBMP(this.treatmentBMPID).subscribe({
+            next: (log: TreatmentBMPNereidLogContentDto | null) => {
+                if (!log) {
+                    this.alertService.pushAlert(new Alert("No Nereid log found for this BMP yet.", AlertContext.Warning, true));
+                    return;
+                }
+                const content = which === "request" ? log.NereidRequest : log.NereidResponse;
+                if (!content) {
+                    this.alertService.pushAlert(new Alert(`No Nereid ${which} content available for this BMP yet.`, AlertContext.Warning, true));
+                    return;
+                }
+                const blob = new Blob([content], { type: "application/json" });
+                const url = window.URL.createObjectURL(blob);
+                const a = document.createElement("a");
+                a.href = url;
+                a.download = `nereid${which === "request" ? "Request" : "Response"}_BMP${this.treatmentBMPID}.json`;
+                a.click();
+                window.URL.revokeObjectURL(url);
+            },
+            error: () => {
+                // Endpoint returns 200 + null body in the no-log case, so we only hit this on a
+                // real failure (auth expiry, network drop, 5xx). Don't leave the user wondering.
+                this.alertService.pushAlert(
+                    new Alert(`Could not download the latest Nereid ${which}. Please try again or contact support.`, AlertContext.Danger, true)
+                );
+            },
         });
     }
 }

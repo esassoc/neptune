@@ -13,3 +13,18 @@
         color: white;
     }
 }
+
+// NPT-1068: footer block below <modeled-bmp-performance> (Results last calculated /
+// Nereid download links / About link). Each paragraph reads as its own line of metadata
+// so give them breathing room — without overrides, .system-text uses margin: 0 and adjacent
+// <p>s end up stacked tight against the table edge and each other.
+.modeled-performance-footer {
+    margin-top: $spacing-300;
+    display: flex;
+    flex-direction: column;
+    gap: $spacing-200;
+
+    p {
+        margin: 0;
+    }
+}

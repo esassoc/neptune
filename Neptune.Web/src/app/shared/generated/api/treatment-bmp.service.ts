@@ -27,6 +27,8 @@ import { HRUCharacteristicDto } from '../model/hru-characteristic-dto';
 // @ts-ignore
 import { IFeature } from '../model/i-feature';
 // @ts-ignore
+import { ProjectLoadReducingResultDto } from '../model/project-load-reducing-result-dto';
+// @ts-ignore
 import { TreatmentBMPBasicInfoUpdateDto } from '../model/treatment-bmp-basic-info-update-dto';
 // @ts-ignore
 import { TreatmentBMPCreateDto } from '../model/treatment-bmp-create-dto';
@@ -46,6 +48,8 @@ import { TreatmentBMPGridDto } from '../model/treatment-bmp-grid-dto';
 import { TreatmentBMPLocationUpdateDto } from '../model/treatment-bmp-location-update-dto';
 // @ts-ignore
 import { TreatmentBMPModelingAttributesDto } from '../model/treatment-bmp-modeling-attributes-dto';
+// @ts-ignore
+import { TreatmentBMPNereidLogContentDto } from '../model/treatment-bmp-nereid-log-content-dto';
 // @ts-ignore
 import { TreatmentBMPParameterizationErrorsDto } from '../model/treatment-bmp-parameterization-errors-dto';
 // @ts-ignore
@@ -526,6 +530,116 @@ export class TreatmentBMPService extends BaseService {
         let localVarPath = `/treatment-bmps/${this.configuration.encodeParam({name: "treatmentBMPID", value: treatmentBMPID, in: "path", style: "simple", explode: false, dataType: "number", dataFormat: "int32"})}/delineation-errors`;
         const { basePath, withCredentials } = this.configuration;
         return this.httpClient.request<TreatmentBMPDelineationErrorsDto>('get', `${basePath}${localVarPath}`,
+            {
+                context: localVarHttpContext,
+                responseType: <any>responseType_,
+                ...(withCredentials ? { withCredentials } : {}),
+                headers: localVarHeaders,
+                observe: observe,
+                transferCache: localVarTransferCache,
+                reportProgress: reportProgress
+            }
+        );
+    }
+
+    /**
+     * @param treatmentBMPID 
+     * @param observe set whether or not to return the data Observable as the body, response or events. defaults to returning the body.
+     * @param reportProgress flag to report request and response progress.
+     */
+    public getLatestNereidLogTreatmentBMP(treatmentBMPID: number, observe?: 'body', reportProgress?: boolean, options?: {httpHeaderAccept?: 'text/plain' | 'application/json' | 'text/json', context?: HttpContext, transferCache?: boolean}): Observable<TreatmentBMPNereidLogContentDto>;
+    public getLatestNereidLogTreatmentBMP(treatmentBMPID: number, observe?: 'response', reportProgress?: boolean, options?: {httpHeaderAccept?: 'text/plain' | 'application/json' | 'text/json', context?: HttpContext, transferCache?: boolean}): Observable<HttpResponse<TreatmentBMPNereidLogContentDto>>;
+    public getLatestNereidLogTreatmentBMP(treatmentBMPID: number, observe?: 'events', reportProgress?: boolean, options?: {httpHeaderAccept?: 'text/plain' | 'application/json' | 'text/json', context?: HttpContext, transferCache?: boolean}): Observable<HttpEvent<TreatmentBMPNereidLogContentDto>>;
+    public getLatestNereidLogTreatmentBMP(treatmentBMPID: number, observe: any = 'body', reportProgress: boolean = false, options?: {httpHeaderAccept?: 'text/plain' | 'application/json' | 'text/json', context?: HttpContext, transferCache?: boolean}): Observable<any> {
+        if (treatmentBMPID === null || treatmentBMPID === undefined) {
+            throw new Error('Required parameter treatmentBMPID was null or undefined when calling getLatestNereidLogTreatmentBMP.');
+        }
+
+        let localVarHeaders = this.defaultHeaders;
+
+        const localVarHttpHeaderAcceptSelected: string | undefined = options?.httpHeaderAccept ?? this.configuration.selectHeaderAccept([
+            'text/plain',
+            'application/json',
+            'text/json'
+        ]);
+        if (localVarHttpHeaderAcceptSelected !== undefined) {
+            localVarHeaders = localVarHeaders.set('Accept', localVarHttpHeaderAcceptSelected);
+        }
+
+        const localVarHttpContext: HttpContext = options?.context ?? new HttpContext();
+
+        const localVarTransferCache: boolean = options?.transferCache ?? true;
+
+
+        let responseType_: 'text' | 'json' | 'blob' = 'json';
+        if (localVarHttpHeaderAcceptSelected) {
+            if (localVarHttpHeaderAcceptSelected.startsWith('text')) {
+                responseType_ = 'text';
+            } else if (this.configuration.isJsonMime(localVarHttpHeaderAcceptSelected)) {
+                responseType_ = 'json';
+            } else {
+                responseType_ = 'blob';
+            }
+        }
+
+        let localVarPath = `/treatment-bmps/${this.configuration.encodeParam({name: "treatmentBMPID", value: treatmentBMPID, in: "path", style: "simple", explode: false, dataType: "number", dataFormat: "int32"})}/latest-nereid-log`;
+        const { basePath, withCredentials } = this.configuration;
+        return this.httpClient.request<TreatmentBMPNereidLogContentDto>('get', `${basePath}${localVarPath}`,
+            {
+                context: localVarHttpContext,
+                responseType: <any>responseType_,
+                ...(withCredentials ? { withCredentials } : {}),
+                headers: localVarHeaders,
+                observe: observe,
+                transferCache: localVarTransferCache,
+                reportProgress: reportProgress
+            }
+        );
+    }
+
+    /**
+     * @param treatmentBMPID 
+     * @param observe set whether or not to return the data Observable as the body, response or events. defaults to returning the body.
+     * @param reportProgress flag to report request and response progress.
+     */
+    public getLoadReducingResultTreatmentBMP(treatmentBMPID: number, observe?: 'body', reportProgress?: boolean, options?: {httpHeaderAccept?: 'text/plain' | 'application/json' | 'text/json', context?: HttpContext, transferCache?: boolean}): Observable<ProjectLoadReducingResultDto>;
+    public getLoadReducingResultTreatmentBMP(treatmentBMPID: number, observe?: 'response', reportProgress?: boolean, options?: {httpHeaderAccept?: 'text/plain' | 'application/json' | 'text/json', context?: HttpContext, transferCache?: boolean}): Observable<HttpResponse<ProjectLoadReducingResultDto>>;
+    public getLoadReducingResultTreatmentBMP(treatmentBMPID: number, observe?: 'events', reportProgress?: boolean, options?: {httpHeaderAccept?: 'text/plain' | 'application/json' | 'text/json', context?: HttpContext, transferCache?: boolean}): Observable<HttpEvent<ProjectLoadReducingResultDto>>;
+    public getLoadReducingResultTreatmentBMP(treatmentBMPID: number, observe: any = 'body', reportProgress: boolean = false, options?: {httpHeaderAccept?: 'text/plain' | 'application/json' | 'text/json', context?: HttpContext, transferCache?: boolean}): Observable<any> {
+        if (treatmentBMPID === null || treatmentBMPID === undefined) {
+            throw new Error('Required parameter treatmentBMPID was null or undefined when calling getLoadReducingResultTreatmentBMP.');
+        }
+
+        let localVarHeaders = this.defaultHeaders;
+
+        const localVarHttpHeaderAcceptSelected: string | undefined = options?.httpHeaderAccept ?? this.configuration.selectHeaderAccept([
+            'text/plain',
+            'application/json',
+            'text/json'
+        ]);
+        if (localVarHttpHeaderAcceptSelected !== undefined) {
+            localVarHeaders = localVarHeaders.set('Accept', localVarHttpHeaderAcceptSelected);
+        }
+
+        const localVarHttpContext: HttpContext = options?.context ?? new HttpContext();
+
+        const localVarTransferCache: boolean = options?.transferCache ?? true;
+
+
+        let responseType_: 'text' | 'json' | 'blob' = 'json';
+        if (localVarHttpHeaderAcceptSelected) {
+            if (localVarHttpHeaderAcceptSelected.startsWith('text')) {
+                responseType_ = 'text';
+            } else if (this.configuration.isJsonMime(localVarHttpHeaderAcceptSelected)) {
+                responseType_ = 'json';
+            } else {
+                responseType_ = 'blob';
+            }
+        }
+
+        let localVarPath = `/treatment-bmps/${this.configuration.encodeParam({name: "treatmentBMPID", value: treatmentBMPID, in: "path", style: "simple", explode: false, dataType: "number", dataFormat: "int32"})}/load-reducing-result`;
+        const { basePath, withCredentials } = this.configuration;
+        return this.httpClient.request<ProjectLoadReducingResultDto>('get', `${basePath}${localVarPath}`,
             {
                 context: localVarHttpContext,
                 responseType: <any>responseType_,

@@ -39,6 +39,12 @@ public class TreatmentBMPDto
 
     // Modeling/Parameterization
     public bool? IsFullyParameterized { get; set; }
+    // Denormalized from TreatmentBMPType.IsAnalyzedInModelingModule so the detail page can decide
+    // whether to render the "Modeled BMP Performance" panel without a second API call. Legacy
+    // MVC gated that panel on this flag (Views/TreatmentBMP/Detail.cshtml:270); the SPA needs the
+    // same gate to avoid hiding the panel for BMP types that are modeled but have no custom
+    // attributes flagged as Modeling-purpose.
+    public bool IsAnalyzedInModelingModule { get; set; }
     public vTreatmentBMPModelingAttributeDto? TreatmentBMPModelingAttribute { get; set; }
 
     // Related Entities

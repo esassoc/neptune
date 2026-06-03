@@ -503,6 +503,31 @@ public static class TreatmentBMPs
             .AnyAsync(x => x.TreatmentBMPTypeID == dto.TreatmentBMPTypeID
                 && specIdsWithBenchmarks.Contains(x.TreatmentBMPAssessmentObservationType.ObservationTypeSpecificationID));
 
+        // IsFullyParameterized is a C# computation (joins BMP + type + modeling config + the
+        // vTreatmentBMPModelingAttributes view + delineation verification status), so it can't
+        // live in the EF expression projection — load the inputs and call the existing helper.
+        // Previously left null on the DTO, which made the SPA detail page always render the
+        // "missing fields required to calculate model results" fallback inside the Modeled BMP
+        // Performance panel even for fully-parameterized BMPs.
+        // TreatmentBMPModelingType is a static lookup class (resolved by ID via the generated
+        // AllLookupDictionary at C# runtime), not an EF navigation — don't try to ThenInclude it.
+        var bmpForParameterizationCheck = await dbContext.TreatmentBMPs.AsNoTracking()
+            .Include(x => x.TreatmentBMPType)
+            .SingleAsync(x => x.TreatmentBMPID == treatmentBMPID);
+        // IsFullyParameterized's comment: "assumes the delineation passed in is the from the
+        // 'upstreamest' BMP" — downstream BMPs inherit their upstream's verified delineation.
+        // Mirror the pattern in vTreatmentBMPUpstreams.ListWithDelineationAsDictionary: read
+        // the upstream BMP ID from the tree view, and load that BMP's delineation if present;
+        // otherwise this BMP's own.
+        var upstreamRow = await dbContext.vTreatmentBMPUpstreams.AsNoTracking()
+            .SingleOrDefaultAsync(x => x.TreatmentBMPID == treatmentBMPID);
+        var delineationBMPID = upstreamRow?.UpstreamBMPID ?? treatmentBMPID;
+        var delineationForParameterizationCheck = await dbContext.Delineations.AsNoTracking()
+            .SingleOrDefaultAsync(x => x.TreatmentBMPID == delineationBMPID);
+        var modelingAttribute = await dbContext.vTreatmentBMPModelingAttributes.AsNoTracking()
+            .SingleOrDefaultAsync(x => x.TreatmentBMPID == treatmentBMPID);
+        dto.IsFullyParameterized = bmpForParameterizationCheck.IsFullyParameterized(delineationForParameterizationCheck, modelingAttribute);
+
         if (dto.UpstreamBMPID.HasValue)
         {
             dto.UpstreamBMP = await GetByIDAsDtoAsync(dbContext, dto.UpstreamBMPID.Value);

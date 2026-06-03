@@ -185,6 +185,7 @@ export * from './treatment-bmp-life-span-type-dto';
 export * from './treatment-bmp-location-update-dto';
 export * from './treatment-bmp-minimal-dto';
 export * from './treatment-bmp-modeling-attributes-dto';
+export * from './treatment-bmp-nereid-log-content-dto';
 export * from './treatment-bmp-observation-dto';
 export * from './treatment-bmp-observation-upsert-dto';
 export * from './treatment-bmp-parameterization-errors-dto';

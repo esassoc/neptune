@@ -263,13 +263,17 @@
             </div>
             <div class="card-body">
                 <!-- Modeling Approach -->
-                <h4 class="mb-2 flex-between">Modeling Approach
-                    @if (currentPersonCanEdit) {
-                        <button type="button" class="btn btn-primary btn-sm" (click)="openEditModelingApproachModal(wqmp)">
-                            Edit
-                        </button>
-                    }
-                </h4>
+                <div class="modeling-approach-heading">
+                    <h4 class="mb-2">Modeling Approach</h4>
+                    <div class="modeling-approach-header-actions">
+                        <a [href]="wqmpModelingOptionsUrl">Learn about WQMP Modeling Options</a>
+                        @if (currentPersonCanEdit) {
+                            <button type="button" class="btn btn-primary btn-sm" (click)="openEditModelingApproachModal(wqmp)">
+                                Edit
+                            </button>
+                        }
+                    </div>
+                </div>
                 @for (approach of modelingApproaches; track approach.Value) {
                     <div class="modeling-approach-row" [class.modeling-approach-selected]="approach.Value === wqmp.WaterQualityManagementPlanModelingApproachID"
                         [class.modeling-approach-unselected]="approach.Value !== wqmp.WaterQualityManagementPlanModelingApproachID">

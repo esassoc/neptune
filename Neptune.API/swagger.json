@@ -8607,6 +8607,89 @@
         }
       }
     },
+    "/treatment-bmps/{treatmentBMPID}/load-reducing-result": {
+      "get": {
+        "tags": [
+          "TreatmentBMP"
+        ],
+        "operationId": "GetLoadReducingResult_TreatmentBMP",
+        "parameters": [
+          {
+            "name": "treatmentBMPID",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProjectLoadReducingResultDto"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProjectLoadReducingResultDto"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProjectLoadReducingResultDto"
+                }
+              }
+            }
+          }
+        },
+        "x-anonymous": true
+      }
+    },
+    "/treatment-bmps/{treatmentBMPID}/latest-nereid-log": {
+      "get": {
+        "tags": [
+          "TreatmentBMP"
+        ],
+        "operationId": "GetLatestNereidLog_TreatmentBMP",
+        "parameters": [
+          {
+            "name": "treatmentBMPID",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/TreatmentBMPNereidLogContentDto"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TreatmentBMPNereidLogContentDto"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TreatmentBMPNereidLogContentDto"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/treatment-bmps/{treatmentBMPID}/basic-info": {
       "put": {
         "tags": [
@@ -21677,6 +21760,9 @@
             "type": "boolean",
             "nullable": true
           },
+          "IsAnalyzedInModelingModule": {
+            "type": "boolean"
+          },
           "TreatmentBMPModelingAttribute": {
             "$ref": "#/components/schemas/vTreatmentBMPModelingAttributeDto"
           },
@@ -22201,6 +22287,24 @@
             "type": "boolean"
           },
           "DryWeatherFlowOverride": {
+            "type": "string",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "TreatmentBMPNereidLogContentDto": {
+        "type": "object",
+        "properties": {
+          "NereidLogID": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "NereidRequest": {
+            "type": "string",
+            "nullable": true
+          },
+          "NereidResponse": {
             "type": "string",
             "nullable": true
           }
