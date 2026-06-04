@@ -263,7 +263,11 @@ public class OnlandVisualTrashAssessmentAreaController(
             // oversized Description) so users can find and fix the offending features.
             report.Errors.AddRange(OnlandVisualTrashAssessmentAreaGdbValidator.Validate(stagings));
 
-            var duplicateNames = stagings.GroupBy(x => x.AreaName).Where(g => g.Count() > 1).Select(g => g.Key).ToList();
+            // Skip null/blank names here — the validator above already reports those as their own
+            // per-feature error; grouping them would produce a confusing "Duplicate OVTA Area
+            // Names: " (empty value) message that just duplicates the missing-name signal.
+            var duplicateNames = stagings.Where(x => !string.IsNullOrWhiteSpace(x.AreaName))
+                .GroupBy(x => x.AreaName).Where(g => g.Count() > 1).Select(g => g.Key).ToList();
             if (duplicateNames.Count > 0)
             {
                 report.Errors.Add($"Duplicate OVTA Area Names: {string.Join(", ", duplicateNames)}");

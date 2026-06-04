@@ -27,6 +27,15 @@ namespace Neptune.Tests
         /// <summary>Empty MultiPolygon — geometrically valid but zero area.</summary>
         private static MultiPolygon EmptyMultiPolygon() => GeomFactory.CreateMultiPolygon(new Polygon[0]);
 
+        /// <summary>
+        /// Self-intersecting "bowtie" ring — NTS reports <c>IsValid == false</c>. Exercises the
+        /// validator branch that the empty-MultiPolygon doesn't (empty is IsValid=true, Area=0).
+        /// </summary>
+        private static Polygon BowtiePolygon() => GeomFactory.CreatePolygon(new[]
+        {
+            new Coordinate(0, 0), new Coordinate(1, 1), new Coordinate(1, 0), new Coordinate(0, 1), new Coordinate(0, 0),
+        });
+
         [TestMethod]
         public void NullAreaName_Errors()
         {
@@ -57,6 +66,47 @@ namespace Neptune.Tests
 
             Assert.AreEqual(1, errors.Count);
             StringAssert.Contains(errors[0], "OVTA Area Name is missing");
+        }
+
+        [TestMethod]
+        public void InvalidGeometry_Errors()
+        {
+            // Sanity-check that NTS actually reports the bowtie as invalid; if a future NTS
+            // upgrade changes that, the test would silently pass against the zero-area branch
+            // instead of the IsValid=false branch we're trying to cover.
+            var bowtie = BowtiePolygon();
+            Assert.IsFalse(bowtie.IsValid, "Bowtie polygon must be reported as IsValid=false to exercise the right validator branch.");
+
+            var stagings = new List<OnlandVisualTrashAssessmentAreaStaging>
+            {
+                new() { AreaName = "LN_Bowtie_1", Geometry = bowtie, StormwaterJurisdictionID = 1, UploadedByPersonID = 1 },
+            };
+
+            var errors = OnlandVisualTrashAssessmentAreaGdbValidator.Validate(stagings);
+
+            Assert.AreEqual(1, errors.Count);
+            StringAssert.Contains(errors[0], "Feature 1");
+            StringAssert.Contains(errors[0], "LN_Bowtie_1");
+            StringAssert.Contains(errors[0], "NTS reports IsValid = false");
+        }
+
+        [TestMethod]
+        public void NullGeometry_ErrorsWithMissingMessage()
+        {
+            // Defensive: the GDAL pipeline shouldn't normally produce a null Geometry, but the
+            // staging entity allows it during deserialization. The validator must produce a
+            // distinct "geometry is missing" message rather than misleading users with the
+            // NTS-IsValid wording from the invalid-geometry branch.
+            var stagings = new List<OnlandVisualTrashAssessmentAreaStaging>
+            {
+                new() { AreaName = "LN_NullGeom_1", Geometry = null!, StormwaterJurisdictionID = 1, UploadedByPersonID = 1 },
+            };
+
+            var errors = OnlandVisualTrashAssessmentAreaGdbValidator.Validate(stagings);
+
+            Assert.AreEqual(1, errors.Count);
+            StringAssert.Contains(errors[0], "geometry is missing");
+            Assert.IsFalse(errors[0].Contains("IsValid"), "Null geometry should not be reported as IsValid=false.");
         }
 
         [TestMethod]

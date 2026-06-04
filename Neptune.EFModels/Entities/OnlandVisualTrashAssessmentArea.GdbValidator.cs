@@ -33,7 +33,12 @@ public static class OnlandVisualTrashAssessmentAreaGdbValidator
                 errors.Add($"Feature {rowNumber}: OVTA Area Name is missing.");
                 continue;
             }
-            if (staging.Geometry == null || !staging.Geometry.IsValid)
+            if (staging.Geometry == null)
+            {
+                errors.Add($"Feature {rowNumber} ({staging.AreaName}): geometry is missing.");
+                continue;
+            }
+            if (!staging.Geometry.IsValid)
             {
                 errors.Add($"Feature {rowNumber} ({staging.AreaName}): geometry is invalid (NTS reports IsValid = false).");
                 continue;
