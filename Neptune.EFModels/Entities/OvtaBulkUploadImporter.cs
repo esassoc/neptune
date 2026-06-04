@@ -184,7 +184,11 @@ public static class OvtaBulkUploadImporter
         }
         await dbContext.SaveChangesAsync();
 
-        result.RowsProcessed = numRows;
+        // NPT-1076 round 2: must report the count of actually-imported rows, not the raw
+        // DataTable.Rows.Count. Excel's "used range" can include trailing formatted-but-blank
+        // rows that the per-row `rowEmpty` guard above correctly skips, but `numRows` still
+        // counts them — KE's 3-record test file reported 172 row(s) because of this.
+        result.RowsProcessed = processedRowCount;
         return result;
     }
 
