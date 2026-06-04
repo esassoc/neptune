@@ -172,7 +172,7 @@ public static class SimplifiedBMPsExcelParserHelper
         var dryWeatherFlowOverrideName = row["Dry Weather Flow Override?"].ToString();
         if (!string.IsNullOrWhiteSpace(dryWeatherFlowOverrideName))
         {
-            var dryWeatherFlowOverride = DryWeatherFlowOverride.All.SingleOrDefault(x => x.DryWeatherFlowOverrideDisplayName == dryWeatherFlowOverrideName);
+            var dryWeatherFlowOverride = DryWeatherFlowOverride.GetByDisplayNameOrShorthand(dryWeatherFlowOverrideName);
             if (dryWeatherFlowOverride == null)
             {
                 // NPT-1073: was mis-labelled "BMP Type" (copy-paste from the BMP Type branch above).
