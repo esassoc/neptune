@@ -5,23 +5,22 @@ using Neptune.ExternalAPI.Logging;
 namespace Neptune.ExternalAPI.Controllers;
 
 /// <summary>
-/// Anonymous service-info endpoints — health and version checks.
+/// Anonymous service-info endpoints — health and version checks. Also serves as the target
+/// for the kubelet startup/liveness probes via the root `/` route, mirroring Neptune.API's
+/// SystemInfoController. Hidden from Scalar so external consumers don't see noise.
 /// </summary>
 [AllowAnonymous]
 [ApiController]
 [ApiExplorerSettings(IgnoreApi = true)]
-[Route("system")]
 public class SystemInfoController : ControllerBase
 {
     /// <summary>
-    /// Service identity ping.
+    /// Service identity ping. Mapped at both <c>/</c> (kubelet startup/liveness probe target)
+    /// and <c>/system/info</c> (explicit name for humans hitting the API directly).
     /// </summary>
-    [HttpGet("info")]
+    [HttpGet("/")]
+    [HttpGet("system/info")]
     [LogIgnore]
-    [EndpointSummary("Service information")]
-    [EndpointDescription("Returns the service name and environment for sanity checks.")]
-    [ProducesResponseType(typeof(object), StatusCodes.Status200OK)]
-    [Produces("application/json")]
     public IActionResult Info()
     {
         return Ok(new
