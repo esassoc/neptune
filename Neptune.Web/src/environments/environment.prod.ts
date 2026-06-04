@@ -9,7 +9,7 @@ export const environment = {
     auth0: {
         domain: "ocstormwatertools.us.auth0.com",
         clientId: "ifBEaIsDKHXBQoIyDVl1CB21avZh1xEx",
-        redirectUri: "https://web.ocstormwatertools.org/callback",
+        redirectUri: "https://www.ocstormwatertools.org/callback",
         audience: "OCSTApi",
     },
 };
