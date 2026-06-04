@@ -15,7 +15,6 @@ using Microsoft.Extensions.Options;
 using Neptune.API.Services;
 using Neptune.Common.Services;
 using Neptune.EFModels.Entities;
-using Neptune.Common.Services;
 
 namespace Neptune.API.Services.AI;
 

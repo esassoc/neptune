@@ -9,7 +9,7 @@ internal sealed class ApiKeySecuritySchemeTransformer(IAuthenticationSchemeProvi
     public async Task TransformAsync(OpenApiDocument document, OpenApiDocumentTransformerContext context, CancellationToken cancellationToken)
     {
         var authenticationSchemes = await authenticationSchemeProvider.GetAllSchemesAsync();
-        if (authenticationSchemes.All(authScheme => authScheme.Name == WebServiceTokenAuthenticationHandler.SchemeName))
+        if (authenticationSchemes.Any(authScheme => authScheme.Name == WebServiceTokenAuthenticationHandler.SchemeName))
         {
             var requirements = new Dictionary<string, IOpenApiSecurityScheme>
             {
