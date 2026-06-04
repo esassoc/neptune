@@ -388,6 +388,61 @@ namespace Neptune.Tests
         }
 
         [TestMethod]
+        public async Task RowsProcessed_ExcludesBlankRowsWithinUsedRange()
+        {
+            // KE round 2 (TC02): uploaded file with 3 records reported "172 row(s)" because the
+            // worksheet's used range stretched far past the actual data. The importer was using
+            // `numRows = dataTable.Rows.Count` (raw count) for the success banner instead of
+            // `processedRowCount` (rows that actually produced a persisted assessment). This
+            // test reproduces the inflated-used-range scenario by touching cells past the last
+            // data row, then asserts the result reports the data-row count, not the raw count.
+            var area = _dbContext.OnlandVisualTrashAssessmentAreas.AsNoTracking().FirstOrDefault();
+            if (area == null)
+            {
+                Assert.Inconclusive("No OVTA areas in dev DB.");
+                return;
+            }
+            var creator = GetAdminPerson();
+            var jurisdiction = _dbContext.StormwaterJurisdictions.Include(x => x.Organization).AsNoTracking()
+                .Single(x => x.StormwaterJurisdictionID == area.StormwaterJurisdictionID);
+            var validScore = OnlandVisualTrashAssessmentScore.All.First().OnlandVisualTrashAssessmentScoreDisplayName;
+
+            // Build the workbook by hand so we can touch blank cells past the data row,
+            // simulating the inflated "used range" Excel produces in real-world templates.
+            var wb = new XLWorkbook();
+            var ws = wb.AddWorksheet("OVTA Assessments");
+            for (var c = 0; c < BaseColumns.Length; c++)
+            {
+                ws.Cell(1, c + 1).Value = BaseColumns[c];
+            }
+            var dataRow = new[]
+            {
+                area.OnlandVisualTrashAssessmentAreaName, jurisdiction.Organization.OrganizationName, creator.Email,
+                "Finalized", "06/15/2024", validScore, "No",
+                "", "", "", "",
+            };
+            for (var c = 0; c < dataRow.Length; c++)
+            {
+                ws.Cell(2, c + 1).Value = dataRow[c];
+            }
+            // Touch a cell 10 rows past the data so ClosedXML's used range extends and produces
+            // ~10 blank-but-tracked rows in the resulting DataTable. The importer's per-row
+            // empty-row check skips them; the count returned must skip them too.
+            ws.Cell(12, 1).Value = "";
+            ws.Cell(12, 1).Style.Fill.BackgroundColor = XLColor.LightGray;
+
+            using var xlsx = new MemoryStream();
+            wb.SaveAs(xlsx);
+            xlsx.Position = 0;
+
+            var result = await OvtaBulkUploadImporter.BulkUploadAsync(_dbContext, xlsx, creator);
+
+            Assert.AreEqual(0, result.Errors.Count, string.Join("; ", result.Errors));
+            Assert.AreEqual(1, result.RowsProcessed,
+                "Success banner must reflect data rows actually imported, not the inflated worksheet used range.");
+        }
+
+        [TestMethod]
         public async Task PSIWhitespaceAndCasing_Accepted()
         {
             // Bug #1: mixed-case + leading/trailing whitespace around comma-separated PSI values
