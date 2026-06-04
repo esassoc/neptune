@@ -248,28 +248,36 @@ public class OnlandVisualTrashAssessmentAreaController(
             };
 
             var geoJson = await gdalApiService.Ogr2OgrGdbToGeoJson(apiRequest);
-            var stagings = await GeoJsonSerializer.DeserializeFromFeatureCollectionWithCCWCheck<OnlandVisualTrashAssessmentAreaStaging>(
-                geoJson, GeoJsonSerializer.DefaultSerializerOptions, Proj4NetHelper.NAD_83_HARN_CA_ZONE_VI_SRID);
+            var stagings = (await GeoJsonSerializer.DeserializeFromFeatureCollectionWithCCWCheck<OnlandVisualTrashAssessmentAreaStaging>(
+                geoJson, GeoJsonSerializer.DefaultSerializerOptions, Proj4NetHelper.NAD_83_HARN_CA_ZONE_VI_SRID)).ToList();
 
-            var validStagings = stagings.Where(x => x.Geometry is { IsValid: true, Area: > 0 }).ToList();
-            if (validStagings.Count == 0)
+            if (stagings.Count == 0)
             {
-                report.Errors.Add("No valid OVTA Area features were found in the upload.");
+                report.Errors.Add("No OVTA Area features were found in the upload.");
                 await OnlandVisualTrashAssessmentAreaGdbExport.DiscardStagingForUserAsync(DbContext, currentPerson);
                 return Ok(report);
             }
 
-            var duplicateNames = validStagings.GroupBy(x => x.AreaName).Where(g => g.Count() > 1).Select(g => g.Key).ToList();
+            // NPT-1075 round 2: replace the silent geometry filter + generic "corrupted file"
+            // catch with per-feature error messages (null/blank AreaName, invalid geometry,
+            // oversized Description) so users can find and fix the offending features.
+            report.Errors.AddRange(OnlandVisualTrashAssessmentAreaGdbValidator.Validate(stagings));
+
+            var duplicateNames = stagings.GroupBy(x => x.AreaName).Where(g => g.Count() > 1).Select(g => g.Key).ToList();
             if (duplicateNames.Count > 0)
             {
                 report.Errors.Add($"Duplicate OVTA Area Names: {string.Join(", ", duplicateNames)}");
+            }
+
+            if (report.Errors.Count > 0)
+            {
                 await OnlandVisualTrashAssessmentAreaGdbExport.DiscardStagingForUserAsync(DbContext, currentPerson);
                 return Ok(report);
             }
 
             await DbContext.OnlandVisualTrashAssessmentAreaStagings
                 .Where(x => x.UploadedByPersonID == currentPerson.PersonID).ExecuteDeleteAsync();
-            DbContext.OnlandVisualTrashAssessmentAreaStagings.AddRange(validStagings);
+            DbContext.OnlandVisualTrashAssessmentAreaStagings.AddRange(stagings);
             await DbContext.SaveChangesAsync();
         }
         catch (Exception ex) when (ex.Message.Contains("Unrecognized field name", StringComparison.InvariantCultureIgnoreCase))
