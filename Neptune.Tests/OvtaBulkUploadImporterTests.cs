@@ -409,7 +409,7 @@ namespace Neptune.Tests
 
             // Build the workbook by hand so we can touch blank cells past the data row,
             // simulating the inflated "used range" Excel produces in real-world templates.
-            var wb = new XLWorkbook();
+            using var wb = new XLWorkbook();
             var ws = wb.AddWorksheet("OVTA Assessments");
             for (var c = 0; c < BaseColumns.Length; c++)
             {
