@@ -65,19 +65,11 @@ spec:
             periodSeconds: 4
             timeoutSeconds: 5
             failureThreshold: 3
-          # NPT-1078: explicit timeoutSeconds. The default is 1s, which is too short for the
-          # `AddDbContextCheck<NeptuneDbContext>` call — the first /healthz on a cold pod has
-          # to complete a TDS+TLS handshake against Azure SQL before the connection pool is
-          # warm, which can take 2+ seconds. Without this bump the probe cancels mid-handshake,
-          # the pool never establishes, and the pod is permanently NotReady.
           readinessProbe:
             httpGet:
               path: /healthz
               scheme: HTTP
               port: 8080
-            timeoutSeconds: 5
-            periodSeconds: 10
-            failureThreshold: 3
           lifecycle:
             preStop:
               exec:
