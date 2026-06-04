@@ -46,8 +46,8 @@ namespace Neptune.WebMvc.Models
                 LastActivityDate = DateTime.UtcNow,
                 IsActive = true,
                 OrganizationID = -1,
-                ReceiveSupportEmails = false, ReceiveRSBRevisionRequestEmails = false,
-                WebServiceAccessToken = Guid.NewGuid(),
+                ReceiveSupportEmails = false,
+                ReceiveRSBRevisionRequestEmails = false,
                 IsOCTAGrantReviewer = false
             };
             return anonymousSitkaUser;

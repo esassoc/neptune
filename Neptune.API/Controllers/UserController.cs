@@ -116,6 +116,22 @@ namespace Neptune.API.Controllers
             return Ok(dto);
         }
 
+        [HttpPost("{personID}/generate-web-service-token")]
+        [UserViewFeature]
+        [EntityNotFoundAttribute(typeof(Person), "personID")]
+        public async Task<ActionResult<Guid>> GenerateWebServiceToken([FromRoute] int personID)
+        {
+            // Users may rotate their own token; Admins may rotate anyone's. Same gating shape as
+            // GetDetail above — UserViewFeature handles the anonymous/unassigned cutoff.
+            if (CallingUser.PersonID != personID && CallingUser.RoleID != (int)RoleEnum.Admin && CallingUser.RoleID != (int)RoleEnum.SitkaAdmin)
+            {
+                return Forbid();
+            }
+
+            var newToken = await People.GenerateAndPersistWebServiceAccessTokenAsync(DbContext, personID);
+            return Ok(newToken);
+        }
+
         [HttpPut("{personID}/role")]
         [AdminFeature]
         [EntityNotFoundAttribute(typeof(Person), "personID")]

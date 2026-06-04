@@ -3,6 +3,7 @@ using Hangfire;
 using Hangfire.SqlServer;
 using Microsoft.AspNetCore.Authentication.OpenIdConnect;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Options;
 using Neptune.Common.Email;
 using Neptune.Common.JsonConverters;
 using Neptune.Common.Services;
@@ -236,7 +237,8 @@ var builder = WebApplication.CreateBuilder(args);
 
 
     services.AddHttpContextAccessor();
-    services.AddScoped<AzureBlobStorageService>();
+    services.AddScoped<AzureBlobStorageService>(sp =>
+        new AzureBlobStorageService(sp.GetRequiredService<IOptions<WebConfiguration>>().Value.AzureBlobStorageConnectionString));
     services.AddScoped<FileResourceService>();
     services.AddHealthChecks().AddDbContextCheck<NeptuneDbContext>();
 }

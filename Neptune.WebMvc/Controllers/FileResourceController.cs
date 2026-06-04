@@ -20,13 +20,18 @@ Source code is available upon request via <support@sitkatech.com>.
 -----------------------------------------------------------------------*/
 
 using Neptune.WebMvc.Security;
+using Neptune.Common.Services;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Neptune.EFModels.Entities;
+using Neptune.Common.Services;
 using Microsoft.Extensions.Options;
 using Neptune.WebMvc.Common;
+using Neptune.Common.Services;
 using Neptune.WebMvc.Services;
+using Neptune.Common.Services;
 using Neptune.WebMvc.Services.Filters;
+using Neptune.Common.Services;
 
 namespace Neptune.WebMvc.Controllers
 {
@@ -67,7 +72,7 @@ namespace Neptune.WebMvc.Controllers
             Response.Headers.Add("Content-Disposition", contentDisposition.ToString());
 
             var blobDownloadResult =
-                await azureBlobStorageService.DownloadFileResourceFromBlobStorage(fileResource);
+                await azureBlobStorageService.DownloadFileResourceFromBlobStorage(fileResource.FileResourceGUID);
 
             return File(blobDownloadResult.Content.ToArray(), blobDownloadResult.Details.ContentType);
         }

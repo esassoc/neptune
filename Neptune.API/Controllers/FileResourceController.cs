@@ -4,7 +4,9 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using Neptune.API.Services;
+using Neptune.Common.Services;
 using Neptune.EFModels.Entities;
+using Neptune.Common.Services;
 using System;
 using System.Linq;
 using System.Net;
@@ -42,7 +44,7 @@ public class FileResourceController(NeptuneDbContext dbContext, ILogger<FileReso
     private async Task<IActionResult> DisplayFileResource(FileResource fileResource)
     {
         var blobDownloadResult =
-            await azureBlobStorageService.DownloadFileResourceFromBlobStorage(fileResource);
+            await azureBlobStorageService.DownloadFileResourceFromBlobStorage(fileResource.FileResourceGUID);
 
         var fileName = fileResource.GetOriginalCompleteFileName();
         var isInlineable = blobDownloadResult.Details.ContentType == "application/pdf"

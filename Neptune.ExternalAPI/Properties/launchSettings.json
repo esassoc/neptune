@@ -1,0 +1,25 @@
+{
+  "profiles": {
+    "Neptune.ExternalAPI": {
+      "commandName": "Project",
+      "launchBrowser": true,
+      "launchUrl": "docs",
+      "environmentVariables": {
+        "ASPNETCORE_ENVIRONMENT": "Development"
+      },
+      "applicationUrl": "https://localhost:8241;http://localhost:8240"
+    },
+    "Docker": {
+      "commandName": "Docker",
+      "launchBrowser": true,
+      "launchUrl": "{Scheme}://{ServiceHost}:{ServicePort}/docs",
+      "environmentVariables": {
+        "ASPNETCORE_URLS": "https://+:443;http://+:80",
+        "ASPNETCORE_HTTPS_PORT": "44340"
+      },
+      "httpPort": 8240,
+      "useSSL": true,
+      "sslPort": 44340
+    }
+  }
+}

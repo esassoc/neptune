@@ -2,7 +2,8 @@ export const environment = {
     production: true,
     staging: false,
     dev: false,
-    mainAppApiUrl: "https://api.ocstormwatertools.org",
+    mainAppApiUrl: "https://internalapi.ocstormwatertools.org",
+    externalApiScalarUrl: "https://api.ocstormwatertools.org/docs",
     geoserverMapServiceUrl: "https://mapserver.ocstormwatertools.org/geoserver/OCStormwater",
     datadogClientToken: "pub6bc5bcb39be6b4c926271a35cb8cb46a",
     auth0: {

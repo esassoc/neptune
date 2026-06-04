@@ -73,6 +73,7 @@ Source/Neptune.GeoServer/data_dir/logs/
 /Neptune.GeoServer/data_dir/logs
 /Neptune.GeoServer/data_dir/security
 /Neptune.API/appsecrets.json
+/Neptune.ExternalAPI/appsecrets.json
 /*.user
 /Neptune.Web/obj/Debug/net6.0
 /docker-compose/obj/Docker

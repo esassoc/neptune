@@ -10,7 +10,13 @@ services:
     build:
       context: ..
       dockerfile: Neptune.API/Dockerfile
-      
+
+  neptune.externalapi:
+    image: neptune/externalapi
+    build:
+      context: ..
+      dockerfile: Neptune.ExternalAPI/Dockerfile
+
   neptune.gdalapi:
     image: neptune/gdalapi
     build:

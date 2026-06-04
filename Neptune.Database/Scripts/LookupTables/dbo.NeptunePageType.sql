@@ -93,7 +93,8 @@ USING (VALUES
 (95, 'WQMPVerificationSimplifiedBmps', 'WQMP O&M Verification - Simplified BMPs Step'),
 (96, 'WQMPVerificationSourceControl', 'WQMP O&M Verification - Source Control BMPs Step'),
 (97, 'WQMPVerificationReview', 'WQMP O&M Verification - Review & Finalize Step'),
-(98, 'WQMPVerificationSupportingDocumentation', 'WQMP O&M Verification - Supporting Documentation Step')
+(98, 'WQMPVerificationSupportingDocumentation', 'WQMP O&M Verification - Supporting Documentation Step'),
+(99, 'WebServices', 'Web Services')
 )
 AS Source (NeptunePageTypeID, NeptunePageTypeName, NeptunePageTypeDisplayName)
 ON Target.NeptunePageTypeID = Source.NeptunePageTypeID

@@ -1,0 +1,22 @@
+﻿apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "externalapi.fullname" . }}
+  labels:
+    {{- include "externalapi.labels" . | nindent 4 }}
+spec:
+  type: {{ .Values.service.type }}
+  ports:
+    - port: {{ .Values.service.port }}
+      #nodePort: 30080
+      targetPort: http
+      protocol: TCP
+      name: http
+    # - port: 443
+    #   #nodePort: 30443
+    #   targetPort: https
+    #   protocol: TCP
+    #   name: https
+  selector:
+    {{- include "externalapi.selectorLabels" . | nindent 4 }}
+

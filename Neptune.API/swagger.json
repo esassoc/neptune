@@ -11812,6 +11812,50 @@
         }
       }
     },
+    "/users/{personID}/generate-web-service-token": {
+      "post": {
+        "tags": [
+          "User"
+        ],
+        "operationId": "GenerateWebServiceToken_User",
+        "parameters": [
+          {
+            "name": "personID",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "type": "string",
+                  "format": "uuid"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "type": "string",
+                  "format": "uuid"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "type": "string",
+                  "format": "uuid"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/users/{personID}/role": {
       "put": {
         "tags": [
@@ -18521,7 +18565,8 @@
           },
           "WebServiceAccessToken": {
             "type": "string",
-            "format": "uuid"
+            "format": "uuid",
+            "nullable": true
           },
           "IsOCTAGrantReviewer": {
             "type": "boolean"
@@ -18664,7 +18709,8 @@
           },
           "WebServiceAccessToken": {
             "type": "string",
-            "format": "uuid"
+            "format": "uuid",
+            "nullable": true
           },
           "IsOCTAGrantReviewer": {
             "type": "boolean"

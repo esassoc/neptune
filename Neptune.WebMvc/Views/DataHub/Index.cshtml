@@ -80,9 +80,6 @@
             <li>
                 <a href="#countyIntegration" role="tab" data-toggle="tab">County GIS Integration</a>
             </li>
-            <li>
-                <a href="#webServices" role="tab" data-toggle="tab">Web Services</a>
-            </li>
         </ul>
     </div>
 </div>
@@ -321,37 +318,6 @@
                     <h4>Tip:</h4>
                     Coming soon...
                 </div>
-            </div>
-            <div role="tabpanel" class="tab-pane" id="webServices">
-                <p>This document documents the web connections made in the demonstration PowerBI file <a href="~/Content/PowerBI/OCST_PowerBI_Demo_2020_03_23.zip" download>here</a>, and includes a description of how the connection is used by the file to inform the summary report dashboards.
-                    This information and the web addresses referenced herein may change in the coming months since this service is under active and rapid development.
-                </p>
-
-                <h3>Tabular Services</h3>
-                <table style="border: 0; font-size:14px" class="table table-condensed table-striped">
-                    <tr>
-                        <th>Name</th>
-                        <th>Short Description / Simple Use Case / URL</th>
-                    </tr>
-                    @foreach (var doc in ViewDataTyped.ServiceDocumentationList)
-                    {
-                        <tr>
-                            <td class="term">@doc.Name</td>
-                            <td>
-                                <strong>@doc.DescriptionHeader</strong>
-                                <div style="margin-top: 5px; margin-bottom: 5px; font-size: 11px">
-                                    @{ var url = doc.GetReplacedUrl(ViewDataTyped.WebServiceAccessToken);}
-                                    URL: <a href="@url" target="_blank">@url</a>
-                                </div>
-                                @{ var parameters = doc.GetParameters(ViewDataTyped.WebServiceAccessToken);}
-                                <i>Parameters: @(!string.IsNullOrWhiteSpace(parameters) ? parameters : ViewUtilities.NaString)</i>
-                                <br /><br />
-                                @doc.Description.ToHTMLFormattedString()
-
-                            </td>
-                        </tr>
-                    }
-                </table>
             </div>
         </div>
     </div>

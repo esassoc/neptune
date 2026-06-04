@@ -1,0 +1,27 @@
+<div class="tab-body">
+    <div class="tab-main">
+        <h3>Web Services</h3>
+        <custom-rich-text [customRichTextTypeID]="NeptunePageTypeEnum.WebServices"></custom-rich-text>
+
+        <a class="btn btn-primary primary-cta" [href]="scalarUrl" target="_blank" rel="noopener">
+            View API Documentation
+        </a>
+
+        <h3>Your Access Token</h3>
+        @if (webServiceToken(); as token) {
+            <p>Send this value in the <code>x-api-key</code> HTTP header on every request to the new API endpoints.</p>
+            <div class="token-row">
+                <code [copyToClipboard]="true">{{ token }}</code>
+            </div>
+            <button type="button" class="btn btn-secondary-outline" [disabled]="busy()" (click)="regenerateToken()">
+                Regenerate Token
+            </button>
+        } @else {
+            <p>You don't have a web service token yet. Generate one to start calling the API.</p>
+            <button type="button" class="btn btn-primary" [disabled]="busy()" (click)="generateToken()">
+                Generate Token
+            </button>
+        }
+    </div>
+    <data-hub-quick-links tab="web-services"></data-hub-quick-links>
+</div>
