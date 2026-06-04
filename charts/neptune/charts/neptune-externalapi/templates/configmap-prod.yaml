@@ -1,0 +1,11 @@
+{{ if eq .Values.global.env.name "prod" }}
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ include "externalapi.fullname" . }}-prod-configmap
+data:
+  DOCKER_BUILD_SOURCE: "."
+  ASPNETCORE_ENVIRONMENT: "Production"
+  SECRET_PATH: "/app/secrets/neptuneExternalAPISecrets"
+  APPINSIGHTS_INSTRUMENTATIONKEY: "{{ .Values.global.env.appInsightsInstrumentationKey }}"
+{{ end }}

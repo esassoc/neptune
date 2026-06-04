@@ -1,7 +1,6 @@
 ﻿using Neptune.EFModels.Entities;
 using Neptune.WebMvc.Common;
 using Neptune.WebMvc.Controllers;
-using Neptune.WebMvc.Models;
 using Neptune.WebMvc.Security;
 using Neptune.WebMvc.Views.Shared;
 
@@ -14,8 +13,6 @@ namespace Neptune.WebMvc.Views.DataHub
         public bool IsManagerOrEditor { get; }
         public bool HasJurisdictionEditPermission { get; }
         public bool HasNeptuneViewAndRequiresJurisdictionsPermission { get; }
-        public readonly WebServiceToken WebServiceAccessToken;
-        public readonly List<WebServiceDocumentation> ServiceDocumentationList;
         public ViewPageContentViewData TreatmentBMPPage { get; }
         public ViewPageContentViewData DelineationPage { get; }
         public ViewPageContentViewData FieldTripPage { get; }
@@ -68,8 +65,8 @@ namespace Neptune.WebMvc.Views.DataHub
         public string HRUCharacteristicsListUrl { get; }
 
         public IndexViewData(HttpContext httpContext, LinkGenerator linkGenerator,
-            WebConfiguration webConfiguration, Person currentPerson, WebServiceToken webServiceAccessToken,
-            List<WebServiceDocumentation> serviceDocumentationList, DateTime? lastUpdatedParcels, DateTime? lastUpdatedRegionalSubbasins,
+            WebConfiguration webConfiguration, Person currentPerson,
+            DateTime? lastUpdatedParcels, DateTime? lastUpdatedRegionalSubbasins,
             DateTime? lastUpdatedDateModelBasins, DateTime? lastUpdatedDatePrecipitationZones,
             DateTime? lastUpdatedDateHRUCharacteristics, EFModels.Entities.NeptunePage treatmentBMPPage, EFModels.Entities.NeptunePage delineationPage,
             EFModels.Entities.NeptunePage fieldTripPage, EFModels.Entities.NeptunePage wqmpPage, 
@@ -88,8 +85,6 @@ namespace Neptune.WebMvc.Views.DataHub
                 new NeptuneViewAndRequiresJurisdictionsFeature().HasPermissionByPerson(currentPerson);
             EntityName = "Data Hub";
             PageTitle = "Index";
-            WebServiceAccessToken = webServiceAccessToken;
-            ServiceDocumentationList = serviceDocumentationList;
             TreatmentBMPPage = new ViewPageContentViewData(linkGenerator, treatmentBMPPage, currentPerson);
             DelineationPage = new ViewPageContentViewData(linkGenerator, delineationPage, currentPerson);
             FieldTripPage = new ViewPageContentViewData(linkGenerator, fieldTripPage, currentPerson);

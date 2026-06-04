@@ -133,11 +133,22 @@ public static class People
             .OrderBy(x => x.LastName).ThenBy(x => x.FirstName).ToList();
     }
 
-    public static Person GetByWebServiceAccessToken(NeptuneDbContext dbContext, Guid webServiceAccessToken)
+    public static Person? GetByWebServiceAccessToken(NeptuneDbContext dbContext, Guid webServiceAccessToken)
     {
-        var person = GetImpl(dbContext).AsNoTracking().SingleOrDefault(x => x.WebServiceAccessToken == webServiceAccessToken);
-        Check.RequireNotNull(person, $"Person with specified service access token not found!");
-        return person;
+        return GetImpl(dbContext).AsNoTracking().SingleOrDefault(x => x.WebServiceAccessToken == webServiceAccessToken);
+    }
+
+    public static Task<Person?> GetByWebServiceAccessTokenAsync(NeptuneDbContext dbContext, Guid webServiceAccessToken)
+    {
+        return GetImpl(dbContext).AsNoTracking().SingleOrDefaultAsync(x => x.WebServiceAccessToken == webServiceAccessToken);
+    }
+
+    public static async Task<Guid> GenerateAndPersistWebServiceAccessTokenAsync(NeptuneDbContext dbContext, int personID)
+    {
+        var person = await dbContext.People.SingleAsync(x => x.PersonID == personID);
+        person.WebServiceAccessToken = Guid.NewGuid();
+        await dbContext.SaveChangesAsync();
+        return person.WebServiceAccessToken.Value;
     }
 
     public static PersonDto CreateUnassignedPerson(NeptuneDbContext dbContext, PersonCreateDto userCreateDto)
@@ -189,7 +200,6 @@ public static class People
             RoleID = personToCreate.RoleID.Value,
             CreateDate = DateTime.UtcNow,
             OrganizationID = organizationID,
-            WebServiceAccessToken = Guid.NewGuid()
         };
 
         dbContext.People.Add(person);
@@ -220,7 +230,6 @@ public static class People
             RoleID = dto.RoleID.Value,
             CreateDate = DateTime.UtcNow,
             OrganizationID = organizationID,
-            WebServiceAccessToken = Guid.NewGuid()
         };
         dbContext.People.Add(person);
         await dbContext.SaveChangesAsync();
@@ -394,7 +403,6 @@ public static class People
                 CreateDate = DateTime.UtcNow,
                 IsActive = true,
                 OrganizationID = Organizations.OrganizationIDUnassigned,
-                WebServiceAccessToken = Guid.NewGuid(),
                 ReceiveSupportEmails = false
             };
 

@@ -40,7 +40,6 @@ public static class AuthenticationHelper
                 CreateDate = DateTime.UtcNow,
                 IsActive = true,
                 OrganizationID = Organizations.OrganizationIDUnassigned,
-                WebServiceAccessToken = Guid.NewGuid(),
                 ReceiveSupportEmails = false,
                 FirstName = firstName,
                 LastName = lastName,

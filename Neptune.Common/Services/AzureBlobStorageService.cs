@@ -1,17 +1,18 @@
-﻿using Azure.Storage.Blobs;
+﻿using System;
+using Azure.Storage.Blobs;
 using Azure.Storage.Blobs.Models;
-using Microsoft.Extensions.Options;
-using Neptune.EFModels.Entities;
-using Neptune.WebMvc.Common;
+using Azure.Storage.Sas;
+using System.Collections.Generic;
+using System.IO;
+using System.Threading.Tasks;
 
-namespace Neptune.WebMvc.Services;
+namespace Neptune.Common.Services;
 
 public class AzureBlobStorageService
 {
     public const string BlobContainerName = "file-resource";
-    private readonly WebConfiguration _webConfiguration;
-    private readonly BlobContainerClient _blobContainerClient;
-    private readonly Dictionary<string, string> _contentTypes = new()
+    private readonly BlobContainerClient _fileResourceContainerClient;
+    private readonly Dictionary<string, string> _contentTypes = new Dictionary<string, string>()
         {
             {".x3d", "application/vnd.hzn-3d-crossword"},
             {".3gp", "video/3gpp"},
@@ -698,23 +699,20 @@ public class AzureBlobStorageService
             {".zaz", "application/vnd.zzazz.deck+xml"}
         };
 
-    public AzureBlobStorageService(IOptions<WebConfiguration> configuration)
+    public AzureBlobStorageService(string azureBlobStorageConnectionString)
     {
-        _webConfiguration = configuration.Value;
-        _blobContainerClient = new BlobServiceClient(_webConfiguration.AzureBlobStorageConnectionString).GetBlobContainerClient(BlobContainerName);
+        _fileResourceContainerClient = new BlobServiceClient(azureBlobStorageConnectionString).GetBlobContainerClient(BlobContainerName);
     }
 
-    public async Task<bool> UploadFileResource(FileResource fileResource, byte[] fileBytes)
+    public async Task<bool> UploadFileResource(Guid fileResourceGUID, string originalFileExtension, byte[] fileBytes)
     {
-        var blobName = fileResource.FileResourceGUID.ToString();
-        var extension = fileResource.OriginalFileExtension.ToLower();
-        return await UploadToBlobStorage(fileBytes, blobName, extension);
+        return await UploadToBlobStorage(fileBytes, fileResourceGUID.ToString(), originalFileExtension);
     }
 
     public async Task<bool> UploadToBlobStorage(byte[] fileBytes, string blobName, string extension)
     {
         using var ms = new MemoryStream(fileBytes);
-        var blobClient = _blobContainerClient.GetBlobClient(blobName);
+        var blobClient = _fileResourceContainerClient.GetBlobClient(blobName);
         var exists = await blobClient.ExistsAsync();
 
         if (!exists.Value)
@@ -725,52 +723,62 @@ public class AzureBlobStorageService
         return await blobClient.ExistsAsync();
     }
 
-    public async Task<bool> DeleteFileResourceBlob(FileResource fileResource)
-    {
-        var blobName = fileResource.FileResourceGUID.ToString();
-        return await DeleteFromBlobStorage(blobName);
-    }
-
-    public async Task<bool> DeleteFromBlobStorage(string blobName)
-    {
-        var blobClient = _blobContainerClient.GetBlobClient(blobName);
-        var deleted = await blobClient.DeleteIfExistsAsync(DeleteSnapshotsOption.IncludeSnapshots);
-        return deleted.Value;
-    }
-
-    public async Task<BlobDownloadResult> DownloadFileResourceFromBlobStorage(FileResource fileResource)
-    {
-        return await DownloadBlobFromBlobStorage(fileResource.GetFileResourceGUIDAsString().ToLower());
-    }
-
-    public async Task<BlobDownloadResult> DownloadBlobFromBlobStorage(string canonicalName)
-    {
-        var blobClient = _blobContainerClient.GetBlobClient(canonicalName);
-        var downloadResult = await blobClient.DownloadContentAsync();
-        return downloadResult.Value;
-    }
-
-    public async Task<bool> ExistsFromBlobStorage(string canonicalName)
-    {
-        var blobClient = _blobContainerClient.GetBlobClient(canonicalName);
-        return await blobClient.ExistsAsync();
-    }
-
-    public async Task DownloadBlobToFileAsync(string canonicalName, string localFilePath)
-    {
-        var blobClient = _blobContainerClient.GetBlobClient(canonicalName);
-        await blobClient.DownloadToAsync(localFilePath);
-    }
-
-    private string GetContentTypeFromExtension(string extension)
+    public string GetContentTypeFromExtension(string extension)
     {
         if (!extension.StartsWith("."))
         {
             extension = $".{extension}";
         }
+        return _contentTypes.ContainsKey(extension) ? _contentTypes[extension] : "application/octet-stream";
+    }
 
-        var contentType = _contentTypes.ContainsKey(extension) ? _contentTypes[extension] : "application/octet-stream";
+    public async Task<bool> DeleteFileResourceBlob(Guid fileResourceGUID)
+    {
+        return await DeleteFromBlobStorage(fileResourceGUID.ToString());
+    }
 
-        return contentType;
+    public async Task<bool> DeleteFromBlobStorage(string blobName)
+    {
+        var blobClient = _fileResourceContainerClient.GetBlobClient(blobName);
+        var deleted = await blobClient.DeleteIfExistsAsync(DeleteSnapshotsOption.IncludeSnapshots);
+        return deleted.Value;
+    }
+
+    public async Task<BlobDownloadResult> DownloadFileResourceFromBlobStorage(Guid fileResourceGUID)
+    {
+        return await DownloadBlobFromBlobStorage(fileResourceGUID.ToString().ToLower());
+    }
+
+    public async Task<BlobDownloadResult> DownloadBlobFromBlobStorage(string canonicalName)
+    {
+        var blobClient = _fileResourceContainerClient.GetBlobClient(canonicalName);
+        var downloadResult = await blobClient.DownloadContentAsync();
+        return downloadResult.Value;
+    }
+
+    public async Task<BlobDownloadStreamingResult> DownloadBlobFromBlobStorageAsStream(string canonicalName)
+    {
+        var blobClient = _fileResourceContainerClient.GetBlobClient(canonicalName);
+        var downloadResult = await blobClient.DownloadStreamingAsync();
+        return downloadResult.Value;
+    }
+
+    public async Task<bool> ExistsFromBlobStorage(string canonicalName)
+    {
+        var blobClient = _fileResourceContainerClient.GetBlobClient(canonicalName);
+        return await blobClient.ExistsAsync();
+    }
+
+    public async Task DownloadBlobToFileAsync(string canonicalName, string localFilePath)
+    {
+        var blobClient = _fileResourceContainerClient.GetBlobClient(canonicalName);
+        await blobClient.DownloadToAsync(localFilePath);
+    }
+
+    public Uri GenerateBlobSasUrl(string canonicalName, TimeSpan expiry)
+    {
+        var blobClient = _fileResourceContainerClient.GetBlobClient(canonicalName);
+        var sasBuilder = new BlobSasBuilder(BlobSasPermissions.Read, DateTimeOffset.UtcNow.Add(expiry));
+        return blobClient.GenerateSasUri(sasBuilder);
     }
 }

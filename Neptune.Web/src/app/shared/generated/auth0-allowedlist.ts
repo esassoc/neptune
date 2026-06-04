@@ -215,6 +215,7 @@ const SECURED_REGEX: RegexMap = {
     new RegExp("^/treatment-bmps/[^/]+/funding-events$"),
     new RegExp("^/treatment-bmps/[^/]+/treatment-bmp-documents$"),
     new RegExp("^/treatment-bmps/[^/]+/treatment-bmp-images$"),
+    new RegExp("^/users/[^/]+/generate-web-service-token$"),
     new RegExp("^/water-quality-management-plans/[^/]+/extract$"),
     new RegExp("^/water-quality-management-plans/[^/]+/promote$"),
     new RegExp("^/water-quality-management-plans/[^/]+/save-basics$"),

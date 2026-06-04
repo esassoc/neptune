@@ -13,6 +13,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using Neptune.API.Services;
+using Neptune.Common.Services;
 using Neptune.EFModels.Entities;
 
 namespace Neptune.API.Services.AI;

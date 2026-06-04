@@ -1,5 +1,6 @@
 ﻿using System.ComponentModel.DataAnnotations;
 using Neptune.Common.DesignByContract;
+using Neptune.Common.Services;
 using Neptune.EFModels.Entities;
 using Neptune.WebMvc.Common;
 
@@ -26,7 +27,7 @@ public class FileResourceService(NeptuneDbContext dbContext, AzureBlobStorageSer
         };
         await dbContext.FileResources.AddAsync(fileResource);
         
-        if (await azureBlobStorageService.UploadFileResource(fileResource, fileResourceData))
+        if (await azureBlobStorageService.UploadFileResource(fileResource.FileResourceGUID, fileResource.OriginalFileExtension, fileResourceData))
         {
             await dbContext.SaveChangesAsync();
             await dbContext.Entry(fileResource).ReloadAsync();
@@ -38,14 +39,14 @@ public class FileResourceService(NeptuneDbContext dbContext, AzureBlobStorageSer
 
     public async Task<bool> DeleteBlobForFileResource(FileResource fileResource)
     {
-        return await azureBlobStorageService.DeleteFileResourceBlob(fileResource);
+        return await azureBlobStorageService.DeleteFileResourceBlob(fileResource.FileResourceGUID);
     }
 
     public async Task<bool> DeleteFileResource(FileResource fileResource)
     {
         dbContext.FileResources.Remove(fileResource);
         // there is a potential that we delete the blob, then a transaction fails, and the blob is no longer there.
-        return await azureBlobStorageService.DeleteFileResourceBlob(fileResource);
+        return await azureBlobStorageService.DeleteFileResourceBlob(fileResource.FileResourceGUID);
     }
 
     public async Task<FileResource> CreateNewFromIFormFile(IFormFile formFile, Person currentPerson)

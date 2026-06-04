@@ -3,6 +3,7 @@ export const environment = {
     staging: false,
     dev: true,
     mainAppApiUrl: "https://host.docker.internal:8212",
+    externalApiScalarUrl: "https://host.docker.internal:8241/docs",
     geoserverMapServiceUrl: "http://localhost:8780/geoserver/OCStormwater",
     datadogClientToken: "pub6bc5bcb39be6b4c926271a35cb8cb46a",
     auth0: {

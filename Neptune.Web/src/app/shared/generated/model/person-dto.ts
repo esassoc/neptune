@@ -27,7 +27,7 @@ export class PersonDto {
     OrganizationName?: string | null;
     ReceiveSupportEmails?: boolean;
     ReceiveRSBRevisionRequestEmails?: boolean;
-    WebServiceAccessToken?: string;
+    WebServiceAccessToken?: string | null;
     IsOCTAGrantReviewer?: boolean;
     HasAssignedStormwaterJurisdiction?: boolean;
     ImpersonatedPersonID?: number | null;

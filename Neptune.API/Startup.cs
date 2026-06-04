@@ -9,6 +9,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
+using Microsoft.Extensions.Options;
 using Neptune.API.Services;
 using Neptune.API.Services.AI;
 using Neptune.API.Services.Filter;
@@ -117,7 +118,8 @@ namespace Neptune.API
 
             AddExternalHttpClientServices(services, configuration);
 
-            services.AddScoped<AzureBlobStorageService>();
+            services.AddScoped<AzureBlobStorageService>(sp =>
+                new AzureBlobStorageService(sp.GetRequiredService<IOptions<NeptuneConfiguration>>().Value.AzureBlobStorageConnectionString));
             services.AddScoped<ImpersonationService>();
             services.AddSingleton<IPromptTemplateService, PromptTemplateService>();
             services.AddScoped<AnthropicFileService>();

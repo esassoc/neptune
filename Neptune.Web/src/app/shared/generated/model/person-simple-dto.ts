@@ -27,7 +27,7 @@ export class PersonSimpleDto {
     OrganizationName?: string | null;
     ReceiveSupportEmails?: boolean;
     ReceiveRSBRevisionRequestEmails?: boolean;
-    WebServiceAccessToken?: string;
+    WebServiceAccessToken?: string | null;
     IsOCTAGrantReviewer?: boolean;
     readonly FullName?: string | null;
     HasAssignedStormwaterJurisdiction?: boolean;

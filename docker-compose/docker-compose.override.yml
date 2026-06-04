@@ -69,6 +69,22 @@ services:
     volumes:
       - ${APPDATA}/ASP.NET/Https:/home/app/.aspnet/https:ro
 
+  neptune.externalapi:
+    build:
+      args:
+        source: .
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Development
+      - ASPNETCORE_HTTP_PORTS=8080
+      - ASPNETCORE_HTTPS_PORTS=8081
+      - SECRET_PATH=${NeptuneExternalAPISecretPath}
+      - AzureBlobStorageConnectionString=${AzureBlobStorageConnectionString}
+    ports:
+      - "8240:8080"
+      - "8241:8081"
+    volumes:
+      - ${APPDATA}/ASP.NET/Https:/home/app/.aspnet/https:ro
+
   neptune.gdalapi:
     build:
       args:

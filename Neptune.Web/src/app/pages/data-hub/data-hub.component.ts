@@ -7,12 +7,21 @@ import { BmpsAndDelineationsTabComponent } from "./tabs/bmps-and-delineations-ta
 import { WqmpsTabComponent } from "./tabs/wqmps-tab/wqmps-tab.component";
 import { TrashModuleTabComponent } from "./tabs/trash-module-tab/trash-module-tab.component";
 import { CountyGisTabComponent } from "./tabs/county-gis-tab/county-gis-tab.component";
+import { WebServicesTabComponent } from "./tabs/web-services-tab/web-services-tab.component";
 import { DataHubTabKey } from "./components/data-hub-quick-links/data-hub-quick-links.component";
 
 @Component({
     selector: "data-hub",
     standalone: true,
-    imports: [PageHeaderComponent, BtnGroupRadioInputComponent, BmpsAndDelineationsTabComponent, WqmpsTabComponent, TrashModuleTabComponent, CountyGisTabComponent],
+    imports: [
+        PageHeaderComponent,
+        BtnGroupRadioInputComponent,
+        BmpsAndDelineationsTabComponent,
+        WqmpsTabComponent,
+        TrashModuleTabComponent,
+        CountyGisTabComponent,
+        WebServicesTabComponent,
+    ],
     templateUrl: "./data-hub.component.html",
     styleUrl: "./data-hub.component.scss",
 })
@@ -26,6 +35,7 @@ export class DataHubComponent implements OnInit {
         { label: "WQMPs", value: "wqmps" },
         { label: "Trash Module", value: "trash" },
         { label: "County GIS Integration", value: "county" },
+        { label: "Web Services", value: "web-services" },
     ];
 
     public activeTab = signal<DataHubTabKey>("bmps");

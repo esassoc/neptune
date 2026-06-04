@@ -20,6 +20,7 @@ Source code is available upon request via <support@sitkatech.com>.
 -----------------------------------------------------------------------*/
 
 using Neptune.WebMvc.Security;
+using Neptune.Common.Services;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Neptune.EFModels.Entities;
@@ -67,7 +68,7 @@ namespace Neptune.WebMvc.Controllers
             Response.Headers.Add("Content-Disposition", contentDisposition.ToString());
 
             var blobDownloadResult =
-                await azureBlobStorageService.DownloadFileResourceFromBlobStorage(fileResource);
+                await azureBlobStorageService.DownloadFileResourceFromBlobStorage(fileResource.FileResourceGUID);
 
             return File(blobDownloadResult.Content.ToArray(), blobDownloadResult.Details.ContentType);
         }

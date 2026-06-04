@@ -47,7 +47,7 @@ public partial class Person
 
     public bool ReceiveRSBRevisionRequestEmails { get; set; }
 
-    public Guid WebServiceAccessToken { get; set; }
+    public Guid? WebServiceAccessToken { get; set; }
 
     public bool IsOCTAGrantReviewer { get; set; }
 

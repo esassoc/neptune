@@ -5,6 +5,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using Neptune.API.Common;
+using Neptune.Common.Services;
 using Neptune.API.Services;
 using Neptune.API.Services.Attributes;
 using Neptune.API.Services.Authorization;
@@ -72,7 +73,7 @@ public class TreatmentBMPAssessmentPhotoController(
         if (existing != null)
         {
             var fileResource = FileResources.GetByID(DbContext, existing.FileResourceID);
-            await blobStorageService.DeleteFileResourceBlob(fileResource);
+            await blobStorageService.DeleteFileResourceBlob(fileResource.FileResourceGUID);
         }
         await TreatmentBMPAssessmentPhotos.DeleteAsync(DbContext, treatmentBMPAssessmentID, treatmentBMPAssessmentPhotoID);
         return NoContent();

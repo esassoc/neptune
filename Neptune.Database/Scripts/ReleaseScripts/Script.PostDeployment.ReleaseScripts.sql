@@ -68,4 +68,8 @@ GO
 GO
 :r ".\030 - Seed ExportAssessmentGeospatialData rich text.sql"
 GO
+:r ".\031 - NPT-1078 Make Person.WebServiceAccessToken nullable.sql"
+GO
+:r ".\032 - NPT-1078 Seed WebServices rich text.sql"
+GO
 

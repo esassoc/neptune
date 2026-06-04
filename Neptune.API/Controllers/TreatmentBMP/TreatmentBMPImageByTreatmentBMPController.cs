@@ -4,6 +4,7 @@ using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using Neptune.API.Services;
 using Neptune.API.Services.Attributes;
+using Neptune.Common.Services;
 using Neptune.API.Services.Authorization;
 using Neptune.EFModels.Entities;
 using Neptune.Models.DataTransferObjects;
@@ -97,7 +98,7 @@ public class TreatmentBMPImageByTreatmentBMPController(NeptuneDbContext dbContex
         if (treatmentBMPImageDto != null)
         {
             var fileResource = FileResources.GetByID(DbContext, treatmentBMPImageDto.FileResourceID);
-            await blobStorageService.DeleteFileResourceBlob(fileResource);
+            await blobStorageService.DeleteFileResourceBlob(fileResource.FileResourceGUID);
         }
 
         await TreatmentBMPImages.DeleteAsync(DbContext, treatmentBMPID, treatmentBMPImageID);

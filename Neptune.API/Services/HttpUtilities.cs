@@ -3,6 +3,7 @@ using System.IO;
 using System.Linq;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Http;
+using Neptune.Common.Services;
 using Neptune.EFModels.Entities;
 
 namespace Neptune.API.Services
@@ -35,7 +36,7 @@ namespace Neptune.API.Services
             };
             await dbContext.FileResources.AddAsync(fileResource);
 
-            if (await blobStorageService.UploadFileResource(fileResource, bytes))
+            if (await blobStorageService.UploadFileResource(fileResource.FileResourceGUID, fileResource.OriginalFileExtension, bytes))
             {
                 await dbContext.SaveChangesAsync();
                 await dbContext.Entry(fileResource).ReloadAsync();

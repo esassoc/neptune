@@ -24,7 +24,6 @@ namespace Neptune.API.Services
                 OrganizationID = -1,
                 ReceiveSupportEmails = false,
                 ReceiveRSBRevisionRequestEmails = false,
-                WebServiceAccessToken = Guid.Empty,
                 IsOCTAGrantReviewer = false
             } : user.AsDto();
 

@@ -1,7 +1,7 @@
 import { Component, Input } from "@angular/core";
 import { RouterLink } from "@angular/router";
 
-export type DataHubTabKey = "bmps" | "wqmps" | "trash" | "county";
+export type DataHubTabKey = "bmps" | "wqmps" | "trash" | "county" | "web-services";
 
 interface QuickLink {
     label: string;
@@ -36,6 +36,7 @@ export class DataHubQuickLinksComponent {
             { label: "Regional Subbasins", routerLink: "/regional-subbasins" },
             { label: "HRU Characteristics List", routerLink: "/hru-characteristics" },
         ],
+        "web-services": [],
     };
 
     get links(): QuickLink[] {

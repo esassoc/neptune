@@ -22,6 +22,7 @@ variables:
 
   # define these in the pipelines:
   # domainApi: 'api-neptune.esa-$(Environment).sitkatech.com'
+  # domainExternalApi: 'externalapi-neptune.esa-$(Environment).sitkatech.com'
   # domainWeb: 'neptune-web.esa-$(Environment).sitkatech.com'
   # domainGeoserver: 'geoserver-neptune.esa-$(Environment).sitkatech.com'
   # domainWebMvc: 'neptune.esa-$(Environment).sitkatech.com'
@@ -126,6 +127,7 @@ stages:
         imageNames:
           - neptune/webmvc
           - neptune/api
+          - neptune/externalapi
           - neptune/gdalapi
 
 
@@ -281,8 +283,9 @@ stages:
           -var "dbServerName=$(kv-dbServerName)" 
           -var "datadogApiKey=$(kv-datadogApiKey)" 
           -var "datadogAppKey=$(kv-datadogAppKey)" 
-          -var "domainApi=$(domainApi)" 
-          -var "domainWeb=$(domainWeb)" 
+          -var "domainApi=$(domainApi)"
+          -var "domainExternalApi=$(domainExternalApi)"
+          -var "domainWeb=$(domainWeb)"
           -var "environment=$(Environment)" 
           -var "domainGeoserver=$(domainGeoserver)" 
           -var "domainWebMvc=$(domainWebMvc)" 
@@ -669,6 +672,7 @@ stages:
               releaseName: 'neptune'
               overrideValues: |
                 global.domains.api="$(domainApi)"
+                global.domains.externalApi="$(domainExternalApi)"
                 global.domains.web="$(domainWeb)"
                 global.domains.planning="$(domainPlanning)"
                 global.domains.geoserver="$(domainGeoserver)"
@@ -690,6 +694,8 @@ stages:
                 global.secrets.anthropicApiKey="$(anthropicApiKey)"
                 api.image.tag="$(Build.BuildNumber)-$(environment)"
                 api.image.repository="$(kv-containerRegistry)/neptune/api"
+                externalapi.image.tag="$(Build.BuildNumber)-$(environment)"
+                externalapi.image.repository="$(kv-containerRegistry)/neptune/externalapi"
                 web.image.tag="$(Build.BuildNumber)-$(environment)"
                 web.image.repository="$(kv-containerRegistry)/neptune/web"
                 geoserver.image.repository="$(kv-containerRegistry)/kartoza/geoserver"

@@ -2,9 +2,7 @@
 using Microsoft.Extensions.Options;
 using Neptune.EFModels.Entities;
 using Neptune.WebMvc.Common;
-using Neptune.WebMvc.Models;
 using Neptune.WebMvc.Security;
-using Neptune.WebMvc.Views.DataHub;
 using Index = Neptune.WebMvc.Views.DataHub.Index;
 using IndexViewData = Neptune.WebMvc.Views.DataHub.IndexViewData;
 
@@ -43,11 +41,8 @@ public class DataHubController(
         var lastUpdatedDateHRUCharacteristics = _dbContext.HRUCharacteristics.OrderByDescending(x => x.LastUpdated).FirstOrDefault()?.LastUpdated;
         var lastUpdatedDateModelBasins = _dbContext.ModelBasins.OrderByDescending(x => x.LastUpdate).FirstOrDefault()?.LastUpdate;
         var lastUpdatedDatePrecipitationZones = _dbContext.PrecipitationZones.OrderByDescending(x => x.LastUpdate).FirstOrDefault()?.LastUpdate;
-        var allMethods = FindAttributedMethods(typeof(PowerBIController), typeof(WebServiceNameAndDescriptionAttribute));
-        var serviceDocumentationList = allMethods.Select(c => new WebServiceDocumentation(c, _dbContext, _linkGenerator)).OrderBy(x => x.Name).ToList();
-        var webServiceAccessToken = new WebServiceToken(_dbContext, CurrentPerson.WebServiceAccessToken.ToString());
         var viewData = new IndexViewData(HttpContext, _linkGenerator, _webConfiguration, CurrentPerson,
-            webServiceAccessToken, serviceDocumentationList, lastUpdatedDateParcels, lastUpdatedDateRegionalSubbasin,
+            lastUpdatedDateParcels, lastUpdatedDateRegionalSubbasin,
             lastUpdatedDateModelBasins, lastUpdatedDatePrecipitationZones, lastUpdatedDateHRUCharacteristics,
             treatmentBMPPage, delineationPage, fieldTripPage, wqmpPage, simplifiedBMPPage, wqmpLocationPage, assessmentAreaPage,
             ovtasPage, landUseBlocksPage, parcelPage, regionalSubbasinsPage, landUseStatisticsPage, modelBasinsPage, precipitationZonesPage);
