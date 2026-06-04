@@ -305,5 +305,84 @@ namespace Neptune.Tests
             Assert.AreEqual(1, result.Count);
             Assert.AreEqual(1, result[0].NumberOfIndividualBMPs);
         }
+
+        // ----- NPT-1073 round 2 -----
+
+        [TestMethod]
+        public void DryWeatherFlowOverride_AcceptsYesShorthand()
+        {
+            // NPT-1073 round 2: KE asked us to accept the shorthand "Yes"/"No" in the DWF Override
+            // column so uploaders don't have to type the full display name (e.g. "Yes - DWF
+            // Effectively Eliminated"). The shorthand maps to DryWeatherFlowOverrideName.
+            var existingWqmp = _dbContext.WaterQualityManagementPlans.AsNoTracking().FirstOrDefault();
+            if (existingWqmp == null)
+            {
+                Assert.Inconclusive("No existing WQMP in dev DB.");
+                return;
+            }
+            var dt = BuildDataTable(AllCols,
+                new[] { existingWqmp.WaterQualityManagementPlanName, "___NPT_1073_DWF_YES___", GetAnyBMPTypeName(), "1", "", "", "", "Yes", "" });
+            var result = SimplifiedBMPsExcelParserHelper.ParseWQMPRowsFromXLSX(_dbContext, existingWqmp.StormwaterJurisdictionID, dt, out var errors);
+
+            Assert.AreEqual(0, errors.Count, string.Join("; ", errors));
+            Assert.AreEqual(1, result.Count);
+            Assert.AreEqual(DryWeatherFlowOverride.Yes.DryWeatherFlowOverrideID, result[0].DryWeatherFlowOverrideID);
+        }
+
+        [TestMethod]
+        public void DryWeatherFlowOverride_AcceptsNoShorthand()
+        {
+            var existingWqmp = _dbContext.WaterQualityManagementPlans.AsNoTracking().FirstOrDefault();
+            if (existingWqmp == null)
+            {
+                Assert.Inconclusive("No existing WQMP in dev DB.");
+                return;
+            }
+            var dt = BuildDataTable(AllCols,
+                new[] { existingWqmp.WaterQualityManagementPlanName, "___NPT_1073_DWF_NO___", GetAnyBMPTypeName(), "1", "", "", "", "No", "" });
+            var result = SimplifiedBMPsExcelParserHelper.ParseWQMPRowsFromXLSX(_dbContext, existingWqmp.StormwaterJurisdictionID, dt, out var errors);
+
+            Assert.AreEqual(0, errors.Count, string.Join("; ", errors));
+            Assert.AreEqual(1, result.Count);
+            Assert.AreEqual(DryWeatherFlowOverride.No.DryWeatherFlowOverrideID, result[0].DryWeatherFlowOverrideID);
+        }
+
+        [TestMethod]
+        public void DryWeatherFlowOverride_AcceptsFullDisplayName()
+        {
+            // Backwards-compat guard: the original behaviour (full display name) still works.
+            var existingWqmp = _dbContext.WaterQualityManagementPlans.AsNoTracking().FirstOrDefault();
+            if (existingWqmp == null)
+            {
+                Assert.Inconclusive("No existing WQMP in dev DB.");
+                return;
+            }
+            var dt = BuildDataTable(AllCols,
+                new[] { existingWqmp.WaterQualityManagementPlanName, "___NPT_1073_DWF_FULL___", GetAnyBMPTypeName(), "1", "", "", "", DryWeatherFlowOverride.Yes.DryWeatherFlowOverrideDisplayName, "" });
+            var result = SimplifiedBMPsExcelParserHelper.ParseWQMPRowsFromXLSX(_dbContext, existingWqmp.StormwaterJurisdictionID, dt, out var errors);
+
+            Assert.AreEqual(0, errors.Count, string.Join("; ", errors));
+            Assert.AreEqual(1, result.Count);
+            Assert.AreEqual(DryWeatherFlowOverride.Yes.DryWeatherFlowOverrideID, result[0].DryWeatherFlowOverrideID);
+        }
+
+        [TestMethod]
+        public void DryWeatherFlowOverride_CaseInsensitive()
+        {
+            // Lowercase "yes" / mixed case should still resolve — Excel users paste from anywhere.
+            var existingWqmp = _dbContext.WaterQualityManagementPlans.AsNoTracking().FirstOrDefault();
+            if (existingWqmp == null)
+            {
+                Assert.Inconclusive("No existing WQMP in dev DB.");
+                return;
+            }
+            var dt = BuildDataTable(AllCols,
+                new[] { existingWqmp.WaterQualityManagementPlanName, "___NPT_1073_DWF_LOWER___", GetAnyBMPTypeName(), "1", "", "", "", "yes", "" });
+            var result = SimplifiedBMPsExcelParserHelper.ParseWQMPRowsFromXLSX(_dbContext, existingWqmp.StormwaterJurisdictionID, dt, out var errors);
+
+            Assert.AreEqual(0, errors.Count, string.Join("; ", errors));
+            Assert.AreEqual(1, result.Count);
+            Assert.AreEqual(DryWeatherFlowOverride.Yes.DryWeatherFlowOverrideID, result[0].DryWeatherFlowOverrideID);
+        }
     }
 }
