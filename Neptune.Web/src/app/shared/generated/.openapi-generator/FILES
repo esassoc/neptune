@@ -19,6 +19,7 @@ api/maintenance-record.service.ts
 api/manager-dashboard.service.ts
 api/model-basin.service.ts
 api/nereid.service.ts
+api/octa-prioritization.service.ts
 api/onland-visual-trash-assessment-area.service.ts
 api/onland-visual-trash-assessment-observation.service.ts
 api/onland-visual-trash-assessment.service.ts

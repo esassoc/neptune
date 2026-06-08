@@ -16,6 +16,7 @@ export class DataHubLastUpdatedDto {
     HRUCharacteristics?: string | null;
     ModelBasins?: string | null;
     PrecipitationZones?: string | null;
+    OCTAPrioritizations?: string | null;
     constructor(obj?: any) {
         Object.assign(this, obj);
     }
@@ -27,6 +28,7 @@ export interface DataHubLastUpdatedDtoForm {
     HRUCharacteristics?: FormControl<string>;
     ModelBasins?: FormControl<string>;
     PrecipitationZones?: FormControl<string>;
+    OCTAPrioritizations?: FormControl<string>;
 }
 
 export class DataHubLastUpdatedDtoFormControls { 
@@ -71,6 +73,16 @@ export class DataHubLastUpdatedDtoFormControls {
         }
     );
     public static PrecipitationZones = (value: FormControlState<string> | string = undefined, formControlOptions?: FormControlOptions | null) => new FormControl<string>(
+        value,
+        formControlOptions ?? 
+        {
+            nonNullable: false,
+            validators: 
+            [
+            ],
+        }
+    );
+    public static OCTAPrioritizations = (value: FormControlState<string> | string = undefined, formControlOptions?: FormControlOptions | null) => new FormControl<string>(
         value,
         formControlOptions ?? 
         {

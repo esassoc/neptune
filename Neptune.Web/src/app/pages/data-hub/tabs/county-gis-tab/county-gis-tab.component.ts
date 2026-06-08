@@ -6,6 +6,7 @@ import { AuthenticationService } from "src/app/services/authentication.service";
 import { DataHubService } from "src/app/shared/generated/api/data-hub.service";
 import { HRUCharacteristicService } from "src/app/shared/generated/api/hru-characteristic.service";
 import { ModelBasinService } from "src/app/shared/generated/api/model-basin.service";
+import { OCTAPrioritizationService } from "src/app/shared/generated/api/octa-prioritization.service";
 import { ParcelService } from "src/app/shared/generated/api/parcel.service";
 import { PrecipitationZoneService } from "src/app/shared/generated/api/precipitation-zone.service";
 import { RegionalSubbasinService } from "src/app/shared/generated/api/regional-subbasin.service";
@@ -20,7 +21,7 @@ import { ConfirmService } from "src/app/shared/services/confirm/confirm.service"
 import { DataHubActionButtonComponent } from "../../components/data-hub-action-button/data-hub-action-button.component";
 import { DataHubQuickLinksComponent } from "../../components/data-hub-quick-links/data-hub-quick-links.component";
 
-type RefreshKey = "parcels" | "regional-subbasins" | "hru-characteristics" | "model-basins" | "precipitation-zones";
+type RefreshKey = "parcels" | "regional-subbasins" | "hru-characteristics" | "model-basins" | "precipitation-zones" | "octa-prioritizations";
 
 @Component({
     selector: "county-gis-tab",
@@ -38,6 +39,7 @@ export class CountyGisTabComponent {
     private hruCharacteristicService = inject(HRUCharacteristicService);
     private modelBasinService = inject(ModelBasinService);
     private precipitationZoneService = inject(PrecipitationZoneService);
+    private octaPrioritizationService = inject(OCTAPrioritizationService);
     private confirmService = inject(ConfirmService);
     private alertService = inject(AlertService);
     private authenticationService = inject(AuthenticationService);
@@ -96,6 +98,8 @@ export class CountyGisTabComponent {
                 return this.modelBasinService.enqueueRefreshModelBasin();
             case "precipitation-zones":
                 return this.precipitationZoneService.enqueueRefreshPrecipitationZone();
+            case "octa-prioritizations":
+                return this.octaPrioritizationService.enqueueRefreshOCTAPrioritization();
         }
     }
 }
