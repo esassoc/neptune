@@ -395,6 +395,11 @@
             <div class="card g-col-12">
                 <div class="card-header">
                     <span class="card-title">Documents</span>
+                    @if (currentPersonCanManage) {
+                        <button class="btn btn-primary-outline btn-sm" (click)="openDocumentUploadModal()">
+                            <i class="fa fa-plus"></i> Upload Document
+                        </button>
+                    }
                 </div>
                 <div class="card-body">
                     @if (documents$ | async; as documents) {
@@ -403,13 +408,25 @@
                             @if (docGroup.documents.length) {
                                 @for (doc of docGroup.documents; track doc.WaterQualityManagementPlanDocumentID) {
                                     <div class="document-entry">
-                                        @if (doc.FileResource?.FileResourceGUID) {
-                                            <a [href]="fileResourceUrl(doc.FileResource.FileResourceGUID)" target="_blank">
-                                                {{ doc.DisplayName }} <i class="fa fa-download"></i>
-                                            </a>
-                                        } @else {
-                                            <span>{{ doc.DisplayName }}</span>
-                                        }
+                                        <div class="document-entry-header">
+                                            @if (doc.FileResource?.FileResourceGUID) {
+                                                <a [href]="fileResourceUrl(doc.FileResource.FileResourceGUID)" target="_blank">
+                                                    {{ doc.DisplayName }} <i class="fa fa-download"></i>
+                                                </a>
+                                            } @else {
+                                                <span>{{ doc.DisplayName }}</span>
+                                            }
+                                            @if (currentPersonCanManage) {
+                                                <span class="document-entry-actions">
+                                                    <button class="btn btn-link btn-sm" (click)="openDocumentEditModal(doc)" title="Edit document">
+                                                        <i class="fa fa-pencil"></i> Edit
+                                                    </button>
+                                                    <button class="btn btn-link btn-sm text-danger" (click)="confirmDocumentDelete(doc)" title="Delete document">
+                                                        <i class="fa fa-trash"></i> Delete
+                                                    </button>
+                                                </span>
+                                            }
+                                        </div>
                                         <dl class="dl-horizontal document-details">
                                             <dt>Uploaded On</dt>
                                             <dd>{{ doc.UploadDate | date: "MM/dd/yyyy" }}</dd>

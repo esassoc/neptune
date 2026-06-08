@@ -53,6 +53,7 @@ import { DryWeatherFlowOverrides } from "src/app/shared/generated/enum/dry-weath
 import { WqmpModalComponent } from "src/app/pages/wqmps/wqmp-modal/wqmp-modal.component";
 import { EditModelingApproachModalComponent, EditModelingApproachModalContext } from "src/app/pages/wqmps/wqmp-detail/edit-modeling-approach-modal/edit-modeling-approach-modal.component";
 import { EditTreatmentBMPsModalComponent, EditTreatmentBMPsModalContext } from "src/app/pages/wqmps/wqmp-detail/edit-treatment-bmps-modal/edit-treatment-bmps-modal.component";
+import { WqmpDocumentModalComponent, WqmpDocumentModalContext } from "src/app/pages/wqmps/wqmp-detail/wqmp-document-modal/wqmp-document-modal.component";
 import { GroupByPipe } from "src/app/shared/pipes/group-by.pipe";
 import { SumPipe } from "src/app/shared/pipes/sum.pipe";
 import { environment } from "src/environments/environment";
@@ -99,6 +100,9 @@ export class WqmpDetailComponent implements OnInit, OnChanges {
     // map layers, which is unnecessary work and a potential source of UI flicker on a
     // verification mutation.
     private verificationsReload$ = new BehaviorSubject<void>(undefined);
+    // NPT-1068: same pattern for documents — upload/edit/delete pushes this so the
+    // Documents card refreshes without refetching wqmp$ or rebuilding the map.
+    private documentsReload$ = new BehaviorSubject<void>(undefined);
     wqmp$: Observable<WaterQualityManagementPlanDto>;
     quickBMPs$: Observable<QuickBMPDto[]>;
     quickBMPTotalRow: any[] = [];
@@ -229,16 +233,20 @@ export class WqmpDetailComponent implements OnInit, OnChanges {
                 this.quickBMPTotalRow = [{ QuickBMPName: "Total", PercentOfSiteTreated: totalPercentOfSiteTreated }];
             })
         );
-        this.documents$ = this.wqmpService.listDocumentsWaterQualityManagementPlan(this.waterQualityManagementPlanID).pipe(
-            tap((docs) => {
-                this.documentsByType = WaterQualityManagementPlanDocumentTypes.map((docType) => ({
-                    typeDisplayName: docType.DisplayName,
-                    documents: docs
-                        .filter((d) => d.WaterQualityManagementPlanDocumentTypeID === docType.Value)
-                        .sort((a, b) => (a.DisplayName ?? "").localeCompare(b.DisplayName ?? "")),
-                }));
-            })
-        );
+        if (!this.documents$) {
+            this.documents$ = this.documentsReload$.pipe(
+                switchMap(() => this.wqmpService.listDocumentsWaterQualityManagementPlan(this.waterQualityManagementPlanID)),
+                tap((docs) => {
+                    this.documentsByType = WaterQualityManagementPlanDocumentTypes.map((docType) => ({
+                        typeDisplayName: docType.DisplayName,
+                        documents: docs
+                            .filter((d) => d.WaterQualityManagementPlanDocumentTypeID === docType.Value)
+                            .sort((a, b) => (a.DisplayName ?? "").localeCompare(b.DisplayName ?? "")),
+                    }));
+                }),
+                shareReplay(1),
+            );
+        }
         // NPT-995 round 5: stable observable driven by verificationsReload$. Delete
         // mutations push the dedicated reload signal rather than inline-reassigning
         // verifications$ — same AsyncPipe re-subscription fix as wqmp$ (NPT-1051 PR #488),
@@ -507,6 +515,61 @@ export class WqmpDetailComponent implements OnInit, OnChanges {
                 this.loadData();
             }
         });
+    }
+
+    openDocumentUploadModal(): void {
+        const dialogRef = this.dialogService.open(WqmpDocumentModalComponent, {
+            data: {
+                waterQualityManagementPlanID: this.waterQualityManagementPlanID,
+                mode: "add",
+            } as WqmpDocumentModalContext,
+            size: "md",
+        });
+        dialogRef.afterClosed$.subscribe((result) => {
+            if (result) this.documentsReload$.next();
+        });
+    }
+
+    openDocumentEditModal(doc: WaterQualityManagementPlanDocumentDto): void {
+        const dialogRef = this.dialogService.open(WqmpDocumentModalComponent, {
+            data: {
+                waterQualityManagementPlanID: this.waterQualityManagementPlanID,
+                mode: "edit",
+                document: doc,
+            } as WqmpDocumentModalContext,
+            size: "md",
+        });
+        dialogRef.afterClosed$.subscribe((result) => {
+            if (result) this.documentsReload$.next();
+        });
+    }
+
+    confirmDocumentDelete(doc: WaterQualityManagementPlanDocumentDto): void {
+        const name = escapeHtml(doc.DisplayName ?? "this document");
+        this.confirmService
+            .confirm(
+                {
+                    title: "Delete Document",
+                    message: `<p>Delete <strong>${name}</strong>?</p><p>This cannot be undone.</p>`,
+                    buttonClassYes: "btn btn-danger",
+                    buttonTextYes: "Delete",
+                    buttonTextNo: "Cancel",
+                },
+                this.viewContainerRef,
+            )
+            .then((confirmed) => {
+                if (!confirmed) return;
+                this.wqmpService.deleteDocumentWaterQualityManagementPlan(this.waterQualityManagementPlanID, doc.WaterQualityManagementPlanDocumentID).subscribe({
+                    next: () => {
+                        this.alertService.pushAlert(new Alert("Document deleted.", AlertContext.Success));
+                        this.documentsReload$.next();
+                    },
+                    error: (err: HttpErrorResponse) => {
+                        const raw = err?.error?.detail ?? err?.error?.title ?? err?.error ?? "Delete failed.";
+                        this.alertService.pushAlert(new Alert(typeof raw === "string" ? raw : "Delete failed.", AlertContext.Danger));
+                    },
+                });
+            });
     }
 
     navigateToEditQuickBMPs(): void {
