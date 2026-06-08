@@ -3451,6 +3451,19 @@
         }
       }
     },
+    "/octa-prioritizations/enqueue-refresh": {
+      "post": {
+        "tags": [
+          "OCTAPrioritization"
+        ],
+        "operationId": "EnqueueRefresh_OCTAPrioritization",
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
     "/onland-visual-trash-assessments": {
       "get": {
         "tags": [
@@ -15116,6 +15129,11 @@
             "type": "string",
             "format": "date-time",
             "nullable": true
+          },
+          "OCTAPrioritizations": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
           }
         },
         "additionalProperties": false
@@ -24392,6 +24410,9 @@
     },
     {
       "name": "Nereid"
+    },
+    {
+      "name": "OCTAPrioritization"
     },
     {
       "name": "OnlandVisualTrashAssessment"

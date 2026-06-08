@@ -31,6 +31,7 @@ public class DataHubController(
             HRUCharacteristics = await HRUCharacteristics.GetLatestUpdateAsync(DbContext),
             ModelBasins = await ModelBasins.GetLatestUpdateAsync(DbContext),
             PrecipitationZones = await PrecipitationZones.GetLatestUpdateAsync(DbContext),
+            OCTAPrioritizations = await OCTAPrioritizations.GetLatestUpdateAsync(DbContext),
         };
         return Ok(dto);
     }

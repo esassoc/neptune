@@ -64,6 +64,19 @@
             [disabledTooltip]="adminOnlyTooltip"
             (action)="refresh('precipitation-zones', 'Precipitation Zones')"
         ></data-hub-action-button>
+
+        <h3>OCTA Prioritization</h3>
+        <custom-rich-text [customRichTextTypeID]="NeptunePageTypeEnum.OCTAPrioritizationDataHub"></custom-rich-text>
+        @if (lastUpdated()) {
+            <span class="last-updated">Last Updated: {{ lastUpdated().OCTAPrioritizations | date: 'medium' }}</span>
+        }
+        <data-hub-action-button
+            label="Refresh"
+            icon="refresh"
+            [disabled]="!isAdmin() || refreshing() !== null"
+            [disabledTooltip]="adminOnlyTooltip"
+            (action)="refresh('octa-prioritizations', 'OCTA Prioritization')"
+        ></data-hub-action-button>
     </div>
     <data-hub-quick-links tab="county"></data-hub-quick-links>
 </div>

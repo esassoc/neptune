@@ -72,4 +72,6 @@ GO
 GO
 :r ".\032 - NPT-1078 Seed WebServices rich text.sql"
 GO
+:r ".\033 - NPT-1068 Seed OCTAPrioritizationDataHub rich text.sql"
+GO
 

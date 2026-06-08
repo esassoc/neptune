@@ -7,4 +7,5 @@ public class DataHubLastUpdatedDto
     public DateTime? HRUCharacteristics { get; set; }
     public DateTime? ModelBasins { get; set; }
     public DateTime? PrecipitationZones { get; set; }
+    public DateTime? OCTAPrioritizations { get; set; }
 }
