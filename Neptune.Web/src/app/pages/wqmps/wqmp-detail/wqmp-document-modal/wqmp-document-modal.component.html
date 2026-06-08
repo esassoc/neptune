@@ -1,0 +1,56 @@
+<div class="modal-header">
+    <h4 class="modal-title">{{ mode === "add" ? "Upload Document" : "Edit Document" }}</h4>
+</div>
+<div class="modal-body">
+    <app-alert-display></app-alert-display>
+
+    <form [formGroup]="formGroup">
+        <form-field
+            size="md"
+            [fieldLabel]="mode === 'add' ? 'File' : 'Replace File (optional)'"
+            [type]="FormFieldType.File"
+            [formControl]="fileControl"
+            [uploadFileAccepts]="uploadFileAccepts"
+            [required]="mode === 'add'"
+            (change)="onFileChange($event)">
+        </form-field>
+        @if (mode === "edit" && ref.data.document?.FileResource?.OriginalBaseFilename) {
+            <p class="copy copy-2 system-text">
+                Current file: <strong>{{ ref.data.document.FileResource.OriginalBaseFilename }}</strong>
+            </p>
+        }
+
+        <form-field
+            size="md"
+            fieldLabel="Display Name"
+            [type]="FormFieldType.Text"
+            [formControl]="displayNameControl"
+            [required]="true">
+        </form-field>
+
+        <form-field
+            size="md"
+            fieldLabel="Document Type"
+            [type]="FormFieldType.Select"
+            [formControl]="documentTypeIDControl"
+            [formInputOptions]="documentTypeOptions"
+            [required]="true"
+            placeholder="Select a document type">
+        </form-field>
+
+        <form-field
+            size="md"
+            fieldLabel="Description"
+            [type]="FormFieldType.Textarea"
+            [formControl]="descriptionControl">
+        </form-field>
+    </form>
+
+    @if (isSaving()) {
+        <div class="mt-3 copy copy-2"><i class="fa fa-spinner fa-spin"></i> Saving...</div>
+    }
+</div>
+<div class="modal-footer">
+    <button class="btn btn-primary" (click)="save()" [disabled]="isSaving()">{{ mode === "add" ? "Upload" : "Save" }}</button>
+    <button class="btn btn-secondary-outline" (click)="cancel()" [disabled]="isSaving()">Cancel</button>
+</div>

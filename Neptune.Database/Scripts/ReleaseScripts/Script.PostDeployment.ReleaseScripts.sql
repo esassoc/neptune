@@ -74,4 +74,6 @@ GO
 GO
 :r ".\033 - NPT-1068 Seed OCTAPrioritizationDataHub rich text.sql"
 GO
+:r ".\034 - NPT-1078 Update WebServices rich text for PowerBI URL token option.sql"
+GO
 

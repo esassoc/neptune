@@ -18,12 +18,28 @@ public class WebServiceTokenAuthenticationHandler(
 
     protected override async Task<AuthenticateResult> HandleAuthenticateAsync()
     {
-        if (!Request.Headers.TryGetValue(ApiKeyName, out var extractedApiKey))
+        // Header is the documented primary path. Query string is an undocumented PowerBI
+        // escape hatch — PowerBI's data source UI doesn't make custom headers easy, so
+        // users paste the token into a fully self-contained URL the same way the legacy
+        // MVC PowerBIController accepted it as a route segment. Tokens in URLs get logged
+        // in access logs / browser history / error reports; consumers should prefer the
+        // header path whenever they control the request headers.
+        string? rawApiKey = null;
+        if (Request.Headers.TryGetValue(ApiKeyName, out var headerValue))
+        {
+            rawApiKey = headerValue.ToString();
+        }
+        else if (Request.Query.TryGetValue(ApiKeyName, out var queryValue))
+        {
+            rawApiKey = queryValue.ToString();
+        }
+
+        if (string.IsNullOrWhiteSpace(rawApiKey))
         {
             return AuthenticateResult.Fail("API key was not provided");
         }
 
-        if (!Guid.TryParse(extractedApiKey, out var parsedApiKey))
+        if (!Guid.TryParse(rawApiKey, out var parsedApiKey))
         {
             return AuthenticateResult.Fail("API key is not valid");
         }

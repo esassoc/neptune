@@ -144,6 +144,110 @@ namespace Neptune.API.Controllers
             return Ok(waterQualityManagementPlanDocumentDtos);
         }
 
+        // NPT-1068: per-WQMP document CRUD for the SPA detail page Documents card. Replaces the
+        // MVC WaterQualityManagementPlanDocumentController which served typed supporting docs
+        // (FinalWQMP / AsBuiltDrawings / OMPlan / Other). Mirrors the BMP doc-by-BMP pattern but
+        // lives on WaterQualityManagementPlanController so the existing GET .../documents list
+        // endpoint keeps its current route.
+        [HttpPost("{waterQualityManagementPlanID}/documents")]
+        [JurisdictionManageFeature]
+        [EntityNotFound(typeof(WaterQualityManagementPlan), "waterQualityManagementPlanID")]
+        public async Task<ActionResult<WaterQualityManagementPlanDocumentDto>> CreateDocument(
+            [FromRoute] int waterQualityManagementPlanID,
+            [FromForm] WaterQualityManagementPlanDocumentCreateDto dto)
+        {
+            // ModelState must be valid before we call ValidateFileUpload — that helper
+            // dereferences dto.File.FileName and will throw if binding failed and File is null.
+            if (!ModelState.IsValid)
+            {
+                return BadRequest(ModelState);
+            }
+            var errors = FileResources.ValidateFileUpload(dto.File);
+            if (errors.Any())
+            {
+                errors.ForEach(x => ModelState.AddModelError(x.Type, x.Message));
+                return BadRequest(ModelState);
+            }
+
+            var fileResource = await HttpUtilities.MakeFileResourceFromFormFileAsync(DbContext, HttpContext, azureBlobStorageService, dto.File);
+            var document = await WaterQualityManagementPlanDocuments.CreateFromFileResourceAsync(
+                DbContext, waterQualityManagementPlanID, fileResource.FileResourceID,
+                dto.DisplayName, dto.WaterQualityManagementPlanDocumentTypeID, dto.Description);
+            var documentDto = await WaterQualityManagementPlanDocuments.GetByIDAsDtoAsync(DbContext, document.WaterQualityManagementPlanDocumentID);
+            return Ok(documentDto);
+        }
+
+        // File is optional — when present we delete the old blob and swap the FileResource.
+        [HttpPut("{waterQualityManagementPlanID}/documents/{waterQualityManagementPlanDocumentID}")]
+        [JurisdictionManageFeature]
+        [EntityNotFound(typeof(WaterQualityManagementPlan), "waterQualityManagementPlanID")]
+        [EntityNotFound(typeof(WaterQualityManagementPlanDocument), "waterQualityManagementPlanDocumentID")]
+        public async Task<ActionResult<WaterQualityManagementPlanDocumentDto>> UpdateDocument(
+            [FromRoute] int waterQualityManagementPlanID,
+            [FromRoute] int waterQualityManagementPlanDocumentID,
+            [FromForm] WaterQualityManagementPlanDocumentUpdateDto dto)
+        {
+            // Cross-WQMP guard: ensure documentID belongs to wqmpID in the route. Without this,
+            // a JM authorized for WQMP A could pass WQMP B's documentID and modify it through
+            // the WQMP-A-permission path.
+            var existing = WaterQualityManagementPlanDocuments.GetByID(DbContext, waterQualityManagementPlanDocumentID);
+            if (existing.WaterQualityManagementPlanID != waterQualityManagementPlanID) return NotFound();
+
+            int? newFileResourceID = null;
+            int? oldFileResourceID = null;
+            if (dto.File != null)
+            {
+                var errors = FileResources.ValidateFileUpload(dto.File);
+                if (!ModelState.IsValid || errors.Any())
+                {
+                    errors.ForEach(x => ModelState.AddModelError(x.Type, x.Message));
+                    return BadRequest(ModelState);
+                }
+
+                oldFileResourceID = existing.FileResourceID;
+                var fileResource = await HttpUtilities.MakeFileResourceFromFormFileAsync(DbContext, HttpContext, azureBlobStorageService, dto.File);
+                newFileResourceID = fileResource.FileResourceID;
+            }
+
+            var updated = await WaterQualityManagementPlanDocuments.UpdateMetadataAsync(
+                DbContext, waterQualityManagementPlanDocumentID, newFileResourceID,
+                dto.DisplayName, dto.WaterQualityManagementPlanDocumentTypeID, dto.Description);
+            if (updated == null) return NotFound();
+
+            // Clean up the prior blob only after the entity successfully points at the new file.
+            if (oldFileResourceID.HasValue)
+            {
+                var oldFileResource = FileResources.GetByID(DbContext, oldFileResourceID.Value);
+                if (oldFileResource != null)
+                {
+                    await azureBlobStorageService.DeleteFileResourceBlob(oldFileResource.FileResourceGUID);
+                }
+            }
+
+            return Ok(updated);
+        }
+
+        [HttpDelete("{waterQualityManagementPlanID}/documents/{waterQualityManagementPlanDocumentID}")]
+        [JurisdictionManageFeature]
+        [EntityNotFound(typeof(WaterQualityManagementPlan), "waterQualityManagementPlanID")]
+        [EntityNotFound(typeof(WaterQualityManagementPlanDocument), "waterQualityManagementPlanDocumentID")]
+        public async Task<IActionResult> DeleteDocument(
+            [FromRoute] int waterQualityManagementPlanID,
+            [FromRoute] int waterQualityManagementPlanDocumentID)
+        {
+            var existing = WaterQualityManagementPlanDocuments.GetByID(DbContext, waterQualityManagementPlanDocumentID);
+            // Cross-WQMP guard — see UpdateDocument for rationale.
+            if (existing.WaterQualityManagementPlanID != waterQualityManagementPlanID) return NotFound();
+
+            var fileResource = FileResources.GetByID(DbContext, existing.FileResourceID);
+            await WaterQualityManagementPlanDocuments.DeleteAsync(DbContext, waterQualityManagementPlanDocumentID);
+            if (fileResource != null)
+            {
+                await azureBlobStorageService.DeleteFileResourceBlob(fileResource.FileResourceGUID);
+            }
+            return NoContent();
+        }
+
         [HttpGet("{waterQualityManagementPlanID}/quick-bmps")]
         [AllowAnonymous]
         [OptionalAuth]

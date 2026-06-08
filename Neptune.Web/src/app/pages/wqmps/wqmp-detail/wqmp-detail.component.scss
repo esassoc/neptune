@@ -104,6 +104,19 @@
     margin-bottom: 1rem;
 }
 
+.document-entry-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 1rem;
+}
+
+.document-entry-actions {
+    display: inline-flex;
+    gap: 0.25rem;
+    white-space: nowrap;
+}
+
 ::ng-deep .ag-row-pinned-bottom {
     font-weight: bold;
 }

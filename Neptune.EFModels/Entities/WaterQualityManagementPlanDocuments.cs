@@ -79,7 +79,7 @@ public static class WaterQualityManagementPlanDocuments
     }
 
     public static async Task<WaterQualityManagementPlanDocument> CreateFromFileResourceAsync(
-        NeptuneDbContext dbContext, int waterQualityManagementPlanID, int fileResourceID, string displayName, int documentTypeID)
+        NeptuneDbContext dbContext, int waterQualityManagementPlanID, int fileResourceID, string displayName, int documentTypeID, string? description = null)
     {
         var document = new WaterQualityManagementPlanDocument
         {
@@ -88,10 +88,31 @@ public static class WaterQualityManagementPlanDocuments
             DisplayName = displayName,
             UploadDate = DateTime.UtcNow,
             WaterQualityManagementPlanDocumentTypeID = documentTypeID,
+            Description = description,
         };
         dbContext.WaterQualityManagementPlanDocuments.Add(document);
         await dbContext.SaveChangesAsync();
         return document;
+    }
+
+    public static async Task<WaterQualityManagementPlanDocumentDto?> UpdateMetadataAsync(
+        NeptuneDbContext dbContext, int waterQualityManagementPlanDocumentID, int? newFileResourceID,
+        string displayName, int documentTypeID, string? description)
+    {
+        var entity = await dbContext.WaterQualityManagementPlanDocuments
+            .FirstOrDefaultAsync(x => x.WaterQualityManagementPlanDocumentID == waterQualityManagementPlanDocumentID);
+        if (entity == null) return null;
+
+        entity.DisplayName = displayName;
+        entity.WaterQualityManagementPlanDocumentTypeID = documentTypeID;
+        entity.Description = description;
+        if (newFileResourceID.HasValue)
+        {
+            entity.FileResourceID = newFileResourceID.Value;
+            entity.UploadDate = DateTime.UtcNow;
+        }
+        await dbContext.SaveChangesAsync();
+        return await GetByIDAsDtoAsync(dbContext, entity.WaterQualityManagementPlanDocumentID);
     }
 
     public static async Task<bool> DeleteAsync(NeptuneDbContext dbContext, int waterQualityManagementPlanDocumentID)
