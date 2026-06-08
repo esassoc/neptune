@@ -246,6 +246,10 @@ export class WqmpDetailComponent implements OnInit, OnChanges {
                 }),
                 shareReplay(1),
             );
+        } else {
+            // ngOnChanges path: when waterQualityManagementPlanID flips, push a reload so the
+            // Documents card refetches against the new ID instead of showing the prior WQMP's docs.
+            this.documentsReload$.next();
         }
         // NPT-995 round 5: stable observable driven by verificationsReload$. Delete
         // mutations push the dedicated reload signal rather than inline-reassigning
@@ -256,6 +260,9 @@ export class WqmpDetailComponent implements OnInit, OnChanges {
                 switchMap(() => this.wqmpService.listVerificationsWaterQualityManagementPlan(this.waterQualityManagementPlanID)),
                 shareReplay(1)
             );
+        } else {
+            // Same ngOnChanges-path fix as documents$: refetch when the route ID changes.
+            this.verificationsReload$.next();
         }
 
         this.modeledPerformance$ = this.wqmpService.getModeledPerformanceWaterQualityManagementPlan(this.waterQualityManagementPlanID);
@@ -565,8 +572,10 @@ export class WqmpDetailComponent implements OnInit, OnChanges {
                         this.documentsReload$.next();
                     },
                     error: (err: HttpErrorResponse) => {
+                        // AlertDisplayComponent renders via [innerHTML]; escape server-supplied
+                        // strings before interpolation.
                         const raw = err?.error?.detail ?? err?.error?.title ?? err?.error ?? "Delete failed.";
-                        this.alertService.pushAlert(new Alert(typeof raw === "string" ? raw : "Delete failed.", AlertContext.Danger));
+                        this.alertService.pushAlert(new Alert(escapeHtml(typeof raw === "string" ? raw : "Delete failed."), AlertContext.Danger));
                     },
                 });
             });

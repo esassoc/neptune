@@ -156,8 +156,14 @@ namespace Neptune.API.Controllers
             [FromRoute] int waterQualityManagementPlanID,
             [FromForm] WaterQualityManagementPlanDocumentCreateDto dto)
         {
+            // ModelState must be valid before we call ValidateFileUpload — that helper
+            // dereferences dto.File.FileName and will throw if binding failed and File is null.
+            if (!ModelState.IsValid)
+            {
+                return BadRequest(ModelState);
+            }
             var errors = FileResources.ValidateFileUpload(dto.File);
-            if (!ModelState.IsValid || errors.Any())
+            if (errors.Any())
             {
                 errors.ForEach(x => ModelState.AddModelError(x.Type, x.Message));
                 return BadRequest(ModelState);
@@ -181,6 +187,12 @@ namespace Neptune.API.Controllers
             [FromRoute] int waterQualityManagementPlanDocumentID,
             [FromForm] WaterQualityManagementPlanDocumentUpdateDto dto)
         {
+            // Cross-WQMP guard: ensure documentID belongs to wqmpID in the route. Without this,
+            // a JM authorized for WQMP A could pass WQMP B's documentID and modify it through
+            // the WQMP-A-permission path.
+            var existing = WaterQualityManagementPlanDocuments.GetByID(DbContext, waterQualityManagementPlanDocumentID);
+            if (existing.WaterQualityManagementPlanID != waterQualityManagementPlanID) return NotFound();
+
             int? newFileResourceID = null;
             int? oldFileResourceID = null;
             if (dto.File != null)
@@ -192,7 +204,6 @@ namespace Neptune.API.Controllers
                     return BadRequest(ModelState);
                 }
 
-                var existing = WaterQualityManagementPlanDocuments.GetByID(DbContext, waterQualityManagementPlanDocumentID);
                 oldFileResourceID = existing.FileResourceID;
                 var fileResource = await HttpUtilities.MakeFileResourceFromFormFileAsync(DbContext, HttpContext, azureBlobStorageService, dto.File);
                 newFileResourceID = fileResource.FileResourceID;
@@ -225,6 +236,9 @@ namespace Neptune.API.Controllers
             [FromRoute] int waterQualityManagementPlanDocumentID)
         {
             var existing = WaterQualityManagementPlanDocuments.GetByID(DbContext, waterQualityManagementPlanDocumentID);
+            // Cross-WQMP guard — see UpdateDocument for rationale.
+            if (existing.WaterQualityManagementPlanID != waterQualityManagementPlanID) return NotFound();
+
             var fileResource = FileResources.GetByID(DbContext, existing.FileResourceID);
             await WaterQualityManagementPlanDocuments.DeleteAsync(DbContext, waterQualityManagementPlanDocumentID);
             if (fileResource != null)

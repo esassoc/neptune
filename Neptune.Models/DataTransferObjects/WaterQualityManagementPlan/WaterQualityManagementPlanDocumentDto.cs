@@ -15,14 +15,19 @@ namespace Neptune.Models.DataTransferObjects
         public int WaterQualityManagementPlanDocumentTypeID { get; set; }
     }
 
+    // String length limits mirror the WaterQualityManagementPlanDocument entity's
+    // [StringLength] attributes so oversized input fails model binding (clean 400) instead
+    // of bubbling to a DB exception.
     public class WaterQualityManagementPlanDocumentCreateDto
     {
         [Required]
         public IFormFile File { get; set; } = null!;
         [Required]
+        [StringLength(100)]
         public string DisplayName { get; set; } = string.Empty;
         [Required]
         public int WaterQualityManagementPlanDocumentTypeID { get; set; }
+        [StringLength(1000)]
         public string? Description { get; set; }
     }
 
@@ -33,9 +38,11 @@ namespace Neptune.Models.DataTransferObjects
     {
         public IFormFile? File { get; set; }
         [Required]
+        [StringLength(100)]
         public string DisplayName { get; set; } = string.Empty;
         [Required]
         public int WaterQualityManagementPlanDocumentTypeID { get; set; }
+        [StringLength(1000)]
         public string? Description { get; set; }
     }
 }
