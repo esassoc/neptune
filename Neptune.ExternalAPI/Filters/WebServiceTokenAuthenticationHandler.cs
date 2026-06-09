@@ -16,20 +16,24 @@ public class WebServiceTokenAuthenticationHandler(
     public const string ApiKeyName = "x-api-key";
     public const string SchemeName = "ApiKeyScheme";
 
+    // Query string parameter name is deliberately different from the header name so the
+    // public URL surface ("?token=…") doesn't expose the internal header convention.
+    // PowerBI consumers paste a self-contained URL the same way the legacy MVC
+    // PowerBIController accepted the token as a route segment.
+    private const string TokenQueryParamName = "token";
+
     protected override async Task<AuthenticateResult> HandleAuthenticateAsync()
     {
-        // Header is the documented primary path. Query string is an undocumented PowerBI
-        // escape hatch — PowerBI's data source UI doesn't make custom headers easy, so
-        // users paste the token into a fully self-contained URL the same way the legacy
-        // MVC PowerBIController accepted it as a route segment. Tokens in URLs get logged
-        // in access logs / browser history / error reports; consumers should prefer the
-        // header path whenever they control the request headers.
+        // Header is the documented primary path. Query string is the PowerBI escape hatch
+        // — PowerBI's data source UI doesn't make custom HTTP headers easy. Tokens in URLs
+        // get logged in access logs / browser history / error reports; consumers should
+        // prefer the header path whenever they control the request headers.
         string? rawApiKey = null;
         if (Request.Headers.TryGetValue(ApiKeyName, out var headerValue))
         {
             rawApiKey = headerValue.ToString();
         }
-        else if (Request.Query.TryGetValue(ApiKeyName, out var queryValue))
+        else if (Request.Query.TryGetValue(TokenQueryParamName, out var queryValue))
         {
             rawApiKey = queryValue.ToString();
         }

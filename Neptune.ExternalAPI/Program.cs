@@ -2,6 +2,7 @@ using System.IO.Compression;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 using Microsoft.AspNetCore.Authentication;
+using Microsoft.AspNetCore.HttpOverrides;
 using Microsoft.AspNetCore.ResponseCompression;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.OpenApi;
@@ -102,6 +103,20 @@ builder.Services.AddAuthentication(options =>
 })
 .AddScheme<AuthenticationSchemeOptions, WebServiceTokenAuthenticationHandler>(WebServiceTokenAuthenticationHandler.SchemeName, _ => { });
 
+// AKS ingress terminates TLS and forwards the request to the pod over HTTP, setting
+// X-Forwarded-Proto: https. Without this, Request.Scheme stays "http" inside the pod,
+// which (a) makes UseHttpsRedirection issue a needless 301 (PowerBI / curl users without
+// -L get stuck on it) and (b) makes the OpenAPI auto-detected server URL render as
+// "http://qa-api..." in Scalar, so the "try it out" client originates an http request
+// that has to follow the same 301. Clearing KnownNetworks/KnownProxies is required because
+// the ingress pod's IP varies and isn't on the default loopback trust list.
+builder.Services.Configure<ForwardedHeadersOptions>(options =>
+{
+    options.ForwardedHeaders = ForwardedHeaders.XForwardedFor | ForwardedHeaders.XForwardedProto;
+    options.KnownNetworks.Clear();
+    options.KnownProxies.Clear();
+});
+
 builder.Services.AddHealthChecks().AddDbContextCheck<NeptuneDbContext>();
 builder.Services.AddProblemDetails();
 
@@ -122,6 +137,8 @@ else
     app.UseExceptionHandler();
 }
 
+// Must run before UseHttpsRedirection so the redirector sees the original scheme.
+app.UseForwardedHeaders();
 app.UseHttpsRedirection();
 app.UseResponseCompression();
 app.UseRouting();
