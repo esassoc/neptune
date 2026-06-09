@@ -12,7 +12,9 @@ public class ModelResultsController(AzureBlobStorageService blobStorageService) 
 {
     [HttpGet("current")]
     [EndpointSummary("Model Results")]
-    [EndpointDescription("Returns all pollutant runoff/reduction model results for all nodes in South Orange County.")]
+    [EndpointDescription("Returns all pollutant runoff/reduction model results for all nodes in South Orange County. " +
+                         "**Response is large (often >100 MB).** Use cURL, PowerBI, or another streaming client to consume it — " +
+                         "Scalar's in-browser \"try it out\" cannot render responses this size and will throw an allocation error.")]
     [ProducesResponseType(typeof(FileContentResult), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status401Unauthorized)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
@@ -24,7 +26,9 @@ public class ModelResultsController(AzureBlobStorageService blobStorageService) 
 
     [HttpGet("baseline")]
     [EndpointSummary("Baseline Model Results")]
-    [EndpointDescription("Returns all pollutant runoff/reduction model results for all nodes in South Orange County in the Baseline Condition.")]
+    [EndpointDescription("Returns all pollutant runoff/reduction model results for all nodes in South Orange County in the Baseline Condition. " +
+                         "**Response is large (often >100 MB).** Use cURL, PowerBI, or another streaming client to consume it — " +
+                         "Scalar's in-browser \"try it out\" cannot render responses this size and will throw an allocation error.")]
     [ProducesResponseType(typeof(FileContentResult), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status401Unauthorized)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
