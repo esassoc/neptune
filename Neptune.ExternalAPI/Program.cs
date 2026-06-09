@@ -2,6 +2,7 @@ using System.IO.Compression;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 using Microsoft.AspNetCore.Authentication;
+using Microsoft.AspNetCore.HttpOverrides;
 using Microsoft.AspNetCore.ResponseCompression;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.OpenApi;
@@ -102,6 +103,32 @@ builder.Services.AddAuthentication(options =>
 })
 .AddScheme<AuthenticationSchemeOptions, WebServiceTokenAuthenticationHandler>(WebServiceTokenAuthenticationHandler.SchemeName, _ => { });
 
+// AKS ingress terminates TLS and forwards the request to the pod over HTTP, setting
+// X-Forwarded-Proto: https. Without this, Request.Scheme stays "http" inside the pod,
+// which (a) makes UseHttpsRedirection issue a needless 301 (PowerBI / curl users without
+// -L get stuck on it) and (b) makes the OpenAPI auto-detected server URL render as
+// "http://qa-api..." in Scalar, so the "try it out" client originates an http request
+// that has to follow the same 301.
+//
+// Clearing KnownNetworks/KnownProxies makes the middleware trust X-Forwarded-* from
+// any source IP. This is the standard ASP.NET-on-Kubernetes pattern (also what the
+// ASPNETCORE_FORWARDEDHEADERS_ENABLED env var does under the hood) and is defensible
+// here because:
+//   - The pod is only reachable through the AKS ingress; it isn't exposed directly to
+//     the internet, so external clients can't spoof these headers.
+//   - The pod CIDR varies per cluster, so hardcoding a known-network entry is brittle
+//     and would have to be re-tracked on every cluster recreation.
+//   - The only practical spoof vector is from another pod inside the cluster, which
+//     would already imply an existing compromise.
+// If the pod is ever exposed directly (bypassing the ingress) this trust list must be
+// tightened — e.g. via configuration-driven KnownNetworks for the ingress controller.
+builder.Services.Configure<ForwardedHeadersOptions>(options =>
+{
+    options.ForwardedHeaders = ForwardedHeaders.XForwardedFor | ForwardedHeaders.XForwardedProto;
+    options.KnownNetworks.Clear();
+    options.KnownProxies.Clear();
+});
+
 builder.Services.AddHealthChecks().AddDbContextCheck<NeptuneDbContext>();
 builder.Services.AddProblemDetails();
 
@@ -122,6 +149,8 @@ else
     app.UseExceptionHandler();
 }
 
+// Must run before UseHttpsRedirection so the redirector sees the original scheme.
+app.UseForwardedHeaders();
 app.UseHttpsRedirection();
 app.UseResponseCompression();
 app.UseRouting();

@@ -1,3 +1,4 @@
+using System.Text.RegularExpressions;
 using Serilog;
 using Serilog.Context;
 using Serilog.Events;
@@ -6,6 +7,22 @@ namespace Neptune.ExternalAPI.Logging;
 
 public class LogHelper(RequestDelegate next)
 {
+    // NPT-1078: Redact secret-shaped query params before they hit the log sink. The auth
+    // token is accepted via ?token= as a PowerBI escape hatch, and request logging that
+    // captures the raw QueryString would otherwise persist tokens to logs (and anything
+    // downstream — App Insights, log archives, etc.) for every authenticated request.
+    // Compile once and use a case-insensitive match so e.g. ?Token= and ?TOKEN= are also
+    // caught. The list mirrors common secret param names; expand if new ones are introduced.
+    private static readonly Regex SecretQueryParamPattern = new Regex(
+        @"(?<=\b(?:token|api[-_]?key|password|secret)=)[^&]*",
+        RegexOptions.IgnoreCase | RegexOptions.Compiled);
+
+    private static string RedactSecrets(string queryString)
+    {
+        return SecretQueryParamPattern.Replace(queryString, "***");
+    }
+
+
     public async Task InvokeAsync(HttpContext httpContext)
     {
         EnrichLogContext(httpContext);
@@ -48,7 +65,7 @@ public class LogHelper(RequestDelegate next)
 
         if (request.QueryString.HasValue)
         {
-            LogContext.PushProperty("QueryString", request.QueryString.Value);
+            LogContext.PushProperty("QueryString", RedactSecrets(request.QueryString.Value));
         }
 
         LogContext.PushProperty("ContentType", httpContext.Response.ContentType);

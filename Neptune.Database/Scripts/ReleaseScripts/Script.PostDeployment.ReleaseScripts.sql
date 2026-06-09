@@ -76,4 +76,6 @@ GO
 GO
 :r ".\034 - NPT-1078 Update WebServices rich text for PowerBI URL token option.sql"
 GO
+:r ".\035 - NPT-1078 Rename WebServices query param from x-api-key to token.sql"
+GO
 
