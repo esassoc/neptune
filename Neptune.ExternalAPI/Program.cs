@@ -164,6 +164,7 @@ app.UseCors(policy =>
 app.UseAuthentication();
 app.UseAuthorization();
 app.UseMiddleware<AccessDeniedMiddleware>();
+app.UseMiddleware<WebServiceAccessLogMiddleware>();
 app.UseMiddleware<LogHelper>();
 app.MapControllers();
 app.MapHealthChecks("/healthz");

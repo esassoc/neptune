@@ -13,6 +13,11 @@
             <div class="token-row">
                 <code [copyToClipboard]="true">{{ token }}</code>
             </div>
+            @if (lastWebServiceAccessDate(); as last) {
+                <p class="last-used">Last used: {{ last | date: 'MM/dd/yyyy h:mm a' : "+0000" }}</p>
+            } @else {
+                <p class="last-used">Last used: never</p>
+            }
             <button type="button" class="btn btn-secondary-outline" [disabled]="busy()" (click)="regenerateToken()">
                 Regenerate Token
             </button>

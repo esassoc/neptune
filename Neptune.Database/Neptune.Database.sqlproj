@@ -233,6 +233,7 @@
     <Build Include="dbo\Tables\dbo.WaterQualityManagementPlanVerifyType.sql" />
     <Build Include="dbo\Tables\dbo.WaterQualityManagementPlanVisitStatus.sql" />
     <Build Include="dbo\Tables\dbo.Watershed.sql" />
+    <Build Include="dbo\Tables\dbo.WebServiceAccessLog.sql" />
     <Build Include="dbo\User Defined Types\html.sql" />
   </ItemGroup>
   <ItemGroup>
