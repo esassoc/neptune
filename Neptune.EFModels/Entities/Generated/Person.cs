@@ -49,6 +49,9 @@ public partial class Person
 
     public Guid? WebServiceAccessToken { get; set; }
 
+    [Column(TypeName = "datetime")]
+    public DateTime? LastWebServiceAccessDate { get; set; }
+
     public bool IsOCTAGrantReviewer { get; set; }
 
     [StringLength(100)]
@@ -133,4 +136,7 @@ public partial class Person
 
     [InverseProperty("LastEditedByPerson")]
     public virtual ICollection<WaterQualityManagementPlanVerify> WaterQualityManagementPlanVerifies { get; set; } = new List<WaterQualityManagementPlanVerify>();
+
+    [InverseProperty("Person")]
+    public virtual ICollection<WebServiceAccessLog> WebServiceAccessLogs { get; set; } = new List<WebServiceAccessLog>();
 }

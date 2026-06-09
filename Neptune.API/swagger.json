@@ -18801,6 +18801,11 @@
             "format": "uuid",
             "nullable": true
           },
+          "LastWebServiceAccessDate": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          },
           "IsOCTAGrantReviewer": {
             "type": "boolean"
           },

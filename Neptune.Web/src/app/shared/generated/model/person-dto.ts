@@ -28,6 +28,7 @@ export class PersonDto {
     ReceiveSupportEmails?: boolean;
     ReceiveRSBRevisionRequestEmails?: boolean;
     WebServiceAccessToken?: string | null;
+    LastWebServiceAccessDate?: string | null;
     IsOCTAGrantReviewer?: boolean;
     HasAssignedStormwaterJurisdiction?: boolean;
     ImpersonatedPersonID?: number | null;
@@ -54,6 +55,7 @@ export interface PersonDtoForm {
     ReceiveSupportEmails?: FormControl<boolean>;
     ReceiveRSBRevisionRequestEmails?: FormControl<boolean>;
     WebServiceAccessToken?: FormControl<string>;
+    LastWebServiceAccessDate?: FormControl<string>;
     IsOCTAGrantReviewer?: FormControl<boolean>;
     HasAssignedStormwaterJurisdiction?: FormControl<boolean>;
     ImpersonatedPersonID?: FormControl<number>;
@@ -221,6 +223,16 @@ export class PersonDtoFormControls {
         }
     );
     public static WebServiceAccessToken = (value: FormControlState<string> | string = undefined, formControlOptions?: FormControlOptions | null) => new FormControl<string>(
+        value,
+        formControlOptions ?? 
+        {
+            nonNullable: false,
+            validators: 
+            [
+            ],
+        }
+    );
+    public static LastWebServiceAccessDate = (value: FormControlState<string> | string = undefined, formControlOptions?: FormControlOptions | null) => new FormControl<string>(
         value,
         formControlOptions ?? 
         {

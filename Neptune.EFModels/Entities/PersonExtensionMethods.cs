@@ -65,6 +65,7 @@ public static class PersonExtensionMethods
             ReceiveSupportEmails = person.ReceiveSupportEmails,
             ReceiveRSBRevisionRequestEmails = person.ReceiveRSBRevisionRequestEmails,
             WebServiceAccessToken = person.WebServiceAccessToken,
+            LastWebServiceAccessDate = person.LastWebServiceAccessDate,
             IsOCTAGrantReviewer = person.IsOCTAGrantReviewer,
             HasAssignedStormwaterJurisdiction = person.StormwaterJurisdictionPeople.Any(),
             ImpersonatedPersonID = person.ImpersonatedPersonID,

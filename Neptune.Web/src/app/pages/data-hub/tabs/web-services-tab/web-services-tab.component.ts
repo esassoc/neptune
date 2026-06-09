@@ -1,3 +1,4 @@
+import { DatePipe } from "@angular/common";
 import { Component, computed, inject, signal, Signal } from "@angular/core";
 import { takeUntilDestroyed, toSignal } from "@angular/core/rxjs-interop";
 import { map } from "rxjs";
@@ -16,7 +17,7 @@ import { DataHubQuickLinksComponent } from "../../components/data-hub-quick-link
 @Component({
     selector: "web-services-tab",
     standalone: true,
-    imports: [CustomRichTextComponent, CopyToClipboardDirective, DataHubQuickLinksComponent],
+    imports: [CustomRichTextComponent, CopyToClipboardDirective, DataHubQuickLinksComponent, DatePipe],
     templateUrl: "./web-services-tab.component.html",
     styleUrls: ["../../data-hub.component.scss", "./web-services-tab.component.scss"],
 })
@@ -33,6 +34,7 @@ export class WebServicesTabComponent {
 
     public webServiceToken: Signal<string | null> = computed(() => this.currentUser()?.WebServiceAccessToken ?? null);
     public personID: Signal<number | null> = computed(() => this.currentUser()?.PersonID ?? null);
+    public lastWebServiceAccessDate: Signal<string | null> = computed(() => this.currentUser()?.LastWebServiceAccessDate ?? null);
     public busy = signal(false);
 
     public generateToken(): void {
