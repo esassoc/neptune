@@ -19,8 +19,9 @@ internal static class BlobFileDownloadHelper
     //
     // Uses the streaming download variant + FileStreamResult so ASP.NET pipes the blob
     // straight to the response without buffering ~185MB in pod memory per request.
-    // ContentLength is set explicitly from the blob details so the response still has
-    // a definitive Content-Length header (lets clients show progress).
+    // Content-Length is set explicitly from the blob metadata — the Azure SDK response
+    // stream isn't reliably seekable, so FileStreamResult on its own may emit a
+    // chunked response without Content-Length, which breaks PowerBI's progress UI.
     public static async Task<IActionResult> DownloadIfExistsAsync(AzureBlobStorageService blobStorageService, string fileName, HttpResponse response)
     {
         if (!await blobStorageService.ExistsFromBlobStorage(fileName))
@@ -33,6 +34,7 @@ internal static class BlobFileDownloadHelper
         response.Headers[HeaderNames.ContentDisposition] = contentDisposition.ToString();
 
         var blobStream = await blobStorageService.DownloadBlobFromBlobStorageAsStream(fileName);
+        response.ContentLength = blobStream.Details.ContentLength;
         return new FileStreamResult(blobStream.Content, "application/json")
         {
             FileDownloadName = fileName,

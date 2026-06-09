@@ -108,8 +108,20 @@ builder.Services.AddAuthentication(options =>
 // which (a) makes UseHttpsRedirection issue a needless 301 (PowerBI / curl users without
 // -L get stuck on it) and (b) makes the OpenAPI auto-detected server URL render as
 // "http://qa-api..." in Scalar, so the "try it out" client originates an http request
-// that has to follow the same 301. Clearing KnownNetworks/KnownProxies is required because
-// the ingress pod's IP varies and isn't on the default loopback trust list.
+// that has to follow the same 301.
+//
+// Clearing KnownNetworks/KnownProxies makes the middleware trust X-Forwarded-* from
+// any source IP. This is the standard ASP.NET-on-Kubernetes pattern (also what the
+// ASPNETCORE_FORWARDEDHEADERS_ENABLED env var does under the hood) and is defensible
+// here because:
+//   - The pod is only reachable through the AKS ingress; it isn't exposed directly to
+//     the internet, so external clients can't spoof these headers.
+//   - The pod CIDR varies per cluster, so hardcoding a known-network entry is brittle
+//     and would have to be re-tracked on every cluster recreation.
+//   - The only practical spoof vector is from another pod inside the cluster, which
+//     would already imply an existing compromise.
+// If the pod is ever exposed directly (bypassing the ingress) this trust list must be
+// tightened — e.g. via configuration-driven KnownNetworks for the ingress controller.
 builder.Services.Configure<ForwardedHeadersOptions>(options =>
 {
     options.ForwardedHeaders = ForwardedHeaders.XForwardedFor | ForwardedHeaders.XForwardedProto;
