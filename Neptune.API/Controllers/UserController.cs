@@ -213,7 +213,7 @@ namespace Neptune.API.Controllers
     <strong>Phone:</strong> {person.Phone}<br />
     <br />
     <p>
-        You may want to <a href=""{NeptuneConfiguration.OcStormwaterToolsBaseUrl}/Detail/{person.PersonID}"">assign this user a role</a> and associate them with a jurisdiction to allow them to use the site. Or you can leave the user with Unassigned roles if they don't need special privileges.
+        You may want to <a href=""{NeptuneConfiguration.OcStormwaterToolsBaseUrl}/users/{person.PersonID}"">assign this user a role</a> and associate them with a jurisdiction to allow them to use the site. Or you can leave the user with Unassigned roles if they don't need special privileges.
     </p>
     </div>
     {sitkaSmtpClientService.GetSupportNotificationEmailSignature()}
