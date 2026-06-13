@@ -16,6 +16,9 @@ builder.Host.UseSerilog(logger);
 // Add services to the container.
 builder.Services.AddControllers();
 
+// Emit RFC 7807 ProblemDetails JSON for unhandled exceptions (see app.UseExceptionHandler() below).
+builder.Services.AddProblemDetails();
+
 builder.Services.AddResponseCompression(options =>
 {
     options.EnableForHttps = true;
@@ -42,14 +45,19 @@ builder.Services.AddSwaggerGen();
 
 var app = builder.Build();
 
-app.UseResponseCompression();
-
 // Configure the HTTP request pipeline.
 if (app.Environment.IsDevelopment())
 {
+    app.UseDeveloperExceptionPage();
     app.UseSwagger();
     app.UseSwaggerUI();
 }
+else
+{
+    app.UseExceptionHandler();
+}
+
+app.UseResponseCompression();
 
 app.MapControllers();
 

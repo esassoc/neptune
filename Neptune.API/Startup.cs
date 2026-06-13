@@ -81,6 +81,10 @@ namespace Neptune.API
             services.Configure<BrotliCompressionProviderOptions>(options => options.Level = CompressionLevel.Optimal);
             services.Configure<GzipCompressionProviderOptions>(options => options.Level = CompressionLevel.Optimal);
 
+            // Emit RFC 7807 ProblemDetails JSON for unhandled exceptions (paired with the
+            // parameterless app.UseExceptionHandler() below). Mirrors Neptune.ExternalAPI.
+            services.AddProblemDetails();
+
             services.Configure<NeptuneConfiguration>(Configuration);
             services.Configure<NeptuneJobConfiguration>(Configuration);
             services.Configure<SendGridConfiguration>(Configuration);
@@ -260,7 +264,8 @@ namespace Neptune.API
             }
             else
             {
-                app.UseExceptionHandler("/Home/Error");
+                // Returns RFC 7807 ProblemDetails JSON for unhandled exceptions (see AddProblemDetails()).
+                app.UseExceptionHandler();
                 // The default HSTS value is 30 days. You may want to change this for production scenarios, see https://aka.ms/aspnetcore-hsts.
                 app.UseHsts();
             }
