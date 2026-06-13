@@ -91,13 +91,20 @@ namespace Neptune.EFModels.Entities
 
         public string BenchmarkMeasurementUnitLabel()
         {
+            // NPT-1069: prefer the authoritative MeasurementUnitType lookup display name (e.g. "inches")
+            // so the SPA matches how the unit is presented elsewhere. Fall back to the schema's free-text
+            // label only when the OT has no resolvable MeasurementUnitTypeID (so it doesn't lose its suffix).
+            var unitType = BenchmarkMeasurementUnitType();
+            if (unitType != null)
+            {
+                return unitType.MeasurementUnitTypeDisplayName;
+            }
+
             var observationTypeCollectionMethod = ObservationTypeSpecification.ObservationTypeCollectionMethod;
             switch (observationTypeCollectionMethod.ToEnum)
             {
                 case ObservationTypeCollectionMethodEnum.DiscreteValue:
                     return GetDiscreteObservationTypeSchema().MeasurementUnitLabel;
-                case ObservationTypeCollectionMethodEnum.PassFail:
-                    return null;
                 case ObservationTypeCollectionMethodEnum.Percentage:
                     return GetPercentageSchema().MeasurementUnitLabel;
                 default:
@@ -123,18 +130,18 @@ namespace Neptune.EFModels.Entities
 
         public string ThresholdMeasurementUnitLabel()
         {
-            var observationThresholdType = ObservationTypeSpecification.ObservationThresholdType;
-            switch (observationThresholdType.ToEnum)
+            // NPT-1069: resolve the unit from the MeasurementUnitType lookup display name (matching
+            // BenchmarkMeasurementUnitLabel). Fall back to the benchmark label for SpecificValue when the
+            // lookup is null so a free-text-only OT keeps its suffix.
+            var unitType = ThresholdMeasurementUnitType();
+            if (unitType != null)
             {
-                case ObservationThresholdTypeEnum.SpecificValue:
-                    return BenchmarkMeasurementUnitLabel();
-                case ObservationThresholdTypeEnum.RelativeToBenchmark:
-                    return ThresholdMeasurementUnitForPercentFromBenchmark().MeasurementUnitTypeDisplayName;
-                case ObservationThresholdTypeEnum.None:
-                    return null;
-                default:
-                    return null;
+                return unitType.MeasurementUnitTypeDisplayName;
             }
+
+            return ObservationTypeSpecification.ObservationThresholdType.ToEnum == ObservationThresholdTypeEnum.SpecificValue
+                ? BenchmarkMeasurementUnitLabel()
+                : null;
         }
 
         public MeasurementUnitType ThresholdMeasurementUnitType()
