@@ -119,12 +119,17 @@ namespace Neptune.EFModels.Entities
                 treatmentBMPNamesInCsv.Add(treatmentBMPName);
             }
 
+            // Fetch every existing BMP sharing this name once, then derive both checks in memory
+            // (one query per row instead of two).
+            var existingBMPsWithName = dbContext.TreatmentBMPs.Include(x => x.TreatmentBMPType)
+                .Where(x => x.TreatmentBMPName == treatmentBMPName)
+                .ToList();
+
             // A BMP name must map to a single type. Reject if any existing BMP — in any jurisdiction,
             // including planning-module (project) BMPs — already uses this name with a different type.
             // The jurisdiction-scoped update lookup below can't catch this (the existing BMP may be in
             // another jurisdiction or be a project BMP), which is how a cross-type duplicate slipped through.
-            var conflictingTypeBMP = dbContext.TreatmentBMPs.Include(x => x.TreatmentBMPType).FirstOrDefault(x =>
-                x.TreatmentBMPName == treatmentBMPName &&
+            var conflictingTypeBMP = existingBMPsWithName.FirstOrDefault(x =>
                 x.TreatmentBMPTypeID != treatmentBMPType.TreatmentBMPTypeID);
             if (conflictingTypeBMP != null)
             {
@@ -135,8 +140,7 @@ namespace Neptune.EFModels.Entities
             // Match an existing inventory BMP (ProjectID == null) in this jurisdiction as the update target.
             // Per the AK_TreatmentBMP_StormwaterJurisdictionID_TreatmentBMPName unique index, inventory names
             // are unique per jurisdiction and project BMPs are never upload targets.
-            var treatmentBMP = dbContext.TreatmentBMPs.Include(x => x.TreatmentBMPType).SingleOrDefault(x =>
-                x.TreatmentBMPName == treatmentBMPName &&
+            var treatmentBMP = existingBMPsWithName.SingleOrDefault(x =>
                 x.StormwaterJurisdictionID == stormwaterJurisdictionID.Value &&
                 x.ProjectID == null);
             if (treatmentBMP == null)
@@ -513,7 +517,9 @@ namespace Neptune.EFModels.Entities
                     // Identify the specific offending entry/entries rather than echoing the whole value, so a
                     // mixed multi-select like "Gravel, InvalidMedia" reports only "InvalidMedia".
                     var invalidEntries = value.Split(',').Select(x => x.Trim())
+                        .Where(x => !string.IsNullOrEmpty(x))
                         .Where(x => customAttributeTypeAcceptableValues == null || !customAttributeTypeAcceptableValues.Contains(x))
+                        .Distinct()
                         .ToList();
                     var invalidEntryDisplay = invalidEntries.Any() ? string.Join(", ", invalidEntries) : value;
                     return
