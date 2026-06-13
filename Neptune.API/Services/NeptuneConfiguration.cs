@@ -7,7 +7,6 @@ public class NeptuneConfiguration : NeptuneJobConfiguration
 {
     public string DatabaseConnectionString { get; set; }
     public string AzureBlobStorageConnectionString { get; set; }
-    public string OcStormwaterToolsBaseUrl { get; set; }
     public string NereidUrl { get; set; }
     public GoogleRecaptchaV3Config GoogleRecaptchaV3Config { get; set; }
 

@@ -2,11 +2,11 @@ import { Component, OnInit } from "@angular/core";
 import { finalize, Observable } from "rxjs";
 import { ColDef } from "ag-grid-community";
 import { AsyncPipe } from "@angular/common";
-import { Router } from "@angular/router";
 import { NeptuneGridComponent } from "src/app/shared/components/neptune-grid/neptune-grid.component";
 import { PageHeaderComponent } from "src/app/shared/components/page-header/page-header.component";
 import { AlertDisplayComponent } from "src/app/shared/components/alert-display/alert-display.component";
 import { LoadingDirective } from "src/app/shared/directives/loading.directive";
+import { LinkRendererComponent } from "src/app/shared/components/ag-grid/link-renderer/link-renderer.component";
 import { UtilityFunctionsService } from "src/app/services/utility-functions.service";
 import { RegionalSubbasinRevisionRequestService } from "src/app/shared/generated/api/regional-subbasin-revision-request.service";
 import { RegionalSubbasinRevisionRequestDto } from "src/app/shared/generated/model/regional-subbasin-revision-request-dto";
@@ -24,19 +24,26 @@ export class RevisionRequestsComponent implements OnInit {
 
     constructor(
         private regionalSubbasinRevisionRequestService: RegionalSubbasinRevisionRequestService,
-        private utilityFunctionsService: UtilityFunctionsService,
-        private router: Router
+        private utilityFunctionsService: UtilityFunctionsService
     ) {}
 
     ngOnInit(): void {
         this.columnDefs = [
-            this.utilityFunctionsService.createActionsColumnDef((params: any) => [
-                {
-                    ActionName: "View",
-                    ActionHandler: () =>
-                        this.router.navigate(["delineation", "revision-requests", params.data.RegionalSubbasinRevisionRequestID]),
-                },
-            ]),
+            // Render "View" as a real anchor (routerLink) so Ctrl/middle-click opens the detail page in a new tab.
+            {
+                headerName: "",
+                field: "RegionalSubbasinRevisionRequestID",
+                valueGetter: (params) => ({ LinkValue: params.data.RegionalSubbasinRevisionRequestID, LinkDisplay: "View" }),
+                cellRenderer: LinkRendererComponent,
+                cellRendererParams: { inRouterLink: "/delineation/revision-requests/" },
+                pinned: true,
+                sortable: false,
+                filter: false,
+                suppressSizeToFit: true,
+                suppressAutoSize: true,
+                width: 80,
+                maxWidth: 80,
+            },
             this.utilityFunctionsService.createLinkColumnDef("BMP Name", "TreatmentBMPName", "TreatmentBMPID", {
                 InRouterLink: "/treatment-bmps/",
             }),

@@ -18,6 +18,22 @@
   display: block;
 }
 
+.map-tools {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+
+  .btn {
+    align-self: flex-start;
+  }
+
+  .tool-hint {
+    margin: 0;
+    font-size: $type-size-200;
+    color: $gray-600;
+  }
+}
+
 .actions {
   display: flex;
   gap: 0.5rem;

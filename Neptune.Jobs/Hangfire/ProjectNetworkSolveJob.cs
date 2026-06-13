@@ -72,7 +72,7 @@ namespace Neptune.Jobs.Hangfire
             var subject = successful ? $"Modeled Results calculated for Project: {projectName}" : $"Model Results calculation failed for Project: {projectName}";
             var requestPersonEmail = requestPerson.Email;
             var errorContext = $"<br /><br/>See the provided error message for more details:\n {errorMessage}";
-            var planningURL = $"{_neptuneJobConfiguration.PlanningModuleBaseUrl}/projects/edit/{project.ProjectID}/stormwater-treatments/modeled-performance-and-metrics";
+            var planningURL = $"{_neptuneJobConfiguration.OcStormwaterToolsBaseUrl}/projects/edit/{project.ProjectID}/stormwater-treatments/modeled-performance-and-metrics";
             var message = $@"
 <div style='font-size: 12px; font-family: Arial'>
 <strong>{subject}</strong><br />
