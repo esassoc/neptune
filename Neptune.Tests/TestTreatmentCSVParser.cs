@@ -95,7 +95,7 @@ Test Cook Park,30,10,City of San Juan Capistrano,City of San Juan Capistrano,200
 Frank,,10,City of Orange,Sitka Technology Group,2008,ABCD,Perpetuity/Life of Project,11/12/2022,5,6,Happy,Full,Not Provided";
             const int treatmentBMPTypeID = 17;
             TreatmentBMPCsvParserHelper.CSVUpload(_dbContext, csv, treatmentBMPTypeID, out var errorList, out _, out _);
-            Assert.IsTrue(errorList.Any(x => x.Contains("Treatment BMP Latitude ")), "Expected an error message");
+            Assert.IsTrue(errorList.Any(x => x.Contains("Latitude is required for new Treatment BMPs")), "Expected an error message");
         }
 
         [TestMethod]
@@ -125,7 +125,7 @@ Frank,95,120,City of Orange,Sitka Technology Group,2008,ABCD,Perpetuity/Life of 
 Frank,30,,City of Orange,Sitka Technology Group,2008,ABCD,Perpetuity/Life of Project,11/12/2022,5,6,Happy,Full,Not Provided";
             const int treatmentBMPTypeID = 17;
             TreatmentBMPCsvParserHelper.CSVUpload(_dbContext, csv, treatmentBMPTypeID, out var errorList, out _, out _);
-            Assert.IsTrue(errorList.Any(x => x.Contains("Treatment BMP Latitude")), "Expected an error message");
+            Assert.IsTrue(errorList.Any(x => x.Contains("Longitude is required for new Treatment BMPs")), "Expected an error message");
         }
 
         [TestMethod]

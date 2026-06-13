@@ -119,25 +119,33 @@ namespace Neptune.EFModels.Entities
                 treatmentBMPNamesInCsv.Add(treatmentBMPName);
             }
 
+            // A BMP name must map to a single type. Reject if any existing BMP — in any jurisdiction,
+            // including planning-module (project) BMPs — already uses this name with a different type.
+            // The jurisdiction-scoped update lookup below can't catch this (the existing BMP may be in
+            // another jurisdiction or be a project BMP), which is how a cross-type duplicate slipped through.
+            var conflictingTypeBMP = dbContext.TreatmentBMPs.Include(x => x.TreatmentBMPType).FirstOrDefault(x =>
+                x.TreatmentBMPName == treatmentBMPName &&
+                x.TreatmentBMPTypeID != treatmentBMPType.TreatmentBMPTypeID);
+            if (conflictingTypeBMP != null)
+            {
+                errorList.Add(
+                    $"BMP with name '{treatmentBMPName}' has a Type '{conflictingTypeBMP.TreatmentBMPType.TreatmentBMPTypeName}', which does not match the uploaded Type '{treatmentBMPType.TreatmentBMPTypeName}' for row: {rowNumber}");
+            }
+
+            // Match an existing inventory BMP (ProjectID == null) in this jurisdiction as the update target.
+            // Per the AK_TreatmentBMP_StormwaterJurisdictionID_TreatmentBMPName unique index, inventory names
+            // are unique per jurisdiction and project BMPs are never upload targets.
             var treatmentBMP = dbContext.TreatmentBMPs.Include(x => x.TreatmentBMPType).SingleOrDefault(x =>
                 x.TreatmentBMPName == treatmentBMPName &&
-                x.StormwaterJurisdictionID == stormwaterJurisdictionID.Value);
-            if (treatmentBMP != null)
-            {
-                // one last check; make sure the treatment bmp type of the existing treatment bmp matches the passed type
-                if (treatmentBMPType.TreatmentBMPTypeID != treatmentBMP.TreatmentBMPTypeID)
-                {
-                    errorList.Add(
-                        $"BMP with name '{treatmentBMPName}' has a Type '{treatmentBMP.TreatmentBMPType.TreatmentBMPTypeName}', which does not match the uploaded Type '{treatmentBMPType.TreatmentBMPTypeName}' for row: {rowNumber}");
-                }
-            }
-            else
+                x.StormwaterJurisdictionID == stormwaterJurisdictionID.Value &&
+                x.ProjectID == null);
+            if (treatmentBMP == null)
             {
                 treatmentBMP = new TreatmentBMP()
                 {
                     TreatmentBMPName = treatmentBMPName,
                     TreatmentBMPTypeID = treatmentBMPType.TreatmentBMPTypeID,
-                    StormwaterJurisdictionID = stormwaterJurisdictionID.Value, 
+                    StormwaterJurisdictionID = stormwaterJurisdictionID.Value,
                     InventoryIsVerified = false
                 };
             }
@@ -368,7 +376,14 @@ namespace Neptune.EFModels.Entities
                 {
                     return null;
                 }
-                locationErrorList.Add($"Treatment BMP Latitude {treatmentBMPLatitude} or Longitude {treatmentBMPLongitude} is null or empty space at row: {rowNumber}");
+                var missingLocationFields = new List<string>();
+                if (string.IsNullOrWhiteSpace(treatmentBMPLatitude)) missingLocationFields.Add("Latitude");
+                if (string.IsNullOrWhiteSpace(treatmentBMPLongitude)) missingLocationFields.Add("Longitude");
+                errorList.Add(
+                    $"{string.Join(" and ", missingLocationFields)} {(missingLocationFields.Count > 1 ? "are" : "is")} required for new Treatment BMPs at row: {rowNumber}");
+                // Return early — otherwise the blank value(s) also trip the decimal-parse/range checks below,
+                // producing two extra confusing "can not be converted to Decimal format" errors for the same row.
+                return null;
             }
             if (!decimal.TryParse(treatmentBMPLatitude, out var treatmentBMPLatitudeDecimal))
             {
@@ -495,8 +510,14 @@ namespace Neptune.EFModels.Entities
                         $"{customAttributeTypeName} field can not be converted to {customAttributeDataTypeDisplayName} at row: {rowNumber}";
                 case CustomAttributeDataTypeEnum.MultiSelect:
                 case CustomAttributeDataTypeEnum.PickFromList:
+                    // Identify the specific offending entry/entries rather than echoing the whole value, so a
+                    // mixed multi-select like "Gravel, InvalidMedia" reports only "InvalidMedia".
+                    var invalidEntries = value.Split(',').Select(x => x.Trim())
+                        .Where(x => customAttributeTypeAcceptableValues == null || !customAttributeTypeAcceptableValues.Contains(x))
+                        .ToList();
+                    var invalidEntryDisplay = invalidEntries.Any() ? string.Join(", ", invalidEntries) : value;
                     return
-                        $"{value} is not a valid {customAttributeTypeName} entry at row: {rowNumber}. Acceptable values are: {string.Join(", ", customAttributeTypeAcceptableValues)}";
+                        $"'{invalidEntryDisplay}' is not a valid {customAttributeTypeName} entry at row: {rowNumber}. Acceptable values are: {string.Join(", ", customAttributeTypeAcceptableValues)}";
                 default:
                     return
                         $"{customAttributeTypeName} entry at row: {rowNumber} experienced an unknown error. Please double check the sheet, and contact support with further questions.";
