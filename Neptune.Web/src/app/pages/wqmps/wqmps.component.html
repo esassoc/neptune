@@ -50,7 +50,7 @@
                 </wqmps-layer>
                 @if (mapIsReady) {
                     <parcel-layer [map]="map" [layerControl]="layerControl"></parcel-layer>
-                    <delineations-layer [map]="map" [layerControl]="layerControl" [isAnalyzedInModelingModule]="false"></delineations-layer>
+                    <delineations-layer [map]="map" [layerControl]="layerControl"></delineations-layer>
                     <jurisdictions-layer [map]="map" [layerControl]="layerControl" [mode]="OverlayMode.ReferenceOnly"></jurisdictions-layer>
                 }
             </hybrid-map-grid>
