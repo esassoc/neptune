@@ -26,7 +26,10 @@ export class DelineationsLayerComponent implements OnChanges {
     readonly WMS_STYLE = "delineation";
 
     @Input() delineationStatus: "Verified" | "Provisional" = "Verified";
-    @Input() isAnalyzedInModelingModule: boolean = true;
+    // Default false: a delineations layer shows ALL delineations (including trash/inlet BMP types whose
+    // TreatmentBMPType.IsAnalyzedInModelingModule = 0). Modeling/planning maps (LGU, planning module) opt
+    // in to the modeling-only view with [isAnalyzedInModelingModule]="true". Only affects the Verified layer.
+    @Input() isAnalyzedInModelingModule: boolean = false;
     @Input() map: L.Map;
     @Input() layerControl: any;
     @Input() sortOrder: number = 1;
