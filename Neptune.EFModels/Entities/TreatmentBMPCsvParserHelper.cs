@@ -49,17 +49,20 @@ namespace Neptune.EFModels.Entities
                 "Allowable End Date of Installation (if applicable)", "Required Field Visits Per Year", "Required Post-Storm Field Visits Per Year","Notes"};
             var customAttributeTypes = treatmentBMPType.TreatmentBMPTypeCustomAttributeTypes.Select(x => x.CustomAttributeType).ToList();
 
-            var headerFieldCount = 0;
+            var recognizedColumnCount = 0;
             try
             {
                 var header = parser.ReadFields();
-                headerFieldCount = header.Length;
                 var customAttributeNames = customAttributeTypes.Select(x => x.CustomAttributeTypeName).ToList();
                 fieldsDict = ValidateHeader(header, requiredFields, optionalFields, customAttributeNames, out errorList, treatmentBMPType);
                 if (errorList.Any())
                 {
                     return null;
                 }
+                // Meaningful columns end at the last recognized header index. Using this rather than
+                // header.Length means a trailing blank header column (e.g. a header ending in a comma)
+                // can't absorb an unquoted comma spillover and silently swallow the invalid fragment.
+                recognizedColumnCount = fieldsDict.Any() ? fieldsDict.Values.Max() + 1 : header.Length;
             }
             catch
             {
@@ -75,16 +78,16 @@ namespace Neptune.EFModels.Entities
             {
                 var currentRow = parser.ReadFields();
 
-                // More fields than the header means an unquoted cell contained commas and was split into
-                // extra columns (e.g. a MultiSelect value typed as Gravel, InvalidMedia without quotes).
+                // Data beyond the recognized columns means an unquoted cell contained commas and was split
+                // into extra columns (e.g. a MultiSelect value typed as Gravel, InvalidMedia without quotes).
                 // A trailing comma yields a harmless empty extra field; only reject when an extra field
                 // carries real data, which would otherwise be silently dropped — hiding the invalid entry
                 // and letting the row commit. Tell the user to quote multi-value cells.
-                if (currentRow.Length > headerFieldCount &&
-                    currentRow.Skip(headerFieldCount).Any(x => !string.IsNullOrWhiteSpace(x)))
+                if (currentRow.Length > recognizedColumnCount &&
+                    currentRow.Skip(recognizedColumnCount).Any(x => !string.IsNullOrWhiteSpace(x)))
                 {
                     errorList.Add(
-                        $"Row {rowCount} has more columns ({currentRow.Length}) than the header ({headerFieldCount}). If a value contains commas (e.g. a multi-select entry like \"Gravel, Sand\"), wrap it in double quotes so it is not read as additional columns. Row: {rowCount}");
+                        $"Row {rowCount} has data in columns beyond the {recognizedColumnCount} recognized header columns. If a value contains commas (e.g. a multi-select entry like \"Gravel, Sand\"), wrap it in double quotes so it is not read as additional columns. Row: {rowCount}");
                     rowCount++;
                     continue;
                 }
@@ -541,7 +544,7 @@ namespace Neptune.EFModels.Entities
                         .ToList();
                     var invalidEntryDisplay = invalidEntries.Any() ? string.Join(", ", invalidEntries) : value;
                     return
-                        $"'{invalidEntryDisplay}' is not a valid {customAttributeTypeName} entry at row: {rowNumber}. Acceptable values are: {string.Join(", ", customAttributeTypeAcceptableValues)}";
+                        $"'{invalidEntryDisplay}' is not a valid {customAttributeTypeName} entry at row: {rowNumber}. Acceptable values are: {string.Join(", ", customAttributeTypeAcceptableValues ?? new List<string>())}";
                 default:
                     return
                         $"{customAttributeTypeName} entry at row: {rowNumber} experienced an unknown error. Please double check the sheet, and contact support with further questions.";
@@ -567,7 +570,8 @@ namespace Neptune.EFModels.Entities
                         .ToList();
 
                     return splitValues.Any() &&
-                           splitValues.All(x => customAttributeTypeAcceptableValues != null && customAttributeTypeAcceptableValues.Contains(x));
+                           customAttributeTypeAcceptableValues != null &&
+                           splitValues.All(customAttributeTypeAcceptableValues.Contains);
                 case CustomAttributeDataTypeEnum.String:
                     return true;
                 default:
