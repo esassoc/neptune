@@ -55,7 +55,7 @@ public class TreatmentBMPController(
         // filter above already excludes jurisdictions whose public BMP visibility is None; this adds
         // the per-BMP verified gate the SPA list endpoint was missing. Anonymous callers are an
         // Unassigned-role PersonDto sentinel (see UserContext), so this one check covers both. (NPT-1079)
-        var publicUser = CallingUser == null || CallingUser.RoleID == (int)RoleEnum.Unassigned;
+        var publicUser = CallingUser.RoleID == (int)RoleEnum.Unassigned;
 
         var entities = await DbContext.vTreatmentBMPDetaileds.AsNoTracking()
             .Where(x => stormwaterJurisdictionIDsPersonCanView.Contains(x.StormwaterJurisdictionID))

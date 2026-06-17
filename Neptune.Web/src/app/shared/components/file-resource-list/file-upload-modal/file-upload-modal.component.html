@@ -20,7 +20,7 @@
                             [accept]="uploadFileAccepts"
                             (change)="updateFile($event)"
                             required />
-                        <span class="file-name" [title]="fileName + fileExtension || 'No file chosen...'">
+                        <span class="file-name" [title]="fileName ? fileName + fileExtension : 'No file chosen...'">
                             <span class="base"> {{ fileName }} </span
                             ><span class="ext">
                                 {{ fileExtension }}
