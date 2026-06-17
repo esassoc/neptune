@@ -18,7 +18,7 @@ as
 
 select	tb.TreatmentBMPID as PrimaryKey,
 		tb.TreatmentBMPID, tb.TreatmentBMPName, tbt.TreatmentBMPTypeID, tbt.TreatmentBMPTypeName, sj.StormwaterJurisdictionID, o.OrganizationName
-		, tb.RequiredFieldVisitsPerYear, tb.RequiredPostStormFieldVisitsPerYear, tb.TreatmentBMPLifespanEndDate, tb.YearBuilt, tb.Notes
+		, tb.RequiredFieldVisitsPerYear, tb.RequiredPostStormFieldVisitsPerYear, tb.TreatmentBMPLifespanEndDate, tb.YearBuilt, tb.Notes, tb.InventoryIsVerified
 		, tb.OwnerOrganizationID, oo.OrganizationName as OwnerOrganizationName
 		, tblt.TreatmentBMPLifespanTypeID, tblt.TreatmentBMPLifespanTypeDisplayName
 		, tcst.TrashCaptureStatusTypeID, tcst.TrashCaptureStatusTypeDisplayName
