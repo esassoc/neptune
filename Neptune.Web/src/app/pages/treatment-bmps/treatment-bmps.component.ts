@@ -115,15 +115,14 @@ export class TreatmentBmpsComponent {
             this.utilityFunctionsService.createBasicColumnDef("Trash Capture Status", "TrashCaptureStatusTypeDisplayName", { UseCustomDropdownFilter: true }),
             this.utilityFunctionsService.createBasicColumnDef("Trash Capture Effectiveness (%)", "TrashCaptureEffectiveness"),
             this.utilityFunctionsService.createBasicColumnDef("Delineation Type", "DelineationTypeDisplayName", { UseCustomDropdownFilter: true }),
-            // NPT-1061: Notes was previously mid-grid and dominated visible width on rows with
-            // long entries. Moved to the far right + capped at 300px with wrap so long notes flow
-            // vertically instead of pushing every other column off-screen.
+            // NPT-1061: Notes was previously mid-grid and dominated visible width on rows with long
+            // entries. Moved to the far right + capped at 300px. Kept on a single line (truncated
+            // with an ellipsis) rather than wrapping with autoHeight — wrapping grew rows unbounded
+            // and made tall, uneven rows. The grid's default tooltipValueGetter shows the full note
+            // on hover, so nothing is lost.
             {
                 ...this.utilityFunctionsService.createBasicColumnDef("Notes", "Notes"),
                 maxWidth: 300,
-                wrapText: true,
-                autoHeight: true,
-                cellStyle: { whiteSpace: "normal", lineHeight: "1.3" },
             },
         ];
         this.treatmentBmps$ = this.treatmentBMPService

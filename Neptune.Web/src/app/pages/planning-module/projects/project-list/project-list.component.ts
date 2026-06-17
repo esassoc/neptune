@@ -98,9 +98,9 @@ export class ProjectListComponent implements OnInit {
             this.utilityFunctionsService.createLinkColumnDef("Organization", "Organization.OrganizationName", "Organization.OrganizationID", {
                 InRouterLink: "/organizations/",
             }),
-            this.utilityFunctionsService.createBasicColumnDef("Jurisdiction", "StormwaterJurisdiction.Organization.OrganizationName"),
+            this.utilityFunctionsService.createBasicColumnDef("Jurisdiction", "StormwaterJurisdiction.StormwaterJurisdictionName"),
             this.utilityFunctionsService.createDateColumnDef("Date Created", "DateCreated", "M/d/yyyy", { Width: 120 }),
-            this.utilityFunctionsService.createBasicColumnDef("Project Description", "ProjectDescription"),
+            this.utilityFunctionsService.createBasicColumnDef("Project Description", "ProjectDescription", { MaxWidth: 400 }),
             {
                 headerName: "Shared with OCTA M2 Tier 2 Grant Program",
                 valueGetter: (params) => (params.data.ShareOCTAM2Tier2Scores ? "Yes" : "No"),

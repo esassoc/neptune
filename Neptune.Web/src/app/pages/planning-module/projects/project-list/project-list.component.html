@@ -8,6 +8,7 @@
                 [rowData]="projects$ | async"
                 [columnDefs]="projectColumnDefs"
                 rowSelection="single"
+                [sizeColumnsToFitGrid]="true"
                 (gridReady)="onGridReady($event)"
                 [pagination]="true"
                 downloadFileName="projects">
