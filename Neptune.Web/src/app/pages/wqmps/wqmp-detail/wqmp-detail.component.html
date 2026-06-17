@@ -190,8 +190,8 @@
                     <span class="card-title">Locations</span>
                     @if (currentPersonCanEdit) {
                         <div class="flex">
-                            <a class="btn btn-primary-outline btn-sm" [routerLink]="['/water-quality-management-plans', waterQualityManagementPlanID, 'edit-parcels']">Edit Parcels</a>
-                            <a class="btn btn-primary-outline btn-sm" [class.disabled]="!wqmp.WaterQualityManagementPlanBoundaryBBox"
+                            <a class="btn btn-primary btn-sm" [routerLink]="['/water-quality-management-plans', waterQualityManagementPlanID, 'edit-parcels']">Edit Parcels</a>
+                            <a class="btn btn-primary btn-sm" [class.disabled]="!wqmp.WaterQualityManagementPlanBoundaryBBox"
                                 [routerLink]="wqmp.WaterQualityManagementPlanBoundaryBBox ? ['/water-quality-management-plans', waterQualityManagementPlanID, 'edit-boundary'] : null">Refine Area</a>
                         </div>
                     }
@@ -396,7 +396,7 @@
                 <div class="card-header">
                     <span class="card-title">Documents</span>
                     @if (currentPersonCanManage) {
-                        <button class="btn btn-primary-outline btn-sm" (click)="openDocumentUploadModal()">
+                        <button class="btn btn-primary btn-sm" (click)="openDocumentUploadModal()">
                             <i class="fa fa-plus"></i> Upload Document
                         </button>
                     }
@@ -460,7 +460,7 @@
             <div class="card-header">
                 <span class="card-title">WQMP O&amp;M Verification</span>
                 @if (currentPersonCanEdit) {
-                    <a class="btn btn-primary-outline btn-sm"
+                    <a class="btn btn-primary btn-sm"
                        [routerLink]="['/water-quality-management-plans', waterQualityManagementPlanID, 'verifications', 'new']">
                         <i class="fa fa-plus"></i> Begin O&amp;M Verification
                     </a>
