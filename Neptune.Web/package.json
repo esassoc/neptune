@@ -78,7 +78,7 @@
         "@angular/compiler-cli": "^21.2.8",
         "@angular/language-service": "^21.2.8",
         "@fortawesome/fontawesome-free": "^7.1.0",
-        "@openapitools/openapi-generator-cli": "^2.25.2",
+        "@openapitools/openapi-generator-cli": "^2.38.0",
         "@types/leaflet": "^1.9.21",
         "@types/leaflet.markercluster": "^1.5.6",
         "@types/node": "^24.10.1",
