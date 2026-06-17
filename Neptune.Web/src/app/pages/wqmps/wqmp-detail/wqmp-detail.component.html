@@ -50,12 +50,12 @@
                     }
                 </div>
                 <div class="card-body">
-                    <dl class="grid-12 key-value-list">
-                        <dt class="g-col-5"><field-definition fieldDefinitionType="WaterQualityManagementPlan" fieldDefinitionLabelOverride="Name"></field-definition></dt>
-                        <dd class="g-col-7">{{ wqmp.WaterQualityManagementPlanName }}</dd>
+                    <dl class="kv">
+                        <dt><field-definition fieldDefinitionType="WaterQualityManagementPlan" fieldDefinitionLabelOverride="Name"></field-definition></dt>
+                        <dd>{{ wqmp.WaterQualityManagementPlanName }}</dd>
 
-                        <dt class="g-col-5"><field-definition fieldDefinitionType="Jurisdiction"></field-definition></dt>
-                        <dd class="g-col-7">
+                        <dt><field-definition fieldDefinitionType="Jurisdiction"></field-definition></dt>
+                        <dd>
                             @if (!isAnonymousOrUnassigned) {
                                 <a [routerLink]="['/jurisdictions', wqmp.StormwaterJurisdictionID]">{{ wqmp.StormwaterJurisdictionOrganizationName }}</a>
                             } @else {
@@ -63,50 +63,50 @@
                             }
                         </dd>
 
-                        <dt class="g-col-5">Priority</dt>
-                        <dd class="g-col-7">{{ wqmp.WaterQualityManagementPlanPriorityDisplayName ?? "" }}</dd>
+                        <dt>Priority</dt>
+                        <dd>{{ wqmp.WaterQualityManagementPlanPriorityDisplayName ?? "" }}</dd>
 
-                        <dt class="g-col-5">Status</dt>
-                        <dd class="g-col-7">{{ wqmp.WaterQualityManagementPlanStatusDisplayName ?? "" }}</dd>
+                        <dt>Status</dt>
+                        <dd>{{ wqmp.WaterQualityManagementPlanStatusDisplayName ?? "" }}</dd>
 
-                        <dt class="g-col-5">Development Type</dt>
-                        <dd class="g-col-7">{{ wqmp.WaterQualityManagementPlanDevelopmentTypeDisplayName ?? "" }}</dd>
+                        <dt>Development Type</dt>
+                        <dd>{{ wqmp.WaterQualityManagementPlanDevelopmentTypeDisplayName ?? "" }}</dd>
 
-                        <dt class="g-col-5">Land Use</dt>
-                        <dd class="g-col-7">{{ wqmp.WaterQualityManagementPlanLandUseDisplayName ?? "" }}</dd>
+                        <dt>Land Use</dt>
+                        <dd>{{ wqmp.WaterQualityManagementPlanLandUseDisplayName ?? "" }}</dd>
 
-                        <dt class="g-col-5">Permit Term</dt>
-                        <dd class="g-col-7">{{ wqmp.WaterQualityManagementPlanPermitTermDisplayName ?? "" }}</dd>
+                        <dt>Permit Term</dt>
+                        <dd>{{ wqmp.WaterQualityManagementPlanPermitTermDisplayName ?? "" }}</dd>
 
-                        <dt class="g-col-5">Approval Date</dt>
-                        <dd class="g-col-7">{{ wqmp.ApprovalDate ? (wqmp.ApprovalDate | date: "MM/dd/yyyy" : "+0000") : "" }}</dd>
+                        <dt>Approval Date</dt>
+                        <dd>{{ wqmp.ApprovalDate ? (wqmp.ApprovalDate | date: "MM/dd/yyyy" : "+0000") : "" }}</dd>
 
-                        <dt class="g-col-5">Date of Construction</dt>
-                        <dd class="g-col-7">{{ wqmp.DateOfConstruction ? (wqmp.DateOfConstruction | date: "MM/dd/yyyy" : "+0000") : "" }}</dd>
+                        <dt>Date of Construction</dt>
+                        <dd>{{ wqmp.DateOfConstruction ? (wqmp.DateOfConstruction | date: "MM/dd/yyyy" : "+0000") : "" }}</dd>
 
-                        <dt class="g-col-5"><field-definition fieldDefinitionType="HydromodificationApplies"></field-definition></dt>
-                        <dd class="g-col-7">{{ wqmp.HydromodificationAppliesTypeDisplayName ?? "" }}</dd>
+                        <dt><field-definition fieldDefinitionType="HydromodificationApplies"></field-definition></dt>
+                        <dd>{{ wqmp.HydromodificationAppliesTypeDisplayName ?? "" }}</dd>
 
-                        <dt class="g-col-5">Hydrologic Subarea</dt>
-                        <dd class="g-col-7">{{ wqmp.HydrologicSubareaName ?? "" }}</dd>
+                        <dt>Hydrologic Subarea</dt>
+                        <dd>{{ wqmp.HydrologicSubareaName ?? "" }}</dd>
 
-                        <dt class="g-col-5">Record Number</dt>
-                        <dd class="g-col-7">{{ wqmp.RecordNumber ?? "" }}</dd>
+                        <dt>Record Number</dt>
+                        <dd>{{ wqmp.RecordNumber ?? "" }}</dd>
 
-                        <dt class="g-col-5">Recorded WQMP Area (Acres)</dt>
-                        <dd class="g-col-7">{{ wqmp.RecordedWQMPAreaInAcres ?? "" }}</dd>
+                        <dt>Recorded WQMP Area (Acres)</dt>
+                        <dd>{{ wqmp.RecordedWQMPAreaInAcres ?? "" }}</dd>
 
-                        <dt class="g-col-5"><field-definition fieldDefinitionType="TrashCaptureStatus"></field-definition></dt>
-                        <dd class="g-col-7">{{ wqmp.TrashCaptureStatusTypeDisplayName }}</dd>
+                        <dt><field-definition fieldDefinitionType="TrashCaptureStatus"></field-definition></dt>
+                        <dd>{{ wqmp.TrashCaptureStatusTypeDisplayName }}</dd>
 
                         @if (wqmp.TrashCaptureStatusTypeID === TrashCaptureStatusTypeEnum.Partial) {
-                            <dt class="g-col-5">Trash Capture Effectiveness</dt>
-                            <dd class="g-col-7">{{ wqmp.TrashCaptureEffectiveness }}%</dd>
+                            <dt>Trash Capture Effectiveness</dt>
+                            <dd>{{ wqmp.TrashCaptureEffectiveness }}%</dd>
                         }
 
                         @if (!isAnonymousOrUnassigned) {
-                            <dt class="g-col-5">Maintenance Contact</dt>
-                            <dd class="g-col-7">
+                            <dt>Maintenance Contact</dt>
+                            <dd>
                                 @if (wqmp.MaintenanceContactName) {
                                     <div><strong>{{ wqmp.MaintenanceContactName }}</strong></div>
                                 }
@@ -188,15 +188,15 @@
             <div class="card">
                 <div class="card-header">
                     <span class="card-title">Locations</span>
-                </div>
-                <div class="card-body">
                     @if (currentPersonCanEdit) {
-                        <div class="mb-3" style="display: flex; justify-content: flex-end; gap: 0.5rem">
-                            <a class="btn btn-primary-outline" [routerLink]="['/water-quality-management-plans', waterQualityManagementPlanID, 'edit-parcels']">Edit Parcels</a>
-                            <a class="btn btn-primary-outline" [class.disabled]="!wqmp.WaterQualityManagementPlanBoundaryBBox"
+                        <div class="flex">
+                            <a class="btn btn-primary-outline btn-sm" [routerLink]="['/water-quality-management-plans', waterQualityManagementPlanID, 'edit-parcels']">Edit Parcels</a>
+                            <a class="btn btn-primary-outline btn-sm" [class.disabled]="!wqmp.WaterQualityManagementPlanBoundaryBBox"
                                 [routerLink]="wqmp.WaterQualityManagementPlanBoundaryBBox ? ['/water-quality-management-plans', waterQualityManagementPlanID, 'edit-boundary'] : null">Refine Area</a>
                         </div>
                     }
+                </div>
+                <div class="card-body">
                     <neptune-map [mapHeight]="'500px'" [showLegend]="false" [boundingBox]="boundingBox" (onMapLoad)="handleMapReady($event)">
                         @if (mapIsReady) {
                             <wqmps-layer
@@ -206,12 +206,12 @@
                                 [layerControl]="layerControl"></wqmps-layer>
                         }
                     </neptune-map>
-                    <dl class="grid-12 mt-3 key-value-list">
-                        <dt class="g-col-5">Calculated Acreage of Assigned Boundary</dt>
-                        <dd class="g-col-7">{{ wqmp.CalculatedWQMPAcreage ?? "" }}</dd>
+                    <dl class="kv mt-3">
+                        <dt>Calculated Acreage of Assigned Boundary</dt>
+                        <dd>{{ wqmp.CalculatedWQMPAcreage ?? "" }}</dd>
 
-                        <dt class="g-col-5">WQMP Boundary Notes</dt>
-                        <dd class="g-col-7">{{ wqmp.WaterQualityManagementPlanBoundaryNotes ?? "" }}</dd>
+                        <dt>WQMP Boundary Notes</dt>
+                        <dd>{{ wqmp.WaterQualityManagementPlanBoundaryNotes ?? "" }}</dd>
                     </dl>
                 </div>
             </div>
@@ -264,7 +264,7 @@
             <div class="card-body">
                 <!-- Modeling Approach -->
                 <div class="modeling-approach-heading">
-                    <h4 class="mb-2">Modeling Approach</h4>
+                    <h4 class="module-title mb-2">Modeling Approach</h4>
                     <div class="modeling-approach-header-actions">
                         <a [routerLink]="['/wqmp-modeling-options']">Learn about WQMP Modeling Options</a>
                         @if (currentPersonCanEdit) {
@@ -290,7 +290,7 @@
                 }
 
                 <!-- Inventoried Structural BMPs -->
-                <h4 class="mt-4 mb-2 flex-between">Inventoried Structural BMPs
+                <h4 class="module-title mt-4 mb-2 flex-between">Inventoried Structural BMPs
                     @if (currentPersonCanEdit) {
                         <button type="button" class="btn btn-primary btn-sm" (click)="openEditTreatmentBMPsModal(wqmp)">
                             Edit
@@ -314,7 +314,7 @@
                 }
 
                 <!-- Simplified Structural BMPs (Quick BMPs) -->
-                <h4 class="mt-4 mb-2 flex-between">Simplified Structural BMPs
+                <h4 class="module-title mt-4 mb-2 flex-between">Simplified Structural BMPs
                     @if (currentPersonCanEdit) {
                         <button type="button" class="btn btn-primary btn-sm" (click)="navigateToEditQuickBMPs()">
                             Edit
@@ -343,7 +343,7 @@
                 }
 
                 <!-- Source Control BMPs -->
-                <h4 class="mt-4 mb-2 flex-between">Source Control BMPs
+                <h4 class="module-title mt-4 mb-2 flex-between">Source Control BMPs
                     @if (currentPersonCanEdit) {
                         <button type="button" class="btn btn-primary btn-sm" (click)="navigateToEditSourceControlBMPs()">
                             Edit
@@ -403,43 +403,50 @@
                 </div>
                 <div class="card-body">
                     @if (documents$ | async; as documents) {
+                        @if (documents.length) {
+                        <div class="document-groups">
                         @for (docGroup of documentsByType; track docGroup.typeDisplayName) {
-                            <h4>{{ docGroup.typeDisplayName }}</h4>
                             @if (docGroup.documents.length) {
+                            <div class="document-group">
+                            <div class="module-title document-group-title">{{ docGroup.typeDisplayName }}</div>
+                                <div class="document-entries">
                                 @for (doc of docGroup.documents; track doc.WaterQualityManagementPlanDocumentID) {
                                     <div class="document-entry">
                                         <div class="document-entry-header">
-                                            @if (doc.FileResource?.FileResourceGUID) {
-                                                <a [href]="fileResourceUrl(doc.FileResource.FileResourceGUID)" target="_blank">
-                                                    {{ doc.DisplayName }} <i class="fa fa-download"></i>
-                                                </a>
-                                            } @else {
-                                                <span>{{ doc.DisplayName }}</span>
-                                            }
-                                            @if (currentPersonCanManage) {
-                                                <span class="document-entry-actions">
-                                                    <button class="btn btn-link btn-sm" (click)="openDocumentEditModal(doc)" title="Edit document">
-                                                        <i class="fa fa-pencil"></i> Edit
+                                            <span class="document-name">{{ doc.DisplayName }}</span>
+                                            <span class="document-entry-actions">
+                                                @if (doc.FileResource?.FileResourceGUID) {
+                                                    <a class="btn btn-sm btn-primary-outline doc-action" [href]="fileResourceUrl(doc.FileResource.FileResourceGUID)" target="_blank" title="Download document" aria-label="Download document">
+                                                        <i class="fa fa-download"></i>
+                                                    </a>
+                                                }
+                                                @if (currentPersonCanManage) {
+                                                    <button type="button" class="btn btn-sm btn-primary-outline doc-action" (click)="openDocumentEditModal(doc)" title="Edit document" aria-label="Edit document">
+                                                        <i class="fa fa-pencil"></i>
                                                     </button>
-                                                    <button class="btn btn-link btn-sm text-danger" (click)="confirmDocumentDelete(doc)" title="Delete document">
-                                                        <i class="fa fa-trash"></i> Delete
+                                                    <button type="button" class="btn btn-sm btn-danger-outline doc-action" (click)="confirmDocumentDelete(doc)" title="Delete document" aria-label="Delete document">
+                                                        <i class="fa fa-trash"></i>
                                                     </button>
-                                                </span>
-                                            }
+                                                }
+                                            </span>
                                         </div>
-                                        <dl class="dl-horizontal document-details">
+                                        <dl class="kv document-details">
                                             <dt>Uploaded On</dt>
                                             <dd>{{ doc.UploadDate | date: "MM/dd/yyyy" }}</dd>
                                             <dt>File Type</dt>
                                             <dd>{{ doc.FileResource?.FileResourceMimeType?.FileResourceMimeTypeDisplayName }}</dd>
                                             <dt>Description</dt>
-                                            <dd>{{ doc.Description }}</dd>
+                                            <dd>{{ doc.Description || "—" }}</dd>
                                         </dl>
                                     </div>
                                 }
-                            } @else {
-                                <p class="system-text">No documents provided</p>
+                                </div>
+                            </div>
                             }
+                        }
+                        </div>
+                        } @else {
+                            <p class="system-text">No documents provided</p>
                         }
                     } @else {
                         <div [loadingSpinner]="{ isLoading: true, loadingHeight: 100 }"></div>
