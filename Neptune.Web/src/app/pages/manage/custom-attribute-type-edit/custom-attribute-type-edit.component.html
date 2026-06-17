@@ -73,7 +73,7 @@
                                             </button>
                                         } @else {
                                             <span class="options-editor__text">{{ option }}</span>
-                                            <button type="button" class="btn btn-sm btn-secondary-outline" (click)="startEditOption($index)" [attr.aria-label]="'Edit option ' + option" title="Edit">
+                                            <button type="button" class="btn btn-sm btn-primary-outline" (click)="startEditOption($index)" [attr.aria-label]="'Edit option ' + option" title="Edit">
                                                 <i class="fa fa-pencil"></i>
                                             </button>
                                             <button type="button" class="btn-delete-row" (click)="removeOption($index)" [attr.aria-label]="'Delete option ' + option" title="Delete"></button>

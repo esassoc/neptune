@@ -1,5 +1,8 @@
 <div>
-    <page-header pageTitle="Projects" [customRichTextTypeID]="richTextTypeID"></page-header>
+    <page-header pageTitle="Projects" [customRichTextTypeID]="richTextTypeID" [templateRight]="headerActions"></page-header>
+    <ng-template #headerActions>
+        <a class="btn btn-orange" [routerLink]="['/planning/projects/new']"><i class="fa fa-plus"></i> Add New Project</a>
+    </ng-template>
 
     <div class="page-body">
         <div class="all-users">
@@ -13,7 +16,6 @@
                 [pagination]="true"
                 downloadFileName="projects">
                 <div customGridActionsRight class="custom-grid-actions">
-                    <a class="btn btn-sm btn-orange" [routerLink]="['/planning/projects/new']"> <i class="fa fa-plus"></i> &nbsp; Add New Project </a>
                     <a
                         href="javascript:void(0);"
                         [dropdownToggle]="downloadMenuToggle"

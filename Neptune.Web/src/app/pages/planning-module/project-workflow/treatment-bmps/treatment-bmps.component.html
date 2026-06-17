@@ -59,7 +59,7 @@
                             @if (selectedTreatmentBMP.TreatmentBMPID > 0) {
                                 <div>
                                     {{ getTypeNameByTypeID(selectedTreatmentBMP.TreatmentBMPTypeID) }}
-                                    <button class="btn btn-sm btn-secondary l-2" (click)="openEditTreatmentBMPTypeModal()">Change Type</button>
+                                    <button class="btn btn-sm btn-primary-outline l-2" (click)="openEditTreatmentBMPTypeModal()">Change Type</button>
                                 </div>
                             } @else {
                                 <select name="type" [(ngModel)]="selectedTreatmentBMP.TreatmentBMPTypeID" (change)="updateModelingAttributesForSelectedTreatmentBMP()" required>
@@ -234,6 +234,6 @@
 </workflow-body>
 
 <div class="page-footer">
-    <button class="btn btn-primary mr-2" (click)="save()" [disabled]="(isLoadingSubmit$ | async) ?? false">Save</button>
-    <button class="btn btn-primary-outline ml-auto" (click)="save(true)" [disabled]="(isLoadingSubmit$ | async) ?? false">Save & Continue</button>
+    <button class="btn btn-primary-outline mr-2" (click)="save()" [disabled]="(isLoadingSubmit$ | async) ?? false">Save</button>
+    <button class="btn btn-primary ml-auto" (click)="save(true)" [disabled]="(isLoadingSubmit$ | async) ?? false">Save & Continue</button>
 </div>

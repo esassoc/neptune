@@ -16,55 +16,49 @@
             </div>
         </div>
     }
-    <div class="existing-file-container mb-4">
+    <div class="document-entries mb-4">
         @for (fileResource of fileResources; track fileResource) {
-            <div class="existing-file">
-                <div class="grid-12 file-row">
-                    <div class="g-col-8">
-                        <div class="file-info mb-2">
-                            <icon [icon]="'File'" [enableFontSize]="true" class="mr-1" style="font-size: 16px"></icon>
-                            <span class="file-name">
-                                <b>{{ fileResource.OriginalBaseFilename }}</b>
-                            </span>
-                        </div>
-                        <div class="file-description mb-2">
-                            <em>{{ fileResource.DocumentDescription }}</em>
-                        </div>
-                        <div>
-                            <b>Uploaded {{ fileResource.CreateDate | date: "short" }}</b>
-                        </div>
-                    </div>
-                    <div class="g-col-4 actions">
+            <div class="document-entry">
+                <div class="document-entry-header">
+                    <span class="document-name">{{ fileResource.OriginalBaseFilename }}</span>
+                    <span class="document-entry-actions">
                         @if (fileResource.IsImage) {
                             @if (imagePreviewUrls[fileResource.FileResourceGUID]) {
-                                <a href="javascript:void(0);" (click)="hideImagePreview(fileResource)" class="download-link mr-2">
-                                    <icon class="download-icon-button mr-1" icon="Resend"></icon>
-                                    <span>Hide Preview</span>
-                                </a>
+                                <button type="button" class="btn btn-sm btn-primary-outline btn-icon" (click)="hideImagePreview(fileResource)" title="Hide preview" aria-label="Hide preview">
+                                    <i class="fa fa-eye-slash"></i>
+                                </button>
                             } @else {
-                                <a href="javascript:void(0);" (click)="loadImagePreview(fileResource)" class="download-link mr-2">
-                                    <icon class="download-icon-button mr-1" icon="Question"></icon>
-                                    <span>Preview</span>
-                                </a>
+                                <button type="button" class="btn btn-sm btn-primary-outline btn-icon" (click)="loadImagePreview(fileResource)" title="Preview" aria-label="Preview">
+                                    <i class="fa fa-eye"></i>
+                                </button>
                             }
                         }
-
-                        <a href="javascript:void(0);" (click)="downloadFileResource(fileResource)" class="download-link mr-2">
-                            <icon class="download-icon-button mr-1" icon="Download"></icon>
-                            <span>Download</span>
+                        <a href="javascript:void(0);" class="btn btn-sm btn-primary-outline btn-icon" (click)="downloadFileResource(fileResource)" title="Download document" aria-label="Download document">
+                            <i class="fa fa-download"></i>
                         </a>
-
                         @if (allowEditing) {
-                            <icon class="edit-file-icon-button mr-2" [icon]="'CirclePencil'" (click)="openFileDescriptionUpdateModal(fileResource)"></icon>
-                            <button type="button" class="btn-delete-row delete-file-icon-button" aria-label="Delete file" title="Delete" (click)="deleteFileResource(fileResource)"></button>
+                            <button type="button" class="btn btn-sm btn-primary-outline btn-icon" (click)="openFileDescriptionUpdateModal(fileResource)" title="Edit document" aria-label="Edit document">
+                                <i class="fa fa-pencil"></i>
+                            </button>
+                            <button type="button" class="btn btn-sm btn-danger-outline btn-icon" (click)="deleteFileResource(fileResource)" title="Delete document" aria-label="Delete document">
+                                <i class="fa fa-trash"></i>
+                            </button>
                         }
-                    </div>
-                    @if (fileResource.IsImage && imagePreviewUrls[fileResource.FileResourceGUID]) {
-                        <div class="g-col-12 image-preview-row">
-                            <img [src]="imagePreviewUrls[fileResource.FileResourceGUID]" alt="Image preview" class="file-image-preview" />
-                        </div>
-                    }
+                    </span>
                 </div>
+                <dl class="kv document-details">
+                    <dt>Uploaded On</dt>
+                    <dd>{{ fileResource.CreateDate | date: "MM/dd/yyyy" }}</dd>
+                    <dt>File Type</dt>
+                    <dd>{{ fileResource.OriginalFileExtension || "—" }}</dd>
+                    <dt>Description</dt>
+                    <dd>{{ fileResource.DocumentDescription || "—" }}</dd>
+                </dl>
+                @if (fileResource.IsImage && imagePreviewUrls[fileResource.FileResourceGUID]) {
+                    <div class="image-preview-row">
+                        <img [src]="imagePreviewUrls[fileResource.FileResourceGUID]" alt="Image preview" class="file-image-preview" />
+                    </div>
+                }
             </div>
         }
     </div>

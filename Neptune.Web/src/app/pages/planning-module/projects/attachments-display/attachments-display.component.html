@@ -4,19 +4,17 @@
     <div class="g-col-6">
         <div class="card">
             <div class="card-header">
-                <div class="grid-12">
-                    <div class="g-col-10 card-header-name">
-                        {{ attachment.DisplayName }}
-                    </div>
-                    @if (!readOnly) {
-                    <div class="g-col-2">
-                        <button type="button" class="btn-delete-row ml-3" aria-label="Delete attachment" title="Delete" (click)="emitDeleteAttachmentTriggered(attachment.ProjectDocumentID)"></button>
-                        <span class="ml-3" style="cursor: pointer" (click)="emitEditAttachmentTriggered(attachment)">
-                            <i class="fa fa-edit"></i>
-                        </span>
-                    </div>
-                    }
-                </div>
+                <span class="card-title card-header-name">{{ attachment.DisplayName }}</span>
+                @if (!readOnly) {
+                <span class="attachment-actions">
+                    <button type="button" class="btn btn-sm btn-primary-outline btn-icon" title="Edit attachment" aria-label="Edit attachment" (click)="emitEditAttachmentTriggered(attachment)">
+                        <i class="fa fa-pencil"></i>
+                    </button>
+                    <button type="button" class="btn btn-sm btn-danger-outline btn-icon" title="Delete attachment" aria-label="Delete attachment" (click)="emitDeleteAttachmentTriggered(attachment.ProjectDocumentID)">
+                        <i class="fa fa-trash"></i>
+                    </button>
+                </span>
+                }
             </div>
             <div class="card-body">
                 <div class="grid-12">

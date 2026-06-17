@@ -117,29 +117,12 @@
 
 .document-entry-actions {
     display: inline-flex;
-    gap: $spacing-100;
+    gap: $spacing-200;
     white-space: nowrap;
     flex-shrink: 0;
 }
 
-// Icon-only sizing for the grouped action buttons (download / edit / delete); color and
-// hover come from the btn-primary-outline / btn-danger-outline classes applied alongside.
-// NOTE: the app has several competing icon-button styles (btn-edit-inline, btn-delete-row,
-// and undefined btn-icon/icon-button) — a candidate to consolidate into one shared class.
-.doc-action {
-    width: 2rem;
-    height: 2rem;
-    min-width: 0;
-    padding: 0;
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-
-    .fa {
-        margin: 0;
-        font-size: 0.875rem;
-    }
-}
+// Icon-only action buttons use the shared .btn-icon class (see _btn.scss).
 
 ::ng-deep .ag-row-pinned-bottom {
     font-weight: bold;

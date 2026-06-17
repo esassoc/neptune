@@ -3,7 +3,7 @@
 </page-header>
 
 <ng-template #downloadTemplateButton>
-    <button type="button" class="btn btn-secondary" [disabled]="isDownloadingTemplate()" (click)="downloadTemplate()">
+    <button type="button" class="btn btn-primary-outline" [disabled]="isDownloadingTemplate()" (click)="downloadTemplate()">
         @if (isDownloadingTemplate()) { <i class="fa fa-spinner fa-spin"></i> Downloading... } @else { <i class="fa fa-download"></i> Download Template }
     </button>
 </ng-template>

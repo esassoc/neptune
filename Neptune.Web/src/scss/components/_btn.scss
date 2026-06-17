@@ -399,3 +399,35 @@ button.btn:not(.btn-sm):not(.btn-text) {
         margin-left: 1px; // visually center the pencil glyph
     }
 }
+
+// Icon-only button — square, centered glyph, no text padding. Compose with `.btn` and a
+// color class (e.g. `btn btn-primary-outline btn-icon`, `btn btn-danger-outline btn-icon`),
+// or use bare for a borderless inline icon affordance. Single source of truth for icon
+// buttons — replaces the per-component .doc-action copies and previously-undefined usages.
+.btn-icon {
+    width: 2rem;
+    height: 2rem;
+    min-width: 0;
+    padding: 0;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+
+    .fa,
+    .fas,
+    .far,
+    icon,
+    svg {
+        margin: 0;
+        font-size: 0.875rem;
+    }
+}
+
+// Danger color for a bare (chrome-less) icon button, e.g. an inline delete affordance.
+.btn-icon-danger {
+    color: $red-default;
+
+    &:hover {
+        color: $red-dark;
+    }
+}

@@ -32,7 +32,7 @@
                 <button type="button" class="btn btn-primary" [disabled]="isWorking() || (r.Errors && r.Errors.length > 0)" (click)="approve()">
                     @if (isWorking()) { <i class="fa fa-spinner fa-spin"></i> Working... } @else { <i class="fa fa-check"></i> Approve and commit }
                 </button>
-                <button type="button" class="btn btn-secondary" [disabled]="isWorking()" (click)="discard()">
+                <button type="button" class="btn btn-danger-outline" [disabled]="isWorking()" (click)="discard()">
                     <i class="fa fa-times"></i> Discard staged areas
                 </button>
             </div>

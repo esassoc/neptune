@@ -416,15 +416,15 @@
                                             <span class="document-name">{{ doc.DisplayName }}</span>
                                             <span class="document-entry-actions">
                                                 @if (doc.FileResource?.FileResourceGUID) {
-                                                    <a class="btn btn-sm btn-primary-outline doc-action" [href]="fileResourceUrl(doc.FileResource.FileResourceGUID)" target="_blank" title="Download document" aria-label="Download document">
+                                                    <a class="btn btn-sm btn-primary-outline btn-icon" [href]="fileResourceUrl(doc.FileResource.FileResourceGUID)" target="_blank" title="Download document" aria-label="Download document">
                                                         <i class="fa fa-download"></i>
                                                     </a>
                                                 }
                                                 @if (currentPersonCanManage) {
-                                                    <button type="button" class="btn btn-sm btn-primary-outline doc-action" (click)="openDocumentEditModal(doc)" title="Edit document" aria-label="Edit document">
+                                                    <button type="button" class="btn btn-sm btn-primary-outline btn-icon" (click)="openDocumentEditModal(doc)" title="Edit document" aria-label="Edit document">
                                                         <i class="fa fa-pencil"></i>
                                                     </button>
-                                                    <button type="button" class="btn btn-sm btn-danger-outline doc-action" (click)="confirmDocumentDelete(doc)" title="Delete document" aria-label="Delete document">
+                                                    <button type="button" class="btn btn-sm btn-danger-outline btn-icon" (click)="confirmDocumentDelete(doc)" title="Delete document" aria-label="Delete document">
                                                         <i class="fa fa-trash"></i>
                                                     </button>
                                                 }
