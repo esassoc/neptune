@@ -21,8 +21,8 @@ export class FileUploadModalComponent {
     // allowedExtensions backs the explicit check in updateFile() (accept alone is only a hint and
     // doesn't block drag-drop or "All files" selection). NPT-1053 rework: previously there was no
     // validation, so an unsupported file (e.g. .gdb) silently closed the modal with no error.
-    public uploadFileAccepts = ".pdf,.png,.jpg,.jpeg,.doc,.docx,.xlsx,.txt,.csv";
     private allowedExtensions = [".pdf", ".png", ".jpg", ".jpeg", ".doc", ".docx", ".xlsx", ".txt", ".csv"];
+    public uploadFileAccepts = this.allowedExtensions.join(",");
 
     public file: File;
     public fileName: string;

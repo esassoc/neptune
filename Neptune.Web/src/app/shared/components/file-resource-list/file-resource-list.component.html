@@ -17,7 +17,7 @@
         </div>
     }
     <div class="document-entries mb-4">
-        @for (fileResource of fileResources; track fileResource) {
+        @for (fileResource of fileResources; track fileResource.FileResourceGUID) {
             <div class="document-entry">
                 <div class="document-entry-header">
                     <span class="document-name">{{ fileResource.OriginalBaseFilename }}</span>
@@ -33,9 +33,9 @@
                                 </button>
                             }
                         }
-                        <a href="javascript:void(0);" class="btn btn-sm btn-primary-outline btn-icon" (click)="downloadFileResource(fileResource)" title="Download document" aria-label="Download document">
+                        <button type="button" class="btn btn-sm btn-primary-outline btn-icon" (click)="downloadFileResource(fileResource)" title="Download document" aria-label="Download document">
                             <i class="fa fa-download"></i>
-                        </a>
+                        </button>
                         @if (allowEditing) {
                             <button type="button" class="btn btn-sm btn-primary-outline btn-icon" (click)="openFileDescriptionUpdateModal(fileResource)" title="Edit document" aria-label="Edit document">
                                 <i class="fa fa-pencil"></i>
