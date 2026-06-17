@@ -39,7 +39,7 @@
         "@angular/platform-server": "^21.2.8",
         "@angular/router": "^21.2.8",
         "@auth0/auth0-angular": "^2.5.0",
-        "@geoman-io/leaflet-geoman-free": "^2.18.3",
+        "@geoman-io/leaflet-geoman-free": "2.19.2",
         "@ng-select/ng-select": "^21.0.0",
         "@ngneat/dialog": "^5.2.0",
         "@popperjs/core": "^2.11.8",
