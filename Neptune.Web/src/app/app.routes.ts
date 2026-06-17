@@ -406,11 +406,6 @@ export const routes: Routes = [
                 canActivate: [JurisdictionManagerOrEditorOnlyGuard],
             },
             {
-                path: "find-bmp",
-                title: "Find a BMP",
-                loadComponent: () => import("./pages/find-bmp/find-bmp.component").then((m) => m.FindBmpComponent),
-            },
-            {
                 path: "modeling-attributes",
                 title: "Modeling Attributes",
                 loadComponent: () => import("./pages/modeling-attributes/modeling-attributes.component").then((m) => m.ModelingAttributesComponent),

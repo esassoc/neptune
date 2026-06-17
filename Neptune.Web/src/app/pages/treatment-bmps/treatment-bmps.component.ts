@@ -11,12 +11,14 @@ import { HybridMapGridComponent } from "src/app/shared/components/hybrid-map-gri
 import "leaflet.markercluster";
 import * as L from "leaflet";
 import { ColDef } from "ag-grid-community";
-import { Observable, shareReplay, tap } from "rxjs";
+import { BehaviorSubject, combineLatest, map, Observable, shareReplay, tap } from "rxjs";
 import { TreatmentBMPService } from "src/app/shared/generated/api/treatment-bmp.service";
 import { FieldVisitService } from "src/app/shared/generated/api/field-visit.service";
 import { UtilityFunctionsService } from "src/app/services/utility-functions.service";
 import { AuthenticationService } from "src/app/services/authentication.service";
 import { AsyncPipe } from "@angular/common";
+import { FormsModule } from "@angular/forms";
+import { NgSelectModule } from "@ng-select/ng-select";
 import { LoadingDirective } from "src/app/shared/directives/loading.directive";
 import { BoundingBoxDto } from "src/app/shared/generated/model/bounding-box-dto";
 import { StormwaterJurisdictionService } from "src/app/shared/generated/api/stormwater-jurisdiction.service";
@@ -27,12 +29,36 @@ import {
     BeginFieldVisitModalContext,
 } from "./treatment-bmp-detail/begin-field-visit-modal/begin-field-visit-modal.component";
 import { takeUntilDestroyed } from "@angular/core/rxjs-interop";
+import { RegionalSubbasinsLayerComponent } from "src/app/shared/components/leaflet/layers/regional-subbasins-layer/regional-subbasins-layer.component";
+import { StormwaterNetworkLayerComponent } from "src/app/shared/components/leaflet/layers/stormwater-network-layer/stormwater-network-layer.component";
+import { JurisdictionsLayerComponent } from "src/app/shared/components/leaflet/layers/jurisdictions-layer/jurisdictions-layer.component";
+import { ZoomToMyLocationControlComponent } from "src/app/shared/components/leaflet/features/zoom-to-my-location-control/zoom-to-my-location-control.component";
+import { OverlayMode } from "src/app/shared/components/leaflet/layers/generic-wms-wfs-layer/overlay-mode.enum";
+
+interface FilterOption {
+    ID: number;
+    Name: string;
+}
 
 @Component({
     selector: "treatment-bmps",
     standalone: true,
-    imports: [PageHeaderComponent, AlertDisplayComponent, HybridMapGridComponent, AsyncPipe, LoadingDirective, RouterModule],
+    imports: [
+        PageHeaderComponent,
+        AlertDisplayComponent,
+        HybridMapGridComponent,
+        AsyncPipe,
+        LoadingDirective,
+        RouterModule,
+        FormsModule,
+        NgSelectModule,
+        RegionalSubbasinsLayerComponent,
+        StormwaterNetworkLayerComponent,
+        JurisdictionsLayerComponent,
+        ZoomToMyLocationControlComponent,
+    ],
     templateUrl: "./treatment-bmps.component.html",
+    styleUrl: "./treatment-bmps.component.scss",
 })
 export class TreatmentBmpsComponent {
     private readonly destroyRef = inject(DestroyRef);
@@ -41,13 +67,24 @@ export class TreatmentBmpsComponent {
     public layerControl: any;
     private markerClusterLayer: any;
     private markerMap: Map<number, any> = new Map();
+    private clusterLayerSubscribed = false;
     public treatmentBmps$: Observable<TreatmentBMPGridDto[]>;
+    public filteredTreatmentBmps$: Observable<TreatmentBMPGridDto[]>;
     public columnDefs: ColDef[];
     public isLoading = true;
     public selectedTreatmentBMPID: number;
     public selectionFromMap: boolean;
     public boundingBox$: Observable<BoundingBoxDto>;
     public customRichTextTypeID = NeptunePageTypeEnum.TreatmentBMP;
+
+    public OverlayMode = OverlayMode;
+
+    // Find-a-BMP filter bar: empty selection = show all. Drives both the grid rowData and the map markers.
+    public selectedTypeIDs: number[] = [];
+    public selectedJurisdictionIDs: number[] = [];
+    private filter$ = new BehaviorSubject<{ typeIDs: number[]; jurisdictionIDs: number[] }>({ typeIDs: [], jurisdictionIDs: [] });
+    public typeOptions$: Observable<FilterOption[]>;
+    public jurisdictionOptions$: Observable<FilterOption[]>;
 
     constructor(
         private treatmentBMPService: TreatmentBMPService,
@@ -140,7 +177,47 @@ export class TreatmentBmpsComponent {
                 tap(() => (this.isLoading = false)),
                 shareReplay({ bufferSize: 1, refCount: true })
             );
+
+        this.filteredTreatmentBmps$ = combineLatest([this.treatmentBmps$, this.filter$]).pipe(
+            map(([bmps, f]) =>
+                bmps.filter(
+                    (b) =>
+                        (f.typeIDs.length === 0 || f.typeIDs.includes(b.TreatmentBMPTypeID)) &&
+                        (f.jurisdictionIDs.length === 0 || f.jurisdictionIDs.includes(b.StormwaterJurisdictionID))
+                )
+            ),
+            shareReplay({ bufferSize: 1, refCount: true })
+        );
+
+        // Derive the dropdown options from the loaded data so they always match what's shown.
+        this.typeOptions$ = this.treatmentBmps$.pipe(
+            map((bmps) => this.distinctOptions(bmps, (b) => b.TreatmentBMPTypeID, (b) => b.TreatmentBMPTypeName))
+        );
+        this.jurisdictionOptions$ = this.treatmentBmps$.pipe(
+            map((bmps) => this.distinctOptions(bmps, (b) => b.StormwaterJurisdictionID, (b) => b.StormwaterJurisdictionName))
+        );
+
         this.boundingBox$ = this.stormwaterJurisdictionService.getBoundingBoxStormwaterJurisdiction();
+    }
+
+    private distinctOptions(bmps: TreatmentBMPGridDto[], idSelector: (b: TreatmentBMPGridDto) => number, nameSelector: (b: TreatmentBMPGridDto) => string): FilterOption[] {
+        const byID = new Map<number, string>();
+        bmps.forEach((b) => {
+            const id = idSelector(b);
+            if (id != null && !byID.has(id)) {
+                byID.set(id, nameSelector(b));
+            }
+        });
+        return Array.from(byID, ([ID, Name]) => ({ ID, Name })).sort((a, b) => (a.Name ?? "").localeCompare(b.Name ?? ""));
+    }
+
+    onFilterChange(): void {
+        // ng-select sets the model to null when the clear-all (x) button is used; normalize to []
+        // and clone so the emitted filter state stays immutable and the length checks never throw.
+        this.filter$.next({
+            typeIDs: [...(this.selectedTypeIDs ?? [])],
+            jurisdictionIDs: [...(this.selectedJurisdictionIDs ?? [])],
+        });
     }
 
     handleMapReady(event: any) {
@@ -150,8 +227,9 @@ export class TreatmentBmpsComponent {
     }
 
     private addOrUpdateClusterLayer() {
-        if (!this.map || !this.treatmentBmps$) return;
-        this.treatmentBmps$.pipe(takeUntilDestroyed(this.destroyRef)).subscribe((bmps) => {
+        if (!this.map || !this.filteredTreatmentBmps$ || this.clusterLayerSubscribed) return;
+        this.clusterLayerSubscribed = true;
+        this.filteredTreatmentBmps$.pipe(takeUntilDestroyed(this.destroyRef)).subscribe((bmps) => {
             if (this.markerClusterLayer) {
                 this.map.removeLayer(this.markerClusterLayer);
                 this.layerControl.removeLayer(this.markerClusterLayer);
