@@ -25,7 +25,6 @@ variables:
   # domainExternalApi: 'externalapi-neptune.esa-$(Environment).sitkatech.com'
   # domainWeb: 'neptune-web.esa-$(Environment).sitkatech.com'
   # domainGeoserver: 'geoserver-neptune.esa-$(Environment).sitkatech.com'
-  # domainWebMvc: 'neptune.esa-$(Environment).sitkatech.com'
 
   nereidTag: 'v0.11.0'
   nereidDataTag: '2023.11.08'
@@ -93,12 +92,12 @@ stages:
 
 
 - stage: BuildWeb
-  displayName: Build API/Web/WebMVC
+  displayName: Build API/Web
   dependsOn: Test
   condition: in(dependencies.Test.result, 'Succeeded', 'SucceededWithIssues', 'Skipped')
   jobs:
   - job: BuildAPI
-    displayName: Build API and WebMVC
+    displayName: Build API
     condition: eq(variables['build'], 'true')
     pool:
       vmImage: ubuntu-latest
@@ -125,7 +124,6 @@ stages:
           $(Build.BuildNumber)-$(environment)
         includeLatestTag: true
         imageNames:
-          - neptune/webmvc
           - neptune/api
           - neptune/externalapi
           - neptune/gdalapi
@@ -287,9 +285,8 @@ stages:
           -var "domainExternalApi=$(domainExternalApi)" 
           -var "domainWeb=$(domainWeb)" 
           -var "environment=$(Environment)" 
-          -var "domainGeoserver=$(domainGeoserver)" 
-          -var "domainWebMvc=$(domainWebMvc)" 
-          -var "databaseName=$(databaseName)" 
+          -var "domainGeoserver=$(domainGeoserver)"
+          -var "databaseName=$(databaseName)"
           -var "databaseEdition=$(databaseEdition)" 
           -var "databaseTier=$(databaseTier)" 
           -var "sqlPassword=$(kv-sqlAdministratorPassword)" 
@@ -676,7 +673,6 @@ stages:
                 global.domains.web="$(domainWeb)"
                 global.domains.planning="$(domainPlanning)"
                 global.domains.geoserver="$(domainGeoserver)"
-                global.domains.webmvc="$(domainWebMvc)"
                 global.env.name="$(Environment)"
                 global.secrets.geoserverSqlServerPassword="$(SQL_GEOSERVER_PASSWORD)"
                 global.secrets.geoserverAdminPassword="$(GEOSERVER_ADMIN_PASSWORD)"
@@ -699,8 +695,6 @@ stages:
                 web.image.tag="$(Build.BuildNumber)-$(environment)"
                 web.image.repository="$(kv-containerRegistry)/neptune/web"
                 geoserver.image.repository="$(kv-containerRegistry)/kartoza/geoserver"
-                webmvc.image.tag="$(Build.BuildNumber)-$(environment)"
-                webmvc.image.repository="$(kv-containerRegistry)/neptune/webmvc"
                 gdalapi.image.tag="$(Build.BuildNumber)-$(environment)"
                 gdalapi.image.repository="$(kv-containerRegistry)/neptune/gdalapi"
                 qgisapi.image.tag="$(Build.BuildNumber)-$(environment)"

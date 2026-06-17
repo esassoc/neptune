@@ -22,9 +22,8 @@ Source code is available upon request via <support@sitkatech.com>.
 using System.Diagnostics.CodeAnalysis;
 using System.Globalization;
 using System.Text.RegularExpressions;
-using Neptune.Common;
 
-namespace Neptune.WebMvc.Common
+namespace Neptune.Common
 {
     public static class StringFormats
     {

@@ -2,7 +2,7 @@ using System.Data;
 using ClosedXML.Excel;
 using Microsoft.EntityFrameworkCore;
 using Neptune.Models.DataTransferObjects;
-using Neptune.WebMvc.Common;
+using Neptune.Common;
 
 namespace Neptune.EFModels.Entities;
 

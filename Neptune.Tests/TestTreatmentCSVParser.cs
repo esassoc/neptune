@@ -5,7 +5,6 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using Neptune.Common.GeoSpatial;
 using Neptune.EFModels.Entities;
-using Neptune.WebMvc.Common;
 
 namespace Neptune.Tests
 {

@@ -22,10 +22,10 @@
     <PackageReference Include="NetTopologySuite.Features" Version="2.2.0" />
   </ItemGroup>
   <ItemGroup>
+    <ProjectReference Include="..\Neptune.API\Neptune.API.csproj" />
     <ProjectReference Include="..\Neptune.Common\Neptune.Common.csproj" />
     <ProjectReference Include="..\Neptune.EFModels\Neptune.EFModels.csproj" />
     <ProjectReference Include="..\Neptune.Models\Neptune.Models.csproj" />
-    <ProjectReference Include="..\Neptune.WebMvc\Neptune.WebMvc.csproj" />
   </ItemGroup>
   <ItemGroup>
     <None Update="environment.json">

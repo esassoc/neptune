@@ -1,6 +1,6 @@
 using Microsoft.VisualStudio.TestTools.UnitTesting;
+using Neptune.API.Helpers;
 using Neptune.EFModels.Entities;
-using Neptune.WebMvc.Common;
 
 namespace Neptune.Tests
 {

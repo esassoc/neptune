@@ -1,7 +1,7 @@
 using Microsoft.EntityFrameworkCore;
 using Neptune.Common.GeoSpatial;
 using Neptune.Common.Services.GDAL;
-using Neptune.WebMvc.Common;
+using Neptune.Common;
 using NetTopologySuite.Features;
 
 namespace Neptune.EFModels.Entities;

@@ -3,8 +3,6 @@ Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio Version 17
 VisualStudioVersion = 17.4.33205.214
 MinimumVisualStudioVersion = 10.0.40219.1
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Neptune.WebMvc", "Neptune.WebMvc\Neptune.WebMvc.csproj", "{5CA350B9-C4E2-4F7A-AE29-62B975CC0F0A}"
-EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Neptune.EFModels", "Neptune.EFModels\Neptune.EFModels.csproj", "{ABE6DF19-5CEB-4306-B866-737186A00E1C}"
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Neptune.Models", "Neptune.Models\Neptune.Models.csproj", "{4F505B9F-9655-4DB8-AFF9-1AEBEE1A1233}"
@@ -37,18 +35,6 @@ Global
 		Release|x86 = Release|x86
 	EndGlobalSection
 	GlobalSection(ProjectConfigurationPlatforms) = postSolution
-		{5CA350B9-C4E2-4F7A-AE29-62B975CC0F0A}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{5CA350B9-C4E2-4F7A-AE29-62B975CC0F0A}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{5CA350B9-C4E2-4F7A-AE29-62B975CC0F0A}.Debug|x64.ActiveCfg = Debug|Any CPU
-		{5CA350B9-C4E2-4F7A-AE29-62B975CC0F0A}.Debug|x64.Build.0 = Debug|Any CPU
-		{5CA350B9-C4E2-4F7A-AE29-62B975CC0F0A}.Debug|x86.ActiveCfg = Debug|Any CPU
-		{5CA350B9-C4E2-4F7A-AE29-62B975CC0F0A}.Debug|x86.Build.0 = Debug|Any CPU
-		{5CA350B9-C4E2-4F7A-AE29-62B975CC0F0A}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{5CA350B9-C4E2-4F7A-AE29-62B975CC0F0A}.Release|Any CPU.Build.0 = Release|Any CPU
-		{5CA350B9-C4E2-4F7A-AE29-62B975CC0F0A}.Release|x64.ActiveCfg = Release|Any CPU
-		{5CA350B9-C4E2-4F7A-AE29-62B975CC0F0A}.Release|x64.Build.0 = Release|Any CPU
-		{5CA350B9-C4E2-4F7A-AE29-62B975CC0F0A}.Release|x86.ActiveCfg = Release|Any CPU
-		{5CA350B9-C4E2-4F7A-AE29-62B975CC0F0A}.Release|x86.Build.0 = Release|Any CPU
 		{ABE6DF19-5CEB-4306-B866-737186A00E1C}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
 		{ABE6DF19-5CEB-4306-B866-737186A00E1C}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{ABE6DF19-5CEB-4306-B866-737186A00E1C}.Debug|x64.ActiveCfg = Debug|Any CPU

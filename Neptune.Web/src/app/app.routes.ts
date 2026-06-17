@@ -1069,5 +1069,17 @@ export const routes: Routes = [
     { path: "subscription-insufficient", loadComponent: () => import("./shared/pages/").then((m) => m.SubscriptionInsufficientComponent) },
     { path: "unauthenticated", loadComponent: () => import("./shared/pages").then((m) => m.UnauthenticatedComponent) },
     { path: "callback", component: AuthCallbackComponent },
+    // NPT-1068: Neptune.WebMvc retired. Redirect the high-traffic legacy MVC URLs (bookmarks, external links
+    // hitting the old ocstormwatertools.org host now pointed at this SPA) to their SPA equivalents. Paths match
+    // the legacy PascalCase casing (Angular routing is case-sensitive). Unmatched legacy paths fall through to **.
+    { path: "Home/LaunchPad", redirectTo: "", pathMatch: "full" },
+    { path: "TreatmentBMP/Index", redirectTo: "treatment-bmps", pathMatch: "full" },
+    { path: "TreatmentBMP/FindABMP", redirectTo: "treatment-bmps", pathMatch: "full" },
+    { path: "TreatmentBMP/TreatmentBMPAssessmentSummary", redirectTo: "latest-bmp-assessments", pathMatch: "full" },
+    { path: "WaterQualityManagementPlan/Index", redirectTo: "water-quality-management-plans", pathMatch: "full" },
+    { path: "WaterQualityManagementPlan/FindAWQMP", redirectTo: "water-quality-management-plans", pathMatch: "full" },
+    { path: "Delineation/DelineationMap", redirectTo: "delineation/delineation-map", pathMatch: "full" },
+    { path: "Delineation/DelineationReconciliationReport", redirectTo: "delineation/delineation-reconciliation-report", pathMatch: "full" },
+    { path: "FieldVisit/Index", redirectTo: "treatment-bmps", pathMatch: "full" },
     { path: "**", loadComponent: () => import("./shared/pages").then((m) => m.NotFoundComponent) },
 ];
