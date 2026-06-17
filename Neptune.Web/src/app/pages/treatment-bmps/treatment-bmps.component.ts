@@ -63,7 +63,8 @@ export class TreatmentBmpsComponent {
 
     ngOnInit(): void {
         const canEdit = this.authenticationService.doesCurrentUserHaveJurisdictionEditPermission();
-        this.columnDefs = [
+        const isAnonymousOrUnassigned = this.authenticationService.isCurrentUserAnonymousOrUnassigned();
+        const columnDefs: ColDef[] = [
             this.utilityFunctionsService.createActionsColumnDef((params: any) => {
                 const actions: { ActionName: string; ActionIcon?: string; ActionHandler: () => void }[] = [
                     {
@@ -125,6 +126,12 @@ export class TreatmentBmpsComponent {
                 maxWidth: 300,
             },
         ];
+        // NPT-1079: public (anonymous) + unassigned users see only the fields the legacy "Find a
+        // BMP" map exposed — Name and Type. Hide the actions column and all operational columns
+        // (assessments, maintenance, lifespan, sizing, trash, notes, jurisdiction, owner).
+        const publicHeaders = new Set(["Name", "Type"]);
+        this.columnDefs = isAnonymousOrUnassigned ? columnDefs.filter((c) => publicHeaders.has(c.headerName as string)) : columnDefs;
+
         this.treatmentBmps$ = this.treatmentBMPService
             .listTreatmentBMP()
             .pipe(
