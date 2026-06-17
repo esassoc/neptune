@@ -18,8 +18,13 @@ export class FileDescriptionUpdateModalComponent implements OnInit {
     });
 
     ngOnInit(): void {
+        // The dialog is opened with data: { FileResource: fileResource }, so the description
+        // lives at ref.data.FileResource.DocumentDescription — not ref.data.DocumentDescription.
+        // Reading the wrong path yielded undefined, and FormGroup.setValue throws on an undefined
+        // value, which aborted ngOnInit and left the modal with no textarea (NPT-1053 rework).
+        // Default to "" so the control always gets a defined value.
         this.formGroup.setValue({
-            FileDescription: this.ref.data.DocumentDescription,
+            FileDescription: this.ref.data.FileResource?.DocumentDescription ?? "",
         });
     }
 

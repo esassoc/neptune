@@ -16,21 +16,18 @@ export class FileUploadModalComponent {
     @ViewChild("fileUploadField") fileUploadField: any;
     @Output() fileChanged = new EventEmitter<File>();
 
-    //pdf, jpg, png, csv, txt, xlsx, docx, doc
-    public allowedFileTypes: string[] = [
-        "application/pdf",
-        "image/jpeg",
-        "image/png",
-        "text/csv",
-        "text/plain",
-        "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-        "application/msword",
-        "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
-    ];
+    // Mirror FileResources.ValidateFileUpload's accepted extensions exactly so the client can't
+    // pick a file the server will reject. uploadFileAccepts feeds the input's accept attribute;
+    // allowedExtensions backs the explicit check in updateFile() (accept alone is only a hint and
+    // doesn't block drag-drop or "All files" selection). NPT-1053 rework: previously there was no
+    // validation, so an unsupported file (e.g. .gdb) silently closed the modal with no error.
+    public uploadFileAccepts = ".pdf,.png,.jpg,.jpeg,.doc,.docx,.xlsx,.txt,.csv";
+    private allowedExtensions = [".pdf", ".png", ".jpg", ".jpeg", ".doc", ".docx", ".xlsx", ".txt", ".csv"];
 
     public file: File;
     public fileName: string;
     public fileExtension: string;
+    public fileError: string;
 
     public formGroup: FormGroup<FileResourceUploadForm> = new FormGroup<FileResourceUploadForm>({
         File: new FormControl<File>(null),
@@ -43,13 +40,31 @@ export class FileUploadModalComponent {
     }
 
     updateFile(event: any): void {
-        this.file = event.target.files.item(0);
-        if (this.file) {
-            const name = this.file.name;
+        const selectedFile: File = event.target.files.item(0);
+        this.fileError = null;
+
+        if (selectedFile) {
+            const name = selectedFile.name;
             const i = name.lastIndexOf(".");
+            const extension = i > 0 ? name.slice(i) : "";
+
+            if (!this.allowedExtensions.includes(extension.toLowerCase())) {
+                // Reject the file and surface a clear message instead of letting it through to a
+                // silent server-side rejection. Clear the input so the user can re-pick.
+                this.file = null;
+                this.fileName = null;
+                this.fileExtension = null;
+                event.target.value = "";
+                this.fileError = `${extension ? extension.slice(1).toUpperCase() : "This file type"} is not an accepted file type. Accepted extensions: PDF, PNG, JPG, DOCX, DOC, XLSX, CSV, TXT.`;
+                this.fileChanged.emit(null);
+                return;
+            }
+
+            this.file = selectedFile;
             this.fileName = i > 0 ? name.slice(0, i) : name;
-            this.fileExtension = i > 0 ? name.slice(i) : "";
+            this.fileExtension = extension;
         } else {
+            this.file = null;
             this.fileName = null;
             this.fileExtension = null;
         }
