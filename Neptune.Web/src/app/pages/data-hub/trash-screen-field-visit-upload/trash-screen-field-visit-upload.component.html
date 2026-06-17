@@ -1,5 +1,9 @@
-<page-header pageTitle="Upload Trash Screen Field Visits" [templateRight]="downloadTemplateButton">
-    <a class="back-link" [routerLink]="['/data-hub']" [queryParams]="{ tab: 'bmps' }">&laquo; Back to Data Hub</a>
+<page-header pageTitle="Upload Trash Screen Field Visits" [templateAbove]="templateAbove" [templateRight]="downloadTemplateButton">
+    <ng-template #templateAbove>
+        <div class="back">
+            <a [routerLink]="['/data-hub']" [queryParams]="{ tab: 'bmps' }" class="back__link"><i class="fa fa-arrow-left"></i> Back to Data Hub</a>
+        </div>
+    </ng-template>
 </page-header>
 
 <ng-template #downloadTemplateButton>
@@ -16,24 +20,26 @@
             <custom-rich-text [customRichTextTypeID]="NeptunePageTypeEnum.BulkUploadFieldVisits"></custom-rich-text>
         </div>
         <div class="g-col-6">
-            <form-field fieldLabel="XLSX File" [type]="FormFieldType.File" [formControl]="fileControl" uploadFileAccepts=".xlsx" (change)="onFileChange($event)"></form-field>
+            <div class="grid-12">
+                <form-field fieldLabel="XLSX File" [type]="FormFieldType.File" [formControl]="fileControl" uploadFileAccepts=".xlsx" (change)="onFileChange($event)"></form-field>
 
-            @if (errors().length > 0) {
-                <div class="alert alert-danger upload-errors">
-                    <strong>Upload could not be completed:</strong>
-                    <ul>
-                        @for (err of errors(); track $index) {
-                            <li>{{ err }}</li>
-                        }
-                    </ul>
-                </div>
-            }
+                @if (errors().length > 0) {
+                    <div class="alert alert-danger upload-errors">
+                        <strong>Upload could not be completed:</strong>
+                        <ul>
+                            @for (err of errors(); track $index) {
+                                <li>{{ err }}</li>
+                            }
+                        </ul>
+                    </div>
+                }
 
-            @if (successMessage()) {
-                <div class="alert alert-success">{{ successMessage() }}</div>
-            }
+                @if (successMessage()) {
+                    <div class="alert alert-success">{{ successMessage() }}</div>
+                }
+            </div>
 
-            <div class="actions">
+            <div class="page-footer">
                 <button type="button" class="btn btn-primary" [disabled]="isUploading() || fileControl.invalid" (click)="submit()">
                     @if (isUploading()) { <i class="fa fa-spinner fa-spin"></i> Uploading... } @else { <i class="fa fa-upload"></i> Upload }
                 </button>

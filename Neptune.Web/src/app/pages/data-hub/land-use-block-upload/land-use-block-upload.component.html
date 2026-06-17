@@ -1,7 +1,12 @@
-<page-header pageTitle="Upload Land Use Blocks">
-    <a class="back-link" [routerLink]="['/data-hub']" [queryParams]="{ tab: 'trash' }">&laquo; Back to Data Hub</a>
-    &nbsp;|&nbsp;
-    <a class="back-link" [routerLink]="['/data-hub/land-use-block-download']">Go to Download Land Use Blocks &raquo;</a>
+<page-header pageTitle="Upload Land Use Blocks" [templateAbove]="templateAbove" [templateRight]="templateRight">
+    <ng-template #templateAbove>
+        <div class="back">
+            <a [routerLink]="['/data-hub']" [queryParams]="{ tab: 'trash' }" class="back__link"><i class="fa fa-arrow-left"></i> Back to Data Hub</a>
+        </div>
+    </ng-template>
+    <ng-template #templateRight>
+        <a class="btn btn-primary-outline" [routerLink]="['/data-hub/land-use-block-download']"><i class="fa fa-download"></i> Download Land Use Blocks</a>
+    </ng-template>
 </page-header>
 
 <section class="content-section">
@@ -28,27 +33,29 @@
             <p>After you upload your file the new Land Use Blocks will be staged for review. Once approved, they replace any existing Land Use Blocks for your Jurisdiction. It may take up to twenty-four hours to see updated Trash Results on the home page.</p>
         </div>
         <div class="g-col-6">
-            @if (jurisdictionOptions$ | async; as opts) {
-                <form-field fieldLabel="Stormwater Jurisdiction" [type]="FormFieldType.Select" [formControl]="jurisdictionControl" [formInputOptions]="opts" placeholder="Select a jurisdiction"></form-field>
-            }
-            <form-field fieldLabel="Zipped File Geodatabase" [type]="FormFieldType.File" [formControl]="fileControl" uploadFileAccepts=".zip" (change)="onFileChange($event)"></form-field>
+            <div class="grid-12">
+                @if (jurisdictionOptions$ | async; as opts) {
+                    <form-field fieldLabel="Stormwater Jurisdiction" [type]="FormFieldType.Select" [formControl]="jurisdictionControl" [formInputOptions]="opts" placeholder="Select a jurisdiction"></form-field>
+                }
+                <form-field fieldLabel="Zipped File Geodatabase" [type]="FormFieldType.File" [formControl]="fileControl" uploadFileAccepts=".zip" (change)="onFileChange($event)"></form-field>
 
-            @if (errors().length > 0) {
-                <div class="alert alert-danger upload-errors">
-                    <strong>Upload could not be staged:</strong>
-                    <ul>
-                        @for (err of errors(); track $index) {
-                            <li>{{ err }}</li>
-                        }
-                    </ul>
-                </div>
-            }
+                @if (errors().length > 0) {
+                    <div class="alert alert-danger upload-errors">
+                        <strong>Upload could not be staged:</strong>
+                        <ul>
+                            @for (err of errors(); track $index) {
+                                <li>{{ err }}</li>
+                            }
+                        </ul>
+                    </div>
+                }
 
-            @if (successMessage()) {
-                <div class="alert alert-success">{{ successMessage() }}</div>
-            }
+                @if (successMessage()) {
+                    <div class="alert alert-success">{{ successMessage() }}</div>
+                }
+            </div>
 
-            <div class="actions">
+            <div class="page-footer">
                 <button type="button" class="btn btn-primary" [disabled]="isUploading() || fileControl.invalid || jurisdictionControl.invalid" (click)="submit()">
                     @if (isUploading()) { <i class="fa fa-spinner fa-spin"></i> Uploading... } @else { <i class="fa fa-upload"></i> Upload }
                 </button>
