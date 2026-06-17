@@ -61,18 +61,24 @@ export class TrashOvtaAreaIndexComponent {
         this.ovtaAreaColumnDefs = [
             this.utilityFunctionsService.createActionsColumnDef((params: any) => {
                 const totalAssessments = (params.data.NumberOfAssessmentsInProgress ?? 0) + (params.data.NumberOfAssessmentsCompleted ?? 0);
+                // Action menus standardize on always showing an icon, using the canonical icon-per-verb mapping.
+                // NOTE: the app loads FontAwesome 4.7 (scss) + 5.2 (cdn) — use FA5 glyph names (e.g. fa-file-alt,
+                // not the FA6 fa-file-lines). View => fa-file-alt, add/new => fa-plus, Delete => fa-trash text-danger.
                 return [
                     {
                         ActionName: "View",
+                        ActionIcon: "fas fa-file-alt",
                         ActionHandler: () => this.router.navigate(["trash", "onland-visual-trash-assessment-areas", params.data.OnlandVisualTrashAssessmentAreaID]),
                     },
                     {
                         ActionName: "Add New OVTA",
+                        ActionIcon: "fas fa-plus",
                         ActionHandler: () =>
                             this.addNewOVTA(params.data.OnlandVisualTrashAssessmentAreaID, params.data.OnlandVisualTrashAssessmentAreaName, params.data.StormwaterJurisdictionID),
                     },
                     {
                         ActionName: "Delete",
+                        ActionIcon: "fas fa-trash text-danger",
                         ActionHandler: () =>
                             this.deleteOVTAArea(params.data.OnlandVisualTrashAssessmentAreaID, params.data.OnlandVisualTrashAssessmentAreaName, totalAssessments),
                     },

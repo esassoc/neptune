@@ -6,6 +6,8 @@ import { ConfirmService } from "src/app/shared/services/confirm/confirm.service"
 import { Component, OnInit, OnChanges, SimpleChanges, ViewChild, TemplateRef, Input } from "@angular/core";
 import { Router, RouterLink } from "@angular/router";
 import { DatePipe, AsyncPipe, CommonModule } from "@angular/common";
+import { HttpErrorResponse } from "@angular/common/http";
+import { escapeHtml } from "src/app/shared/helpers/html-escape";
 import { BehaviorSubject, Observable } from "rxjs";
 import { shareReplay, switchMap, tap } from "rxjs/operators";
 import { PageHeaderComponent } from "src/app/shared/components/page-header/page-header.component";
@@ -223,6 +225,7 @@ export class TreatmentBmpDetailComponent implements OnInit, OnChanges {
                 const actions: { ActionName: string; ActionIcon?: string; ActionLink?: string; ActionHandler?: () => void }[] = [
                     {
                         ActionName: editable ? "Continue" : "View",
+                        ActionIcon: editable ? "fas fa-edit" : "fas fa-file-alt",
                         ActionLink: editable
                             ? `/field-visits/${visit.FieldVisitID}`
                             : `/field-visits/${visit.FieldVisitID}/view`,
@@ -231,7 +234,7 @@ export class TreatmentBmpDetailComponent implements OnInit, OnChanges {
                 if (this.currentPersonCanManage) {
                     actions.push({
                         ActionName: "Delete",
-                        ActionIcon: "fa fa-trash text-danger",
+                        ActionIcon: "fas fa-trash text-danger",
                         ActionHandler: () => this.deleteFieldVisit(params),
                     });
                 }
@@ -624,9 +627,17 @@ export class TreatmentBmpDetailComponent implements OnInit, OnChanges {
     uploadDocument(fileResource: IFileResourceUpload): void {
         this.treatmentBMPDocumentByTreatmentBMPService
             .createTreatmentBMPDocumentByTreatmentBMP(this.treatmentBMPID, fileResource.File, fileResource.DocumentDescription)
-            .subscribe((result) => {
-                this.alertService.pushAlert(new Alert("Successfully uploaded document.", AlertContext.Success));
-                this.refreshTreatmentBMPDocumentsTrigger$.next();
+            .subscribe({
+                next: () => {
+                    this.alertService.pushAlert(new Alert("Successfully uploaded document.", AlertContext.Success));
+                    this.refreshTreatmentBMPDocumentsTrigger$.next();
+                },
+                // Surface server-side validation failures (e.g. unsupported file type / oversized
+                // file) instead of swallowing the 400 and leaving the user with no feedback.
+                error: (err: HttpErrorResponse) => {
+                    const raw = err?.error?.detail ?? err?.error?.title ?? err?.error ?? "There was an error uploading the document.";
+                    this.alertService.pushAlert(new Alert(escapeHtml(typeof raw === "string" ? raw : "There was an error uploading the document."), AlertContext.Danger));
+                },
             });
     }
 

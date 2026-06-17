@@ -82,8 +82,8 @@
     @if (canManage) {
         <div class="step-footer">
             @if (workflow.IsFieldVisitVerified) {
-                <button type="button" class="btn btn-secondary" (click)="markProvisional(workflow)">Mark Provisional</button>
-                <button type="button" class="btn btn-secondary" (click)="returnToEdit(workflow)">Return to Edit</button>
+                <button type="button" class="btn btn-primary-outline" (click)="markProvisional(workflow)">Mark Provisional</button>
+                <button type="button" class="btn btn-primary-outline" (click)="returnToEdit(workflow)">Return to Edit</button>
             } @else {
                 <button type="button" class="btn btn-primary" (click)="verify(workflow)">Verify Field Visit</button>
             }

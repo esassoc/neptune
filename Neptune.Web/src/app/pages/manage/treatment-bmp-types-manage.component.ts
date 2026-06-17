@@ -70,6 +70,7 @@ export class TreatmentBmpTypesManageComponent implements OnInit {
                 return [
                     {
                         ActionName: "View",
+                        ActionIcon: "fas fa-file-alt",
                         ActionHandler: () => this.router.navigate(["/program-info/treatment-bmp-types", id]),
                     },
                     {
@@ -79,7 +80,7 @@ export class TreatmentBmpTypesManageComponent implements OnInit {
                     },
                     {
                         ActionName: "Delete",
-                        ActionIcon: "fa fa-trash text-danger",
+                        ActionIcon: "fas fa-trash text-danger",
                         ActionHandler: () => this.confirmDelete(row),
                     },
                 ];

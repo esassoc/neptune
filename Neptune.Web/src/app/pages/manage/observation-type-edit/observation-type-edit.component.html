@@ -91,7 +91,7 @@
 
         <div class="page-footer">
             <button type="button" class="btn btn-primary" (click)="save()" [disabled]="isSaving() || formGroup.invalid || !derivedSpecID() || (activeSchemaGroup() && activeSchemaGroup()!.invalid)">Save</button>
-            <button type="button" class="btn btn-secondary-outline" (click)="cancel()" [disabled]="isSaving()">Cancel</button>
+            <button type="button" class="btn btn-primary-outline" (click)="cancel()" [disabled]="isSaving()">Cancel</button>
         </div>
     </div>
 } @else {

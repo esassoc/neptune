@@ -1,9 +1,13 @@
-<page-header pageTitle="Upload WQMP Locations from APN List" [templateRight]="downloadTemplateButton">
-    <a class="back-link" [routerLink]="['/data-hub']" [queryParams]="{ tab: 'wqmps' }">&laquo; Back to Data Hub</a>
+<page-header pageTitle="Upload WQMP Locations from APN List" [templateAbove]="templateAbove" [templateRight]="downloadTemplateButton">
+    <ng-template #templateAbove>
+        <div class="back">
+            <a [routerLink]="['/data-hub']" [queryParams]="{ tab: 'wqmps' }" class="back__link"><i class="fa fa-arrow-left"></i> Back to Data Hub</a>
+        </div>
+    </ng-template>
 </page-header>
 
 <ng-template #downloadTemplateButton>
-    <button type="button" class="btn btn-secondary" [disabled]="isDownloadingTemplate()" (click)="downloadTemplate()">
+    <button type="button" class="btn btn-primary-outline" [disabled]="isDownloadingTemplate()" (click)="downloadTemplate()">
         @if (isDownloadingTemplate()) { <i class="fa fa-spinner fa-spin"></i> Downloading... } @else { <i class="fa fa-download"></i> Download Template }
     </button>
 </ng-template>
@@ -16,34 +20,36 @@
             <custom-rich-text [customRichTextTypeID]="NeptunePageTypeEnum.WQMPBoundaryFromAPNList"></custom-rich-text>
         </div>
         <div class="g-col-6">
-            @if (jurisdictionOptions$ | async; as opts) {
-                <form-field fieldLabel="Stormwater Jurisdiction" [type]="FormFieldType.Select" [formControl]="jurisdictionControl" [formInputOptions]="opts" placeholder="Select a jurisdiction"></form-field>
-            }
-            <form-field fieldLabel="CSV File" [type]="FormFieldType.File" [formControl]="fileControl" uploadFileAccepts=".csv" (change)="onFileChange($event)"></form-field>
+            <div class="grid-12">
+                @if (jurisdictionOptions$ | async; as opts) {
+                    <form-field fieldLabel="Stormwater Jurisdiction" [type]="FormFieldType.Select" [formControl]="jurisdictionControl" [formInputOptions]="opts" placeholder="Select a jurisdiction"></form-field>
+                }
+                <form-field fieldLabel="CSV File" [type]="FormFieldType.File" [formControl]="fileControl" uploadFileAccepts=".csv" (change)="onFileChange($event)"></form-field>
 
-            @if (errors().length > 0) {
-                <div class="alert alert-danger upload-errors">
-                    <strong>Upload could not be completed:</strong>
-                    <ul>
-                        @for (err of errors(); track $index) {
-                            <li>{{ err }}</li>
-                        }
-                    </ul>
-                </div>
-            }
+                @if (errors().length > 0) {
+                    <div class="alert alert-danger upload-errors">
+                        <strong>Upload could not be completed:</strong>
+                        <ul>
+                            @for (err of errors(); track $index) {
+                                <li>{{ err }}</li>
+                            }
+                        </ul>
+                    </div>
+                }
 
-            @if (successMessage()) {
-                <div class="alert alert-success">{{ successMessage() }}</div>
-            }
+                @if (successMessage()) {
+                    <div class="alert alert-success">{{ successMessage() }}</div>
+                }
 
-            @if (missingApns().length > 0) {
-                <div class="alert alert-warning">
-                    <strong>The following APNs were not found in the system:</strong>
-                    <p>{{ missingApns().join(", ") }}</p>
-                </div>
-            }
+                @if (missingApns().length > 0) {
+                    <div class="alert alert-warning">
+                        <strong>The following APNs were not found in the system:</strong>
+                        <p>{{ missingApns().join(", ") }}</p>
+                    </div>
+                }
+            </div>
 
-            <div class="actions">
+            <div class="page-footer">
                 <button type="button" class="btn btn-primary" [disabled]="isUploading() || fileControl.invalid || jurisdictionControl.invalid" (click)="submit()">
                     @if (isUploading()) { <i class="fa fa-spinner fa-spin"></i> Uploading... } @else { <i class="fa fa-upload"></i> Upload }
                 </button>

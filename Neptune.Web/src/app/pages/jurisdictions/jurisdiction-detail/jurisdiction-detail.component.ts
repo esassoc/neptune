@@ -12,7 +12,6 @@ import { AlertService } from "src/app/shared/services/alert.service";
 import { Alert } from "src/app/shared/models/alert";
 import { AlertContext } from "src/app/shared/models/enums/alert-context.enum";
 import { NeptuneGridComponent } from "src/app/shared/components/neptune-grid/neptune-grid.component";
-import { IconComponent } from "src/app/shared/components/icon/icon.component";
 import { PersonDisplayDto, StormwaterJurisdictionGridDto, TreatmentBMPGridDto } from "src/app/shared/generated/model/models";
 import { StormwaterJurisdictionService } from "src/app/shared/generated/api/stormwater-jurisdiction.service";
 import { JurisdictionBasicsModalComponent, JurisdictionBasicsModalContext } from "./jurisdiction-basics-modal/jurisdiction-basics-modal.component";
@@ -23,7 +22,7 @@ import { JurisdictionUsersModalComponent, JurisdictionUsersModalContext } from "
     templateUrl: "./jurisdiction-detail.component.html",
     styleUrls: ["./jurisdiction-detail.component.scss"],
     standalone: true,
-    imports: [CommonModule, RouterLink, AsyncPipe, PageHeaderComponent, AlertDisplayComponent, NeptuneGridComponent, IconComponent],
+    imports: [CommonModule, RouterLink, AsyncPipe, PageHeaderComponent, AlertDisplayComponent, NeptuneGridComponent],
 })
 export class JurisdictionDetailComponent implements OnInit, OnChanges {
     private dialogService = inject(DialogService);

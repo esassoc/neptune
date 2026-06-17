@@ -63,22 +63,25 @@ export class TreatmentBmpsComponent {
 
     ngOnInit(): void {
         const canEdit = this.authenticationService.doesCurrentUserHaveJurisdictionEditPermission();
-        this.columnDefs = [
+        const isAnonymousOrUnassigned = this.authenticationService.isCurrentUserAnonymousOrUnassigned();
+        const columnDefs: ColDef[] = [
             this.utilityFunctionsService.createActionsColumnDef((params: any) => {
                 const actions: { ActionName: string; ActionIcon?: string; ActionHandler: () => void }[] = [
                     {
                         ActionName: "View",
+                        ActionIcon: "fas fa-file-alt",
                         ActionHandler: () => this.router.navigate(["/treatment-bmps", params.data.TreatmentBMPID]),
                     },
                 ];
                 if (canEdit) {
                     actions.push({
                         ActionName: "Start Field Visit",
+                        ActionIcon: "fas fa-clipboard-check",
                         ActionHandler: () => this.openBeginFieldVisitModal(params.data.TreatmentBMPID),
                     });
                     actions.push({
                         ActionName: "Delete",
-                        ActionIcon: "fa fa-trash text-danger",
+                        ActionIcon: "fas fa-trash text-danger",
                         ActionHandler: () => this.deleteModal(params),
                     });
                 }
@@ -115,17 +118,22 @@ export class TreatmentBmpsComponent {
             this.utilityFunctionsService.createBasicColumnDef("Trash Capture Status", "TrashCaptureStatusTypeDisplayName", { UseCustomDropdownFilter: true }),
             this.utilityFunctionsService.createBasicColumnDef("Trash Capture Effectiveness (%)", "TrashCaptureEffectiveness"),
             this.utilityFunctionsService.createBasicColumnDef("Delineation Type", "DelineationTypeDisplayName", { UseCustomDropdownFilter: true }),
-            // NPT-1061: Notes was previously mid-grid and dominated visible width on rows with
-            // long entries. Moved to the far right + capped at 300px with wrap so long notes flow
-            // vertically instead of pushing every other column off-screen.
+            // NPT-1061: Notes was previously mid-grid and dominated visible width on rows with long
+            // entries. Moved to the far right + capped at 300px. Kept on a single line (truncated
+            // with an ellipsis) rather than wrapping with autoHeight — wrapping grew rows unbounded
+            // and made tall, uneven rows. The grid's default tooltipValueGetter shows the full note
+            // on hover, so nothing is lost.
             {
                 ...this.utilityFunctionsService.createBasicColumnDef("Notes", "Notes"),
                 maxWidth: 300,
-                wrapText: true,
-                autoHeight: true,
-                cellStyle: { whiteSpace: "normal", lineHeight: "1.3" },
             },
         ];
+        // NPT-1079: public (anonymous) + unassigned users see only the fields the legacy "Find a
+        // BMP" map exposed — Name and Type. Hide the actions column and all operational columns
+        // (assessments, maintenance, lifespan, sizing, trash, notes, jurisdiction, owner).
+        const publicHeaders = new Set(["Name", "Type"]);
+        this.columnDefs = isAnonymousOrUnassigned ? columnDefs.filter((c) => publicHeaders.has(c.headerName as string)) : columnDefs;
+
         this.treatmentBmps$ = this.treatmentBMPService
             .listTreatmentBMP()
             .pipe(

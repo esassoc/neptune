@@ -394,6 +394,7 @@ export class WqmpDetailComponent implements OnInit, OnChanges {
                 const actions: any[] = [
                     {
                         ActionName: "View",
+                        ActionIcon: "fas fa-file-alt",
                         ActionHandler: () => this.router.navigate(["/water-quality-management-plans", wqmpID, "verifications", verifyID, "view"]),
                     },
                 ];
@@ -405,7 +406,7 @@ export class WqmpDetailComponent implements OnInit, OnChanges {
                     });
                     actions.push({
                         ActionName: "Delete",
-                        ActionIcon: "fa fa-trash text-danger",
+                        ActionIcon: "fas fa-trash text-danger",
                         ActionHandler: () => this.confirmDeleteVerification(verifyID, params.data.VerificationDate),
                     });
                 }

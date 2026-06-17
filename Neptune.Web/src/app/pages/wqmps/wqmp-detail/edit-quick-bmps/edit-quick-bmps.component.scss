@@ -1,8 +1,12 @@
 @use "/src/scss/abstracts" as *;
 
 .quick-bmp-entry {
-    border-bottom: 2px solid #ddd;
+    border-bottom: 2px solid $gray-200;
     padding: 1rem 0;
+
+    &.first {
+        border-top: 2px solid $gray-200;
+    }
 
     .quick-bmp-entry-body {
         display: flex;
@@ -11,17 +15,19 @@
     }
 
     .quick-bmp-delete-col {
-        flex: 0 0 20px;
+        flex: 0 0 1.25rem;
         padding-top: 0.25rem;
     }
 
     .delete-icon {
         cursor: pointer;
-        color: #6c757d;
+        color: $gray-600;
         font-size: 1rem;
 
+        // On hover btn-delete-row fills with the danger color, so the icon
+        // goes white to stay legible against the red fill.
         &:hover {
-            color: $danger;
+            color: $white;
         }
     }
 
@@ -34,7 +40,7 @@
     }
 
     .quick-bmp-notes {
-        width: 250px;
+        width: 22rem;
         flex-shrink: 0;
         display: flex;
         flex-direction: column;
@@ -44,7 +50,7 @@
             flex: 1;
 
             ::ng-deep textarea {
-                min-height: 160px;
+                min-height: 10rem;
                 resize: vertical;
             }
         }
@@ -88,9 +94,9 @@
     }
 }
 
-.actions-row {
+.add-row {
     display: flex;
-    justify-content: flex-end;
+    justify-content: flex-start;
     gap: 0.5rem;
 }
 

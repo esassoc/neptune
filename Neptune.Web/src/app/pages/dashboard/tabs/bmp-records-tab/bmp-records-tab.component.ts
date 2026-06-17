@@ -82,14 +82,14 @@ export class BmpRecordsTabComponent {
                 const actions: any[] = [
                     {
                         ActionName: "View",
-                        ActionIcon: "fa fa-eye",
+                        ActionIcon: "fas fa-file-alt",
                         ActionHandler: () => this.router.navigate(["/treatment-bmps", row.TreatmentBMPID]),
                     },
                 ];
                 if (row.CanDelete) {
                     actions.push({
                         ActionName: "Delete",
-                        ActionIcon: "fa fa-trash text-danger",
+                        ActionIcon: "fas fa-trash text-danger",
                         ActionHandler: () => this.delete(row),
                     });
                 }

@@ -1,6 +1,6 @@
 <div class="modal">
     <div class="modal-header">
-        <h3>Edit Roles for {{ ref.data.detail.FirstName }} {{ ref.data.detail.LastName }}</h3>
+        <h3>Edit Roles for {{ ((ref.data.detail.FirstName || '') + ' ' + (ref.data.detail.LastName || '')).trim() || ref.data.detail.Email || 'this user' }}</h3>
     </div>
     <div class="modal-body">
         @if (errorMessage(); as msg) {
@@ -57,6 +57,6 @@
         <button type="button" class="btn btn-primary" [disabled]="formGroup.invalid || isSaving()" (click)="save()">
             @if (isSaving()) { <i class="fa fa-spinner fa-spin"></i> Saving... } @else { Save }
         </button>
-        <button type="button" class="btn btn-secondary" [disabled]="isSaving()" (click)="cancel()">Cancel</button>
+        <button type="button" class="btn btn-primary-outline" [disabled]="isSaving()" (click)="cancel()">Cancel</button>
     </div>
 </div>

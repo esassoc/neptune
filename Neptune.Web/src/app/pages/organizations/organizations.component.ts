@@ -42,12 +42,12 @@ export class OrganizationsComponent {
             this.utilityFunctions.createActionsColumnDef((params: any) => [
                 {
                     ActionName: "Edit",
-                    ActionIcon: "fa fa-edit",
+                    ActionIcon: "fas fa-edit",
                     ActionHandler: () => this.openEditModal(params.data),
                 },
                 {
                     ActionName: "Delete",
-                    ActionIcon: "fa fa-trash text-danger",
+                    ActionIcon: "fas fa-trash text-danger",
                     ActionHandler: () => this.deleteOrganization(params.data),
                 },
             ]),

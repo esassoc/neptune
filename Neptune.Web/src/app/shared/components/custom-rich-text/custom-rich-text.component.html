@@ -4,7 +4,7 @@
       @if (showEditButton()) {
         <div class="hoverEditButton">
           <div style="transform: translate3d(-10px, 20px, 0)">
-            <button type="button" class="btn btn-secondary" (click)="enterEdit()">Edit</button>
+            <button type="button" class="btn btn-primary-outline" (click)="enterEdit()">Edit</button>
           </div>
         </div>
       }
@@ -21,8 +21,8 @@
         <editor #tinyMceEditor [init]="tinyMceConfig" [(ngModel)]="editedContent"></editor>
       </div>
       <div class="flex-end">
-        <button type="button" class="btn btn-secondary mt-1 mr-2" (click)="saveEdit()">Save</button>
-        <button type="button" class="btn btn-secondary-outline mt-1" (click)="cancelEdit()">Cancel</button>
+        <button type="button" class="btn btn-primary mt-1 mr-2" (click)="saveEdit()">Save</button>
+        <button type="button" class="btn btn-primary-outline mt-1" (click)="cancelEdit()">Cancel</button>
       </div>
     </div>
   }

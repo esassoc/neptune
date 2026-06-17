@@ -32,13 +32,13 @@
         @if (selectedRowsCount > 0) {
           <span class="selection-info"> {{ selectedRowsCount }} of {{ rowDataCount }} Selected </span>
         }
-        <button class="btn btn-sm btn-secondary" (click)="onSelectAll()" [class.disabled]="allRowsSelected">
+        <button class="btn btn-sm btn-primary-outline" (click)="onSelectAll()" [class.disabled]="allRowsSelected">
           Select All
           @if (anyFilterPresent) {
             <span>(filtered)</span>
           }
         </button>
-        <button class="btn btn-sm btn-secondary" (click)="onDeselectAll()" [class.disabled]="selectedRowsCount < 1">
+        <button class="btn btn-sm btn-primary-outline" (click)="onDeselectAll()" [class.disabled]="selectedRowsCount < 1">
           Deselect All
           @if (anyFilterPresent) {
             <span>(filtered)</span>

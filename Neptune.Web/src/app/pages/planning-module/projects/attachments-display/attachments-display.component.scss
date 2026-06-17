@@ -1,0 +1,9 @@
+@use "/src/scss/abstracts" as *;
+
+// Edit/Delete actions: grouped on one line, matching the WQMP detail document icon buttons
+// (edit = btn-primary-outline, delete = btn-danger-outline, icon-only square).
+.attachment-actions {
+    display: inline-flex;
+    gap: $spacing-200;
+    flex-shrink: 0;
+}

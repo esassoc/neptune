@@ -42,6 +42,8 @@ public partial class vTreatmentBMPDetailed
     [Unicode(false)]
     public string? Notes { get; set; }
 
+    public bool InventoryIsVerified { get; set; }
+
     public int OwnerOrganizationID { get; set; }
 
     [StringLength(200)]

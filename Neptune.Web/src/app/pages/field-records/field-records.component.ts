@@ -132,6 +132,7 @@ export class FieldRecordsComponent implements OnInit {
                 const actions: { ActionName: string; ActionIcon?: string; ActionLink?: string; ActionHandler?: () => void }[] = [
                     {
                         ActionName: editable ? "Continue" : "View",
+                        ActionIcon: editable ? "fas fa-edit" : "fas fa-file-alt",
                         ActionLink: editable
                             ? `/field-visits/${visit.FieldVisitID}`
                             : `/field-visits/${visit.FieldVisitID}/view`,
@@ -140,7 +141,7 @@ export class FieldRecordsComponent implements OnInit {
                 if (this.canManage) {
                     actions.push({
                         ActionName: "Delete",
-                        ActionIcon: "fa fa-trash text-danger",
+                        ActionIcon: "fas fa-trash text-danger",
                         ActionHandler: () => this.deleteFieldVisit(params),
                     });
                 }
@@ -180,6 +181,7 @@ export class FieldRecordsComponent implements OnInit {
                 return [
                     {
                         ActionName: row.IsFieldVisitVerified ? "View Observations" : "Edit Observations",
+                        ActionIcon: row.IsFieldVisitVerified ? "fas fa-file-alt" : "fas fa-edit",
                         ActionHandler: () => this.router.navigate(["/field-visits", row.FieldVisitID, branch, "observations"]),
                     },
                 ];
@@ -207,6 +209,7 @@ export class FieldRecordsComponent implements OnInit {
                 return [
                     {
                         ActionName: row.IsFieldVisitVerified ? "View" : "Edit",
+                        ActionIcon: row.IsFieldVisitVerified ? "fas fa-file-alt" : "fas fa-edit",
                         ActionHandler: () => this.router.navigate(["/field-visits", row.FieldVisitID, "maintenance", "edit"]),
                     },
                 ];

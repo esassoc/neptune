@@ -33,6 +33,11 @@
             margin-top: 0.5rem;
         }
 
+        // Action icons sit to the left of the label; give them a little breathing room.
+        [class*="fa-"] {
+            margin-right: 0.4rem;
+        }
+
         &:hover {
             text-decoration: underline;
         }
