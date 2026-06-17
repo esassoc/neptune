@@ -9,10 +9,9 @@
                     <ul #bmpMenu class="dropdown-menu">
                         <!-- BMP Inventory item gates, mirroring MVC's per-controller [Feature]
                              attributes. Anonymous + Unassigned see only the AnonymousUnclassified
-                             items (Find a BMP, View All BMPs, Water Quality Management Plans);
+                             items (View All BMPs, Water Quality Management Plans);
                              Editor+ adds the NeptuneViewFeature-gated items; Admin adds
                              Jurisdictions (NeptuneAdminFeature). -->
-                        <li><a [routerLink]="['/find-bmp']" class="dropdown-item">Find a BMP</a></li>
                         @if (isCurrentUserEditorOrHigher()) {
                             <li><a [routerLink]="['/modeling-attributes']" class="dropdown-item">Modeling Attributes</a></li>
                         }

@@ -6,8 +6,37 @@
 <app-alert-display></app-alert-display>
 
 <div class="page-body" [loadingSpinner]="{ isLoading, loadingHeight: 100 }">
+    <div class="filter-bar">
+        <div class="filter-field">
+            <label class="field-label" for="treatmentBMPTypeFilter">Filter by Type</label>
+            <ng-select
+                labelForId="treatmentBMPTypeFilter"
+                [items]="typeOptions$ | async"
+                bindValue="ID"
+                bindLabel="Name"
+                [multiple]="true"
+                [(ngModel)]="selectedTypeIDs"
+                placeholder="All Types"
+                (change)="onFilterChange()">
+            </ng-select>
+        </div>
+        <div class="filter-field">
+            <label class="field-label" for="jurisdictionFilter">Filter by Jurisdiction</label>
+            <ng-select
+                labelForId="jurisdictionFilter"
+                [items]="jurisdictionOptions$ | async"
+                bindValue="ID"
+                bindLabel="Name"
+                [multiple]="true"
+                [(ngModel)]="selectedJurisdictionIDs"
+                placeholder="All Jurisdictions"
+                (change)="onFilterChange()">
+            </ng-select>
+        </div>
+    </div>
+
     <hybrid-map-grid
-        [rowData]="treatmentBmps$ | async"
+        [rowData]="filteredTreatmentBmps$ | async"
         [columnDefs]="columnDefs"
         downloadFileName="treatment-bmps"
         entityIDField="TreatmentBMPID"
@@ -16,5 +45,13 @@
         [selectionFromMap]="selectionFromMap"
         (selectedValueChange)="onSelectedTreatmentBMPChangedFromGrid($event)"
         [boundingBox]="boundingBox$ | async">
+        <ng-container mapLayers>
+            @if (map) {
+                <regional-subbasins-layer [mode]="OverlayMode.ReferenceOnly" [map]="map" [layerControl]="layerControl" [sortOrder]="10"></regional-subbasins-layer>
+                <stormwater-network-layer [displayOnLoad]="false" [map]="map" [layerControl]="layerControl" [sortOrder]="20"></stormwater-network-layer>
+                <jurisdictions-layer [mode]="OverlayMode.ReferenceOnly" [map]="map" [layerControl]="layerControl" [sortOrder]="30"></jurisdictions-layer>
+                <zoom-to-my-location-control [map]="map"></zoom-to-my-location-control>
+            }
+        </ng-container>
     </hybrid-map-grid>
 </div>

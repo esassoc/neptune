@@ -50,7 +50,7 @@ export class SiteLayoutComponent implements OnInit {
     // that backs all user updates.
     //
     // Anonymous and Unassigned users see only the public-facing list pages (WQMP List + BMP
-    // List + WQMP Map + Find a BMP); everything else in the top nav routes to pages they
+    // List + WQMP Map); everything else in the top nav routes to pages they
     // don't have permission to access. Mirrors the MVC behavior where each nav item is gated
     // by its controller's feature attribute. NPT-1064.
     private currentUserSignal = toSignal(this.authenticationService.currentUserSetObservable.pipe(map((u) => u ?? null)), { initialValue: null });
