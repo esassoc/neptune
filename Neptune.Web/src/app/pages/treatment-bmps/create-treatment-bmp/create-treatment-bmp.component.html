@@ -8,149 +8,148 @@
 
 <app-alert-display></app-alert-display>
 
-<form [formGroup]="formGroup" class="grid-12">
-    <form-field class="g-col-6" size="md" [formControl]="formGroup.controls.TreatmentBMPName" fieldLabel="BMP Name" [type]="FormFieldType.Text" placeholder="Name"></form-field>
+<form [formGroup]="formGroup">
+    <h4 class="module-title">Details</h4>
+    <div class="grid-12">
+        <form-field class="g-col-6" size="md" [formControl]="formGroup.controls.TreatmentBMPName" fieldLabel="BMP Name" [type]="FormFieldType.Text" placeholder="Name"></form-field>
 
-    <form-field
-        class="g-col-6"
-        size="md"
-        [formControl]="formGroup.controls.TreatmentBMPTypeID"
-        fieldLabel="BMP Type"
-        [type]="FormFieldType.Select"
-        [formInputOptions]="treatmentBMPTypeSelectOptions$ | async"
-        placeholder="Select BMP Type">
-    </form-field>
-
-    <form-field
-        class="g-col-6"
-        size="md"
-        [formControl]="formGroup.controls.StormwaterJurisdictionID"
-        fieldLabel="Stormwater Jurisdiction"
-        [type]="FormFieldType.Select"
-        [formInputOptions]="stormwaterJurisdictionSelectOptions$ | async"
-        placeholder="Select Jurisdiction">
-    </form-field>
-
-    <form-field
-        class="g-col-6"
-        size="md"
-        [formControl]="formGroup.controls.OwnerOrganizationID"
-        fieldLabel="Owner Organization"
-        [type]="FormFieldType.Select"
-        [formInputOptions]="organizationSelectOptions$ | async"
-        placeholder="Same as the Jurisdiction's Organization">
-    </form-field>
-
-    <form-field class="g-col-6" size="md" [formControl]="formGroup.controls.YearBuilt" fieldLabel="Year Built" [type]="FormFieldType.Number" placeholder="Year built"> </form-field>
-
-    <form-field class="g-col-6" size="md" [formControl]="formGroup.controls.SystemOfRecordID" fieldLabel="System Of Record ID" [type]="FormFieldType.Text" placeholder="System of Record ID">
-    </form-field>
-
-    <form-field
-        class="g-col-6"
-        size="md"
-        [formControl]="formGroup.controls.WaterQualityManagementPlanID"
-        fieldLabel="Water Quality Management Plan"
-        [type]="FormFieldType.Select"
-        [formInputOptions]="wqmpSelectOptions$ | async"
-        placeholder="Select WQMP">
-    </form-field>
-
-    <form-field
-        class="g-col-6"
-        size="md"
-        [formControl]="formGroup.controls.TreatmentBMPLifespanTypeID"
-        fieldLabel="Lifespan Type"
-        [type]="FormFieldType.Select"
-        [formInputOptions]="lifeSpanTypeSelectOptions"
-        placeholder="Select Lifespan Type">
-    </form-field>
-
-    @if (showLifeSpanEndDateField$ | async) {
-        <div class="g-col-6"><!-- Empty for spacing--></div>
         <form-field
             class="g-col-6"
             size="md"
-            [formControl]="formGroup.controls.TreatmentBMPLifespanEndDate"
-            fieldLabel="Lifespan End Date"
-            [type]="FormFieldType.Date"
-            placeholder="End Date">
+            [formControl]="formGroup.controls.TreatmentBMPTypeID"
+            fieldLabel="BMP Type"
+            [type]="FormFieldType.Select"
+            [formInputOptions]="treatmentBMPTypeSelectOptions$ | async"
+            placeholder="Select BMP Type">
         </form-field>
-    }
 
-    <form-field
-        class="g-col-6"
-        size="md"
-        [formControl]="formGroup.controls.SizingBasisTypeID"
-        fieldLabel="Sizing Basis"
-        [type]="FormFieldType.Select"
-        [formInputOptions]="sizingBasisTypeSelectOptions"
-        placeholder="Select Sizing Basis">
-    </form-field>
-
-    <form-field
-        class="g-col-6"
-        size="md"
-        [formControl]="formGroup.controls.TrashCaptureStatusTypeID"
-        fieldLabel="Trash Capture Status"
-        [type]="FormFieldType.Select"
-        [formInputOptions]="trashCaptureStatusTypeSelectOptions"
-        placeholder="Select Trash Capture Status">
-    </form-field>
-
-    @if (showTrashCaptureEffectivenessField$ | async) {
-        <div class="g-col-6"><!-- Empty for spacing--></div>
         <form-field
             class="g-col-6"
             size="md"
-            [formControl]="formGroup.controls.TrashCaptureEffectiveness"
-            fieldLabel="Trash Capture Effectiveness (%)"
+            [formControl]="formGroup.controls.StormwaterJurisdictionID"
+            fieldLabel="Stormwater Jurisdiction"
+            [type]="FormFieldType.Select"
+            [formInputOptions]="stormwaterJurisdictionSelectOptions$ | async"
+            placeholder="Select Jurisdiction">
+        </form-field>
+
+        <form-field
+            class="g-col-6"
+            size="md"
+            [formControl]="formGroup.controls.OwnerOrganizationID"
+            fieldLabel="Owner Organization"
+            [type]="FormFieldType.Select"
+            [formInputOptions]="organizationSelectOptions$ | async"
+            placeholder="Same as the Jurisdiction's Organization">
+        </form-field>
+
+        <form-field class="g-col-6" size="md" [formControl]="formGroup.controls.YearBuilt" fieldLabel="Year Built" [type]="FormFieldType.Number" placeholder="Year built"> </form-field>
+
+        <form-field class="g-col-6" size="md" [formControl]="formGroup.controls.SystemOfRecordID" fieldLabel="System Of Record ID" [type]="FormFieldType.Text" placeholder="System of Record ID">
+        </form-field>
+
+        <form-field
+            class="g-col-6"
+            size="md"
+            [formControl]="formGroup.controls.WaterQualityManagementPlanID"
+            fieldLabel="Water Quality Management Plan"
+            [type]="FormFieldType.Select"
+            [formInputOptions]="wqmpSelectOptions$ | async"
+            placeholder="Select WQMP">
+        </form-field>
+
+        <form-field
+            class="g-col-6"
+            size="md"
+            [formControl]="formGroup.controls.TreatmentBMPLifespanTypeID"
+            fieldLabel="Lifespan Type"
+            [type]="FormFieldType.Select"
+            [formInputOptions]="lifeSpanTypeSelectOptions"
+            placeholder="Select Lifespan Type">
+        </form-field>
+
+        @if (showLifeSpanEndDateField$ | async) {
+            <form-field
+                class="g-col-6"
+                size="md"
+                [formControl]="formGroup.controls.TreatmentBMPLifespanEndDate"
+                fieldLabel="Lifespan End Date"
+                [type]="FormFieldType.Date"
+                placeholder="End Date">
+            </form-field>
+        }
+
+        <form-field
+            class="g-col-6"
+            size="md"
+            [formControl]="formGroup.controls.SizingBasisTypeID"
+            fieldLabel="Sizing Basis"
+            [type]="FormFieldType.Select"
+            [formInputOptions]="sizingBasisTypeSelectOptions"
+            placeholder="Select Sizing Basis">
+        </form-field>
+
+        <form-field
+            class="g-col-6"
+            size="md"
+            [formControl]="formGroup.controls.TrashCaptureStatusTypeID"
+            fieldLabel="Trash Capture Status"
+            [type]="FormFieldType.Select"
+            [formInputOptions]="trashCaptureStatusTypeSelectOptions"
+            placeholder="Select Trash Capture Status">
+        </form-field>
+
+        @if (showTrashCaptureEffectivenessField$ | async) {
+            <form-field
+                class="g-col-6"
+                size="md"
+                [formControl]="formGroup.controls.TrashCaptureEffectiveness"
+                fieldLabel="Trash Capture Effectiveness (%)"
+                [type]="FormFieldType.Number"
+                units="%"
+                placeholder="Effectiveness (1-99)">
+            </form-field>
+        }
+
+        <form-field
+            class="g-col-6"
+            size="md"
+            [formControl]="formGroup.controls.RequiredFieldVisitsPerYear"
+            fieldLabel="Required Field Visits Per Year"
             [type]="FormFieldType.Number"
-            units="%"
-            placeholder="Effectiveness (1-99)">
+            placeholder="Required visits per year">
         </form-field>
-    }
 
-    <form-field
-        class="g-col-6"
-        size="md"
-        [formControl]="formGroup.controls.RequiredFieldVisitsPerYear"
-        fieldLabel="Required Field Visits Per Year"
-        [type]="FormFieldType.Number"
-        placeholder="Required visits per year">
-    </form-field>
+        <form-field
+            class="g-col-6"
+            size="md"
+            [formControl]="formGroup.controls.RequiredPostStormFieldVisitsPerYear"
+            fieldLabel="Required Post-Storm Field Visits Per Year"
+            [type]="FormFieldType.Number"
+            placeholder="Required post-storm visits per year">
+        </form-field>
 
-    <form-field
-        class="g-col-6"
-        size="md"
-        [formControl]="formGroup.controls.RequiredPostStormFieldVisitsPerYear"
-        fieldLabel="Required Post-Storm Field Visits Per Year"
-        [type]="FormFieldType.Number"
-        placeholder="Required post-storm visits per year">
-    </form-field>
-
-    <div class="g-col-12 mt-3">
-        <h3 class="section-title sm blue">Location</h3>
-        <lat-lon-picker [latControl]="formGroup.controls.Latitude" [lonControl]="formGroup.controls.Longitude" [instructionsTemplate]="latLonInstructions">
-            <ng-template #latLonInstructions>
-                <div class="lat-lon-instructions">
-                    To set the location of the Treatment BMP:
-                    <ul>
-                        <li>Place the BMP at your current location (using GPS if available) <strong>OR</strong></li>
-                        <li>Click on the location of the BMP on the map <strong>OR</strong></li>
-                        <li>Directly type in the latitude and longitude</li>
-                    </ul>
-
-                    <p class="mt-1">For centralized BMPs, any existing delineation will automatically be re-calculated based on the new saved location.</p>
-                </div>
-            </ng-template>
-        </lat-lon-picker>
+        <form-field class="g-col-12" size="md" [formControl]="formGroup.controls.Notes" fieldLabel="Notes" [type]="FormFieldType.Textarea" placeholder="Notes"></form-field>
     </div>
 
-    <form-field class="g-col-12" size="md" [formControl]="formGroup.controls.Notes" fieldLabel="Notes" [type]="FormFieldType.Textarea" placeholder="Notes"></form-field>
+    <h4 class="module-title mt-4">Location</h4>
+    <lat-lon-picker [latControl]="formGroup.controls.Latitude" [lonControl]="formGroup.controls.Longitude" [instructionsTemplate]="latLonInstructions">
+        <ng-template #latLonInstructions>
+            <div class="lat-lon-instructions">
+                To set the location of the Treatment BMP:
+                <ul>
+                    <li>Place the BMP at your current location (using GPS if available) <strong>OR</strong></li>
+                    <li>Click on the location of the BMP on the map <strong>OR</strong></li>
+                    <li>Directly type in the latitude and longitude</li>
+                </ul>
+
+                <p class="mt-1">For centralized BMPs, any existing delineation will automatically be re-calculated based on the new saved location.</p>
+            </div>
+        </ng-template>
+    </lat-lon-picker>
 </form>
 
 <div class="page-footer">
-    <button class="btn btn-primary mr-2" (click)="save()" [disabled]="isLoadingSubmit">Save</button>
+    <button class="btn btn-primary" (click)="save()" [disabled]="isLoadingSubmit">Save</button>
     <button class="btn btn-primary-outline" (click)="cancel()">Cancel</button>
 </div>

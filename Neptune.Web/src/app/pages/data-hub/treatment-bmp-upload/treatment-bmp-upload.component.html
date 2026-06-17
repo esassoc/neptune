@@ -1,7 +1,12 @@
-<page-header pageTitle="Upload Treatment BMPs">
-    <a class="back-link" [routerLink]="['/data-hub']" [queryParams]="{ tab: 'bmps' }">&laquo; Back to Data Hub</a>
-    &nbsp;|&nbsp;
-    <a class="back-link" [routerLink]="['/data-hub/treatment-bmp-download']">Go to Download Treatment BMPs &raquo;</a>
+<page-header pageTitle="Upload Treatment BMPs" [templateAbove]="templateAbove" [templateRight]="templateRight">
+    <ng-template #templateAbove>
+        <div class="back">
+            <a [routerLink]="['/data-hub']" [queryParams]="{ tab: 'bmps' }" class="back__link"><i class="fa fa-arrow-left"></i> Back to Data Hub</a>
+        </div>
+    </ng-template>
+    <ng-template #templateRight>
+        <a class="btn btn-primary-outline" [routerLink]="['/data-hub/treatment-bmp-download']"><i class="fa fa-download"></i> Download Treatment BMPs</a>
+    </ng-template>
 </page-header>
 
 <section class="content-section">
@@ -12,27 +17,29 @@
             <custom-rich-text [customRichTextTypeID]="NeptunePageTypeEnum.UploadTreatmentBMPs"></custom-rich-text>
         </div>
         <div class="g-col-6">
-            @if (bmpTypeOptions$ | async; as opts) {
-                <form-field fieldLabel="Treatment BMP Type" [type]="FormFieldType.Select" [formControl]="bmpTypeControl" [formInputOptions]="opts" placeholder="Select a type"></form-field>
-            }
-            <form-field fieldLabel="CSV File" [type]="FormFieldType.File" [formControl]="fileControl" uploadFileAccepts=".csv" (change)="onFileChange($event)"></form-field>
+            <div class="grid-12">
+                @if (bmpTypeOptions$ | async; as opts) {
+                    <form-field fieldLabel="Treatment BMP Type" [type]="FormFieldType.Select" [formControl]="bmpTypeControl" [formInputOptions]="opts" placeholder="Select a type"></form-field>
+                }
+                <form-field fieldLabel="CSV File" [type]="FormFieldType.File" [formControl]="fileControl" uploadFileAccepts=".csv" (change)="onFileChange($event)"></form-field>
 
-            @if (errors().length > 0) {
-                <div class="alert alert-danger upload-errors">
-                    <strong>Upload could not be completed:</strong>
-                    <ul>
-                        @for (err of errors(); track $index) {
-                            <li>{{ err }}</li>
-                        }
-                    </ul>
-                </div>
-            }
+                @if (errors().length > 0) {
+                    <div class="alert alert-danger upload-errors">
+                        <strong>Upload could not be completed:</strong>
+                        <ul>
+                            @for (err of errors(); track $index) {
+                                <li>{{ err }}</li>
+                            }
+                        </ul>
+                    </div>
+                }
 
-            @if (successMessage()) {
-                <div class="alert alert-success">{{ successMessage() }}</div>
-            }
+                @if (successMessage()) {
+                    <div class="alert alert-success">{{ successMessage() }}</div>
+                }
+            </div>
 
-            <div class="actions">
+            <div class="page-footer">
                 <button type="button" class="btn btn-primary" [disabled]="isUploading() || fileControl.invalid || bmpTypeControl.invalid" (click)="submit()">
                     @if (isUploading()) { <i class="fa fa-spinner fa-spin"></i> Uploading... } @else { <i class="fa fa-upload"></i> Upload }
                 </button>

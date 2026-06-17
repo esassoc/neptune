@@ -134,11 +134,11 @@
             placeholder="Required post-storm visits per year">
         </form-field>
 
-        <form-field size="md" [formControl]="formGroup.controls.Notes" fieldLabel="Notes" [type]="FormFieldType.Textarea" placeholder="Notes"> </form-field>
+        <form-field class="g-col-12" size="md" [formControl]="formGroup.controls.Notes" fieldLabel="Notes" [type]="FormFieldType.Textarea" placeholder="Notes"> </form-field>
     </form>
 
     <div class="page-footer">
-        <button class="btn btn-primary mr-2" (click)="save()" [disabled]="isLoadingSubmit">Save</button>
+        <button class="btn btn-primary" (click)="save()" [disabled]="isLoadingSubmit">Save</button>
         <button class="btn btn-primary-outline" (click)="cancel()">Cancel</button>
     </div>
 }

@@ -1,7 +1,19 @@
 @use "/src/scss/abstracts" as *;
 
+// Read-only values (BMP Type, Jurisdiction) rendered to line up with the
+// md form-field inputs beside them: same height, padding and body-size text,
+// styled as a disabled field so the rows align instead of floating large.
 .form-control-readonly {
-    height: 3rem;
-    line-height: 3rem;
-    font-size: clamp(0.87rem, 0.74rem + 0.62vw, 1.13rem);
+    display: flex;
+    align-items: center;
+    height: 2.5rem;
+    padding: 0.375rem 0.625rem;
+    font-size: $type-size-300;
+    color: $gray-700;
+    background-color: $gray-100;
+    border: 1px solid rgba(black, 0.1);
+    border-radius: 0.25rem;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
 }
