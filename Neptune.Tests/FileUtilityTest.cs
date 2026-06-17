@@ -21,7 +21,6 @@ Source code is available upon request via <support@sitkatech.com>.
 
 using System;
 using System.IO;
-using LtInfo.Common;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using Neptune.Common;
 

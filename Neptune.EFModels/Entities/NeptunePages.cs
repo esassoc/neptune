@@ -39,13 +39,6 @@ namespace Neptune.EFModels.Entities
                 .ToList();
         }
 
-        public static NeptunePage GetNeptunePageByPageType(NeptuneDbContext dbContext, NeptunePageType neptunePageType)
-        {
-            var neptunePage = GetImpl(dbContext).AsNoTracking()
-                .SingleOrDefault(x => x.NeptunePageTypeID == neptunePageType.NeptunePageTypeID);
-            Check.RequireNotNull(neptunePage);
-            return neptunePage;
-        }
         public static NeptunePageDto GetByNeptunePageTypeID(NeptuneDbContext dbContext, int neptunePageID)
         {
             var neptunePage = dbContext.NeptunePages

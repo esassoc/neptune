@@ -87,13 +87,6 @@ public static partial class WaterQualityManagementPlans
     }
 
 
-    public static IEnumerable<WaterQualityManagementPlan> ListBaseEntityByStormwaterJurisdictionID(NeptuneDbContext dbContext, int stormwaterJurisdictionID)
-    {
-        return dbContext.WaterQualityManagementPlans
-            .AsNoTracking()
-            .Where(x => x.StormwaterJurisdictionID == stormwaterJurisdictionID).ToList();
-    }
-
     public static async Task<List<WaterQualityManagementPlanDto>> ListAsDtoAsync(NeptuneDbContext dbContext)
     {
         var dtos = await dbContext.WaterQualityManagementPlans

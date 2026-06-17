@@ -92,13 +92,6 @@ namespace Neptune.EFModels.Entities
             return $"\"{count}-{maxTicks}\"";
         }
 
-        public static Parcel GetParcelByParcelNumber(NeptuneDbContext dbContext, string parcelNumber)
-        {
-            var parcel = GetImpl(dbContext).FirstOrDefault(x => x.ParcelNumber == parcelNumber);
-            Check.RequireNotNull(parcel, $"Parcel with number {parcelNumber} not found!");
-            return parcel;
-        }
-
         // Bulk lookup used by the WQMP AI-extraction review flow to resolve the accepted
         // list of APN strings into Parcel IDs before writing them to the WQMP. Returns every
         // requested parcel number, with ParcelID = null when not found so the caller can

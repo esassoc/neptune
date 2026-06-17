@@ -157,19 +157,6 @@ namespace Neptune.Common
 
             return json.ToString();
         }
-        /// <summary>
-        /// DHTMLXGrid does not like having a loose comma within a grid cell that's a header or footer.
-        /// </summary>
-        /// <param name="value"></param>
-        /// <returns>String with the commas replaced by the HTML entity</returns>
-        public static string HtmlEncodeCommasForDhtmlxGrid(this string value)
-        {
-            if(String.IsNullOrEmpty(value))
-            {
-                return value;
-            }
-            return value.Replace(",", "&#44;");
-        }
 
 
         /// <summary>

@@ -606,28 +606,6 @@ public static class TreatmentBMPs
         return GetImpl(dbContext).AsNoTracking().OrderBy(x => x.TreatmentBMPName).ToList();
     }
 
-    public static List<TreatmentBMP> ListModeledOnly(NeptuneDbContext dbContext)
-    {
-        return dbContext.TreatmentBMPs
-            .Include(x => x.TreatmentBMPType)
-            .Include(x => x.StormwaterJurisdiction)
-            .ThenInclude(x => x.Organization)
-            .Include(x => x.OwnerOrganization)
-            .Include(x => x.UpstreamBMP)
-            .AsNoTracking()
-            .Where(x => x.TreatmentBMPType.IsAnalyzedInModelingModule)
-            .OrderBy(x => x.TreatmentBMPName)
-            .ToList();
-    }
-
-    public static Dictionary<int, int> ListCountByTreatmentBMPType(NeptuneDbContext dbContext)
-    {
-        return dbContext.TreatmentBMPs.AsNoTracking()
-            .GroupBy(x => x.TreatmentBMPTypeID)
-            .Select(x => new { x.Key, Count = x.Count() })
-            .ToDictionary(x => x.Key, x => x.Count);
-    }
-
     public static Dictionary<int, int> ListCountByStormwaterJurisdiction(NeptuneDbContext dbContext)
     {
         return dbContext.TreatmentBMPs.AsNoTracking()

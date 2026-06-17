@@ -83,12 +83,6 @@ public static class Organizations
         return GetImpl(dbContext).Where(x => x.PrimaryContactPersonID == primaryContactPersonID).ToList().OrderBy(x => x.GetDisplayName()).ToList();
     }
 
-    public static Dictionary<int, int> ListCountByPrimaryContactPerson(NeptuneDbContext dbContext)
-    {
-        return dbContext.Organizations.AsNoTracking().Where(x => x.PrimaryContactPersonID.HasValue).GroupBy(x => x.PrimaryContactPersonID.Value).Select(x => new { x.Key, Count = x.Count() })
-            .ToDictionary(x => x.Key, x => x.Count);
-    }
-
     public static int GetUnknownOrganizationID(NeptuneDbContext dbContext)
     {
         return dbContext.Organizations.Single(x => x.OrganizationName == Organization.OrganizationUnknown).OrganizationID;
