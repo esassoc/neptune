@@ -83,6 +83,7 @@ export class CustomAttributesComponent implements OnInit {
                 const actions: any[] = [
                     {
                         ActionName: "View",
+                        ActionIcon: "fas fa-file-alt",
                         ActionHandler: () => this.router.navigate(["/manage/custom-attributes", id]),
                     },
                     {
@@ -94,7 +95,7 @@ export class CustomAttributesComponent implements OnInit {
                 if (!isModeling) {
                     actions.push({
                         ActionName: "Delete",
-                        ActionIcon: "fa fa-trash text-danger",
+                        ActionIcon: "fas fa-trash text-danger",
                         ActionHandler: () => this.confirmDelete(row),
                     });
                 }

@@ -48,7 +48,7 @@ export class TrashOvtaIndexComponent {
         this.ovtaColumnDefs = [
             this.utilityFunctionsService.createActionsColumnDef((params: any) => {
                 return [
-                    { ActionName: "View", ActionHandler: () => this.router.navigate(["trash", "onland-visual-trash-assessments", params.data.OnlandVisualTrashAssessmentID]) },
+                    { ActionName: "View", ActionIcon: "fas fa-file-alt", ActionHandler: () => this.router.navigate(["trash", "onland-visual-trash-assessments", params.data.OnlandVisualTrashAssessmentID]) },
                     {
                         ActionName: params.data.OnlandVisualTrashAssessmentStatusID == OnlandVisualTrashAssessmentStatusEnum.Complete ? "Return to Edit" : "Edit",
                         ActionIcon: "fas fa-edit",
@@ -59,6 +59,7 @@ export class TrashOvtaIndexComponent {
                     },
                     {
                         ActionName: "Delete",
+                        ActionIcon: "fas fa-trash text-danger",
                         ActionHandler: () =>
                             this.deleteOVTA(
                                 params.data.OnlandVisualTrashAssessmentID,

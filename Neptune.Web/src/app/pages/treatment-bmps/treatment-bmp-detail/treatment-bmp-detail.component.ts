@@ -225,6 +225,7 @@ export class TreatmentBmpDetailComponent implements OnInit, OnChanges {
                 const actions: { ActionName: string; ActionIcon?: string; ActionLink?: string; ActionHandler?: () => void }[] = [
                     {
                         ActionName: editable ? "Continue" : "View",
+                        ActionIcon: editable ? "fas fa-edit" : "fas fa-file-alt",
                         ActionLink: editable
                             ? `/field-visits/${visit.FieldVisitID}`
                             : `/field-visits/${visit.FieldVisitID}/view`,
@@ -233,7 +234,7 @@ export class TreatmentBmpDetailComponent implements OnInit, OnChanges {
                 if (this.currentPersonCanManage) {
                     actions.push({
                         ActionName: "Delete",
-                        ActionIcon: "fa fa-trash text-danger",
+                        ActionIcon: "fas fa-trash text-danger",
                         ActionHandler: () => this.deleteFieldVisit(params),
                     });
                 }

@@ -46,7 +46,7 @@ export class UsersComponent implements OnInit {
                 ...this.utilityFunctions.createActionsColumnDef((params: any) => [
                     {
                         ActionName: "Delete",
-                        ActionIcon: "fa fa-trash text-danger",
+                        ActionIcon: "fas fa-trash text-danger",
                         ActionHandler: () => this.deleteUser(params.data),
                     },
                 ]),

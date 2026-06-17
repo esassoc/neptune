@@ -90,12 +90,12 @@ export class FieldVisitsTabComponent {
                 return [
                     {
                         ActionName: inProgress ? "Continue" : "View",
-                        ActionIcon: inProgress ? "fa fa-pencil" : "fa fa-eye",
+                        ActionIcon: inProgress ? "fas fa-edit" : "fas fa-file-alt",
                         ActionHandler: () => this.router.navigate(target),
                     },
                     {
                         ActionName: "Delete",
-                        ActionIcon: "fa fa-trash text-danger",
+                        ActionIcon: "fas fa-trash text-danger",
                         ActionHandler: () => this.delete(row),
                     },
                 ];

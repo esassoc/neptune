@@ -51,6 +51,7 @@ export class WqmpVerificationsComponent {
                 const actions: any[] = [
                     {
                         ActionName: "View",
+                        ActionIcon: "fas fa-file-alt",
                         ActionHandler: () => this.router.navigate(["/water-quality-management-plans", wqmpID, "verifications", verifyID, "view"]),
                     },
                 ];
@@ -62,7 +63,7 @@ export class WqmpVerificationsComponent {
                     });
                     actions.push({
                         ActionName: "Delete",
-                        ActionIcon: "fa fa-trash text-danger",
+                        ActionIcon: "fas fa-trash text-danger",
                         ActionHandler: () => this.confirmDeleteVerification(wqmpID, verifyID, params.data.WaterQualityManagementPlanName, params.data.VerificationDate),
                     });
                 }

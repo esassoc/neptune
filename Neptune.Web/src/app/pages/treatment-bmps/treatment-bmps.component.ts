@@ -69,17 +69,19 @@ export class TreatmentBmpsComponent {
                 const actions: { ActionName: string; ActionIcon?: string; ActionHandler: () => void }[] = [
                     {
                         ActionName: "View",
+                        ActionIcon: "fas fa-file-alt",
                         ActionHandler: () => this.router.navigate(["/treatment-bmps", params.data.TreatmentBMPID]),
                     },
                 ];
                 if (canEdit) {
                     actions.push({
                         ActionName: "Start Field Visit",
+                        ActionIcon: "fas fa-clipboard-check",
                         ActionHandler: () => this.openBeginFieldVisitModal(params.data.TreatmentBMPID),
                     });
                     actions.push({
                         ActionName: "Delete",
-                        ActionIcon: "fa fa-trash text-danger",
+                        ActionIcon: "fas fa-trash text-danger",
                         ActionHandler: () => this.deleteModal(params),
                     });
                 }

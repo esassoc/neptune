@@ -82,13 +82,13 @@ export class DelineationsTabComponent {
                 return [
                     {
                         ActionName: "View on Map",
-                        ActionIcon: "fas fa-map-location-dot",
+                        ActionIcon: "fas fa-map-marked-alt",
                         ActionHandler: () =>
                             this.router.navigate(["/delineation/delineation-map"], { queryParams: { treatmentBMPID: row.TreatmentBMPID } }),
                     },
                     {
                         ActionName: "Delete",
-                        ActionIcon: "fa fa-trash text-danger",
+                        ActionIcon: "fas fa-trash text-danger",
                         ActionHandler: () => this.delete(row),
                     },
                 ];
