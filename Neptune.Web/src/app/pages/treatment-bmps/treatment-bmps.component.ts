@@ -212,7 +212,12 @@ export class TreatmentBmpsComponent {
     }
 
     onFilterChange(): void {
-        this.filter$.next({ typeIDs: this.selectedTypeIDs, jurisdictionIDs: this.selectedJurisdictionIDs });
+        // ng-select sets the model to null when the clear-all (x) button is used; normalize to []
+        // and clone so the emitted filter state stays immutable and the length checks never throw.
+        this.filter$.next({
+            typeIDs: [...(this.selectedTypeIDs ?? [])],
+            jurisdictionIDs: [...(this.selectedJurisdictionIDs ?? [])],
+        });
     }
 
     handleMapReady(event: any) {

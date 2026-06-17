@@ -39,6 +39,15 @@ export class ZoomToMyLocationControlComponent implements OnChanges, OnDestroy {
                     L.DomEvent.preventDefault(e);
                     this.zoomToMyLocation();
                 });
+                // Keyboard accessibility: the control is an <a role="button">, so activate it on
+                // Enter/Space for non-mouse users.
+                L.DomEvent.on(button, "keydown", (e: Event) => {
+                    const key = (e as KeyboardEvent).key;
+                    if (key === "Enter" || key === " " || key === "Spacebar") {
+                        L.DomEvent.preventDefault(e);
+                        this.zoomToMyLocation();
+                    }
+                });
                 return container;
             },
         });
