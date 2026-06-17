@@ -1,5 +1,5 @@
 @if (detail$ | async; as detail) {
-    <page-header [pageTitle]="detail.FirstName + ' ' + detail.LastName" [templateAbove]="templateAbove" [templateRight]="headerActions">
+    <page-header [pageTitle]="((detail.FirstName || '') + ' ' + (detail.LastName || '')).trim() || detail.Email || 'Unknown User'" [templateAbove]="templateAbove" [templateRight]="headerActions">
         <ng-template #templateAbove>
             <!-- NPT-999 r3 (KE 5/20/26): the back-link only renders for Admin / SitkaAdmin
                  viewers since the /users list itself is now guarded to those roles. Jurisdiction
@@ -45,10 +45,10 @@
                 <div class="card-body">
                     <dl class="grid-12 key-value-list">
                         <dt class="g-col-5">First Name</dt>
-                        <dd class="g-col-7">{{ detail.FirstName }}</dd>
+                        <dd class="g-col-7">{{ detail.FirstName || "—" }}</dd>
 
                         <dt class="g-col-5">Last Name</dt>
-                        <dd class="g-col-7">{{ detail.LastName }}</dd>
+                        <dd class="g-col-7">{{ detail.LastName || "—" }}</dd>
 
                         <dt class="g-col-5">Email</dt>
                         <dd class="g-col-7">{{ detail.Email }}</dd>

@@ -7,7 +7,7 @@
     <form [formGroup]="formGroup">
         <form-field
             size="md"
-            [fieldLabel]="mode === 'add' ? 'File' : 'Replace File (optional)'"
+            [fieldLabel]="mode === 'add' ? 'File' : 'Replace File'"
             [type]="FormFieldType.File"
             [formControl]="fileControl"
             [uploadFileAccepts]="uploadFileAccepts"
@@ -52,5 +52,5 @@
 </div>
 <div class="modal-footer">
     <button class="btn btn-primary" (click)="save()" [disabled]="isSaving()">{{ mode === "add" ? "Upload" : "Save" }}</button>
-    <button class="btn btn-secondary-outline" (click)="cancel()" [disabled]="isSaving()">Cancel</button>
+    <button class="btn btn-primary-outline" (click)="cancel()" [disabled]="isSaving()">Cancel</button>
 </div>

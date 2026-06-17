@@ -5,6 +5,13 @@
     font-size: $type-size-200;
     border-collapse: separate;
 
+    // Center-aligned cells (header + body). Previously referenced as an undefined class;
+    // scoped under .table so it out-specifies the default left-aligned th/td rules.
+    th.cell-center,
+    td.cell-center {
+        text-align: center;
+    }
+
     thead {
         th {
             text-align: left;

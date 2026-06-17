@@ -81,7 +81,7 @@
               <form-field [formControl]="closeNotesControl" [type]="FormFieldType.Textarea" fieldLabel="Close Notes"></form-field>
               <div class="actions">
                 <button type="button" class="btn btn-primary" [disabled]="saving$ | async" (click)="submitClose()">Save</button>
-                <button type="button" class="btn btn-secondary" (click)="cancelClose()">Cancel</button>
+                <button type="button" class="btn btn-primary-outline" (click)="cancelClose()">Cancel</button>
               </div>
             </div>
           </div>

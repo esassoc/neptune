@@ -83,7 +83,7 @@
                                 <div class="inline-actions">
                                     <button type="button" class="btn btn-sm btn-primary" [disabled]="!selectedFlowType" (click)="beginDelineate()">Delineate</button>
                                     @if (choosingFlowType()) {
-                                        <button type="button" class="btn btn-sm btn-secondary" (click)="closeFlowTypeChooser()">Cancel</button>
+                                        <button type="button" class="btn btn-sm btn-primary-outline" (click)="closeFlowTypeChooser()">Cancel</button>
                                     }
                                 </div>
                             }
@@ -98,7 +98,7 @@
                             </p>
                             <div class="inline-actions">
                                 <button type="button" class="btn btn-sm btn-primary" [disabled]="saving$ | async" (click)="saveEdit()">Save</button>
-                                <button type="button" class="btn btn-sm btn-secondary" (click)="cancelEdit()">Cancel</button>
+                                <button type="button" class="btn btn-sm btn-primary-outline" (click)="cancelEdit()">Cancel</button>
                             </div>
                             @if (mode === "editingCentralized") {
                                 <!-- NPT-981 r3 (KE id-22): offer Request Revision during the trace, not only
