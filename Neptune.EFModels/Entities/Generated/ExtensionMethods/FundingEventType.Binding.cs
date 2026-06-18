@@ -85,6 +85,30 @@ namespace Neptune.EFModels.Entities
         }
 
         public FundingEventTypeEnum ToEnum => (FundingEventTypeEnum)GetHashCode();
+
+        public static FundingEventType ToType(int enumValue)
+        {
+            return ToType((FundingEventTypeEnum)enumValue);
+        }
+
+        public static FundingEventType ToType(FundingEventTypeEnum enumValue)
+        {
+            switch (enumValue)
+            {
+                case FundingEventTypeEnum.CapitalConstruction:
+                    return CapitalConstruction;
+                case FundingEventTypeEnum.PlanningAndDesign:
+                    return PlanningAndDesign;
+                case FundingEventTypeEnum.RehabilitativeMaintenance:
+                    return RehabilitativeMaintenance;
+                case FundingEventTypeEnum.Retrofit:
+                    return Retrofit;
+                case FundingEventTypeEnum.RoutineMaintenance:
+                    return RoutineMaintenance;
+                default:
+                    throw new ArgumentException("Unable to map Enum: {enumValue}");
+            }
+        }
     }
 
     public enum FundingEventTypeEnum

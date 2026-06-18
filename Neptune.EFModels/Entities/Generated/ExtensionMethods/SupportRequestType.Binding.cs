@@ -89,6 +89,34 @@ namespace Neptune.EFModels.Entities
         }
 
         public SupportRequestTypeEnum ToEnum => (SupportRequestTypeEnum)GetHashCode();
+
+        public static SupportRequestType ToType(int enumValue)
+        {
+            return ToType((SupportRequestTypeEnum)enumValue);
+        }
+
+        public static SupportRequestType ToType(SupportRequestTypeEnum enumValue)
+        {
+            switch (enumValue)
+            {
+                case SupportRequestTypeEnum.ForgotLoginInfo:
+                    return ForgotLoginInfo;
+                case SupportRequestTypeEnum.NewOrganization:
+                    return NewOrganization;
+                case SupportRequestTypeEnum.Other:
+                    return Other;
+                case SupportRequestTypeEnum.ProvideFeedback:
+                    return ProvideFeedback;
+                case SupportRequestTypeEnum.ReportBug:
+                    return ReportBug;
+                case SupportRequestTypeEnum.RequestOrganizationNameChange:
+                    return RequestOrganizationNameChange;
+                case SupportRequestTypeEnum.RequestToChangeUserAccountPrivileges:
+                    return RequestToChangeUserAccountPrivileges;
+                default:
+                    throw new ArgumentException("Unable to map Enum: {enumValue}");
+            }
+        }
     }
 
     public enum SupportRequestTypeEnum

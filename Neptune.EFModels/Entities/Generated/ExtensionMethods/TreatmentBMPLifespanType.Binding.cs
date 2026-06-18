@@ -83,6 +83,26 @@ namespace Neptune.EFModels.Entities
         }
 
         public TreatmentBMPLifespanTypeEnum ToEnum => (TreatmentBMPLifespanTypeEnum)GetHashCode();
+
+        public static TreatmentBMPLifespanType ToType(int enumValue)
+        {
+            return ToType((TreatmentBMPLifespanTypeEnum)enumValue);
+        }
+
+        public static TreatmentBMPLifespanType ToType(TreatmentBMPLifespanTypeEnum enumValue)
+        {
+            switch (enumValue)
+            {
+                case TreatmentBMPLifespanTypeEnum.FixedEndDate:
+                    return FixedEndDate;
+                case TreatmentBMPLifespanTypeEnum.Perpetuity:
+                    return Perpetuity;
+                case TreatmentBMPLifespanTypeEnum.Unspecified:
+                    return Unspecified;
+                default:
+                    throw new ArgumentException("Unable to map Enum: {enumValue}");
+            }
+        }
     }
 
     public enum TreatmentBMPLifespanTypeEnum

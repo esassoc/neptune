@@ -90,6 +90,32 @@ namespace Neptune.EFModels.Entities
         }
 
         public CustomAttributeDataTypeEnum ToEnum => (CustomAttributeDataTypeEnum)GetHashCode();
+
+        public static CustomAttributeDataType ToType(int enumValue)
+        {
+            return ToType((CustomAttributeDataTypeEnum)enumValue);
+        }
+
+        public static CustomAttributeDataType ToType(CustomAttributeDataTypeEnum enumValue)
+        {
+            switch (enumValue)
+            {
+                case CustomAttributeDataTypeEnum.DateTime:
+                    return DateTime;
+                case CustomAttributeDataTypeEnum.Decimal:
+                    return Decimal;
+                case CustomAttributeDataTypeEnum.Integer:
+                    return Integer;
+                case CustomAttributeDataTypeEnum.MultiSelect:
+                    return MultiSelect;
+                case CustomAttributeDataTypeEnum.PickFromList:
+                    return PickFromList;
+                case CustomAttributeDataTypeEnum.String:
+                    return String;
+                default:
+                    throw new ArgumentException("Unable to map Enum: {enumValue}");
+            }
+        }
     }
 
     public enum CustomAttributeDataTypeEnum

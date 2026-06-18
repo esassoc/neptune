@@ -82,6 +82,24 @@ namespace Neptune.EFModels.Entities
         }
 
         public OnlandVisualTrashAssessmentStatusEnum ToEnum => (OnlandVisualTrashAssessmentStatusEnum)GetHashCode();
+
+        public static OnlandVisualTrashAssessmentStatus ToType(int enumValue)
+        {
+            return ToType((OnlandVisualTrashAssessmentStatusEnum)enumValue);
+        }
+
+        public static OnlandVisualTrashAssessmentStatus ToType(OnlandVisualTrashAssessmentStatusEnum enumValue)
+        {
+            switch (enumValue)
+            {
+                case OnlandVisualTrashAssessmentStatusEnum.Complete:
+                    return Complete;
+                case OnlandVisualTrashAssessmentStatusEnum.InProgress:
+                    return InProgress;
+                default:
+                    throw new ArgumentException("Unable to map Enum: {enumValue}");
+            }
+        }
     }
 
     public enum OnlandVisualTrashAssessmentStatusEnum

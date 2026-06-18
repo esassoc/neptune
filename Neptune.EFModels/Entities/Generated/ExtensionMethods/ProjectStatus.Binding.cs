@@ -81,6 +81,22 @@ namespace Neptune.EFModels.Entities
         }
 
         public ProjectStatusEnum ToEnum => (ProjectStatusEnum)GetHashCode();
+
+        public static ProjectStatus ToType(int enumValue)
+        {
+            return ToType((ProjectStatusEnum)enumValue);
+        }
+
+        public static ProjectStatus ToType(ProjectStatusEnum enumValue)
+        {
+            switch (enumValue)
+            {
+                case ProjectStatusEnum.Draft:
+                    return Draft;
+                default:
+                    throw new ArgumentException("Unable to map Enum: {enumValue}");
+            }
+        }
     }
 
     public enum ProjectStatusEnum

@@ -83,6 +83,26 @@ namespace Neptune.EFModels.Entities
         }
 
         public CustomAttributeTypePurposeEnum ToEnum => (CustomAttributeTypePurposeEnum)GetHashCode();
+
+        public static CustomAttributeTypePurpose ToType(int enumValue)
+        {
+            return ToType((CustomAttributeTypePurposeEnum)enumValue);
+        }
+
+        public static CustomAttributeTypePurpose ToType(CustomAttributeTypePurposeEnum enumValue)
+        {
+            switch (enumValue)
+            {
+                case CustomAttributeTypePurposeEnum.Maintenance:
+                    return Maintenance;
+                case CustomAttributeTypePurposeEnum.Modeling:
+                    return Modeling;
+                case CustomAttributeTypePurposeEnum.OtherDesignAttributes:
+                    return OtherDesignAttributes;
+                default:
+                    throw new ArgumentException("Unable to map Enum: {enumValue}");
+            }
+        }
     }
 
     public enum CustomAttributeTypePurposeEnum

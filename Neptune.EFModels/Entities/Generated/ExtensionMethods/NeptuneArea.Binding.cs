@@ -89,6 +89,30 @@ namespace Neptune.EFModels.Entities
         }
 
         public NeptuneAreaEnum ToEnum => (NeptuneAreaEnum)GetHashCode();
+
+        public static NeptuneArea ToType(int enumValue)
+        {
+            return ToType((NeptuneAreaEnum)enumValue);
+        }
+
+        public static NeptuneArea ToType(NeptuneAreaEnum enumValue)
+        {
+            switch (enumValue)
+            {
+                case NeptuneAreaEnum.AI:
+                    return AI;
+                case NeptuneAreaEnum.Modeling:
+                    return Modeling;
+                case NeptuneAreaEnum.OCStormwaterTools:
+                    return OCStormwaterTools;
+                case NeptuneAreaEnum.Planning:
+                    return Planning;
+                case NeptuneAreaEnum.Trash:
+                    return Trash;
+                default:
+                    throw new ArgumentException("Unable to map Enum: {enumValue}");
+            }
+        }
     }
 
     public enum NeptuneAreaEnum

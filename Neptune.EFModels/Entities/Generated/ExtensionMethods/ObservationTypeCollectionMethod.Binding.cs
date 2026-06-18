@@ -85,6 +85,26 @@ namespace Neptune.EFModels.Entities
         }
 
         public ObservationTypeCollectionMethodEnum ToEnum => (ObservationTypeCollectionMethodEnum)GetHashCode();
+
+        public static ObservationTypeCollectionMethod ToType(int enumValue)
+        {
+            return ToType((ObservationTypeCollectionMethodEnum)enumValue);
+        }
+
+        public static ObservationTypeCollectionMethod ToType(ObservationTypeCollectionMethodEnum enumValue)
+        {
+            switch (enumValue)
+            {
+                case ObservationTypeCollectionMethodEnum.DiscreteValue:
+                    return DiscreteValue;
+                case ObservationTypeCollectionMethodEnum.PassFail:
+                    return PassFail;
+                case ObservationTypeCollectionMethodEnum.Percentage:
+                    return Percentage;
+                default:
+                    throw new ArgumentException("Unable to map Enum: {enumValue}");
+            }
+        }
     }
 
     public enum ObservationTypeCollectionMethodEnum

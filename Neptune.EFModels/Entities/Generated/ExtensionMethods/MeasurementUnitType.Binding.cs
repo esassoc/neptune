@@ -111,6 +111,66 @@ namespace Neptune.EFModels.Entities
         }
 
         public MeasurementUnitTypeEnum ToEnum => (MeasurementUnitTypeEnum)GetHashCode();
+
+        public static MeasurementUnitType ToType(int enumValue)
+        {
+            return ToType((MeasurementUnitTypeEnum)enumValue);
+        }
+
+        public static MeasurementUnitType ToType(MeasurementUnitTypeEnum enumValue)
+        {
+            switch (enumValue)
+            {
+                case MeasurementUnitTypeEnum.Acres:
+                    return Acres;
+                case MeasurementUnitTypeEnum.Count:
+                    return Count;
+                case MeasurementUnitTypeEnum.CubicFeet:
+                    return CubicFeet;
+                case MeasurementUnitTypeEnum.CubicFeetPerSecond:
+                    return CubicFeetPerSecond;
+                case MeasurementUnitTypeEnum.CubicYards:
+                    return CubicYards;
+                case MeasurementUnitTypeEnum.Feet:
+                    return Feet;
+                case MeasurementUnitTypeEnum.Gallons:
+                    return Gallons;
+                case MeasurementUnitTypeEnum.GallonsPerDay:
+                    return GallonsPerDay;
+                case MeasurementUnitTypeEnum.Hours:
+                    return Hours;
+                case MeasurementUnitTypeEnum.Inches:
+                    return Inches;
+                case MeasurementUnitTypeEnum.InchesPerHour:
+                    return InchesPerHour;
+                case MeasurementUnitTypeEnum.Kilogram:
+                    return Kilogram;
+                case MeasurementUnitTypeEnum.Meters:
+                    return Meters;
+                case MeasurementUnitTypeEnum.MilligamsPerLiter:
+                    return MilligamsPerLiter;
+                case MeasurementUnitTypeEnum.Minutes:
+                    return Minutes;
+                case MeasurementUnitTypeEnum.Percent:
+                    return Percent;
+                case MeasurementUnitTypeEnum.PercentDecline:
+                    return PercentDecline;
+                case MeasurementUnitTypeEnum.PercentDeviation:
+                    return PercentDeviation;
+                case MeasurementUnitTypeEnum.PercentIncrease:
+                    return PercentIncrease;
+                case MeasurementUnitTypeEnum.Pounds:
+                    return Pounds;
+                case MeasurementUnitTypeEnum.Seconds:
+                    return Seconds;
+                case MeasurementUnitTypeEnum.SquareFeet:
+                    return SquareFeet;
+                case MeasurementUnitTypeEnum.Tons:
+                    return Tons;
+                default:
+                    throw new ArgumentException("Unable to map Enum: {enumValue}");
+            }
+        }
     }
 
     public enum MeasurementUnitTypeEnum

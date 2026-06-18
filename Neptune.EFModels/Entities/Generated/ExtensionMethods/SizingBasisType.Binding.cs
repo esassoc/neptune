@@ -84,6 +84,28 @@ namespace Neptune.EFModels.Entities
         }
 
         public SizingBasisTypeEnum ToEnum => (SizingBasisTypeEnum)GetHashCode();
+
+        public static SizingBasisType ToType(int enumValue)
+        {
+            return ToType((SizingBasisTypeEnum)enumValue);
+        }
+
+        public static SizingBasisType ToType(SizingBasisTypeEnum enumValue)
+        {
+            switch (enumValue)
+            {
+                case SizingBasisTypeEnum.FullTrashCapture:
+                    return FullTrashCapture;
+                case SizingBasisTypeEnum.NotProvided:
+                    return NotProvided;
+                case SizingBasisTypeEnum.Other:
+                    return Other;
+                case SizingBasisTypeEnum.WaterQuality:
+                    return WaterQuality;
+                default:
+                    throw new ArgumentException("Unable to map Enum: {enumValue}");
+            }
+        }
     }
 
     public enum SizingBasisTypeEnum

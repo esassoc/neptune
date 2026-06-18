@@ -82,6 +82,24 @@ namespace Neptune.EFModels.Entities
         }
 
         public WaterQualityManagementPlanVisitStatusEnum ToEnum => (WaterQualityManagementPlanVisitStatusEnum)GetHashCode();
+
+        public static WaterQualityManagementPlanVisitStatus ToType(int enumValue)
+        {
+            return ToType((WaterQualityManagementPlanVisitStatusEnum)enumValue);
+        }
+
+        public static WaterQualityManagementPlanVisitStatus ToType(WaterQualityManagementPlanVisitStatusEnum enumValue)
+        {
+            switch (enumValue)
+            {
+                case WaterQualityManagementPlanVisitStatusEnum.FollowupVerification:
+                    return FollowupVerification;
+                case WaterQualityManagementPlanVisitStatusEnum.InitialAnnualVerification:
+                    return InitialAnnualVerification;
+                default:
+                    throw new ArgumentException("Unable to map Enum: {enumValue}");
+            }
+        }
     }
 
     public enum WaterQualityManagementPlanVisitStatusEnum

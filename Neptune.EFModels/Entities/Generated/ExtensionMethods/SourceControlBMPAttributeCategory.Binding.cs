@@ -83,6 +83,26 @@ namespace Neptune.EFModels.Entities
         }
 
         public SourceControlBMPAttributeCategoryEnum ToEnum => (SourceControlBMPAttributeCategoryEnum)GetHashCode();
+
+        public static SourceControlBMPAttributeCategory ToType(int enumValue)
+        {
+            return ToType((SourceControlBMPAttributeCategoryEnum)enumValue);
+        }
+
+        public static SourceControlBMPAttributeCategory ToType(SourceControlBMPAttributeCategoryEnum enumValue)
+        {
+            switch (enumValue)
+            {
+                case SourceControlBMPAttributeCategoryEnum.ApplicableRoutineNonStructuralSourceControlBMPs:
+                    return ApplicableRoutineNonStructuralSourceControlBMPs;
+                case SourceControlBMPAttributeCategoryEnum.ApplicableRoutineStructuralSourceControlBMPs:
+                    return ApplicableRoutineStructuralSourceControlBMPs;
+                case SourceControlBMPAttributeCategoryEnum.HydrologicSourceControlandSiteDesignBMPs:
+                    return HydrologicSourceControlandSiteDesignBMPs;
+                default:
+                    throw new ArgumentException("Unable to map Enum: {enumValue}");
+            }
+        }
     }
 
     public enum SourceControlBMPAttributeCategoryEnum

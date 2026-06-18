@@ -83,6 +83,26 @@ namespace Neptune.EFModels.Entities
         }
 
         public FieldVisitTypeEnum ToEnum => (FieldVisitTypeEnum)GetHashCode();
+
+        public static FieldVisitType ToType(int enumValue)
+        {
+            return ToType((FieldVisitTypeEnum)enumValue);
+        }
+
+        public static FieldVisitType ToType(FieldVisitTypeEnum enumValue)
+        {
+            switch (enumValue)
+            {
+                case FieldVisitTypeEnum.DryWeather:
+                    return DryWeather;
+                case FieldVisitTypeEnum.PostStormAssessment:
+                    return PostStormAssessment;
+                case FieldVisitTypeEnum.WetWeather:
+                    return WetWeather;
+                default:
+                    throw new ArgumentException("Unable to map Enum: {enumValue}");
+            }
+        }
     }
 
     public enum FieldVisitTypeEnum

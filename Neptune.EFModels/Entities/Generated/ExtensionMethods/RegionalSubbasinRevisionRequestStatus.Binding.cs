@@ -82,6 +82,24 @@ namespace Neptune.EFModels.Entities
         }
 
         public RegionalSubbasinRevisionRequestStatusEnum ToEnum => (RegionalSubbasinRevisionRequestStatusEnum)GetHashCode();
+
+        public static RegionalSubbasinRevisionRequestStatus ToType(int enumValue)
+        {
+            return ToType((RegionalSubbasinRevisionRequestStatusEnum)enumValue);
+        }
+
+        public static RegionalSubbasinRevisionRequestStatus ToType(RegionalSubbasinRevisionRequestStatusEnum enumValue)
+        {
+            switch (enumValue)
+            {
+                case RegionalSubbasinRevisionRequestStatusEnum.Closed:
+                    return Closed;
+                case RegionalSubbasinRevisionRequestStatusEnum.Open:
+                    return Open;
+                default:
+                    throw new ArgumentException("Unable to map Enum: {enumValue}");
+            }
+        }
     }
 
     public enum RegionalSubbasinRevisionRequestStatusEnum

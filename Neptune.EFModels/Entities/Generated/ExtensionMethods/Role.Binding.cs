@@ -87,6 +87,30 @@ namespace Neptune.EFModels.Entities
         }
 
         public RoleEnum ToEnum => (RoleEnum)GetHashCode();
+
+        public static Role ToType(int enumValue)
+        {
+            return ToType((RoleEnum)enumValue);
+        }
+
+        public static Role ToType(RoleEnum enumValue)
+        {
+            switch (enumValue)
+            {
+                case RoleEnum.Admin:
+                    return Admin;
+                case RoleEnum.JurisdictionEditor:
+                    return JurisdictionEditor;
+                case RoleEnum.JurisdictionManager:
+                    return JurisdictionManager;
+                case RoleEnum.SitkaAdmin:
+                    return SitkaAdmin;
+                case RoleEnum.Unassigned:
+                    return Unassigned;
+                default:
+                    throw new ArgumentException("Unable to map Enum: {enumValue}");
+            }
+        }
     }
 
     public enum RoleEnum

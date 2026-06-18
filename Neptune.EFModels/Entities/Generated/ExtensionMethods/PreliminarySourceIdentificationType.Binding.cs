@@ -98,6 +98,52 @@ namespace Neptune.EFModels.Entities
         }
 
         public PreliminarySourceIdentificationTypeEnum ToEnum => (PreliminarySourceIdentificationTypeEnum)GetHashCode();
+
+        public static PreliminarySourceIdentificationType ToType(int enumValue)
+        {
+            return ToType((PreliminarySourceIdentificationTypeEnum)enumValue);
+        }
+
+        public static PreliminarySourceIdentificationType ToType(PreliminarySourceIdentificationTypeEnum enumValue)
+        {
+            switch (enumValue)
+            {
+                case PreliminarySourceIdentificationTypeEnum.BusStops:
+                    return BusStops;
+                case PreliminarySourceIdentificationTypeEnum.ConvenienceStores:
+                    return ConvenienceStores;
+                case PreliminarySourceIdentificationTypeEnum.Homelessencampments:
+                    return Homelessencampments;
+                case PreliminarySourceIdentificationTypeEnum.IllegalDumpingOnLand:
+                    return IllegalDumpingOnLand;
+                case PreliminarySourceIdentificationTypeEnum.IllegalDumpingOther:
+                    return IllegalDumpingOther;
+                case PreliminarySourceIdentificationTypeEnum.InadequateWasteContainerManagementOther:
+                    return InadequateWasteContainerManagementOther;
+                case PreliminarySourceIdentificationTypeEnum.LiquorStores:
+                    return LiquorStores;
+                case PreliminarySourceIdentificationTypeEnum.MovingVehicles:
+                    return MovingVehicles;
+                case PreliminarySourceIdentificationTypeEnum.OverflowingReceptacles:
+                    return OverflowingReceptacles;
+                case PreliminarySourceIdentificationTypeEnum.ParkedCars:
+                    return ParkedCars;
+                case PreliminarySourceIdentificationTypeEnum.PedestrianLitterOther:
+                    return PedestrianLitterOther;
+                case PreliminarySourceIdentificationTypeEnum.Restaurants:
+                    return Restaurants;
+                case PreliminarySourceIdentificationTypeEnum.SpecialEvents:
+                    return SpecialEvents;
+                case PreliminarySourceIdentificationTypeEnum.TrashDispersal:
+                    return TrashDispersal;
+                case PreliminarySourceIdentificationTypeEnum.UncoveredLoads:
+                    return UncoveredLoads;
+                case PreliminarySourceIdentificationTypeEnum.VehiclesOther:
+                    return VehiclesOther;
+                default:
+                    throw new ArgumentException("Unable to map Enum: {enumValue}");
+            }
+        }
     }
 
     public enum PreliminarySourceIdentificationTypeEnum

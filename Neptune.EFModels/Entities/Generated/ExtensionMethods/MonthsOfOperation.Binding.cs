@@ -85,6 +85,26 @@ namespace Neptune.EFModels.Entities
         }
 
         public MonthsOfOperationEnum ToEnum => (MonthsOfOperationEnum)GetHashCode();
+
+        public static MonthsOfOperation ToType(int enumValue)
+        {
+            return ToType((MonthsOfOperationEnum)enumValue);
+        }
+
+        public static MonthsOfOperation ToType(MonthsOfOperationEnum enumValue)
+        {
+            switch (enumValue)
+            {
+                case MonthsOfOperationEnum.Both:
+                    return Both;
+                case MonthsOfOperationEnum.Summer:
+                    return Summer;
+                case MonthsOfOperationEnum.Winter:
+                    return Winter;
+                default:
+                    throw new ArgumentException("Unable to map Enum: {enumValue}");
+            }
+        }
     }
 
     public enum MonthsOfOperationEnum

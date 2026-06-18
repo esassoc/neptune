@@ -83,6 +83,26 @@ namespace Neptune.EFModels.Entities
         }
 
         public ObservationThresholdTypeEnum ToEnum => (ObservationThresholdTypeEnum)GetHashCode();
+
+        public static ObservationThresholdType ToType(int enumValue)
+        {
+            return ToType((ObservationThresholdTypeEnum)enumValue);
+        }
+
+        public static ObservationThresholdType ToType(ObservationThresholdTypeEnum enumValue)
+        {
+            switch (enumValue)
+            {
+                case ObservationThresholdTypeEnum.None:
+                    return None;
+                case ObservationThresholdTypeEnum.RelativeToBenchmark:
+                    return RelativeToBenchmark;
+                case ObservationThresholdTypeEnum.SpecificValue:
+                    return SpecificValue;
+                default:
+                    throw new ArgumentException("Unable to map Enum: {enumValue}");
+            }
+        }
     }
 
     public enum ObservationThresholdTypeEnum

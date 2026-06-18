@@ -89,6 +89,38 @@ namespace Neptune.EFModels.Entities
         }
 
         public WaterQualityManagementPlanPermitTermEnum ToEnum => (WaterQualityManagementPlanPermitTermEnum)GetHashCode();
+
+        public static WaterQualityManagementPlanPermitTerm ToType(int enumValue)
+        {
+            return ToType((WaterQualityManagementPlanPermitTermEnum)enumValue);
+        }
+
+        public static WaterQualityManagementPlanPermitTerm ToType(WaterQualityManagementPlanPermitTermEnum enumValue)
+        {
+            switch (enumValue)
+            {
+                case WaterQualityManagementPlanPermitTermEnum.NorthOCFirstTerm1990:
+                    return NorthOCFirstTerm1990;
+                case WaterQualityManagementPlanPermitTermEnum.NorthOCFourthTerm2009:
+                    return NorthOCFourthTerm2009;
+                case WaterQualityManagementPlanPermitTermEnum.NorthOCSecondTerm1996:
+                    return NorthOCSecondTerm1996;
+                case WaterQualityManagementPlanPermitTermEnum.NorthOCThirdTerm2002:
+                    return NorthOCThirdTerm2002;
+                case WaterQualityManagementPlanPermitTermEnum.SouthOCFirstTerm1990:
+                    return SouthOCFirstTerm1990;
+                case WaterQualityManagementPlanPermitTermEnum.SouthOCFithTerm2015:
+                    return SouthOCFithTerm2015;
+                case WaterQualityManagementPlanPermitTermEnum.SouthOCFourthTerm2009:
+                    return SouthOCFourthTerm2009;
+                case WaterQualityManagementPlanPermitTermEnum.SouthOCSecondTerm1996:
+                    return SouthOCSecondTerm1996;
+                case WaterQualityManagementPlanPermitTermEnum.SouthOCThirdTerm2002:
+                    return SouthOCThirdTerm2002;
+                default:
+                    throw new ArgumentException("Unable to map Enum: {enumValue}");
+            }
+        }
     }
 
     public enum WaterQualityManagementPlanPermitTermEnum

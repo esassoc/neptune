@@ -93,6 +93,38 @@ namespace Neptune.EFModels.Entities
         }
 
         public StormwaterBreadCrumbEntityEnum ToEnum => (StormwaterBreadCrumbEntityEnum)GetHashCode();
+
+        public static StormwaterBreadCrumbEntity ToType(int enumValue)
+        {
+            return ToType((StormwaterBreadCrumbEntityEnum)enumValue);
+        }
+
+        public static StormwaterBreadCrumbEntity ToType(StormwaterBreadCrumbEntityEnum enumValue)
+        {
+            switch (enumValue)
+            {
+                case StormwaterBreadCrumbEntityEnum.Assessments:
+                    return Assessments;
+                case StormwaterBreadCrumbEntityEnum.FieldRecords:
+                    return FieldRecords;
+                case StormwaterBreadCrumbEntityEnum.FieldVisits:
+                    return FieldVisits;
+                case StormwaterBreadCrumbEntityEnum.Jurisdiction:
+                    return Jurisdiction;
+                case StormwaterBreadCrumbEntityEnum.OnlandVisualTrashAssessment:
+                    return OnlandVisualTrashAssessment;
+                case StormwaterBreadCrumbEntityEnum.Parcel:
+                    return Parcel;
+                case StormwaterBreadCrumbEntityEnum.TreatmentBMP:
+                    return TreatmentBMP;
+                case StormwaterBreadCrumbEntityEnum.Users:
+                    return Users;
+                case StormwaterBreadCrumbEntityEnum.WaterQualityManagementPlan:
+                    return WaterQualityManagementPlan;
+                default:
+                    throw new ArgumentException("Unable to map Enum: {enumValue}");
+            }
+        }
     }
 
     public enum StormwaterBreadCrumbEntityEnum

@@ -84,6 +84,28 @@ namespace Neptune.EFModels.Entities
         }
 
         public PreliminarySourceIdentificationCategoryEnum ToEnum => (PreliminarySourceIdentificationCategoryEnum)GetHashCode();
+
+        public static PreliminarySourceIdentificationCategory ToType(int enumValue)
+        {
+            return ToType((PreliminarySourceIdentificationCategoryEnum)enumValue);
+        }
+
+        public static PreliminarySourceIdentificationCategory ToType(PreliminarySourceIdentificationCategoryEnum enumValue)
+        {
+            switch (enumValue)
+            {
+                case PreliminarySourceIdentificationCategoryEnum.IllegalDumping:
+                    return IllegalDumping;
+                case PreliminarySourceIdentificationCategoryEnum.InadequateWasteContainerManagement:
+                    return InadequateWasteContainerManagement;
+                case PreliminarySourceIdentificationCategoryEnum.PedestrianLitter:
+                    return PedestrianLitter;
+                case PreliminarySourceIdentificationCategoryEnum.Vehicles:
+                    return Vehicles;
+                default:
+                    throw new ArgumentException("Unable to map Enum: {enumValue}");
+            }
+        }
     }
 
     public enum PreliminarySourceIdentificationCategoryEnum
