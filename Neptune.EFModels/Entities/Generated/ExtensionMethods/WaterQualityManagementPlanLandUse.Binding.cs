@@ -91,38 +91,6 @@ namespace Neptune.EFModels.Entities
         }
 
         public WaterQualityManagementPlanLandUseEnum ToEnum => (WaterQualityManagementPlanLandUseEnum)GetHashCode();
-
-        public static WaterQualityManagementPlanLandUse ToType(int enumValue)
-        {
-            return ToType((WaterQualityManagementPlanLandUseEnum)enumValue);
-        }
-
-        public static WaterQualityManagementPlanLandUse ToType(WaterQualityManagementPlanLandUseEnum enumValue)
-        {
-            switch (enumValue)
-            {
-                case WaterQualityManagementPlanLandUseEnum.Commercial:
-                    return Commercial;
-                case WaterQualityManagementPlanLandUseEnum.Flood:
-                    return Flood;
-                case WaterQualityManagementPlanLandUseEnum.Industrial:
-                    return Industrial;
-                case WaterQualityManagementPlanLandUseEnum.Mixed:
-                    return Mixed;
-                case WaterQualityManagementPlanLandUseEnum.Municipal:
-                    return Municipal;
-                case WaterQualityManagementPlanLandUseEnum.Other:
-                    return Other;
-                case WaterQualityManagementPlanLandUseEnum.Park:
-                    return Park;
-                case WaterQualityManagementPlanLandUseEnum.Residential:
-                    return Residential;
-                case WaterQualityManagementPlanLandUseEnum.Road:
-                    return Road;
-                default:
-                    throw new ArgumentException("Unable to map Enum: {enumValue}");
-            }
-        }
     }
 
     public enum WaterQualityManagementPlanLandUseEnum

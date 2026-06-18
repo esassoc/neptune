@@ -83,26 +83,6 @@ namespace Neptune.EFModels.Entities
         }
 
         public StormwaterJurisdictionPublicWQMPVisibilityTypeEnum ToEnum => (StormwaterJurisdictionPublicWQMPVisibilityTypeEnum)GetHashCode();
-
-        public static StormwaterJurisdictionPublicWQMPVisibilityType ToType(int enumValue)
-        {
-            return ToType((StormwaterJurisdictionPublicWQMPVisibilityTypeEnum)enumValue);
-        }
-
-        public static StormwaterJurisdictionPublicWQMPVisibilityType ToType(StormwaterJurisdictionPublicWQMPVisibilityTypeEnum enumValue)
-        {
-            switch (enumValue)
-            {
-                case StormwaterJurisdictionPublicWQMPVisibilityTypeEnum.ActiveAndInactive:
-                    return ActiveAndInactive;
-                case StormwaterJurisdictionPublicWQMPVisibilityTypeEnum.ActiveOnly:
-                    return ActiveOnly;
-                case StormwaterJurisdictionPublicWQMPVisibilityTypeEnum.None:
-                    return None;
-                default:
-                    throw new ArgumentException("Unable to map Enum: {enumValue}");
-            }
-        }
     }
 
     public enum StormwaterJurisdictionPublicWQMPVisibilityTypeEnum

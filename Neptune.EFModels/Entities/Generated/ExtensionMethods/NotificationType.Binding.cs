@@ -81,22 +81,6 @@ namespace Neptune.EFModels.Entities
         }
 
         public NotificationTypeEnum ToEnum => (NotificationTypeEnum)GetHashCode();
-
-        public static NotificationType ToType(int enumValue)
-        {
-            return ToType((NotificationTypeEnum)enumValue);
-        }
-
-        public static NotificationType ToType(NotificationTypeEnum enumValue)
-        {
-            switch (enumValue)
-            {
-                case NotificationTypeEnum.Custom:
-                    return Custom;
-                default:
-                    throw new ArgumentException("Unable to map Enum: {enumValue}");
-            }
-        }
     }
 
     public enum NotificationTypeEnum

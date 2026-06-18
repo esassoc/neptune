@@ -102,64 +102,6 @@ namespace Neptune.EFModels.Entities
         }
 
         public TreatmentBMPModelingTypeEnum ToEnum => (TreatmentBMPModelingTypeEnum)GetHashCode();
-
-        public static TreatmentBMPModelingType ToType(int enumValue)
-        {
-            return ToType((TreatmentBMPModelingTypeEnum)enumValue);
-        }
-
-        public static TreatmentBMPModelingType ToType(TreatmentBMPModelingTypeEnum enumValue)
-        {
-            switch (enumValue)
-            {
-                case TreatmentBMPModelingTypeEnum.BioinfiltrationBioretentionWithRaisedUnderdrain:
-                    return BioinfiltrationBioretentionWithRaisedUnderdrain;
-                case TreatmentBMPModelingTypeEnum.BioretentionWithNoUnderdrain:
-                    return BioretentionWithNoUnderdrain;
-                case TreatmentBMPModelingTypeEnum.BioretentionWithUnderdrainAndImperviousLiner:
-                    return BioretentionWithUnderdrainAndImperviousLiner;
-                case TreatmentBMPModelingTypeEnum.CisternsForHarvestAndUse:
-                    return CisternsForHarvestAndUse;
-                case TreatmentBMPModelingTypeEnum.ConstructedWetland:
-                    return ConstructedWetland;
-                case TreatmentBMPModelingTypeEnum.DryExtendedDetentionBasin:
-                    return DryExtendedDetentionBasin;
-                case TreatmentBMPModelingTypeEnum.DryWeatherTreatmentSystems:
-                    return DryWeatherTreatmentSystems;
-                case TreatmentBMPModelingTypeEnum.Drywell:
-                    return Drywell;
-                case TreatmentBMPModelingTypeEnum.FlowDurationControlBasin:
-                    return FlowDurationControlBasin;
-                case TreatmentBMPModelingTypeEnum.FlowDurationControlTank:
-                    return FlowDurationControlTank;
-                case TreatmentBMPModelingTypeEnum.HydrodynamicSeparator:
-                    return HydrodynamicSeparator;
-                case TreatmentBMPModelingTypeEnum.InfiltrationBasin:
-                    return InfiltrationBasin;
-                case TreatmentBMPModelingTypeEnum.InfiltrationTrench:
-                    return InfiltrationTrench;
-                case TreatmentBMPModelingTypeEnum.LowFlowDiversions:
-                    return LowFlowDiversions;
-                case TreatmentBMPModelingTypeEnum.PermeablePavement:
-                    return PermeablePavement;
-                case TreatmentBMPModelingTypeEnum.ProprietaryBiotreatment:
-                    return ProprietaryBiotreatment;
-                case TreatmentBMPModelingTypeEnum.ProprietaryTreatmentControl:
-                    return ProprietaryTreatmentControl;
-                case TreatmentBMPModelingTypeEnum.SandFilters:
-                    return SandFilters;
-                case TreatmentBMPModelingTypeEnum.UndergroundInfiltration:
-                    return UndergroundInfiltration;
-                case TreatmentBMPModelingTypeEnum.VegetatedFilterStrip:
-                    return VegetatedFilterStrip;
-                case TreatmentBMPModelingTypeEnum.VegetatedSwale:
-                    return VegetatedSwale;
-                case TreatmentBMPModelingTypeEnum.WetDetentionBasin:
-                    return WetDetentionBasin;
-                default:
-                    throw new ArgumentException("Unable to map Enum: {enumValue}");
-            }
-        }
     }
 
     public enum TreatmentBMPModelingTypeEnum

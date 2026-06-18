@@ -87,34 +87,6 @@ namespace Neptune.EFModels.Entities
         }
 
         public TimeOfConcentrationEnum ToEnum => (TimeOfConcentrationEnum)GetHashCode();
-
-        public static TimeOfConcentration ToType(int enumValue)
-        {
-            return ToType((TimeOfConcentrationEnum)enumValue);
-        }
-
-        public static TimeOfConcentration ToType(TimeOfConcentrationEnum enumValue)
-        {
-            switch (enumValue)
-            {
-                case TimeOfConcentrationEnum.FifteenMinutes:
-                    return FifteenMinutes;
-                case TimeOfConcentrationEnum.FiveMinutes:
-                    return FiveMinutes;
-                case TimeOfConcentrationEnum.FortyFiveMinutes:
-                    return FortyFiveMinutes;
-                case TimeOfConcentrationEnum.SixtyMinutes:
-                    return SixtyMinutes;
-                case TimeOfConcentrationEnum.TenMinutes:
-                    return TenMinutes;
-                case TimeOfConcentrationEnum.ThirtyMinutes:
-                    return ThirtyMinutes;
-                case TimeOfConcentrationEnum.TwentyMinutes:
-                    return TwentyMinutes;
-                default:
-                    throw new ArgumentException("Unable to map Enum: {enumValue}");
-            }
-        }
     }
 
     public enum TimeOfConcentrationEnum

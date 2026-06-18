@@ -82,24 +82,6 @@ namespace Neptune.EFModels.Entities
         }
 
         public MaintenanceRecordTypeEnum ToEnum => (MaintenanceRecordTypeEnum)GetHashCode();
-
-        public static MaintenanceRecordType ToType(int enumValue)
-        {
-            return ToType((MaintenanceRecordTypeEnum)enumValue);
-        }
-
-        public static MaintenanceRecordType ToType(MaintenanceRecordTypeEnum enumValue)
-        {
-            switch (enumValue)
-            {
-                case MaintenanceRecordTypeEnum.Corrective:
-                    return Corrective;
-                case MaintenanceRecordTypeEnum.Routine:
-                    return Routine;
-                default:
-                    throw new ArgumentException("Unable to map Enum: {enumValue}");
-            }
-        }
     }
 
     public enum MaintenanceRecordTypeEnum

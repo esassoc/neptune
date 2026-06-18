@@ -61,12 +61,6 @@ namespace Neptune.Common.DesignByContract
                 ThrowThisException(new PreconditionException(message));
         }
 
-        public static void Require(bool assertion, Exception ex)
-        {
-            if (!assertion)
-                throw ex;
-        }
-
         public static void RequireNotNull(object? thisObject, string message)
         {
             if (thisObject == null)

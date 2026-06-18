@@ -165,10 +165,4 @@ public static class GeoJsonSerializer
     {
         return featureCollection.AsParallel().Select(x => DeserializeFromFeature<T>(x, DefaultSerializerOptions)).ToList();
     }
-
-    public static Dictionary<string, object> ToKeyValuePairList<T>(T obj)
-    {
-        return obj.GetType().GetProperties().Where(x => !x.IsDefined(typeof(JsonIgnoreAttribute), false)).ToDictionary(p => p.Name, p => p.GetValue(obj));
-        //            return obj.GetType().GetProperties().Where(x => !x.IsDefined(typeof(JsonIgnoreAttribute), false)).Select(p => new KeyValuePair<string, object>(p.Name, p.GetValue(obj))).ToList();
-    }
 }

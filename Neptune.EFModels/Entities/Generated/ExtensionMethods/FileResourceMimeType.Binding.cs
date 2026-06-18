@@ -105,58 +105,6 @@ namespace Neptune.EFModels.Entities
         }
 
         public FileResourceMimeTypeEnum ToEnum => (FileResourceMimeTypeEnum)GetHashCode();
-
-        public static FileResourceMimeType ToType(int enumValue)
-        {
-            return ToType((FileResourceMimeTypeEnum)enumValue);
-        }
-
-        public static FileResourceMimeType ToType(FileResourceMimeTypeEnum enumValue)
-        {
-            switch (enumValue)
-            {
-                case FileResourceMimeTypeEnum.BMP:
-                    return BMP;
-                case FileResourceMimeTypeEnum.CSS:
-                    return CSS;
-                case FileResourceMimeTypeEnum.CSV:
-                    return CSV;
-                case FileResourceMimeTypeEnum.ExcelXLS:
-                    return ExcelXLS;
-                case FileResourceMimeTypeEnum.ExcelXLSX:
-                    return ExcelXLSX;
-                case FileResourceMimeTypeEnum.GIF:
-                    return GIF;
-                case FileResourceMimeTypeEnum.JPEG:
-                    return JPEG;
-                case FileResourceMimeTypeEnum.PDF:
-                    return PDF;
-                case FileResourceMimeTypeEnum.PJPEG:
-                    return PJPEG;
-                case FileResourceMimeTypeEnum.PNG:
-                    return PNG;
-                case FileResourceMimeTypeEnum.PowerpointPPT:
-                    return PowerpointPPT;
-                case FileResourceMimeTypeEnum.PowerpointPPTX:
-                    return PowerpointPPTX;
-                case FileResourceMimeTypeEnum.Text:
-                    return Text;
-                case FileResourceMimeTypeEnum.TIFF:
-                    return TIFF;
-                case FileResourceMimeTypeEnum.WordDOC:
-                    return WordDOC;
-                case FileResourceMimeTypeEnum.WordDOCX:
-                    return WordDOCX;
-                case FileResourceMimeTypeEnum.xExcelXLSX:
-                    return xExcelXLSX;
-                case FileResourceMimeTypeEnum.XPNG:
-                    return XPNG;
-                case FileResourceMimeTypeEnum.ZIP:
-                    return ZIP;
-                default:
-                    throw new ArgumentException("Unable to map Enum: {enumValue}");
-            }
-        }
     }
 
     public enum FileResourceMimeTypeEnum

@@ -90,28 +90,6 @@ namespace Neptune.EFModels.Entities
         }
 
         public TrashCaptureStatusTypeEnum ToEnum => (TrashCaptureStatusTypeEnum)GetHashCode();
-
-        public static TrashCaptureStatusType ToType(int enumValue)
-        {
-            return ToType((TrashCaptureStatusTypeEnum)enumValue);
-        }
-
-        public static TrashCaptureStatusType ToType(TrashCaptureStatusTypeEnum enumValue)
-        {
-            switch (enumValue)
-            {
-                case TrashCaptureStatusTypeEnum.Full:
-                    return Full;
-                case TrashCaptureStatusTypeEnum.None:
-                    return None;
-                case TrashCaptureStatusTypeEnum.NotProvided:
-                    return NotProvided;
-                case TrashCaptureStatusTypeEnum.Partial:
-                    return Partial;
-                default:
-                    throw new ArgumentException("Unable to map Enum: {enumValue}");
-            }
-        }
     }
 
     public enum TrashCaptureStatusTypeEnum

@@ -82,24 +82,6 @@ namespace Neptune.EFModels.Entities
         }
 
         public DryWeatherFlowOverrideEnum ToEnum => (DryWeatherFlowOverrideEnum)GetHashCode();
-
-        public static DryWeatherFlowOverride ToType(int enumValue)
-        {
-            return ToType((DryWeatherFlowOverrideEnum)enumValue);
-        }
-
-        public static DryWeatherFlowOverride ToType(DryWeatherFlowOverrideEnum enumValue)
-        {
-            switch (enumValue)
-            {
-                case DryWeatherFlowOverrideEnum.No:
-                    return No;
-                case DryWeatherFlowOverrideEnum.Yes:
-                    return Yes;
-                default:
-                    throw new ArgumentException("Unable to map Enum: {enumValue}");
-            }
-        }
     }
 
     public enum DryWeatherFlowOverrideEnum

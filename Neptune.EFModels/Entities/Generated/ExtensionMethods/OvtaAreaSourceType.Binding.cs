@@ -82,24 +82,6 @@ namespace Neptune.EFModels.Entities
         }
 
         public OvtaAreaSourceTypeEnum ToEnum => (OvtaAreaSourceTypeEnum)GetHashCode();
-
-        public static OvtaAreaSourceType ToType(int enumValue)
-        {
-            return ToType((OvtaAreaSourceTypeEnum)enumValue);
-        }
-
-        public static OvtaAreaSourceType ToType(OvtaAreaSourceTypeEnum enumValue)
-        {
-            switch (enumValue)
-            {
-                case OvtaAreaSourceTypeEnum.LandUseBlock:
-                    return LandUseBlock;
-                case OvtaAreaSourceTypeEnum.Parcel:
-                    return Parcel;
-                default:
-                    throw new ArgumentException("Unable to map Enum: {enumValue}");
-            }
-        }
     }
 
     public enum OvtaAreaSourceTypeEnum

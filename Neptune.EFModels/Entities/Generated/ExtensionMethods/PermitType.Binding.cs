@@ -86,32 +86,6 @@ namespace Neptune.EFModels.Entities
         }
 
         public PermitTypeEnum ToEnum => (PermitTypeEnum)GetHashCode();
-
-        public static PermitType ToType(int enumValue)
-        {
-            return ToType((PermitTypeEnum)enumValue);
-        }
-
-        public static PermitType ToType(PermitTypeEnum enumValue)
-        {
-            switch (enumValue)
-            {
-                case PermitTypeEnum.CalTransMS4:
-                    return CalTransMS4;
-                case PermitTypeEnum.IGP:
-                    return IGP;
-                case PermitTypeEnum.IndividualPermit:
-                    return IndividualPermit;
-                case PermitTypeEnum.Other:
-                    return Other;
-                case PermitTypeEnum.PhaseIIMS4:
-                    return PhaseIIMS4;
-                case PermitTypeEnum.PhaseIMS4:
-                    return PhaseIMS4;
-                default:
-                    throw new ArgumentException("Unable to map Enum: {enumValue}");
-            }
-        }
     }
 
     public enum PermitTypeEnum

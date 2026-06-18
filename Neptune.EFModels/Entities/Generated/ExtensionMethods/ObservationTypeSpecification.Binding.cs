@@ -101,46 +101,6 @@ namespace Neptune.EFModels.Entities
         }
 
         public ObservationTypeSpecificationEnum ToEnum => (ObservationTypeSpecificationEnum)GetHashCode();
-
-        public static ObservationTypeSpecification ToType(int enumValue)
-        {
-            return ToType((ObservationTypeSpecificationEnum)enumValue);
-        }
-
-        public static ObservationTypeSpecification ToType(ObservationTypeSpecificationEnum enumValue)
-        {
-            switch (enumValue)
-            {
-                case ObservationTypeSpecificationEnum.DiscreteValues_HighTargetValue_DiscreteThresholdValue:
-                    return DiscreteValues_HighTargetValue_DiscreteThresholdValue;
-                case ObservationTypeSpecificationEnum.DiscreteValues_HighTargetValue_PercentFromBenchmark:
-                    return DiscreteValues_HighTargetValue_PercentFromBenchmark;
-                case ObservationTypeSpecificationEnum.DiscreteValues_LowTargetValue_DiscreteThresholdValue:
-                    return DiscreteValues_LowTargetValue_DiscreteThresholdValue;
-                case ObservationTypeSpecificationEnum.DiscreteValues_LowTargetValue_PercentFromBenchmark:
-                    return DiscreteValues_LowTargetValue_PercentFromBenchmark;
-                case ObservationTypeSpecificationEnum.DiscreteValues_SpecificTargetValue_DiscreteThresholdValue:
-                    return DiscreteValues_SpecificTargetValue_DiscreteThresholdValue;
-                case ObservationTypeSpecificationEnum.DiscreteValues_SpecificTargetValue_PercentFromBenchmark:
-                    return DiscreteValues_SpecificTargetValue_PercentFromBenchmark;
-                case ObservationTypeSpecificationEnum.PassFail_PassFail_None:
-                    return PassFail_PassFail_None;
-                case ObservationTypeSpecificationEnum.PercentValue_HighTargetValue_DiscreteThresholdValue:
-                    return PercentValue_HighTargetValue_DiscreteThresholdValue;
-                case ObservationTypeSpecificationEnum.PercentValue_HighTargetValue_PercentFromBenchmark:
-                    return PercentValue_HighTargetValue_PercentFromBenchmark;
-                case ObservationTypeSpecificationEnum.PercentValue_LowTargetValue_DiscreteThresholdValue:
-                    return PercentValue_LowTargetValue_DiscreteThresholdValue;
-                case ObservationTypeSpecificationEnum.PercentValue_LowTargetValue_PercentFromBenchmark:
-                    return PercentValue_LowTargetValue_PercentFromBenchmark;
-                case ObservationTypeSpecificationEnum.PercentValue_SpecificTargetValue_DiscreteThresholdValue:
-                    return PercentValue_SpecificTargetValue_DiscreteThresholdValue;
-                case ObservationTypeSpecificationEnum.PercentValue_SpecificTargetValue_PercentFromBenchmark:
-                    return PercentValue_SpecificTargetValue_PercentFromBenchmark;
-                default:
-                    throw new ArgumentException("Unable to map Enum: {enumValue}");
-            }
-        }
     }
 
     public enum ObservationTypeSpecificationEnum

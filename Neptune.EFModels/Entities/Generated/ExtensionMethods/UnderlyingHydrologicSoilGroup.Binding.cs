@@ -85,30 +85,6 @@ namespace Neptune.EFModels.Entities
         }
 
         public UnderlyingHydrologicSoilGroupEnum ToEnum => (UnderlyingHydrologicSoilGroupEnum)GetHashCode();
-
-        public static UnderlyingHydrologicSoilGroup ToType(int enumValue)
-        {
-            return ToType((UnderlyingHydrologicSoilGroupEnum)enumValue);
-        }
-
-        public static UnderlyingHydrologicSoilGroup ToType(UnderlyingHydrologicSoilGroupEnum enumValue)
-        {
-            switch (enumValue)
-            {
-                case UnderlyingHydrologicSoilGroupEnum.A:
-                    return A;
-                case UnderlyingHydrologicSoilGroupEnum.B:
-                    return B;
-                case UnderlyingHydrologicSoilGroupEnum.C:
-                    return C;
-                case UnderlyingHydrologicSoilGroupEnum.D:
-                    return D;
-                case UnderlyingHydrologicSoilGroupEnum.Liner:
-                    return Liner;
-                default:
-                    throw new ArgumentException("Unable to map Enum: {enumValue}");
-            }
-        }
     }
 
     public enum UnderlyingHydrologicSoilGroupEnum

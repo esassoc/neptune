@@ -1,4 +1,4 @@
-﻿using System.ComponentModel.DataAnnotations.Schema;
+using System.ComponentModel.DataAnnotations.Schema;
 
 namespace Neptune.EFModels.Entities
 {
@@ -7,17 +7,6 @@ namespace Neptune.EFModels.Entities
         public string GetDisplayName()
         {
             return CustomAttributeType.CustomAttributeTypeName;
-        }
-
-        public string GetDisplayNameWithUnits()
-        {
-            if (!CustomAttributeType.MeasurementUnitTypeID.HasValue)
-            {
-                return CustomAttributeType.CustomAttributeTypeName;
-            }
-
-            return
-                $"{CustomAttributeType.CustomAttributeTypeName} ({CustomAttributeType.GetMeasurementUnitDisplayName()})";
         }
 
         public int GetID()

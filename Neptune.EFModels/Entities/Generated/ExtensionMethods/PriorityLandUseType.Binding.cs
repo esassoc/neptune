@@ -89,34 +89,6 @@ namespace Neptune.EFModels.Entities
         }
 
         public PriorityLandUseTypeEnum ToEnum => (PriorityLandUseTypeEnum)GetHashCode();
-
-        public static PriorityLandUseType ToType(int enumValue)
-        {
-            return ToType((PriorityLandUseTypeEnum)enumValue);
-        }
-
-        public static PriorityLandUseType ToType(PriorityLandUseTypeEnum enumValue)
-        {
-            switch (enumValue)
-            {
-                case PriorityLandUseTypeEnum.ALU:
-                    return ALU;
-                case PriorityLandUseTypeEnum.Commercial:
-                    return Commercial;
-                case PriorityLandUseTypeEnum.CommercialRetail:
-                    return CommercialRetail;
-                case PriorityLandUseTypeEnum.HighDensityResidential:
-                    return HighDensityResidential;
-                case PriorityLandUseTypeEnum.Industrial:
-                    return Industrial;
-                case PriorityLandUseTypeEnum.MixedUrban:
-                    return MixedUrban;
-                case PriorityLandUseTypeEnum.PublicTransportationStations:
-                    return PublicTransportationStations;
-                default:
-                    throw new ArgumentException("Unable to map Enum: {enumValue}");
-            }
-        }
     }
 
     public enum PriorityLandUseTypeEnum

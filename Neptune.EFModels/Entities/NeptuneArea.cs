@@ -8,16 +8,6 @@ namespace Neptune.EFModels.Entities
 
         protected abstract Func<Person, IRole> GetPersonRoleToUseFunc();
 
-        public IRole GetPersonRoleToUse(Person person)
-        {
-            return GetPersonRoleToUseFunc().Invoke(person);
-        }
-
-        public bool HasPermissionByPerson(Person person, IList<IRole> rolesToCheck)
-        {
-            return person != null && (rolesToCheck?.Any(x => x.RoleID == GetPersonRoleToUseFunc().Invoke(person).RoleID) ?? false);
-        }
-
     }
 
     public partial class NeptuneAreaAI

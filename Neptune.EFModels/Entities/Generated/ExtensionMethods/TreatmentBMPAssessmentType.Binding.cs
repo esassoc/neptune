@@ -82,24 +82,6 @@ namespace Neptune.EFModels.Entities
         }
 
         public TreatmentBMPAssessmentTypeEnum ToEnum => (TreatmentBMPAssessmentTypeEnum)GetHashCode();
-
-        public static TreatmentBMPAssessmentType ToType(int enumValue)
-        {
-            return ToType((TreatmentBMPAssessmentTypeEnum)enumValue);
-        }
-
-        public static TreatmentBMPAssessmentType ToType(TreatmentBMPAssessmentTypeEnum enumValue)
-        {
-            switch (enumValue)
-            {
-                case TreatmentBMPAssessmentTypeEnum.Initial:
-                    return Initial;
-                case TreatmentBMPAssessmentTypeEnum.PostMaintenance:
-                    return PostMaintenance;
-                default:
-                    throw new ArgumentException("Unable to map Enum: {enumValue}");
-            }
-        }
     }
 
     public enum TreatmentBMPAssessmentTypeEnum

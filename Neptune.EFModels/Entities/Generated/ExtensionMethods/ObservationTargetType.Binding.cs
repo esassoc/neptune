@@ -84,28 +84,6 @@ namespace Neptune.EFModels.Entities
         }
 
         public ObservationTargetTypeEnum ToEnum => (ObservationTargetTypeEnum)GetHashCode();
-
-        public static ObservationTargetType ToType(int enumValue)
-        {
-            return ToType((ObservationTargetTypeEnum)enumValue);
-        }
-
-        public static ObservationTargetType ToType(ObservationTargetTypeEnum enumValue)
-        {
-            switch (enumValue)
-            {
-                case ObservationTargetTypeEnum.High:
-                    return High;
-                case ObservationTargetTypeEnum.Low:
-                    return Low;
-                case ObservationTargetTypeEnum.PassFail:
-                    return PassFail;
-                case ObservationTargetTypeEnum.SpecificValue:
-                    return SpecificValue;
-                default:
-                    throw new ArgumentException("Unable to map Enum: {enumValue}");
-            }
-        }
     }
 
     public enum ObservationTargetTypeEnum

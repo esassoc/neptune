@@ -1,4 +1,4 @@
-﻿/*-----------------------------------------------------------------------
+/*-----------------------------------------------------------------------
 <copyright file="TreatmentBMPObservation.cs" company="Tahoe Regional Planning Agency">
 Copyright (c) Tahoe Regional Planning Agency. All rights reserved.
 <author>Sitka Technology Group</author>
@@ -26,10 +26,6 @@ namespace Neptune.EFModels.Entities
 {
     public partial class TreatmentBMPObservation
     {
-        public DiscreteObservationSchema GetDiscreteObservationData()
-        {
-            return GeoJsonSerializer.Deserialize<DiscreteObservationSchema>(ObservationData);
-        }
 
         public PassFailObservationSchema GetPassFailObservationData()
         {

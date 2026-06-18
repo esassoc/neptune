@@ -82,24 +82,6 @@ namespace Neptune.EFModels.Entities
         }
 
         public RoutingConfigurationEnum ToEnum => (RoutingConfigurationEnum)GetHashCode();
-
-        public static RoutingConfiguration ToType(int enumValue)
-        {
-            return ToType((RoutingConfigurationEnum)enumValue);
-        }
-
-        public static RoutingConfiguration ToType(RoutingConfigurationEnum enumValue)
-        {
-            switch (enumValue)
-            {
-                case RoutingConfigurationEnum.Offline:
-                    return Offline;
-                case RoutingConfigurationEnum.Online:
-                    return Online;
-                default:
-                    throw new ArgumentException("Unable to map Enum: {enumValue}");
-            }
-        }
     }
 
     public enum RoutingConfigurationEnum

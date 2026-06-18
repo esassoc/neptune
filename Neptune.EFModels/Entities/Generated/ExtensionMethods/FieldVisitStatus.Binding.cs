@@ -84,28 +84,6 @@ namespace Neptune.EFModels.Entities
         }
 
         public FieldVisitStatusEnum ToEnum => (FieldVisitStatusEnum)GetHashCode();
-
-        public static FieldVisitStatus ToType(int enumValue)
-        {
-            return ToType((FieldVisitStatusEnum)enumValue);
-        }
-
-        public static FieldVisitStatus ToType(FieldVisitStatusEnum enumValue)
-        {
-            switch (enumValue)
-            {
-                case FieldVisitStatusEnum.Complete:
-                    return Complete;
-                case FieldVisitStatusEnum.InProgress:
-                    return InProgress;
-                case FieldVisitStatusEnum.ReturnedToEdit:
-                    return ReturnedToEdit;
-                case FieldVisitStatusEnum.Unresolved:
-                    return Unresolved;
-                default:
-                    throw new ArgumentException("Unable to map Enum: {enumValue}");
-            }
-        }
     }
 
     public enum FieldVisitStatusEnum

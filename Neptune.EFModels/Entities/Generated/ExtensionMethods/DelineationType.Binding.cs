@@ -82,24 +82,6 @@ namespace Neptune.EFModels.Entities
         }
 
         public DelineationTypeEnum ToEnum => (DelineationTypeEnum)GetHashCode();
-
-        public static DelineationType ToType(int enumValue)
-        {
-            return ToType((DelineationTypeEnum)enumValue);
-        }
-
-        public static DelineationType ToType(DelineationTypeEnum enumValue)
-        {
-            switch (enumValue)
-            {
-                case DelineationTypeEnum.Centralized:
-                    return Centralized;
-                case DelineationTypeEnum.Distributed:
-                    return Distributed;
-                default:
-                    throw new ArgumentException("Unable to map Enum: {enumValue}");
-            }
-        }
     }
 
     public enum DelineationTypeEnum

@@ -82,24 +82,6 @@ namespace Neptune.EFModels.Entities
         }
 
         public WaterQualityManagementPlanPriorityEnum ToEnum => (WaterQualityManagementPlanPriorityEnum)GetHashCode();
-
-        public static WaterQualityManagementPlanPriority ToType(int enumValue)
-        {
-            return ToType((WaterQualityManagementPlanPriorityEnum)enumValue);
-        }
-
-        public static WaterQualityManagementPlanPriority ToType(WaterQualityManagementPlanPriorityEnum enumValue)
-        {
-            switch (enumValue)
-            {
-                case WaterQualityManagementPlanPriorityEnum.High:
-                    return High;
-                case WaterQualityManagementPlanPriorityEnum.Low:
-                    return Low;
-                default:
-                    throw new ArgumentException("Unable to map Enum: {enumValue}");
-            }
-        }
     }
 
     public enum WaterQualityManagementPlanPriorityEnum

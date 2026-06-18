@@ -1,4 +1,4 @@
-﻿using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore;
 
 namespace Neptune.EFModels.Entities
 {
@@ -8,17 +8,6 @@ namespace Neptune.EFModels.Entities
         {
             return
                 $"{FundingSourceName} ({Organization.GetOrganizationShortNameIfAvailable()}){(!IsActive ? " (Inactive)" : string.Empty)}";
-        }
-
-        public List<TreatmentBMP> GetAssociatedTreatmentBMPs()
-        {
-            return FundingEventFundingSources.Select(x => x.FundingEvent.TreatmentBMP).Distinct().ToList();
-        }
-
-        public async Task DeleteFull(NeptuneDbContext dbContext)
-        {
-            await dbContext.FundingEventFundingSources.Where(x => x.FundingSourceID == FundingSourceID).ExecuteDeleteAsync();
-            await dbContext.FundingSources.Where(x => x.FundingSourceID == FundingSourceID).ExecuteDeleteAsync();
         }
     }
 }

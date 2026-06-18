@@ -83,26 +83,6 @@ namespace Neptune.EFModels.Entities
         }
 
         public ProjectNetworkSolveHistoryStatusTypeEnum ToEnum => (ProjectNetworkSolveHistoryStatusTypeEnum)GetHashCode();
-
-        public static ProjectNetworkSolveHistoryStatusType ToType(int enumValue)
-        {
-            return ToType((ProjectNetworkSolveHistoryStatusTypeEnum)enumValue);
-        }
-
-        public static ProjectNetworkSolveHistoryStatusType ToType(ProjectNetworkSolveHistoryStatusTypeEnum enumValue)
-        {
-            switch (enumValue)
-            {
-                case ProjectNetworkSolveHistoryStatusTypeEnum.Failed:
-                    return Failed;
-                case ProjectNetworkSolveHistoryStatusTypeEnum.Queued:
-                    return Queued;
-                case ProjectNetworkSolveHistoryStatusTypeEnum.Succeeded:
-                    return Succeeded;
-                default:
-                    throw new ArgumentException("Unable to map Enum: {enumValue}");
-            }
-        }
     }
 
     public enum ProjectNetworkSolveHistoryStatusTypeEnum

@@ -82,24 +82,6 @@ namespace Neptune.EFModels.Entities
         }
 
         public HydromodificationAppliesTypeEnum ToEnum => (HydromodificationAppliesTypeEnum)GetHashCode();
-
-        public static HydromodificationAppliesType ToType(int enumValue)
-        {
-            return ToType((HydromodificationAppliesTypeEnum)enumValue);
-        }
-
-        public static HydromodificationAppliesType ToType(HydromodificationAppliesTypeEnum enumValue)
-        {
-            switch (enumValue)
-            {
-                case HydromodificationAppliesTypeEnum.Applicable:
-                    return Applicable;
-                case HydromodificationAppliesTypeEnum.Exempt:
-                    return Exempt;
-                default:
-                    throw new ArgumentException("Unable to map Enum: {enumValue}");
-            }
-        }
     }
 
     public enum HydromodificationAppliesTypeEnum

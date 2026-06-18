@@ -27,10 +27,5 @@ namespace Neptune.Common
 {
     public static class ExtensionMethods
     {
-
-        private static bool IsLowerCase(byte b)
-        {
-            return (b >= 97 && b <= 122);
-        }
     }
 }

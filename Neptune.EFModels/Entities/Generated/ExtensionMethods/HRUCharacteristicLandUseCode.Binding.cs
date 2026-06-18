@@ -101,62 +101,6 @@ namespace Neptune.EFModels.Entities
         }
 
         public HRUCharacteristicLandUseCodeEnum ToEnum => (HRUCharacteristicLandUseCodeEnum)GetHashCode();
-
-        public static HRUCharacteristicLandUseCode ToType(int enumValue)
-        {
-            return ToType((HRUCharacteristicLandUseCodeEnum)enumValue);
-        }
-
-        public static HRUCharacteristicLandUseCode ToType(HRUCharacteristicLandUseCodeEnum enumValue)
-        {
-            switch (enumValue)
-            {
-                case HRUCharacteristicLandUseCodeEnum.COMM:
-                    return COMM;
-                case HRUCharacteristicLandUseCodeEnum.EDU:
-                    return EDU;
-                case HRUCharacteristicLandUseCodeEnum.EMPTY:
-                    return EMPTY;
-                case HRUCharacteristicLandUseCodeEnum.IND:
-                    return IND;
-                case HRUCharacteristicLandUseCodeEnum.OSAGIR:
-                    return OSAGIR;
-                case HRUCharacteristicLandUseCodeEnum.OSAGNI:
-                    return OSAGNI;
-                case HRUCharacteristicLandUseCodeEnum.OSDEV:
-                    return OSDEV;
-                case HRUCharacteristicLandUseCodeEnum.OSFOR:
-                    return OSFOR;
-                case HRUCharacteristicLandUseCodeEnum.OSIRR:
-                    return OSIRR;
-                case HRUCharacteristicLandUseCodeEnum.OSLOW:
-                    return OSLOW;
-                case HRUCharacteristicLandUseCodeEnum.OSVAC:
-                    return OSVAC;
-                case HRUCharacteristicLandUseCodeEnum.OSWET:
-                    return OSWET;
-                case HRUCharacteristicLandUseCodeEnum.RESMF:
-                    return RESMF;
-                case HRUCharacteristicLandUseCodeEnum.RESSFH:
-                    return RESSFH;
-                case HRUCharacteristicLandUseCodeEnum.RESSFL:
-                    return RESSFL;
-                case HRUCharacteristicLandUseCodeEnum.TRANS:
-                    return TRANS;
-                case HRUCharacteristicLandUseCodeEnum.TRFWY:
-                    return TRFWY;
-                case HRUCharacteristicLandUseCodeEnum.TROTH:
-                    return TROTH;
-                case HRUCharacteristicLandUseCodeEnum.UNKNOWN:
-                    return UNKNOWN;
-                case HRUCharacteristicLandUseCodeEnum.UTIL:
-                    return UTIL;
-                case HRUCharacteristicLandUseCodeEnum.WATER:
-                    return WATER;
-                default:
-                    throw new ArgumentException("Unable to map Enum: {enumValue}");
-            }
-        }
     }
 
     public enum HRUCharacteristicLandUseCodeEnum

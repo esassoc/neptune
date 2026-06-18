@@ -1,4 +1,4 @@
-﻿/*-----------------------------------------------------------------------
+/*-----------------------------------------------------------------------
 <copyright file="TreatmentBMPAssessment.cs" company="Tahoe Regional Planning Agency">
 Copyright (c) Tahoe Regional Planning Agency. All rights reserved.
 <author>Sitka Technology Group</author>
@@ -25,21 +25,6 @@ namespace Neptune.EFModels.Entities
 {
     public partial class TreatmentBMPAssessment
     {
-        public bool CanEdit(Person currentPerson)
-        {
-            var canManageStormwaterJurisdiction = currentPerson.IsAssignedToStormwaterJurisdiction(TreatmentBMP.StormwaterJurisdictionID);
-            return canManageStormwaterJurisdiction;
-        }
-
-        public string GetAssessmentStatus(TreatmentBMPType treatmentBMPType)
-        {
-            var completedObservationCount =
-                treatmentBMPType.GetObservationTypes().Count(IsObservationComplete);
-            var totalObservationCount = treatmentBMPType.GetObservationTypes().Count;
-            return IsAssessmentComplete
-                ? "Complete"
-                : $"Incomplete ({completedObservationCount} of {totalObservationCount} observations complete)";
-        }
 
         public string FormattedScore()
         {
@@ -53,17 +38,6 @@ namespace Neptune.EFModels.Entities
                 treatmentBMPAssessmentObservationType.TreatmentBMPAssessmentObservationTypeID);
 
             return treatmentBMPObservation != null;
-        }
-
-        public Person GetFieldVisitPerson()
-        {
-            return FieldVisit.PerformedByPerson;
-        }
-
-
-        public DateTime GetAssessmentDate()
-        {
-            return FieldVisit.VisitDate;
         }
 
         public async Task DeleteFull(NeptuneDbContext dbContext)
