@@ -81,17 +81,6 @@ public static class GeoJsonSerializer
         await JsonSerializer.SerializeAsync(stream, objectToSerialize, jsonSerializerOptions);
     }
 
-    public static FeatureCollection ToFeatureCollection(this IEnumerable<IHasGeometry> features)
-    {
-        var featureCollection = new FeatureCollection();
-        foreach (var feature in features)
-        {
-            featureCollection.Add(feature.ToGeoJsonFeature());
-        }
-
-        return featureCollection;
-    }
-
     public static byte[] WriteFeaturesToByteArray(IEnumerable<IFeature> features, JsonSerializerOptions jsonSerializerOptions)
     {
         var featureCollection = new FeatureCollection();
@@ -175,13 +164,6 @@ public static class GeoJsonSerializer
     public static List<T> DeserializeFromFeatureCollection<T>(FeatureCollection featureCollection) where T : IHasGeometry
     {
         return featureCollection.AsParallel().Select(x => DeserializeFromFeature<T>(x, DefaultSerializerOptions)).ToList();
-    }
-
-    public static Feature ToGeoJsonFeature<T>(this T featureClass) where T : IHasGeometry
-    {
-        var dictionary = ToKeyValuePairList(featureClass);
-        var attributesTable = new AttributesTable(dictionary);
-        return new Feature(featureClass.Geometry, attributesTable);
     }
 
     public static Dictionary<string, object> ToKeyValuePairList<T>(T obj)

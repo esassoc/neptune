@@ -1,4 +1,4 @@
-﻿using NetTopologySuite.Geometries;
+using NetTopologySuite.Geometries;
 using ProjNet.CoordinateSystems;
 using ProjNet.CoordinateSystems.Transformations;
 
@@ -232,13 +232,6 @@ namespace Neptune.Common.GeoSpatial
             var sourceCoordinateSystem = new CoordinateSystemFactory().CreateFromWkt(CoordinateSystemsWkTs[geometry.SRID]);
             var transformation = new CoordinateTransformationFactory().CreateFromCoordinateSystems(sourceCoordinateSystem, GeographicCoordinateSystem.WGS84);
             return Transform(geometry, transformation.MathTransform, WEB_MERCATOR);
-        }
-
-        public static Geometry ProjectToSrid(this Geometry geometry, int targetSrid)
-        {
-            var targetCoordinateSystem = new CoordinateSystemFactory().CreateFromWkt(CoordinateSystemsWkTs[targetSrid]);
-            var transformation = new CoordinateTransformationFactory().CreateFromCoordinateSystems(GeographicCoordinateSystem.WGS84, targetCoordinateSystem);
-            return Transform(geometry, transformation.MathTransform, targetSrid);
         }
 
     }

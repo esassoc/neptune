@@ -19,15 +19,6 @@ public static class WaterQualityManagementPlanDocumentExtensionMethods
         };
     }
 
-    public static WaterQualityManagementPlanDocumentSimpleDto AsSimpleDto(this WaterQualityManagementPlanDocument doc)
-    {
-        return new WaterQualityManagementPlanDocumentSimpleDto
-        {
-            WaterQualityManagementPlanDocumentID = doc.WaterQualityManagementPlanDocumentID,
-            DisplayName = doc.DisplayName
-        };
-    }
-
     public static void UpdateFromUpsertDto(this WaterQualityManagementPlanDocument entity, WaterQualityManagementPlanDocumentUpsertDto dto)
     {
         entity.WaterQualityManagementPlanID = dto.WaterQualityManagementPlanID;

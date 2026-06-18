@@ -16,16 +16,6 @@ public class ObservationTypeDataTypeValidationResult
 
 public static class ObservationTypeDataTypeEnumExtensions
 {
-    public static string ToDisplayString(this ObservationTypeDataTypeEnum value)
-    {
-        return value switch
-        {
-            ObservationTypeDataTypeEnum.PassFail => "Pass/Fail",
-            ObservationTypeDataTypeEnum.Numeric => "Numeric",
-            ObservationTypeDataTypeEnum.Text => "Text",
-            _ => value.ToString()
-        };
-    }
 
     public static ObservationTypeDataTypeValidationResult ValidateAndParse(this ObservationTypeDataTypeEnum dataType, string value)
     {

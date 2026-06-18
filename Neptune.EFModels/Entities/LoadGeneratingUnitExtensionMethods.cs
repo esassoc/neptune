@@ -26,23 +26,6 @@ namespace Neptune.EFModels.Entities
             };
         }
 
-        public static LoadGeneratingUnitGridDto AsGridDto(this LoadGeneratingUnit entity)
-        {
-            return new LoadGeneratingUnitGridDto
-            {
-                LoadGeneratingUnitID = entity.LoadGeneratingUnitID,
-                ModelBasinID = entity.ModelBasinID,
-                RegionalSubbasinID = entity.RegionalSubbasinID,
-                RegionalSubbasinName = entity.RegionalSubbasin?.GetDisplayName(),
-                TreatmentBMPID = entity.Delineation?.TreatmentBMPID,
-                TreatmentBMPName = entity.Delineation?.TreatmentBMP?.TreatmentBMPName,
-                WaterQualityManagementPlanID = entity.WaterQualityManagementPlanID,
-                WaterQualityManagementPlanName = entity.WaterQualityManagementPlan?.WaterQualityManagementPlanName,
-                IsEmptyResponseFromHRUService = entity.IsEmptyResponseFromHRUService,
-                DateHRURequested = entity.DateHRURequested,
-            };
-        }
-
         public static LoadGeneratingUnitGridDto AsGridDto(this vLoadGeneratingUnit entity)
         {
             return new LoadGeneratingUnitGridDto

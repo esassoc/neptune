@@ -1,4 +1,4 @@
-﻿using Neptune.Models.DataTransferObjects;
+using Neptune.Models.DataTransferObjects;
 
 namespace Neptune.EFModels.Entities;
 
@@ -43,30 +43,6 @@ public static  class WaterQualityManagementPlanExtensionMethods
                 waterQualityManagementPlan.WaterQualityManagementPlanBoundary?.Geometry4326
         };
         return dto;
-    }
-
-    public static WaterQualityManagementPlanSimpleDto AsSimpleDto(this WaterQualityManagementPlan plan)
-    {
-        return new WaterQualityManagementPlanSimpleDto
-        {
-            WaterQualityManagementPlanID = plan.WaterQualityManagementPlanID,
-            StormwaterJurisdictionID = plan.StormwaterJurisdictionID,
-            WaterQualityManagementPlanLandUseID = plan.WaterQualityManagementPlanLandUseID,
-            WaterQualityManagementPlanPriorityID = plan.WaterQualityManagementPlanPriorityID,
-            WaterQualityManagementPlanStatusID = plan.WaterQualityManagementPlanStatusID,
-            WaterQualityManagementPlanDevelopmentTypeID = plan.WaterQualityManagementPlanDevelopmentTypeID,
-            WaterQualityManagementPlanName = plan.WaterQualityManagementPlanName,
-            ApprovalDate = plan.ApprovalDate,
-            WaterQualityManagementPlanPermitTermID = plan.WaterQualityManagementPlanPermitTermID,
-            HydromodificationAppliesTypeID = plan.HydromodificationAppliesTypeID,
-            DateOfConstruction = plan.DateOfConstruction,
-            HydrologicSubareaID = plan.HydrologicSubareaID,
-            RecordNumber = plan.RecordNumber,
-            RecordedWQMPAreaInAcres = plan.RecordedWQMPAreaInAcres,
-            TrashCaptureStatusTypeID = plan.TrashCaptureStatusTypeID,
-            TrashCaptureEffectiveness = plan.TrashCaptureEffectiveness,
-            WaterQualityManagementPlanModelingApproachID = plan.WaterQualityManagementPlanModelingApproachID,
-        };
     }
 
     public static void UpdateFromUpsertDto(this WaterQualityManagementPlan entity, WaterQualityManagementPlanUpsertDto dto)
