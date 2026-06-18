@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using Azure.Storage.Blobs;
 using Azure.Storage.Blobs.Models;
 using Azure.Storage.Sas;
@@ -767,5 +767,18 @@ public class AzureBlobStorageService
     {
         var blobClient = _fileResourceContainerClient.GetBlobClient(canonicalName);
         return await blobClient.ExistsAsync();
+    }
+
+    public async Task DownloadBlobToFileAsync(string canonicalName, string localFilePath)
+    {
+        var blobClient = _fileResourceContainerClient.GetBlobClient(canonicalName);
+        await blobClient.DownloadToAsync(localFilePath);
+    }
+
+    public Uri GenerateBlobSasUrl(string canonicalName, TimeSpan expiry)
+    {
+        var blobClient = _fileResourceContainerClient.GetBlobClient(canonicalName);
+        var sasBuilder = new BlobSasBuilder(BlobSasPermissions.Read, DateTimeOffset.UtcNow.Add(expiry));
+        return blobClient.GenerateSasUri(sasBuilder);
     }
 }
