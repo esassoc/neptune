@@ -1,4 +1,4 @@
-﻿using System.Net.Http.Json;
+using System.Net.Http.Json;
 using System.Text.Json;
 using Microsoft.Extensions.Logging;
 
@@ -34,23 +34,6 @@ public abstract class BaseAPIService<T>
         var postResponse = await HttpClient.PostAsync(uri, new FormUrlEncodedContent(nameValueCollection));
         postResponse.EnsureSuccessStatusCode();
         return postResponse;
-    }
-
-    protected async Task<List<TV>> GetIEnumerableImpl<TV>(string uri, JsonSerializerOptions jsonSerializerOptions)
-    {
-        using var response = await HttpClient.GetAsync(uri, HttpCompletionOption.ResponseHeadersRead).ConfigureAwait(false);
-        response.EnsureSuccessStatusCode();
-
-        var list = new List<TV>();
-        await using var responseStream = await response.Content.ReadAsStreamAsync().ConfigureAwait(false);
-
-        await foreach (var item in JsonSerializer.DeserializeAsyncEnumerable<TV>(responseStream,
-                           new JsonSerializerOptions { PropertyNameCaseInsensitive = true, DefaultBufferSize = 512 }))
-        {
-            list.Add(item);
-        }
-
-        return list;
     }
 
 

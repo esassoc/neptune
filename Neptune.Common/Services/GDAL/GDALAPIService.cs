@@ -1,4 +1,4 @@
-﻿using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Logging;
 using NetTopologySuite.Geometries;
 using System.Net.Http.Headers;
 using System.Net.Http.Json;
@@ -19,17 +19,6 @@ namespace Neptune.Common.Services.GDAL
         {
             _logger = logger;
             _httpClient = httpClient;
-        }
-
-        public async Task Ogr2OgrInputToGdb(GdbInputToGdbRequestDto gdbInputToGdbRequestDto)
-        {
-            var requestContent = gdbInputToGdbRequestDto.ToMultipartFormDataContent();
-            _logger.LogInformation("Sending request to GDAL API");
-            var response = await _httpClient.PostAsync("/ogr2ogr/upsert-gdb", requestContent);
-            if (!response.IsSuccessStatusCode)
-            {
-                throw new Exception("Failed");
-            }
         }
 
         public async Task<byte[]> Ogr2OgrInputToGdbAsZip(GdbInputsToGdbRequestDto gdbInputsToGdbRequestDto)
@@ -82,32 +71,6 @@ namespace Neptune.Common.Services.GDAL
             else
             {
                 throw new Exception("Failed to POST");
-            }
-        }
-
-        public async Task<Envelope> OgrInfoGdbExtent(IFormFile formFile, string featureClassName, int? boundingBoxBufferInFeet)
-        {
-            using var ms = new MemoryStream();
-            await formFile.CopyToAsync(ms);
-            ms.Seek(0, SeekOrigin.Begin);
-            var byteContent = new StreamContent(ms);
-            byteContent.Headers.ContentType = new MediaTypeHeaderValue(formFile.ContentType);
-
-            var form = new MultipartFormDataContent();
-            form.Add(byteContent, "file", formFile.FileName);
-
-
-            _logger.LogInformation("Sending request to GDAL API");
-
-            var response = await _httpClient.PostAsync("/ogrinfo/gdb-feature-classes", form);
-            if (response.IsSuccessStatusCode)
-            {
-                var result = await response.Content.ReadFromJsonAsync<Envelope>();
-                return result;
-            }
-            else
-            {
-                throw new Exception("Failed to POST MyDto");
             }
         }
     }

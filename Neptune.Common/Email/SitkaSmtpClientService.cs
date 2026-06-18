@@ -1,4 +1,4 @@
-﻿using System.Net.Mail;
+using System.Net.Mail;
 using System.Net.Mime;
 using Microsoft.Extensions.Options;
 using SendGrid;
@@ -142,24 +142,6 @@ namespace Neptune.Common.Email
             addresses.Clear();
         }
 
-        private static string FlattenMailAddresses(IEnumerable<MailAddress> addresses)
-        {
-            return string.Join("; ", addresses.Select(x => x.ToString()));
-        }
-
-        public string GetDefaultEmailSignature()
-        {
-            string defaultEmailSignature = $@"<br /><br />
-Respectfully, the OC Stormwater Tools team
-<br /><br />
-***
-<br /><br />
-You have received this email because you are a registered user of the OC Stormwater Tools. 
-<br /><br />
-<a href=""mailto:{_configuration.SitkaSupportEmail}"">{_configuration.SitkaSupportEmail}</a>";
-            return defaultEmailSignature;
-        }
-
         public string GetSupportNotificationEmailSignature()
         {
             string supportNotificationEmailSignature = $@"<br /><br />
@@ -176,14 +158,6 @@ You have received this email because you are assigned to receive support notific
         public MailAddress GetDefaultEmailFrom()
         {
             return new MailAddress("donotreply@sitkatech.net", "OC Stormwater Tools");
-        }
-
-        public static void AddBccRecipientsToEmail(MailMessage mailMessage, IEnumerable<string> recipients)
-        {
-            foreach (var recipient in recipients)
-            {
-                mailMessage.Bcc.Add(recipient);
-            }
         }
 
         public static void AddCcRecipientsToEmail(MailMessage mailMessage, IEnumerable<string> recipients)

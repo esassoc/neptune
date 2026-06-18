@@ -1,4 +1,4 @@
-﻿/*-----------------------------------------------------------------------
+/*-----------------------------------------------------------------------
 <copyright file="StringFormats.cs" company="Sitka Technology Group">
 Copyright (c) Sitka Technology Group. All rights reserved.
 <author>Sitka Technology Group</author>
@@ -28,12 +28,6 @@ namespace Neptune.Common
     public static class StringFormats
     {
         public delegate bool TryParseDelegate<T>(string str, out T value);
-
-        public static T? TryParseOrNull<T>(TryParseDelegate<T> parse, string str) where T : struct
-        {
-            T value;
-            return parse(str, out value) ? value : (T?)null;
-        }
 
         public static string Left(this string thisString, int length)
         {
@@ -219,19 +213,6 @@ namespace Neptune.Common
         {
             return value.ToString("$#,##0");
         }
-        public static decimal? ParseNullableDecimalFromCurrencyString(string currencyString)
-        {
-            if (string.IsNullOrEmpty(currencyString))
-            {
-                return null;
-            }
-            decimal currencyValue;
-            if (!decimal.TryParse(currencyString, NumberStyles.Currency, CultureInfo.CurrentCulture, out currencyValue))
-            {
-                throw new ApplicationException(string.Format("Could not parse currency value \"{0}\"", currencyString));
-            }
-            return currencyValue;
-        }
 
         public static string ToStringDate(this DateTime dateTime)
         {
@@ -292,23 +273,6 @@ namespace Neptune.Common
         {
             // note - this is set to allow maximum precision, there are no more fractions available
             return (dateTime.HasValue) ? dateTime.Value.ToString("MM/dd/yyyy HH:mm:ss.fffffff") : string.Empty;
-        }
-
-        public static bool TryParsePhoneNumber(string input, out string phoneNumber)
-        {
-            const int strippedPhoneLength = 10;
-            phoneNumber = null;
-
-            if (string.IsNullOrWhiteSpace(input))
-                return false;
-
-            var strippedPhone = CleanPhoneNumber(input);
-            if (strippedPhone.Length != strippedPhoneLength)
-                return false;
-
-            phoneNumber = strippedPhone.ToPhoneNumberString();
-
-            return true;
         }
 
         public static string ToPhoneNumberString(this string phoneNumber)
@@ -381,23 +345,6 @@ namespace Neptune.Common
             return CultureInfo.CurrentCulture.TextInfo.ToTitleCase(text.ToLower());
         }
 
-        /// <summary>
-        /// Formats a number representing storage space in bytes using the SI prefixes: B, KB, MB, GB, TB, PB, EB and the base 2 1024 counting style
-        /// </summary>
-        public static string ToHumanReadableByteSize(long sizeInBytes)
-        {
-            var byteSizePrefixes = new []{ "B", "KB", "MB", "GB", "TB", "PB", "EB" };
-            var order = 0;
-            double size = sizeInBytes;
-            while (size >= 1024 && order + 1 < byteSizePrefixes.Length)
-            {
-                order++;
-                size = size / 1024;
-            }
-            var result = $"{size:0.##} {byteSizePrefixes[order]}";
-            return result;
-        }
-
         // Capitalize the first character and add a space before
         // each capitalized letter (except the first character).
         public static string ToProperCase(this string text)
@@ -460,68 +407,12 @@ namespace Neptune.Common
             return words.Aggregate("", (current, word) => current + string.Format("{0}{1}", word.Substring(0, 1).ToUpper(), word.Substring(1)));
         }
 
-        //public static readonly Regex ContainAbsoluteUrlWithApplicationDomainReferenceRegEx = new Regex(ConstructContainAbsoluteUrlWithApplicationDomainReferenceRegExForApplicationDomain(SitkaWebConfiguration.ApplicationDomain), RegexOptions.IgnoreCase | RegexOptions.Multiline);
-
-        ///// <summary>
-        ///// Does a given HTML string contain a non-server root relative URL pointing to the application domain? 
-        ///// (This is bad & undesirable, by the way.)
-        ///// </summary>
-        ///// <param name="htmlString"></param>
-        ///// <returns></returns>
-        //public static bool DoesHtmlStringContainAbsoluteUrlWithApplicationDomainReference(this string htmlString)
-        //{
-        //    return htmlString.DoesHtmlStringContainAbsoluteUrlWithApplicationDomainReference(ContainAbsoluteUrlWithApplicationDomainReferenceRegEx);
-        //}
-
-        //public static HtmlString MakeAbsoluteLinksToApplicationDomainRelative(this HtmlString htmlString)
-        //{
-        //    // ReSharper disable once ConditionIsAlwaysTrueOrFalse
-        //    if (htmlString == null || htmlString.ToString() == null)
-        //    {
-        //        // ReSharper disable once ExpressionIsAlwaysNull
-        //        return htmlString;
-        //    }
-        //    return new HtmlString(ContainAbsoluteUrlWithApplicationDomainReferenceRegEx.Replace(htmlString.ToString(), string.Empty));
-        //}
-
-        public static string ConstructContainAbsoluteUrlWithApplicationDomainReferenceRegExForApplicationDomain(string applicationDomain)
-        {
-            return $@"http(s?)\:\/\/[0-9a-zA-Z]*((\.?){applicationDomain.Replace(@".", @"\.")})";
-        }
-
         /// <summary>
         /// Only public for unit testing
         /// </summary>
         public static bool DoesHtmlStringContainAbsoluteUrlWithApplicationDomainReference(this string htmlString, Regex containAbsoluteUrlWithApplicationDomainReferenceRegEx)
         {
             return htmlString != null && containAbsoluteUrlWithApplicationDomainReferenceRegEx.IsMatch(htmlString);
-        }
-
-        public static string IndentLinesInStringByAmount(string linesToIndent, uint indentLevel, string indentToken)
-        {
-            if (linesToIndent == null)
-            {
-                return null;
-            }
-            if (linesToIndent == string.Empty)
-            {
-                return string.Empty;
-            }
-            if (indentLevel == 0 || string.IsNullOrEmpty(indentToken))
-            {
-                return linesToIndent;
-            }
-
-            var indentString = string.Empty;
-            for (var i = 0; i < indentLevel; i++)
-            {
-                indentString += indentToken;
-            }
-
-            var lineMatches = Regex.Matches(linesToIndent, "[^\r\n]+([\r\n]+)?");
-            var newLines = lineMatches.Cast<Match>().Select(x => indentString + x.Value);
-            var newText = string.Join(string.Empty, newLines);
-            return newText;
         }
 
         public static string SanitizeStringForGdb(this string str)
