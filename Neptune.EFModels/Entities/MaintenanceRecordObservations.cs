@@ -1,4 +1,4 @@
-﻿using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore;
 using Neptune.Common.DesignByContract;
 
 namespace Neptune.EFModels.Entities;
@@ -25,12 +25,6 @@ public static class MaintenanceRecordObservations
         return maintenanceRecordObservation;
     }
 
-    public static MaintenanceRecordObservation GetByIDWithChangeTracking(NeptuneDbContext dbContext,
-        MaintenanceRecordObservationPrimaryKey maintenanceRecordObservationPrimaryKey)
-    {
-        return GetByIDWithChangeTracking(dbContext, maintenanceRecordObservationPrimaryKey.PrimaryKeyValue);
-    }
-
     public static MaintenanceRecordObservation GetByID(NeptuneDbContext dbContext, int maintenanceRecordObservationID)
     {
         var maintenanceRecordObservation = GetImpl(dbContext).AsNoTracking()
@@ -38,16 +32,5 @@ public static class MaintenanceRecordObservations
         Check.RequireNotNull(maintenanceRecordObservation,
             $"MaintenanceRecordObservation with ID {maintenanceRecordObservationID} not found!");
         return maintenanceRecordObservation;
-    }
-
-    public static MaintenanceRecordObservation GetByID(NeptuneDbContext dbContext,
-        MaintenanceRecordObservationPrimaryKey maintenanceRecordObservationPrimaryKey)
-    {
-        return GetByID(dbContext, maintenanceRecordObservationPrimaryKey.PrimaryKeyValue);
-    }
-
-    public static List<MaintenanceRecordObservation> ListByCustomAttributeTypeID(NeptuneDbContext dbContext, int customAttributeTypeID)
-    {
-        return GetImpl(dbContext).AsNoTracking().Where(x => x.CustomAttributeTypeID == customAttributeTypeID).OrderBy(x => x.MaintenanceRecordObservationID).ToList();
     }
 }

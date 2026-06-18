@@ -1,4 +1,4 @@
-﻿using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore;
 using Neptune.Common.DesignByContract;
 using Neptune.Common.GeoSpatial;
 using Neptune.Models.DataTransferObjects;
@@ -26,11 +26,6 @@ public static class OnlandVisualTrashAssessmentAreas
         return onlandVisualTrashAssessmentArea;
     }
 
-    public static OnlandVisualTrashAssessmentArea GetByIDWithChangeTracking(NeptuneDbContext dbContext, OnlandVisualTrashAssessmentAreaPrimaryKey onlandVisualTrashAssessmentAreaPrimaryKey)
-    {
-        return GetByIDWithChangeTracking(dbContext, onlandVisualTrashAssessmentAreaPrimaryKey.PrimaryKeyValue);
-    }
-
     public static OnlandVisualTrashAssessmentArea GetByID(NeptuneDbContext dbContext, int onlandVisualTrashAssessmentAreaID)
     {
         var onlandVisualTrashAssessmentArea = GetImpl(dbContext)
@@ -38,17 +33,6 @@ public static class OnlandVisualTrashAssessmentAreas
             .SingleOrDefault(x => x.OnlandVisualTrashAssessmentAreaID == onlandVisualTrashAssessmentAreaID);
         Check.RequireNotNull(onlandVisualTrashAssessmentArea, $"OnlandVisualTrashAssessmentArea with ID {onlandVisualTrashAssessmentAreaID} not found!");
         return onlandVisualTrashAssessmentArea;
-    }
-
-    public static OnlandVisualTrashAssessmentArea GetByID(NeptuneDbContext dbContext, OnlandVisualTrashAssessmentAreaPrimaryKey onlandVisualTrashAssessmentAreaPrimaryKey)
-    {
-        return GetByID(dbContext, onlandVisualTrashAssessmentAreaPrimaryKey.PrimaryKeyValue);
-    }
-
-    public static List<OnlandVisualTrashAssessmentArea> List(NeptuneDbContext dbContext)
-    {
-        return GetImpl(dbContext).AsNoTracking().ToList().OrderBy(x => x.OnlandVisualTrashAssessmentAreaName).ToList();
-
     }
 
     public static async Task Update(NeptuneDbContext dbContext, int onlandVisualTrashAssessmentAreaID, OnlandVisualTrashAssessmentAreaSimpleDto ovtaAreaDto)

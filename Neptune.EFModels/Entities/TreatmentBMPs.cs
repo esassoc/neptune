@@ -1,4 +1,4 @@
-﻿/*-----------------------------------------------------------------------
+/*-----------------------------------------------------------------------
 <copyright file="TreatmentBMP.DatabaseContextExtensions.cs" company="Tahoe Regional Planning Agency">
 Copyright (c) Tahoe Regional Planning Agency. All rights reserved.
 <author>Sitka Technology Group</author>
@@ -163,16 +163,6 @@ public static class TreatmentBMPs
         }
 
         return treatmentBMPs;
-    }
-
-    public static List<TreatmentBMP> GetProvisionalTreatmentBMPs(NeptuneDbContext dbContext, Person currentPerson)
-    {
-        return GetNonPlanningModuleBMPs(dbContext)
-            .Where(x => x.InventoryIsVerified == false)
-            .ToList()
-            .Where(x => x.CanView(currentPerson))
-            .OrderBy(x => x.TreatmentBMPName)
-            .ToList();
     }
 
     // Manager Dashboard: provisional BMPs projected straight to the grid DTO. Mirrors the legacy
@@ -566,12 +556,6 @@ public static class TreatmentBMPs
         }
     }
 
-    public static TreatmentBMP GetByIDWithChangeTracking(NeptuneDbContext dbContext,
-                                                         TreatmentBMPPrimaryKey treatmentBMPPrimaryKey)
-    {
-        return GetByIDWithChangeTracking(dbContext, treatmentBMPPrimaryKey.PrimaryKeyValue);
-    }
-
     public static TreatmentBMP GetByID(NeptuneDbContext dbContext, int treatmentBMPID)
     {
         var treatmentBMP = GetImpl(dbContext)
@@ -599,11 +583,6 @@ public static class TreatmentBMPs
             : null;
 
         return upstreamestBMP;
-    }
-
-    public static List<TreatmentBMP> List(NeptuneDbContext dbContext)
-    {
-        return GetImpl(dbContext).AsNoTracking().OrderBy(x => x.TreatmentBMPName).ToList();
     }
 
     public static Dictionary<int, int> ListCountByStormwaterJurisdiction(NeptuneDbContext dbContext)
@@ -725,27 +704,12 @@ public static class TreatmentBMPs
         return treatmentBMP;
     }
 
-    public static List<TreatmentBMP> ListByStormwaterJurisdictionID(NeptuneDbContext dbContext,
-                                                                    int stormwaterJurisdictionID)
-    {
-        return ListByStormwaterJurisdictionIDList(dbContext, new List<int> { stormwaterJurisdictionID });
-    }
-
     public static List<TreatmentBMP> ListByStormwaterJurisdictionIDList(NeptuneDbContext dbContext,
                                                                         List<int> stormwaterJurisdictionIDList)
     {
         return GetImpl(dbContext)
             .AsNoTracking()
             .Where(x => stormwaterJurisdictionIDList.Contains(x.StormwaterJurisdictionID))
-            .ToList();
-    }
-
-    public static List<TreatmentBMP> ListByWaterQualityManagementPlanID(NeptuneDbContext dbContext,
-                                                                        int waterQualityManagementPlanID)
-    {
-        return GetImpl(dbContext)
-            .AsNoTracking()
-            .Where(x => x.WaterQualityManagementPlanID == waterQualityManagementPlanID)
             .ToList();
     }
 
@@ -756,21 +720,6 @@ public static class TreatmentBMPs
         return GetImpl(dbContext)
             .Where(x => x.WaterQualityManagementPlanID == waterQualityManagementPlanID)
             .ToList();
-    }
-
-    public static List<TreatmentBMP> ListByTreatmentBMPIDList(NeptuneDbContext dbContext,
-                                                              List<int> treatmentBMPIDList)
-    {
-        return GetImpl(dbContext)
-            .AsNoTracking()
-            .Where(x => treatmentBMPIDList.Contains(x.TreatmentBMPID))
-            .ToList();
-    }
-
-    public static List<TreatmentBMP> ListByTreatmentBMPIDListWithChangeTracking(NeptuneDbContext dbContext,
-                                                                                List<int> treatmentBMPIDList)
-    {
-        return GetImpl(dbContext).Where(x => treatmentBMPIDList.Contains(x.TreatmentBMPID)).ToList();
     }
 
     public static int? ChangeTreatmentBMPType(NeptuneDbContext dbContext, int treatmentBMPID, int treatmentBMPTypeID)

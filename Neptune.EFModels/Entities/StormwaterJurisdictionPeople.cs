@@ -1,4 +1,4 @@
-﻿using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore;
 using Neptune.Common.DesignByContract;
 using Neptune.Models.DataTransferObjects;
 
@@ -19,22 +19,12 @@ public static class StormwaterJurisdictionPeople
         return stormwaterJurisdictionPerson;
     }
 
-    public static StormwaterJurisdictionPerson GetByIDWithChangeTracking(NeptuneDbContext dbContext, StormwaterJurisdictionPersonPrimaryKey stormwaterJurisdictionPersonPrimaryKey)
-    {
-        return GetByIDWithChangeTracking(dbContext, stormwaterJurisdictionPersonPrimaryKey.PrimaryKeyValue);
-    }
-
     public static StormwaterJurisdictionPerson GetByID(NeptuneDbContext dbContext, int stormwaterJurisdictionPersonID)
     {
         var stormwaterJurisdictionPerson = GetImpl(dbContext).AsNoTracking()
             .SingleOrDefault(x => x.StormwaterJurisdictionPersonID == stormwaterJurisdictionPersonID);
         Check.RequireNotNull(stormwaterJurisdictionPerson, $"StormwaterJurisdictionPerson with ID {stormwaterJurisdictionPersonID} not found!");
         return stormwaterJurisdictionPerson;
-    }
-
-    public static StormwaterJurisdictionPerson GetByID(NeptuneDbContext dbContext, StormwaterJurisdictionPersonPrimaryKey stormwaterJurisdictionPersonPrimaryKey)
-    {
-        return GetByID(dbContext, stormwaterJurisdictionPersonPrimaryKey.PrimaryKeyValue);
     }
 
     public static async Task<List<int>> ListViewableStormwaterJurisdictionIDsByPersonIDForBMPsAsync(NeptuneDbContext dbContext, int? personID)
@@ -102,14 +92,6 @@ public static class StormwaterJurisdictionPeople
     {
         return dbContext.StormwaterJurisdictionPeople.AsNoTracking().GroupBy(x => x.StormwaterJurisdictionID).Select(x => new { x.Key, Count = x.Count() })
             .ToDictionary(x => x.Key, x => x.Count);
-    }
-
-    public static List<StormwaterJurisdictionPerson> ListByStormwaterJurisdictionID(NeptuneDbContext dbContext, int stormwaterJurisdictionID)
-    {
-        return dbContext.StormwaterJurisdictionPeople
-            .Include(x => x.Person)
-            .ThenInclude(x => x.Organization)
-            .AsNoTracking().Where(x => x.StormwaterJurisdictionID == stormwaterJurisdictionID).ToList();
     }
 
     public static async Task<List<PersonDisplayDto>> ListByStormwaterJurisdictionIDAsPersonDto(NeptuneDbContext dbContext, int stormwaterJurisdictionID)

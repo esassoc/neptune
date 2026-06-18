@@ -5,11 +5,6 @@ namespace Neptune.EFModels.Entities;
 
 public static class WaterQualityManagementPlanExtractionResults
 {
-    public static async Task<WaterQualityManagementPlanExtractionResult?> GetByWqmpIDAsync(NeptuneDbContext dbContext, int waterQualityManagementPlanID)
-    {
-        return await dbContext.WaterQualityManagementPlanExtractionResults
-            .SingleOrDefaultAsync(x => x.WaterQualityManagementPlanID == waterQualityManagementPlanID);
-    }
 
     public static async Task<WaterQualityManagementPlanExtractionResultDto?> GetByWqmpIDAsDtoAsync(NeptuneDbContext dbContext, int waterQualityManagementPlanID)
     {

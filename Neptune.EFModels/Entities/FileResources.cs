@@ -1,4 +1,4 @@
-﻿using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.Http;
 using Microsoft.EntityFrameworkCore;
 using Neptune.Models.DataTransferObjects;
 
@@ -67,20 +67,6 @@ public class FileResources
             .SingleOrDefault(x => x.FileResourceID == fileResourceID);
 
         return fileResource;
-    }
-
-    public static FileResource? GetByGuidString(NeptuneDbContext dbContext, string fileResourceGuidAsString)
-    {
-        var isValidGuid = Guid.TryParse(fileResourceGuidAsString, out var fileResourceGuid);
-        if (isValidGuid)
-        {
-            var fileResource = dbContext.FileResources.AsNoTracking()
-                .SingleOrDefault(x => x.FileResourceGUID == fileResourceGuid);
-
-            return fileResource;
-        }
-
-        return null;
     }
 
     public static async Task DeleteAsync(NeptuneDbContext dbContext, int fileResourceID)

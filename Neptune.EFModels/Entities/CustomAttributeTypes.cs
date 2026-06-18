@@ -1,4 +1,4 @@
-﻿/*-----------------------------------------------------------------------
+/*-----------------------------------------------------------------------
 <copyright file="FieldDefinitionData.DatabaseContextExtensions.cs" company="Tahoe Regional Planning Agency and Sitka Technology Group">
 Copyright (c) Tahoe Regional Planning Agency and Sitka Technology Group. All rights reserved.
 <author>Sitka Technology Group</author>
@@ -49,12 +49,6 @@ namespace Neptune.EFModels.Entities
             return customAttributeType;
         }
 
-        public static CustomAttributeType GetByIDWithChangeTracking(NeptuneDbContext dbContext,
-            CustomAttributeTypePrimaryKey customAttributeTypePrimaryKey)
-        {
-            return GetByIDWithChangeTracking(dbContext, customAttributeTypePrimaryKey.PrimaryKeyValue);
-        }
-
         public static CustomAttributeType GetByID(NeptuneDbContext dbContext, int customAttributeTypeID)
         {
             var customAttributeType = GetImpl(dbContext).AsNoTracking()
@@ -62,12 +56,6 @@ namespace Neptune.EFModels.Entities
             Check.RequireNotNull(customAttributeType,
                 $"CustomAttributeType with ID {customAttributeTypeID} not found!");
             return customAttributeType;
-        }
-
-        public static CustomAttributeType GetByID(NeptuneDbContext dbContext,
-            CustomAttributeTypePrimaryKey customAttributeTypePrimaryKey)
-        {
-            return GetByID(dbContext, customAttributeTypePrimaryKey.PrimaryKeyValue);
         }
 
         public static CustomAttributeTypeDto GetByIDAsDto(NeptuneDbContext dbContext, int customAttributeTypeID)
@@ -116,23 +104,6 @@ namespace Neptune.EFModels.Entities
         {
             var customAttributeTypeIDs = customAttributes.Select(x => x.CustomAttributeTypeID).ToList();
             return GetImpl(dbContext).AsNoTracking().Where(x => customAttributeTypeIDs.Contains(x.CustomAttributeTypeID)).OrderBy(x => x.CustomAttributeTypeName).ToList();
-        }
-
-        public static List<CustomAttributeTypeDto> GetByCustomAttributeTypePurposeAndTreatmentBMPTypeAsDto(NeptuneDbContext dbContext, int customAttributeTypePurposeID, int treatmentBmpTypeID)
-        {
-            return GetImpl(dbContext).AsNoTracking().Where(x =>
-                    x.CustomAttributeTypePurposeID == customAttributeTypePurposeID &&
-                    x.TreatmentBMPTypeCustomAttributeTypes.Any(y => y.TreatmentBMPTypeID == treatmentBmpTypeID))
-                .Select(x => x.AsDto())
-                .ToList();
-        }
-
-        public static List<CustomAttributeTypeDto> GetByCustomAttributeTypePurposeAsDto(NeptuneDbContext dbContext, int customAttributeTypePurposeID)
-        {
-            return GetImpl(dbContext).AsNoTracking().Where(x =>
-                    x.CustomAttributeTypePurposeID == customAttributeTypePurposeID)
-                .Select(x => x.AsDto())
-                .ToList();
         }
 
         public static List<CustomAttributeTypeWithTreatmentBMPTypeIDsDto> GetByCustomAttributeTypePurposeAsWithTreatmentBMPTypeIDsDto(NeptuneDbContext dbContext, int customAttributeTypePurposeID)

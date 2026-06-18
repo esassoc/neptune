@@ -1,4 +1,4 @@
-﻿using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore;
 using Neptune.Common.DesignByContract;
 using Neptune.Models.DataTransferObjects;
 using NetTopologySuite.Geometries;
@@ -25,12 +25,6 @@ public static class WaterQualityManagementPlanParcels
         return waterQualityManagementPlanParcel;
     }
 
-    public static WaterQualityManagementPlanParcel GetByIDWithChangeTracking(NeptuneDbContext dbContext,
-        WaterQualityManagementPlanParcelPrimaryKey waterQualityManagementPlanParcelPrimaryKey)
-    {
-        return GetByIDWithChangeTracking(dbContext, waterQualityManagementPlanParcelPrimaryKey.PrimaryKeyValue);
-    }
-
     public static WaterQualityManagementPlanParcel GetByID(NeptuneDbContext dbContext, int waterQualityManagementPlanParcelID)
     {
         var waterQualityManagementPlanParcel = GetImpl(dbContext).AsNoTracking()
@@ -38,18 +32,6 @@ public static class WaterQualityManagementPlanParcels
         Check.RequireNotNull(waterQualityManagementPlanParcel,
             $"WaterQualityManagementPlanParcel with ID {waterQualityManagementPlanParcelID} not found!");
         return waterQualityManagementPlanParcel;
-    }
-
-    public static WaterQualityManagementPlanParcel GetByID(NeptuneDbContext dbContext,
-        WaterQualityManagementPlanParcelPrimaryKey waterQualityManagementPlanParcelPrimaryKey)
-    {
-        return GetByID(dbContext, waterQualityManagementPlanParcelPrimaryKey.PrimaryKeyValue);
-    }
-
-    public static List<WaterQualityManagementPlanParcel> ListByWaterQualityManagementPlanID(NeptuneDbContext dbContext, int waterQualityManagementPlanID)
-    {
-        return GetImpl(dbContext).AsNoTracking()
-            .Where(x => x.WaterQualityManagementPlanID == waterQualityManagementPlanID).ToList();
     }
 
     public static List<WaterQualityManagementPlanParcel> ListByWaterQualityManagementPlanIDWithChangeTracking(NeptuneDbContext dbContext, int waterQualityManagementPlanID)

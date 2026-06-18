@@ -1,4 +1,4 @@
-﻿/*-----------------------------------------------------------------------
+/*-----------------------------------------------------------------------
 <copyright file="Jurisdiction.DatabaseContextExtensions.cs" company="Tahoe Regional Planning Agency">
 Copyright (c) Tahoe Regional Planning Agency. All rights reserved.
 <author>Sitka Technology Group</author>
@@ -40,27 +40,12 @@ namespace Neptune.EFModels.Entities
             return parcel;
         }
 
-        public static Parcel GetByIDWithChangeTracking(NeptuneDbContext dbContext, ParcelPrimaryKey parcelPrimaryKey)
-        {
-            return GetByIDWithChangeTracking(dbContext, parcelPrimaryKey.PrimaryKeyValue);
-        }
-
         public static Parcel GetByID(NeptuneDbContext dbContext, int parcelID)
         {
             var parcel = GetImpl(dbContext).AsNoTracking()
                 .SingleOrDefault(x => x.ParcelID == parcelID);
             Check.RequireNotNull(parcel, $"Parcel with ID {parcelID} not found!");
             return parcel;
-        }
-
-        public static Parcel GetByID(NeptuneDbContext dbContext, ParcelPrimaryKey parcelPrimaryKey)
-        {
-            return GetByID(dbContext, parcelPrimaryKey.PrimaryKeyValue);
-        }
-
-        public static List<Parcel> List(NeptuneDbContext dbContext)
-        {
-            return GetImpl(dbContext).AsNoTracking().OrderBy(x => x.ParcelNumber).ToList();
         }
 
         public static async Task<List<ParcelGridDto>> ListAsGridDtoAsync(NeptuneDbContext dbContext)

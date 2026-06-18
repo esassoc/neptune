@@ -1,4 +1,4 @@
-﻿using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore;
 using Neptune.Common.DesignByContract;
 using Neptune.Models.DataTransferObjects;
 
@@ -30,11 +30,6 @@ public static class Organizations
         return organization;
     }
 
-    public static Organization GetByIDWithChangeTracking(NeptuneDbContext dbContext, OrganizationPrimaryKey organizationPrimaryKey)
-    {
-        return GetByIDWithChangeTracking(dbContext, organizationPrimaryKey.PrimaryKeyValue);
-    }
-
     public static Organization GetByID(NeptuneDbContext dbContext, int organizationID)
     {
         var organization = GetImpl(dbContext).AsNoTracking()
@@ -43,44 +38,14 @@ public static class Organizations
         return organization;
     }
 
-    public static Organization GetByID(NeptuneDbContext dbContext, OrganizationPrimaryKey organizationPrimaryKey)
-    {
-        return GetByID(dbContext, organizationPrimaryKey.PrimaryKeyValue);
-    }
-
-    public static List<Organization> List(NeptuneDbContext dbContext)
-    {
-        return GetImpl(dbContext).AsNoTracking().ToList().OrderBy(x => x.GetDisplayName()).ToList();
-    }
-
-    public static List<Organization> ListActive(NeptuneDbContext dbContext)
-    {
-        return GetImpl(dbContext).AsNoTracking().Where(x => x.IsActive).ToList().OrderBy(x => x.GetDisplayName()).ToList();
-    }
-
-    public static Organization GetByGuid(NeptuneDbContext dbContext, Guid organizationGuid)
-    {
-        return GetImpl(dbContext).AsNoTracking().SingleOrDefault(x => x.OrganizationGuid == organizationGuid);
-    }
-
     public static Organization GetByName(NeptuneDbContext dbContext, string organizationName)
     {
         return GetImpl(dbContext).AsNoTracking().SingleOrDefault(x => x.OrganizationName == organizationName);
     }
 
-    public static Organization GetUnknownOrganization(NeptuneDbContext dbContext)
-    {
-        return GetByName(dbContext, Organization.OrganizationUnknown);
-    }
-
     public static List<Organization> ListByPrimaryContactPersonID(NeptuneDbContext dbContext, int primaryContactPersonID)
     {
         return GetImpl(dbContext).AsNoTracking().Where(x => x.PrimaryContactPersonID == primaryContactPersonID).ToList().OrderBy(x => x.GetDisplayName()).ToList();
-    }
-
-    public static List<Organization> ListByPrimaryContactPersonIDWithChangeTracking(NeptuneDbContext dbContext, int primaryContactPersonID)
-    {
-        return GetImpl(dbContext).Where(x => x.PrimaryContactPersonID == primaryContactPersonID).ToList().OrderBy(x => x.GetDisplayName()).ToList();
     }
 
     public static int GetUnknownOrganizationID(NeptuneDbContext dbContext)

@@ -48,12 +48,6 @@ namespace Neptune.EFModels.Entities
             return delineation;
         }
 
-        public static Delineation GetByIDWithChangeTracking(NeptuneDbContext dbContext,
-            DelineationPrimaryKey delineationPrimaryKey)
-        {
-            return GetByIDWithChangeTracking(dbContext, delineationPrimaryKey.PrimaryKeyValue);
-        }
-
         public static List<DelineationUpsertDto> ListByProjectIDAsUpsertDto(NeptuneDbContext dbContext, int projectID)
         {
             return GetImpl(dbContext)
@@ -80,12 +74,6 @@ namespace Neptune.EFModels.Entities
             return delineation;
         }
 
-        public static Delineation GetByID(NeptuneDbContext dbContext,
-            DelineationPrimaryKey delineationPrimaryKey)
-        {
-            return GetByID(dbContext, delineationPrimaryKey.PrimaryKeyValue);
-        }
-
         public static Delineation? GetByTreatmentBMPID(NeptuneDbContext dbContext, int treatmentBMPID)
         {
             var delineation = GetImpl(dbContext).AsNoTracking()
@@ -98,37 +86,6 @@ namespace Neptune.EFModels.Entities
             var delineation = GetImpl(dbContext)
                 .SingleOrDefault(x => x.TreatmentBMPID == treatmentBMPID);
             return delineation;
-        }
-
-        public static List<Delineation> ListByTreatmentBMPIDList(NeptuneDbContext dbContext, IEnumerable<int> treatmentBMPIDList)
-        {
-            return GetImpl(dbContext).AsNoTracking()
-                .Where(x => treatmentBMPIDList.Contains(x.TreatmentBMPID)).OrderBy(x => x.DelineationID).ToList();
-        }
-
-        public static List<Delineation> ListByDelineationIDList(NeptuneDbContext dbContext, IEnumerable<int> delineationIDList)
-        {
-            return GetImpl(dbContext).AsNoTracking()
-                .Where(x => delineationIDList.Contains(x.DelineationID)).OrderBy(x => x.DelineationID).ToList();
-        }
-
-        public static List<Delineation> ListByDelineationIDListWithChangeTracking(NeptuneDbContext dbContext, IEnumerable<int> delineationIDList)
-        {
-            return GetImpl(dbContext)
-                .Where(x => delineationIDList.Contains(x.DelineationID)).OrderBy(x => x.DelineationID).ToList();
-        }
-
-        public static List<Delineation> GetProvisionalBMPDelineations(NeptuneDbContext dbContext, Person currentPerson)
-        {
-            return GetImpl(dbContext).AsNoTracking()
-                .Include(x => x.TreatmentBMP)
-                .ThenInclude(x => x.TreatmentBMPType)
-                .Include(x => x.TreatmentBMP)
-                .ThenInclude(x => x.StormwaterJurisdiction)
-                .ThenInclude(x => x.Organization)
-                .Where(x => x.IsVerified == false).ToList()
-                .Where(x => x.TreatmentBMP.CanView(currentPerson))
-                .OrderBy(x => x.TreatmentBMP.TreatmentBMPName).ToList();
         }
 
         // Manager Dashboard: provisional delineations projected straight to the grid DTO via the
@@ -288,35 +245,6 @@ namespace Neptune.EFModels.Entities
             delineation.IsVerified = true;
             delineation.DateLastVerified = DateTime.UtcNow;
             delineation.VerifiedByPersonID = currentPerson.PersonID;
-        }
-
-        public static List<Delineation> ListHavingOverlaps(NeptuneDbContext dbContext, Person currentPerson)
-        {
-            return GetImpl(dbContext).AsNoTracking()
-                .Include(x => x.TreatmentBMP)
-                .ThenInclude(x => x.TreatmentBMPType)
-                .Include(x => x.TreatmentBMP)
-                .ThenInclude(x => x.StormwaterJurisdiction)
-                .ThenInclude(x => x.Organization)
-                .Include(x => x.DelineationOverlapDelineations)
-                .ThenInclude(x => x.OverlappingDelineation)
-                .ThenInclude(x => x.TreatmentBMP)
-                .Where(x => x.DelineationOverlapDelineations.Any()).ToList()
-                .Where(x => x.TreatmentBMP.CanView(currentPerson))
-                .OrderBy(x => x.TreatmentBMP.TreatmentBMPName).ToList();
-        }
-
-        public static List<Delineation> ListHavingDiscrepancies(NeptuneDbContext dbContext, Person currentPerson)
-        {
-            return GetImpl(dbContext).AsNoTracking()
-                .Include(x => x.TreatmentBMP)
-                .ThenInclude(x => x.TreatmentBMPType)
-                .Include(x => x.TreatmentBMP)
-                .ThenInclude(x => x.StormwaterJurisdiction)
-                .ThenInclude(x => x.Organization)
-                .Where(x => x.HasDiscrepancies).ToList()
-                .Where(x => x.TreatmentBMP.CanView(currentPerson))
-                .OrderBy(x => x.TreatmentBMP.TreatmentBMPName).ToList();
         }
 
         public static DelineationDto? GetByTreatmentBMPIDAsDto(NeptuneDbContext dbContext, int treatmentBMPID)

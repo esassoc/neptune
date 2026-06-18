@@ -1,4 +1,4 @@
-﻿using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore;
 using Neptune.Common;
 using Neptune.Common.DesignByContract;
 using Neptune.Common.GeoSpatial;
@@ -26,12 +26,6 @@ public static class WaterQualityManagementPlanBoundaries
         return waterQualityManagementPlanBoundary;
     }
 
-    public static WaterQualityManagementPlanBoundary GetByIDWithChangeTracking(NeptuneDbContext dbContext,
-        WaterQualityManagementPlanBoundaryPrimaryKey waterQualityManagementPlanBoundaryPrimaryKey)
-    {
-        return GetByIDWithChangeTracking(dbContext, waterQualityManagementPlanBoundaryPrimaryKey.PrimaryKeyValue);
-    }
-
     public static WaterQualityManagementPlanBoundary GetByID(NeptuneDbContext dbContext, int waterQualityManagementPlanGeometryID)
     {
         var waterQualityManagementPlanBoundary = GetImpl(dbContext).AsNoTracking()
@@ -39,12 +33,6 @@ public static class WaterQualityManagementPlanBoundaries
         Check.RequireNotNull(waterQualityManagementPlanBoundary,
             $"WaterQualityManagementPlanBoundary with ID {waterQualityManagementPlanGeometryID} not found!");
         return waterQualityManagementPlanBoundary;
-    }
-
-    public static WaterQualityManagementPlanBoundary GetByID(NeptuneDbContext dbContext,
-        WaterQualityManagementPlanBoundaryPrimaryKey waterQualityManagementPlanBoundaryPrimaryKey)
-    {
-        return GetByID(dbContext, waterQualityManagementPlanBoundaryPrimaryKey.PrimaryKeyValue);
     }
 
     public static WaterQualityManagementPlanBoundary? GetByWaterQualityManagementPlanID(NeptuneDbContext dbContext, int waterQualityManagementPlanID)

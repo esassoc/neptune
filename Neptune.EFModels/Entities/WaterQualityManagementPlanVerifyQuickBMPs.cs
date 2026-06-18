@@ -1,4 +1,4 @@
-﻿using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore;
 using Neptune.Common.DesignByContract;
 
 namespace Neptune.EFModels.Entities;
@@ -25,12 +25,6 @@ public static class WaterQualityManagementPlanVerifyQuickBMPs
         return waterQualityManagementPlanVerifyQuickBMP;
     }
 
-    public static WaterQualityManagementPlanVerifyQuickBMP GetByIDWithChangeTracking(NeptuneDbContext dbContext,
-        WaterQualityManagementPlanVerifyQuickBMPPrimaryKey waterQualityManagementPlanVerifyQuickBMPPrimaryKey)
-    {
-        return GetByIDWithChangeTracking(dbContext, waterQualityManagementPlanVerifyQuickBMPPrimaryKey.PrimaryKeyValue);
-    }
-
     public static WaterQualityManagementPlanVerifyQuickBMP GetByID(NeptuneDbContext dbContext, int waterQualityManagementPlanVerifyQuickBMPID)
     {
         var waterQualityManagementPlanVerifyQuickBMP = GetImpl(dbContext).AsNoTracking()
@@ -38,28 +32,5 @@ public static class WaterQualityManagementPlanVerifyQuickBMPs
         Check.RequireNotNull(waterQualityManagementPlanVerifyQuickBMP,
             $"WaterQualityManagementPlanVerifyQuickBMP with ID {waterQualityManagementPlanVerifyQuickBMPID} not found!");
         return waterQualityManagementPlanVerifyQuickBMP;
-    }
-
-    public static WaterQualityManagementPlanVerifyQuickBMP GetByID(NeptuneDbContext dbContext,
-        WaterQualityManagementPlanVerifyQuickBMPPrimaryKey waterQualityManagementPlanVerifyQuickBMPPrimaryKey)
-    {
-        return GetByID(dbContext, waterQualityManagementPlanVerifyQuickBMPPrimaryKey.PrimaryKeyValue);
-    }
-
-    public static List<WaterQualityManagementPlanVerifyQuickBMP> ListByWaterQualityManagementPlanID(NeptuneDbContext dbContext, int waterQualityManagementPlanID)
-    {
-        return GetImpl(dbContext).AsNoTracking()
-            .Where(x => x.WaterQualityManagementPlanVerify.WaterQualityManagementPlanID == waterQualityManagementPlanID).ToList();
-    }
-
-    public static List<WaterQualityManagementPlanVerifyQuickBMP> ListByWaterQualityManagementPlanVerifyID(NeptuneDbContext dbContext, int waterQualityManagementPlanVerifyID)
-    {
-        return GetImpl(dbContext).AsNoTracking()
-            .Where(x => x.WaterQualityManagementPlanVerifyID == waterQualityManagementPlanVerifyID).ToList();
-    }
-
-    public static List<WaterQualityManagementPlanVerifyQuickBMP> ListByWaterQualityManagementPlanVerifyIDWithChangeTracking(NeptuneDbContext dbContext, int waterQualityManagementPlanVerifyID)
-    {
-        return GetImpl(dbContext).Where(x => x.WaterQualityManagementPlanVerifyID == waterQualityManagementPlanVerifyID).ToList();
     }
 }

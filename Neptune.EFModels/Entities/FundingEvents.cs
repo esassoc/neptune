@@ -1,4 +1,4 @@
-﻿using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore;
 using Neptune.Common;
 using Neptune.Common.DesignByContract;
 using Neptune.Models.DataTransferObjects;
@@ -15,11 +15,6 @@ public static class FundingEvents
                 .ThenInclude(x => x.Organization)
                 .ThenInclude(x => x.OrganizationType)
             ;
-    }
-
-    public static List<FundingEvent> List(NeptuneDbContext dbContext)
-    {
-        return GetImpl(dbContext).AsNoTracking().ToList().OrderBy(x => x.GetDisplayName()).ToList();
     }
 
     public static async Task<List<FundingEventDto>> ListByTreatmentBMPIDAsDtoAsync(NeptuneDbContext dbContext, int treatmentBMPID)
@@ -41,22 +36,12 @@ public static class FundingEvents
         return fundingEvent;
     }
 
-    public static FundingEvent GetByIDWithChangeTracking(NeptuneDbContext dbContext, FundingEventPrimaryKey fundingEventPrimaryKey)
-    {
-        return GetByIDWithChangeTracking(dbContext, fundingEventPrimaryKey.PrimaryKeyValue);
-    }
-
     public static FundingEvent GetByID(NeptuneDbContext dbContext, int fundingEventID)
     {
         var fundingEvent = GetImpl(dbContext).AsNoTracking()
             .SingleOrDefault(x => x.FundingEventID == fundingEventID);
         Check.RequireNotNull(fundingEvent, $"FundingEvent with ID {fundingEventID} not found!");
         return fundingEvent;
-    }
-
-    public static FundingEvent GetByID(NeptuneDbContext dbContext, FundingEventPrimaryKey fundingEventPrimaryKey)
-    {
-        return GetByID(dbContext, fundingEventPrimaryKey.PrimaryKeyValue);
     }
 
     public static async Task<FundingEventDto?> GetByIDAsDtoAsync(NeptuneDbContext dbContext, int fundingEventID)
@@ -67,11 +52,6 @@ public static class FundingEvents
             .ThenInclude(x => x.Organization)
             .FirstOrDefaultAsync(x => x.FundingEventID == fundingEventID);
         return entity?.AsDto();
-    }
-
-    public static List<FundingEvent> ListByTreatmentBMPID(NeptuneDbContext dbContext, int treatmentBMPID)
-    {
-        return GetImpl(dbContext).AsNoTracking().Where(x => x.TreatmentBMPID == treatmentBMPID).ToList().OrderBy(x => x.GetDisplayName()).ToList();
     }
 
     public static async Task<FundingEventDto> CreateAsync(NeptuneDbContext dbContext, int treatmentBMPID, FundingEventUpsertDto dto)

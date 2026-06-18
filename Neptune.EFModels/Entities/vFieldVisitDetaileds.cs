@@ -1,4 +1,4 @@
-﻿/*-----------------------------------------------------------------------
+/*-----------------------------------------------------------------------
 <copyright file="FieldVisit.DatabaseContextExtensions.cs" company="Tahoe Regional Planning Agency and Sitka Technology Group">
 Copyright (c) Tahoe Regional Planning Agency and Sitka Technology Group. All rights reserved.
 <author>Sitka Technology Group</author>
@@ -66,18 +66,6 @@ namespace Neptune.EFModels.Entities
         {
             return dbContext.vFieldVisitDetaileds.AsNoTracking()
                 .Where(x => x.IsFieldVisitVerified == false && stormwaterJurisdictionIDsPersonCanView.Contains(x.StormwaterJurisdictionID)).OrderByDescending(x => x.VisitDate).ToList();
-        }
-
-        public static List<vFieldVisitDetailed> GetProvisionalFieldVisits(NeptuneDbContext dbContext, Person currentPerson)
-        {
-            var stormwaterJurisdictionIDsPersonCanView = StormwaterJurisdictionPeople.ListViewableStormwaterJurisdictionIDsByPersonForBMPs(dbContext, currentPerson);
-            return GetProvisionalFieldVisits(dbContext, stormwaterJurisdictionIDsPersonCanView);
-        }
-
-        public static List<vFieldVisitDetailed> ListForStormwaterJurisdictionIDs(NeptuneDbContext dbContext, IEnumerable<int> stormwaterJurisdictionIDsPersonCanView)
-        {
-            return dbContext.vFieldVisitDetaileds.AsNoTracking()
-                .Where(x => stormwaterJurisdictionIDsPersonCanView.Contains(x.StormwaterJurisdictionID)).OrderByDescending(x => x.VisitDate).ToList();
         }
 
         public static List<vFieldVisitDetailed> ListByTreatmentBMPID(NeptuneDbContext dbContext, int treatmentBMPID)

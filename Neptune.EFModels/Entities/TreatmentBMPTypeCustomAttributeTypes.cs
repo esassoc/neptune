@@ -1,4 +1,4 @@
-﻿using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore;
 using Neptune.Common.DesignByContract;
 using Neptune.Models.DataTransferObjects;
 
@@ -21,12 +21,6 @@ public static class TreatmentBMPTypeCustomAttributeTypes
         return treatmentBMPTypeCustomAttributeType;
     }
 
-    public static TreatmentBMPTypeCustomAttributeType GetByIDWithChangeTracking(NeptuneDbContext dbContext,
-        TreatmentBMPTypeCustomAttributeTypePrimaryKey treatmentBMPTypeCustomAttributeTypePrimaryKey)
-    {
-        return GetByIDWithChangeTracking(dbContext, treatmentBMPTypeCustomAttributeTypePrimaryKey.PrimaryKeyValue);
-    }
-
     public static TreatmentBMPTypeCustomAttributeType GetByID(NeptuneDbContext dbContext, int treatmentBMPTypeCustomAttributeTypeID)
     {
         var treatmentBMPTypeCustomAttributeType = GetImpl(dbContext).AsNoTracking()
@@ -34,12 +28,6 @@ public static class TreatmentBMPTypeCustomAttributeTypes
         Check.RequireNotNull(treatmentBMPTypeCustomAttributeType,
             $"TreatmentBMPTypeCustomAttributeType with ID {treatmentBMPTypeCustomAttributeTypeID} not found!");
         return treatmentBMPTypeCustomAttributeType;
-    }
-
-    public static TreatmentBMPTypeCustomAttributeType GetByID(NeptuneDbContext dbContext,
-        TreatmentBMPTypeCustomAttributeTypePrimaryKey treatmentBMPTypeCustomAttributeTypePrimaryKey)
-    {
-        return GetByID(dbContext, treatmentBMPTypeCustomAttributeTypePrimaryKey.PrimaryKeyValue);
     }
 
     public static TreatmentBMPTypeCustomAttributeTypeDto GetByIDAsDto(NeptuneDbContext dbContext, int treatmentBMPTypeCustomAttributeTypeID)

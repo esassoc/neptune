@@ -1,4 +1,4 @@
-﻿using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore;
 using Neptune.Common.DesignByContract;
 using Neptune.Models.DataTransferObjects;
 
@@ -21,12 +21,6 @@ public static class SourceControlBMPAttributes
         return sourceControlBMPAttribute;
     }
 
-    public static SourceControlBMPAttribute GetByIDWithChangeTracking(NeptuneDbContext dbContext,
-        SourceControlBMPAttributePrimaryKey sourceControlBMPAttributePrimaryKey)
-    {
-        return GetByIDWithChangeTracking(dbContext, sourceControlBMPAttributePrimaryKey.PrimaryKeyValue);
-    }
-
     public static SourceControlBMPAttribute GetByID(NeptuneDbContext dbContext, int sourceControlBMPAttributeID)
     {
         var sourceControlBMPAttribute = GetImpl(dbContext).AsNoTracking()
@@ -34,17 +28,6 @@ public static class SourceControlBMPAttributes
         Check.RequireNotNull(sourceControlBMPAttribute,
             $"SourceControlBMPAttribute with ID {sourceControlBMPAttributeID} not found!");
         return sourceControlBMPAttribute;
-    }
-
-    public static SourceControlBMPAttribute GetByID(NeptuneDbContext dbContext,
-        SourceControlBMPAttributePrimaryKey sourceControlBMPAttributePrimaryKey)
-    {
-        return GetByID(dbContext, sourceControlBMPAttributePrimaryKey.PrimaryKeyValue);
-    }
-
-    public static List<SourceControlBMPAttribute> List(NeptuneDbContext dbContext)
-    {
-        return GetImpl(dbContext).AsNoTracking().ToList();
     }
 
     public static async Task<List<SourceControlBMPUpsertDto>> ListAsUpsertDtoAsync(NeptuneDbContext dbContext)

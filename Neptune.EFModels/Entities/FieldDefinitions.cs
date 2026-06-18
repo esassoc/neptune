@@ -1,4 +1,4 @@
-﻿/*-----------------------------------------------------------------------
+/*-----------------------------------------------------------------------
 <copyright file="FieldDefinitionData.DatabaseContextExtensions.cs" company="Tahoe Regional Planning Agency and Sitka Technology Group">
 Copyright (c) Tahoe Regional Planning Agency and Sitka Technology Group. All rights reserved.
 <author>Sitka Technology Group</author>
@@ -26,24 +26,10 @@ namespace Neptune.EFModels.Entities
 {
     public static class FieldDefinitions
     {
-        public static FieldDefinition? GetByFieldDefinitionType(NeptuneDbContext dbContext, FieldDefinitionType fieldDefinitionType)
-        {
-            return GetByFieldDefinitionType(dbContext, fieldDefinitionType.FieldDefinitionTypeID);
-        }
 
         public static FieldDefinition? GetByFieldDefinitionType(NeptuneDbContext dbContext, int fieldDefinitionTypeID)
         {
             return GetImpl(dbContext).AsNoTracking().SingleOrDefault(x => x.FieldDefinitionTypeID == fieldDefinitionTypeID);
-        }
-
-        public static FieldDefinition? GetByFieldDefinitionTypeWithChangeTracking(NeptuneDbContext dbContext, int fieldDefinitionTypeID)
-        {
-            return GetImpl(dbContext).SingleOrDefault(x => x.FieldDefinitionTypeID == fieldDefinitionTypeID);
-        }
-
-        public static FieldDefinition? GetByFieldDefinitionType(NeptuneDbContext dbContext, FieldDefinitionTypeEnum fieldDefinitionTypeEnum)
-        {
-            return GetImpl(dbContext).AsNoTracking().SingleOrDefault(x => x.FieldDefinitionTypeID == (int)fieldDefinitionTypeEnum);
         }
 
         private static IQueryable<FieldDefinition> GetImpl(NeptuneDbContext dbContext)

@@ -1,4 +1,4 @@
-﻿using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore;
 using Neptune.Common.DesignByContract;
 using Neptune.Models.DataTransferObjects;
 
@@ -6,10 +6,6 @@ namespace Neptune.EFModels.Entities;
 
 public static class LoadGeneratingUnits
 {
-    public static LoadGeneratingUnit GetByID(NeptuneDbContext dbContext, LoadGeneratingUnitPrimaryKey loadGeneratingUnitPrimaryKey)
-    {
-        return GetByID(dbContext, loadGeneratingUnitPrimaryKey.PrimaryKeyValue);
-    }
 
     public static LoadGeneratingUnit GetByID(NeptuneDbContext dbContext, int loadGeneratingUnitID)
     {

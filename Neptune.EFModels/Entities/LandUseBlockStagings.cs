@@ -1,4 +1,4 @@
-﻿using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore;
 using Neptune.Common.DesignByContract;
 using Neptune.Models.DataTransferObjects;
 
@@ -21,12 +21,6 @@ public static class LandUseBlockStagings
         return landUseBlockStaging;
     }
 
-    public static LandUseBlockStaging GetByIDWithChangeTracking(NeptuneDbContext dbContext,
-        LandUseBlockStagingPrimaryKey landUseBlockStagingPrimaryKey)
-    {
-        return GetByIDWithChangeTracking(dbContext, landUseBlockStagingPrimaryKey.PrimaryKeyValue);
-    }
-
     public static LandUseBlockStaging GetByID(NeptuneDbContext dbContext, int landUseBlockStagingID)
     {
         var landUseBlockStaging = GetImpl(dbContext).AsNoTracking()
@@ -34,12 +28,6 @@ public static class LandUseBlockStagings
         Check.RequireNotNull(landUseBlockStaging,
             $"LandUseBlockStaging with ID {landUseBlockStagingID} not found!");
         return landUseBlockStaging;
-    }
-
-    public static LandUseBlockStaging GetByID(NeptuneDbContext dbContext,
-        LandUseBlockStagingPrimaryKey landUseBlockStagingPrimaryKey)
-    {
-        return GetByID(dbContext, landUseBlockStagingPrimaryKey.PrimaryKeyValue);
     }
 
     public static List<LandUseBlockStaging> ListByPersonID(NeptuneDbContext dbContext, int personID)

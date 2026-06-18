@@ -1,4 +1,4 @@
-﻿using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore;
 using Neptune.Common;
 using Neptune.Common.DesignByContract;
 using Neptune.Models.DataTransferObjects;
@@ -23,12 +23,6 @@ public static class QuickBMPs
         return quickBMP;
     }
 
-    public static QuickBMP GetByIDWithChangeTracking(NeptuneDbContext dbContext,
-        QuickBMPPrimaryKey quickBMPPrimaryKey)
-    {
-        return GetByIDWithChangeTracking(dbContext, quickBMPPrimaryKey.PrimaryKeyValue);
-    }
-
     public static QuickBMP GetByID(NeptuneDbContext dbContext, int quickBMPID)
     {
         var quickBMP = GetImpl(dbContext).AsNoTracking()
@@ -38,34 +32,9 @@ public static class QuickBMPs
         return quickBMP;
     }
 
-    public static QuickBMP GetByID(NeptuneDbContext dbContext,
-        QuickBMPPrimaryKey quickBMPPrimaryKey)
-    {
-        return GetByID(dbContext, quickBMPPrimaryKey.PrimaryKeyValue);
-    }
-
-    public static List<QuickBMP> ListByWaterQualityManagementPlanID(NeptuneDbContext dbContext, int waterQualityManagementPlanID)
-    {
-        return GetImpl(dbContext).AsNoTracking()
-            .Where(x => x.WaterQualityManagementPlanID == waterQualityManagementPlanID).OrderBy(x => x.QuickBMPName).ToList();
-    }
-
     public static List<QuickBMP> ListByWaterQualityManagementPlanIDWithChangeTracking(NeptuneDbContext dbContext, int waterQualityManagementPlanID)
     {
         return GetImpl(dbContext).Where(x => x.WaterQualityManagementPlanID == waterQualityManagementPlanID).OrderBy(x => x.QuickBMPName).ToList();
-    }
-
-    public static List<QuickBMP> GetFullyParameterized(NeptuneDbContext dbContext)
-    {
-        return GetImpl(dbContext).AsNoTracking().Where(x =>
-                x.PercentOfSiteTreated != null && x.PercentCaptured != null && x.PercentRetained != null &&
-                x.TreatmentBMPType.IsAnalyzedInModelingModule)
-            .ToList();
-    }
-
-    public static List<QuickBMP> List(NeptuneDbContext dbContext)
-    {
-        return GetImpl(dbContext).AsNoTracking().ToList();
     }
 
     public static async Task<List<QuickBMPDto>> ListByWaterQualityManagementPlanIDAsDtoAsync(
