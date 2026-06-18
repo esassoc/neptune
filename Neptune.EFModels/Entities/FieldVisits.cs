@@ -36,15 +36,6 @@ public static class FieldVisits
         return fieldVisit;
     }
 
-    public static FieldVisit GetByID(NeptuneDbContext dbContext, int fieldVisitID)
-    {
-        var fieldVisit = GetImpl(dbContext).AsNoTracking()
-            .SingleOrDefault(x => x.FieldVisitID == fieldVisitID);
-        Check.RequireNotNull(fieldVisit,
-            $"FieldVisit with ID {fieldVisitID} not found!");
-        return fieldVisit;
-    }
-
     public static FieldVisitDto? GetInProgressForTreatmentBMPIfAnyAsDto(NeptuneDbContext dbContext, int treatmentBMPID)
     {
         var inProgress = dbContext.vFieldVisitDetaileds.AsNoTracking().FirstOrDefault(x =>

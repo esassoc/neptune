@@ -22,14 +22,6 @@ public static class TreatmentBMPAssessmentObservationTypes
         return treatmentBMPAssessmentObservationType;
     }
 
-    public static TreatmentBMPAssessmentObservationType GetByID(NeptuneDbContext dbContext, int treatmentBMPAssessmentObservationTypeID)
-    {
-        var treatmentBMPAssessmentObservationType = GetImpl(dbContext).AsNoTracking()
-            .SingleOrDefault(x => x.TreatmentBMPAssessmentObservationTypeID == treatmentBMPAssessmentObservationTypeID);
-        Check.RequireNotNull(treatmentBMPAssessmentObservationType, $"TreatmentBMPAssessmentObservationType with ID {treatmentBMPAssessmentObservationTypeID} not found!");
-        return treatmentBMPAssessmentObservationType;
-    }
-
     public static async Task<List<TreatmentBMPAssessmentObservationTypeGridDto>> ListAsGridDtoAsync(NeptuneDbContext dbContext)
     {
         var dtos = await dbContext.TreatmentBMPAssessmentObservationTypes

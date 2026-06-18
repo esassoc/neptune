@@ -131,27 +131,4 @@ public static class TreatmentBMPImages
             .Where(x => x.FileResourceID == treatmentBMPImage.FileResourceID)
             .ExecuteDeleteAsync();
     }
-
-    public static TreatmentBMPImage GetByIDWithChangeTracking(NeptuneDbContext dbContext, int treatmentBMPImageID)
-    {
-        var treatmentBMPImage = GetImpl(dbContext)
-            .SingleOrDefault(x => x.TreatmentBMPImageID == treatmentBMPImageID);
-        Check.RequireNotNull(treatmentBMPImage, $"TreatmentBMPImage with ID {treatmentBMPImageID} not found!");
-        return treatmentBMPImage;
-    }
-
-    public static TreatmentBMPImage GetByID(NeptuneDbContext dbContext, int treatmentBMPImageID)
-    {
-        var treatmentBMPImage = GetImpl(dbContext).AsNoTracking()
-            .SingleOrDefault(x => x.TreatmentBMPImageID == treatmentBMPImageID);
-        Check.RequireNotNull(treatmentBMPImage, $"TreatmentBMPImage with ID {treatmentBMPImageID} not found!");
-        return treatmentBMPImage;
-    }
-
-
-    private static IQueryable<TreatmentBMPImage> GetImpl(NeptuneDbContext dbContext)
-    {
-        return dbContext.TreatmentBMPImages
-            .Include(x => x.FileResource);
-    }
 }

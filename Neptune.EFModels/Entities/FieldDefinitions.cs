@@ -27,11 +27,6 @@ namespace Neptune.EFModels.Entities
     public static class FieldDefinitions
     {
 
-        public static FieldDefinition? GetByFieldDefinitionType(NeptuneDbContext dbContext, int fieldDefinitionTypeID)
-        {
-            return GetImpl(dbContext).AsNoTracking().SingleOrDefault(x => x.FieldDefinitionTypeID == fieldDefinitionTypeID);
-        }
-
         private static IQueryable<FieldDefinition> GetImpl(NeptuneDbContext dbContext)
         {
             return dbContext.FieldDefinitions;

@@ -65,15 +65,6 @@ namespace Neptune.EFModels.Entities
             return dtos;
         }
 
-        public static Delineation GetByID(NeptuneDbContext dbContext, int delineationID)
-        {
-            var delineation = GetImpl(dbContext).AsNoTracking()
-                .SingleOrDefault(x => x.DelineationID == delineationID);
-            Check.RequireNotNull(delineation,
-                $"Delineation with ID {delineationID} not found!");
-            return delineation;
-        }
-
         public static Delineation? GetByTreatmentBMPID(NeptuneDbContext dbContext, int treatmentBMPID)
         {
             var delineation = GetImpl(dbContext).AsNoTracking()
@@ -237,14 +228,6 @@ namespace Neptune.EFModels.Entities
             }
 
             return delineation;
-        }
-
-
-        public static void MarkAsVerified(Delineation delineation, Person currentPerson)
-        {
-            delineation.IsVerified = true;
-            delineation.DateLastVerified = DateTime.UtcNow;
-            delineation.VerifiedByPersonID = currentPerson.PersonID;
         }
 
         public static DelineationDto? GetByTreatmentBMPIDAsDto(NeptuneDbContext dbContext, int treatmentBMPID)

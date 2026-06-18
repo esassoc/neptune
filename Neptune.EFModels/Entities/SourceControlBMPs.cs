@@ -12,25 +12,6 @@ public static class SourceControlBMPs
         return dbContext.SourceControlBMPs.Include(x => x.SourceControlBMPAttribute);
     }
 
-    public static SourceControlBMP GetByIDWithChangeTracking(NeptuneDbContext dbContext,
-        int sourceControlBMPID)
-    {
-        var sourceControlBMP = GetImpl(dbContext)
-            .SingleOrDefault(x => x.SourceControlBMPID == sourceControlBMPID);
-        Check.RequireNotNull(sourceControlBMP,
-            $"SourceControlBMP with ID {sourceControlBMPID} not found!");
-        return sourceControlBMP;
-    }
-
-    public static SourceControlBMP GetByID(NeptuneDbContext dbContext, int sourceControlBMPID)
-    {
-        var sourceControlBMP = GetImpl(dbContext).AsNoTracking()
-            .SingleOrDefault(x => x.SourceControlBMPID == sourceControlBMPID);
-        Check.RequireNotNull(sourceControlBMP,
-            $"SourceControlBMP with ID {sourceControlBMPID} not found!");
-        return sourceControlBMP;
-    }
-
     public static List<SourceControlBMP> ListByWaterQualityManagementPlanIDWithChangeTracking(NeptuneDbContext dbContext, int waterQualityManagementPlanID)
     {
         return GetImpl(dbContext).Where(x => x.WaterQualityManagementPlanID == waterQualityManagementPlanID).ToList();

@@ -1,4 +1,4 @@
-﻿using Neptune.EFModels.Entities;
+using Neptune.EFModels.Entities;
 using Neptune.Models.DataTransferObjects;
 
 namespace Neptune.EFModels.Workflows;
@@ -31,26 +31,6 @@ public class ProjectWorkflowProgress
                     Disabled = !WorkflowStepActive(project, y),
                 })
         };
-    }
-
-    public static bool CanSubmit(NeptuneDbContext dbContext, Project project)
-    {
-        var steps = Enum.GetValuesAsUnderlyingType<ProjectWorkflowStep>().Cast<ProjectWorkflowStep>();
-        var vTreatmentBMPModelingAttributes = dbContext.vTreatmentBMPModelingAttributes
-            .Where(x => project.TreatmentBMPs.Any(y => y.TreatmentBMPID == x.TreatmentBMPID))
-            .ToDictionary(x => x.TreatmentBMPID, x => x);
-        foreach (var step in steps)
-        {
-            var stepComplete = WorkflowStepComplete(project, step, vTreatmentBMPModelingAttributes);
-            if (!stepComplete) return false;
-        }
-
-        return true;
-    }
-
-    public static async Task<bool> CanDelete(NeptuneDbContext dbContext, Project project, Person currentUser)
-    {
-        return await currentUser.CanEditJurisdiction(project.StormwaterJurisdictionID, dbContext);
     }
 
     public static bool WorkflowStepComplete(Project project, ProjectWorkflowStep wellRegistryWorkflowStep, Dictionary<int, vTreatmentBMPModelingAttribute> vTreatmentBMPModelingAttributes)

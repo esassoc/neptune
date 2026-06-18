@@ -16,25 +16,6 @@ public static class WaterQualityManagementPlanBoundaries
             .Include(x => x.WaterQualityManagementPlan);
     }
 
-    public static WaterQualityManagementPlanBoundary GetByIDWithChangeTracking(NeptuneDbContext dbContext,
-        int waterQualityManagementPlanGeometryID)
-    {
-        var waterQualityManagementPlanBoundary = GetImpl(dbContext)
-            .SingleOrDefault(x => x.WaterQualityManagementPlanGeometryID == waterQualityManagementPlanGeometryID);
-        Check.RequireNotNull(waterQualityManagementPlanBoundary,
-            $"WaterQualityManagementPlanBoundary with ID {waterQualityManagementPlanGeometryID} not found!");
-        return waterQualityManagementPlanBoundary;
-    }
-
-    public static WaterQualityManagementPlanBoundary GetByID(NeptuneDbContext dbContext, int waterQualityManagementPlanGeometryID)
-    {
-        var waterQualityManagementPlanBoundary = GetImpl(dbContext).AsNoTracking()
-            .SingleOrDefault(x => x.WaterQualityManagementPlanGeometryID == waterQualityManagementPlanGeometryID);
-        Check.RequireNotNull(waterQualityManagementPlanBoundary,
-            $"WaterQualityManagementPlanBoundary with ID {waterQualityManagementPlanGeometryID} not found!");
-        return waterQualityManagementPlanBoundary;
-    }
-
     public static WaterQualityManagementPlanBoundary? GetByWaterQualityManagementPlanID(NeptuneDbContext dbContext, int waterQualityManagementPlanID)
     {
         return GetImpl(dbContext).AsNoTracking()

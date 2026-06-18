@@ -704,15 +704,6 @@ public static class TreatmentBMPs
         return treatmentBMP;
     }
 
-    public static List<TreatmentBMP> ListByStormwaterJurisdictionIDList(NeptuneDbContext dbContext,
-                                                                        List<int> stormwaterJurisdictionIDList)
-    {
-        return GetImpl(dbContext)
-            .AsNoTracking()
-            .Where(x => stormwaterJurisdictionIDList.Contains(x.StormwaterJurisdictionID))
-            .ToList();
-    }
-
     public static List<TreatmentBMP> ListByWaterQualityManagementPlanIDWithChangeTracking(
         NeptuneDbContext dbContext,
         int waterQualityManagementPlanID)

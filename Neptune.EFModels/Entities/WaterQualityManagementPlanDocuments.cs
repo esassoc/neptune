@@ -30,14 +30,6 @@ public static class WaterQualityManagementPlanDocuments
         return entities.Select(x => x.AsDto()).ToList();
     }
 
-    public static WaterQualityManagementPlanDocument GetByIDWithChangeTracking(NeptuneDbContext dbContext, int waterQualityManagementPlanDocumentID)
-    {
-        var waterQualityManagementPlanDocument = GetImpl(dbContext)
-            .SingleOrDefault(x => x.WaterQualityManagementPlanDocumentID == waterQualityManagementPlanDocumentID);
-        Check.RequireNotNull(waterQualityManagementPlanDocument, $"WaterQualityManagementPlanDocument with ID {waterQualityManagementPlanDocumentID} not found!");
-        return waterQualityManagementPlanDocument;
-    }
-
     public static WaterQualityManagementPlanDocument GetByID(NeptuneDbContext dbContext, int waterQualityManagementPlanDocumentID)
     {
         var waterQualityManagementPlanDocument = GetImpl(dbContext).AsNoTracking()

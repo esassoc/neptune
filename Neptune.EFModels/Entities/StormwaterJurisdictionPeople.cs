@@ -11,22 +11,6 @@ public static class StormwaterJurisdictionPeople
         return dbContext.StormwaterJurisdictionPeople;
     }
 
-    public static StormwaterJurisdictionPerson GetByIDWithChangeTracking(NeptuneDbContext dbContext, int stormwaterJurisdictionPersonID)
-    {
-        var stormwaterJurisdictionPerson = GetImpl(dbContext)
-            .SingleOrDefault(x => x.StormwaterJurisdictionPersonID == stormwaterJurisdictionPersonID);
-        Check.RequireNotNull(stormwaterJurisdictionPerson, $"StormwaterJurisdictionPerson with ID {stormwaterJurisdictionPersonID} not found!");
-        return stormwaterJurisdictionPerson;
-    }
-
-    public static StormwaterJurisdictionPerson GetByID(NeptuneDbContext dbContext, int stormwaterJurisdictionPersonID)
-    {
-        var stormwaterJurisdictionPerson = GetImpl(dbContext).AsNoTracking()
-            .SingleOrDefault(x => x.StormwaterJurisdictionPersonID == stormwaterJurisdictionPersonID);
-        Check.RequireNotNull(stormwaterJurisdictionPerson, $"StormwaterJurisdictionPerson with ID {stormwaterJurisdictionPersonID} not found!");
-        return stormwaterJurisdictionPerson;
-    }
-
     public static async Task<List<int>> ListViewableStormwaterJurisdictionIDsByPersonIDForBMPsAsync(NeptuneDbContext dbContext, int? personID)
     {
         var personDto = personID.HasValue ? await People.GetByIDAsDtoAsync(dbContext, personID.Value) : null;

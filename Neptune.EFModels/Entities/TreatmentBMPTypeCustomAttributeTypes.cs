@@ -11,16 +11,6 @@ public static class TreatmentBMPTypeCustomAttributeTypes
         return dbContext.TreatmentBMPTypeCustomAttributeTypes.Include(x => x.CustomAttributeType);
     }
 
-    public static TreatmentBMPTypeCustomAttributeType GetByIDWithChangeTracking(NeptuneDbContext dbContext,
-        int treatmentBMPTypeCustomAttributeTypeID)
-    {
-        var treatmentBMPTypeCustomAttributeType = GetImpl(dbContext)
-            .SingleOrDefault(x => x.TreatmentBMPTypeCustomAttributeTypeID == treatmentBMPTypeCustomAttributeTypeID);
-        Check.RequireNotNull(treatmentBMPTypeCustomAttributeType,
-            $"TreatmentBMPTypeCustomAttributeType with ID {treatmentBMPTypeCustomAttributeTypeID} not found!");
-        return treatmentBMPTypeCustomAttributeType;
-    }
-
     public static TreatmentBMPTypeCustomAttributeType GetByID(NeptuneDbContext dbContext, int treatmentBMPTypeCustomAttributeTypeID)
     {
         var treatmentBMPTypeCustomAttributeType = GetImpl(dbContext).AsNoTracking()

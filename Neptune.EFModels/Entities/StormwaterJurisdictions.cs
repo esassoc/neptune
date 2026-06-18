@@ -47,22 +47,6 @@ public static class StormwaterJurisdictions
         return new BoundingBoxDto(jurisdictions.Select(x => x.Geometry4326).ToList());
     }
 
-    public static StormwaterJurisdiction GetByIDWithChangeTracking(NeptuneDbContext dbContext, int stormwaterJurisdictionID)
-    {
-        var stormwaterJurisdiction = GetImpl(dbContext)
-            .SingleOrDefault(x => x.StormwaterJurisdictionID == stormwaterJurisdictionID);
-        Check.RequireNotNull(stormwaterJurisdiction, $"StormwaterJurisdiction with ID {stormwaterJurisdictionID} not found!");
-        return stormwaterJurisdiction;
-    }
-
-    public static StormwaterJurisdiction GetByID(NeptuneDbContext dbContext, int stormwaterJurisdictionID)
-    {
-        var stormwaterJurisdiction = GetImpl(dbContext).AsNoTracking()
-            .SingleOrDefault(x => x.StormwaterJurisdictionID == stormwaterJurisdictionID);
-        Check.RequireNotNull(stormwaterJurisdiction, $"StormwaterJurisdiction with ID {stormwaterJurisdictionID} not found!");
-        return stormwaterJurisdiction;
-    }
-
     private static IQueryable<StormwaterJurisdiction> GetImpl(NeptuneDbContext dbContext)
     {
         return dbContext.StormwaterJurisdictions

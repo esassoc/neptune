@@ -27,10 +27,6 @@ namespace Neptune.EFModels.Entities
 {
     public static class NeptunePages
     {
-        public static IQueryable<NeptunePage> GetImpl(NeptuneDbContext dbContext)
-        {
-            return dbContext.NeptunePages;
-        }
 
         public static NeptunePageDto GetByNeptunePageTypeID(NeptuneDbContext dbContext, int neptunePageID)
         {

@@ -13,22 +13,6 @@ public static class CustomAttributes
                 .Include(x => x.CustomAttributeValues);
     }
 
-    public static CustomAttribute GetByIDWithChangeTracking(NeptuneDbContext dbContext, int customAttributeID)
-    {
-        var customAttribute = GetImpl(dbContext)
-            .SingleOrDefault(x => x.CustomAttributeID == customAttributeID);
-
-        Check.RequireNotNull(customAttribute,$"CustomAttribute with ID {customAttributeID} not found!");
-        return customAttribute;
-    }
-
-    public static CustomAttribute GetByID(NeptuneDbContext dbContext, int customAttributeID)
-    {
-        var customAttribute = GetImpl(dbContext).AsNoTracking().SingleOrDefault(x => x.CustomAttributeID == customAttributeID);
-        Check.RequireNotNull(customAttribute, $"CustomAttribute with ID {customAttributeID} not found!");
-        return customAttribute;
-    }
-
     public static List<CustomAttribute> List(NeptuneDbContext dbContext)
     {
         return GetImpl(dbContext).AsNoTracking().OrderBy(x => x.CustomAttributeType.CustomAttributeTypeName).ToList();

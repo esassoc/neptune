@@ -49,15 +49,6 @@ namespace Neptune.EFModels.Entities
             return customAttributeType;
         }
 
-        public static CustomAttributeType GetByID(NeptuneDbContext dbContext, int customAttributeTypeID)
-        {
-            var customAttributeType = GetImpl(dbContext).AsNoTracking()
-                .SingleOrDefault(x => x.CustomAttributeTypeID == customAttributeTypeID);
-            Check.RequireNotNull(customAttributeType,
-                $"CustomAttributeType with ID {customAttributeTypeID} not found!");
-            return customAttributeType;
-        }
-
         public static CustomAttributeTypeDto GetByIDAsDto(NeptuneDbContext dbContext, int customAttributeTypeID)
         {
             var dto = dbContext.CustomAttributeTypes.AsNoTracking()

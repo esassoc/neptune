@@ -32,22 +32,6 @@ namespace Neptune.EFModels.Entities
             return dbContext.Parcels;
         }
 
-        public static Parcel GetByIDWithChangeTracking(NeptuneDbContext dbContext, int parcelID)
-        {
-            var parcel = GetImpl(dbContext)
-                .SingleOrDefault(x => x.ParcelID == parcelID);
-            Check.RequireNotNull(parcel, $"Parcel with ID {parcelID} not found!");
-            return parcel;
-        }
-
-        public static Parcel GetByID(NeptuneDbContext dbContext, int parcelID)
-        {
-            var parcel = GetImpl(dbContext).AsNoTracking()
-                .SingleOrDefault(x => x.ParcelID == parcelID);
-            Check.RequireNotNull(parcel, $"Parcel with ID {parcelID} not found!");
-            return parcel;
-        }
-
         public static async Task<List<ParcelGridDto>> ListAsGridDtoAsync(NeptuneDbContext dbContext)
         {
             return await GetImpl(dbContext)

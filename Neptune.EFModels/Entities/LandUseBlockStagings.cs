@@ -11,25 +11,6 @@ public static class LandUseBlockStagings
         return dbContext.LandUseBlockStagings;
     }
 
-    public static LandUseBlockStaging GetByIDWithChangeTracking(NeptuneDbContext dbContext,
-        int landUseBlockStagingID)
-    {
-        var landUseBlockStaging = GetImpl(dbContext)
-            .SingleOrDefault(x => x.LandUseBlockStagingID == landUseBlockStagingID);
-        Check.RequireNotNull(landUseBlockStaging,
-            $"LandUseBlockStaging with ID {landUseBlockStagingID} not found!");
-        return landUseBlockStaging;
-    }
-
-    public static LandUseBlockStaging GetByID(NeptuneDbContext dbContext, int landUseBlockStagingID)
-    {
-        var landUseBlockStaging = GetImpl(dbContext).AsNoTracking()
-            .SingleOrDefault(x => x.LandUseBlockStagingID == landUseBlockStagingID);
-        Check.RequireNotNull(landUseBlockStaging,
-            $"LandUseBlockStaging with ID {landUseBlockStagingID} not found!");
-        return landUseBlockStaging;
-    }
-
     public static List<LandUseBlockStaging> ListByPersonID(NeptuneDbContext dbContext, int personID)
     {
         return GetImpl(dbContext).AsNoTracking()

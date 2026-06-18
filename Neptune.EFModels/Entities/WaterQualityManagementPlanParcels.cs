@@ -15,25 +15,6 @@ public static class WaterQualityManagementPlanParcels
             ;
     }
 
-    public static WaterQualityManagementPlanParcel GetByIDWithChangeTracking(NeptuneDbContext dbContext,
-        int waterQualityManagementPlanParcelID)
-    {
-        var waterQualityManagementPlanParcel = GetImpl(dbContext)
-            .SingleOrDefault(x => x.WaterQualityManagementPlanParcelID == waterQualityManagementPlanParcelID);
-        Check.RequireNotNull(waterQualityManagementPlanParcel,
-            $"WaterQualityManagementPlanParcel with ID {waterQualityManagementPlanParcelID} not found!");
-        return waterQualityManagementPlanParcel;
-    }
-
-    public static WaterQualityManagementPlanParcel GetByID(NeptuneDbContext dbContext, int waterQualityManagementPlanParcelID)
-    {
-        var waterQualityManagementPlanParcel = GetImpl(dbContext).AsNoTracking()
-            .SingleOrDefault(x => x.WaterQualityManagementPlanParcelID == waterQualityManagementPlanParcelID);
-        Check.RequireNotNull(waterQualityManagementPlanParcel,
-            $"WaterQualityManagementPlanParcel with ID {waterQualityManagementPlanParcelID} not found!");
-        return waterQualityManagementPlanParcel;
-    }
-
     public static List<WaterQualityManagementPlanParcel> ListByWaterQualityManagementPlanIDWithChangeTracking(NeptuneDbContext dbContext, int waterQualityManagementPlanID)
     {
         return GetImpl(dbContext).Where(x => x.WaterQualityManagementPlanID == waterQualityManagementPlanID).ToList();

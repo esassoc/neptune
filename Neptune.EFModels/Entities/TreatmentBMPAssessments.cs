@@ -34,14 +34,6 @@ public static class TreatmentBMPAssessments
         return treatmentBMPAssessment;
     }
 
-    public static TreatmentBMPAssessment GetByID(NeptuneDbContext dbContext, int treatmentBMPAssessmentID)
-    {
-        var treatmentBMPAssessment = GetImpl(dbContext).AsNoTracking()
-            .SingleOrDefault(x => x.TreatmentBMPAssessmentID == treatmentBMPAssessmentID);
-        Check.RequireNotNull(treatmentBMPAssessment, $"TreatmentBMPAssessment with ID {treatmentBMPAssessmentID} not found!");
-        return treatmentBMPAssessment;
-    }
-
     public static TreatmentBMPAssessment? GetByFieldVisitIDAndTreatmentBMPAssessmentType(NeptuneDbContext dbContext, int fieldVisitID, TreatmentBMPAssessmentTypeEnum treatmentBMPAssessmentTypeEnum)
     {
         return GetImpl(dbContext).AsNoTracking().SingleOrDefault(x => x.FieldVisitID == fieldVisitID && x.TreatmentBMPAssessmentTypeID == (int) treatmentBMPAssessmentTypeEnum);

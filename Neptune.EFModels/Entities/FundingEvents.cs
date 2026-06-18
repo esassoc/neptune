@@ -7,15 +7,6 @@ namespace Neptune.EFModels.Entities;
 
 public static class FundingEvents
 {
-    private static IQueryable<FundingEvent> GetImpl(NeptuneDbContext dbContext)
-    {
-        return dbContext.FundingEvents
-                .Include(x => x.FundingEventFundingSources)
-                .ThenInclude(x => x.FundingSource)
-                .ThenInclude(x => x.Organization)
-                .ThenInclude(x => x.OrganizationType)
-            ;
-    }
 
     public static async Task<List<FundingEventDto>> ListByTreatmentBMPIDAsDtoAsync(NeptuneDbContext dbContext, int treatmentBMPID)
     {
@@ -26,22 +17,6 @@ public static class FundingEvents
             .Where(x => x.TreatmentBMPID == treatmentBMPID)
             .ToListAsync();
         return entities.Select(x => x.AsDto()).OrderBy(x => x.DisplayName).ToList();
-    }
-
-    public static FundingEvent GetByIDWithChangeTracking(NeptuneDbContext dbContext, int fundingEventID)
-    {
-        var fundingEvent = GetImpl(dbContext)
-            .SingleOrDefault(x => x.FundingEventID == fundingEventID);
-        Check.RequireNotNull(fundingEvent, $"FundingEvent with ID {fundingEventID} not found!");
-        return fundingEvent;
-    }
-
-    public static FundingEvent GetByID(NeptuneDbContext dbContext, int fundingEventID)
-    {
-        var fundingEvent = GetImpl(dbContext).AsNoTracking()
-            .SingleOrDefault(x => x.FundingEventID == fundingEventID);
-        Check.RequireNotNull(fundingEvent, $"FundingEvent with ID {fundingEventID} not found!");
-        return fundingEvent;
     }
 
     public static async Task<FundingEventDto?> GetByIDAsDtoAsync(NeptuneDbContext dbContext, int fundingEventID)

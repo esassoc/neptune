@@ -6,26 +6,6 @@ namespace Neptune.EFModels.Entities;
 
 public static class TreatmentBMPBenchmarkAndThresholds
 {
-    private static IQueryable<TreatmentBMPBenchmarkAndThreshold> GetImpl(NeptuneDbContext dbContext)
-    {
-        return dbContext.TreatmentBMPBenchmarkAndThresholds;
-    }
-
-    public static TreatmentBMPBenchmarkAndThreshold GetByIDWithChangeTracking(NeptuneDbContext dbContext, int treatmentBMPBenchmarkAndThresholdID)
-    {
-        var treatmentBMPBenchmarkAndThreshold = GetImpl(dbContext)
-            .SingleOrDefault(x => x.TreatmentBMPBenchmarkAndThresholdID == treatmentBMPBenchmarkAndThresholdID);
-        Check.RequireNotNull(treatmentBMPBenchmarkAndThreshold, $"TreatmentBMPBenchmarkAndThreshold with ID {treatmentBMPBenchmarkAndThresholdID} not found!");
-        return treatmentBMPBenchmarkAndThreshold;
-    }
-
-    public static TreatmentBMPBenchmarkAndThreshold GetByID(NeptuneDbContext dbContext, int treatmentBMPBenchmarkAndThresholdID)
-    {
-        var treatmentBMPBenchmarkAndThreshold = GetImpl(dbContext).AsNoTracking()
-            .SingleOrDefault(x => x.TreatmentBMPBenchmarkAndThresholdID == treatmentBMPBenchmarkAndThresholdID);
-        Check.RequireNotNull(treatmentBMPBenchmarkAndThreshold, $"TreatmentBMPBenchmarkAndThreshold with ID {treatmentBMPBenchmarkAndThresholdID} not found!");
-        return treatmentBMPBenchmarkAndThreshold;
-    }
 
     public static async Task<List<TreatmentBMPBenchmarkAndThresholdDto>> ListByTreatmentBMPIDAsDtoAsync(NeptuneDbContext dbContext, int treatmentBMPID)
     {

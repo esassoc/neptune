@@ -65,27 +65,4 @@ public static class TreatmentBMPAssessmentPhotos
 
         return photo.FileResourceID;
     }
-
-    public static TreatmentBMPAssessmentPhoto GetByIDWithChangeTracking(NeptuneDbContext dbContext, int treatmentBMPAssessmentPhotoID)
-    {
-        var treatmentBMPAssessmentPhoto = GetImpl(dbContext)
-            .SingleOrDefault(x => x.TreatmentBMPAssessmentPhotoID == treatmentBMPAssessmentPhotoID);
-        Check.RequireNotNull(treatmentBMPAssessmentPhoto, $"TreatmentBMPAssessmentPhoto with ID {treatmentBMPAssessmentPhotoID} not found!");
-        return treatmentBMPAssessmentPhoto;
-    }
-
-    public static TreatmentBMPAssessmentPhoto GetByID(NeptuneDbContext dbContext, int treatmentBMPAssessmentPhotoID)
-    {
-        var treatmentBMPAssessmentPhoto = GetImpl(dbContext).AsNoTracking()
-            .SingleOrDefault(x => x.TreatmentBMPAssessmentPhotoID == treatmentBMPAssessmentPhotoID);
-        Check.RequireNotNull(treatmentBMPAssessmentPhoto, $"TreatmentBMPAssessmentPhoto with ID {treatmentBMPAssessmentPhotoID} not found!");
-        return treatmentBMPAssessmentPhoto;
-    }
-
-
-    private static IQueryable<TreatmentBMPAssessmentPhoto> GetImpl(NeptuneDbContext dbContext)
-    {
-        return dbContext.TreatmentBMPAssessmentPhotos
-            .Include(x => x.FileResource);
-    }
 }

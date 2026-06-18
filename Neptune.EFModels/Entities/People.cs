@@ -27,20 +27,6 @@ public static class People
         return people.Select(x => x.AsSimpleDto()).ToList();
     }
 
-    public static IQueryable<Person> ListActive(NeptuneDbContext dbContext)
-    {
-        return GetImpl(dbContext).AsNoTracking().Where(x => x.IsActive)
-            .OrderBy(x => x.LastName).ThenBy(x => x.FirstName);
-    }
-
-    public static Person GetByIDWithChangeTracking(NeptuneDbContext dbContext, int personID)
-    {
-        var person = GetImpl(dbContext)
-            .SingleOrDefault(x => x.PersonID == personID);
-        Check.RequireNotNull(person, $"Person with ID {personID} not found!");
-        return person;
-    }
-
     public static Person GetByID(NeptuneDbContext dbContext, int personID)
     {
         var person = GetImpl(dbContext).AsNoTracking()
@@ -170,33 +156,6 @@ public static class People
         dbContext.Entry(person).Reload();
 
         return GetByIDAsDto(dbContext, person.PersonID);
-    }
-
-    public static async Task<PersonDto> CreateAsync(NeptuneDbContext dbContext, PersonUpsertDto dto)
-    {
-        if (!dto.RoleID.HasValue)
-        {
-            return null;
-        }
-        var organizationID = Organizations.OrganizationIDUnassigned;
-        var organization = Organizations.GetByName(dbContext, dto.OrganizationName);
-        if (organization != null)
-        {
-            organizationID = organization.OrganizationID;
-        }
-        var person = new Person
-        {
-            Email = dto.Email,
-            FirstName = dto.FirstName,
-            LastName = dto.LastName,
-            IsActive = true,
-            RoleID = dto.RoleID.Value,
-            CreateDate = DateTime.UtcNow,
-            OrganizationID = organizationID,
-        };
-        dbContext.People.Add(person);
-        await dbContext.SaveChangesAsync();
-        return await GetByIDAsDtoAsync(dbContext, person.PersonID);
     }
 
     public static async Task<PersonDto?> UpdateAsync(NeptuneDbContext dbContext, int personID, PersonUpsertDto dto)

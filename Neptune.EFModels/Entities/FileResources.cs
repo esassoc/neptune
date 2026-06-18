@@ -39,27 +39,6 @@ public class FileResources
         return errors;
     }
 
-    public static FileResource Create(NeptuneDbContext dbContext, IFormFile file, string canonicalName, int createPersonID, DateTime createDate)
-    {
-        var clientFilename = file.FileName;
-        var extension = clientFilename.Split('.').Last();
-        var fileResourceGuid = Guid.NewGuid();
-
-        var fileResource = new FileResource
-        {
-            FileResourceGUID = fileResourceGuid,
-            OriginalBaseFilename = clientFilename,
-            OriginalFileExtension = extension,
-            CreateDate = createDate,
-            CreatePersonID = createPersonID,
-        };
-
-        dbContext.FileResources.Add(fileResource);
-        dbContext.SaveChanges();
-
-        return fileResource;
-    }
-
     public static FileResource? GetByID(NeptuneDbContext dbContext, int fileResourceID)
     {
         var fileResource = dbContext.FileResources

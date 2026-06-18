@@ -11,26 +11,6 @@ namespace Neptune.EFModels.Entities;
 
 public static class RegionalSubbasins
 {
-    private static IQueryable<RegionalSubbasin> GetImpl(NeptuneDbContext dbContext)
-    {
-        return dbContext.RegionalSubbasins;
-    }
-
-    public static RegionalSubbasin GetByIDWithChangeTracking(NeptuneDbContext dbContext, int regionalSubbasinID)
-    {
-        var regionalSubbasin = GetImpl(dbContext)
-            .SingleOrDefault(x => x.RegionalSubbasinID == regionalSubbasinID);
-        Check.RequireNotNull(regionalSubbasin, $"RegionalSubbasin with ID {regionalSubbasinID} not found!");
-        return regionalSubbasin;
-    }
-
-    public static RegionalSubbasin GetByID(NeptuneDbContext dbContext, int regionalSubbasinID)
-    {
-        var regionalSubbasin = GetImpl(dbContext).AsNoTracking()
-            .SingleOrDefault(x => x.RegionalSubbasinID == regionalSubbasinID);
-        Check.RequireNotNull(regionalSubbasin, $"RegionalSubbasin with ID {regionalSubbasinID} not found!");
-        return regionalSubbasin;
-    }
 
     public static async Task<List<RegionalSubbasinDto>> ListAsDtoAsync(NeptuneDbContext dbContext)
     {
@@ -42,39 +22,6 @@ public static class RegionalSubbasins
     {
         var entity = await dbContext.RegionalSubbasins.Include(x => x.OCSurveyDownstreamCatchment).AsNoTracking().SingleOrDefaultAsync(x => x.RegionalSubbasinID == regionalSubbasinID);
         return entity?.AsDto();
-    }
-
-    public static async Task<RegionalSubbasinDto> CreateAsync(NeptuneDbContext dbContext, RegionalSubbasinUpsertDto dto)
-    {
-        var entity = dto.AsEntity();
-        dbContext.RegionalSubbasins.Add(entity);
-        await dbContext.SaveChangesAsync();
-        return await GetByIDAsDtoAsync(dbContext, entity.RegionalSubbasinID);
-    }
-
-    public static async Task<RegionalSubbasinDto?> UpdateAsync(NeptuneDbContext dbContext, int regionalSubbasinID, RegionalSubbasinUpsertDto dto)
-    {
-        var entity = await dbContext.RegionalSubbasins.FirstOrDefaultAsync(x => x.RegionalSubbasinID == regionalSubbasinID);
-        if (entity == null) return null;
-        entity.UpdateFromUpsertDto(dto);
-        await dbContext.SaveChangesAsync();
-        return await GetByIDAsDtoAsync(dbContext, entity.RegionalSubbasinID);
-    }
-
-    public static async Task<bool> DeleteAsync(NeptuneDbContext dbContext, int regionalSubbasinID)
-    {
-        var entity = await dbContext.RegionalSubbasins.FirstOrDefaultAsync(x => x.RegionalSubbasinID == regionalSubbasinID);
-        if (entity == null) return false;
-        // Delete dependent entities
-//        await dbContext.RegionalSubbasinRevisionRequests.Where(x => x.RegionalSubbasinID == regionalSubbasinID).ExecuteDeleteAsync();
-        await dbContext.LoadGeneratingUnits.Where(x => x.RegionalSubbasinID == regionalSubbasinID).ExecuteDeleteAsync();
-        await dbContext.ProjectLoadGeneratingUnits.Where(x => x.RegionalSubbasinID == regionalSubbasinID).ExecuteDeleteAsync();
-        await dbContext.ProjectNereidResults.Where(x => x.RegionalSubbasinID == regionalSubbasinID).ExecuteDeleteAsync();
-        await dbContext.NereidResults.Where(x => x.RegionalSubbasinID == regionalSubbasinID).ExecuteDeleteAsync();
-        await dbContext.DirtyModelNodes.Where(x => x.RegionalSubbasinID == regionalSubbasinID).ExecuteDeleteAsync();
-        await dbContext.TreatmentBMPs.Where(x => x.RegionalSubbasinID == regionalSubbasinID).ExecuteDeleteAsync();
-        await dbContext.RegionalSubbasins.Where(x => x.RegionalSubbasinID == regionalSubbasinID).ExecuteDeleteAsync();
-        return true;
     }
 
     public static async Task<DateTime?> GetLatestUpdateAsync(NeptuneDbContext dbContext)

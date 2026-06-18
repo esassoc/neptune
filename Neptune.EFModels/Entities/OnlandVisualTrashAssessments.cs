@@ -238,16 +238,6 @@ public static class OnlandVisualTrashAssessments
         await dbContext.SaveChangesAsync();
     }
 
-    public static async Task UpdateGeometry(NeptuneDbContext dbContext, int onlandVisualTrashAssessmentID, List<int> parcelIDs)
-    {
-        var onlandVisualTrashAssessment = dbContext.OnlandVisualTrashAssessments.Single(x =>
-            x.OnlandVisualTrashAssessmentID == onlandVisualTrashAssessmentID);
-        onlandVisualTrashAssessment.DraftGeometry = ParcelGeometries.UnionAggregateByParcelIDs(dbContext, parcelIDs);
-        onlandVisualTrashAssessment.OvtaAreaSourceTypeID = (int)OvtaAreaSourceTypeEnum.Parcel;
-
-        await dbContext.SaveChangesAsync();
-    }
-
     public static async Task UpdateDraftGeometryFromSelection(NeptuneDbContext dbContext, int onlandVisualTrashAssessmentID, OnlandVisualTrashAssessmentAddRemoveParcelsDto dto)
     {
         var onlandVisualTrashAssessment = dbContext.OnlandVisualTrashAssessments.Single(x =>
@@ -333,11 +323,6 @@ public static class OnlandVisualTrashAssessments
     private static Geometry? GetTransectLine(OnlandVisualTrashAssessment ovta)
     {
         return GetTransectLine(ovta.OnlandVisualTrashAssessmentObservations);
-    }
-
-    private static Geometry? GetTransectLine4326(OnlandVisualTrashAssessment ovta)
-    {
-        return GetTransectLine4326(ovta.OnlandVisualTrashAssessmentObservations);
     }
 
     public static Geometry? GetTransectLine4326(ICollection<OnlandVisualTrashAssessmentObservation> onlandVisualTrashAssessmentObservations)

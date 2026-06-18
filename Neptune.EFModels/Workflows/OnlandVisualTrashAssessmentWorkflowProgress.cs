@@ -1,4 +1,4 @@
-﻿using Neptune.EFModels.Entities;
+using Neptune.EFModels.Entities;
 using Neptune.Models.DataTransferObjects;
 
 namespace Neptune.EFModels.Workflows;
@@ -31,23 +31,6 @@ public class OnlandVisualTrashAssessmentWorkflowProgress
                     Disabled = !WorkflowStepActive(onlandVisualTrashAssessment, y),
                 })
         };
-    }
-
-    public static bool CanSubmit(NeptuneDbContext dbContext, OnlandVisualTrashAssessment onlandVisualTrashAssessment)
-    {
-        var steps = Enum.GetValuesAsUnderlyingType<OnlandVisualTrashAssessmentWorkflowStep>().Cast<OnlandVisualTrashAssessmentWorkflowStep>();
-        foreach (var step in steps)
-        {
-            var stepComplete = WorkflowStepComplete(onlandVisualTrashAssessment, step);
-            if (!stepComplete) return false;
-        }
-
-        return true;
-    }
-
-    public static async Task<bool> CanDelete(NeptuneDbContext dbContext, OnlandVisualTrashAssessment onlandVisualTrashAssessment, Person currentUser)
-    {
-        return await currentUser.CanEditJurisdiction(onlandVisualTrashAssessment.StormwaterJurisdictionID, dbContext);
     }
 
     public static bool WorkflowStepComplete(OnlandVisualTrashAssessment onlandVisualTrashAssessment, OnlandVisualTrashAssessmentWorkflowStep wellRegistryWorkflowStep)

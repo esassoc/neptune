@@ -22,22 +22,6 @@ public static class Organizations
             .ThenInclude(x => x.Organization).ThenInclude(x => x.OrganizationType);
     }
 
-    public static Organization GetByIDWithChangeTracking(NeptuneDbContext dbContext, int organizationID)
-    {
-        var organization = GetImpl(dbContext)
-            .SingleOrDefault(x => x.OrganizationID == organizationID);
-        Check.RequireNotNull(organization, $"Organization with ID {organizationID} not found!");
-        return organization;
-    }
-
-    public static Organization GetByID(NeptuneDbContext dbContext, int organizationID)
-    {
-        var organization = GetImpl(dbContext).AsNoTracking()
-            .SingleOrDefault(x => x.OrganizationID == organizationID);
-        Check.RequireNotNull(organization, $"Organization with ID {organizationID} not found!");
-        return organization;
-    }
-
     public static Organization GetByName(NeptuneDbContext dbContext, string organizationName)
     {
         return GetImpl(dbContext).AsNoTracking().SingleOrDefault(x => x.OrganizationName == organizationName);

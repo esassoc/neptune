@@ -1,4 +1,4 @@
-﻿/*-----------------------------------------------------------------------
+/*-----------------------------------------------------------------------
 <copyright file="ObservationTypeHelper.cs" company="Tahoe Regional Planning Agency">
 Copyright (c) Tahoe Regional Planning Agency. All rights reserved.
 <author>Sitka Technology Group</author>
@@ -43,12 +43,6 @@ namespace Neptune.EFModels.Entities
             // y = y0 + (x - x0) * ((y1 - y0)/(x1-x0)) where y0 = 5 and y1 = 2
             var score = 5 + (observation - benchmark)*((2 - 5)/(threshold - benchmark));
             return Math.Round(score,1);
-        }
-
-        public static double WetBasinBipolarLinearInterpolation(double observation, double benchmark, double threshold)
-        {
-            var score = observation < benchmark ? PositiveLinearInterpolation(observation, benchmark, threshold) : NegativeLinearInterpolation(observation, benchmark, threshold);
-            return score < 0 ? 0 : (score > 5 ? 5 : score);
         }
 
         public static void ValidateAssessmentInstructions(string assessmentInstructions, List<ValidationResult> validationErrors)
