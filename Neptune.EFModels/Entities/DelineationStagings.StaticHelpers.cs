@@ -171,7 +171,12 @@ public static class DelineationStagings
 
         foreach (var bmp in bmpsToUpdate)
         {
-            var staging = stagings.Single(z => z.TreatmentBMPName == bmp.TreatmentBMPName);
+            // Mirror the SQL-side comparison that populated bmpsToUpdate: SQL Server collation matches names
+            // case-insensitively and ignores trailing whitespace, so a plain ordinal == here misses case/whitespace-only
+            // differences and throws "Sequence contains no matching element".
+            var staging = stagings.First(z =>
+                string.Equals(z.TreatmentBMPName?.Trim(), bmp.TreatmentBMPName?.Trim(),
+                    StringComparison.InvariantCultureIgnoreCase));
             dbContext.Delineations.Add(new Delineation
             {
                 HasDiscrepancies = false,
