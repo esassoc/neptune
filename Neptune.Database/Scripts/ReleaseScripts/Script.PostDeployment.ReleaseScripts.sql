@@ -78,4 +78,6 @@ GO
 GO
 :r ".\035 - NPT-1078 Rename WebServices query param from x-api-key to token.sql"
 GO
+:r ".\036 - Recalculate OVTA Progress Scores for 5yr-1OVTA rule.sql"
+GO
 

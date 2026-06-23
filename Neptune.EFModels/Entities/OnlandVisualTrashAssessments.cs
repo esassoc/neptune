@@ -466,12 +466,12 @@ public static class OnlandVisualTrashAssessments
 
     public static OnlandVisualTrashAssessmentScore? CalculateProgressScore(List<OnlandVisualTrashAssessment> onlandVisualTrashAssessments)
     {
-        var fourYearAgo = DateOnly.FromDateTime(DateTime.UtcNow.AddYears(-4));
+        var fiveYearsAgo = DateOnly.FromDateTime(DateTime.UtcNow.AddYears(-5));
         var completedAndIsProgressAssessment = onlandVisualTrashAssessments.Where(x =>
             x.OnlandVisualTrashAssessmentStatusID == OnlandVisualTrashAssessmentStatus.Complete
-                .OnlandVisualTrashAssessmentStatusID && x.IsProgressAssessment && x.CompletedDate >= fourYearAgo).ToList();
+                .OnlandVisualTrashAssessmentStatusID && x.IsProgressAssessment && x.CompletedDate >= fiveYearsAgo).ToList();
 
-        if (completedAndIsProgressAssessment.Count < 2)
+        if (completedAndIsProgressAssessment.Count < 1)
         {
             return null;
         }
