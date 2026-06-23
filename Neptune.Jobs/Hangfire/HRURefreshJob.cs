@@ -124,13 +124,12 @@ public class HRURefreshJob(
             ? updatedNereidResults.Max(x => x.LastUpdate.Value)
             : DateTime.MinValue;
 
+        // A regional-subbasin/topology change requires a full re-solve, which the delta solve does not cover.
+        // Dirty-node delta solving is owned by the dedicated DeltaSolveScheduledBackgroundJob (same cron window),
+        // so we no longer enqueue DeltaSolveJob here.
         if (lastRegionalSubbasinUpdateDate > lastNereidResultUpdateDate)
         {
             BackgroundJob.Enqueue<TotalNetworkSolveScheduledBackgroundJob>(x => x.RunJob(null));
-        }
-        else if (dbContext.DirtyModelNodes.AsNoTracking().Any())
-        {
-            BackgroundJob.Enqueue<DeltaSolveJob>(x => x.RunJob());
         }
     }
 
