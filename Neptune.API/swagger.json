@@ -21996,6 +21996,15 @@
             "type": "string",
             "nullable": true
           },
+          "WaterQualityManagementPlanID": {
+            "type": "integer",
+            "format": "int32",
+            "nullable": true
+          },
+          "WaterQualityManagementPlanName": {
+            "type": "string",
+            "nullable": true
+          },
           "OwnerOrganizationID": {
             "type": "integer",
             "format": "int32"

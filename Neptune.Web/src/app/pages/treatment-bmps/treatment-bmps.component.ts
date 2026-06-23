@@ -134,6 +134,9 @@ export class TreatmentBmpsComponent {
                 FieldDefinitionType: "Jurisdiction",
                 UseCustomDropdownFilter: true,
             }),
+            this.utilityFunctionsService.createLinkColumnDef("WQMP Name", "WaterQualityManagementPlanName", "WaterQualityManagementPlanID", {
+                InRouterLink: "/water-quality-management-plans/",
+            }),
             this.utilityFunctionsService.createBasicColumnDef("Owner Organization", "OwnerOrganizationName", { UseCustomDropdownFilter: true }),
             this.utilityFunctionsService.createBasicColumnDef("Type", "TreatmentBMPTypeName", {
                 FieldDefinitionType: "TreatmentBMPType",
@@ -166,9 +169,9 @@ export class TreatmentBmpsComponent {
             },
         ];
         // NPT-1079: public (anonymous) + unassigned users see only the fields the legacy "Find a
-        // BMP" map exposed — Name and Type. Hide the actions column and all operational columns
-        // (assessments, maintenance, lifespan, sizing, trash, notes, jurisdiction, owner).
-        const publicHeaders = new Set(["Name", "Type"]);
+        // BMP" map exposed — Name, Type, WQMP Name, Jurisdiction, and Notes. Hide the actions column
+        // and all operational columns (assessments, maintenance, lifespan, sizing, trash, owner).
+        const publicHeaders = new Set(["Name", "Type", "WQMP Name", "Jurisdiction", "Notes"]);
         this.columnDefs = isAnonymousOrUnassigned ? columnDefs.filter((c) => publicHeaders.has(c.headerName as string)) : columnDefs;
 
         this.treatmentBmps$ = this.treatmentBMPService

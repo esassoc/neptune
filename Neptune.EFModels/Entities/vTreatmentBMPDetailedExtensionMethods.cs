@@ -14,6 +14,8 @@ namespace Neptune.EFModels.Entities
                 TreatmentBMPTypeName = entity.TreatmentBMPTypeName,
                 StormwaterJurisdictionID = entity.StormwaterJurisdictionID,
                 StormwaterJurisdictionName = entity.OrganizationName,
+                WaterQualityManagementPlanID = entity.WaterQualityManagementPlanID,
+                WaterQualityManagementPlanName = entity.WaterQualityManagementPlanName,
                 OwnerOrganizationID = entity.OwnerOrganizationID,
                 OwnerOrganizationName = entity.OwnerOrganizationName,
                 YearBuilt = entity.YearBuilt,
