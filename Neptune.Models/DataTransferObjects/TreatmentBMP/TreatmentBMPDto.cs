@@ -45,6 +45,10 @@ public class TreatmentBMPDto
     // same gate to avoid hiding the panel for BMP types that are modeled but have no custom
     // attributes flagged as Modeling-purpose.
     public bool IsAnalyzedInModelingModule { get; set; }
+    // True when this BMP's node is dirty (a DirtyModelNode row exists) and pending recalculation — e.g. after a
+    // modeling-attribute or delineation edit, before the delta solve runs. Drives the "awaiting calculation"
+    // message on the detail page so a stale/zero result isn't shown as if it were current.
+    public bool IsAwaitingModelingCalculation { get; set; }
     public vTreatmentBMPModelingAttributeDto? TreatmentBMPModelingAttribute { get; set; }
 
     // Related Entities

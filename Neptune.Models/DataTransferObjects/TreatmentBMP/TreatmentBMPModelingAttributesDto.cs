@@ -8,6 +8,8 @@ public class TreatmentBMPModelingAttributesDto
     public string? TreatmentBMPTypeName { get; set; }
     public int? StormwaterJurisdictionID { get; set; }
     public string? StormwaterJurisdictionName { get; set; }
+    public int? WaterQualityManagementPlanID { get; set; }
+    public string? WaterQualityManagementPlanName { get; set; }
     public int? WatershedID { get; set; }
     public string? WatershedName { get; set; }
     public int? PrecipitationZoneID { get; set; }

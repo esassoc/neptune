@@ -200,6 +200,9 @@
                                         </p>
                                     }
                                 } @else {
+                                    @if (treatmentBMP.IsAwaitingModelingCalculation) {
+                                        <p class="system-text">This BMP is awaiting calculation. Recently edited Treatment BMPs are recalculated on a schedule; results below may be out of date until then.</p>
+                                    }
                                     @if (loadReducingResult$ | async; as loadReducingResult) {
                                         <modeled-bmp-performance [selectedTreatmentBMPID]="treatmentBMP.TreatmentBMPID" [loadReducingResult]="loadReducingResult" siteRunoffLabel="To BMP"></modeled-bmp-performance>
                                         <div class="modeled-performance-footer">

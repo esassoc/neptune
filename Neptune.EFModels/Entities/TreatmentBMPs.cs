@@ -528,6 +528,13 @@ public static class TreatmentBMPs
             .SingleOrDefaultAsync(x => x.TreatmentBMPID == treatmentBMPID);
         dto.IsFullyParameterized = bmpForParameterizationCheck.IsFullyParameterized(delineationForParameterizationCheck, modelingAttribute);
 
+        // A DirtyModelNode row for this BMP (created on modeling-attribute/delineation edits via NereidUtilities)
+        // means its results are pending the next delta solve. Surface that so the detail page can show an
+        // "awaiting calculation" message instead of presenting a stale/zero result as current.
+        dto.IsAwaitingModelingCalculation = await dbContext.DirtyModelNodes.AsNoTracking()
+            .AnyAsync(x => x.TreatmentBMPID == treatmentBMPID
+                           || (delineationForParameterizationCheck != null && x.DelineationID == delineationForParameterizationCheck.DelineationID));
+
         if (dto.UpstreamBMPID.HasValue)
         {
             dto.UpstreamBMP = await GetByIDAsDtoAsync(dbContext, dto.UpstreamBMPID.Value);
@@ -891,6 +898,7 @@ public static class TreatmentBMPs
             .ThenInclude(x => x.TreatmentBMPType)
             .Include(x => x.Watershed)
             .Include(x => x.Delineation)
+            .Include(x => x.WaterQualityManagementPlan)
             .AsNoTracking()
             .Where(x => x.TreatmentBMPType.IsAnalyzedInModelingModule &&
                         stormwaterJurisdictionIDsPersonCanView.Contains(x.StormwaterJurisdictionID))
@@ -921,6 +929,8 @@ public static class TreatmentBMPs
                     TreatmentBMPTypeName = bmp.TreatmentBMPType?.TreatmentBMPTypeName,
                     StormwaterJurisdictionID = bmp.StormwaterJurisdictionID,
                     StormwaterJurisdictionName = bmp.StormwaterJurisdiction?.Organization?.OrganizationName,
+                    WaterQualityManagementPlanID = bmp.WaterQualityManagementPlanID,
+                    WaterQualityManagementPlanName = bmp.WaterQualityManagementPlan?.WaterQualityManagementPlanName,
                     WatershedID = bmp.WatershedID,
                     WatershedName = watershedName,
                     PrecipitationZoneID = bmp.PrecipitationZoneID,
