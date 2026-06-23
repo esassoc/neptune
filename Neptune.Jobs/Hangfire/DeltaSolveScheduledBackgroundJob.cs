@@ -22,6 +22,10 @@ namespace Neptune.Jobs.Hangfire
 
         protected override void RunJobImplementation()
         {
+            // This enqueues DeltaSolveJob and returns; the base wrapper's try/catch (and its failure email) only
+            // covers enqueue-time errors, NOT exceptions thrown while DeltaSolveJob later runs on a worker — same
+            // as TotalNetworkSolveScheduledBackgroundJob. A failing DeltaSolveJob surfaces as a Failed job in the
+            // Hangfire dashboard and is retried via [AutomaticRetry] on DeltaSolveJob.RunJob.
             BackgroundJob.Enqueue<DeltaSolveJob>(x => x.RunJob());
         }
     }

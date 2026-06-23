@@ -378,10 +378,11 @@ public class TreatmentBMPController(
             .Include(x => x.TreatmentBMPType)
             .Single(x => x.TreatmentBMPID == treatmentBMPID);
 
-        // A downstream BMP inherits its upstream BMP's verified delineation (mirrors TreatmentBMPs.GetByIDAsync
-        // and vTreatmentBMPUpstreams). Resolve the effective delineation BMP before deciding whether a delineation
-        // is missing, so a BMP whose upstream already has one (e.g. BMP 318 -> upstream 354) doesn't wrongly show
-        // the "delineation required" alert.
+        // A downstream BMP inherits its upstream BMP's delineation (resolved via vTreatmentBMPUpstreams, the same
+        // upstream lookup TreatmentBMPs.GetByIDAsync uses). Check whether a delineation row EXISTS for that effective
+        // BMP — existence only, matching the prior `delineation != null` behavior; verification status is not part of
+        // this alert. This stops a BMP whose upstream already has one (e.g. BMP 318 -> upstream 354) from wrongly
+        // showing the "delineation required" alert.
         var upstreamRow = DbContext.vTreatmentBMPUpstreams.AsNoTracking()
             .SingleOrDefault(x => x.TreatmentBMPID == treatmentBMPID);
         var delineationBMPID = upstreamRow?.UpstreamBMPID ?? treatmentBMPID;

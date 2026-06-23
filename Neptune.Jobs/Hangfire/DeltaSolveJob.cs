@@ -24,7 +24,8 @@ public class DeltaSolveJob(
     [AutomaticRetry(Attempts = 2)]
     public async Task RunJob()
     {
-        var dirtyModelNodes = DbContext.DirtyModelNodes.ToList();
+        // Tracked (not AsNoTracking) because RemoveRange below deletes exactly this snapshot.
+        var dirtyModelNodes = await DbContext.DirtyModelNodes.ToListAsync();
 
         // Nothing dirty (e.g. a scheduled run with no pending edits) — skip the Nereid round-trips and blob re-uploads.
         if (dirtyModelNodes.Count == 0)
