@@ -14,7 +14,6 @@ import { WqmpsLayerComponent } from "src/app/shared/components/leaflet/layers/wq
 import { OverlayMode } from "src/app/shared/components/leaflet/layers/generic-wms-wfs-layer/overlay-mode.enum";
 import { NeptuneGridComponent } from "src/app/shared/components/neptune-grid/neptune-grid.component";
 import { FieldDefinitionComponent } from "src/app/shared/components/field-definition/field-definition.component";
-import { IconComponent } from "src/app/shared/components/icon/icon.component";
 import { ModeledBmpPerformanceComponent } from "src/app/shared/components/modeled-bmp-performance/modeled-bmp-performance.component";
 import { LandUseTableComponent } from "src/app/shared/components/land-use-table/land-use-table.component";
 import { NoteComponent } from "src/app/shared/components/note/note.component";
@@ -74,7 +73,6 @@ import { environment } from "src/environments/environment";
         NeptuneMapComponent,
         WqmpsLayerComponent,
         NeptuneGridComponent,
-        IconComponent,
         ModeledBmpPerformanceComponent,
         LandUseTableComponent,
         NoteComponent,

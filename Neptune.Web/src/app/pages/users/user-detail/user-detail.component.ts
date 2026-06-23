@@ -13,7 +13,6 @@ import { RoleEnum } from "src/app/shared/generated/enum/role-enum";
 import { PersonDetailDto } from "src/app/shared/generated/model/person-detail-dto";
 import { PersonNotificationDto } from "src/app/shared/generated/model/person-notification-dto";
 import { AlertDisplayComponent } from "src/app/shared/components/alert-display/alert-display.component";
-import { IconComponent } from "src/app/shared/components/icon/icon.component";
 import { NeptuneGridComponent } from "src/app/shared/components/neptune-grid/neptune-grid.component";
 import { NoteComponent } from "src/app/shared/components/note/note.component";
 import { PageHeaderComponent } from "src/app/shared/components/page-header/page-header.component";
@@ -28,7 +27,7 @@ import { EditJurisdictionsModalComponent } from "./edit-jurisdictions-modal/edit
 @Component({
     selector: "user-detail",
     standalone: true,
-    imports: [AsyncPipe, DatePipe, RouterLink, PageHeaderComponent, AlertDisplayComponent, IconComponent, NeptuneGridComponent, NoteComponent],
+    imports: [AsyncPipe, DatePipe, RouterLink, PageHeaderComponent, AlertDisplayComponent, NeptuneGridComponent, NoteComponent],
     templateUrl: "./user-detail.component.html",
     styleUrl: "./user-detail.component.scss",
 })

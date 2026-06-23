@@ -111,19 +111,11 @@ export class ProjectModelResultsComponent implements OnInit {
             distinctUntilChanged()
         );
 
-        const hasSucceededHistory$ = this.projectNetworkSolveHistoriesSubject.asObservable().pipe(
-            map((histories) =>
-                Array.isArray(histories) ? histories.some((x) => x.ProjectNetworkSolveHistoryStatusTypeID === ProjectNetworkSolveHistoryStatusTypeEnum.Succeeded) : false
-            ),
-            distinctUntilChanged()
-        );
-
-        const shouldLoadProjectID$ = combineLatest([projectID$, hasSucceededHistory$]).pipe(
-            filter(([_, hasSucceeded]) => hasSucceeded),
-            map(([projectID]) => projectID),
-            distinctUntilChanged(),
-            shareReplay(1)
-        );
+        // Load modeled results whenever we have a project — independent of network-solve history status.
+        // Previously this was gated on a Succeeded ProjectNetworkSolveHistory, which left fully-parameterized
+        // projects that already have results (e.g. from a prior/total solve) stuck on a spinner with no Succeeded
+        // history row. The endpoint returns [] when no results exist, so the empty-state handles that case.
+        const shouldLoadProjectID$ = projectID$.pipe(distinctUntilChanged(), shareReplay(1));
 
         const load$ = shouldLoadProjectID$.pipe(
             switchMap((projectID) =>

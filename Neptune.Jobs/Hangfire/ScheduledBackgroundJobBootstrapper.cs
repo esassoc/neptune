@@ -18,6 +18,12 @@ namespace Neptune.Jobs.Hangfire
 
             AddRecurringJob<HRURefreshScheduledBackgroundJob>(HRURefreshScheduledBackgroundJob.JobName, x => x.RunJob(null), "0 0-4,14-23 * * 1-5", recurringJobIds);
 
+            // Recalculate dirty model nodes on the same window as the HRU refresh. That window deliberately skips
+            // 5-13 UTC; the nightly Total Network Solve runs at 1 AM Pacific (~8-9 UTC depending on DST), which falls
+            // inside that skipped gap, so the delta solve never collides with the nightly catch-all year-round. This
+            // is decoupled from HRU so it runs regardless of whether the HRU refresh completes its OCGIS loop.
+            AddRecurringJob<DeltaSolveScheduledBackgroundJob>(DeltaSolveScheduledBackgroundJob.JobName, x => x.RunJob(null), "0 0-4,14-23 * * 1-5", recurringJobIds);
+
             AddRecurringJob<TotalNetworkSolveScheduledBackgroundJob>(TotalNetworkSolveScheduledBackgroundJob.JobName, x => x.RunJob(null), MakeDailyUtcCronJobStringFromLocalTime(1, 0), recurringJobIds);
 
             // Remove any jobs we haven't explicitly scheduled

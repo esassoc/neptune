@@ -33,11 +33,15 @@ export class ModelingAttributesComponent {
             this.utilityFunctionsService.createBooleanColumnDef("Fully Parameterized?", "IsFullyParameterized", {
                 FieldDefinitionType: "FullyParameterized",
                 FieldDefinitionLabelOverride: "Fully Parameterized?",
+                UseCustomDropdownFilter: true,
             }),
             this.utilityFunctionsService.createBasicColumnDef("Delineation Type", "DelineationTypeName", {
                 FieldDefinitionType: "DelineationType",
+                UseCustomDropdownFilter: true,
             }),
-            this.utilityFunctionsService.createBasicColumnDef("Delineation Status", "DelineationStatus"),
+            this.utilityFunctionsService.createBasicColumnDef("Delineation Status", "DelineationStatus", {
+                UseCustomDropdownFilter: true,
+            }),
             this.utilityFunctionsService.createBasicColumnDef("Type", "TreatmentBMPTypeName", {
                 FieldDefinitionType: "TreatmentBMPType",
                 FieldDefinitionLabelOverride: "Type",
@@ -50,6 +54,11 @@ export class ModelingAttributesComponent {
             this.utilityFunctionsService.createLinkColumnDef("Jurisdiction", "StormwaterJurisdictionName", "StormwaterJurisdictionID", {
                 InRouterLink: "/jurisdictions/",
                 FieldDefinitionType: "Jurisdiction",
+            }),
+            this.utilityFunctionsService.createLinkColumnDef("WQMP", "WaterQualityManagementPlanName", "WaterQualityManagementPlanID", {
+                InRouterLink: "/water-quality-management-plans/",
+                FieldDefinitionType: "WaterQualityManagementPlan",
+                FieldDefinitionLabelOverride: "WQMP",
             }),
             this.utilityFunctionsService.createBasicColumnDef("Watershed", "WatershedName", {
                 FieldDefinitionType: "Watershed",
@@ -137,6 +146,7 @@ export class ModelingAttributesComponent {
             this.utilityFunctionsService.createBasicColumnDef("Underlying Hydrologic Soil Group", "UnderlyingHydrologicSoilGroup", {
                 FieldDefinitionType: "UnderlyingHydrologicSoilGroupID",
                 FieldDefinitionLabelOverride: "Underlying Hydrologic Soil Group",
+                UseCustomDropdownFilter: true,
             }),
             this.utilityFunctionsService.createDecimalColumnDef("Underlying Infiltration Rate", "UnderlyingInfiltrationRate", {
                 FieldDefinitionType: "UnderlyingInfiltrationRate",
@@ -162,10 +172,12 @@ export class ModelingAttributesComponent {
             this.utilityFunctionsService.createBooleanColumnDef("Downstream of Non-Modeled BMP?", "DownstreamOfNonModeledBMP", {
                 FieldDefinitionType: "DownstreamOfNonModeledBMP",
                 FieldDefinitionLabelOverride: "Downstream of Non-Modeled BMP?",
+                UseCustomDropdownFilter: true,
             }),
             this.utilityFunctionsService.createBasicColumnDef("Dry Weather Flow Override", "DryWeatherFlowOverride", {
                 FieldDefinitionType: "DryWeatherFlowOverrideID",
                 FieldDefinitionLabelOverride: "Dry Weather Flow Override",
+                UseCustomDropdownFilter: true,
             }),
         ];
         this.modelingAttributes$ = this.treatmentBMPService.listWithModelingAttributesTreatmentBMP();

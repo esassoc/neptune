@@ -374,13 +374,19 @@ public class TreatmentBMPController(
     public ActionResult<TreatmentBMPParameterizationErrorsDto> GetParameterizationErrors([FromRoute] int treatmentBMPID)
     {
         var treatmentBMP = DbContext.TreatmentBMPs
-            .Include(x => x.Delineation)
             .Include(x => x.WaterQualityManagementPlan)
             .Include(x => x.TreatmentBMPType)
             .Single(x => x.TreatmentBMPID == treatmentBMPID);
 
-        var delineation = treatmentBMP.Delineation;
-        var hasDelineation = delineation != null;
+        // A downstream BMP inherits its upstream BMP's delineation (resolved via vTreatmentBMPUpstreams, the same
+        // upstream lookup TreatmentBMPs.GetByIDAsync uses). Check whether a delineation row EXISTS for that effective
+        // BMP — existence only, matching the prior `delineation != null` behavior; verification status is not part of
+        // this alert. This stops a BMP whose upstream already has one (e.g. BMP 318 -> upstream 354) from wrongly
+        // showing the "delineation required" alert.
+        var upstreamRow = DbContext.vTreatmentBMPUpstreams.AsNoTracking()
+            .SingleOrDefault(x => x.TreatmentBMPID == treatmentBMPID);
+        var delineationBMPID = upstreamRow?.UpstreamBMPID ?? treatmentBMPID;
+        var hasDelineation = DbContext.Delineations.AsNoTracking().Any(x => x.TreatmentBMPID == delineationBMPID);
         var linkToDelineationMap = !hasDelineation && (treatmentBMP.UpstreamBMPID == null);
         WaterQualityManagementPlanDisplayDto? simplifiedWQMP = null;
         if (treatmentBMP.WaterQualityManagementPlan != null && treatmentBMP.WaterQualityManagementPlan.WaterQualityManagementPlanModelingApproach == WaterQualityManagementPlanModelingApproach.Simplified)
