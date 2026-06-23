@@ -58,9 +58,10 @@ namespace Neptune.Tests
         public void SingleCompletedProgressAssessmentWithinFiveYearsProducesScore()
         {
             // New rule: a single completed progress OVTA within 5 years is now enough (was 2 within 4 years).
+            var fiveYearsAgo = Today.AddYears(-5);
             var assessments = new List<OnlandVisualTrashAssessment>
             {
-                BuildAssessment(OnlandVisualTrashAssessmentScore.B, Today),
+                BuildAssessment(OnlandVisualTrashAssessmentScore.B, fiveYearsAgo),
             };
 
             var result = OnlandVisualTrashAssessments.CalculateProgressScore(assessments);
@@ -81,9 +82,10 @@ namespace Neptune.Tests
         public void ProgressAssessmentOlderThanFiveYearsIsExcluded()
         {
             // Just outside the 5-year window -> filtered out -> no score.
+            var fiveYearsAgo = Today.AddYears(-5);
             var assessments = new List<OnlandVisualTrashAssessment>
             {
-                BuildAssessment(OnlandVisualTrashAssessmentScore.A, Today.AddYears(-6)),
+                BuildAssessment(OnlandVisualTrashAssessmentScore.A, fiveYearsAgo.AddDays(-1)),
             };
 
             var result = OnlandVisualTrashAssessments.CalculateProgressScore(assessments);
