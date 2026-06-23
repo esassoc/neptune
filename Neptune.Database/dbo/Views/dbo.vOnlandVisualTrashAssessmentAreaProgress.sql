@@ -22,7 +22,7 @@ From (
 		from dbo.OnlandVisualTrashAssessment ovta
 			inner join dbo.OnlandVisualTrashAssessmentScore score
 				on ovta.OnlandVisualTrashAssessmentScoreID = score.OnlandVisualTrashAssessmentScoreID
-		where IsProgressAssessment = 1 and CompletedDate >= DATEADD(year, -5, CURRENT_TIMESTAMP)
+		where IsProgressAssessment = 1 and CompletedDate >= DATEADD(year, -5, CAST(CURRENT_TIMESTAMP AS date))
 		) subq
 	where RoWNumber <=3
 	group by (OnlandVisualTrashAssessmentAreaID)
