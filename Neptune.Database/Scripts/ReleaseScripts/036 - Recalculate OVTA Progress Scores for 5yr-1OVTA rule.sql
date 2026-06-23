@@ -34,7 +34,7 @@ BEGIN
 				--OnlandVisualTrashAssessmentStatusName = Complete
 			WHERE ovta2.OnlandVisualTrashAssessmentStatusID = 2
 			  AND ovta2.IsProgressAssessment = 1
-			  AND ovta2.CompletedDate >= DATEADD(year, -5, GETDATE())
+			  AND ovta2.CompletedDate >= DATEADD(year, -5, CAST(GETDATE() AS date))
 		) ranked
 		WHERE rn <= 3
 		GROUP BY OnlandVisualTrashAssessmentAreaID
