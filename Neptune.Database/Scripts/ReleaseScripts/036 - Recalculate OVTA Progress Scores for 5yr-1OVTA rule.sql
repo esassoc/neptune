@@ -1,5 +1,5 @@
 DECLARE @MigrationName VARCHAR(200);
-SET @MigrationName = '020 - Recalculate OVTA Progress Scores for 5yr-1OVTA rule'
+SET @MigrationName = '036 - Recalculate OVTA Progress Scores for 5yr-1OVTA rule';
 
 IF NOT EXISTS(SELECT * FROM dbo.DatabaseMigration DM WHERE DM.ReleaseScriptFileName = @MigrationName)
 BEGIN
