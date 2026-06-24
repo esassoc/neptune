@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 using Microsoft.EntityFrameworkCore;
@@ -103,6 +104,33 @@ namespace Neptune.Tests
                 { "DelineationStatus", delineationStatus },
             };
             var fc = new FeatureCollection { new Feature(geom, attrs) };
+            return GeoJsonSerializer.SerializeToByteArray(fc, GeoJsonSerializer.DefaultSerializerOptions);
+        }
+
+        private byte[] SampleStagingGeoJsonForNames(IReadOnlyList<string> treatmentBMPNames)
+        {
+            var fc = new FeatureCollection();
+            for (var i = 0; i < treatmentBMPNames.Count; i++)
+            {
+                var x0 = -117.85 + i * 0.02;
+                var poly4326 = new Polygon(new LinearRing(new[]
+                {
+                    new Coordinate(x0, 33.65),
+                    new Coordinate(x0 + 0.01, 33.65),
+                    new Coordinate(x0 + 0.01, 33.66),
+                    new Coordinate(x0, 33.66),
+                    new Coordinate(x0, 33.65),
+                })) { SRID = 4326 };
+                var geom = (Geometry)poly4326.ProjectTo2771();
+                var attrs = new AttributesTable
+                {
+                    { "UploadedByPersonID", _jurisdictionPerson.PersonID },
+                    { "StormwaterJurisdictionID", _jurisdictionID },
+                    { "TreatmentBMPName", treatmentBMPNames[i] },
+                    { "DelineationStatus", (string?)null },
+                };
+                fc.Add(new Feature(geom, attrs));
+            }
             return GeoJsonSerializer.SerializeToByteArray(fc, GeoJsonSerializer.DefaultSerializerOptions);
         }
 
@@ -295,6 +323,76 @@ namespace Neptune.Tests
 
             Assert.AreEqual(0, errors.Count, "Centralized check should be jurisdiction-scoped; same name in another jurisdiction must not block.");
             Assert.IsTrue(_dbContext.DelineationStagings.Any(x => x.UploadedByPersonID == _jurisdictionPerson.PersonID && x.TreatmentBMPName == sharedName));
+        }
+
+        [TestMethod]
+        public async Task ApproveAsync_HandlesBMPNameCaseMismatchGracefully()
+        {
+            // NPT-1093: the GDB casing can differ from the inventory casing (Brea had "NoName2" in the GDB but
+            // "noName2" in the system). Staging must treat it as a match, and approve must succeed (previously the
+            // case-sensitive in-memory .Single() threw and surfaced as a 500).
+            var suffix = Guid.NewGuid().ToString("N");
+            var dbName = $"noName2-{suffix}";  // inventory casing
+            var gdbName = $"NoName2-{suffix}"; // GDB casing — differs only by the leading N
+
+            var bmp = CreateBMP(dbName);
+            await DelineationStagings.ProcessDeserializedStagingAsync(_dbContext, SampleStagingGeoJson(gdbName), _jurisdictionPerson);
+
+            var report = DelineationStagings.BuildReportForCurrentUser(_dbContext, _jurisdictionPerson);
+            Assert.IsFalse(report.Errors.Any(e => e.Contains("do not match a Treatment BMP Name")),
+                "A case-only mismatch should be reported as a match, not unmatched.");
+            Assert.AreEqual(1, report.NumberOfDelineationsToBeCreated);
+
+            var count = await DelineationStagings.ApproveAsync(_dbContext, _jurisdictionPerson);
+
+            Assert.AreEqual(1, count);
+            var newDel = _dbContext.Delineations.Single(x => x.TreatmentBMPID == bmp.TreatmentBMPID);
+            Assert.AreEqual((int)DelineationTypeEnum.Distributed, newDel.DelineationTypeID);
+            Assert.IsFalse(_dbContext.DelineationStagings.Any(x => x.UploadedByPersonID == _jurisdictionPerson.PersonID),
+                "Staging should be cleared after a successful approve.");
+        }
+
+        [TestMethod]
+        public async Task ApproveAsync_ReplacesMultipleExistingDistributedDelineations()
+        {
+            // NPT-1093 Bug 3: the bulk DeleteFullForMany path must delete every matching existing distributed
+            // delineation and create the new ones in a single approve.
+            var names = Enumerable.Range(0, 3).Select(i => $"NPT-1093-BULK-{i}-{Guid.NewGuid():N}").ToList();
+            var preexistingIDs = new List<int>();
+            foreach (var name in names)
+            {
+                var bmp = CreateBMP(name);
+                var poly4326 = new Polygon(new LinearRing(new[]
+                {
+                    new Coordinate(-117.86, 33.66), new Coordinate(-117.85, 33.66),
+                    new Coordinate(-117.85, 33.67), new Coordinate(-117.86, 33.67), new Coordinate(-117.86, 33.66),
+                })) { SRID = 4326 };
+                _dbContext.Delineations.Add(new Delineation
+                {
+                    TreatmentBMPID = bmp.TreatmentBMPID,
+                    DelineationTypeID = (int)DelineationTypeEnum.Distributed,
+                    DelineationGeometry4326 = poly4326,
+                    DelineationGeometry = poly4326.ProjectTo2771(),
+                    DateLastModified = DateTime.UtcNow,
+                    IsVerified = false,
+                    HasDiscrepancies = false,
+                });
+                _dbContext.SaveChanges();
+                preexistingIDs.Add(_dbContext.Delineations.Single(x => x.TreatmentBMPID == bmp.TreatmentBMPID).DelineationID);
+            }
+
+            await DelineationStagings.ProcessDeserializedStagingAsync(_dbContext, SampleStagingGeoJsonForNames(names), _jurisdictionPerson);
+            var count = await DelineationStagings.ApproveAsync(_dbContext, _jurisdictionPerson);
+
+            Assert.AreEqual(names.Count, count);
+            Assert.IsFalse(_dbContext.Delineations.Any(x => preexistingIDs.Contains(x.DelineationID)),
+                "All pre-existing distributed delineations should be deleted by the bulk path.");
+            foreach (var name in names)
+            {
+                var bmpID = _dbContext.TreatmentBMPs.Single(x => x.TreatmentBMPName == name && x.StormwaterJurisdictionID == _jurisdictionID).TreatmentBMPID;
+                Assert.AreEqual(1, _dbContext.Delineations.Count(x => x.TreatmentBMPID == bmpID), $"Expected exactly one new delineation for {name}.");
+            }
+            Assert.IsFalse(_dbContext.DelineationStagings.Any(x => x.UploadedByPersonID == _jurisdictionPerson.PersonID));
         }
 
         [TestMethod]
