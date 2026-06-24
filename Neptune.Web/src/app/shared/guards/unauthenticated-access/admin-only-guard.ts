@@ -26,7 +26,9 @@ export class AdminOnlyGuard {
 
         return this.authenticationService.currentUserSetObservable.pipe(
             map((x) => {
-                if (x.RoleID == RoleEnum.Admin || x.RoleID == RoleEnum.SitkaAdmin) {
+                // currentUserSetObservable can emit null (anonymous / auth0.user$ falsy) — treat that as unauthorized
+                // rather than dereferencing RoleID and throwing during route evaluation.
+                if (x?.RoleID == RoleEnum.Admin || x?.RoleID == RoleEnum.SitkaAdmin) {
                     return true;
                 } else {
                     return this.returnUnauthorized();

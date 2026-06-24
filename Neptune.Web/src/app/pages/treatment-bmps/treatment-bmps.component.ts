@@ -76,8 +76,10 @@ export class TreatmentBmpsComponent {
     public selectionFromMap: boolean;
     public boundingBox$: Observable<BoundingBoxDto>;
     public customRichTextTypeID = NeptunePageTypeEnum.TreatmentBMP;
-    // Gates the "+ Create New Treatment BMP" button — hidden from anonymous/unassigned (NPT-1094).
-    public currentPersonCanEdit = false;
+    // Gates the "+ Create New Treatment BMP" button — hidden from anonymous/unassigned (NPT-1094). Driven off
+    // getCurrentUser() + async pipe so it reflects the resolved user even if Auth0 / people/me finishes after
+    // first render (zoneless: a once-computed boolean could leave the button hidden for an editor until reload).
+    public currentPersonCanEdit$: Observable<boolean>;
 
     public OverlayMode = OverlayMode;
 
@@ -101,8 +103,13 @@ export class TreatmentBmpsComponent {
     ) {}
 
     ngOnInit(): void {
+        this.currentPersonCanEdit$ = this.authenticationService
+            .getCurrentUser()
+            .pipe(
+                map(() => this.authenticationService.doesCurrentUserHaveJurisdictionEditPermission()),
+                shareReplay(1)
+            );
         const canEdit = this.authenticationService.doesCurrentUserHaveJurisdictionEditPermission();
-        this.currentPersonCanEdit = canEdit;
         const isAnonymousOrUnassigned = this.authenticationService.isCurrentUserAnonymousOrUnassigned();
         const columnDefs: ColDef[] = [
             this.utilityFunctionsService.createActionsColumnDef((params: any) => {

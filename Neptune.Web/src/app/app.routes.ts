@@ -431,7 +431,8 @@ export const routes: Routes = [
                 title: "Create New BMP",
                 // Create is editor-gated (POST /treatment-bmps is [JurisdictionEditFeature]); guard the route so
                 // anonymous/non-editors can't reach the create page by URL, not just via the hidden button (NPT-1094).
-                canActivate: [JurisdictionManagerOrEditorOnlyGuard],
+                // authGuardFn first so the role guard never evaluates for anonymous users (matches other edit routes).
+                canActivate: [authGuardFn, JurisdictionManagerOrEditorOnlyGuard],
                 loadComponent: () => import("./pages/treatment-bmps/create-treatment-bmp/create-treatment-bmp.component").then((m) => m.CreateTreatmentBmpComponent),
                 canDeactivate: [UnsavedChangesGuard],
             },
