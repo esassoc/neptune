@@ -99,19 +99,10 @@ namespace Neptune.Tests
         public async Task UpdateNonModelingCustomAttributes_DoesNotMarkBMPDirty()
         {
             // Scoping guard: non-modeling custom-attribute purposes must NOT mark the BMP dirty.
-            var nonModelingPurposeID = CustomAttributeTypePurpose.All
-                .Select(x => x.CustomAttributeTypePurposeID)
-                .FirstOrDefault(id => id != (int)CustomAttributeTypePurposeEnum.Modeling);
-            if (nonModelingPurposeID == 0)
-            {
-                Assert.Inconclusive("No non-Modeling CustomAttributeTypePurpose exists to test the negative case.");
-                return;
-            }
-
             var bmp = CreateBMP($"NPT-1062-NM-{Guid.NewGuid():N}");
 
             await CustomAttributes.UpdateCustomAttributesAsync(_dbContext, bmp.TreatmentBMPID,
-                nonModelingPurposeID, new List<CustomAttributeUpsertDto>(), _callingUser);
+                (int)CustomAttributeTypePurposeEnum.OtherDesignAttributes, new List<CustomAttributeUpsertDto>(), _callingUser);
 
             Assert.IsFalse(_dbContext.DirtyModelNodes.Any(x => x.TreatmentBMPID == bmp.TreatmentBMPID),
                 "Non-Modeling custom-attribute edits should not mark the BMP dirty.");

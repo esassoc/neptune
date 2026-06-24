@@ -121,19 +121,24 @@ public static class CustomAttributes
             }
         }
 
-        await dbContext.SaveChangesAsync();
-
         var purposeEnum = (CustomAttributeTypePurposeEnum) customAttributeTypePurposeID;
 
         // NPT-1062: Modeling-purpose custom attributes feed the Nereid model, so editing them must mark the BMP
-        // dirty (mirrors the delineation-verify path in DelineationController). Without this no DirtyModelNode is
-        // created, so the detail page never shows "awaiting calculation" and the hourly delta solve has nothing to
-        // recalculate — results sit at zero until the nightly total solve. Scoped to Modeling so non-modeling
+        // dirty (mirrors the delineation-verify path in DelineationController) — otherwise no DirtyModelNode is
+        // created, the detail page never shows "awaiting calculation", and the hourly delta solve has nothing to
+        // recalculate (results sit at zero until the nightly total solve). Add it to the same unit of work as the
+        // attribute changes so it commits atomically in one SaveChanges. Scoped to Modeling so non-modeling
         // custom-attribute edits don't trigger needless recalcs.
         if (purposeEnum == CustomAttributeTypePurposeEnum.Modeling)
         {
-            await Nereid.NereidUtilities.MarkTreatmentBMPDirty(treatmentBMP, dbContext);
+            await dbContext.DirtyModelNodes.AddAsync(new DirtyModelNode
+            {
+                CreateDate = DateTime.UtcNow,
+                TreatmentBMPID = treatmentBMPID
+            });
         }
+
+        await dbContext.SaveChangesAsync();
 
         var updatedCustomAttributes = ListByTreatmentBMPIDAndPurposes(dbContext, treatmentBMPID, purposeEnum);
         var updatedCustomAttributeDtos = updatedCustomAttributes.Select(x => x.AsDto()).ToList();
