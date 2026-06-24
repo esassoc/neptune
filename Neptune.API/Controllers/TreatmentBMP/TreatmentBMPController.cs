@@ -28,7 +28,7 @@ public class TreatmentBMPController(
     : SitkaController<TreatmentBMPController>(dbContext, logger, neptuneConfiguration)
 {
     [HttpPost]
-    [UserViewFeature]
+    [JurisdictionEditFeature]
     public async Task<ActionResult<TreatmentBMPDto>> Create([FromBody] TreatmentBMPCreateDto treatmentBMPCreateDto)
     {
         var errors = await TreatmentBMPs.ValidateCreateAsync(DbContext, treatmentBMPCreateDto);
