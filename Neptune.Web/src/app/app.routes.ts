@@ -4,6 +4,7 @@ import { ManagerOrAdminOnlyGuard } from "./shared/guards/unauthenticated-access/
 import { JurisdictionManagerOrEditorOnlyGuard } from "./shared/guards/unauthenticated-access/jurisdiction-manager-or-editor-only-guard.guard";
 import { UnsavedChangesGuard } from "./shared/guards/unsaved-changes.guard";
 import { OCTAGrantReviewerOnlyGuard } from "./shared/guards/unauthenticated-access/octa-grant-reviewer-only.guard";
+import { AdminOnlyGuard } from "./shared/guards/unauthenticated-access/admin-only-guard";
 import { authGuardFn } from "@auth0/auth0-angular";
 import { AuthCallbackComponent } from "./auth-callback.component";
 
@@ -428,6 +429,10 @@ export const routes: Routes = [
             {
                 path: "treatment-bmps/new",
                 title: "Create New BMP",
+                // Create is editor-gated (POST /treatment-bmps is [JurisdictionEditFeature]); guard the route so
+                // anonymous/non-editors can't reach the create page by URL, not just via the hidden button (NPT-1094).
+                // authGuardFn first so the role guard never evaluates for anonymous users (matches other edit routes).
+                canActivate: [authGuardFn, JurisdictionManagerOrEditorOnlyGuard],
                 loadComponent: () => import("./pages/treatment-bmps/create-treatment-bmp/create-treatment-bmp.component").then((m) => m.CreateTreatmentBmpComponent),
                 canDeactivate: [UnsavedChangesGuard],
             },
@@ -818,6 +823,9 @@ export const routes: Routes = [
             {
                 path: "funding-sources",
                 title: "Funding Sources",
+                // Admin-only: the list/create endpoints are [AdminFeature]. Without this guard an anonymous user
+                // reached the page, the list call 403'd, and the error interceptor bounced them (NPT-1094).
+                canActivate: [authGuardFn, AdminOnlyGuard],
                 loadComponent: () => import("./pages/funding-sources/funding-sources.component").then((m) => m.FundingSourcesComponent),
             },
             {
