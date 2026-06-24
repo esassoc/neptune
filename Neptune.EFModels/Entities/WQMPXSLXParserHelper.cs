@@ -1,7 +1,6 @@
 ﻿using Microsoft.EntityFrameworkCore;
 using System.Data;
 using Neptune.Common;
-using Neptune.WebMvc.Common;
 
 namespace Neptune.EFModels.Entities
 {

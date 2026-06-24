@@ -1,4 +1,4 @@
-﻿/*-----------------------------------------------------------------------
+/*-----------------------------------------------------------------------
 <copyright file="Organization.cs" company="Tahoe Regional Planning Agency and Sitka Technology Group">
 Copyright (c) Tahoe Regional Planning Agency and Sitka Technology Group. All rights reserved.
 <author>Sitka Technology Group</author>
@@ -31,35 +31,10 @@ namespace Neptune.EFModels.Entities
 
         public string GetOrganizationShortNameIfAvailable() => IsUnknown() ? "Unknown or unspecified" : $"{OrganizationShortName ?? OrganizationName}{(!IsActive ? " (Inactive)" : string.Empty)}";
 
-        public static bool IsOrganizationNameUnique(IEnumerable<Organization> organizations, string organizationName, int currentOrganizationID)
-        {
-            var organization =
-                organizations.SingleOrDefault(x => x.OrganizationID != currentOrganizationID && String.Equals(x.OrganizationName, organizationName, StringComparison.InvariantCultureIgnoreCase));
-            return organization == null;
-        }
-
-        public static bool IsOrganizationShortNameUniqueIfProvided(IEnumerable<Organization> organizations, string organizationShortName, int currentOrganizationID)
-        {
-            // Nulls don't trip the unique check
-            if (organizationShortName == null)
-            {
-                return true;
-            }
-            var existingOrganization =
-                organizations.SingleOrDefault(
-                    x => x.OrganizationID != currentOrganizationID && String.Equals(x.OrganizationShortName, organizationShortName, StringComparison.InvariantCultureIgnoreCase));
-            return existingOrganization == null;
-        }
-
         public bool IsUnknown()
         {
             return !String.IsNullOrWhiteSpace(OrganizationName) &&
                    OrganizationName.Equals(OrganizationUnknown, StringComparison.InvariantCultureIgnoreCase);
-        }
-
-        public string GetAbbreviationIfAvailable()
-        {
-            return OrganizationShortName ?? OrganizationName;
         }
 
         public async Task DeleteFull(NeptuneDbContext dbContext)

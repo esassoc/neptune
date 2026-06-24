@@ -1,4 +1,4 @@
-﻿using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore;
 using Neptune.Common.DesignByContract;
 using Neptune.Models.DataTransferObjects;
 
@@ -45,32 +45,6 @@ public static class StormwaterJurisdictions
                 .Select(x => x.Geometry4326).ToList());
         }
         return new BoundingBoxDto(jurisdictions.Select(x => x.Geometry4326).ToList());
-    }
-
-    public static StormwaterJurisdiction GetByIDWithChangeTracking(NeptuneDbContext dbContext, int stormwaterJurisdictionID)
-    {
-        var stormwaterJurisdiction = GetImpl(dbContext)
-            .SingleOrDefault(x => x.StormwaterJurisdictionID == stormwaterJurisdictionID);
-        Check.RequireNotNull(stormwaterJurisdiction, $"StormwaterJurisdiction with ID {stormwaterJurisdictionID} not found!");
-        return stormwaterJurisdiction;
-    }
-
-    public static StormwaterJurisdiction GetByIDWithChangeTracking(NeptuneDbContext dbContext, StormwaterJurisdictionPrimaryKey stormwaterJurisdictionPrimaryKey)
-    {
-        return GetByIDWithChangeTracking(dbContext, stormwaterJurisdictionPrimaryKey.PrimaryKeyValue);
-    }
-
-    public static StormwaterJurisdiction GetByID(NeptuneDbContext dbContext, int stormwaterJurisdictionID)
-    {
-        var stormwaterJurisdiction = GetImpl(dbContext).AsNoTracking()
-            .SingleOrDefault(x => x.StormwaterJurisdictionID == stormwaterJurisdictionID);
-        Check.RequireNotNull(stormwaterJurisdiction, $"StormwaterJurisdiction with ID {stormwaterJurisdictionID} not found!");
-        return stormwaterJurisdiction;
-    }
-
-    public static StormwaterJurisdiction GetByID(NeptuneDbContext dbContext, StormwaterJurisdictionPrimaryKey stormwaterJurisdictionPrimaryKey)
-    {
-        return GetByID(dbContext, stormwaterJurisdictionPrimaryKey.PrimaryKeyValue);
     }
 
     private static IQueryable<StormwaterJurisdiction> GetImpl(NeptuneDbContext dbContext)

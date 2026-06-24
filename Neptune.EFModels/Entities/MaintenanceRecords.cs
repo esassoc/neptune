@@ -33,29 +33,6 @@ public static class MaintenanceRecords
         return maintenanceRecord;
     }
 
-    public static MaintenanceRecord GetByIDWithChangeTracking(NeptuneDbContext dbContext, MaintenanceRecordPrimaryKey maintenanceRecordPrimaryKey)
-    {
-        return GetByIDWithChangeTracking(dbContext, maintenanceRecordPrimaryKey.PrimaryKeyValue);
-    }
-
-    public static MaintenanceRecord GetByID(NeptuneDbContext dbContext, int maintenanceRecordID)
-    {
-        var maintenanceRecord = GetImpl(dbContext).AsNoTracking()
-            .SingleOrDefault(x => x.MaintenanceRecordID == maintenanceRecordID);
-        Check.RequireNotNull(maintenanceRecord, $"MaintenanceRecord with ID {maintenanceRecordID} not found!");
-        return maintenanceRecord;
-    }
-
-    public static MaintenanceRecord GetByID(NeptuneDbContext dbContext, MaintenanceRecordPrimaryKey maintenanceRecordPrimaryKey)
-    {
-        return GetByID(dbContext, maintenanceRecordPrimaryKey.PrimaryKeyValue);
-    }
-
-    public static List<MaintenanceRecord> List(NeptuneDbContext dbContext)
-    {
-        return GetImpl(dbContext).AsNoTracking().ToList();
-    }
-
     public static MaintenanceRecord? GetByFieldVisitIDWithChangeTracking(NeptuneDbContext dbContext, int fieldVisitID)
     {
         return GetImpl(dbContext).SingleOrDefault(x => x.FieldVisitID == fieldVisitID);

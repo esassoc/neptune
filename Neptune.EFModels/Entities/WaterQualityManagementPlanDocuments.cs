@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using Microsoft.EntityFrameworkCore;
 using Neptune.Common.DesignByContract;
 using Neptune.Models.DataTransferObjects;
@@ -30,30 +30,12 @@ public static class WaterQualityManagementPlanDocuments
         return entities.Select(x => x.AsDto()).ToList();
     }
 
-    public static WaterQualityManagementPlanDocument GetByIDWithChangeTracking(NeptuneDbContext dbContext, int waterQualityManagementPlanDocumentID)
-    {
-        var waterQualityManagementPlanDocument = GetImpl(dbContext)
-            .SingleOrDefault(x => x.WaterQualityManagementPlanDocumentID == waterQualityManagementPlanDocumentID);
-        Check.RequireNotNull(waterQualityManagementPlanDocument, $"WaterQualityManagementPlanDocument with ID {waterQualityManagementPlanDocumentID} not found!");
-        return waterQualityManagementPlanDocument;
-    }
-
-    public static WaterQualityManagementPlanDocument GetByIDWithChangeTracking(NeptuneDbContext dbContext, WaterQualityManagementPlanDocumentPrimaryKey waterQualityManagementPlanDocumentPrimaryKey)
-    {
-        return GetByIDWithChangeTracking(dbContext, waterQualityManagementPlanDocumentPrimaryKey.PrimaryKeyValue);
-    }
-
     public static WaterQualityManagementPlanDocument GetByID(NeptuneDbContext dbContext, int waterQualityManagementPlanDocumentID)
     {
         var waterQualityManagementPlanDocument = GetImpl(dbContext).AsNoTracking()
             .SingleOrDefault(x => x.WaterQualityManagementPlanDocumentID == waterQualityManagementPlanDocumentID);
         Check.RequireNotNull(waterQualityManagementPlanDocument, $"WaterQualityManagementPlanDocument with ID {waterQualityManagementPlanDocumentID} not found!");
         return waterQualityManagementPlanDocument;
-    }
-
-    public static WaterQualityManagementPlanDocument GetByID(NeptuneDbContext dbContext, WaterQualityManagementPlanDocumentPrimaryKey waterQualityManagementPlanDocumentPrimaryKey)
-    {
-        return GetByID(dbContext, waterQualityManagementPlanDocumentPrimaryKey.PrimaryKeyValue);
     }
 
     public static async Task<WaterQualityManagementPlanDocumentDto?> GetByIDAsDtoAsync(NeptuneDbContext dbContext, int waterQualityManagementPlanDocumentID)

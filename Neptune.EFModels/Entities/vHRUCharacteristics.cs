@@ -1,42 +1,10 @@
-﻿using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore;
 using Neptune.Models.DataTransferObjects;
 
 namespace Neptune.EFModels.Entities;
 
 public static class vHRUCharacteristics
 {
-    public static Task<List<vHRUCharacteristic>> List(NeptuneDbContext dbContext)
-    {
-        return dbContext.vHRUCharacteristics.AsNoTracking().ToListAsync();
-    }
-
-    public static List<vHRUCharacteristic> ListByWaterQualityManagementPlanID(NeptuneDbContext dbContext,
-        int waterQualityManagementPlanID)
-    {
-        var waterQualityManagementPlan = WaterQualityManagementPlans.GetByID(dbContext, waterQualityManagementPlanID);
-        if (waterQualityManagementPlan.WaterQualityManagementPlanModelingApproachID == (int) WaterQualityManagementPlanModelingApproachEnum.Simplified)
-        {
-            return dbContext.vHRUCharacteristics.AsNoTracking().Where(x =>
-                x.WaterQualityManagementPlanID == waterQualityManagementPlanID).ToList();
-        }
-
-        var treatmentBMPIDs = waterQualityManagementPlan.TreatmentBMPs.Select(x => x.TreatmentBMPID).ToList();
-        return dbContext.vHRUCharacteristics.AsNoTracking().Where(x =>
-            x.TreatmentBMPID.HasValue &&
-            treatmentBMPIDs.Contains(x.TreatmentBMPID.Value)).ToList();
-    }
-
-    public static List<vHRUCharacteristic> ListByRegionalSubbasinID(NeptuneDbContext dbContext, int regionalSubbasinID)
-    {
-        return dbContext.vHRUCharacteristics.AsNoTracking()
-            .Where(x => x.RegionalSubbasinID == regionalSubbasinID).ToList();
-    }
-
-    public static List<vHRUCharacteristic> ListByLoadGeneratingUnitID(NeptuneDbContext dbContext,
-        int loadGeneratingUnitID)
-    {
-        return dbContext.vHRUCharacteristics.AsNoTracking().Where(x => x.LoadGeneratingUnitID == loadGeneratingUnitID).ToList();
-    }
 
     public static async Task<List<vHRUCharacteristic>> ListByTreatmentBMP(NeptuneDbContext dbContext, TreatmentBMP treatmentBMP, Delineation? delineation)
     {

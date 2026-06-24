@@ -1,20 +1,11 @@
-﻿namespace Neptune.EFModels.Entities
+namespace Neptune.EFModels.Entities
 {
     public partial class TreatmentBMPImage : IFileResourcePhoto
     {
-        public int? GetEntityImageIDAsNullable()
-        {
-            return TreatmentBMPID;
-        }
 
         public DateTime GetCreateDate()
         {
             return FileResource.CreateDate;
-        }
-
-        public bool IsKeyPhoto()
-        {
-            return false;
         }
 
         public string GetCaptionOnFullView()

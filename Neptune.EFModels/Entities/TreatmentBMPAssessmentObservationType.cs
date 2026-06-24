@@ -1,4 +1,4 @@
-﻿/*-----------------------------------------------------------------------
+/*-----------------------------------------------------------------------
 <copyright file="TreatmentBMPAssessmentObservationType.cs" company="Tahoe Regional Planning Agency">
 Copyright (c) Tahoe Regional Planning Agency. All rights reserved.
 <author>Sitka Technology Group</author>
@@ -28,11 +28,6 @@ namespace Neptune.EFModels.Entities
 {
     public partial class TreatmentBMPAssessmentObservationType
     {
-        public string DisplayNameWithUnits()
-        {
-            return
-                $"{TreatmentBMPAssessmentObservationTypeName} {(GetMeasurementUnitType() != null ? $"({GetMeasurementUnitType().MeasurementUnitTypeDisplayName})" : string.Empty)}";
-        }
 
         public bool GetHasBenchmarkAndThreshold()
         {
@@ -52,18 +47,6 @@ namespace Neptune.EFModels.Entities
         public DiscreteObservationTypeSchema GetDiscreteObservationTypeSchema()
         {
             return GeoJsonSerializer.Deserialize<DiscreteObservationTypeSchema>(TreatmentBMPAssessmentObservationTypeSchema);
-        }
-
-        public RateObservationTypeSchema GetRateObservationTypeSchema()
-        {
-            return GeoJsonSerializer.Deserialize<RateObservationTypeSchema>(
-                TreatmentBMPAssessmentObservationTypeSchema);
-        }
-
-        public PassFailObservationTypeSchema GetPassFailSchema()
-        {
-            return GeoJsonSerializer.Deserialize<PassFailObservationTypeSchema>(
-                TreatmentBMPAssessmentObservationTypeSchema);
         }
 
         public PercentageObservationTypeSchema GetPercentageSchema()
@@ -112,22 +95,6 @@ namespace Neptune.EFModels.Entities
             }
         }
 
-        public string BenchmarkDescription()
-        {
-            var observationTypeCollectionMethod = ObservationTypeSpecification.ObservationTypeCollectionMethod;
-            switch (observationTypeCollectionMethod.ToEnum)
-            {
-                case ObservationTypeCollectionMethodEnum.DiscreteValue:
-                    return GetDiscreteObservationTypeSchema().BenchmarkDescription;
-                case ObservationTypeCollectionMethodEnum.PassFail:
-                    return null;
-                case ObservationTypeCollectionMethodEnum.Percentage:
-                    return GetPercentageSchema().BenchmarkDescription;
-                default:
-                    return null;
-            }
-        }
-
         public string ThresholdMeasurementUnitLabel()
         {
             // NPT-1069: resolve the unit from the MeasurementUnitType lookup display name (matching
@@ -155,22 +122,6 @@ namespace Neptune.EFModels.Entities
                     return ThresholdMeasurementUnitForPercentFromBenchmark();
                 case ObservationThresholdTypeEnum.None:
                     return null;
-                default:
-                    return null;
-            }
-        }
-
-        public string ThresholdDescription()
-        {
-            var observationTypeCollectionMethod = ObservationTypeSpecification.ObservationTypeCollectionMethod;
-            switch (observationTypeCollectionMethod.ToEnum)
-            {
-                case ObservationTypeCollectionMethodEnum.DiscreteValue:
-                    return GetDiscreteObservationTypeSchema().ThresholdDescription;
-                case ObservationTypeCollectionMethodEnum.PassFail:
-                    return null;
-                case ObservationTypeCollectionMethodEnum.Percentage:
-                    return GetPercentageSchema().ThresholdDescription;
                 default:
                     return null;
             }
@@ -317,19 +268,6 @@ namespace Neptune.EFModels.Entities
             var thresholdValueInBenchmarkUnits = GetThresholdValueInBenchmarkUnits(benchmarkValue, thresholdValue, ThresholdMeasurementUnitType() == MeasurementUnitType.PercentIncrease);
 
             return $"{formattedThresholdValue} ({thresholdValueInBenchmarkUnits}{benchmarkOptionalSpace}{BenchmarkMeasurementUnitType().LegendDisplayName})";
-        }
-
-        public async Task DeleteFull(NeptuneDbContext dbContext)
-        {
-            await dbContext.TreatmentBMPBenchmarkAndThresholds.Where(x =>
-                x.TreatmentBMPAssessmentObservationTypeID == TreatmentBMPAssessmentObservationTypeID).ExecuteDeleteAsync();
-            await dbContext.TreatmentBMPObservations
-                .Where(x => x.TreatmentBMPAssessmentObservationTypeID == TreatmentBMPAssessmentObservationTypeID)
-                .ExecuteDeleteAsync();
-            await dbContext.TreatmentBMPTypeAssessmentObservationTypes.Where(x =>
-                x.TreatmentBMPAssessmentObservationTypeID == TreatmentBMPAssessmentObservationTypeID).ExecuteDeleteAsync();
-            await dbContext.TreatmentBMPAssessmentObservationTypes.Where(x =>
-                x.TreatmentBMPAssessmentObservationTypeID == TreatmentBMPAssessmentObservationTypeID).ExecuteDeleteAsync();
         }
     }
 

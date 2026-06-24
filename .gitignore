@@ -119,3 +119,6 @@ Source/Neptune.GeoServer/data_dir/logs/
 
 # Per-developer corp SSL-inspection root cert for outbound HTTPS through proxy
 docker-compose/corp-root.crt
+
+# Local scratch analysis/audit artifacts (not deliverable)
+.audit/

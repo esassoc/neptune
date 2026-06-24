@@ -36,51 +36,6 @@ public static class FieldVisits
         return fieldVisit;
     }
 
-    public static FieldVisit GetByIDWithChangeTracking(NeptuneDbContext dbContext,
-        FieldVisitPrimaryKey fieldVisitPrimaryKey)
-    {
-        return GetByIDWithChangeTracking(dbContext, fieldVisitPrimaryKey.PrimaryKeyValue);
-    }
-
-    public static FieldVisit GetByID(NeptuneDbContext dbContext, int fieldVisitID)
-    {
-        var fieldVisit = GetImpl(dbContext).AsNoTracking()
-            .SingleOrDefault(x => x.FieldVisitID == fieldVisitID);
-        Check.RequireNotNull(fieldVisit,
-            $"FieldVisit with ID {fieldVisitID} not found!");
-        return fieldVisit;
-    }
-
-    public static FieldVisit GetByID(NeptuneDbContext dbContext,
-        FieldVisitPrimaryKey fieldVisitPrimaryKey)
-    {
-        return GetByID(dbContext, fieldVisitPrimaryKey.PrimaryKeyValue);
-    }
-
-    public static List<FieldVisit> ListByTreatmentBMPID(NeptuneDbContext dbContext, int treatmentBMPID)
-    {
-        return GetImpl(dbContext).AsNoTracking()
-            .Where(x => x.TreatmentBMPID == treatmentBMPID).ToList();
-    }
-
-    public static FieldVisit? GetInProgressForTreatmentBMPIfAny(NeptuneDbContext dbContext, int treatmentBMPID)
-    {
-        return GetImpl(dbContext).SingleOrDefault(x =>
-            x.TreatmentBMPID == treatmentBMPID &&
-            x.FieldVisitStatusID == FieldVisitStatus.InProgress.FieldVisitStatusID);
-    }
-
-    public static List<FieldVisit> ListByFieldVisitIDList(NeptuneDbContext dbContext, List<int> fieldVisitIDList)
-    {
-        return GetImpl(dbContext).AsNoTracking()
-            .Where(x => fieldVisitIDList.Contains(x.FieldVisitID)).ToList();
-    }
-
-    public static List<FieldVisit> ListByFieldVisitIDListWithChangeTracking(NeptuneDbContext dbContext, List<int> fieldVisitIDList)
-    {
-        return GetImpl(dbContext).Where(x => fieldVisitIDList.Contains(x.FieldVisitID)).ToList();
-    }
-
     public static FieldVisitDto? GetInProgressForTreatmentBMPIfAnyAsDto(NeptuneDbContext dbContext, int treatmentBMPID)
     {
         var inProgress = dbContext.vFieldVisitDetaileds.AsNoTracking().FirstOrDefault(x =>

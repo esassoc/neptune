@@ -1,4 +1,4 @@
-﻿using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore;
 using Neptune.Common.DesignByContract;
 using Neptune.Common.GeoSpatial;
 using Neptune.Common.Services.GDAL;
@@ -30,12 +30,6 @@ public static class RegionalSubbasinRevisionRequests
         return regionalSubbasinRevisionRequest;
     }
 
-    public static RegionalSubbasinRevisionRequest GetByIDWithChangeTracking(NeptuneDbContext dbContext,
-        RegionalSubbasinRevisionRequestPrimaryKey regionalSubbasinRevisionRequestPrimaryKey)
-    {
-        return GetByIDWithChangeTracking(dbContext, regionalSubbasinRevisionRequestPrimaryKey.PrimaryKeyValue);
-    }
-
     public static RegionalSubbasinRevisionRequest GetByID(NeptuneDbContext dbContext, int regionalSubbasinRevisionRequestID)
     {
         var regionalSubbasinRevisionRequest = GetImpl(dbContext).AsNoTracking()
@@ -43,35 +37,6 @@ public static class RegionalSubbasinRevisionRequests
         Check.RequireNotNull(regionalSubbasinRevisionRequest,
             $"RegionalSubbasinRevisionRequest with ID {regionalSubbasinRevisionRequestID} not found!");
         return regionalSubbasinRevisionRequest;
-    }
-
-    public static RegionalSubbasinRevisionRequest GetByID(NeptuneDbContext dbContext,
-        RegionalSubbasinRevisionRequestPrimaryKey regionalSubbasinRevisionRequestPrimaryKey)
-    {
-        return GetByID(dbContext, regionalSubbasinRevisionRequestPrimaryKey.PrimaryKeyValue);
-    }
-
-    public static List<RegionalSubbasinRevisionRequest> List(NeptuneDbContext dbContext, Person person)
-    {
-        return GetImpl(dbContext).AsNoTracking().ToList().Where(x => x.TreatmentBMP.CanView(person))
-            .OrderByDescending(x => x.RequestDate).ToList();
-    }
-
-    public static List<RegionalSubbasinRevisionRequest> ListByTreatmentBMPID(NeptuneDbContext dbContext, int treatmentBMPID)
-    {
-        return GetImpl(dbContext).AsNoTracking()
-            .Where(x => x.TreatmentBMPID == treatmentBMPID).OrderByDescending(x => x.RegionalSubbasinRevisionRequestID).ToList();
-    }
-
-    public static List<RegionalSubbasinRevisionRequest> ListByRegionalSubbasinRevisionRequestIDList(NeptuneDbContext dbContext, List<int> regionalSubbasinRevisionRequestIDList)
-    {
-        return GetImpl(dbContext).AsNoTracking()
-            .Where(x => regionalSubbasinRevisionRequestIDList.Contains(x.RegionalSubbasinRevisionRequestID)).ToList();
-    }
-
-    public static List<RegionalSubbasinRevisionRequest> ListByRegionalSubbasinRevisionRequestIDListWithChangeTracking(NeptuneDbContext dbContext, List<int> regionalSubbasinRevisionRequestIDList)
-    {
-        return GetImpl(dbContext).Where(x => regionalSubbasinRevisionRequestIDList.Contains(x.RegionalSubbasinRevisionRequestID)).ToList();
     }
 
     public static List<RegionalSubbasinRevisionRequestDto> ListAsDto(NeptuneDbContext dbContext, Person currentPerson)

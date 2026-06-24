@@ -1,32 +1,10 @@
-﻿using Neptune.EFModels.Nereid;
+using Neptune.EFModels.Nereid;
 using Neptune.Models.DataTransferObjects;
 
 namespace Neptune.EFModels.Entities;
 
 public static class TreatmentBMPTypeExtensionMethods
 {
-    public static TreatmentBMPTypeSimpleDto AsSimpleDto(this TreatmentBMPType treatmentBMPType)
-    {
-        var dto = new TreatmentBMPTypeSimpleDto()
-        {
-            TreatmentBMPTypeID = treatmentBMPType.TreatmentBMPTypeID,
-            TreatmentBMPTypeName = treatmentBMPType.TreatmentBMPTypeName,
-            TreatmentBMPTypeDescription = treatmentBMPType.TreatmentBMPTypeDescription,
-            IsAnalyzedInModelingModule = treatmentBMPType.IsAnalyzedInModelingModule,
-            TreatmentBMPModelingTypeID = treatmentBMPType.TreatmentBMPModelingTypeID
-        };
-        return dto;
-    }
-
-    public static TreatmentBMPTypeDisplayDto AsDisplayDto(this TreatmentBMPType treatmentBMPType)
-    {
-        var treatmentBMPTypeDisplayDto = new TreatmentBMPTypeDisplayDto()
-        {
-            TreatmentBMPTypeID = treatmentBMPType.TreatmentBMPTypeID,
-            TreatmentBMPTypeName = treatmentBMPType.TreatmentBMPTypeName,
-        };
-        return treatmentBMPTypeDisplayDto;
-    }
 
     public static List<string> MissingModelingAttributes(this TreatmentBMPType treatmentBMPType, vTreatmentBMPModelingAttribute? treatmentBMPModelingAttribute)
     {
@@ -165,24 +143,5 @@ public static class TreatmentBMPTypeExtensionMethods
                 Purpose = x.CustomAttributeType.CustomAttributeTypePurpose.CustomAttributeTypePurposeDisplayName,
                 CustomAttributeTypeSortOrder = x.SortOrder
             }).ToList();
-    }
-
-    public static bool HasMissingRequiredCustomAttributes(this TreatmentBMPType treatmentBMPType, CustomAttributeTypePurposeEnum customAttributeTypePurposeEnum, ICollection<CustomAttribute> customAttributes)
-    {
-        return treatmentBMPType.TreatmentBMPTypeCustomAttributeTypes
-                .Any(x =>
-                    x.CustomAttributeType.CustomAttributeTypePurposeID ==
-                    (int)customAttributeTypePurposeEnum &&
-                    x.CustomAttributeType.IsRequired &&
-                    !customAttributes
-                        .Select(y => y.CustomAttributeTypeID)
-                        .Contains(x.CustomAttributeTypeID)) ||
-            customAttributes.Any(x =>
-                x.CustomAttributeType.CustomAttributeTypePurposeID ==
-                (int)customAttributeTypePurposeEnum &&
-                x.CustomAttributeType.IsRequired &&
-                (x.CustomAttributeValues == null ||
-                 x.CustomAttributeValues.All(y => string.IsNullOrEmpty(y.AttributeValue)))
-            );
     }
 }

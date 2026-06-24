@@ -1,4 +1,4 @@
-﻿using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore;
 using Neptune.Common.DesignByContract;
 using Neptune.EFModels.Nereid;
 using Neptune.Models.DataTransferObjects;
@@ -26,12 +26,6 @@ public static partial class WaterQualityManagementPlans
         return waterQualityManagementPlan;
     }
 
-    public static WaterQualityManagementPlan GetByIDWithChangeTracking(NeptuneDbContext dbContext,
-        WaterQualityManagementPlanPrimaryKey waterQualityManagementPlanPrimaryKey)
-    {
-        return GetByIDWithChangeTracking(dbContext, waterQualityManagementPlanPrimaryKey.PrimaryKeyValue);
-    }
-
     public static WaterQualityManagementPlan GetByID(NeptuneDbContext dbContext, int waterQualityManagementPlanID)
     {
         var waterQualityManagementPlan = GetImpl(dbContext)
@@ -47,52 +41,6 @@ public static partial class WaterQualityManagementPlans
         return waterQualityManagementPlan;
     }
 
-    public static WaterQualityManagementPlan GetByID(NeptuneDbContext dbContext,
-        WaterQualityManagementPlanPrimaryKey waterQualityManagementPlanPrimaryKey)
-    {
-        return GetByID(dbContext, waterQualityManagementPlanPrimaryKey.PrimaryKeyValue);
-    }
-
-    public static WaterQualityManagementPlan GetByIDForFeatureContextCheck(NeptuneDbContext dbContext, int waterQualityManagementPlanID)
-    {
-        var waterQualityManagementPlan = dbContext.WaterQualityManagementPlans
-            .Include(x => x.StormwaterJurisdiction)
-            .ThenInclude(x => x.Organization).AsNoTracking()
-            .SingleOrDefault(x => x.WaterQualityManagementPlanID == waterQualityManagementPlanID);
-        Check.RequireNotNull(waterQualityManagementPlan, $"WaterQualityManagementPlan with ID {waterQualityManagementPlanID} not found!");
-        return waterQualityManagementPlan;
-    }
-
-    public static List<WaterQualityManagementPlan> ListViewableByPerson(NeptuneDbContext dbContext, Person person)
-    {
-        var stormwaterJurisdictionIDsPersonCanView = StormwaterJurisdictionPeople.ListViewableStormwaterJurisdictionIDsByPersonForWQMPs(dbContext, person);
-
-        //These users can technically see all Jurisdictions, just potentially not the WQMPs inside them
-        var waterQualityManagementPlans = GetImpl(dbContext)
-            .AsNoTracking()
-            .Where(x => stormwaterJurisdictionIDsPersonCanView.Contains(x.StormwaterJurisdictionID));
-        if (person.IsAnonymousOrUnassigned())
-        {
-            var publicWaterQualityManagementPlans = waterQualityManagementPlans.Where(x =>
-                x.WaterQualityManagementPlanStatusID ==
-                (int)WaterQualityManagementPlanStatusEnum.Active ||
-                x.WaterQualityManagementPlanStatusID ==
-                (int)WaterQualityManagementPlanStatusEnum.Inactive &&
-                x.StormwaterJurisdiction.StormwaterJurisdictionPublicWQMPVisibilityTypeID ==
-                (int)StormwaterJurisdictionPublicWQMPVisibilityTypeEnum.ActiveAndInactive).ToList();
-            return publicWaterQualityManagementPlans;
-        }
-
-        return waterQualityManagementPlans.ToList();
-    }
-
-
-    public static IEnumerable<WaterQualityManagementPlan> ListBaseEntityByStormwaterJurisdictionID(NeptuneDbContext dbContext, int stormwaterJurisdictionID)
-    {
-        return dbContext.WaterQualityManagementPlans
-            .AsNoTracking()
-            .Where(x => x.StormwaterJurisdictionID == stormwaterJurisdictionID).ToList();
-    }
 
     public static async Task<List<WaterQualityManagementPlanDto>> ListAsDtoAsync(NeptuneDbContext dbContext)
     {

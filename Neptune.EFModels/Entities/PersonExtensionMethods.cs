@@ -1,4 +1,4 @@
-﻿using Neptune.Models.DataTransferObjects;
+using Neptune.Models.DataTransferObjects;
 
 namespace Neptune.EFModels.Entities;
 
@@ -71,22 +71,6 @@ public static class PersonExtensionMethods
             ImpersonatedPersonID = person.ImpersonatedPersonID,
         };
         return personDto;
-    }
-
-    public static async Task<bool> CanEditJurisdiction(this Person person, int stormwaterJurisdictionID, NeptuneDbContext dbContext)
-    {
-        if (person.RoleID == (int) RoleEnum.Admin || person.RoleID == (int) RoleEnum.SitkaAdmin )
-        {
-            return true;
-        }
-
-        if (person.RoleID == (int) RoleEnum.JurisdictionEditor || person.RoleID == (int) RoleEnum.JurisdictionManager)
-        {
-            var stormwaterJurisdictionIDs = await StormwaterJurisdictionPeople.ListViewableStormwaterJurisdictionIDsByPersonIDForBMPsAsync(dbContext, person.PersonID);
-            return stormwaterJurisdictionIDs.Contains(stormwaterJurisdictionID);
-        }
-
-        return false;
     }
 
     public static async Task<bool> CanEditJurisdiction(this PersonDto person, int stormwaterJurisdictionID, NeptuneDbContext dbContext)

@@ -1,8 +1,0 @@
-﻿@inherits Neptune.WebMvc.Views.RegionalSubbasinRevisionRequest.Close
-@model Neptune.WebMvc.Views.RegionalSubbasinRevisionRequest.CloseViewModel
-@using (Html.BeginForm())
-{
-    <p>Are you sure you would like to close this revision request to the Regional Subbasin layer?</p>
-    <p>Once completed, this cannot be undone.</p>
-    @Html.TextAreaFor(m => m.CloseNotes, 4, 0, new { @class = "form-control", placeholder = "Add an additional note (Optional)" })
-}

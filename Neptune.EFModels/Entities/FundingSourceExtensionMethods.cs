@@ -4,18 +4,6 @@ namespace Neptune.EFModels.Entities
 {
     public static class FundingSourceExtensionMethods
     {
-        public static FundingSourceSimpleDto AsSimpleDto(this FundingSource fundingSource)
-        {
-            var dto = new FundingSourceSimpleDto()
-            {
-                FundingSourceID = fundingSource.FundingSourceID,
-                OrganizationID = fundingSource.OrganizationID,
-                FundingSourceName = fundingSource.FundingSourceName,
-                IsActive = fundingSource.IsActive,
-                FundingSourceDescription = fundingSource.FundingSourceDescription
-            };
-            return dto;
-        }
 
         public static FundingSourceDto AsDto(this FundingSource entity)
         {

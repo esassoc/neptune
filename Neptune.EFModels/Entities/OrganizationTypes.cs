@@ -1,4 +1,4 @@
-﻿/*-----------------------------------------------------------------------
+/*-----------------------------------------------------------------------
 <copyright file="Organization.DatabaseContextExtensions.cs" company="Tahoe Regional Planning Agency and Sitka Technology Group">
 Copyright (c) Tahoe Regional Planning Agency and Sitka Technology Group. All rights reserved.
 <author>Sitka Technology Group</author>
@@ -26,20 +26,6 @@ namespace Neptune.EFModels.Entities;
 
 public static class OrganizationTypes
 {
-    public static OrganizationType GetDefaultOrganizationType(NeptuneDbContext dbContext)
-    {
-        var defaultOrganizationType = dbContext.OrganizationTypes.AsNoTracking().SingleOrDefault(x => x.IsDefaultOrganizationType);
-        if (defaultOrganizationType == null)
-        {
-            defaultOrganizationType = dbContext.OrganizationTypes.AsNoTracking().OrderBy(x => x.OrganizationTypeID).First();
-        }
-        return defaultOrganizationType;
-    }
-
-    public static List<OrganizationType> List(NeptuneDbContext dbContext)
-    {
-        return dbContext.OrganizationTypes.AsNoTracking().OrderBy(x => x.OrganizationTypeName).ToList();
-    }
 
     public static async Task<List<OrganizationTypeSimpleDto>> ListAsSimpleDtosAsync(NeptuneDbContext dbContext)
     {

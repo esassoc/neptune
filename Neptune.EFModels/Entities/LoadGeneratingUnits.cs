@@ -1,4 +1,4 @@
-﻿using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore;
 using Neptune.Common.DesignByContract;
 using Neptune.Models.DataTransferObjects;
 
@@ -6,24 +6,6 @@ namespace Neptune.EFModels.Entities;
 
 public static class LoadGeneratingUnits
 {
-    public static LoadGeneratingUnit GetByID(NeptuneDbContext dbContext, LoadGeneratingUnitPrimaryKey loadGeneratingUnitPrimaryKey)
-    {
-        return GetByID(dbContext, loadGeneratingUnitPrimaryKey.PrimaryKeyValue);
-    }
-
-    public static LoadGeneratingUnit GetByID(NeptuneDbContext dbContext, int loadGeneratingUnitID)
-    {
-        var loadGeneratingUnit = dbContext.LoadGeneratingUnits
-            .Include(x => x.HRULog)
-            .Include(x => x.RegionalSubbasin)
-            .Include(x => x.WaterQualityManagementPlan)
-            .Include(x => x.Delineation)
-            .ThenInclude(x => x.TreatmentBMP)
-            .AsNoTracking()
-            .SingleOrDefault(x => x.LoadGeneratingUnitID == loadGeneratingUnitID);
-        Check.RequireNotNull(loadGeneratingUnit, $"Load Generating Unit with ID {loadGeneratingUnitID} not found!");
-        return loadGeneratingUnit;
-    }
 
     public static async Task<LoadGeneratingUnitDto?> GetByIDAsDtoAsync(NeptuneDbContext dbContext, int loadGeneratingUnitID)
     {

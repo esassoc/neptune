@@ -1,4 +1,4 @@
-﻿using System.Security.Claims;
+using System.Security.Claims;
 using Neptune.Models.DataTransferObjects;
 using Microsoft.EntityFrameworkCore;
 using Neptune.Common.DesignByContract;
@@ -27,36 +27,12 @@ public static class People
         return people.Select(x => x.AsSimpleDto()).ToList();
     }
 
-    public static IQueryable<Person> ListActive(NeptuneDbContext dbContext)
-    {
-        return GetImpl(dbContext).AsNoTracking().Where(x => x.IsActive)
-            .OrderBy(x => x.LastName).ThenBy(x => x.FirstName);
-    }
-
-    public static Person GetByIDWithChangeTracking(NeptuneDbContext dbContext, int personID)
-    {
-        var person = GetImpl(dbContext)
-            .SingleOrDefault(x => x.PersonID == personID);
-        Check.RequireNotNull(person, $"Person with ID {personID} not found!");
-        return person;
-    }
-
-    public static Person GetByIDWithChangeTracking(NeptuneDbContext dbContext, PersonPrimaryKey personPrimaryKey)
-    {
-        return GetByIDWithChangeTracking(dbContext, personPrimaryKey.PrimaryKeyValue);
-    }
-
     public static Person GetByID(NeptuneDbContext dbContext, int personID)
     {
         var person = GetImpl(dbContext).AsNoTracking()
             .SingleOrDefault(x => x.PersonID == personID);
         Check.RequireNotNull(person, $"Person with ID {personID} not found!");
         return person;
-    }
-
-    public static Person GetByID(NeptuneDbContext dbContext, PersonPrimaryKey personPrimaryKey)
-    {
-        return GetByID(dbContext, personPrimaryKey.PrimaryKeyValue);
     }
 
     public static PersonDto GetByIDAsDto(NeptuneDbContext dbContext, int personID)
@@ -75,11 +51,6 @@ public static class People
     {
         var person = GetImpl(dbContext).AsNoTracking().SingleOrDefault(x => x.Email == email);
         return person?.AsDto();
-    }
-
-    public static async Task<Person?> GetByGlobalIDAsync(NeptuneDbContext dbContext, string globalID)
-    {
-        return await dbContext.People.AsNoTracking().Where(x => x.GlobalID == globalID).SingleOrDefaultAsync();
     }
 
     public static Person? GetByGlobalID(NeptuneDbContext dbContext, string globalID)
@@ -104,12 +75,6 @@ public static class People
         return person?.AsDto();
     }
 
-    public static async Task<int?> GetPersonIDByGlobalIDAsync(NeptuneDbContext dbContext, string globalID)
-    {
-        var personID = await dbContext.People.AsNoTracking().Where(x => x.GlobalID == globalID).Select(x => x.PersonID).SingleOrDefaultAsync();
-        return personID;
-    }
-
     private static IQueryable<Person> GetImpl(NeptuneDbContext dbContext)
     {
         return dbContext.People
@@ -120,22 +85,6 @@ public static class People
                 .ThenInclude(x => x.Organization)
                 .ThenInclude(x => x.OrganizationType)
             ;
-    }
-
-    public static List<Person> ListByRoleID(NeptuneDbContext dbContext, int roleID)
-    {
-        return ListActive(dbContext).Where(x => x.RoleID == roleID).ToList();
-    }
-
-    public static List<Person> List(NeptuneDbContext dbContext)
-    {
-        return GetImpl(dbContext).AsNoTracking()
-            .OrderBy(x => x.LastName).ThenBy(x => x.FirstName).ToList();
-    }
-
-    public static Person? GetByWebServiceAccessToken(NeptuneDbContext dbContext, Guid webServiceAccessToken)
-    {
-        return GetImpl(dbContext).AsNoTracking().SingleOrDefault(x => x.WebServiceAccessToken == webServiceAccessToken);
     }
 
     public static Task<Person?> GetByWebServiceAccessTokenAsync(NeptuneDbContext dbContext, Guid webServiceAccessToken)
@@ -207,33 +156,6 @@ public static class People
         dbContext.Entry(person).Reload();
 
         return GetByIDAsDto(dbContext, person.PersonID);
-    }
-
-    public static async Task<PersonDto> CreateAsync(NeptuneDbContext dbContext, PersonUpsertDto dto)
-    {
-        if (!dto.RoleID.HasValue)
-        {
-            return null;
-        }
-        var organizationID = Organizations.OrganizationIDUnassigned;
-        var organization = Organizations.GetByName(dbContext, dto.OrganizationName);
-        if (organization != null)
-        {
-            organizationID = organization.OrganizationID;
-        }
-        var person = new Person
-        {
-            Email = dto.Email,
-            FirstName = dto.FirstName,
-            LastName = dto.LastName,
-            IsActive = true,
-            RoleID = dto.RoleID.Value,
-            CreateDate = DateTime.UtcNow,
-            OrganizationID = organizationID,
-        };
-        dbContext.People.Add(person);
-        await dbContext.SaveChangesAsync();
-        return await GetByIDAsDtoAsync(dbContext, person.PersonID);
     }
 
     public static async Task<PersonDto?> UpdateAsync(NeptuneDbContext dbContext, int personID, PersonUpsertDto dto)
