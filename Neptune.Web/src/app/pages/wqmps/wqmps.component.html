@@ -24,7 +24,7 @@
         </div>
     }
 </ng-template>
-<page-header pageTitle="Water Quality Management Plans" [templateRight]="addButton"></page-header>
+<page-header pageTitle="Water Quality Management Plans" [customRichTextTypeID]="customRichTextTypeID" [templateRight]="addButton"></page-header>
 <app-alert-display></app-alert-display>
 <div class="page-body">
     @if (boundingBox$ | async; as boundingBox) {

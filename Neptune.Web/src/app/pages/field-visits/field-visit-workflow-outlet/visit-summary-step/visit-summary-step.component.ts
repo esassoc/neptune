@@ -1,4 +1,5 @@
 import { Component, OnInit } from "@angular/core";
+import { Router } from "@angular/router";
 import { AsyncPipe, DatePipe, DecimalPipe } from "@angular/common";
 import { Observable } from "rxjs";
 
@@ -33,7 +34,8 @@ export class FieldVisitVisitSummaryStepComponent implements OnInit {
         private maintenanceRecordService: MaintenanceRecordService,
         private alertService: AlertService,
         private confirmService: ConfirmService,
-        private authenticationService: AuthenticationService
+        private authenticationService: AuthenticationService,
+        private router: Router
     ) {}
 
     ngOnInit(): void {
@@ -53,8 +55,13 @@ export class FieldVisitVisitSummaryStepComponent implements OnInit {
     verify(workflow: FieldVisitWorkflowDto): void {
         this.workflowService.clearStepAlerts();
         this.fieldVisitService.verifyFieldVisit(workflow.FieldVisitID).subscribe(() => {
-            this.alertService.pushAlert(new Alert("Field Visit verified.", AlertContext.Success));
-            this.workflowService.refresh().subscribe();
+            // After verifying, leave the workflow and land on the read-only detail page instead of staying
+            // on a verified-but-still-in-workflow step (which only offered Mark Provisional / Return to Edit
+            // and felt broken). Mirrors FieldVisitWorkflowService.wrapUpVisit. Push the success alert after
+            // navigation so it survives this component's destruction.
+            this.router.navigate(["/field-visits", workflow.FieldVisitID, "view"]).then(() => {
+                this.alertService.pushAlert(new Alert("Field Visit verified.", AlertContext.Success));
+            });
         });
     }
 
