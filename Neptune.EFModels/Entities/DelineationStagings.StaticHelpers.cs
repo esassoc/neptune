@@ -151,18 +151,17 @@ public static class DelineationStagings
                         && stagedNames.Contains(x.TreatmentBMP.TreatmentBMPName))
             .Select(x => x.DelineationID)
             .ToList();
-        foreach (var delineationID in delineationsToDelete)
+        // ExecuteDelete bypasses the change tracker, so detach any tracked instances from earlier in this
+        // DbContext's lifetime first — otherwise they'd still occupy the 1:1 nav slot and collide with the new
+        // Delineations added below. Then delete the whole set with a fixed number of statements rather than
+        // ~12 per delineation (a 1,000+ delineation re-upload would otherwise be ~13k sequential roundtrips).
+        var idsToDelete = delineationsToDelete.ToHashSet();
+        foreach (var tracked in dbContext.ChangeTracker.Entries<Delineation>()
+                     .Where(e => idsToDelete.Contains(e.Entity.DelineationID)).ToList())
         {
-            // ExecuteDelete bypasses the change tracker, so any tracked instance from earlier in this DbContext's
-            // lifetime would still occupy the 1:1 nav slot and collide with the new Delineation we add below.
-            var tracked = dbContext.ChangeTracker.Entries<Delineation>()
-                .FirstOrDefault(e => e.Entity.DelineationID == delineationID);
-            if (tracked != null)
-            {
-                tracked.State = EntityState.Detached;
-            }
-            await Delineation.DeleteFull(dbContext, delineationID);
+            tracked.State = EntityState.Detached;
         }
+        await Delineation.DeleteFullForMany(dbContext, delineationsToDelete);
 
         var bmpsToUpdate = dbContext.TreatmentBMPs.AsNoTracking()
             .Where(x => x.StormwaterJurisdictionID == stormwaterJurisdictionID && stagedNames.Contains(x.TreatmentBMPName))

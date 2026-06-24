@@ -70,5 +70,37 @@ namespace Neptune.EFModels.Entities
             await dbContext.ProjectNereidResults.Where(x => x.DelineationID == delineationID).ExecuteDeleteAsync();
             await dbContext.Delineations.Where(x => x.DelineationID == delineationID).ExecuteDeleteAsync();
         }
+
+        /// <summary>
+        /// Set-based equivalent of <see cref="DeleteFull"/> for many delineations at once. Issues a fixed number of
+        /// ExecuteDelete statements (one per child table) regardless of how many delineations are passed, instead of
+        /// the ~12 statements per delineation that calling DeleteFull in a loop produces. This matters for large
+        /// jurisdiction re-uploads (e.g. 1,000+ delineations, which would otherwise be ~13k sequential roundtrips).
+        /// IDs are chunked to stay under SQL Server's ~2,100 parameter cap on the generated IN (...) clauses.
+        /// </summary>
+        public static async Task DeleteFullForMany(NeptuneDbContext dbContext, List<int> delineationIDs)
+        {
+            if (delineationIDs == null || delineationIDs.Count == 0)
+            {
+                return;
+            }
+
+            foreach (var chunk in delineationIDs.Chunk(2000))
+            {
+                var ids = chunk.ToList();
+                await dbContext.DelineationOverlaps.Where(x => ids.Contains(x.DelineationID)).ExecuteDeleteAsync();
+                await dbContext.DelineationOverlaps.Where(x => ids.Contains(x.OverlappingDelineationID)).ExecuteDeleteAsync();
+                await dbContext.DirtyModelNodes.Where(x => x.DelineationID != null && ids.Contains(x.DelineationID.Value)).ExecuteDeleteAsync();
+                await dbContext.HRUCharacteristics.Where(x => x.LoadGeneratingUnit.DelineationID != null && ids.Contains(x.LoadGeneratingUnit.DelineationID.Value)).ExecuteDeleteAsync();
+                await dbContext.LoadGeneratingUnits.Where(x => x.DelineationID != null && ids.Contains(x.DelineationID.Value)).ExecuteDeleteAsync();
+                await dbContext.NereidResults.Where(x => x.DelineationID != null && ids.Contains(x.DelineationID.Value)).ExecuteDeleteAsync();
+                await dbContext.ProjectHRUCharacteristics.Where(x => x.ProjectLoadGeneratingUnit.DelineationID != null && ids.Contains(x.ProjectLoadGeneratingUnit.DelineationID.Value)).ExecuteDeleteAsync();
+                await dbContext.ProjectLoadGeneratingUnits.Where(x => x.DelineationID != null && ids.Contains(x.DelineationID.Value)).ExecuteDeleteAsync();
+                await dbContext.TrashGeneratingUnit4326s.Where(x => x.DelineationID != null && ids.Contains(x.DelineationID.Value)).ExecuteDeleteAsync();
+                await dbContext.TrashGeneratingUnits.Where(x => x.DelineationID != null && ids.Contains(x.DelineationID.Value)).ExecuteDeleteAsync();
+                await dbContext.ProjectNereidResults.Where(x => x.DelineationID != null && ids.Contains(x.DelineationID.Value)).ExecuteDeleteAsync();
+                await dbContext.Delineations.Where(x => ids.Contains(x.DelineationID)).ExecuteDeleteAsync();
+            }
+        }
     }
 }
