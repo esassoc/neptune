@@ -16,6 +16,7 @@ import { ConfirmService } from "src/app/shared/services/confirm/confirm.service"
 import { WaterQualityManagementPlanVerifyService } from "src/app/shared/generated/api/water-quality-management-plan-verify.service";
 import { WaterQualityManagementPlanService } from "src/app/shared/generated/api/water-quality-management-plan.service";
 import { WaterQualityManagementPlanVerifyIndexGridDto } from "src/app/shared/generated/model/water-quality-management-plan-verify-index-grid-dto";
+import { NeptunePageTypeEnum } from "src/app/shared/generated/enum/neptune-page-type-enum";
 
 @Component({
     selector: "wqmp-verifications",
@@ -28,6 +29,7 @@ export class WqmpVerificationsComponent {
     public verifications$: Observable<WaterQualityManagementPlanVerifyIndexGridDto[]>;
     public columnDefs: ColDef[];
     public isLoading = true;
+    public customRichTextTypeID = NeptunePageTypeEnum.WaterQualityMaintenancePlanOandMVerifications;
 
     constructor(
         private wqmpVerifyService: WaterQualityManagementPlanVerifyService,

@@ -15,6 +15,7 @@ import {
 
 import { FieldVisitService } from "src/app/shared/generated/api/field-visit.service";
 import { FieldVisitStatusEnum } from "src/app/shared/generated/enum/field-visit-status-enum";
+import { NeptunePageTypeEnum } from "src/app/shared/generated/enum/neptune-page-type-enum";
 import { TreatmentBMPAssessmentService } from "src/app/shared/generated/api/treatment-bmp-assessment.service";
 import { MaintenanceRecordService } from "src/app/shared/generated/api/maintenance-record.service";
 import { FieldVisitDto } from "src/app/shared/generated/model/field-visit-dto";
@@ -66,6 +67,7 @@ export class FieldRecordsComponent implements OnInit {
     public maintenanceRecordColumnDefs: ColDef[];
 
     public canManage = false;
+    public customRichTextTypeID = NeptunePageTypeEnum.FieldRecords;
 
     /** Tabs are sync'd to a `?tab=` query param so refresh and back-button preserve the user's view. */
     public activeTab: ActiveTab = "field-visits";

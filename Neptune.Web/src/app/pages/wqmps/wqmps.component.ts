@@ -25,6 +25,7 @@ import { OverlayMode } from "src/app/shared/components/leaflet/layers/generic-wm
 import { DropdownToggleDirective } from "src/app/shared/directives/dropdown-toggle.directive";
 import { WqmpModalComponent } from "./wqmp-modal/wqmp-modal.component";
 import { WqmpUploadModalComponent } from "./wqmp-upload-modal/wqmp-upload-modal.component";
+import { NeptunePageTypeEnum } from "src/app/shared/generated/enum/neptune-page-type-enum";
 
 @Component({
     selector: "wqmps",
@@ -34,6 +35,7 @@ import { WqmpUploadModalComponent } from "./wqmp-upload-modal/wqmp-upload-modal.
 })
 export class WqmpsComponent {
     public OverlayMode = OverlayMode;
+    public customRichTextTypeID = NeptunePageTypeEnum.WaterQualityMaintenancePlan;
     public wqmps$: Observable<WaterQualityManagementPlanGridDto[]>;
     public columnDefs$: Observable<ColDef[]>;
     public isLoading = true;
