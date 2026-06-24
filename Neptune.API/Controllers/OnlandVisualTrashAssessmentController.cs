@@ -73,6 +73,9 @@ public class OnlandVisualTrashAssessmentController(
                         ?.OnlandVisualTrashAssessmentScoreID;
             }
 
+            // DeleteFull runs immediate ExecuteDeleteAsync statements, so the recalculated scores above
+            // are only on the tracked area entity until we persist them here.
+            await DbContext.SaveChangesAsync();
         }
         return Ok();
     }
