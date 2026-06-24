@@ -8,6 +8,8 @@ public class TreatmentBMPGridDto
     public string? TreatmentBMPTypeName { get; set; }
     public int StormwaterJurisdictionID { get; set; }
     public string StormwaterJurisdictionName { get; set; }
+    public int? WaterQualityManagementPlanID { get; set; }
+    public string? WaterQualityManagementPlanName { get; set; }
     public int OwnerOrganizationID { get; set; }
     public string OwnerOrganizationName { get; set; }
     public int? YearBuilt { get; set; }

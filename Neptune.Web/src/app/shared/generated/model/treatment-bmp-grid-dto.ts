@@ -17,6 +17,8 @@ export class TreatmentBMPGridDto {
     TreatmentBMPTypeName?: string | null;
     StormwaterJurisdictionID?: number;
     StormwaterJurisdictionName?: string | null;
+    WaterQualityManagementPlanID?: number | null;
+    WaterQualityManagementPlanName?: string | null;
     OwnerOrganizationID?: number;
     OwnerOrganizationName?: string | null;
     YearBuilt?: number | null;
@@ -49,6 +51,8 @@ export interface TreatmentBMPGridDtoForm {
     TreatmentBMPTypeName?: FormControl<string>;
     StormwaterJurisdictionID?: FormControl<number>;
     StormwaterJurisdictionName?: FormControl<string>;
+    WaterQualityManagementPlanID?: FormControl<number>;
+    WaterQualityManagementPlanName?: FormControl<string>;
     OwnerOrganizationID?: FormControl<number>;
     OwnerOrganizationName?: FormControl<string>;
     YearBuilt?: FormControl<number>;
@@ -123,6 +127,26 @@ export class TreatmentBMPGridDtoFormControls {
         }
     );
     public static StormwaterJurisdictionName = (value: FormControlState<string> | string = undefined, formControlOptions?: FormControlOptions | null) => new FormControl<string>(
+        value,
+        formControlOptions ?? 
+        {
+            nonNullable: false,
+            validators: 
+            [
+            ],
+        }
+    );
+    public static WaterQualityManagementPlanID = (value: FormControlState<number> | number = undefined, formControlOptions?: FormControlOptions | null) => new FormControl<number>(
+        value,
+        formControlOptions ?? 
+        {
+            nonNullable: false,
+            validators: 
+            [
+            ],
+        }
+    );
+    public static WaterQualityManagementPlanName = (value: FormControlState<string> | string = undefined, formControlOptions?: FormControlOptions | null) => new FormControl<string>(
         value,
         formControlOptions ?? 
         {
