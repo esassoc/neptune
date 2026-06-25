@@ -410,8 +410,8 @@ export const routes: Routes = [
                 path: "modeling-attributes",
                 title: "Modeling Attributes",
                 loadComponent: () => import("./pages/modeling-attributes/modeling-attributes.component").then((m) => m.ModelingAttributesComponent),
-                // NeptuneViewFeature / Editor+ gated (see site-layout nav). Without this, anonymous
-                // deep-links just loaded the page instead of being prompted to log in.
+                // JurisdictionEditFeature / Editor+ gated, matching the API endpoint and the site-layout
+                // nav. Without this, anonymous deep-links just loaded the page instead of being prompted to log in.
                 canActivate: [JurisdictionManagerOrEditorOnlyGuard],
             },
             {
