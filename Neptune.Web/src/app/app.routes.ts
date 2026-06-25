@@ -410,6 +410,9 @@ export const routes: Routes = [
                 path: "modeling-attributes",
                 title: "Modeling Attributes",
                 loadComponent: () => import("./pages/modeling-attributes/modeling-attributes.component").then((m) => m.ModelingAttributesComponent),
+                // JurisdictionEditFeature / Editor+ gated, matching the API endpoint and the site-layout
+                // nav. Without this, anonymous deep-links just loaded the page instead of being prompted to log in.
+                canActivate: [JurisdictionManagerOrEditorOnlyGuard],
             },
             {
                 path: "modeling-calculations",
@@ -848,6 +851,9 @@ export const routes: Routes = [
                 path: "delineation/delineation-map",
                 title: "Delineation Map",
                 loadComponent: () => import("./pages/delineation/delineation-map/delineation-map.component").then((m) => m.DelineationMapComponent),
+                // JurisdictionEditFeature-gated like the Reconciliation Report sibling (see site-layout nav).
+                // Without this, anonymous deep-links just loaded the page instead of being prompted to log in.
+                canActivate: [JurisdictionManagerOrEditorOnlyGuard],
             },
             {
                 path: "delineation/delineation-reconciliation-report",

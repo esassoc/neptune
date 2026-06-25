@@ -331,8 +331,7 @@ public class TreatmentBMPController(
     }
 
     [HttpGet("modeling-attributes")]
-    [AllowAnonymous]
-    [OptionalAuth]
+    [JurisdictionEditFeature]
     public async Task<ActionResult<List<TreatmentBMPModelingAttributesDto>>> ListWithModelingAttributes()
     {
         var stormwaterJurisdictionIDsPersonCanView = await StormwaterJurisdictionPeople.ListViewableStormwaterJurisdictionIDsByPersonIDForBMPsAsync(DbContext, CallingUser.PersonID);

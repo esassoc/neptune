@@ -9085,9 +9085,7 @@
               }
             }
           }
-        },
-        "x-anonymous": true,
-        "x-optional-auth": true
+        }
       }
     },
     "/treatment-bmps/{treatmentBMPID}/delineation-errors": {
