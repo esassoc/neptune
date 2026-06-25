@@ -8,6 +8,7 @@ using NetTopologySuite.Geometries;
 namespace Neptune.EFModels.Entities;
 
 [Table("OnlandVisualTrashAssessment")]
+[Index("OnlandVisualTrashAssessmentAreaID", "CompletedDate", Name = "IX_OnlandVisualTrashAssessment_OnlandVisualTrashAssessmentAreaID_CompletedDate", IsDescending = new[] { false, true })]
 [Index("DraftGeometry", Name = "SPATIAL_OnlandVisualTrashAssessment_DraftGeometry")]
 public partial class OnlandVisualTrashAssessment
 {
