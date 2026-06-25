@@ -12,13 +12,22 @@ import { AppComponent } from "./app/app.component";
 import { createApplication } from "@angular/platform-browser";
 import { appConfig } from "./app/app.config";
 
-(async () => {
-    const app = createApplication(appConfig);
-    (await app).bootstrap(AppComponent);
+// NPT-1098: the prod canonical host is the apex (ocstormwatertools.org). The ingress serves
+// www.ocstormwatertools.org with TLS, but the azure-application-gateway class can't issue the
+// redirect, so canonicalize here — BEFORE Angular/Auth0 bootstrap. If we let the app start on
+// www, a login returns to the apex (redirectUri) and the origin-scoped sessionStorage
+// (post-auth target) + localStorage (Auth0 token cache) are lost across the host hop.
+if (window.location.hostname === "www.ocstormwatertools.org") {
+    window.location.replace("https://ocstormwatertools.org" + window.location.pathname + window.location.search + window.location.hash);
+} else {
+    (async () => {
+        const app = createApplication(appConfig);
+        (await app).bootstrap(AppComponent);
 
-    // todo: example of creating a custom popup in leaflet
-    // const wriaPopupComponent = createCustomElement(WaterResourceInventoryAreaPopupComponent, {
-    //     injector: (await app).injector,
-    // });
-    // customElements.define("water-resource-inventory-area-popup-custom-element", wriaPopupComponent);
-})();
+        // todo: example of creating a custom popup in leaflet
+        // const wriaPopupComponent = createCustomElement(WaterResourceInventoryAreaPopupComponent, {
+        //     injector: (await app).injector,
+        // });
+        // customElements.define("water-resource-inventory-area-popup-custom-element", wriaPopupComponent);
+    })();
+}
