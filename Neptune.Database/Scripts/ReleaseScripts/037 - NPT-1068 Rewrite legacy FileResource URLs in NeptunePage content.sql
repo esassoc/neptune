@@ -19,11 +19,18 @@ BEGIN
         This is naturally idempotent (the pattern no longer matches after the first run), but it's guarded by
         DatabaseMigration per the ReleaseScripts convention.
     */
+    -- Cover www/non-www x http/https so every row the WHERE selects is actually rewritten (no recording the
+    -- migration while silently leaving a host variant un-rewritten). Any other residual host form is still
+    -- repaired for display by the SPA's custom-rich-text render-time rewrite (which matches any host).
     UPDATE dbo.NeptunePage
     SET NeptunePageContent =
         REPLACE(
-            REPLACE(NeptunePageContent, 'https://www.ocstormwatertools.org/FileResource/DisplayResource/', '/file-resources/'),
-            'http://www.ocstormwatertools.org/FileResource/DisplayResource/', '/file-resources/')
+        REPLACE(
+        REPLACE(
+        REPLACE(NeptunePageContent, 'https://www.ocstormwatertools.org/FileResource/DisplayResource/', '/file-resources/'),
+                                    'http://www.ocstormwatertools.org/FileResource/DisplayResource/',  '/file-resources/'),
+                                    'https://ocstormwatertools.org/FileResource/DisplayResource/',      '/file-resources/'),
+                                    'http://ocstormwatertools.org/FileResource/DisplayResource/',       '/file-resources/')
     WHERE NeptunePageContent LIKE '%ocstormwatertools.org/FileResource/DisplayResource/%';
 
     INSERT INTO dbo.DatabaseMigration(MigrationAuthorName, ReleaseScriptFileName, MigrationReason)
