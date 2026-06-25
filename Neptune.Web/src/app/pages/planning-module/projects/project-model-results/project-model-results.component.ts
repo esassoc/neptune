@@ -113,7 +113,9 @@ export class ProjectModelResultsComponent implements OnInit {
 
         const selectedTreatmentBMPID$ = this.treatmentBMPIDControl.valueChanges.pipe(
             startWith(this.treatmentBMPIDControl.value ?? -1),
-            map((value) => (typeof value === "string" ? parseInt(value, 10) : value)),
+            // The control is backed by a clearable ng-select, so it can emit null when cleared. Treat that as
+            // the "All" selection (-1) so numeric checks like `!== -1` (Design Sizing Info panel) stay correct.
+            map((value) => (value == null ? -1 : typeof value === "string" ? parseInt(value, 10) : value)),
             distinctUntilChanged()
         );
 
@@ -140,7 +142,7 @@ export class ProjectModelResultsComponent implements OnInit {
         // View-model the template subscribes to via `| async`, so results render reactively under zoneless
         // change detection. Keeps component state synchronized with both (a) incoming modeled results and
         // (b) selection changes; emits the gate flags (hasLoaded / hasResults) for the results vs empty-state.
-        this.vm$ = combineLatest([load$.pipe(startWith(null as any)), selectedTreatmentBMPID$]).pipe(
+        this.vm$ = combineLatest([load$.pipe(startWith(null)), selectedTreatmentBMPID$]).pipe(
             tap(([loadResult, selectedTreatmentBMPID]) => {
                 this.treatmentBMPIDForSelectedProjectLoadReducingResult = selectedTreatmentBMPID;
 
