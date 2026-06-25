@@ -30,9 +30,10 @@ spec:
     - secretName: neptune-web-tls
       hosts:
         - {{ .Values.global.domains.web }}
-        - {{ .Values.global.domains.planning }}
   {{- if eq .Values.global.env.name "prod" }}
-        - ocstormwatertools.org
+        # NPT-1098: prod canonical host is the apex (domains.web = ocstormwatertools.org).
+        # Keep www on the cert so the www -> apex canonical redirect is served over HTTPS.
+        - www.ocstormwatertools.org
   {{- end }}
   rules:
     - host: {{ .Values.global.domains.web }}
@@ -51,9 +52,12 @@ spec:
               servicePort: {{ $svcPort }}
               {{- end }}
   {{- if eq .Values.global.env.name "prod" }}
-    # NPT-1068: legacy ocstormwatertools.org moved here from the retired neptune-webmvc ingress.
-    # The SPA serves it and redirects known legacy MVC paths to their SPA equivalents (see app.routes.ts).
-    - host: ocstormwatertools.org
+    # NPT-1098: www is served (with TLS) but the SPA canonical-redirects www -> apex
+    # (ocstormwatertools.org, = domains.web) on bootstrap. The azure-application-gateway ingress
+    # class has no host-redirect annotation, so the 301 cannot be expressed here; it is done
+    # app-side (or via a separate App Gateway redirect rule). The apex itself is served by the
+    # domains.web rule above. (Supersedes the NPT-1068 hardcoded apex host, now redundant.)
+    - host: www.ocstormwatertools.org
       http:
         paths:
           - path: /
@@ -69,19 +73,4 @@ spec:
               servicePort: {{ $svcPort }}
               {{- end }}
   {{- end }}
-    - host: {{ .Values.global.domains.planning }}
-      http:
-        paths:
-          - path: /
-            pathType: ImplementationSpecific
-            backend:
-              {{- if semverCompare ">=1.19-0" $.Capabilities.KubeVersion.GitVersion }}
-              service:
-                name: {{ $fullName }}
-                port:
-                  number: {{ $svcPort }}
-              {{- else }}
-              serviceName: {{ $fullName }}
-              servicePort: {{ $svcPort }}
-              {{- end }}
 {{- end }}

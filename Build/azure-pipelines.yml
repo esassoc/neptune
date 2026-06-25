@@ -671,7 +671,6 @@ stages:
                 global.domains.api="$(domainApi)"
                 global.domains.externalApi="$(domainExternalApi)"
                 global.domains.web="$(domainWeb)"
-                global.domains.planning="$(domainPlanning)"
                 global.domains.geoserver="$(domainGeoserver)"
                 global.env.name="$(Environment)"
                 global.secrets.geoserverSqlServerPassword="$(SQL_GEOSERVER_PASSWORD)"
