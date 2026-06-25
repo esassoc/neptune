@@ -1,4 +1,4 @@
-﻿using Neptune.Models.DataTransferObjects;
+using Neptune.Models.DataTransferObjects;
 using Microsoft.EntityFrameworkCore;
 using Neptune.Common.DesignByContract;
 
@@ -51,11 +51,6 @@ namespace Neptune.EFModels.Entities
             return project;
         }
 
-        public static Project GetByIDWithChangeTracking(NeptuneDbContext dbContext, ProjectPrimaryKey projectPrimaryKey)
-        {
-            return GetByIDWithChangeTracking(dbContext, projectPrimaryKey.PrimaryKeyValue);
-        }
-
         public static Project GetByIDWithTrackingForWorkflow(NeptuneDbContext dbContext, int projectID)
         {
             return dbContext.Projects
@@ -76,11 +71,6 @@ namespace Neptune.EFModels.Entities
                 .SingleOrDefault(x => x.ProjectID == projectID);
             Check.RequireNotNull(project, $"Project with ID {projectID} not found!");
             return project;
-        }
-
-        public static Project GetByID(NeptuneDbContext dbContext, ProjectPrimaryKey projectPrimaryKey)
-        {
-            return GetByID(dbContext, projectPrimaryKey.PrimaryKeyValue);
         }
 
         public static async Task<ProjectDto> GetByIDAsDtoAsync(NeptuneDbContext dbContext, int projectID)

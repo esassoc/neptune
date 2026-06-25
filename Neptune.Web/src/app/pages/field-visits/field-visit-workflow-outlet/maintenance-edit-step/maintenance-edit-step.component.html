@@ -3,7 +3,7 @@
     <ng-template #headerActions>
         @if (maintenanceRecord() && !isReadOnly() && canManage) {
             <button type="button" class="btn btn-danger btn-sm" (click)="deleteRecord(workflow)">
-                <i class="fa fa-trash mr-1"></i> Delete Record
+                Delete Record
             </button>
         }
     </ng-template>
@@ -123,10 +123,10 @@
 
         @if (!isReadOnly()) {
             <div class="step-footer">
-                <button type="button" class="btn btn-secondary" [disabled]="formGroup.invalid || isSaving()" (click)="save(workflow, 'wrap-up')">
+                <button type="button" class="btn btn-primary-outline" [disabled]="formGroup.invalid || isSaving()" (click)="save(workflow, 'wrap-up')">
                     Save &amp; Wrap Up Visit <i class="fa fa-flag-checkered ml-2"></i>
                 </button>
-                <button type="button" class="btn btn-secondary" [disabled]="formGroup.invalid || isSaving()" (click)="save(workflow, 'stay')">Save</button>
+                <button type="button" class="btn btn-primary-outline" [disabled]="formGroup.invalid || isSaving()" (click)="save(workflow, 'stay')">Save</button>
                 <button type="button" class="btn btn-primary" [disabled]="formGroup.invalid || isSaving()" (click)="save(workflow, 'continue')">
                     Save &amp; Continue <i class="fa fa-caret-right ml-2"></i>
                 </button>

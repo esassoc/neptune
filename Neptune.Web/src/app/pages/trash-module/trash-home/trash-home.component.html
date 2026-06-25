@@ -30,7 +30,7 @@
                 </div>
                 <div class="card-footer">
                     <p>Need help logging in?</p>
-                    <a href="{{ requestSupportUrl() }}">Request Support</a>
+                    <a [routerLink]="['/support']">Request Support</a>
                 </div>
             </div>
         }
@@ -283,7 +283,7 @@
                                     <dt>BMP</dt>
                                     <dd>
                                         @if (selected.tgu?.TreatmentBMPID && selected.tgu?.TreatmentBMPName) {
-                                            <a href="{{ ocstBaseUrl() }}/TreatmentBMP/Detail/{{ selected.tgu?.TreatmentBMPID }}">{{ selected.tgu?.TreatmentBMPName }}</a>
+                                            <a [routerLink]="['/treatment-bmps', selected.tgu?.TreatmentBMPID]">{{ selected.tgu?.TreatmentBMPName }}</a>
                                         } @else {
                                             -
                                         }
@@ -295,7 +295,7 @@
                                     <dt>WQMP</dt>
                                     <dd>
                                         @if (selected.tgu?.WaterQualityManagementPlanID && selected.tgu?.WaterQualityManagementPlanName) {
-                                            <a href="{{ ocstBaseUrl() }}/WaterQualityManagementPlan/Detail/{{ selected.tgu?.WaterQualityManagementPlanID }}">{{
+                                            <a [routerLink]="['/water-quality-management-plans', selected.tgu?.WaterQualityManagementPlanID]">{{
                                                 selected.tgu?.WaterQualityManagementPlanName
                                             }}</a>
                                         } @else {
@@ -419,8 +419,7 @@
                                         [displayOnLoad]="false"
                                         [map]="map"
                                         [layerControl]="layerControl"
-                                        [sortOrder]="20"
-                                        [isAnalyzedInModelingModule]="false"></delineations-layer>
+                                        [sortOrder]="20"></delineations-layer>
                                 }
                                 @if (mapIsReady) {
                                     <wqmps-trash-capture-layer [displayOnLoad]="false" [map]="map" [layerControl]="layerControl" [sortOrder]="40"></wqmps-trash-capture-layer>

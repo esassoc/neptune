@@ -23,7 +23,7 @@
                             <stormwater-network-layer [displayOnLoad]="true" [map]="map" [layerControl]="layerControl" [sortOrder]="20"></stormwater-network-layer>
                             <jurisdictions-layer [mode]="OverlayMode.ReferenceOnly" [map]="map" [layerControl]="layerControl" [sortOrder]="30"></jurisdictions-layer>
                             <wqmps-layer [displayOnLoad]="false" [map]="map" [layerControl]="layerControl" [sortOrder]="40"></wqmps-layer>
-                            <delineations-layer [displayOnLoad]="false" [map]="map" [layerControl]="layerControl" [sortOrder]="50"></delineations-layer>
+                            <delineations-layer [isAnalyzedInModelingModule]="true" [displayOnLoad]="false" [map]="map" [layerControl]="layerControl" [sortOrder]="50"></delineations-layer>
                             <inventoried-bmps-layer [displayOnLoad]="false" [map]="map" [layerControl]="layerControl" [sortOrder]="60"></inventoried-bmps-layer>
                         }
                     </neptune-map>
@@ -38,7 +38,7 @@
 @if (selectedTreatmentBMP$ | async; as selectedTreatmentBMP) {
     <div class="card mt-4">
         <div class="card-body">
-            <dl class="grid-12">
+            <dl class="grid-12 key-value-list">
                 <dt class="g-col-3 control-label font-weight-bold text-lg-right">
                     <label>Name</label>
                 </dt>
@@ -62,7 +62,7 @@
                 <div class="g-col-5">
                     <h3>Location</h3>
                     @if (selectedTreatmentBMP.Latitude || selectedTreatmentBMP.Longitude) {
-                        <dl class="grid-12">
+                        <dl class="grid-12 key-value-list">
                             <dt class="g-col-5">Latitude</dt>
                             <dd class="g-col-7">
                                 {{ selectedTreatmentBMP.Latitude }}
@@ -93,7 +93,7 @@
                     @if (selectedTreatmentBMP.TreatmentBMPTypeName) {
                         @if (selectedTreatmentBMP.CustomAttributes && selectedTreatmentBMP.CustomAttributes.length > 0) {
                             @for (customAttributeType of getCustomAttributeFieldsToDisplay(selectedTreatmentBMP.TreatmentBMPTypeID); track customAttributeType) {
-                                <dl class="grid-12">
+                                <dl class="grid-12 key-value-list">
                                     <dt class="g-col-7">
                                         <ng-container>
                                             <span>

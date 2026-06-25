@@ -1,3 +1,4 @@
-<span [class]="noteType">
-    <ng-content></ng-content>
-</span>
+<div [class]="noteType">
+    <span class="note-content"><ng-content></ng-content></span>
+    <ng-content select="[note-action]"></ng-content>
+</div>

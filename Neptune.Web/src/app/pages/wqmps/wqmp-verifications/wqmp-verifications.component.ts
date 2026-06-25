@@ -16,6 +16,7 @@ import { ConfirmService } from "src/app/shared/services/confirm/confirm.service"
 import { WaterQualityManagementPlanVerifyService } from "src/app/shared/generated/api/water-quality-management-plan-verify.service";
 import { WaterQualityManagementPlanService } from "src/app/shared/generated/api/water-quality-management-plan.service";
 import { WaterQualityManagementPlanVerifyIndexGridDto } from "src/app/shared/generated/model/water-quality-management-plan-verify-index-grid-dto";
+import { NeptunePageTypeEnum } from "src/app/shared/generated/enum/neptune-page-type-enum";
 
 @Component({
     selector: "wqmp-verifications",
@@ -28,6 +29,7 @@ export class WqmpVerificationsComponent {
     public verifications$: Observable<WaterQualityManagementPlanVerifyIndexGridDto[]>;
     public columnDefs: ColDef[];
     public isLoading = true;
+    public customRichTextTypeID = NeptunePageTypeEnum.WaterQualityMaintenancePlanOandMVerifications;
 
     constructor(
         private wqmpVerifyService: WaterQualityManagementPlanVerifyService,
@@ -51,6 +53,7 @@ export class WqmpVerificationsComponent {
                 const actions: any[] = [
                     {
                         ActionName: "View",
+                        ActionIcon: "fas fa-file-alt",
                         ActionHandler: () => this.router.navigate(["/water-quality-management-plans", wqmpID, "verifications", verifyID, "view"]),
                     },
                 ];
@@ -62,7 +65,7 @@ export class WqmpVerificationsComponent {
                     });
                     actions.push({
                         ActionName: "Delete",
-                        ActionIcon: "fa fa-trash text-danger",
+                        ActionIcon: "fas fa-trash text-danger",
                         ActionHandler: () => this.confirmDeleteVerification(wqmpID, verifyID, params.data.WaterQualityManagementPlanName, params.data.VerificationDate),
                     });
                 }

@@ -14,9 +14,9 @@ import { WqmpsLayerComponent } from "src/app/shared/components/leaflet/layers/wq
 import { OverlayMode } from "src/app/shared/components/leaflet/layers/generic-wms-wfs-layer/overlay-mode.enum";
 import { NeptuneGridComponent } from "src/app/shared/components/neptune-grid/neptune-grid.component";
 import { FieldDefinitionComponent } from "src/app/shared/components/field-definition/field-definition.component";
-import { IconComponent } from "src/app/shared/components/icon/icon.component";
 import { ModeledBmpPerformanceComponent } from "src/app/shared/components/modeled-bmp-performance/modeled-bmp-performance.component";
 import { LandUseTableComponent } from "src/app/shared/components/land-use-table/land-use-table.component";
+import { NoteComponent } from "src/app/shared/components/note/note.component";
 import { LoadingDirective } from "src/app/shared/directives/loading.directive";
 import { UtilityFunctionsService } from "src/app/services/utility-functions.service";
 import { AuthenticationService } from "src/app/services/authentication.service";
@@ -52,6 +52,7 @@ import { DryWeatherFlowOverrides } from "src/app/shared/generated/enum/dry-weath
 import { WqmpModalComponent } from "src/app/pages/wqmps/wqmp-modal/wqmp-modal.component";
 import { EditModelingApproachModalComponent, EditModelingApproachModalContext } from "src/app/pages/wqmps/wqmp-detail/edit-modeling-approach-modal/edit-modeling-approach-modal.component";
 import { EditTreatmentBMPsModalComponent, EditTreatmentBMPsModalContext } from "src/app/pages/wqmps/wqmp-detail/edit-treatment-bmps-modal/edit-treatment-bmps-modal.component";
+import { WqmpDocumentModalComponent, WqmpDocumentModalContext } from "src/app/pages/wqmps/wqmp-detail/wqmp-document-modal/wqmp-document-modal.component";
 import { GroupByPipe } from "src/app/shared/pipes/group-by.pipe";
 import { SumPipe } from "src/app/shared/pipes/sum.pipe";
 import { environment } from "src/environments/environment";
@@ -72,9 +73,9 @@ import { environment } from "src/environments/environment";
         NeptuneMapComponent,
         WqmpsLayerComponent,
         NeptuneGridComponent,
-        IconComponent,
         ModeledBmpPerformanceComponent,
         LandUseTableComponent,
+        NoteComponent,
         LoadingDirective,
     ],
 })
@@ -85,7 +86,6 @@ export class WqmpDetailComponent implements OnInit, OnChanges {
     public TrashCaptureStatusTypeEnum = TrashCaptureStatusTypeEnum;
     public WaterQualityManagementPlanModelingApproachEnum = WaterQualityManagementPlanModelingApproachEnum;
     public WaterQualityManagementPlanStatusEnum = WaterQualityManagementPlanStatusEnum;
-    public aboutModelingBMPPerformanceUrl = `${environment.ocStormwaterToolsBaseUrl}/Home/AboutModelingBMPPerformance`;
     public fileResourceUrl = fileResourceUrl;
 
     // NPT-1051: wqmp$ is a stable observable driven by reload$ so the AsyncPipe stays
@@ -98,6 +98,9 @@ export class WqmpDetailComponent implements OnInit, OnChanges {
     // map layers, which is unnecessary work and a potential source of UI flicker on a
     // verification mutation.
     private verificationsReload$ = new BehaviorSubject<void>(undefined);
+    // NPT-1068: same pattern for documents — upload/edit/delete pushes this so the
+    // Documents card refreshes without refetching wqmp$ or rebuilding the map.
+    private documentsReload$ = new BehaviorSubject<void>(undefined);
     wqmp$: Observable<WaterQualityManagementPlanDto>;
     quickBMPs$: Observable<QuickBMPDto[]>;
     quickBMPTotalRow: any[] = [];
@@ -228,16 +231,24 @@ export class WqmpDetailComponent implements OnInit, OnChanges {
                 this.quickBMPTotalRow = [{ QuickBMPName: "Total", PercentOfSiteTreated: totalPercentOfSiteTreated }];
             })
         );
-        this.documents$ = this.wqmpService.listDocumentsWaterQualityManagementPlan(this.waterQualityManagementPlanID).pipe(
-            tap((docs) => {
-                this.documentsByType = WaterQualityManagementPlanDocumentTypes.map((docType) => ({
-                    typeDisplayName: docType.DisplayName,
-                    documents: docs
-                        .filter((d) => d.WaterQualityManagementPlanDocumentTypeID === docType.Value)
-                        .sort((a, b) => (a.DisplayName ?? "").localeCompare(b.DisplayName ?? "")),
-                }));
-            })
-        );
+        if (!this.documents$) {
+            this.documents$ = this.documentsReload$.pipe(
+                switchMap(() => this.wqmpService.listDocumentsWaterQualityManagementPlan(this.waterQualityManagementPlanID)),
+                tap((docs) => {
+                    this.documentsByType = WaterQualityManagementPlanDocumentTypes.map((docType) => ({
+                        typeDisplayName: docType.DisplayName,
+                        documents: docs
+                            .filter((d) => d.WaterQualityManagementPlanDocumentTypeID === docType.Value)
+                            .sort((a, b) => (a.DisplayName ?? "").localeCompare(b.DisplayName ?? "")),
+                    }));
+                }),
+                shareReplay(1),
+            );
+        } else {
+            // ngOnChanges path: when waterQualityManagementPlanID flips, push a reload so the
+            // Documents card refetches against the new ID instead of showing the prior WQMP's docs.
+            this.documentsReload$.next();
+        }
         // NPT-995 round 5: stable observable driven by verificationsReload$. Delete
         // mutations push the dedicated reload signal rather than inline-reassigning
         // verifications$ — same AsyncPipe re-subscription fix as wqmp$ (NPT-1051 PR #488),
@@ -247,6 +258,9 @@ export class WqmpDetailComponent implements OnInit, OnChanges {
                 switchMap(() => this.wqmpService.listVerificationsWaterQualityManagementPlan(this.waterQualityManagementPlanID)),
                 shareReplay(1)
             );
+        } else {
+            // Same ngOnChanges-path fix as documents$: refetch when the route ID changes.
+            this.verificationsReload$.next();
         }
 
         this.modeledPerformance$ = this.wqmpService.getModeledPerformanceWaterQualityManagementPlan(this.waterQualityManagementPlanID);
@@ -378,6 +392,7 @@ export class WqmpDetailComponent implements OnInit, OnChanges {
                 const actions: any[] = [
                     {
                         ActionName: "View",
+                        ActionIcon: "fas fa-file-alt",
                         ActionHandler: () => this.router.navigate(["/water-quality-management-plans", wqmpID, "verifications", verifyID, "view"]),
                     },
                 ];
@@ -389,7 +404,7 @@ export class WqmpDetailComponent implements OnInit, OnChanges {
                     });
                     actions.push({
                         ActionName: "Delete",
-                        ActionIcon: "fa fa-trash text-danger",
+                        ActionIcon: "fas fa-trash text-danger",
                         ActionHandler: () => this.confirmDeleteVerification(verifyID, params.data.VerificationDate),
                     });
                 }
@@ -506,6 +521,63 @@ export class WqmpDetailComponent implements OnInit, OnChanges {
                 this.loadData();
             }
         });
+    }
+
+    openDocumentUploadModal(): void {
+        const dialogRef = this.dialogService.open(WqmpDocumentModalComponent, {
+            data: {
+                waterQualityManagementPlanID: this.waterQualityManagementPlanID,
+                mode: "add",
+            } as WqmpDocumentModalContext,
+            size: "md",
+        });
+        dialogRef.afterClosed$.subscribe((result) => {
+            if (result) this.documentsReload$.next();
+        });
+    }
+
+    openDocumentEditModal(doc: WaterQualityManagementPlanDocumentDto): void {
+        const dialogRef = this.dialogService.open(WqmpDocumentModalComponent, {
+            data: {
+                waterQualityManagementPlanID: this.waterQualityManagementPlanID,
+                mode: "edit",
+                document: doc,
+            } as WqmpDocumentModalContext,
+            size: "md",
+        });
+        dialogRef.afterClosed$.subscribe((result) => {
+            if (result) this.documentsReload$.next();
+        });
+    }
+
+    confirmDocumentDelete(doc: WaterQualityManagementPlanDocumentDto): void {
+        const name = escapeHtml(doc.DisplayName ?? "this document");
+        this.confirmService
+            .confirm(
+                {
+                    title: "Delete Document",
+                    message: `<p>Delete <strong>${name}</strong>?</p><p>This cannot be undone.</p>`,
+                    buttonClassYes: "btn btn-danger",
+                    buttonTextYes: "Delete",
+                    buttonTextNo: "Cancel",
+                },
+                this.viewContainerRef,
+            )
+            .then((confirmed) => {
+                if (!confirmed) return;
+                this.wqmpService.deleteDocumentWaterQualityManagementPlan(this.waterQualityManagementPlanID, doc.WaterQualityManagementPlanDocumentID).subscribe({
+                    next: () => {
+                        this.alertService.pushAlert(new Alert("Document deleted.", AlertContext.Success));
+                        this.documentsReload$.next();
+                    },
+                    error: (err: HttpErrorResponse) => {
+                        // AlertDisplayComponent renders via [innerHTML]; escape server-supplied
+                        // strings before interpolation.
+                        const raw = err?.error?.detail ?? err?.error?.title ?? err?.error ?? "Delete failed.";
+                        this.alertService.pushAlert(new Alert(escapeHtml(typeof raw === "string" ? raw : "Delete failed."), AlertContext.Danger));
+                    },
+                });
+            });
     }
 
     navigateToEditQuickBMPs(): void {

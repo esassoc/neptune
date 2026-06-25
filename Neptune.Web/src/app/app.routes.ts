@@ -1,8 +1,10 @@
 import { Routes } from "@angular/router";
 import { ManagerOnlyGuard } from "./shared/guards/unauthenticated-access/manager-only-guard";
+import { ManagerOrAdminOnlyGuard } from "./shared/guards/unauthenticated-access/manager-or-admin-only-guard";
 import { JurisdictionManagerOrEditorOnlyGuard } from "./shared/guards/unauthenticated-access/jurisdiction-manager-or-editor-only-guard.guard";
 import { UnsavedChangesGuard } from "./shared/guards/unsaved-changes.guard";
 import { OCTAGrantReviewerOnlyGuard } from "./shared/guards/unauthenticated-access/octa-grant-reviewer-only.guard";
+import { AdminOnlyGuard } from "./shared/guards/unauthenticated-access/admin-only-guard";
 import { authGuardFn } from "@auth0/auth0-angular";
 import { AuthCallbackComponent } from "./auth-callback.component";
 
@@ -25,6 +27,8 @@ export const routeParams = {
     customAttributeTypeID: "customAttributeTypeID",
     observationTypeID: "observationTypeID",
     fieldVisitID: "fieldVisitID",
+    treatmentBMPAssessmentID: "treatmentBMPAssessmentID",
+    maintenanceRecordID: "maintenanceRecordID",
     personID: "personID",
 };
 
@@ -32,18 +36,6 @@ export const routeParams = {
 // auth'd ones; they intentionally have no canActivate so unauthenticated visitors can reach them.
 
 export const routes: Routes = [
-    {
-        path: "ai",
-        title: "AI Module",
-        loadComponent: () => import("./pages/ai-module/ai-site-layout.component").then((m) => m.AiSiteLayoutComponent),
-        children: [
-            {
-                path: "",
-                title: "AI Home",
-                loadComponent: () => import("./pages/ai-module/ai-home/ai-home.component").then((m) => m.AiHomeComponent),
-            },
-        ],
-    },
     {
         path: `planning`,
         title: "Stormwater Tools",
@@ -340,6 +332,7 @@ export const routes: Routes = [
         children: [
             { path: "", loadComponent: () => import("./pages/home/home-index/home-index.component").then((m) => m.HomeIndexComponent) },
             { path: "about", loadComponent: () => import("./pages/about/about.component").then((m) => m.AboutComponent) },
+            { path: "legal", title: "Legal", loadComponent: () => import("./pages/legal/legal.component").then((m) => m.LegalComponent) },
             {
                 path: "training",
                 title: "Training",
@@ -405,21 +398,28 @@ export const routes: Routes = [
                 path: "jurisdictions",
                 title: "Jurisdictions",
                 loadComponent: () => import("./pages/jurisdictions/jurisdictions.component").then((m) => m.JurisdictionsComponent),
+                canActivate: [JurisdictionManagerOrEditorOnlyGuard],
             },
             {
                 path: `jurisdictions/:${routeParams.jurisdictionID}`,
                 title: "Jurisdiction Detail",
                 loadComponent: () => import("./pages/jurisdictions/jurisdiction-detail/jurisdiction-detail.component").then((m) => m.JurisdictionDetailComponent),
+                canActivate: [JurisdictionManagerOrEditorOnlyGuard],
             },
             {
-                path: "find-bmp",
-                title: "Find a BMP",
-                loadComponent: () => import("./pages/find-bmp/find-bmp.component").then((m) => m.FindBmpComponent),
+                path: "modeling-attributes",
+                title: "Modeling Attributes",
+                loadComponent: () => import("./pages/modeling-attributes/modeling-attributes.component").then((m) => m.ModelingAttributesComponent),
             },
             {
-                path: "modeling-parameters",
-                title: "Modeling Parameters",
-                loadComponent: () => import("./pages/modeling-parameters/modeling-parameters.component").then((m) => m.ModelingParametersComponent),
+                path: "modeling-calculations",
+                title: "Calculations for Planned Projects",
+                loadComponent: () => import("./pages/modeling-calculations/modeling-calculations.component").then((m) => m.ModelingCalculationsComponent),
+            },
+            {
+                path: "wqmp-modeling-options",
+                title: "WQMP Modeling Options",
+                loadComponent: () => import("./pages/wqmp-modeling-options/wqmp-modeling-options.component").then((m) => m.WqmpModelingOptionsComponent),
             },
             {
                 path: "treatment-bmps",
@@ -429,6 +429,10 @@ export const routes: Routes = [
             {
                 path: "treatment-bmps/new",
                 title: "Create New BMP",
+                // Create is editor-gated (POST /treatment-bmps is [JurisdictionEditFeature]); guard the route so
+                // anonymous/non-editors can't reach the create page by URL, not just via the hidden button (NPT-1094).
+                // authGuardFn first so the role guard never evaluates for anonymous users (matches other edit routes).
+                canActivate: [authGuardFn, JurisdictionManagerOrEditorOnlyGuard],
                 loadComponent: () => import("./pages/treatment-bmps/create-treatment-bmp/create-treatment-bmp.component").then((m) => m.CreateTreatmentBmpComponent),
                 canDeactivate: [UnsavedChangesGuard],
             },
@@ -493,6 +497,31 @@ export const routes: Routes = [
                 loadComponent: () =>
                     import("./pages/field-visits/field-visit-detail-readonly/field-visit-detail-readonly.component").then(
                         (m) => m.FieldVisitDetailReadOnlyComponent
+                    ),
+                canActivate: [JurisdictionManagerOrEditorOnlyGuard],
+            },
+            {
+                // NPT-1056: SPA detail page for a single Treatment BMP Assessment — ports
+                // the legacy MVC `/TreatmentBMPAssessment/Detail/{id}` view. Manager Dashboard
+                // Field Visits tab now deep-links here for the Initial / Post-Maintenance
+                // Assessment grid columns instead of bouncing the user back to MVC.
+                path: `treatment-bmp-assessments/:${routeParams.treatmentBMPAssessmentID}`,
+                title: "Treatment BMP Assessment",
+                loadComponent: () =>
+                    import("./pages/treatment-bmp-assessments/treatment-bmp-assessment-detail/treatment-bmp-assessment-detail.component").then(
+                        (m) => m.TreatmentBmpAssessmentDetailComponent
+                    ),
+                canActivate: [JurisdictionManagerOrEditorOnlyGuard],
+            },
+            {
+                // NPT-1056: SPA detail page for a single Maintenance Record — ports the legacy
+                // MVC `/MaintenanceRecord/Detail/{id}` view. Manager Dashboard Field Visits tab
+                // deep-links here for the "Maintenance Occurred" column.
+                path: `maintenance-records/:${routeParams.maintenanceRecordID}`,
+                title: "Maintenance Record",
+                loadComponent: () =>
+                    import("./pages/maintenance-records/maintenance-record-detail/maintenance-record-detail.component").then(
+                        (m) => m.MaintenanceRecordDetailComponent
                     ),
                 canActivate: [JurisdictionManagerOrEditorOnlyGuard],
             },
@@ -794,6 +823,9 @@ export const routes: Routes = [
             {
                 path: "funding-sources",
                 title: "Funding Sources",
+                // Admin-only: the list/create endpoints are [AdminFeature]. Without this guard an anonymous user
+                // reached the page, the list call 403'd, and the error interceptor bounced them (NPT-1094).
+                canActivate: [authGuardFn, AdminOnlyGuard],
                 loadComponent: () => import("./pages/funding-sources/funding-sources.component").then((m) => m.FundingSourcesComponent),
             },
             {
@@ -804,11 +836,12 @@ export const routes: Routes = [
                 loadComponent: () => import("./pages/funding-sources/funding-source-detail/funding-source-detail.component").then((m) => m.FundingSourceDetailComponent),
                 canActivate: [authGuardFn],
             },
-            // Dashboard
+            // Dashboard (Manager Dashboard) — Admin / SitkaAdmin / JurisdictionManager only
             {
                 path: "dashboard",
                 title: "Dashboard",
                 loadComponent: () => import("./pages/dashboard/dashboard.component").then((m) => m.DashboardComponent),
+                canActivate: [authGuardFn, ManagerOrAdminOnlyGuard],
             },
             // Delineation
             {
@@ -865,13 +898,92 @@ export const routes: Routes = [
                 canActivate: [JurisdictionManagerOrEditorOnlyGuard],
             },
             // Data Hub
-            { path: "data-hub", title: "Data Hub", loadComponent: () => import("./pages/data-hub/data-hub.component").then((m) => m.DataHubComponent) },
-            // Manage
             {
-                path: "manage/homepage-configuration",
-                title: "Homepage Configuration",
-                loadComponent: () => import("./pages/manage/homepage-configuration.component").then((m) => m.HomepageConfigurationComponent),
+                path: "data-hub",
+                title: "Data Hub",
+                loadComponent: () => import("./pages/data-hub/data-hub.component").then((m) => m.DataHubComponent),
+                canActivate: [JurisdictionManagerOrEditorOnlyGuard],
             },
+            {
+                path: "data-hub/treatment-bmp-upload",
+                title: "Upload Treatment BMPs",
+                loadComponent: () => import("./pages/data-hub/treatment-bmp-upload/treatment-bmp-upload.component").then((m) => m.TreatmentBMPUploadComponent),
+                canActivate: [ManagerOnlyGuard],
+            },
+            {
+                path: "data-hub/treatment-bmp-download",
+                title: "Download Treatment BMPs",
+                loadComponent: () => import("./pages/data-hub/treatment-bmp-download/treatment-bmp-download.component").then((m) => m.TreatmentBMPDownloadComponent),
+                canActivate: [JurisdictionManagerOrEditorOnlyGuard],
+            },
+            {
+                path: "data-hub/trash-screen-field-visit-upload",
+                title: "Upload Trash Screen Field Visits",
+                loadComponent: () =>
+                    import("./pages/data-hub/trash-screen-field-visit-upload/trash-screen-field-visit-upload.component").then((m) => m.TrashScreenFieldVisitUploadComponent),
+                canActivate: [JurisdictionManagerOrEditorOnlyGuard],
+            },
+            {
+                path: "data-hub/wqmp-upload",
+                title: "Upload Water Quality Management Plans",
+                loadComponent: () => import("./pages/data-hub/wqmp-upload/wqmp-upload.component").then((m) => m.WqmpUploadComponent),
+                canActivate: [JurisdictionManagerOrEditorOnlyGuard],
+            },
+            {
+                path: "data-hub/simplified-bmp-upload",
+                title: "Upload Simplified BMPs",
+                loadComponent: () => import("./pages/data-hub/simplified-bmp-upload/simplified-bmp-upload.component").then((m) => m.SimplifiedBmpUploadComponent),
+                canActivate: [JurisdictionManagerOrEditorOnlyGuard],
+            },
+            {
+                path: "data-hub/wqmp-locations-upload",
+                title: "Upload WQMP Locations",
+                loadComponent: () => import("./pages/data-hub/wqmp-locations-upload/wqmp-locations-upload.component").then((m) => m.WqmpLocationsUploadComponent),
+                canActivate: [JurisdictionManagerOrEditorOnlyGuard],
+            },
+            {
+                path: "data-hub/ovta-area-upload",
+                title: "Upload OVTA Areas",
+                loadComponent: () => import("./pages/data-hub/ovta-area-upload/ovta-area-upload.component").then((m) => m.OvtaAreaUploadComponent),
+                canActivate: [JurisdictionManagerOrEditorOnlyGuard],
+            },
+            {
+                path: "data-hub/ovta-area-approve",
+                title: "Approve OVTA Areas",
+                loadComponent: () => import("./pages/data-hub/ovta-area-approve/ovta-area-approve.component").then((m) => m.OvtaAreaApproveComponent),
+                canActivate: [JurisdictionManagerOrEditorOnlyGuard],
+            },
+            {
+                path: "data-hub/ovta-area-download",
+                title: "Download OVTA Areas",
+                loadComponent: () => import("./pages/data-hub/ovta-area-download/ovta-area-download.component").then((m) => m.OvtaAreaDownloadComponent),
+                canActivate: [JurisdictionManagerOrEditorOnlyGuard],
+            },
+            {
+                path: "data-hub/ovta-upload",
+                title: "Upload OVTAs",
+                loadComponent: () => import("./pages/data-hub/ovta-upload/ovta-upload.component").then((m) => m.OvtaUploadComponent),
+                canActivate: [JurisdictionManagerOrEditorOnlyGuard],
+            },
+            {
+                path: "data-hub/land-use-block-upload",
+                title: "Upload Land Use Blocks",
+                loadComponent: () => import("./pages/data-hub/land-use-block-upload/land-use-block-upload.component").then((m) => m.LandUseBlockUploadComponent),
+                canActivate: [JurisdictionManagerOrEditorOnlyGuard],
+            },
+            {
+                path: "data-hub/land-use-block-upload/approve",
+                title: "Approve Uploaded Land Use Blocks",
+                loadComponent: () => import("./pages/data-hub/land-use-block-upload-approve/land-use-block-upload-approve.component").then((m) => m.LandUseBlockUploadApproveComponent),
+                canActivate: [JurisdictionManagerOrEditorOnlyGuard],
+            },
+            {
+                path: "data-hub/land-use-block-download",
+                title: "Download Land Use Blocks",
+                loadComponent: () => import("./pages/data-hub/land-use-block-download/land-use-block-download.component").then((m) => m.LandUseBlockDownloadComponent),
+                canActivate: [JurisdictionManagerOrEditorOnlyGuard],
+            },
+            // Manage
             {
                 path: "manage/custom-attributes",
                 title: "Custom Attributes",
@@ -965,5 +1077,17 @@ export const routes: Routes = [
     { path: "subscription-insufficient", loadComponent: () => import("./shared/pages/").then((m) => m.SubscriptionInsufficientComponent) },
     { path: "unauthenticated", loadComponent: () => import("./shared/pages").then((m) => m.UnauthenticatedComponent) },
     { path: "callback", component: AuthCallbackComponent },
+    // NPT-1068: Neptune.WebMvc retired. Redirect the high-traffic legacy MVC URLs (bookmarks, external links
+    // hitting the old ocstormwatertools.org host now pointed at this SPA) to their SPA equivalents. Paths match
+    // the legacy PascalCase casing (Angular routing is case-sensitive). Unmatched legacy paths fall through to **.
+    { path: "Home/LaunchPad", redirectTo: "", pathMatch: "full" },
+    { path: "TreatmentBMP/Index", redirectTo: "treatment-bmps", pathMatch: "full" },
+    { path: "TreatmentBMP/FindABMP", redirectTo: "treatment-bmps", pathMatch: "full" },
+    { path: "TreatmentBMP/TreatmentBMPAssessmentSummary", redirectTo: "latest-bmp-assessments", pathMatch: "full" },
+    { path: "WaterQualityManagementPlan/Index", redirectTo: "water-quality-management-plans", pathMatch: "full" },
+    { path: "WaterQualityManagementPlan/FindAWQMP", redirectTo: "water-quality-management-plans", pathMatch: "full" },
+    { path: "Delineation/DelineationMap", redirectTo: "delineation/delineation-map", pathMatch: "full" },
+    { path: "Delineation/DelineationReconciliationReport", redirectTo: "delineation/delineation-reconciliation-report", pathMatch: "full" },
+    { path: "FieldVisit/Index", redirectTo: "treatment-bmps", pathMatch: "full" },
     { path: "**", loadComponent: () => import("./shared/pages").then((m) => m.NotFoundComponent) },
 ];

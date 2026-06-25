@@ -19,6 +19,7 @@ Source code is available upon request via <support@sitkatech.com>.
 </license>
 -----------------------------------------------------------------------*/
 using Neptune.Models.DataTransferObjects;
+using Neptune.Models.DataTransferObjects.ManagerDashboard;
 using Microsoft.EntityFrameworkCore;
 using Neptune.Common;
 using Neptune.Common.DesignByContract;
@@ -47,12 +48,6 @@ namespace Neptune.EFModels.Entities
             return delineation;
         }
 
-        public static Delineation GetByIDWithChangeTracking(NeptuneDbContext dbContext,
-            DelineationPrimaryKey delineationPrimaryKey)
-        {
-            return GetByIDWithChangeTracking(dbContext, delineationPrimaryKey.PrimaryKeyValue);
-        }
-
         public static List<DelineationUpsertDto> ListByProjectIDAsUpsertDto(NeptuneDbContext dbContext, int projectID)
         {
             return GetImpl(dbContext)
@@ -70,21 +65,6 @@ namespace Neptune.EFModels.Entities
             return dtos;
         }
 
-        public static Delineation GetByID(NeptuneDbContext dbContext, int delineationID)
-        {
-            var delineation = GetImpl(dbContext).AsNoTracking()
-                .SingleOrDefault(x => x.DelineationID == delineationID);
-            Check.RequireNotNull(delineation,
-                $"Delineation with ID {delineationID} not found!");
-            return delineation;
-        }
-
-        public static Delineation GetByID(NeptuneDbContext dbContext,
-            DelineationPrimaryKey delineationPrimaryKey)
-        {
-            return GetByID(dbContext, delineationPrimaryKey.PrimaryKeyValue);
-        }
-
         public static Delineation? GetByTreatmentBMPID(NeptuneDbContext dbContext, int treatmentBMPID)
         {
             var delineation = GetImpl(dbContext).AsNoTracking()
@@ -99,35 +79,54 @@ namespace Neptune.EFModels.Entities
             return delineation;
         }
 
-        public static List<Delineation> ListByTreatmentBMPIDList(NeptuneDbContext dbContext, IEnumerable<int> treatmentBMPIDList)
+        // Manager Dashboard: provisional delineations projected straight to the grid DTO via the
+        // DelineationProjections.AsProvisionalGridDto SQL projection. Mirrors the sibling
+        // ListDiscrepancyGridDtosAsync helper — DelineationTypeName is resolved from the static
+        // lookup in C# (EF can't translate it). Area rounding happens here too because Math.Round
+        // on a nullable doesn't compose cleanly inside the Expression.
+        public static async Task<List<DelineationProvisionalGridDto>> GetProvisionalBMPDelineationsAsGridDtoAsync(NeptuneDbContext dbContext, Person currentPerson)
         {
-            return GetImpl(dbContext).AsNoTracking()
-                .Where(x => treatmentBMPIDList.Contains(x.TreatmentBMPID)).OrderBy(x => x.DelineationID).ToList();
+            var jurisdictionIDs = (await StormwaterJurisdictionPeople.ListViewableStormwaterJurisdictionIDsByPersonIDForBMPsAsync(dbContext, currentPerson.PersonID)).ToList();
+
+            var dtos = await dbContext.Delineations.AsNoTracking()
+                .Where(x => x.IsVerified == false && x.TreatmentBMP.ProjectID == null && jurisdictionIDs.Contains(x.TreatmentBMP.StormwaterJurisdictionID))
+                .OrderBy(x => x.TreatmentBMP.TreatmentBMPName)
+                .Select(DelineationProjections.AsProvisionalGridDto)
+                .ToListAsync();
+
+            foreach (var dto in dtos)
+            {
+                dto.DelineationTypeName = DelineationType.AllLookupDictionary.TryGetValue(dto.DelineationTypeID, out var t) ? t.DelineationTypeDisplayName : null;
+                if (dto.DelineationAreaInAcres.HasValue)
+                {
+                    dto.DelineationAreaInAcres = Math.Round(dto.DelineationAreaInAcres.Value, 2);
+                }
+            }
+            return dtos;
         }
 
-        public static List<Delineation> ListByDelineationIDList(NeptuneDbContext dbContext, IEnumerable<int> delineationIDList)
+        // Manager Dashboard: bulk-verify a set of delineations. Jurisdiction-scoped via
+        // TreatmentBMP.CanView. Calls NereidUtilities.MarkDelineationDirty so the model
+        // queue knows these need re-running. Returns verified count.
+        public static async Task<int> BulkMarkAsVerifiedAsync(NeptuneDbContext dbContext, IList<int> delineationIDs, Person currentPerson)
         {
-            return GetImpl(dbContext).AsNoTracking()
-                .Where(x => delineationIDList.Contains(x.DelineationID)).OrderBy(x => x.DelineationID).ToList();
-        }
+            if (delineationIDs == null || delineationIDs.Count == 0) return 0;
 
-        public static List<Delineation> ListByDelineationIDListWithChangeTracking(NeptuneDbContext dbContext, IEnumerable<int> delineationIDList)
-        {
-            return GetImpl(dbContext)
-                .Where(x => delineationIDList.Contains(x.DelineationID)).OrderBy(x => x.DelineationID).ToList();
-        }
-
-        public static List<Delineation> GetProvisionalBMPDelineations(NeptuneDbContext dbContext, Person currentPerson)
-        {
-            return GetImpl(dbContext).AsNoTracking()
+            var viewableJurisdictionIDs = StormwaterJurisdictionPeople.ListViewableStormwaterJurisdictionIDsByPersonForBMPs(dbContext, currentPerson).ToList();
+            var delineations = await dbContext.Delineations
                 .Include(x => x.TreatmentBMP)
-                .ThenInclude(x => x.TreatmentBMPType)
-                .Include(x => x.TreatmentBMP)
-                .ThenInclude(x => x.StormwaterJurisdiction)
-                .ThenInclude(x => x.Organization)
-                .Where(x => x.IsVerified == false).ToList()
-                .Where(x => x.TreatmentBMP.CanView(currentPerson))
-                .OrderBy(x => x.TreatmentBMP.TreatmentBMPName).ToList();
+                .Where(x => delineationIDs.Contains(x.DelineationID)
+                    && viewableJurisdictionIDs.Contains(x.TreatmentBMP.StormwaterJurisdictionID))
+                .ToListAsync();
+            foreach (var delineation in delineations)
+            {
+                delineation.MarkAsVerified(currentPerson);
+            }
+            await Nereid.NereidUtilities.MarkDelineationDirty(delineations, dbContext);
+            // MarkDelineationDirty does its own SaveChangesAsync internally; defensive call
+            // ensures the IsVerified/DateLastVerified flags persist if the helper changes shape.
+            await dbContext.SaveChangesAsync();
+            return delineations.Count;
         }
 
         public static async Task<List<DelineationDto>> ListByPersonIDAsDto(NeptuneDbContext dbContext, int personID)
@@ -229,43 +228,6 @@ namespace Neptune.EFModels.Entities
             }
 
             return delineation;
-        }
-
-
-        public static void MarkAsVerified(Delineation delineation, Person currentPerson)
-        {
-            delineation.IsVerified = true;
-            delineation.DateLastVerified = DateTime.UtcNow;
-            delineation.VerifiedByPersonID = currentPerson.PersonID;
-        }
-
-        public static List<Delineation> ListHavingOverlaps(NeptuneDbContext dbContext, Person currentPerson)
-        {
-            return GetImpl(dbContext).AsNoTracking()
-                .Include(x => x.TreatmentBMP)
-                .ThenInclude(x => x.TreatmentBMPType)
-                .Include(x => x.TreatmentBMP)
-                .ThenInclude(x => x.StormwaterJurisdiction)
-                .ThenInclude(x => x.Organization)
-                .Include(x => x.DelineationOverlapDelineations)
-                .ThenInclude(x => x.OverlappingDelineation)
-                .ThenInclude(x => x.TreatmentBMP)
-                .Where(x => x.DelineationOverlapDelineations.Any()).ToList()
-                .Where(x => x.TreatmentBMP.CanView(currentPerson))
-                .OrderBy(x => x.TreatmentBMP.TreatmentBMPName).ToList();
-        }
-
-        public static List<Delineation> ListHavingDiscrepancies(NeptuneDbContext dbContext, Person currentPerson)
-        {
-            return GetImpl(dbContext).AsNoTracking()
-                .Include(x => x.TreatmentBMP)
-                .ThenInclude(x => x.TreatmentBMPType)
-                .Include(x => x.TreatmentBMP)
-                .ThenInclude(x => x.StormwaterJurisdiction)
-                .ThenInclude(x => x.Organization)
-                .Where(x => x.HasDiscrepancies).ToList()
-                .Where(x => x.TreatmentBMP.CanView(currentPerson))
-                .OrderBy(x => x.TreatmentBMP.TreatmentBMPName).ToList();
         }
 
         public static DelineationDto? GetByTreatmentBMPIDAsDto(NeptuneDbContext dbContext, int treatmentBMPID)

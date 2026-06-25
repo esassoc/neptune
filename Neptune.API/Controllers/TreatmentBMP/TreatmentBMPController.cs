@@ -1,4 +1,6 @@
-﻿using Microsoft.AspNetCore.Mvc;
+﻿using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
@@ -6,23 +8,27 @@ using Neptune.API.Common;
 using Neptune.API.Services;
 using Neptune.API.Services.Attributes;
 using Neptune.API.Services.Authorization;
+using Neptune.Common.Services.GDAL;
 using Neptune.EFModels.Entities;
 using Neptune.Models.DataTransferObjects;
 using NetTopologySuite.Features;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
-using Microsoft.AspNetCore.Authorization;
 
 namespace Neptune.API.Controllers;
 
 [ApiController]
 [Route("treatment-bmps")]
-public class TreatmentBMPController(NeptuneDbContext dbContext, ILogger<TreatmentBMPController> logger, IOptions<NeptuneConfiguration> neptuneConfiguration)
+public class TreatmentBMPController(
+    NeptuneDbContext dbContext,
+    ILogger<TreatmentBMPController> logger,
+    IOptions<NeptuneConfiguration> neptuneConfiguration,
+    GDALAPIService gdalApiService)
     : SitkaController<TreatmentBMPController>(dbContext, logger, neptuneConfiguration)
 {
     [HttpPost]
-    [UserViewFeature]
+    [JurisdictionEditFeature]
     public async Task<ActionResult<TreatmentBMPDto>> Create([FromBody] TreatmentBMPCreateDto treatmentBMPCreateDto)
     {
         var errors = await TreatmentBMPs.ValidateCreateAsync(DbContext, treatmentBMPCreateDto);
@@ -44,8 +50,16 @@ public class TreatmentBMPController(NeptuneDbContext dbContext, ILogger<Treatmen
     {
         var stormwaterJurisdictionIDsPersonCanView = await StormwaterJurisdictionPeople.ListViewableStormwaterJurisdictionIDsByPersonIDForBMPsAsync(DbContext, CallingUser.PersonID);
 
+        // Public (anonymous) and unassigned users may only see verified BMPs, matching the legacy
+        // Find-a-BMP behavior (PersonModelExtensions.GetTreatmentBmpsPersonCanView). The jurisdiction
+        // filter above already excludes jurisdictions whose public BMP visibility is None; this adds
+        // the per-BMP verified gate the SPA list endpoint was missing. Anonymous callers are an
+        // Unassigned-role PersonDto sentinel (see UserContext), so this one check covers both. (NPT-1079)
+        var publicUser = CallingUser.RoleID == (int)RoleEnum.Unassigned;
+
         var entities = await DbContext.vTreatmentBMPDetaileds.AsNoTracking()
             .Where(x => stormwaterJurisdictionIDsPersonCanView.Contains(x.StormwaterJurisdictionID))
+            .Where(x => !publicUser || x.InventoryIsVerified)
             .ToListAsync();
 
         var treatmentBMPGridDtos = entities.Select(x => x.AsGridDto()).ToList();
@@ -129,6 +143,38 @@ public class TreatmentBMPController(NeptuneDbContext dbContext, ILogger<Treatmen
     {
         var treatmentBMPDto = await TreatmentBMPs.GetByIDAsDtoAsync(DbContext, treatmentBMPID);
         return Ok(treatmentBMPDto);
+    }
+
+    /// <summary>
+    /// NPT-1068: Modeled BMP Performance panel on the SPA detail page. Returns the per-BMP
+    /// Nereid load-reducing result summed from <c>vLoadReducingResults</c>; returns 200 with a
+    /// null body when Nereid hasn't produced a non-baseline result yet so the SPA can fall back
+    /// to the "missing fields" / "not modeled" message without a console-spamming 404.
+    /// </summary>
+    [HttpGet("{treatmentBMPID}/load-reducing-result")]
+    [AllowAnonymous]
+    [EntityNotFound(typeof(TreatmentBMP), "treatmentBMPID")]
+    public async Task<ActionResult<ProjectLoadReducingResultDto?>> GetLoadReducingResult([FromRoute] int treatmentBMPID)
+    {
+        var dto = await TreatmentBMPModeledPerformance.GetByBMPIDAsync(DbContext, treatmentBMPID);
+        return Ok(dto);
+    }
+
+    /// <summary>
+    /// NPT-1068: Sitka-admin-only "Latest Nereid Request / Response" download links on the
+    /// Modeled BMP Performance panel. Returns the BMP's most recent NereidLog row's raw
+    /// request/response JSON strings so the SPA can wrap them in a blob and trigger download
+    /// (legacy MVC inlined the JSON into a script tag and did the same thing client-side).
+    /// Returns 200 with a null body when the BMP has no NereidLog yet — the SPA suppresses the
+    /// download links in that case (avoids a noisy 404 in devtools for the common new-BMP case).
+    /// </summary>
+    [HttpGet("{treatmentBMPID}/latest-nereid-log")]
+    [SitkaAdminFeature]
+    [EntityNotFound(typeof(TreatmentBMP), "treatmentBMPID")]
+    public async Task<ActionResult<TreatmentBMPNereidLogContentDto?>> GetLatestNereidLog([FromRoute] int treatmentBMPID)
+    {
+        var dto = await NereidLogs.GetLatestForTreatmentBMPAsDtoAsync(DbContext, treatmentBMPID);
+        return Ok(dto);
     }
 
     [HttpPut("{treatmentBMPID}/basic-info")]
@@ -328,13 +374,19 @@ public class TreatmentBMPController(NeptuneDbContext dbContext, ILogger<Treatmen
     public ActionResult<TreatmentBMPParameterizationErrorsDto> GetParameterizationErrors([FromRoute] int treatmentBMPID)
     {
         var treatmentBMP = DbContext.TreatmentBMPs
-            .Include(x => x.Delineation)
             .Include(x => x.WaterQualityManagementPlan)
             .Include(x => x.TreatmentBMPType)
             .Single(x => x.TreatmentBMPID == treatmentBMPID);
 
-        var delineation = treatmentBMP.Delineation;
-        var hasDelineation = delineation != null;
+        // A downstream BMP inherits its upstream BMP's delineation (resolved via vTreatmentBMPUpstreams, the same
+        // upstream lookup TreatmentBMPs.GetByIDAsync uses). Check whether a delineation row EXISTS for that effective
+        // BMP — existence only, matching the prior `delineation != null` behavior; verification status is not part of
+        // this alert. This stops a BMP whose upstream already has one (e.g. BMP 318 -> upstream 354) from wrongly
+        // showing the "delineation required" alert.
+        var upstreamRow = DbContext.vTreatmentBMPUpstreams.AsNoTracking()
+            .SingleOrDefault(x => x.TreatmentBMPID == treatmentBMPID);
+        var delineationBMPID = upstreamRow?.UpstreamBMPID ?? treatmentBMPID;
+        var hasDelineation = DbContext.Delineations.AsNoTracking().Any(x => x.TreatmentBMPID == delineationBMPID);
         var linkToDelineationMap = !hasDelineation && (treatmentBMP.UpstreamBMPID == null);
         WaterQualityManagementPlanDisplayDto? simplifiedWQMP = null;
         if (treatmentBMP.WaterQualityManagementPlan != null && treatmentBMP.WaterQualityManagementPlan.WaterQualityManagementPlanModelingApproach == WaterQualityManagementPlanModelingApproach.Simplified)
@@ -426,5 +478,78 @@ public class TreatmentBMPController(NeptuneDbContext dbContext, ILogger<Treatmen
         await ModelingEngineUtilities.QueueLGURefreshForArea(delineation.DelineationGeometry, null, DbContext);
 
         return Ok();
+    }
+
+    [HttpPost("bulk-upload")]
+    [AdminFeature]
+    [RequestSizeLimit(100_000_000)]
+    [RequestFormLimits(MultipartBodyLengthLimit = 100_000_000)]
+    [Consumes("multipart/form-data")]
+    public async Task<ActionResult<TreatmentBMPCsvUploadResultDto>> BulkUpload([FromForm] TreatmentBMPCsvUploadFormDto form)
+    {
+        var result = new TreatmentBMPCsvUploadResultDto();
+
+        if (form.File == null || form.File.Length == 0)
+        {
+            result.Errors.Add("Please select a CSV file to upload.");
+            return Ok(result);
+        }
+
+        var treatmentBMPType = TreatmentBMPTypes.GetByID(DbContext, form.TreatmentBMPTypeID);
+        if (treatmentBMPType == null)
+        {
+            result.Errors.Add("The selected Treatment BMP Type was not found.");
+            return Ok(result);
+        }
+
+        await using var stream = form.File.OpenReadStream();
+        var treatmentBMPs = TreatmentBMPCsvParserHelper.CSVUpload(DbContext, stream, treatmentBMPType,
+            out var errorList, out var customAttributes, out var customAttributeValues);
+
+        if (errorList.Any())
+        {
+            result.Errors = errorList;
+            return Ok(result);
+        }
+
+        var treatmentBmpsAdded = treatmentBMPs.Where(x => x.TreatmentBMPID <= 0).ToList();
+        var treatmentBmpsUpdated = treatmentBMPs.Where(x => x.TreatmentBMPID > 0).ToList();
+
+        // NPT-1069: seed default Benchmark & Threshold rows on each newly-added BMP. Templates
+        // are built once for the type and shared across all new BMPs in this upload; existing
+        // BMPs (matched on name + jurisdiction by the parser) are deliberately left untouched so
+        // we don't clobber user-edited values. Skip the seed-template query entirely on
+        // update-only uploads.
+        if (treatmentBmpsAdded.Count > 0)
+        {
+            var seedTemplates = await TreatmentBMPBenchmarkAndThresholds.BuildSeedTemplatesAsync(DbContext, form.TreatmentBMPTypeID);
+            foreach (var newBmp in treatmentBmpsAdded)
+            {
+                TreatmentBMPBenchmarkAndThresholds.AttachSeedsToBMP(newBmp, seedTemplates);
+            }
+        }
+
+        await DbContext.TreatmentBMPs.AddRangeAsync(treatmentBmpsAdded);
+        await DbContext.CustomAttributes.AddRangeAsync(customAttributes.Where(x => x.CustomAttributeID <= 0));
+        await DbContext.CustomAttributeValues.AddRangeAsync(customAttributeValues.Where(x => x.CustomAttributeValueID <= 0));
+        await DbContext.SaveChangesAsync();
+
+        // Re-execute model for updated BMPs since they may have been re-parameterized;
+        // new BMPs are skipped because they don't have delineations yet.
+        await EFModels.Nereid.NereidUtilities.MarkTreatmentBMPDirty(treatmentBmpsUpdated, DbContext);
+
+        result.AddedCount = treatmentBmpsAdded.Count;
+        result.UpdatedCount = treatmentBmpsUpdated.Count;
+        return Ok(result);
+    }
+
+    [HttpGet("download-gdb")]
+    [UserViewFeature]
+    [Produces("application/zip")]
+    public async Task<FileResult> DownloadGdb()
+    {
+        var currentPerson = People.GetByID(DbContext, CallingUser.PersonID);
+        var (bytes, fileName) = await TreatmentBMPGdbExport.BuildBMPInventoryGdbExportAsync(DbContext, gdalApiService, currentPerson);
+        return File(bytes, "application/zip", fileName);
     }
 }

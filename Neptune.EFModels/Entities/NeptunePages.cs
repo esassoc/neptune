@@ -1,4 +1,4 @@
-﻿/*-----------------------------------------------------------------------
+/*-----------------------------------------------------------------------
 <copyright file="NeptunePage.cs" company="Tahoe Regional Planning Agency and Sitka Technology Group">
 Copyright (c) Tahoe Regional Planning Agency and Sitka Technology Group. All rights reserved.
 <author>Sitka Technology Group</author>
@@ -27,25 +27,7 @@ namespace Neptune.EFModels.Entities
 {
     public static class NeptunePages
     {
-        public static IQueryable<NeptunePage> GetImpl(NeptuneDbContext dbContext)
-        {
-            return dbContext.NeptunePages;
-        }
 
-        public static List<NeptunePage> List(NeptuneDbContext dbContext)
-        {
-            return GetImpl(dbContext).AsNoTracking().ToList()
-                .OrderBy(x => x.NeptunePageType.NeptunePageTypeDisplayName)
-                .ToList();
-        }
-
-        public static NeptunePage GetNeptunePageByPageType(NeptuneDbContext dbContext, NeptunePageType neptunePageType)
-        {
-            var neptunePage = GetImpl(dbContext).AsNoTracking()
-                .SingleOrDefault(x => x.NeptunePageTypeID == neptunePageType.NeptunePageTypeID);
-            Check.RequireNotNull(neptunePage);
-            return neptunePage;
-        }
         public static NeptunePageDto GetByNeptunePageTypeID(NeptuneDbContext dbContext, int neptunePageID)
         {
             var neptunePage = dbContext.NeptunePages

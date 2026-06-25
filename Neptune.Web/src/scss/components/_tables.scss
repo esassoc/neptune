@@ -3,46 +3,38 @@
 .table {
     width: 100%;
     font-size: $type-size-200;
-    border: 1px solid $gray-light;
-    border-radius: $spacing-200;
     border-collapse: separate;
+
+    // Center-aligned cells (header + body). Previously referenced as an undefined class;
+    // scoped under .table so it out-specifies the default left-aligned th/td rules.
+    th.cell-center,
+    td.cell-center {
+        text-align: center;
+    }
 
     thead {
         th {
             text-align: left;
-            background: $gray-100;
+            background: transparent;
             color: $black;
-            padding: 1rem 0.75rem;
+            padding: 0.5rem 0.75rem;
             vertical-align: middle;
-            &:first-child {
-                border-radius: $spacing-200 0 0 0;
-            }
-            &:last-child {
-                border-radius: 0 $spacing-200 0 0;
-            }
+            border-bottom: 3px solid $gray-300;
         }
     }
 
     tbody {
         td {
-            padding: 1rem 0.75rem;
+            padding: 0.5rem 0.75rem;
             vertical-align: middle;
         }
 
         tr {
-            & > td:first-of-type {
-                font-weight: bold;
-            }
-
             & + tr {
                 td {
                     border-top: 1px solid rgba($black, 0.1);
                 }
             }
-        }
-
-        tr:nth-of-type(even) {
-            background: rgba($primary, 0.05);
         }
     }
 
@@ -57,42 +49,49 @@
         font-weight: bold;
     }
 
-    // Apply with `<table class="table condensed">` to halve the vertical
-    // row padding for denser tables. Combine with `simple` as needed.
-    &.condensed {
-        thead th {
-            padding-top: 0.5rem;
-            padding-bottom: 0.5rem;
-        }
-        tbody td {
-            padding-top: 0.5rem;
-            padding-bottom: 0.5rem;
-        }
-    }
-
-    // Apply with `<table class="table simple">` for a frameless variant: no
-    // outer border, no header background, just a thicker rule under the header
-    // and the inherited thin rules between rows.
-    &.simple {
-        border: none;
-        border-radius: 0;
+    // Apply with `<table class="table framed">` to add an outer border + rounded
+    // corners, a gray header background, bold first column, and zebra striping.
+    // Use when the table sits in a card alongside other content (text above it,
+    // or multiple tables in the same card) so the table reads as its own block.
+    &.framed {
+        border: 1px solid $gray-light;
+        border-radius: $spacing-200;
 
         thead th {
-            background: transparent;
-            border-radius: 0;
-            border-bottom: 3px solid $gray-300;
+            background: $gray-100;
+
+            &:first-child {
+                border-radius: $spacing-200 0 0 0;
+            }
+            &:last-child {
+                border-radius: 0 $spacing-200 0 0;
+            }
         }
 
         tbody {
             tr > td:first-of-type {
-                font-weight: normal;
+                font-weight: bold;
             }
             tr.total > td {
                 font-weight: bold;
             }
             tr:nth-of-type(even) {
-                background: transparent;
+                background: rgba($primary, 0.05);
             }
+        }
+    }
+
+    // Apply with `<table class="table padded">` to restore the looser 1rem
+    // vertical row padding (the pre-2026 default). Use for low-density tables
+    // where rows want more breathing room.
+    &.padded {
+        thead th {
+            padding-top: 1rem;
+            padding-bottom: 1rem;
+        }
+        tbody td {
+            padding-top: 1rem;
+            padding-bottom: 1rem;
         }
     }
 

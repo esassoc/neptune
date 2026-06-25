@@ -1,4 +1,4 @@
-﻿using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.Http;
 using Microsoft.EntityFrameworkCore;
 using Neptune.Models.DataTransferObjects;
 
@@ -39,27 +39,6 @@ public class FileResources
         return errors;
     }
 
-    public static FileResource Create(NeptuneDbContext dbContext, IFormFile file, string canonicalName, int createPersonID, DateTime createDate)
-    {
-        var clientFilename = file.FileName;
-        var extension = clientFilename.Split('.').Last();
-        var fileResourceGuid = Guid.NewGuid();
-
-        var fileResource = new FileResource
-        {
-            FileResourceGUID = fileResourceGuid,
-            OriginalBaseFilename = clientFilename,
-            OriginalFileExtension = extension,
-            CreateDate = createDate,
-            CreatePersonID = createPersonID,
-        };
-
-        dbContext.FileResources.Add(fileResource);
-        dbContext.SaveChanges();
-
-        return fileResource;
-    }
-
     public static FileResource? GetByID(NeptuneDbContext dbContext, int fileResourceID)
     {
         var fileResource = dbContext.FileResources
@@ -67,20 +46,6 @@ public class FileResources
             .SingleOrDefault(x => x.FileResourceID == fileResourceID);
 
         return fileResource;
-    }
-
-    public static FileResource? GetByGuidString(NeptuneDbContext dbContext, string fileResourceGuidAsString)
-    {
-        var isValidGuid = Guid.TryParse(fileResourceGuidAsString, out var fileResourceGuid);
-        if (isValidGuid)
-        {
-            var fileResource = dbContext.FileResources.AsNoTracking()
-                .SingleOrDefault(x => x.FileResourceGUID == fileResourceGuid);
-
-            return fileResource;
-        }
-
-        return null;
     }
 
     public static async Task DeleteAsync(NeptuneDbContext dbContext, int fileResourceID)

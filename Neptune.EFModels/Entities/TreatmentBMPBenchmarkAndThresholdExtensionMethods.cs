@@ -4,19 +4,6 @@ namespace Neptune.EFModels.Entities
 {
     public static class TreatmentBMPBenchmarkAndThresholdExtensionMethods
     {
-        public static TreatmentBMPBenchmarkAndThresholdDto AsDto(this TreatmentBMPBenchmarkAndThreshold entity)
-        {
-            return new TreatmentBMPBenchmarkAndThresholdDto
-            {
-                TreatmentBMPBenchmarkAndThresholdID = entity.TreatmentBMPBenchmarkAndThresholdID,
-                TreatmentBMPID = entity.TreatmentBMPID,
-                TreatmentBMPTypeAssessmentObservationTypeID = entity.TreatmentBMPTypeAssessmentObservationTypeID,
-                TreatmentBMPTypeID = entity.TreatmentBMPTypeID,
-                TreatmentBMPAssessmentObservationTypeID = entity.TreatmentBMPAssessmentObservationTypeID,
-                BenchmarkValue = entity.BenchmarkValue,
-                ThresholdValue = entity.ThresholdValue
-            };
-        }
 
         public static void UpdateFromUpsertDto(this TreatmentBMPBenchmarkAndThreshold entity, TreatmentBMPBenchmarkAndThresholdUpsertDto dto)
         {

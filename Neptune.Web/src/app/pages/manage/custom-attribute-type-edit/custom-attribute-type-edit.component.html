@@ -35,17 +35,17 @@
                             </form-field>
                             <form-field class="g-col-6" [formControl]="formGroup.controls.MeasurementUnitTypeID"
                                 fieldLabel="Measurement Unit" [type]="FormFieldType.Select"
-                                placeholder="Select Unit (optional)" [formInputOptions]="unitOptions">
+                                placeholder="Select Unit" [formInputOptions]="unitOptions">
                             </form-field>
                             <form-field class="g-col-6" [formControl]="formGroup.controls.IsRequired"
                                 fieldLabel="Is Required" [type]="FormFieldType.Select"
                                 [formInputOptions]="booleanOptions">
                             </form-field>
                             <form-field class="g-col-12" [formControl]="formGroup.controls.CustomAttributeTypeDescription"
-                                fieldLabel="Description" [type]="FormFieldType.Textarea" placeholder="Description (optional)">
+                                fieldLabel="Description" [type]="FormFieldType.Textarea" placeholder="Description">
                             </form-field>
                             <form-field class="g-col-12" [formControl]="formGroup.controls.CustomAttributeTypeDefaultValue"
-                                fieldLabel="Default Value" [type]="FormFieldType.Text" placeholder="Default value (optional)">
+                                fieldLabel="Default Value" [type]="FormFieldType.Text" placeholder="Default value">
                             </form-field>
                         </div>
                     </div>
@@ -68,17 +68,15 @@
                                             <button type="button" class="btn btn-sm btn-primary" (click)="saveOptionEdit($index)" title="Save">
                                                 <i class="fa fa-check"></i>
                                             </button>
-                                            <button type="button" class="btn btn-sm btn-secondary-outline" (click)="cancelOptionEdit()" title="Cancel">
+                                            <button type="button" class="btn btn-sm btn-primary-outline" (click)="cancelOptionEdit()" title="Cancel">
                                                 <i class="fa fa-times"></i>
                                             </button>
                                         } @else {
                                             <span class="options-editor__text">{{ option }}</span>
-                                            <button type="button" class="btn btn-sm btn-secondary-outline" (click)="startEditOption($index)" [attr.aria-label]="'Edit option ' + option" title="Edit">
+                                            <button type="button" class="btn btn-sm btn-primary-outline" (click)="startEditOption($index)" [attr.aria-label]="'Edit option ' + option" title="Edit">
                                                 <i class="fa fa-pencil"></i>
                                             </button>
-                                            <button type="button" class="btn btn-sm btn-danger-outline" (click)="removeOption($index)" [attr.aria-label]="'Delete option ' + option" title="Delete">
-                                                <i class="fa fa-trash"></i>
-                                            </button>
+                                            <button type="button" class="btn-delete-row" (click)="removeOption($index)" [attr.aria-label]="'Delete option ' + option" title="Delete"></button>
                                         }
                                     </div>
                                 }
@@ -100,7 +98,7 @@
 
         <div class="page-footer">
             <button type="button" class="btn btn-primary" (click)="save()" [disabled]="isSaving() || formGroup.invalid">Save</button>
-            <button type="button" class="btn btn-secondary-outline" (click)="cancel()" [disabled]="isSaving()">Cancel</button>
+            <button type="button" class="btn btn-primary-outline" (click)="cancel()" [disabled]="isSaving()">Cancel</button>
         </div>
     </div>
 } @else {

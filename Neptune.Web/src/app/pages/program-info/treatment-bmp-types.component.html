@@ -8,7 +8,7 @@
                     <div class="card-header">
                         <span class="card-title">{{ bmpType.TreatmentBMPTypeName }}</span>
                         @if (isAuthenticated) {
-                            <a class="btn btn-sm btn-white-outline view-details" [routerLink]="['/program-info/treatment-bmp-types', bmpType.TreatmentBMPTypeID]">
+                            <a class="btn btn-sm btn-primary-outline view-details" [routerLink]="['/program-info/treatment-bmp-types', bmpType.TreatmentBMPTypeID]">
                                 View Details
                             </a>
                         }
@@ -19,7 +19,7 @@
                         @if (isAuthenticated) {
                             @if (bmpType.ObservationTypes?.length) {
                                 <p class="section-label">Applicable Observation Types:</p>
-                                <table class="table table-condensed bmp-type-card__observations">
+                                <table class="table framed bmp-type-card__observations">
                                     <thead>
                                         <tr>
                                             <th>Observation</th>

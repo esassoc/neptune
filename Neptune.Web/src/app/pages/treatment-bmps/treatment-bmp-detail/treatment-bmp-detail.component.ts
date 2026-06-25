@@ -6,6 +6,8 @@ import { ConfirmService } from "src/app/shared/services/confirm/confirm.service"
 import { Component, OnInit, OnChanges, SimpleChanges, ViewChild, TemplateRef, Input } from "@angular/core";
 import { Router, RouterLink } from "@angular/router";
 import { DatePipe, AsyncPipe, CommonModule } from "@angular/common";
+import { HttpErrorResponse } from "@angular/common/http";
+import { escapeHtml } from "src/app/shared/helpers/html-escape";
 import { BehaviorSubject, Observable } from "rxjs";
 import { shareReplay, switchMap, tap } from "rxjs/operators";
 import { PageHeaderComponent } from "src/app/shared/components/page-header/page-header.component";
@@ -15,6 +17,8 @@ import { MarkerHelper } from "src/app/shared/helpers/marker-helper";
 import { TreatmentBMPService } from "src/app/shared/generated/api/treatment-bmp.service";
 import { TreatmentBMPImageByTreatmentBMPService } from "src/app/shared/generated/api/treatment-bmp-image-by-treatment-bmp.service";
 import { TreatmentBMPDto } from "src/app/shared/generated/model/treatment-bmp-dto";
+import { ProjectLoadReducingResultDto } from "src/app/shared/generated/model/project-load-reducing-result-dto";
+import { TreatmentBMPNereidLogContentDto } from "src/app/shared/generated/model/treatment-bmp-nereid-log-content-dto";
 import { FieldDefinitionComponent } from "src/app/shared/components/field-definition/field-definition.component";
 import { NeptuneMapComponent } from "src/app/shared/components/leaflet/neptune-map/neptune-map.component";
 import { RegionalSubbasinsLayerComponent } from "src/app/shared/components/leaflet/layers/regional-subbasins-layer/regional-subbasins-layer.component";
@@ -30,7 +34,7 @@ import { ImageCarouselComponent } from "src/app/shared/components/image-carousel
 import { ModeledBmpPerformanceComponent } from "src/app/shared/components/modeled-bmp-performance/modeled-bmp-performance.component";
 import { WaterQualityManagementPlanModelingApproachEnum } from "src/app/shared/generated/enum/water-quality-management-plan-modeling-approach-enum";
 import { HRUCharacteristicDto } from "src/app/shared/generated/model/hru-characteristic-dto";
-import { ColDef } from "ag-grid-community";
+import { ColDef, ICellRendererParams } from "ag-grid-community";
 import { UtilityFunctionsService } from "src/app/services/utility-functions.service";
 import { LandUseTableComponent } from "src/app/shared/components/land-use-table/land-use-table.component";
 import { NeptuneGridComponent } from "src/app/shared/components/neptune-grid/neptune-grid.component";
@@ -49,6 +53,7 @@ import {
     TreatmentBMPUpstreamestErrorsDto,
 } from "src/app/shared/generated/model/models";
 import { FieldVisitDto } from "src/app/shared/generated/model/field-visit-dto";
+import { FieldVisitStatusEnum } from "src/app/shared/generated/enum/field-visit-status-enum";
 import { FundingEventByTreatmentBMPIDService } from "src/app/shared/generated/api/funding-event-by-treatment-bmpid.service";
 import { FundingEventDto } from "src/app/shared/generated/model/funding-event-dto";
 import { CustomAttributeTypePurposeEnum } from "src/app/shared/generated/enum/custom-attribute-type-purpose-enum";
@@ -57,7 +62,7 @@ import { GroupByPipe } from "src/app/shared/pipes/group-by.pipe";
 import { SumPipe } from "src/app/shared/pipes/sum.pipe";
 import { OverlayMode } from "src/app/shared/components/leaflet/layers/generic-wms-wfs-layer/overlay-mode.enum";
 import { HruCharacteristicsGridComponent } from "src/app/shared/components/hru-characteristics-grid/hru-characteristics-grid.component";
-import { IconComponent } from "src/app/shared/components/icon/icon.component";
+import { NoteComponent } from "src/app/shared/components/note/note.component";
 import { TrashCaptureStatusTypeEnum } from "src/app/shared/generated/enum/trash-capture-status-type-enum";
 import {
     TreatmentBmpUpdateTypeModalComponent,
@@ -77,7 +82,7 @@ import { RegionalSubbasinRevisionRequestStatusEnum } from "src/app/shared/genera
 import { AuthenticationService } from "src/app/services/authentication.service";
 import { RoleEnum } from "src/app/shared/generated/enum/role-enum";
 import { TreatmentBMPBenchmarkAndThresholdService } from "src/app/shared/generated/api/treatment-bmp-benchmark-and-threshold.service";
-import { TreatmentBMPBenchmarkAndThresholdDto } from "src/app/shared/generated/model/treatment-bmp-benchmark-and-threshold-dto";
+import { TreatmentBMPBenchmarkAndThresholdWithObservationTypeDto } from "src/app/shared/generated/model/treatment-bmp-benchmark-and-threshold-with-observation-type-dto";
 import {
     TreatmentBmpBenchmarkThresholdModalComponent,
     TreatmentBmpBenchmarkThresholdModalContext,
@@ -110,7 +115,7 @@ import {
         NeptuneGridComponent,
         CustomAttributesDisplayComponent,
         HruCharacteristicsGridComponent,
-        IconComponent,
+        NoteComponent,
         FileResourceListComponent,
     ],
 })
@@ -155,11 +160,12 @@ export class TreatmentBmpDetailComponent implements OnInit, OnChanges {
     treatmentBMPTypeCustomAttributeTypes$: Observable<TreatmentBMPTypeCustomAttributeTypeDto[]>;
     treatmentBMPImages$: Observable<TreatmentBMPImageDto[]>;
     treatmentBMPDocuments$: Observable<TreatmentBMPDocumentDto[]>;
+    loadReducingResult$!: Observable<ProjectLoadReducingResultDto | null>;
     refreshTreatmentBMPDocumentsTrigger$: BehaviorSubject<void> = new BehaviorSubject<void>(undefined);
     hruCharacteristics$: Observable<HRUCharacteristicDto[]>;
     fieldVisits$: Observable<FieldVisitDto[]>;
     private fieldVisitsReload$ = new BehaviorSubject<void>(undefined);
-    benchmarkAndThresholds$: Observable<TreatmentBMPBenchmarkAndThresholdDto[]>;
+    benchmarkAndThresholds$: Observable<TreatmentBMPBenchmarkAndThresholdWithObservationTypeDto[]>;
     fieldVisitColumnDefs: Array<ColDef>;
 
     imagesLoading = true;
@@ -171,7 +177,10 @@ export class TreatmentBmpDetailComponent implements OnInit, OnChanges {
     openRevisionRequestDetailUrl = "";
     currentPersonCanManage = false;
     canEditStormwaterJurisdiction = false;
-    isAnalyzedInModelingModule = true;
+    // Sourced from TreatmentBMPType.IsAnalyzedInModelingModule via the BMP DTO. Gates the
+    // "Modeled BMP Performance" panel. Distinct from `hasModelingAttributes` — a BMP type can
+    // be modeled without exposing any user-configurable Modeling-purpose custom attributes.
+    isAnalyzedInModelingModule = false;
     isSitkaAdmin = false;
     hasModelingAttributes = false;
     upstreamSectionExpanded = false;
@@ -205,17 +214,25 @@ export class TreatmentBmpDetailComponent implements OnInit, OnChanges {
         this.fieldVisitColumnDefs = [
             this.utilityFunctionsService.createActionsColumnDef((params: any) => {
                 const visit: FieldVisitDto = params.data;
-                const inProgress = visit.FieldVisitStatusID === 1; // FieldVisitStatusEnum.InProgress
-                const actions: { ActionName: string; ActionIcon?: string; ActionHandler: () => void }[] = [
+                // Editable (still in progress or returned to edit) → workflow outlet; otherwise the
+                // visit is wrapped up and "View" must go to the read-only detail page, not the
+                // workflow (NPT-1061 item 6c). ActionLink renders an <a [routerLink]> so ctrl+click
+                // opens it in a new tab.
+                const editable = visit.FieldVisitStatusID === FieldVisitStatusEnum.InProgress
+                    || visit.FieldVisitStatusID === FieldVisitStatusEnum.ReturnedToEdit;
+                const actions: { ActionName: string; ActionIcon?: string; ActionLink?: string; ActionHandler?: () => void }[] = [
                     {
-                        ActionName: inProgress ? "Continue" : "View",
-                        ActionHandler: () => this.router.navigate(["/field-visits", visit.FieldVisitID]),
+                        ActionName: editable ? "Continue" : "View",
+                        ActionIcon: editable ? "fas fa-edit" : "fas fa-file-alt",
+                        ActionLink: editable
+                            ? `/field-visits/${visit.FieldVisitID}`
+                            : `/field-visits/${visit.FieldVisitID}/view`,
                     },
                 ];
                 if (this.currentPersonCanManage) {
                     actions.push({
                         ActionName: "Delete",
-                        ActionIcon: "fa fa-trash text-danger",
+                        ActionIcon: "fas fa-trash text-danger",
                         ActionHandler: () => this.deleteFieldVisit(params),
                     });
                 }
@@ -228,10 +245,10 @@ export class TreatmentBmpDetailComponent implements OnInit, OnChanges {
             this.utilityFunctionsService.createBasicColumnDef("Field Visit Type", "FieldVisitTypeDisplayName"),
             this.utilityFunctionsService.createBooleanColumnDef("Inventory Updated?", "InventoryUpdated"),
             this.utilityFunctionsService.createBooleanColumnDef("Required Attributes Entered?", "RequiredAttributesEntered"),
-            this.utilityFunctionsService.createBasicColumnDef("Initial Assessment?", "InitialAssessmentStatus"),
+            this.buildAssessmentColumnDef("Initial Assessment?", "InitialAssessmentStatus", "TreatmentBMPAssessmentIDInitial"),
             this.utilityFunctionsService.createDecimalColumnDef("Initial Assessment Score", "AssessmentScoreInitial"),
-            this.utilityFunctionsService.createBasicColumnDef("Maintenance Occurred?", "MaintenanceOccurred"),
-            this.utilityFunctionsService.createBasicColumnDef("Post-Maintenance Assessment?", "PostMaintenanceAssessmentStatus"),
+            this.buildMaintenanceOccurredColumnDef(),
+            this.buildAssessmentColumnDef("Post-Maintenance Assessment?", "PostMaintenanceAssessmentStatus", "TreatmentBMPAssessmentIDPM"),
             this.utilityFunctionsService.createDecimalColumnDef("Post-Maintenance Assessment Score", "AssessmentScorePM"),
         ];
         this.loadData();
@@ -249,6 +266,56 @@ export class TreatmentBmpDetailComponent implements OnInit, OnChanges {
         if (changes["treatmentBMPID"] && !changes["treatmentBMPID"].firstChange) {
             this.loadData();
         }
+    }
+
+    /** NPT-1056: mirror the Manager Dashboard's assessment column — the cell text comes from
+     * the pre-computed status string (`Complete` / `In Progress` / `Not Performed`) and links
+     * to the SPA assessment detail page when an ID is present. */
+    private buildAssessmentColumnDef(headerName: string, statusField: keyof FieldVisitDto, idField: keyof FieldVisitDto): ColDef {
+        return {
+            headerName,
+            valueGetter: (params) => {
+                const visit = params.data as FieldVisitDto;
+                return (visit?.[statusField] as string) ?? "Not Performed";
+            },
+            cellRenderer: (params: ICellRendererParams) => {
+                const visit = params.data as FieldVisitDto;
+                const text = (visit?.[statusField] as string) ?? "Not Performed";
+                const assessmentID = visit?.[idField] as number | null | undefined;
+                if (!assessmentID) return text;
+                const a = document.createElement("a");
+                a.href = `/treatment-bmp-assessments/${assessmentID}`;
+                a.textContent = text;
+                a.addEventListener("click", (e) => {
+                    e.preventDefault();
+                    this.router.navigate(["/treatment-bmp-assessments", assessmentID]);
+                });
+                return a;
+            },
+        };
+    }
+
+    private buildMaintenanceOccurredColumnDef(): ColDef {
+        return {
+            headerName: "Maintenance Occurred?",
+            valueGetter: (params) => {
+                const visit = params.data as FieldVisitDto;
+                return visit?.MaintenanceOccurred ?? (visit?.MaintenanceRecordID != null ? "Performed" : "Not Performed");
+            },
+            cellRenderer: (params: ICellRendererParams) => {
+                const visit = params.data as FieldVisitDto;
+                const text = visit?.MaintenanceOccurred ?? (visit?.MaintenanceRecordID != null ? "Performed" : "Not Performed");
+                if (!visit?.MaintenanceRecordID) return text;
+                const a = document.createElement("a");
+                a.href = `/maintenance-records/${visit.MaintenanceRecordID}`;
+                a.textContent = text;
+                a.addEventListener("click", (e) => {
+                    e.preventDefault();
+                    this.router.navigate(["/maintenance-records", visit!.MaintenanceRecordID]);
+                });
+                return a;
+            },
+        };
     }
 
     private loadData(): void {
@@ -271,7 +338,7 @@ export class TreatmentBmpDetailComponent implements OnInit, OnChanges {
         this.fieldVisits$ = this.fieldVisitsReload$.pipe(
             switchMap(() => this.treatmentBMPService.fieldVisitGridJsonDataTreatmentBMP(this.treatmentBMPID))
         );
-        this.benchmarkAndThresholds$ = this.benchmarkAndThresholdService.listTreatmentBMPBenchmarkAndThreshold(this.treatmentBMPID).pipe(
+        this.benchmarkAndThresholds$ = this.benchmarkAndThresholdService.listWithObservationTypesTreatmentBMPBenchmarkAndThreshold(this.treatmentBMPID).pipe(
             tap((benchmarks) => (this.currentBenchmarks = benchmarks))
         );
 
@@ -294,6 +361,7 @@ export class TreatmentBmpDetailComponent implements OnInit, OnChanges {
 
                 this.hasSettableBenchmarkAndThresholdValues = bmp?.HasSettableBenchmarkAndThresholdValues ?? false;
                 this.canEditBenchmarkAndThresholds = this.currentPersonCanManage && this.hasSettableBenchmarkAndThresholdValues;
+                this.isAnalyzedInModelingModule = bmp?.IsAnalyzedInModelingModule ?? false;
             }),
             shareReplay(1)
         );
@@ -335,6 +403,11 @@ export class TreatmentBmpDetailComponent implements OnInit, OnChanges {
         this.treatmentBMPDocuments$ = this.refreshTreatmentBMPDocumentsTrigger$.pipe(
             switchMap(() => this.treatmentBMPDocumentByTreatmentBMPService.listTreatmentBMPDocumentByTreatmentBMP(this.treatmentBMPID))
         );
+
+        // NPT-1068: Modeled BMP Performance source. Endpoint returns 200 with a null body when
+        // Nereid hasn't produced a non-baseline result yet, so the async pipe just sees null and
+        // the template falls back to the "missing fields" / "not modeled" message.
+        this.loadReducingResult$ = this.treatmentBMPService.getLoadReducingResultTreatmentBMP(this.treatmentBMPID);
 
         this.refreshTreatmentBMPDocumentsTrigger$.next();
     }
@@ -471,9 +544,7 @@ export class TreatmentBmpDetailComponent implements OnInit, OnChanges {
 
     canEditBenchmarkAndThresholds = false;
     hasSettableBenchmarkAndThresholdValues = false;
-    currentBenchmarks: TreatmentBMPBenchmarkAndThresholdDto[] = [];
-
-    // NOTE: TreatmentBMPTypeIsAnalyzedInModelingModule is expected on treatmentBMP DTO. If missing, add to DTO or adjust template logic.
+    currentBenchmarks: TreatmentBMPBenchmarkAndThresholdWithObservationTypeDto[] = [];
 
     private delineationLayer: L.GeoJSON | null = null;
 
@@ -519,8 +590,9 @@ export class TreatmentBmpDetailComponent implements OnInit, OnChanges {
         });
     }
 
-    openEditBenchmarkAndThresholdsModal(benchmarks: TreatmentBMPBenchmarkAndThresholdDto[]): void {
+    openEditBenchmarkAndThresholdsModal(benchmarks: TreatmentBMPBenchmarkAndThresholdWithObservationTypeDto[]): void {
         const dialogRef = this.dialogService.open(TreatmentBmpBenchmarkThresholdModalComponent, {
+            size: "lg",
             data: {
                 treatmentBMPID: this.treatmentBMPID,
                 benchmarks: benchmarks,
@@ -553,9 +625,17 @@ export class TreatmentBmpDetailComponent implements OnInit, OnChanges {
     uploadDocument(fileResource: IFileResourceUpload): void {
         this.treatmentBMPDocumentByTreatmentBMPService
             .createTreatmentBMPDocumentByTreatmentBMP(this.treatmentBMPID, fileResource.File, fileResource.DocumentDescription)
-            .subscribe((result) => {
-                this.alertService.pushAlert(new Alert("Successfully uploaded document.", AlertContext.Success));
-                this.refreshTreatmentBMPDocumentsTrigger$.next();
+            .subscribe({
+                next: () => {
+                    this.alertService.pushAlert(new Alert("Successfully uploaded document.", AlertContext.Success));
+                    this.refreshTreatmentBMPDocumentsTrigger$.next();
+                },
+                // Surface server-side validation failures (e.g. unsupported file type / oversized
+                // file) instead of swallowing the 400 and leaving the user with no feedback.
+                error: (err: HttpErrorResponse) => {
+                    const raw = err?.error?.detail ?? err?.error?.title ?? err?.error ?? "There was an error uploading the document.";
+                    this.alertService.pushAlert(new Alert(escapeHtml(typeof raw === "string" ? raw : "There was an error uploading the document."), AlertContext.Danger));
+                },
             });
     }
 
@@ -576,6 +656,41 @@ export class TreatmentBmpDetailComponent implements OnInit, OnChanges {
         this.treatmentBMPDocumentByTreatmentBMPService.deleteTreatmentBMPDocumentByTreatmentBMP(this.treatmentBMPID, treatmentBMPDocument.TreatmentBMPDocumentID).subscribe(() => {
             this.alertService.pushAlert(new Alert("Successfully deleted document.", AlertContext.Success));
             this.refreshTreatmentBMPDocumentsTrigger$.next();
+        });
+    }
+
+    /**
+     * NPT-1068: Sitka-admin "Latest Nereid Request" / "Latest Nereid Response" downloads on the
+     * Modeled BMP Performance panel. Fetches the BMP's most-recent NereidLog content via the
+     * API and triggers a browser blob download, matching the legacy MVC pattern.
+     */
+    public downloadLatestNereidLog(which: "request" | "response"): void {
+        this.treatmentBMPService.getLatestNereidLogTreatmentBMP(this.treatmentBMPID).subscribe({
+            next: (log: TreatmentBMPNereidLogContentDto | null) => {
+                if (!log) {
+                    this.alertService.pushAlert(new Alert("No Nereid log found for this BMP yet.", AlertContext.Warning, true));
+                    return;
+                }
+                const content = which === "request" ? log.NereidRequest : log.NereidResponse;
+                if (!content) {
+                    this.alertService.pushAlert(new Alert(`No Nereid ${which} content available for this BMP yet.`, AlertContext.Warning, true));
+                    return;
+                }
+                const blob = new Blob([content], { type: "application/json" });
+                const url = window.URL.createObjectURL(blob);
+                const a = document.createElement("a");
+                a.href = url;
+                a.download = `nereid${which === "request" ? "Request" : "Response"}_BMP${this.treatmentBMPID}.json`;
+                a.click();
+                window.URL.revokeObjectURL(url);
+            },
+            error: () => {
+                // Endpoint returns 200 + null body in the no-log case, so we only hit this on a
+                // real failure (auth expiry, network drop, 5xx). Don't leave the user wondering.
+                this.alertService.pushAlert(
+                    new Alert(`Could not download the latest Nereid ${which}. Please try again or contact support.`, AlertContext.Danger, true)
+                );
+            },
         });
     }
 }

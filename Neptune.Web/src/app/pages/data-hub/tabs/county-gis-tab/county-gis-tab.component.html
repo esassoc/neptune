@@ -1,0 +1,82 @@
+<div class="tab-body">
+    <div class="tab-main">
+        <h3>Parcels</h3>
+        <custom-rich-text [customRichTextTypeID]="NeptunePageTypeEnum.ParcelUploadDataHub"></custom-rich-text>
+        @if (lastUpdated()) {
+            <span class="last-updated">Last Updated: {{ lastUpdated().Parcels | date: 'medium' }}</span>
+        }
+        <data-hub-action-button
+            label="Refresh"
+            icon="refresh"
+            [disabled]="!isAdmin() || refreshing() !== null"
+            [disabledTooltip]="adminOnlyTooltip"
+            (action)="refresh('parcels', 'Parcels')"
+        ></data-hub-action-button>
+
+        <h3>Regional Subbasins</h3>
+        <custom-rich-text [customRichTextTypeID]="NeptunePageTypeEnum.RegionalSubbasinsDataHub"></custom-rich-text>
+        @if (lastUpdated()) {
+            <span class="last-updated">Last Updated: {{ lastUpdated().RegionalSubbasins | date: 'medium' }}</span>
+        }
+        <data-hub-action-button
+            label="Refresh"
+            icon="refresh"
+            [disabled]="!isAdmin() || refreshing() !== null"
+            [disabledTooltip]="adminOnlyTooltip"
+            (action)="refresh('regional-subbasins', 'Regional Subbasins')"
+        ></data-hub-action-button>
+
+        <h3>HRU Characteristics</h3>
+        <custom-rich-text [customRichTextTypeID]="NeptunePageTypeEnum.LandUseStatisticsDataHub"></custom-rich-text>
+        @if (lastUpdated()) {
+            <span class="last-updated">Last Updated: {{ lastUpdated().HRUCharacteristics | date: 'medium' }}</span>
+        }
+        <data-hub-action-button
+            label="Refresh"
+            icon="refresh"
+            [disabled]="!isAdmin() || refreshing() !== null"
+            [disabledTooltip]="adminOnlyTooltip"
+            (action)="refresh('hru-characteristics', 'HRU Characteristics')"
+        ></data-hub-action-button>
+
+        <h3>Model Basins</h3>
+        <custom-rich-text [customRichTextTypeID]="NeptunePageTypeEnum.ModelBasinsDataHub"></custom-rich-text>
+        @if (lastUpdated()) {
+            <span class="last-updated">Last Updated: {{ lastUpdated().ModelBasins | date: 'medium' }}</span>
+        }
+        <data-hub-action-button
+            label="Refresh"
+            icon="refresh"
+            [disabled]="!isAdmin() || refreshing() !== null"
+            [disabledTooltip]="adminOnlyTooltip"
+            (action)="refresh('model-basins', 'Model Basins')"
+        ></data-hub-action-button>
+
+        <h3>Precipitation Zones</h3>
+        <custom-rich-text [customRichTextTypeID]="NeptunePageTypeEnum.PrecipitationZonesDataHub"></custom-rich-text>
+        @if (lastUpdated()) {
+            <span class="last-updated">Last Updated: {{ lastUpdated().PrecipitationZones | date: 'medium' }}</span>
+        }
+        <data-hub-action-button
+            label="Refresh"
+            icon="refresh"
+            [disabled]="!isAdmin() || refreshing() !== null"
+            [disabledTooltip]="adminOnlyTooltip"
+            (action)="refresh('precipitation-zones', 'Precipitation Zones')"
+        ></data-hub-action-button>
+
+        <h3>OCTA Prioritization</h3>
+        <custom-rich-text [customRichTextTypeID]="NeptunePageTypeEnum.OCTAPrioritizationDataHub"></custom-rich-text>
+        @if (lastUpdated()) {
+            <span class="last-updated">Last Updated: {{ lastUpdated().OCTAPrioritizations | date: 'medium' }}</span>
+        }
+        <data-hub-action-button
+            label="Refresh"
+            icon="refresh"
+            [disabled]="!isAdmin() || refreshing() !== null"
+            [disabledTooltip]="adminOnlyTooltip"
+            (action)="refresh('octa-prioritizations', 'OCTA Prioritization')"
+        ></data-hub-action-button>
+    </div>
+    <data-hub-quick-links tab="county"></data-hub-quick-links>
+</div>

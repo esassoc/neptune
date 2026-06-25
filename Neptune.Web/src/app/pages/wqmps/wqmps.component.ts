@@ -1,6 +1,6 @@
 import { AsyncPipe } from "@angular/common";
 import { Component } from "@angular/core";
-import { Router } from "@angular/router";
+import { Router, RouterLink } from "@angular/router";
 import { ColDef } from "ag-grid-community";
 import { BehaviorSubject, map, Observable, shareReplay, switchMap, tap } from "rxjs";
 import { DialogService } from "@ngneat/dialog";
@@ -23,18 +23,19 @@ import { WqmpsLayerComponent } from "src/app/shared/components/leaflet/layers/wq
 import { NeptuneMapInitEvent } from "src/app/shared/components/leaflet/neptune-map/neptune-map.component";
 import { OverlayMode } from "src/app/shared/components/leaflet/layers/generic-wms-wfs-layer/overlay-mode.enum";
 import { DropdownToggleDirective } from "src/app/shared/directives/dropdown-toggle.directive";
-import { environment } from "src/environments/environment";
 import { WqmpModalComponent } from "./wqmp-modal/wqmp-modal.component";
 import { WqmpUploadModalComponent } from "./wqmp-upload-modal/wqmp-upload-modal.component";
+import { NeptunePageTypeEnum } from "src/app/shared/generated/enum/neptune-page-type-enum";
 
 @Component({
     selector: "wqmps",
     standalone: true,
-    imports: [PageHeaderComponent, AlertDisplayComponent, HybridMapGridComponent, AsyncPipe, WqmpsLayerComponent, ParcelLayerComponent, DelineationsLayerComponent, JurisdictionsLayerComponent, DropdownToggleDirective],
+    imports: [PageHeaderComponent, AlertDisplayComponent, HybridMapGridComponent, AsyncPipe, WqmpsLayerComponent, ParcelLayerComponent, DelineationsLayerComponent, JurisdictionsLayerComponent, DropdownToggleDirective, RouterLink],
     templateUrl: "./wqmps.component.html",
 })
 export class WqmpsComponent {
     public OverlayMode = OverlayMode;
+    public customRichTextTypeID = NeptunePageTypeEnum.WaterQualityMaintenancePlan;
     public wqmps$: Observable<WaterQualityManagementPlanGridDto[]>;
     public columnDefs$: Observable<ColDef[]>;
     public isLoading = true;
@@ -45,11 +46,10 @@ export class WqmpsComponent {
     public zoomOnNextSelection = true;
     public mapIsReady = false;
     public wqmpJurisdictionIDs: number[];
-    public siteUrl = environment.ocStormwaterToolsBaseUrl;
     public currentPersonCanEdit$: Observable<boolean>;
     // NPT-984: Create-from-PDF (the AI workflow entry point) is Manager-level — the backend
     // upload endpoint is gated on [JurisdictionManageFeature]. Editor-level users see the
-    // rest of the Actions menu (Add WQMP, Bulk Uploads via legacy MVC) but not Create from PDF.
+    // rest of the Actions menu (Add WQMP, Bulk Uploads via the Data Hub) but not Create from PDF.
     public currentPersonCanManage$: Observable<boolean>;
     private wqmps: WaterQualityManagementPlanGridDto[] = [];
     private reload$ = new BehaviorSubject<void>(undefined);

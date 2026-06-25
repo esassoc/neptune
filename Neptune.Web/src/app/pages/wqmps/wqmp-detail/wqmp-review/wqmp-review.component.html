@@ -39,7 +39,7 @@
                  jump between right-panel CTA and sidebar between states. The label and confirm
                  dialog text change with state but the click target stays put. -->
             <div class="review-sidebar__rerun">
-                <button class="btn btn-secondary-outline btn-block" (click)="confirmExtract()" [disabled]="isExtracting()"
+                <button class="btn btn-primary-outline btn-block" (click)="confirmExtract()" [disabled]="isExtracting()"
                         [title]="pageData.hasResult ? 'Replace the AI-extracted suggestions with a fresh run. Saved sections on the WQMP are preserved.' : 'Run AI extraction against the uploaded PDF.'">
                     @if (isExtracting()) {
                         <i class="fa fa-spinner fa-spin"></i> Extracting...

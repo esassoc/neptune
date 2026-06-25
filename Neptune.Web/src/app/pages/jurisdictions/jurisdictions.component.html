@@ -10,7 +10,7 @@
         entityIDField="StormwaterJurisdictionID"
         (onMapLoad)="handleMapReady($event, boundingBox)"
         [selectedValue]="selectedJurisdictionID"
-        [selectionFromMap]="true"
+        [selectionFromMap]="selectionFromMap"
         (selectedValueChange)="onSelectedJurisdictionIDChanged($event)">
         <jurisdictions-layer
             [map]="map"

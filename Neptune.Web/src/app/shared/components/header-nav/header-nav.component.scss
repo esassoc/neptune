@@ -260,6 +260,46 @@
     }
 }
 
+.impersonation-banner {
+    padding: 0.5rem 1rem;
+    background: $yellow-default;
+    color: $black;
+    z-index: 1;
+    position: relative;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 1rem;
+
+    &__icon {
+        padding-right: 0.5rem;
+    }
+
+    &__message {
+        font-family: monospace;
+        font-size: $type-size-150;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+        font-weight: 500;
+    }
+
+    &__stop {
+        background: $gray-1000;
+        color: $white;
+        border: none;
+        padding: 0.25rem 1rem;
+        font-size: $type-size-150;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+        font-weight: 500;
+        cursor: pointer;
+
+        &:hover {
+            background: $gray-400;
+        }
+    }
+}
+
 .dropdown-divider {
     border: 1px solid $gray-200;
     margin: 9px 0;

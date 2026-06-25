@@ -20,7 +20,7 @@
           >
           @if (onlandVisualTrashAssessments$ | async; as assessments) {
             <a
-              class="btn btn-primary-outline"
+              class="btn btn-danger-outline"
               (click)="deleteOVTAArea(onlandVisualTrashAssessmentArea, assessments.length)"
               >Delete OVTA Area</a>
           }
@@ -33,7 +33,7 @@
         <div class="card g-col-6">
           <div class="card-header flex-between">Details <button class="btn btn-primary" (click)="updateOVTAAreaDetails(onlandVisualTrashAssessmentArea)">Edit</button></div>
           <div class="card-body">
-            <dl class="grid-12">
+            <dl class="grid-12 key-value-list">
               <dt class="g-col-4">Assessment Area</dt>
               <dd class="g-col-8">
                 {{ onlandVisualTrashAssessmentArea.OnlandVisualTrashAssessmentAreaName }}
@@ -48,7 +48,7 @@
               </dd>
               <dt class="g-col-4"><field-definition fieldDefinitionType="BaselineScore"></field-definition></dt>
               <dd class="g-col-8">
-                {{ onlandVisualTrashAssessmentArea.OnlandVisualTrashAssessmentBaselineScoreName ?? "Not enough completed asssessments" }} @if (onlandVisualTrashAssessmentArea.OnlandVisualTrashAssessmentBaselineScoreTrashGenerationRate) { ({{onlandVisualTrashAssessmentArea.OnlandVisualTrashAssessmentBaselineScoreTrashGenerationRate}} gal/ac/yr)}
+                {{ onlandVisualTrashAssessmentArea.OnlandVisualTrashAssessmentBaselineScoreName ?? "Not enough completed assessments" }} @if (onlandVisualTrashAssessmentArea.OnlandVisualTrashAssessmentBaselineScoreTrashGenerationRate) { ({{onlandVisualTrashAssessmentArea.OnlandVisualTrashAssessmentBaselineScoreTrashGenerationRate}} gal/ac/yr)}
               </dd>
               <dt class="g-col-4"><field-definition fieldDefinitionType="ProgressScore"></field-definition></dt>
               <dd class="g-col-8">

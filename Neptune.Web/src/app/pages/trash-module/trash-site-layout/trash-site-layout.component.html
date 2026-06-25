@@ -17,7 +17,7 @@
                     <ul class="site-nav__links site-nav__main nav navbar-nav navbar-left">
                         @if (isAuthenticated() && isNotUnassigned(currentUser)) {
                             <li class="nav-item" routerLinkActive="active">
-                                <a [href]="siteUrl + '/DataHub/Index'" class="nav-link" role="button"> Data Hub </a>
+                                <a [routerLink]="['/data-hub']" class="nav-link" role="button"> Data Hub </a>
                             </li>
                             <li class="nav-item dropdown" routerLinkActive="active">
                                 <a
@@ -66,10 +66,10 @@
                                     <div #manageToggle class="dropdown-menu" aria-labelledby="navbarDropdown">
                                         <div class="dropdown-divider"></div>
                                         @if (isAdministrator(currentUser) || isJurisdicionManager(currentUser)) {
-                                            <a href="{{ usersListUrl() }}" class="dropdown-item"> Users </a>
+                                            <a [routerLink]="['/users']" class="dropdown-item"> Users </a>
                                         }
                                         @if (isAdministrator(currentUser)) {
-                                            <a href="{{ organizationsIndexUrl() }}" class="dropdown-item"> Organizations </a>
+                                            <a [routerLink]="['/organizations']" class="dropdown-item"> Organizations </a>
                                         }
                                         @if (isAdministrator(currentUser)) {
                                             <a [routerLink]="['/labels-and-definitions']" class="dropdown-item"> Labels and Definitions </a>

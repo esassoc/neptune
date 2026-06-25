@@ -45,7 +45,10 @@ public class OgrInfoController : ControllerBase
             {
                 var featureClassInfo = new FeatureClassInfo();
                 var features = featureClassBlob.Split(new[] { "\r\n" }, StringSplitOptions.RemoveEmptyEntries).ToList();
-                featureClassInfo.LayerName = features.First().ToLower();
+                // Preserve the original casing of the feature-class name. It is used verbatim in the ogr2ogr
+                // "SELECT ... FROM <layer>" statement, and OGR's SQL is case-sensitive on Linux/Docker, so a
+                // lowercased name (e.g. "dma" for a "DMA" layer) is not found and the conversion fails.
+                featureClassInfo.LayerName = features.First();
                 featureClassInfo.FeatureType = features.First(x => x.StartsWith("Geometry: ")).Substring("Geometry: ".Length);
                 featureClassInfo.FeatureCount = int.Parse(features.First(x => x.StartsWith("Feature Count: ")).Substring("Feature Count: ".Length));
 

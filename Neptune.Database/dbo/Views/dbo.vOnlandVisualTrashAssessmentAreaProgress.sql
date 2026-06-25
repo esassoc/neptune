@@ -10,7 +10,7 @@ From (
 	Select
 		OnlandVisualTrashAssessmentAreaID,
 		Avg(NumericValue) as NumericValue,
-		-- we only care about areas with two or more progress assessments, so we need this additional agg
+		-- we only care about areas with one or more progress assessments within the last 5 years, so we need this additional agg
 		Count(*) as NumberOfProgressAssessments
 	From (
 		-- get the progress assessments
@@ -22,11 +22,11 @@ From (
 		from dbo.OnlandVisualTrashAssessment ovta
 			inner join dbo.OnlandVisualTrashAssessmentScore score
 				on ovta.OnlandVisualTrashAssessmentScoreID = score.OnlandVisualTrashAssessmentScoreID
-		where IsProgressAssessment = 1 and CompletedDate >= DATEADD(year, -4, CURRENT_TIMESTAMP)
+		where IsProgressAssessment = 1 and CompletedDate >= DATEADD(year, -5, CAST(CURRENT_TIMESTAMP AS date))
 		) subq
 	where RoWNumber <=3
 	group by (OnlandVisualTrashAssessmentAreaID)
-	having count(*) > 1
+	having count(*) >= 1
 ) subq inner join dbo.OnlandVisualTrashAssessmentScore score
 	on subq.NumericValue = score.NumericValue
 Go

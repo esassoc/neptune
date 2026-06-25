@@ -1,0 +1,25 @@
+<page-header pageTitle="Data Hub"></page-header>
+
+<div class="page-body">
+    <div class="data-hub-tabs">
+        <btn-group-radio-input [options]="tabOptions" [default]="activeTabLabel" (change)="selectTab($event)"></btn-group-radio-input>
+    </div>
+
+    @switch (activeTab()) {
+        @case ("bmps") {
+            <bmps-and-delineations-tab></bmps-and-delineations-tab>
+        }
+        @case ("wqmps") {
+            <wqmps-tab></wqmps-tab>
+        }
+        @case ("trash") {
+            <trash-module-tab></trash-module-tab>
+        }
+        @case ("county") {
+            <county-gis-tab></county-gis-tab>
+        }
+        @case ("web-services") {
+            <web-services-tab></web-services-tab>
+        }
+    }
+</div>

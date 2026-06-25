@@ -101,7 +101,7 @@ export class DelineationReconciliationReportComponent implements OnInit {
             this.utility.createActionsColumnDef((params: any) => [
                 {
                     ActionName: "View on Map",
-                    ActionIcon: "fas fa-map-location-dot",
+                    ActionIcon: "fas fa-map-marked-alt",
                     ActionHandler: () =>
                         this.router.navigate(["/delineation/delineation-map"], { queryParams: { treatmentBMPID: params.data.TreatmentBMPID } }),
                 },
@@ -139,7 +139,7 @@ export class DelineationReconciliationReportComponent implements OnInit {
             this.utility.createActionsColumnDef((params: any) => [
                 {
                     ActionName: "View on Map",
-                    ActionIcon: "fas fa-map-location-dot",
+                    ActionIcon: "fas fa-map-marked-alt",
                     ActionHandler: () =>
                         this.router.navigate(["/delineation/delineation-map"], { queryParams: { treatmentBMPID: params.data.TreatmentBMPID } }),
                 },
@@ -169,6 +169,7 @@ export class DelineationReconciliationReportComponent implements OnInit {
                 DecimalPlacesToDisplay: 2,
                 FieldDefinitionType: "Area",
                 FieldDefinitionLabelOverride: "Area of Overlap (ac)",
+                Width: 180,
             }),
             this.utility.createMultiLinkColumnDef("Overlapping Delineations", "OverlappingDelineations", "TreatmentBMPID", "TreatmentBMPName", {
                 InRouterLink: "../../treatment-bmps/",

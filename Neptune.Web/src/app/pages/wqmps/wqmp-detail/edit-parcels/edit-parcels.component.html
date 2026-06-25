@@ -47,9 +47,7 @@
                 <div class="parcel-list">
                     @for (parcel of selectedParcelRows(); track parcel.ParcelID) {
                         <div class="parcel-list__item">
-                            <button class="parcel-list__remove" title="Remove" (click)="removeParcel(parcel.ParcelID)">
-                                <i class="fa fa-trash"></i>
-                            </button>
+                            <button type="button" class="btn-delete-row parcel-list__remove" aria-label="Remove parcel" title="Remove" (click)="removeParcel(parcel.ParcelID)"></button>
                             <span class="parcel-list__apn">{{ parcel.ParcelNumber }}</span>
                             @if (parcel.ParcelAddress) {
                                 <span class="parcel-list__address">{{ parcel.ParcelAddress }}</span>
@@ -73,6 +71,6 @@
 
     <div class="page-footer">
         <button class="btn btn-primary" (click)="save()" [disabled]="isLoadingSubmit">Save</button>
-        <button class="btn btn-secondary-outline" (click)="cancel()">Cancel</button>
+        <button class="btn btn-primary-outline" (click)="cancel()">Cancel</button>
     </div>
 }

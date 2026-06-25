@@ -7,7 +7,6 @@ import { HeaderNavComponent } from "../../../shared/components/header-nav/header
 import { Observable } from "rxjs";
 import { IconComponent } from "../../../shared/components/icon/icon.component";
 import { DropdownToggleDirective } from "src/app/shared/directives/dropdown-toggle.directive";
-import { environment } from "src/environments/environment";
 
 @Component({
     selector: "trash-site-layout",
@@ -17,7 +16,6 @@ import { environment } from "src/environments/environment";
 })
 export class TrashSiteLayoutComponent implements OnInit {
     public currentUser$: Observable<PersonDto>;
-    public siteUrl = environment.ocStormwaterToolsBaseUrl;
 
     constructor(private authenticationService: AuthenticationService) {}
 
@@ -43,13 +41,4 @@ export class TrashSiteLayoutComponent implements OnInit {
     public isJurisdicionManager(currentUser: PersonDto): boolean {
         return this.authenticationService.isUserAJurisdictionManager(currentUser);
     }
-
-    public usersListUrl(): string {
-        return `${environment.ocStormwaterToolsBaseUrl}/User/Index`;
-    }
-
-    public organizationsIndexUrl(): string {
-        return `${environment.ocStormwaterToolsBaseUrl}/Organization/Index`;
-    }
-
 }

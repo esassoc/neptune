@@ -50,7 +50,7 @@
                 </div>
 
                 @if (observationTypeRows().length) {
-                    <table class="table table-condensed table-bordered">
+                    <table class="table framed">
                         <thead>
                             <tr>
                                 <th>
@@ -112,6 +112,7 @@
                                     <td>
                                         <input type="number" class="form-control form-control-sm"
                                             [(ngModel)]="row.AssessmentScoreWeight"
+                                            (ngModelChange)="onObservationRowChanged()"
                                             [disabled]="isPassFail(row) && row.OverrideAssessmentScoreIfFailing"
                                             min="0" max="100" step="1">
                                     </td>
@@ -119,16 +120,14 @@
                                     <!-- Assessment Fails if Observation Fails: only meaningful for Pass/Fail rows. -->
                                     <td class="cell-center">
                                         @if (isPassFail(row)) {
-                                            <input type="checkbox" [(ngModel)]="row.OverrideAssessmentScoreIfFailing">
+                                            <input type="checkbox" [(ngModel)]="row.OverrideAssessmentScoreIfFailing" (ngModelChange)="onObservationRowChanged()">
                                         } @else {
                                             <span class="muted">—</span>
                                         }
                                     </td>
 
                                     <td>
-                                        <button class="btn btn-sm btn-danger-outline" (click)="removeObservationType(row.TreatmentBMPAssessmentObservationTypeID)">
-                                            <i class="fa fa-trash"></i>
-                                        </button>
+                                        <button type="button" class="btn-delete-row" aria-label="Remove observation type" title="Remove" (click)="removeObservationType(row.TreatmentBMPAssessmentObservationTypeID)"></button>
                                     </td>
                                 </tr>
                             }
@@ -170,7 +169,7 @@
                 </div>
 
                 @if (customAttributeRows().length) {
-                    <table class="table table-condensed table-bordered">
+                    <table class="table framed">
                         <thead>
                             <tr>
                                 <th>
@@ -198,9 +197,7 @@
                                     <td class="cell-center">{{ row.IsRequired ? "Yes" : "No" }}</td>
                                     <td>{{ row.Description || "—" }}</td>
                                     <td>
-                                        <button class="btn btn-sm btn-danger-outline" (click)="removeCustomAttribute(row.CustomAttributeTypeID)">
-                                            <i class="fa fa-trash"></i>
-                                        </button>
+                                        <button type="button" class="btn-delete-row" aria-label="Remove custom attribute" title="Remove" (click)="removeCustomAttribute(row.CustomAttributeTypeID)"></button>
                                     </td>
                                 </tr>
                             }
@@ -214,11 +211,11 @@
 
         <!-- Actions -->
         <div class="page-footer">
-            <button class="btn btn-primary" (click)="save()" [disabled]="isSaving || nameControl.invalid || descriptionControl.invalid || hasWeightError()">Save</button>
-            <button class="btn btn-secondary-outline" (click)="cancel()">Cancel</button>
+            <button class="btn btn-primary" (click)="save()" [disabled]="isSaving">Save</button>
+            <button class="btn btn-primary-outline" (click)="cancel()">Cancel</button>
             @if (!isCreate) {
                 <button class="btn btn-danger-outline" (click)="deleteBMPType()" style="margin-left: auto">
-                    <i class="fa fa-trash"></i> Delete
+                    Delete
                 </button>
             }
         </div>

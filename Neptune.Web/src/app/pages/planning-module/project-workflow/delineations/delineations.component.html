@@ -20,7 +20,7 @@
                     <stormwater-network-layer [displayOnLoad]="false" [map]="map" [layerControl]="layerControl" [sortOrder]="20"></stormwater-network-layer>
                     <jurisdictions-layer [mode]="OverlayMode.ReferenceOnly" [map]="map" [layerControl]="layerControl" [sortOrder]="30"></jurisdictions-layer>
                     <wqmps-layer [displayOnLoad]="false" [map]="map" [layerControl]="layerControl" [sortOrder]="40"></wqmps-layer>
-                    <delineations-layer [displayOnLoad]="false" [map]="map" [layerControl]="layerControl" [sortOrder]="50"></delineations-layer>
+                    <delineations-layer [isAnalyzedInModelingModule]="true" [displayOnLoad]="false" [map]="map" [layerControl]="layerControl" [sortOrder]="50"></delineations-layer>
                     <inventoried-bmps-layer [displayOnLoad]="false" [map]="map" [layerControl]="layerControl" [sortOrder]="60"></inventoried-bmps-layer>
                 }
             </neptune-map>
@@ -87,7 +87,7 @@
                     <div class="grid-12">
                         <div class="g-col-8">
                             @if (selectedTreatmentBMP.Latitude && selectedTreatmentBMP.Longitude) {
-                                <dl class="grid-12 mt-4">
+                                <dl class="grid-12 mt-4 key-value-list">
                                     <dt class="g-col-5">Latitude</dt>
                                     <dd class="g-col-7">
                                         {{ selectedTreatmentBMP.Latitude }}
@@ -132,6 +132,6 @@
 </workflow-body>
 
 <div class="page-footer">
-    <button class="btn btn-primary mr-2" (click)="save()" [disabled]="(isLoadingSubmit$ | async) ?? false">Save</button>
-    <button class="btn btn-primary-outline ml-auto" (click)="save(true)" [disabled]="(isLoadingSubmit$ | async) ?? false">Save & Continue</button>
+    <button class="btn btn-primary-outline mr-2" (click)="save()" [disabled]="(isLoadingSubmit$ | async) ?? false">Save</button>
+    <button class="btn btn-primary ml-auto" (click)="save(true)" [disabled]="(isLoadingSubmit$ | async) ?? false">Save & Continue</button>
 </div>

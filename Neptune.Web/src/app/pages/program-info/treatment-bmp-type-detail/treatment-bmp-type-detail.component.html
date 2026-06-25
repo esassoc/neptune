@@ -9,19 +9,21 @@
         </ng-template>
         <ng-template #templateRight>
             @if (isAdmin) {
-                <a class="btn btn-primary-outline" [routerLink]="['/manage/treatment-bmp-types', bmpType.TreatmentBMPTypeID, 'edit']">
-                    <i class="fa fa-pencil"></i> Edit Treatment BMP Type
+                <a class="btn btn-primary" [routerLink]="['/manage/treatment-bmp-types', bmpType.TreatmentBMPTypeID, 'edit']">
+                    Edit Treatment BMP Type
                 </a>
             }
         </ng-template>
     </page-header>
+
+    <app-alert-display></app-alert-display>
 
     <div class="grid-12">
         <!-- Basics -->
         <div class="card g-col-12">
             <div class="card-header"><span class="card-title">Basics</span></div>
             <div class="card-body">
-                <dl class="grid-12">
+                <dl class="grid-12 key-value-list">
                     <dt class="g-col-3">Name</dt>
                     <dd class="g-col-9">{{ bmpType.TreatmentBMPTypeName }}</dd>
 
@@ -31,12 +33,32 @@
             </div>
         </div>
 
+        <!--
+            NPT-1038 round 4: "Treatment BMPs of this Type" grid — every BMP of this type the
+            user can view by jurisdiction, with one dynamic column per custom attribute defined
+            on the type. Mirrors the legacy MVC TreatmentBMPType/Detail page grid. Positioned
+            directly below Basics and hidden from anonymous/unassigned users (NPT-1061 item 5).
+        -->
+        @if (!isAnonymousOrUnassigned) {
+            <div class="card g-col-12">
+                <div class="card-header"><span class="card-title">Treatment BMPs of this Type</span></div>
+                <div class="card-body">
+                    <neptune-grid
+                        [rowData]="bmps$ | async"
+                        [pinnedBottomRowData]="bmpTotalsRow$ | async"
+                        [columnDefs]="bmpColumnDefs"
+                        [pagination]="true"
+                        [downloadFileName]="bmpDownloadFileName"></neptune-grid>
+                </div>
+            </div>
+        }
+
         <!-- Applicable Observation Types -->
-        <div class="card g-col-12 mt-3">
+        <div class="card g-col-12">
             <div class="card-header"><span class="card-title">Applicable Observation Types</span></div>
             <div class="card-body">
                 @if (bmpType.ObservationTypes?.length) {
-                    <table class="table table-condensed">
+                    <table class="table">
                         <thead>
                             <tr>
                                 <th>Observation Type</th>
@@ -68,11 +90,11 @@
 
         <!-- Custom Attributes — one card per Purpose, matching MVC -->
         @for (group of attributesByPurpose(bmpType); track group.purposeID) {
-            <div class="card g-col-12 mt-3">
+            <div class="card g-col-12">
                 <div class="card-header"><span class="card-title">{{ group.purposeDisplayName }}</span></div>
                 <div class="card-body">
                     @if (group.rows.length) {
-                        <table class="table table-condensed">
+                        <table class="table">
                             <thead>
                                 <tr>
                                     <th>Attribute Name</th>
@@ -100,23 +122,6 @@
                 </div>
             </div>
         }
-
-        <!--
-            NPT-1038 round 4: "Treatment BMPs of this Type" grid — every BMP of this type the
-            user can view by jurisdiction, with one dynamic column per custom attribute defined
-            on the type. Mirrors the legacy MVC TreatmentBMPType/Detail page grid.
-        -->
-        <div class="card g-col-12 mt-3">
-            <div class="card-header"><span class="card-title">Treatment BMPs of this Type</span></div>
-            <div class="card-body">
-                <neptune-grid
-                    [rowData]="bmps$ | async"
-                    [pinnedBottomRowData]="bmpTotalsRow$ | async"
-                    [columnDefs]="bmpColumnDefs"
-                    [pagination]="true"
-                    [downloadFileName]="bmpDownloadFileName"></neptune-grid>
-            </div>
-        </div>
     </div>
 } @else {
     <div [loadingSpinner]="{ isLoading: isLoading, loadingHeight: 400 }"></div>

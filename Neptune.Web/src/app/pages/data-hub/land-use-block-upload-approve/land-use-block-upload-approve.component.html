@@ -1,0 +1,58 @@
+<page-header pageTitle="Approve Uploaded Land Use Blocks">
+  <a class="back-link" [routerLink]="['/data-hub/land-use-block-upload']">&laquo; Back to Upload</a>
+</page-header>
+
+<section class="content-section">
+  <app-alert-display></app-alert-display>
+
+  @let dto = report();
+  @if (dto) {
+    @if (!hasStaging()) {
+      <div class="alert alert-info">
+        <strong>No staged Land Use Blocks.</strong>
+        Upload a File Geodatabase from the
+        <a [routerLink]="['/data-hub/land-use-block-upload']">upload page</a>
+        first, then return here to review and approve the staged rows.
+      </div>
+    } @else {
+      <div class="card">
+        <div class="card-header">
+          <h3 class="card-title">Staged Land Use Blocks</h3>
+        </div>
+        <div class="card-body">
+          <dl class="kv">
+            <dt>Total Staged</dt>
+            <dd>{{ dto.TotalStagedRowCount ?? 0 }}</dd>
+            <dt>Will Replace Existing</dt>
+            <dd>{{ dto.ExistingRowsToReplace ?? 0 }}</dd>
+            <dt>Errors</dt>
+            <dd>{{ dto.Errors.length }}</dd>
+          </dl>
+
+          @if (hasErrors()) {
+            <div class="alert alert-danger">
+              <strong>Cannot approve — please correct the following:</strong>
+              <ul>
+                @for (err of dto.Errors; track $index) {
+                  <li>{{ err }}</li>
+                }
+              </ul>
+              <p class="mt-2">Use Cancel to discard the staged upload, then re-upload after correcting the file.</p>
+            </div>
+          } @else {
+            <p class="copy">
+              Approving will replace every existing Land Use Block in the affected jurisdictions
+              with the staged rows. You'll receive an email when the import completes (it may take
+              up to 24 hours for updated Trash Results to appear).
+            </p>
+          }
+
+          <div class="actions">
+            <button type="button" class="btn btn-primary" [disabled]="isWorking() || hasErrors()" (click)="approve()">Accept</button>
+            <button type="button" class="btn btn-primary-outline" [disabled]="isWorking()" (click)="cancel()">Cancel</button>
+          </div>
+        </div>
+      </div>
+    }
+  }
+</section>

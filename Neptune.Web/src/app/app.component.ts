@@ -5,7 +5,7 @@ import { AlertContext } from "./shared/models/enums/alert-context.enum";
 import { filter, take } from "rxjs/operators";
 import { Component, Inject, Renderer2, ViewContainerRef, DOCUMENT } from "@angular/core";
 import { environment } from "../environments/environment";
-import { Router, RouterOutlet } from "@angular/router";
+import { Router, RouterLink, RouterOutlet } from "@angular/router";
 import { AuthenticationService } from "./services/authentication.service";
 import { Title } from "@angular/platform-browser";
 import { PersonDto } from "./shared/generated/model/person-dto";
@@ -14,7 +14,7 @@ import { PersonDto } from "./shared/generated/model/person-dto";
     selector: "app-root",
     templateUrl: "./app.component.html",
     styleUrls: ["./app.component.scss"],
-    imports: [RouterOutlet],
+    imports: [RouterOutlet, RouterLink],
 })
 export class AppComponent {
     userClaimsUpsertStarted = false;
@@ -72,10 +72,6 @@ export class AppComponent {
 
     setAppFavicon() {
         this._document.getElementById("appFavicon").setAttribute("href", "assets/main/favicons/favicon.ico");
-    }
-
-    public legalUrl(): string {
-        return `${environment.ocStormwaterToolsBaseUrl}/Legal`;
     }
 
     private isSafeSpaTarget(target: string): boolean {

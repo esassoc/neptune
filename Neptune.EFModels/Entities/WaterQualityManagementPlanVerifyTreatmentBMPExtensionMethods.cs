@@ -9,26 +9,5 @@ namespace Neptune.EFModels.Entities
 {
     public static partial class WaterQualityManagementPlanVerifyTreatmentBMPExtensionMethods
     {
-        public static WaterQualityManagementPlanVerifyTreatmentBMPSimpleDto AsSimpleDto(this WaterQualityManagementPlanVerifyTreatmentBMP waterQualityManagementPlanVerifyTreatmentBMP)
-        {
-            var dto = new WaterQualityManagementPlanVerifyTreatmentBMPSimpleDto()
-            {
-                WaterQualityManagementPlanVerifyTreatmentBMPID = waterQualityManagementPlanVerifyTreatmentBMP.WaterQualityManagementPlanVerifyTreatmentBMPID,
-                WaterQualityManagementPlanVerifyID = waterQualityManagementPlanVerifyTreatmentBMP.WaterQualityManagementPlanVerifyID,
-                TreatmentBMPID = waterQualityManagementPlanVerifyTreatmentBMP.TreatmentBMPID,
-                IsAdequate = waterQualityManagementPlanVerifyTreatmentBMP.IsAdequate,
-                WaterQualityManagementPlanVerifyTreatmentBMPNote = waterQualityManagementPlanVerifyTreatmentBMP.WaterQualityManagementPlanVerifyTreatmentBMPNote
-            };
-            return dto;
-        }
-
-        public static WaterQualityManagementPlanVerifyTreatmentBMPDto AsDto(this WaterQualityManagementPlanVerifyTreatmentBMP entity)
-        {
-            return new WaterQualityManagementPlanVerifyTreatmentBMPDto
-            {
-                WaterQualityManagementPlanVerifyTreatmentBMPID = entity.WaterQualityManagementPlanVerifyTreatmentBMPID,
-                Name = null
-            };
-        }
     }
 }

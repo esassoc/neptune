@@ -1,9 +1,9 @@
 <page-header pageTitle="On-Land Visual Trash Assessments" [customRichTextTypeID]="customRichTextID" [templateRight]="templateRight"></page-header>
 
 <ng-template #templateRight>
-  <a class="float-right btn btn-primary mr-2" [routerLink]="['new/instructions']">Add New OVTA</a>
+  <a class="float-right btn btn-orange mr-2" [routerLink]="['new/instructions']">Add New OVTA</a>
   @if (currentUserHasJurisdictionManagePermission()) {
-    <a class="float-right btn btn-primary mr-2" [href]="url + '/OnlandVisualTrashAssessment/BulkUploadOTVAs'"> <icon [icon]="'Upload'"></icon> Upload OVTAs </a>
+    <a class="float-right btn btn-primary-outline mr-2" [routerLink]="['/data-hub/ovta-upload']"> <icon [icon]="'Upload'"></icon> Upload OVTAs </a>
   }
 </ng-template>
 

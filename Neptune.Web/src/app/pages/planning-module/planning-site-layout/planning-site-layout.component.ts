@@ -7,7 +7,6 @@ import { DropdownToggleDirective } from "src/app/shared/directives/dropdown-togg
 import { IconComponent } from "src/app/shared/components/icon/icon.component";
 import { HeaderNavComponent } from "../../../shared/components/header-nav/header-nav.component";
 import { Observable } from "rxjs";
-import { environment } from "src/environments/environment";
 
 @Component({
     selector: "planning-site-layout",
@@ -17,7 +16,6 @@ import { environment } from "src/environments/environment";
 })
 export class PlanningSiteLayoutComponent implements OnInit {
     public currentUser$: Observable<PersonDto>;
-    public siteUrl = environment.ocStormwaterToolsBaseUrl;
 
     constructor(private authenticationService: AuthenticationService) {}
 
@@ -46,13 +44,5 @@ export class PlanningSiteLayoutComponent implements OnInit {
 
     public isJurisdicionManager(currentUser: PersonDto): boolean {
         return this.authenticationService.isUserAJurisdictionManager(currentUser);
-    }
-
-    public usersListUrl(): string {
-        return `${environment.ocStormwaterToolsBaseUrl}/User/Index`;
-    }
-
-    public organizationsIndexUrl(): string {
-        return `${environment.ocStormwaterToolsBaseUrl}/Organization/Index`;
     }
 }

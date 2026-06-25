@@ -53,9 +53,7 @@
                     <button type="button" class="btn-icon" title="Edit caption" [disabled]="isLoadingSubmit" (click)="requestEditCaption(image)">
                         <i class="fa fa-pencil"></i>
                     </button>
-                    <button type="button" class="btn-icon btn-icon-danger" title="Delete photo" [disabled]="isLoadingSubmit" (click)="deleteImage(image)">
-                        <i class="fa fa-trash"></i>
-                    </button>
+                    <button type="button" class="btn-delete-row" aria-label="Delete photo" title="Delete photo" [disabled]="isLoadingSubmit" (click)="deleteImage(image)"></button>
                 </div>
                 <div class="caption-readonly">
                     <label class="field-label">Caption</label>
@@ -74,6 +72,6 @@
 @if (!useCaptionModal) {
     <div class="page-footer">
         <button type="button" class="btn btn-primary mr-2" [disabled]="isLoadingSubmit || captionControlForm.pristine" (click)="save()">Save</button>
-        <button type="button" class="btn btn-secondary" [disabled]="isLoadingSubmit" (click)="cancel()">Cancel</button>
+        <button type="button" class="btn btn-primary-outline" [disabled]="isLoadingSubmit" (click)="cancel()">Cancel</button>
     </div>
 }

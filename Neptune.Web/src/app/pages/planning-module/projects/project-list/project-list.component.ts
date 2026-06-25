@@ -79,14 +79,14 @@ export class ProjectListComponent implements OnInit {
         this.projectColumnDefs = [
             this.utilityFunctionsService.createActionsColumnDef((params: any) => {
                 return [
-                    { ActionName: "View", ActionHandler: () => this.router.navigate(["planning", "projects", params.data.ProjectID]) },
+                    { ActionName: "View", ActionIcon: "fas fa-file-alt", ActionHandler: () => this.router.navigate(["planning", "projects", params.data.ProjectID]) },
                     {
                         ActionName: "Edit",
                         ActionIcon: "fas fa-edit",
                         ActionHandler: () =>
                             this.router.navigateByUrl(`/planning/projects/edit/${params.data.ProjectID + (params.data.ShareOCTAM2Tier2Scores ? "/review-and-share" : "")}`),
                     },
-                    { ActionName: "Delete", ActionIcon: "fa fa-trash text-danger", ActionHandler: () => this.deleteModal(params) },
+                    { ActionName: "Delete", ActionIcon: "fas fa-trash text-danger", ActionHandler: () => this.deleteModal(params) },
                 ];
             }),
             this.utilityFunctionsService.createLinkColumnDef("Project ID", "ProjectID", "ProjectID", {
@@ -98,9 +98,9 @@ export class ProjectListComponent implements OnInit {
             this.utilityFunctionsService.createLinkColumnDef("Organization", "Organization.OrganizationName", "Organization.OrganizationID", {
                 InRouterLink: "/organizations/",
             }),
-            this.utilityFunctionsService.createBasicColumnDef("Jurisdiction", "StormwaterJurisdiction.Organization.OrganizationName"),
+            this.utilityFunctionsService.createBasicColumnDef("Jurisdiction", "StormwaterJurisdiction.StormwaterJurisdictionName"),
             this.utilityFunctionsService.createDateColumnDef("Date Created", "DateCreated", "M/d/yyyy", { Width: 120 }),
-            this.utilityFunctionsService.createBasicColumnDef("Project Description", "ProjectDescription"),
+            this.utilityFunctionsService.createBasicColumnDef("Project Description", "ProjectDescription", { MaxWidth: 400 }),
             {
                 headerName: "Shared with OCTA M2 Tier 2 Grant Program",
                 valueGetter: (params) => (params.data.ShareOCTAM2Tier2Scores ? "Yes" : "No"),

@@ -5,6 +5,17 @@
         {{ testingWarningText() }}
     </div>
     }
+    @if (currentUser$ | async; as impUser) {
+        @if (isBeingImpersonated(impUser)) {
+            <div class="impersonation-banner">
+                <span class="impersonation-banner__message">
+                    <i class="fas fa-user-secret impersonation-banner__icon"></i>
+                    Impersonating <strong>{{ impUser.FirstName }} {{ impUser.LastName }}</strong>
+                </span>
+                <button type="button" class="impersonation-banner__stop" (click)="stopImpersonation()">Stop Impersonating</button>
+            </div>
+        }
+    }
 </div>
 
 <nav class="admin-nav">
@@ -30,13 +41,13 @@
             </li>
             <li class="nav-item dropdown moduleSwitcher" routerLinkActive="active">
                 <div #moduleSwitcherToggle class="dropdown-menu dropdown-menu-right" aria-labelledby="navbarDropdown">
-                    <a href="{{ ocStormwaterToolsMainUrl() }}" class="dropdown-item"> OC Stormwater Tools Home </a>
+                    <a [routerLink]="['/']" class="dropdown-item"> OC Stormwater Tools Home </a>
                     <div class="dropdown-divider"></div>
-                    <a href="{{ ocStormwaterToolsMainUrl() }}/#welcome" class="dropdown-item">
+                    <a [routerLink]="['/']" class="dropdown-item">
                         <img src="assets/main/icons/inventoryIcon.png" style="height: 35px; padding-right: 15px" />
                         Inventory Module
                     </a>
-                    <a href="{{ ocStormwaterToolsMainUrl() }}/Home/Modeling" class="dropdown-item">
+                    <a [routerLink]="['/modeling']" class="dropdown-item">
                         <img src="assets/main/icons/modelingIcon.png" style="height: 35px; padding-right: 15px" />
                         Modeling Module
                     </a>
@@ -48,16 +59,6 @@
                         <img src="assets/main/icons/trashIcon.png" style="height: 35px; padding-right: 15px" />
                         Trash Module
                     </a>
-                    @if(isUserAnAdministrator()) {
-                    <a [routerLink]="['/']" class="dropdown-item">
-                        <img src="assets/main/icons/inventoryIcon.png" style="height: 35px; padding-right: 15px" />
-                        New Inventory Module
-                    </a>
-                    <a [routerLink]="['/ai']" class="dropdown-item">
-                        <img src="assets/main/icons/ai-icon.png" style="height: 35px; padding-right: 15px" />
-                        AI Module
-                    </a>
-                    }
                 </div>
             </li>
         </ul>

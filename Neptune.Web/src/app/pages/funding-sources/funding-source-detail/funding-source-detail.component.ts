@@ -5,7 +5,7 @@ import { DialogService } from "@ngneat/dialog";
 import { BehaviorSubject, catchError, forkJoin, Observable, of, shareReplay, switchMap, map } from "rxjs";
 import { AuthenticationService } from "src/app/services/authentication.service";
 import { AlertDisplayComponent } from "src/app/shared/components/alert-display/alert-display.component";
-import { IconComponent } from "src/app/shared/components/icon/icon.component";
+import { NoteComponent } from "src/app/shared/components/note/note.component";
 import { PageHeaderComponent } from "src/app/shared/components/page-header/page-header.component";
 import { FundingSourceService } from "src/app/shared/generated/api/funding-source.service";
 import { RoleEnum } from "src/app/shared/generated/enum/role-enum";
@@ -31,7 +31,7 @@ interface FundingSourceDetailViewModel {
 @Component({
     selector: "funding-source-detail",
     standalone: true,
-    imports: [AsyncPipe, CurrencyPipe, RouterLink, PageHeaderComponent, AlertDisplayComponent, IconComponent],
+    imports: [AsyncPipe, CurrencyPipe, RouterLink, PageHeaderComponent, AlertDisplayComponent, NoteComponent],
     templateUrl: "./funding-source-detail.component.html",
     styleUrl: "./funding-source-detail.component.scss",
 })

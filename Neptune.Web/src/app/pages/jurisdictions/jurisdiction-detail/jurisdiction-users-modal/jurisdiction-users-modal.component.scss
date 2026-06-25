@@ -1,0 +1,41 @@
+@use "/src/scss/abstracts" as *;
+@use "sass:color";
+
+// Use the project's table-size type so more assigned users fit without scrolling.
+.picker-row,
+.user-list {
+    font-size: $type-size-200;
+}
+
+// Search dropdown + Add button share one row; the dropdown grows to fill, the button hugs its content.
+.picker-row {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+
+    ng-select {
+        flex: 1;
+        min-width: 0;
+    }
+}
+
+.user-list {
+    list-style: none;
+    padding-left: 0;
+    margin-bottom: 0;
+
+    // Plain trash glyph — no button chrome — so the row stays compact alongside the small text.
+    .remove-btn {
+        background: none;
+        border: none;
+        padding: 0;
+        color: $danger;
+        cursor: pointer;
+        font-size: $type-size-200;
+        line-height: 1;
+
+        &:hover {
+            color: color.adjust($danger, $lightness: -10%);
+        }
+    }
+}

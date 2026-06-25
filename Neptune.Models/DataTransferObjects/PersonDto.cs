@@ -18,7 +18,9 @@ public class PersonDto
     public string OrganizationName { get; set; }
     public bool ReceiveSupportEmails { get; set; }
     public bool ReceiveRSBRevisionRequestEmails { get; set; }
-    public Guid WebServiceAccessToken { get; set; }
+    public Guid? WebServiceAccessToken { get; set; }
+    public DateTime? LastWebServiceAccessDate { get; set; }
     public bool IsOCTAGrantReviewer { get; set; }
     public bool HasAssignedStormwaterJurisdiction { get; set; }
+    public int? ImpersonatedPersonID { get; set; }
 }

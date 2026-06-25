@@ -5,7 +5,7 @@ import { MarkerHelper } from "src/app/shared/helpers/marker-helper";
 
 import { NeptuneMapComponent, NeptuneMapInitEvent } from "src/app/shared/components/leaflet/neptune-map/neptune-map.component";
 import { OnlandVisualTrashAssessmentObservationWithPhotoDto } from "src/app/shared/generated/model/onland-visual-trash-assessment-observation-with-photo-dto";
-import { environment } from "src/environments/environment";
+import { fileResourceUrl } from "src/app/shared/helpers/file-resource-url";
 import { ActivatedRoute, Router } from "@angular/router";
 import { LandUseBlockLayerComponent } from "src/app/shared/components/leaflet/layers/land-use-block-layer/land-use-block-layer.component";
 import { OvtaAreaLayerComponent } from "../../../../shared/components/leaflet/layers/ovta-area-layer/ovta-area-layer.component";
@@ -127,6 +127,6 @@ export class ObservationsMapComponent {
     }
 
     public getFileResourceUrl(fileResourceGUID) {
-        return environment.ocStormwaterToolsBaseUrl + "/FileResource/DisplayResource/" + fileResourceGUID;
+        return fileResourceUrl(fileResourceGUID);
     }
 }

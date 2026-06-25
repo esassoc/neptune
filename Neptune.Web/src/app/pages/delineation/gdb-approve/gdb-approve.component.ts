@@ -1,3 +1,4 @@
+import { DecimalPipe } from "@angular/common";
 import { Component, OnInit, signal } from "@angular/core";
 import { Router, RouterLink } from "@angular/router";
 import { Observable } from "rxjs";
@@ -13,7 +14,7 @@ import { AlertDisplayComponent } from "src/app/shared/components/alert-display/a
     selector: "gdb-approve",
     templateUrl: "./gdb-approve.component.html",
     styleUrl: "./gdb-approve.component.scss",
-    imports: [RouterLink, PageHeaderComponent, AlertDisplayComponent],
+    imports: [RouterLink, PageHeaderComponent, AlertDisplayComponent, DecimalPipe],
 })
 export class GdbApproveComponent implements OnInit {
     public report = signal<DelineationGdbUploadValidationDto | null>(null);
@@ -47,8 +48,11 @@ export class GdbApproveComponent implements OnInit {
             next: (count) => {
                 this.isWorking.set(false);
                 const message = `${count} ${count === 1 ? "delineation was" : "delineations were"} successfully uploaded.`;
-                this.alertService.pushAlert(new Alert(message, AlertContext.Success, true));
-                this.router.navigate(["delineation", "delineation-map"]);
+                // Push the success alert after navigation resolves; AlertDisplayComponent clears alerts on destroy,
+                // so an alert pushed before navigating away never reaches the destination page.
+                this.router.navigate(["delineation", "delineation-map"]).then(() => {
+                    this.alertService.pushAlert(new Alert(message, AlertContext.Success, true));
+                });
             },
             error: () => {
                 this.isWorking.set(false);

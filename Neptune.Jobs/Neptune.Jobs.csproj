@@ -5,8 +5,8 @@
     <Nullable>enable</Nullable>
   </PropertyGroup>
   <ItemGroup>
-    <PackageReference Include="Azure.Storage.Blobs" Version="12.27.0" />
-    <PackageReference Include="Hangfire.AspNetCore" Version="1.8.22" />
+    <PackageReference Include="Azure.Storage.Blobs" Version="12.29.0" />
+    <PackageReference Include="Hangfire.AspNetCore" Version="1.8.23" />
     <PackageReference Include="NetTopologySuite" Version="2.6.0" />
     <PackageReference Include="NetTopologySuite.Features" Version="2.2.0" />
   </ItemGroup>

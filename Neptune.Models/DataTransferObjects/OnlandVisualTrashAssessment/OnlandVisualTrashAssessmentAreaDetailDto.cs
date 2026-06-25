@@ -16,4 +16,7 @@ public class OnlandVisualTrashAssessmentAreaDetailDto
     public int CompletedProgressAssessmentCount { get; set; }
     public BoundingBoxDto BoundingBox { get; set; }
     public string Geometry { get; set; }
+    // NPT-1066: drives the edit page's Land Use Block toggle option — disabled + helper message
+    // when the jurisdiction has no land use blocks (mirrors the create workflow).
+    public bool JurisdictionHasLandUseBlocks { get; set; }
 }

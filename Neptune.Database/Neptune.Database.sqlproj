@@ -233,6 +233,7 @@
     <Build Include="dbo\Tables\dbo.WaterQualityManagementPlanVerifyType.sql" />
     <Build Include="dbo\Tables\dbo.WaterQualityManagementPlanVisitStatus.sql" />
     <Build Include="dbo\Tables\dbo.Watershed.sql" />
+    <Build Include="dbo\Tables\dbo.WebServiceAccessLog.sql" />
     <Build Include="dbo\User Defined Types\html.sql" />
   </ItemGroup>
   <ItemGroup>
@@ -438,6 +439,7 @@
     <Build Include="dbo\Views\dbo.vTreatmentBMPModelingAttribute.sql" />
     <None Include="Scripts\ReleaseScripts\019 - Add Dry Weather Flow Override custom attribute for all Modeled Treatment BMPs without it.sql" />
     <None Include="Scripts\ReleaseScripts\020 - Drop WaterQualityManagementPlanDocumentVectorStore table.sql" />
+    <None Include="Scripts\ReleaseScripts\036 - Recalculate OVTA Progress Scores for 5yr-1OVTA rule.sql" />
     <Build Include="dbo\Tables\dbo.WaterQualityManagementPlanExtractionResult.sql" />
     <Build Include="dbo\Tables\dbo.AITokenUsage.sql" />
   </ItemGroup>

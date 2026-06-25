@@ -116,6 +116,22 @@ namespace Neptune.API.Controllers
             return Ok(dto);
         }
 
+        [HttpPost("{personID}/generate-web-service-token")]
+        [UserViewFeature]
+        [EntityNotFoundAttribute(typeof(Person), "personID")]
+        public async Task<ActionResult<Guid>> GenerateWebServiceToken([FromRoute] int personID)
+        {
+            // Users may rotate their own token; Admins may rotate anyone's. Same gating shape as
+            // GetDetail above — UserViewFeature handles the anonymous/unassigned cutoff.
+            if (CallingUser.PersonID != personID && CallingUser.RoleID != (int)RoleEnum.Admin && CallingUser.RoleID != (int)RoleEnum.SitkaAdmin)
+            {
+                return Forbid();
+            }
+
+            var newToken = await People.GenerateAndPersistWebServiceAccessTokenAsync(DbContext, personID);
+            return Ok(newToken);
+        }
+
         [HttpPut("{personID}/role")]
         [AdminFeature]
         [EntityNotFoundAttribute(typeof(Person), "personID")]
@@ -197,7 +213,7 @@ namespace Neptune.API.Controllers
     <strong>Phone:</strong> {person.Phone}<br />
     <br />
     <p>
-        You may want to <a href=""{NeptuneConfiguration.OcStormwaterToolsBaseUrl}/Detail/{person.PersonID}"">assign this user a role</a> and associate them with a jurisdiction to allow them to use the site. Or you can leave the user with Unassigned roles if they don't need special privileges.
+        You may want to <a href=""{NeptuneConfiguration.OcStormwaterToolsBaseUrl}/users/{person.PersonID}"">assign this user a role</a> and associate them with a jurisdiction to allow them to use the site. Or you can leave the user with Unassigned roles if they don't need special privileges.
     </p>
     </div>
     {sitkaSmtpClientService.GetSupportNotificationEmailSignature()}

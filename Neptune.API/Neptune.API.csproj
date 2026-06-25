@@ -6,22 +6,22 @@
     <DockerDefaultTargetOS>Linux</DockerDefaultTargetOS>
   </PropertyGroup>
   <ItemGroup>
-    <PackageReference Include="Anthropic" Version="12.17.0" />
-    <PackageReference Include="Auth0.AspNetCore.Authentication" Version="1.6.1" />
-    <PackageReference Include="Azure.Storage.Blobs" Version="12.27.0" />
+    <PackageReference Include="Anthropic" Version="12.29.0" />
+    <PackageReference Include="Auth0.AspNetCore.Authentication" Version="1.7.1" />
+    <PackageReference Include="Azure.Storage.Blobs" Version="12.29.0" />
     <PackageReference Include="CsvHelper" Version="33.1.0" />
-    <PackageReference Include="Hangfire.AspNetCore" Version="1.8.22" />
-    <PackageReference Include="Hangfire.Core" Version="1.8.22" />
-    <PackageReference Include="Hangfire.SqlServer" Version="1.8.22" />
-    <PackageReference Include="Microsoft.AspNetCore.Authentication.JwtBearer" Version="10.0.2" />
+    <PackageReference Include="Hangfire.AspNetCore" Version="1.8.23" />
+    <PackageReference Include="Hangfire.Core" Version="1.8.23" />
+    <PackageReference Include="Hangfire.SqlServer" Version="1.8.23" />
+    <PackageReference Include="Microsoft.AspNetCore.Authentication.JwtBearer" Version="10.0.9" />
     <PackageReference Include="NetTopologySuite.IO.GeoJSON4STJ" Version="4.0.0" />
     <PackageReference Include="Serilog.AspNetCore" Version="10.0.0" />
-    <PackageReference Include="Swashbuckle.AspNetCore" Version="10.1.0" />
-    <PackageReference Include="Microsoft.EntityFrameworkCore.Design" Version="10.0.2">
+    <PackageReference Include="Swashbuckle.AspNetCore" Version="10.2.1" />
+    <PackageReference Include="Microsoft.EntityFrameworkCore.Design" Version="10.0.9">
       <PrivateAssets>all</PrivateAssets>
       <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
     </PackageReference>
-    <PackageReference Include="Microsoft.Extensions.Diagnostics.HealthChecks.EntityFrameworkCore" Version="10.0.2" />
+    <PackageReference Include="Microsoft.Extensions.Diagnostics.HealthChecks.EntityFrameworkCore" Version="10.0.9" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\Neptune.EFModels\Neptune.EFModels.csproj" />

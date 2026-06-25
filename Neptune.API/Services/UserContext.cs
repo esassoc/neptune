@@ -14,7 +14,7 @@ namespace Neptune.API.Services
         public static PersonDto GetUserAsDtoFromHttpContext(NeptuneDbContext dbContext, HttpContext httpContext)
         {
             var user = GetUserFromHttpContext(dbContext, httpContext);
-            return user == null ? new PersonDto { PersonID = Person.AnonymousPersonID,
+            var dto = user == null ? new PersonDto { PersonID = Person.AnonymousPersonID,
                 FirstName = "Anonymous",
                 LastName = "User",
                 RoleID = (int) RoleEnum.Unassigned,
@@ -24,9 +24,16 @@ namespace Neptune.API.Services
                 OrganizationID = -1,
                 ReceiveSupportEmails = false,
                 ReceiveRSBRevisionRequestEmails = false,
-                WebServiceAccessToken = Guid.Empty,
                 IsOCTAGrantReviewer = false
             } : user.AsDto();
+
+            // Impersonation: flip to the effective (impersonated) user if the authenticated
+            // user has ImpersonatedPersonID set. Non-production only (the service no-ops in
+            // prod). BaseAuthorizationAttribute still uses GetUserFromHttpContext (raw Person)
+            // so role-based gates evaluate against the authenticated user, not the impersonated
+            // one — admins keep admin perms while impersonating.
+            var impersonationService = httpContext.RequestServices.GetService(typeof(ImpersonationService)) as ImpersonationService;
+            return impersonationService?.GetEffectiveUser(dbContext, dto) ?? dto;
         }
 
         public static Person GetUserFromHttpContext(NeptuneDbContext dbContext, HttpContext httpContext)

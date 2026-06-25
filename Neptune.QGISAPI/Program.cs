@@ -18,6 +18,9 @@ builder.Host.UseSerilog(logger);
 // Add services to the container.
 builder.Services.AddControllers();
 
+// Emit RFC 7807 ProblemDetails JSON for unhandled exceptions (see app.UseExceptionHandler() below).
+builder.Services.AddProblemDetails();
+
 builder.Services.AddScoped<QgisService>();
 builder.Services.Configure<QGISAPIConfiguration>(builder.Configuration);
 var configuration = builder.Configuration.Get<QGISAPIConfiguration>();
@@ -47,8 +50,13 @@ var app = builder.Build();
 // Configure the HTTP request pipeline.
 if (app.Environment.IsDevelopment())
 {
+    app.UseDeveloperExceptionPage();
     app.UseSwagger();
     app.UseSwaggerUI();
+}
+else
+{
+    app.UseExceptionHandler();
 }
 
 app.MapControllers();

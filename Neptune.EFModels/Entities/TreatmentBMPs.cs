@@ -1,4 +1,4 @@
-﻿/*-----------------------------------------------------------------------
+/*-----------------------------------------------------------------------
 <copyright file="TreatmentBMP.DatabaseContextExtensions.cs" company="Tahoe Regional Planning Agency">
 Copyright (c) Tahoe Regional Planning Agency. All rights reserved.
 <author>Sitka Technology Group</author>
@@ -23,6 +23,7 @@ using Microsoft.EntityFrameworkCore;
 using Neptune.Common.DesignByContract;
 using Neptune.Common.GeoSpatial;
 using Neptune.Models.DataTransferObjects;
+using Neptune.Models.DataTransferObjects.ManagerDashboard;
 using NetTopologySuite.Features;
 using NetTopologySuite.Geometries;
 
@@ -101,6 +102,13 @@ public static class TreatmentBMPs
         }
 
         await dbContext.TreatmentBMPs.AddAsync(treatmentBMP);
+
+        // NPT-1069: seed default Benchmark & Threshold rows from the BMP type's observation-type
+        // configuration, mirroring the legacy MVC NewViewModel.UpdateModel behavior so BMPs created
+        // through the API land with the same defaults as MVC-created ones.
+        var seedTemplates = await TreatmentBMPBenchmarkAndThresholds.BuildSeedTemplatesAsync(dbContext, createDto.TreatmentBMPTypeID);
+        TreatmentBMPBenchmarkAndThresholds.AttachSeedsToBMP(treatmentBMP, seedTemplates);
+
         await dbContext.SaveChangesAsync();
         await dbContext.Entry(treatmentBMP).ReloadAsync();
 
@@ -157,14 +165,53 @@ public static class TreatmentBMPs
         return treatmentBMPs;
     }
 
-    public static List<TreatmentBMP> GetProvisionalTreatmentBMPs(NeptuneDbContext dbContext, Person currentPerson)
+    // Manager Dashboard: provisional BMPs projected straight to the grid DTO. Mirrors the legacy
+    // MVC ProvisionalTreatmentBMPGridSpec column list. SQL-side projection via
+    // TreatmentBMPDtoProjections.AsProvisionalGridDto so the HasPhotos / BenchmarkAndThresholdsSet
+    // booleans resolve in the database (the original implementation read those off un-included
+    // navigation properties and silently always returned false/true respectively).
+    public static async Task<List<TreatmentBMPProvisionalGridDto>> GetProvisionalTreatmentBMPsAsGridDtoAsync(NeptuneDbContext dbContext, Person currentPerson)
     {
-        return GetNonPlanningModuleBMPs(dbContext)
-            .Where(x => x.InventoryIsVerified == false)
-            .ToList()
-            .Where(x => x.CanView(currentPerson))
-            .OrderBy(x => x.TreatmentBMPName)
+        var jurisdictionIDs = (await StormwaterJurisdictionPeople.ListViewableStormwaterJurisdictionIDsByPersonIDForBMPsAsync(dbContext, currentPerson.PersonID)).ToList();
+        var thresholdRequiringSpecIDs = ObservationTypeSpecification.All
+            .Where(s => s.ObservationThresholdType != ObservationThresholdType.None)
+            .Select(s => s.ObservationTypeSpecificationID)
             .ToList();
+
+        var rows = await dbContext.TreatmentBMPs.AsNoTracking()
+            .Where(x => x.ProjectID == null && x.InventoryIsVerified == false && jurisdictionIDs.Contains(x.StormwaterJurisdictionID))
+            .OrderBy(x => x.TreatmentBMPName)
+            .Select(TreatmentBMPDtoProjections.AsProvisionalGridDto(thresholdRequiringSpecIDs))
+            .ToListAsync();
+
+        // CanDelete depends on calling Person + the row's jurisdiction; computed in C# because
+        // EF can't translate Person.IsAssignedToStormwaterJurisdiction. Since the SQL filter
+        // already restricts to ProjectID == null, only the role + jurisdiction-match remain.
+        var isManagerOrAdmin = currentPerson.IsManagerOrAdmin();
+        foreach (var row in rows)
+        {
+            row.CanDelete = isManagerOrAdmin && currentPerson.IsAssignedToStormwaterJurisdiction(row.StormwaterJurisdictionID);
+        }
+        return rows;
+    }
+
+    // Manager Dashboard: bulk-verify a set of BMP inventory records. Jurisdiction-scoped via
+    // .CanView; silently drops anything outside the caller's reach. Returns verified count.
+    public static async Task<int> BulkMarkAsVerifiedAsync(NeptuneDbContext dbContext, IList<int> treatmentBMPIDs, Person currentPerson)
+    {
+        if (treatmentBMPIDs == null || treatmentBMPIDs.Count == 0) return 0;
+
+        var viewableJurisdictionIDs = StormwaterJurisdictionPeople.ListViewableStormwaterJurisdictionIDsByPersonForBMPs(dbContext, currentPerson).ToList();
+        var treatmentBMPs = await dbContext.TreatmentBMPs
+            .Where(x => treatmentBMPIDs.Contains(x.TreatmentBMPID)
+                && viewableJurisdictionIDs.Contains(x.StormwaterJurisdictionID))
+            .ToListAsync();
+        foreach (var treatmentBMP in treatmentBMPs)
+        {
+            treatmentBMP.MarkAsVerified(currentPerson);
+        }
+        await dbContext.SaveChangesAsync();
+        return treatmentBMPs.Count;
     }
 
     public static async Task<List<TreatmentBMPDelineationMapDto>> ListForDelineationMapAsync(NeptuneDbContext dbContext, Person person)
@@ -446,6 +493,38 @@ public static class TreatmentBMPs
             .AnyAsync(x => x.TreatmentBMPTypeID == dto.TreatmentBMPTypeID
                 && specIdsWithBenchmarks.Contains(x.TreatmentBMPAssessmentObservationType.ObservationTypeSpecificationID));
 
+        // IsFullyParameterized is a C# computation (joins BMP + type + modeling config + the
+        // vTreatmentBMPModelingAttributes view + delineation verification status), so it can't
+        // live in the EF expression projection — load the inputs and call the existing helper.
+        // Previously left null on the DTO, which made the SPA detail page always render the
+        // "missing fields required to calculate model results" fallback inside the Modeled BMP
+        // Performance panel even for fully-parameterized BMPs.
+        // TreatmentBMPModelingType is a static lookup class (resolved by ID via the generated
+        // AllLookupDictionary at C# runtime), not an EF navigation — don't try to ThenInclude it.
+        var bmpForParameterizationCheck = await dbContext.TreatmentBMPs.AsNoTracking()
+            .Include(x => x.TreatmentBMPType)
+            .SingleAsync(x => x.TreatmentBMPID == treatmentBMPID);
+        // IsFullyParameterized's comment: "assumes the delineation passed in is the from the
+        // 'upstreamest' BMP" — downstream BMPs inherit their upstream's verified delineation.
+        // Mirror the pattern in vTreatmentBMPUpstreams.ListWithDelineationAsDictionary: read
+        // the upstream BMP ID from the tree view, and load that BMP's delineation if present;
+        // otherwise this BMP's own.
+        var upstreamRow = await dbContext.vTreatmentBMPUpstreams.AsNoTracking()
+            .SingleOrDefaultAsync(x => x.TreatmentBMPID == treatmentBMPID);
+        var delineationBMPID = upstreamRow?.UpstreamBMPID ?? treatmentBMPID;
+        var delineationForParameterizationCheck = await dbContext.Delineations.AsNoTracking()
+            .SingleOrDefaultAsync(x => x.TreatmentBMPID == delineationBMPID);
+        var modelingAttribute = await dbContext.vTreatmentBMPModelingAttributes.AsNoTracking()
+            .SingleOrDefaultAsync(x => x.TreatmentBMPID == treatmentBMPID);
+        dto.IsFullyParameterized = bmpForParameterizationCheck.IsFullyParameterized(delineationForParameterizationCheck, modelingAttribute);
+
+        // A DirtyModelNode row for this BMP (created on modeling-attribute/delineation edits via NereidUtilities)
+        // means its results are pending the next delta solve. Surface that so the detail page can show an
+        // "awaiting calculation" message instead of presenting a stale/zero result as current.
+        dto.IsAwaitingModelingCalculation = await dbContext.DirtyModelNodes.AsNoTracking()
+            .AnyAsync(x => x.TreatmentBMPID == treatmentBMPID
+                           || (delineationForParameterizationCheck != null && x.DelineationID == delineationForParameterizationCheck.DelineationID));
+
         if (dto.UpstreamBMPID.HasValue)
         {
             dto.UpstreamBMP = await GetByIDAsDtoAsync(dbContext, dto.UpstreamBMPID.Value);
@@ -484,12 +563,6 @@ public static class TreatmentBMPs
         }
     }
 
-    public static TreatmentBMP GetByIDWithChangeTracking(NeptuneDbContext dbContext,
-                                                         TreatmentBMPPrimaryKey treatmentBMPPrimaryKey)
-    {
-        return GetByIDWithChangeTracking(dbContext, treatmentBMPPrimaryKey.PrimaryKeyValue);
-    }
-
     public static TreatmentBMP GetByID(NeptuneDbContext dbContext, int treatmentBMPID)
     {
         var treatmentBMP = GetImpl(dbContext)
@@ -517,33 +590,6 @@ public static class TreatmentBMPs
             : null;
 
         return upstreamestBMP;
-    }
-
-    public static List<TreatmentBMP> List(NeptuneDbContext dbContext)
-    {
-        return GetImpl(dbContext).AsNoTracking().OrderBy(x => x.TreatmentBMPName).ToList();
-    }
-
-    public static List<TreatmentBMP> ListModeledOnly(NeptuneDbContext dbContext)
-    {
-        return dbContext.TreatmentBMPs
-            .Include(x => x.TreatmentBMPType)
-            .Include(x => x.StormwaterJurisdiction)
-            .ThenInclude(x => x.Organization)
-            .Include(x => x.OwnerOrganization)
-            .Include(x => x.UpstreamBMP)
-            .AsNoTracking()
-            .Where(x => x.TreatmentBMPType.IsAnalyzedInModelingModule)
-            .OrderBy(x => x.TreatmentBMPName)
-            .ToList();
-    }
-
-    public static Dictionary<int, int> ListCountByTreatmentBMPType(NeptuneDbContext dbContext)
-    {
-        return dbContext.TreatmentBMPs.AsNoTracking()
-            .GroupBy(x => x.TreatmentBMPTypeID)
-            .Select(x => new { x.Key, Count = x.Count() })
-            .ToDictionary(x => x.Key, x => x.Count);
     }
 
     public static Dictionary<int, int> ListCountByStormwaterJurisdiction(NeptuneDbContext dbContext)
@@ -665,30 +711,6 @@ public static class TreatmentBMPs
         return treatmentBMP;
     }
 
-    public static List<TreatmentBMP> ListByStormwaterJurisdictionID(NeptuneDbContext dbContext,
-                                                                    int stormwaterJurisdictionID)
-    {
-        return ListByStormwaterJurisdictionIDList(dbContext, new List<int> { stormwaterJurisdictionID });
-    }
-
-    public static List<TreatmentBMP> ListByStormwaterJurisdictionIDList(NeptuneDbContext dbContext,
-                                                                        List<int> stormwaterJurisdictionIDList)
-    {
-        return GetImpl(dbContext)
-            .AsNoTracking()
-            .Where(x => stormwaterJurisdictionIDList.Contains(x.StormwaterJurisdictionID))
-            .ToList();
-    }
-
-    public static List<TreatmentBMP> ListByWaterQualityManagementPlanID(NeptuneDbContext dbContext,
-                                                                        int waterQualityManagementPlanID)
-    {
-        return GetImpl(dbContext)
-            .AsNoTracking()
-            .Where(x => x.WaterQualityManagementPlanID == waterQualityManagementPlanID)
-            .ToList();
-    }
-
     public static List<TreatmentBMP> ListByWaterQualityManagementPlanIDWithChangeTracking(
         NeptuneDbContext dbContext,
         int waterQualityManagementPlanID)
@@ -696,21 +718,6 @@ public static class TreatmentBMPs
         return GetImpl(dbContext)
             .Where(x => x.WaterQualityManagementPlanID == waterQualityManagementPlanID)
             .ToList();
-    }
-
-    public static List<TreatmentBMP> ListByTreatmentBMPIDList(NeptuneDbContext dbContext,
-                                                              List<int> treatmentBMPIDList)
-    {
-        return GetImpl(dbContext)
-            .AsNoTracking()
-            .Where(x => treatmentBMPIDList.Contains(x.TreatmentBMPID))
-            .ToList();
-    }
-
-    public static List<TreatmentBMP> ListByTreatmentBMPIDListWithChangeTracking(NeptuneDbContext dbContext,
-                                                                                List<int> treatmentBMPIDList)
-    {
-        return GetImpl(dbContext).Where(x => treatmentBMPIDList.Contains(x.TreatmentBMPID)).ToList();
     }
 
     public static int? ChangeTreatmentBMPType(NeptuneDbContext dbContext, int treatmentBMPID, int treatmentBMPTypeID)
@@ -809,6 +816,7 @@ public static class TreatmentBMPs
             .ThenInclude(x => x.TreatmentBMPType)
             .Include(x => x.Watershed)
             .Include(x => x.Delineation)
+            .Include(x => x.WaterQualityManagementPlan)
             .AsNoTracking()
             .Where(x => x.TreatmentBMPType.IsAnalyzedInModelingModule &&
                         stormwaterJurisdictionIDsPersonCanView.Contains(x.StormwaterJurisdictionID))
@@ -839,6 +847,8 @@ public static class TreatmentBMPs
                     TreatmentBMPTypeName = bmp.TreatmentBMPType?.TreatmentBMPTypeName,
                     StormwaterJurisdictionID = bmp.StormwaterJurisdictionID,
                     StormwaterJurisdictionName = bmp.StormwaterJurisdiction?.Organization?.OrganizationName,
+                    WaterQualityManagementPlanID = bmp.WaterQualityManagementPlanID,
+                    WaterQualityManagementPlanName = bmp.WaterQualityManagementPlan?.WaterQualityManagementPlanName,
                     WatershedID = bmp.WatershedID,
                     WatershedName = watershedName,
                     PrecipitationZoneID = bmp.PrecipitationZoneID,

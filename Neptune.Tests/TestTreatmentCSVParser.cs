@@ -5,7 +5,6 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using Neptune.Common.GeoSpatial;
 using Neptune.EFModels.Entities;
-using Neptune.WebMvc.Common;
 
 namespace Neptune.Tests
 {
@@ -95,7 +94,7 @@ Test Cook Park,30,10,City of San Juan Capistrano,City of San Juan Capistrano,200
 Frank,,10,City of Orange,Sitka Technology Group,2008,ABCD,Perpetuity/Life of Project,11/12/2022,5,6,Happy,Full,Not Provided";
             const int treatmentBMPTypeID = 17;
             TreatmentBMPCsvParserHelper.CSVUpload(_dbContext, csv, treatmentBMPTypeID, out var errorList, out _, out _);
-            Assert.IsTrue(errorList.Any(x => x.Contains("Treatment BMP Latitude ")), "Expected an error message");
+            Assert.IsTrue(errorList.Any(x => x.Contains("Latitude is required for new Treatment BMPs")), "Expected an error message");
         }
 
         [TestMethod]
@@ -125,7 +124,7 @@ Frank,95,120,City of Orange,Sitka Technology Group,2008,ABCD,Perpetuity/Life of 
 Frank,30,,City of Orange,Sitka Technology Group,2008,ABCD,Perpetuity/Life of Project,11/12/2022,5,6,Happy,Full,Not Provided";
             const int treatmentBMPTypeID = 17;
             TreatmentBMPCsvParserHelper.CSVUpload(_dbContext, csv, treatmentBMPTypeID, out var errorList, out _, out _);
-            Assert.IsTrue(errorList.Any(x => x.Contains("Treatment BMP Latitude")), "Expected an error message");
+            Assert.IsTrue(errorList.Any(x => x.Contains("Longitude is required for new Treatment BMPs")), "Expected an error message");
         }
 
         [TestMethod]
@@ -1299,6 +1298,117 @@ Frank,30,10,City of Orange,Sitka Technology Group,2008,ABCD,Perpetuity/Life of P
             var treatmentBMPTypeID = GetTreatmentBMPTypeIDByModelingTypeEnum(TreatmentBMPModelingTypeEnum.DryWeatherTreatmentSystems);
             TreatmentBMPCsvParserHelper.CSVUpload(_dbContext, csv, treatmentBMPTypeID, out var errorList, out _, out _);
             Assert.IsTrue(errorList.Any(x => x.Contains("Months of Operation")));
+        }
+
+        // NPT-1070 TC38/TC39 — MultiSelect custom attribute validation. Data-driven so the suite does not
+        // hardcode a fragile type/option list: it discovers a real MultiSelect attribute from the DB.
+        private const string MultiSelectInvalidEntry = "ZZZ_InvalidEntry_NPT1070";
+
+        private (int TreatmentBMPTypeID, string AttributeName, List<string> ValidValues)? FindMultiSelectCustomAttribute()
+        {
+            var multiSelectDataTypeID = (int)CustomAttributeDataTypeEnum.MultiSelect;
+            var candidate = _dbContext.CustomAttributeTypes
+                .Include(x => x.TreatmentBMPTypeCustomAttributeTypes)
+                .AsNoTracking()
+                .Where(x => x.CustomAttributeDataTypeID == multiSelectDataTypeID
+                            && x.CustomAttributeTypeOptionsSchema != null
+                            && x.TreatmentBMPTypeCustomAttributeTypes.Any())
+                .ToList()
+                .Select(x => new
+                {
+                    Type = x,
+                    Options = System.Text.Json.JsonSerializer.Deserialize<List<string>>(x.CustomAttributeTypeOptionsSchema)
+                })
+                .FirstOrDefault(x => x.Options != null && x.Options.Count >= 2);
+
+            if (candidate == null)
+            {
+                return null;
+            }
+
+            return (candidate.Type.TreatmentBMPTypeCustomAttributeTypes.First().TreatmentBMPTypeID,
+                candidate.Type.CustomAttributeTypeName,
+                candidate.Options);
+        }
+
+        private static string BuildMultiSelectCsv(string bmpName, string attributeName, string valueCell)
+        {
+            return
+                $"BMP Name,Latitude,Longitude,Jurisdiction, Owner,Year Built or Installed,Asset ID in System of Record, Required Lifespan of Installation,Allowable End Date of Installation (if applicable), Required Field Visits Per Year, Required Post-Storm Field Visits Per Year,Notes,Trash Capture Status,Sizing Basis,{attributeName}\n" +
+                // Perpetuity lifespan with a blank end date is a valid combination, so the only errors a test
+                // sees come from the multi-select cell under test (not a spurious lifespan/end-date conflict).
+                $"{bmpName},30,10,City of Orange,Sitka Technology Group,2008,ABCD,Perpetuity/Life of Project,,5,6,Happy,Full,Not Provided,{valueCell}";
+        }
+
+        [TestMethod]
+        public void TestCustomAttributeMultiSelectMixedQuotedInvalidIsRejected()
+        {
+            var ms = FindMultiSelectCustomAttribute();
+            if (ms == null)
+            {
+                Assert.Inconclusive("No MultiSelect custom attribute type with options exists in the local database.");
+            }
+            var (treatmentBMPTypeID, attributeName, validValues) = ms.Value;
+            // Single quoted cell: the parser keeps "valid, invalid" as one field; validation must reject it.
+            var csv = BuildMultiSelectCsv("NPT1070 MultiSelect Mixed Quoted", attributeName, $"\"{validValues[0]}, {MultiSelectInvalidEntry}\"");
+            TreatmentBMPCsvParserHelper.CSVUpload(_dbContext, csv, treatmentBMPTypeID, out var errorList, out _, out _);
+            Assert.IsTrue(errorList.Any(x => x.Contains(attributeName) && x.Contains("is not a valid")),
+                "A quoted multi-select cell with a mix of valid and invalid entries should be rejected.");
+        }
+
+        [TestMethod]
+        public void TestCustomAttributeMultiSelectMixedUnquotedIsRejected()
+        {
+            var ms = FindMultiSelectCustomAttribute();
+            if (ms == null)
+            {
+                Assert.Inconclusive("No MultiSelect custom attribute type with options exists in the local database.");
+            }
+            var (treatmentBMPTypeID, attributeName, validValues) = ms.Value;
+            // Unquoted commas are split into extra columns by the CSV parser; the invalid entry must not be
+            // silently dropped and the row must not commit.
+            var csv = BuildMultiSelectCsv("NPT1070 MultiSelect Mixed Unquoted", attributeName, $"{validValues[0]}, {MultiSelectInvalidEntry}");
+            TreatmentBMPCsvParserHelper.CSVUpload(_dbContext, csv, treatmentBMPTypeID, out var errorList, out _, out var customAttributeValues);
+            Assert.IsTrue(errorList.Any(),
+                "An unquoted multi-select cell containing commas must not be silently accepted; the upload should be rejected.");
+            Assert.IsFalse(customAttributeValues.Any(v => v.AttributeValue == MultiSelectInvalidEntry),
+                "The invalid entry must never be stored.");
+            Assert.IsFalse(customAttributeValues.Any(v => v.AttributeValue == validValues[0]),
+                "The row must be rejected entirely, so the valid entry must not be partially stored either.");
+        }
+
+        [TestMethod]
+        public void TestCustomAttributeMultiSelectAllValidQuotedStoresSeparateRecords()
+        {
+            var ms = FindMultiSelectCustomAttribute();
+            if (ms == null)
+            {
+                Assert.Inconclusive("No MultiSelect custom attribute type with options exists in the local database.");
+            }
+            var (treatmentBMPTypeID, attributeName, validValues) = ms.Value;
+            var csv = BuildMultiSelectCsv("NPT1070 MultiSelect All Valid", attributeName, $"\"{validValues[0]}, {validValues[1]}\"");
+            TreatmentBMPCsvParserHelper.CSVUpload(_dbContext, csv, treatmentBMPTypeID, out var errorList, out _, out var customAttributeValues);
+            Assert.IsFalse(errorList.Any(x => x.Contains(attributeName)),
+                "An all-valid multi-select cell should not produce errors.");
+            var storedForAttribute = customAttributeValues
+                .Where(v => v.AttributeValue == validValues[0] || v.AttributeValue == validValues[1]).ToList();
+            Assert.AreEqual(2, storedForAttribute.Count,
+                "Each valid multi-select entry should be stored as a separate CustomAttributeValue.");
+        }
+
+        [TestMethod]
+        public void TestCustomAttributeMultiSelectInvalidAloneIsRejected()
+        {
+            var ms = FindMultiSelectCustomAttribute();
+            if (ms == null)
+            {
+                Assert.Inconclusive("No MultiSelect custom attribute type with options exists in the local database.");
+            }
+            var (treatmentBMPTypeID, attributeName, _) = ms.Value;
+            var csv = BuildMultiSelectCsv("NPT1070 MultiSelect Invalid Alone", attributeName, MultiSelectInvalidEntry);
+            TreatmentBMPCsvParserHelper.CSVUpload(_dbContext, csv, treatmentBMPTypeID, out var errorList, out _, out _);
+            Assert.IsTrue(errorList.Any(x => x.Contains(attributeName) && x.Contains("is not a valid")),
+                "A purely invalid multi-select entry should be rejected.");
         }
     }
 }

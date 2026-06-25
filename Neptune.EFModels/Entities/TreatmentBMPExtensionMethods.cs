@@ -1,4 +1,4 @@
-﻿using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore;
 using Neptune.Models.DataTransferObjects;
 using NetTopologySuite.Geometries;
 
@@ -50,22 +50,6 @@ public static class TreatmentBMPExtensionMethods
         return treatmentBMPUpsertDto;
     }
 
-
-    public static WaterQualityManagementPlanVerifyTreatmentBMPSimpleDto AsWaterQualityManagementPlanVerifyTreatmentBMPSimpleDto(this TreatmentBMP treatmentBMP)
-    {
-        var waterQualityManagementPlanVerifyTreatmentBMPSimpleDto = new WaterQualityManagementPlanVerifyTreatmentBMPSimpleDto()
-        {
-            TreatmentBMPName = treatmentBMP.TreatmentBMPName,
-            TreatmentBMPID = treatmentBMP.TreatmentBMPID,
-            TreatmentBMPType = treatmentBMP.TreatmentBMPType.TreatmentBMPTypeName,
-        };
-        //var mostRecentFieldVisit = treatmentBMP.FieldVisit.Where(x => x.FieldVisitStatus == FieldVisitStatus.Complete).OrderByDescending(x => x.VisitDate).FirstOrDefault();
-        //waterQualityManagementPlanVerifyTreatmentBMPSimpleDto.FieldVisiLastVisitedtDate = mostRecentFieldVisit?.VisitDate.ToShortDateString();
-        //waterQualityManagementPlanVerifyTreatmentBMPSimpleDto.FieldVisitMostRecentScore = mostRecentFieldVisit?.GetPostMaintenanceAssessment() != null ? mostRecentFieldVisit.GetPostMaintenanceAssessment().FormattedScore() : mostRecentFieldVisit?.GetInitialAssessment()?.FormattedScore();
-
-        return waterQualityManagementPlanVerifyTreatmentBMPSimpleDto;
-    }
-
     public static bool IsFullyParameterized(this TreatmentBMP treatmentBMP, Delineation? delineation, vTreatmentBMPModelingAttribute treatmentBMPModelingAttribute)
     {
         // Planning BMPs don't need verified delineations
@@ -105,74 +89,5 @@ public static class TreatmentBMPExtensionMethods
             .FirstOrDefault(x => locationPoint.Intersects(x.PrecipitationZoneGeometry))?.PrecipitationZoneID;
         treatmentBMP.RegionalSubbasinID = dbContext.RegionalSubbasins.AsNoTracking()
             .FirstOrDefault(x => locationPoint.Intersects(x.CatchmentGeometry))?.RegionalSubbasinID;
-    }
-
-    public static TreatmentBMPDto AsDto(this TreatmentBMP treatmentBMP)
-    {
-        return new TreatmentBMPDto
-        {
-            TreatmentBMPID = treatmentBMP.TreatmentBMPID,
-            TreatmentBMPName = treatmentBMP.TreatmentBMPName,
-            TreatmentBMPTypeID = treatmentBMP.TreatmentBMPTypeID,
-            TreatmentBMPTypeName = treatmentBMP.TreatmentBMPType?.TreatmentBMPTypeName,
-            StormwaterJurisdictionID = treatmentBMP.StormwaterJurisdictionID,
-            StormwaterJurisdictionName = treatmentBMP.StormwaterJurisdiction?.Organization?.OrganizationName,
-            OwnerOrganizationID = treatmentBMP.OwnerOrganizationID,
-            OwnerOrganizationName = treatmentBMP.OwnerOrganization?.OrganizationName,
-            YearBuilt = treatmentBMP.YearBuilt,
-            Notes = treatmentBMP.Notes,
-            InventoryIsVerified = treatmentBMP.InventoryIsVerified,
-            ProjectID = treatmentBMP.ProjectID,
-            Latitude = treatmentBMP.LocationPoint4326?.Coordinate.Y,
-            Longitude = treatmentBMP.LocationPoint4326?.Coordinate.X,
-            SystemOfRecordID = treatmentBMP.SystemOfRecordID,
-            WaterQualityManagementPlanID = treatmentBMP.WaterQualityManagementPlanID,
-            TreatmentBMPLifespanEndDate = treatmentBMP.TreatmentBMPLifespanEndDate,
-            RequiredFieldVisitsPerYear = treatmentBMP.RequiredFieldVisitsPerYear,
-            RequiredPostStormFieldVisitsPerYear = treatmentBMP.RequiredPostStormFieldVisitsPerYear,
-            DateOfLastInventoryVerification = treatmentBMP.DateOfLastInventoryVerification,
-            InventoryVerifiedByPersonID = treatmentBMP.InventoryVerifiedByPersonID,
-            InventoryLastChangedDate = treatmentBMP.InventoryLastChangedDate,
-            TrashCaptureStatusTypeID = treatmentBMP.TrashCaptureStatusTypeID,
-            SizingBasisTypeID = treatmentBMP.SizingBasisTypeID,
-            TrashCaptureEffectiveness = treatmentBMP.TrashCaptureEffectiveness?.ToString(),
-            WatershedID = treatmentBMP.WatershedID,
-            ModelBasinID = treatmentBMP.ModelBasinID,
-            PrecipitationZoneID = treatmentBMP.PrecipitationZoneID,
-            UpstreamBMPID = treatmentBMP.UpstreamBMPID,
-            RegionalSubbasinID = treatmentBMP.RegionalSubbasinID,
-            LastNereidLogID = treatmentBMP.LastNereidLogID,
-            UpstreamBMP = treatmentBMP.UpstreamBMP?.AsDto(),
-            RegionalSubbasinRevisionRequests = treatmentBMP.RegionalSubbasinRevisionRequests?.Select(x => x.AsDto()).ToList(),
-            Watershed = treatmentBMP.Watershed?.AsDto(),
-            Delineation = treatmentBMP.Delineation?.AsDto(),
-            WaterQualityManagementPlan = treatmentBMP.WaterQualityManagementPlan?.AsSimpleDto(),
-//            OwnerOrganization = treatmentBMP.OwnerOrganization?.AsDto(),
-//            StormwaterJurisdiction = treatmentBMP.StormwaterJurisdiction?.AsDto(),
-//            MaintenanceRecords = treatmentBMP.MaintenanceRecords?.Select(x => x.AsDto()).ToList(),
-            //TreatmentBMPAssessments = treatmentBMP.TreatmentBMPAssessments?.Select(x => x.AsDto()).ToList(),
-            //TreatmentBMPBenchmarkAndThresholds = treatmentBMP.TreatmentBMPBenchmarkAndThresholds?.Select(x => x.AsDto()).ToList(),
-            //NereidResults = treatmentBMP.NereidResults?.Select(x => x.AsDto()).ToList(),
-            //ProjectNereidResults = treatmentBMP.ProjectNereidResults?.Select(x => x.AsDto()).ToList(),
-            //WaterQualityManagementPlanVerifyTreatmentBMPs = treatmentBMP.WaterQualityManagementPlanVerifyTreatmentBMPs?.Select(x => x.AsDto()).ToList(),
-            SizingBasisType = treatmentBMP.SizingBasisType != null ? new SizingBasisTypeDto
-            {
-                SizingBasisTypeID = treatmentBMP.SizingBasisType.SizingBasisTypeID,
-                SizingBasisTypeName = treatmentBMP.SizingBasisType.SizingBasisTypeName,
-                SizingBasisTypeDisplayName = treatmentBMP.SizingBasisType.SizingBasisTypeDisplayName
-            } : null,
-            TrashCaptureStatusType = treatmentBMP.TrashCaptureStatusType != null ? new TrashCaptureStatusTypeDto
-            {
-                TrashCaptureStatusTypeID = treatmentBMP.TrashCaptureStatusType.TrashCaptureStatusTypeID,
-                TrashCaptureStatusTypeName = treatmentBMP.TrashCaptureStatusType.TrashCaptureStatusTypeName,
-                TrashCaptureStatusTypeDisplayName = treatmentBMP.TrashCaptureStatusType.TrashCaptureStatusTypeDisplayName
-            } : null,
-            TreatmentBMPLifespanType = treatmentBMP.TreatmentBMPLifespanType != null ? new TreatmentBMPLifeSpanTypeDto
-            {
-                TreatmentBMPLifeSpanTypeID = treatmentBMP.TreatmentBMPLifespanType.TreatmentBMPLifespanTypeID,
-                TreatmentBMPLifeSpanTypeName = treatmentBMP.TreatmentBMPLifespanType.TreatmentBMPLifespanTypeName,
-                TreatmentBMPLifeSpanTypeDisplayName = treatmentBMP.TreatmentBMPLifespanType.TreatmentBMPLifespanTypeDisplayName
-            } : null,
-        };
     }
 }

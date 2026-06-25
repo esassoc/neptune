@@ -50,6 +50,21 @@ public class TreatmentBMPAssessmentController(NeptuneDbContext dbContext, ILogge
         return Ok(dto);
     }
 
+    /// <summary>
+    /// NPT-1056: per-observation scoring breakdown for the SPA assessment detail page (Threshold
+    /// / Observed / Benchmark / Weight / Score columns). Carved into its own endpoint instead of
+    /// folding into <see cref="GetByID"/> so the detail page can pay the benchmark-graph load
+    /// cost only when the user is actually on a page that renders the breakdown.
+    /// </summary>
+    [HttpGet("{treatmentBMPAssessmentID}/score-detail")]
+    [UserViewFeature]
+    [EntityNotFound(typeof(TreatmentBMPAssessment), "treatmentBMPAssessmentID")]
+    public async Task<ActionResult<TreatmentBMPAssessmentScoreDetailDto?>> GetScoreDetail([FromRoute] int treatmentBMPAssessmentID)
+    {
+        var dto = await TreatmentBMPAssessments.GetScoreDetailAsync(DbContext, treatmentBMPAssessmentID);
+        return Ok(dto);
+    }
+
     [HttpPut("{treatmentBMPAssessmentID}/observations")]
     [JurisdictionEditFeature]
     [EntityNotFound(typeof(TreatmentBMPAssessment), "treatmentBMPAssessmentID")]

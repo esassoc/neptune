@@ -50,9 +50,16 @@
         </div>
       </div>
 
+      <div class="map-tools">
+        <button type="button" class="btn btn-primary-outline" [disabled]="!hasGeometry" (click)="thinVertices()">
+          <i class="fa fa-compress"></i> Thin Vertices
+        </button>
+        <p class="tool-hint">Use the map toolbar's trash tool to delete the polygon, then the polygon tool to re-draw it.</p>
+      </div>
+
       <div class="actions">
         <button type="button" class="btn btn-primary" [disabled]="saving$ | async" (click)="submit()">Submit</button>
-        <button type="button" class="btn btn-secondary" (click)="cancel()">Cancel</button>
+        <button type="button" class="btn btn-primary-outline" (click)="cancel()">Cancel</button>
       </div>
     </div>
   </div>

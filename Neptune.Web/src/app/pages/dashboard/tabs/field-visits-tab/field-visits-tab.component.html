@@ -1,0 +1,22 @@
+@if (rows$ | async; as rows) {
+    @if (rows.length === 0) {
+        <p class="system-text">
+            No provisional Field Visits in your jurisdictions.
+            <a [routerLink]="['/field-records']">View all Field Records</a>.
+        </p>
+    } @else {
+        <p class="instruction-text">{{ instructionText }}</p>
+        <neptune-grid
+            [rowData]="rows"
+            [columnDefs]="columnDefs"
+            rowSelection="multiple"
+            [suppressRowClickSelection]="true"
+            (selectionChanged)="onSelectionChanged($event)">
+            <button customGridActionsRight type="button" class="btn btn-sm btn-orange" [disabled]="selectedRowIDs().length === 0" (click)="verifySelected()">
+                Verify all Selected ({{ selectedRowIDs().length }})
+            </button>
+        </neptune-grid>
+    }
+} @else {
+    <div [loadingSpinner]="{ isLoading: true, loadingHeight: 200 }"></div>
+}

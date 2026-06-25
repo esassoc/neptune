@@ -35,7 +35,7 @@ export interface ObservationTypePreviewModalData {
                 }
             </div>
             <div class="modal-footer">
-                <button class="btn btn-secondary-outline" (click)="close()">Close</button>
+                <button class="btn btn-primary-outline" (click)="close()">Close</button>
             </div>
         </div>
     `,

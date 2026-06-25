@@ -1,14 +1,20 @@
 ﻿using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using Neptune.API.Services;
+using Neptune.Common.Services;
 using Neptune.API.Services.Attributes;
 using Neptune.API.Services.Authorization;
+using Neptune.Common;
+using Neptune.Common.GeoSpatial;
+using Neptune.Common.Services.GDAL;
 using Neptune.EFModels.Entities;
 using Neptune.Models.DataTransferObjects;
 using NetTopologySuite.Features;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
@@ -20,7 +26,9 @@ namespace Neptune.API.Controllers;
 public class OnlandVisualTrashAssessmentAreaController(
     NeptuneDbContext dbContext,
     ILogger<OnlandVisualTrashAssessmentAreaController> logger,
-    IOptions<NeptuneConfiguration> neptuneConfiguration)
+    IOptions<NeptuneConfiguration> neptuneConfiguration,
+    AzureBlobStorageService azureBlobStorageService,
+    GDALAPIService gdalApiService)
     : SitkaController<OnlandVisualTrashAssessmentAreaController>(dbContext, logger, neptuneConfiguration)
 {
     [HttpGet]
@@ -39,6 +47,10 @@ public class OnlandVisualTrashAssessmentAreaController(
     public ActionResult<OnlandVisualTrashAssessmentAreaDetailDto> Get([FromRoute] int onlandVisualTrashAssessmentAreaID)
     {
         var onlandVisualTrashAssessmentAreaDetailDto = OnlandVisualTrashAssessmentAreas.GetByID(DbContext, onlandVisualTrashAssessmentAreaID).AsDetailDto();
+        // NPT-1066: set here (not in AsDetailDto) so the extension stays dbContext-free; the edit
+        // page uses this to disable the Land Use Block toggle option when none exist.
+        onlandVisualTrashAssessmentAreaDetailDto.JurisdictionHasLandUseBlocks =
+            LandUseBlocks.JurisdictionHasLandUseBlocks(DbContext, onlandVisualTrashAssessmentAreaDetailDto.StormwaterJurisdictionID!.Value);
         return Ok(onlandVisualTrashAssessmentAreaDetailDto);
     }
 
@@ -171,6 +183,170 @@ public class OnlandVisualTrashAssessmentAreaController(
 
         await OnlandVisualTrashAssessmentAreas.DeleteAreaAsync(DbContext, onlandVisualTrashAssessmentAreaID);
         return Ok();
+    }
+
+    [HttpPost("gdb-upload")]
+    [JurisdictionEditFeature]
+    [RequestFormLimits(MultipartBodyLengthLimit = 524288000)]
+    [Consumes("multipart/form-data")]
+    public async Task<ActionResult<OvtaAreaGdbStagingReportDto>> GdbUpload([FromForm] OvtaAreaGdbUploadFormDto form)
+    {
+        var report = new OvtaAreaGdbStagingReportDto { StormwaterJurisdictionID = form.StormwaterJurisdictionID };
+        if (form.File == null || form.File.Length == 0)
+        {
+            report.Errors.Add("Please select a zipped File Geodatabase to upload.");
+            return Ok(report);
+        }
+        if (string.IsNullOrWhiteSpace(form.AreaNameField))
+        {
+            report.Errors.Add("OVTA Area Name field is required.");
+            return Ok(report);
+        }
+
+        var featureClasses = await gdalApiService.OgrInfoGdbToFeatureClassInfo(form.File);
+        if (featureClasses.Count == 0)
+        {
+            report.Errors.Add("The file geodatabase contained no feature class. Please upload a file geodatabase containing exactly one feature class.");
+            return Ok(report);
+        }
+        if (featureClasses.Count > 1)
+        {
+            report.Errors.Add("The file geodatabase contained more than one feature class. Please upload a file geodatabase containing exactly one feature class.");
+            return Ok(report);
+        }
+
+        var featureClassName = featureClasses.Single().LayerName;
+        var currentPerson = People.GetByID(DbContext, CallingUser.PersonID);
+
+        var blobName = Guid.NewGuid().ToString();
+        await azureBlobStorageService.UploadToBlobStorage(await FileStreamHelpers.StreamToBytes(form.File), blobName, ".gdb");
+
+        try
+        {
+            var columns = new List<string>
+            {
+                $"{form.StormwaterJurisdictionID} as StormwaterJurisdictionID",
+                $"{form.AreaNameField} as AreaName",
+                "Description",
+                $"{currentPerson.PersonID} as UploadedByPersonID",
+            };
+            var apiRequest = new GdbToGeoJsonRequestDto
+            {
+                BlobContainer = AzureBlobStorageService.BlobContainerName,
+                CanonicalName = blobName,
+                GdbLayerOutputs = new List<GdbLayerOutput>
+                {
+                    new()
+                    {
+                        Columns = columns,
+                        FeatureLayerName = featureClassName,
+                        NumberOfSignificantDigits = 4,
+                        Filter = "",
+                        CoordinateSystemID = Proj4NetHelper.NAD_83_HARN_CA_ZONE_VI_SRID,
+                    },
+                },
+            };
+
+            var geoJson = await gdalApiService.Ogr2OgrGdbToGeoJson(apiRequest);
+            var stagings = (await GeoJsonSerializer.DeserializeFromFeatureCollectionWithCCWCheck<OnlandVisualTrashAssessmentAreaStaging>(
+                geoJson, GeoJsonSerializer.DefaultSerializerOptions, Proj4NetHelper.NAD_83_HARN_CA_ZONE_VI_SRID)).ToList();
+
+            if (stagings.Count == 0)
+            {
+                report.Errors.Add("No OVTA Area features were found in the upload.");
+                await OnlandVisualTrashAssessmentAreaGdbExport.DiscardStagingForUserAsync(DbContext, currentPerson);
+                return Ok(report);
+            }
+
+            // NPT-1075 round 2: replace the silent geometry filter + generic "corrupted file"
+            // catch with per-feature error messages (null/blank AreaName, invalid geometry,
+            // oversized Description) so users can find and fix the offending features.
+            report.Errors.AddRange(OnlandVisualTrashAssessmentAreaGdbValidator.Validate(stagings));
+
+            // Skip null/blank names here — the validator above already reports those as their own
+            // per-feature error; grouping them would produce a confusing "Duplicate OVTA Area
+            // Names: " (empty value) message that just duplicates the missing-name signal.
+            var duplicateNames = stagings.Where(x => !string.IsNullOrWhiteSpace(x.AreaName))
+                .GroupBy(x => x.AreaName).Where(g => g.Count() > 1).Select(g => g.Key).ToList();
+            if (duplicateNames.Count > 0)
+            {
+                report.Errors.Add($"Duplicate OVTA Area Names: {string.Join(", ", duplicateNames)}");
+            }
+
+            if (report.Errors.Count > 0)
+            {
+                await OnlandVisualTrashAssessmentAreaGdbExport.DiscardStagingForUserAsync(DbContext, currentPerson);
+                return Ok(report);
+            }
+
+            await DbContext.OnlandVisualTrashAssessmentAreaStagings
+                .Where(x => x.UploadedByPersonID == currentPerson.PersonID).ExecuteDeleteAsync();
+            DbContext.OnlandVisualTrashAssessmentAreaStagings.AddRange(stagings);
+            await DbContext.SaveChangesAsync();
+        }
+        catch (Exception ex) when (ex.Message.Contains("Unrecognized field name", StringComparison.InvariantCultureIgnoreCase))
+        {
+            report.Errors.Add("The columns in the uploaded file did not match the OVTA area schema. Ensure your AreaName / Description field names match the GDB exactly.");
+            await OnlandVisualTrashAssessmentAreaGdbExport.DiscardStagingForUserAsync(DbContext, currentPerson);
+            return Ok(report);
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Failed to process OVTA Area GDB upload");
+            report.Errors.Add($"There was a problem processing the Feature Class \"{featureClassName}\". The file may be corrupted or invalid.");
+            await OnlandVisualTrashAssessmentAreaGdbExport.DiscardStagingForUserAsync(DbContext, currentPerson);
+            return Ok(report);
+        }
+
+        return Ok(OnlandVisualTrashAssessmentAreaGdbExport.BuildStagingReportForCurrentUser(DbContext, currentPerson));
+    }
+
+    [HttpGet("gdb-staging-report")]
+    [JurisdictionEditFeature]
+    public ActionResult<OvtaAreaGdbStagingReportDto> GdbStagingReport()
+    {
+        var currentPerson = People.GetByID(DbContext, CallingUser.PersonID);
+        return Ok(OnlandVisualTrashAssessmentAreaGdbExport.BuildStagingReportForCurrentUser(DbContext, currentPerson));
+    }
+
+    [HttpPost("gdb-approve")]
+    [JurisdictionEditFeature]
+    public async Task<ActionResult<int>> GdbApprove()
+    {
+        var currentPerson = People.GetByID(DbContext, CallingUser.PersonID);
+
+        // Re-validate server-side so a client that bypasses the SPA gate can't commit a staging batch with errors.
+        var report = OnlandVisualTrashAssessmentAreaGdbExport.BuildStagingReportForCurrentUser(DbContext, currentPerson);
+        if (report.Errors.Count > 0)
+        {
+            return BadRequest(report);
+        }
+
+        var count = await OnlandVisualTrashAssessmentAreaGdbExport.ApproveStagingForUserAsync(DbContext, currentPerson);
+        return Ok(count);
+    }
+
+    [HttpDelete("gdb-staging")]
+    [JurisdictionEditFeature]
+    public async Task<ActionResult> GdbDiscardStaging()
+    {
+        var currentPerson = People.GetByID(DbContext, CallingUser.PersonID);
+        await OnlandVisualTrashAssessmentAreaGdbExport.DiscardStagingForUserAsync(DbContext, currentPerson);
+        return NoContent();
+    }
+
+    // NPT-998: UserViewFeature (Admin/SA/JM/JE/Unassigned) mirrors legacy MVC
+    // OnlandVisualTrashAssessmentExportController.ExportAssessmentGeospatialData which used
+    // [NeptuneViewAndRequiresJurisdictionsFeature]. The Data Hub link itself is JM/JE-gated,
+    // but a user hitting the URL directly (e.g., from a saved link) shouldn't be locked out
+    // at the API. The export payload is already scoped to a single StormwaterJurisdictionID.
+    [HttpPost("download-gdb")]
+    [UserViewFeature]
+    [Produces("application/zip")]
+    public async Task<FileResult> DownloadGdb([FromBody] OvtaAreaGdbDownloadRequestDto dto)
+    {
+        var (bytes, fileName) = await OnlandVisualTrashAssessmentAreaGdbExport.BuildJurisdictionGdbExportAsync(DbContext, gdalApiService, dto.StormwaterJurisdictionID);
+        return File(bytes, "application/zip", fileName);
     }
 
 }

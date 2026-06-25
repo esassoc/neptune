@@ -52,10 +52,15 @@ public static class DelineationStagings
         dbContext.DelineationStagings.AddRange(validDelineationStagings);
         await dbContext.SaveChangesAsync();
 
-        var stagedNames = validDelineationStagings.Select(x => x.TreatmentBMPName).ToList();
+        // Match staged names with a server-side subquery (not an in-memory list) so very large uploads don't
+        // exceed SQL Server's ~2,100-parameter cap on an IN (@p0..@pN) clause. The staging rows were just
+        // persisted above, so this subquery is exactly this user's current upload.
+        var stagedNamesQuery = dbContext.DelineationStagings
+            .Where(s => s.UploadedByPersonID == currentPerson.PersonID)
+            .Select(s => s.TreatmentBMPName);
         var bmpsWithUpstreamSet = dbContext.TreatmentBMPs.AsNoTracking()
             .Where(x => x.StormwaterJurisdictionID == stagingJurisdictionID
-                        && stagedNames.Contains(x.TreatmentBMPName)
+                        && stagedNamesQuery.Contains(x.TreatmentBMPName)
                         && x.UpstreamBMPID != null)
             .Select(x => x.TreatmentBMPName)
             .ToList();
@@ -139,8 +144,15 @@ public static class DelineationStagings
             .ToList();
         Check.Assert(stagings.Count > 0, "No staged delineations were found for the current user.");
 
-        var stagedNames = stagings.Select(x => x.TreatmentBMPName).ToList();
         var stormwaterJurisdictionID = stagings.Select(x => x.StormwaterJurisdictionID).Distinct().Single();
+
+        // Match staged BMP names with a server-side subquery rather than an in-memory list: a list translates
+        // to IN (@p0..@pN) — one parameter per staged name — which exceeds SQL Server's ~2,100-parameter cap
+        // on very large uploads. The subquery matches in the DB (case-insensitive via collation) with no
+        // per-name parameters.
+        var stagedNamesQuery = dbContext.DelineationStagings
+            .Where(s => s.UploadedByPersonID == currentPerson.PersonID)
+            .Select(s => s.TreatmentBMPName);
 
         // Scope to the staging's jurisdiction AND distributed type so a same-named BMP in another jurisdiction
         // (or a centralized delineation in this one) doesn't get deleted by a Distributed-only upload.
@@ -148,30 +160,34 @@ public static class DelineationStagings
             .Include(x => x.TreatmentBMP)
             .Where(x => x.TreatmentBMP.StormwaterJurisdictionID == stormwaterJurisdictionID
                         && x.DelineationTypeID == (int)DelineationTypeEnum.Distributed
-                        && stagedNames.Contains(x.TreatmentBMP.TreatmentBMPName))
+                        && stagedNamesQuery.Contains(x.TreatmentBMP.TreatmentBMPName))
             .Select(x => x.DelineationID)
             .ToList();
-        foreach (var delineationID in delineationsToDelete)
+        // ExecuteDelete bypasses the change tracker, so detach any tracked instances from earlier in this
+        // DbContext's lifetime first — otherwise they'd still occupy the 1:1 nav slot and collide with the new
+        // Delineations added below. Then delete the whole set with a fixed number of statements rather than
+        // ~12 per delineation (a 1,000+ delineation re-upload would otherwise be ~13k sequential roundtrips).
+        var idsToDelete = delineationsToDelete.ToHashSet();
+        foreach (var tracked in dbContext.ChangeTracker.Entries<Delineation>()
+                     .Where(e => idsToDelete.Contains(e.Entity.DelineationID)).ToList())
         {
-            // ExecuteDelete bypasses the change tracker, so any tracked instance from earlier in this DbContext's
-            // lifetime would still occupy the 1:1 nav slot and collide with the new Delineation we add below.
-            var tracked = dbContext.ChangeTracker.Entries<Delineation>()
-                .FirstOrDefault(e => e.Entity.DelineationID == delineationID);
-            if (tracked != null)
-            {
-                tracked.State = EntityState.Detached;
-            }
-            await Delineation.DeleteFull(dbContext, delineationID);
+            tracked.State = EntityState.Detached;
         }
+        await Delineation.DeleteFullForMany(dbContext, delineationsToDelete);
 
         var bmpsToUpdate = dbContext.TreatmentBMPs.AsNoTracking()
-            .Where(x => x.StormwaterJurisdictionID == stormwaterJurisdictionID && stagedNames.Contains(x.TreatmentBMPName))
+            .Where(x => x.StormwaterJurisdictionID == stormwaterJurisdictionID && stagedNamesQuery.Contains(x.TreatmentBMPName))
             .Select(x => new { x.TreatmentBMPID, x.TreatmentBMPName })
             .ToList();
 
         foreach (var bmp in bmpsToUpdate)
         {
-            var staging = stagings.Single(z => z.TreatmentBMPName == bmp.TreatmentBMPName);
+            // Mirror the SQL-side comparison that populated bmpsToUpdate: SQL Server collation matches names
+            // case-insensitively and ignores trailing whitespace, so a plain ordinal == here misses case/whitespace-only
+            // differences and throws "Sequence contains no matching element".
+            var staging = stagings.First(z =>
+                string.Equals(z.TreatmentBMPName?.Trim(), bmp.TreatmentBMPName?.Trim(),
+                    StringComparison.InvariantCultureIgnoreCase));
             dbContext.Delineations.Add(new Delineation
             {
                 HasDiscrepancies = false,

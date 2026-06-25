@@ -2,6 +2,6 @@
 <app-alert-display></app-alert-display>
 <hru-characteristics-grid [rowData]="hruCharacteristics$ | async" [height]="'800px'" [downloadFileName]="'HRUCharacteristics'">
     @if (isSitkaAdmin) {
-        <button customGridActionsRight class="btn btn-primary btn-sm" (click)="refreshHRUCharacteristics()">Refresh HRU Characteristics</button>
+        <button customGridActionsRight class="btn btn-orange btn-sm" (click)="refreshHRUCharacteristics()">Refresh HRU Characteristics</button>
     }
 </hru-characteristics-grid>

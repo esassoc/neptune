@@ -11,9 +11,22 @@
 
 }
 
-.card-body h4 {
-    color: $primary;
-    font-size: $type-size-400;
+// NPT-1068: Modeling Approach heading row. Lift the Edit button + "Learn about WQMP Modeling
+// Options" link OUT of the h4 so they don't inherit its large teal heading styling.
+.modeling-approach-heading {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+
+    h4 {
+        margin-bottom: 0;
+    }
+}
+
+.modeling-approach-header-actions {
+    display: inline-flex;
+    align-items: center;
+    gap: $spacing-200;
 }
 
 .modeling-approach-row {
@@ -83,43 +96,65 @@
 }
 
 .document-entry {
-    margin-bottom: 1rem;
+    border: 1px solid $gray-200;
+    border-radius: $border-radius-200;
+    padding: $spacing-400;
 }
+
+.document-entry-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: $spacing-300;
+}
+
+// Document title: larger and bolder than the field labels below it, so the two read
+// as distinct levels — but the same text color (inherits body), per request.
+.document-name {
+    font-size: $type-size-300;
+    font-weight: 700;
+}
+
+.document-entry-actions {
+    display: inline-flex;
+    gap: $spacing-200;
+    white-space: nowrap;
+    flex-shrink: 0;
+}
+
+// Icon-only action buttons use the shared .btn-icon class (see _btn.scss).
 
 ::ng-deep .ag-row-pinned-bottom {
     font-weight: bold;
 }
 
-.document-details {
-    margin-top: 0.25rem;
-    margin-left: 1rem;
-
-    dt {
-        float: left;
-        width: 120px;
-        font-weight: normal;
-        clear: left;
-    }
-
-    dd {
-        margin-left: 130px;
-    }
-}
-
-.draft-banner {
+// NPT UX pilot: document rows use the shared compact .kv key/value grid
+// (auto / 1fr, left-aligned labels) instead of a floated dl-horizontal, so labels
+// and values align in clean columns and the value reads as body copy, not a heading.
+// Responsive grid of distinct document-type tiles: fills available width with as
+// many columns as fit (auto-fill / minmax), collapsing to a single column on
+// narrow screens. Each tile is a bordered panel so categories stay visually distinct.
+// Document-type sections stack vertically (full width) so each document has room to
+// spread horizontally and titles don't wrap.
+.document-groups {
     display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 1rem;
-    padding: 0.75rem 1rem;
-    background: rgba(0, 153, 171, 0.06);
-    border: 1px solid $primary;
-    border-radius: $border-radius-200;
-
-    &__actions {
-        display: flex;
-        align-items: center;
-        gap: 0.5rem;
-        flex-shrink: 0;
-    }
+    flex-direction: column;
+    gap: $spacing-500;
 }
+
+// Within a full-width section, documents flow into as many columns as fit.
+.document-entries {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(28rem, 1fr));
+    gap: $spacing-400 $spacing-500;
+}
+
+.document-group-title {
+    margin-bottom: $spacing-200;
+}
+
+.document-details {
+    margin-top: $spacing-100;
+    margin-left: $spacing-300;
+}
+

@@ -23,8 +23,8 @@
             <regional-subbasins-layer [mode]="OverlayMode.ReferenceOnly" [map]="map" [layerControl]="layerControl" [displayOnLoad]="false" [sortOrder]="10"></regional-subbasins-layer>
             <jurisdictions-layer [mode]="OverlayMode.ReferenceOnly" [map]="map" [layerControl]="layerControl" [displayOnLoad]="false" [sortOrder]="30"></jurisdictions-layer>
             <wqmps-layer [displayOnLoad]="false" [map]="map" [layerControl]="layerControl" [sortOrder]="40"></wqmps-layer>
-            <delineations-layer delineationStatus="Verified" [displayOnLoad]="false" [map]="map" [layerControl]="layerControl" [sortOrder]="50"></delineations-layer>
-            <delineations-layer delineationStatus="Provisional" [displayOnLoad]="false" [map]="map" [layerControl]="layerControl" [sortOrder]="51"></delineations-layer>
+            <delineations-layer delineationStatus="Verified" [isAnalyzedInModelingModule]="true" [displayOnLoad]="false" [map]="map" [layerControl]="layerControl" [sortOrder]="50"></delineations-layer>
+            <delineations-layer delineationStatus="Provisional" [isAnalyzedInModelingModule]="true" [displayOnLoad]="false" [map]="map" [layerControl]="layerControl" [sortOrder]="51"></delineations-layer>
         }
     </div>
 </hybrid-map-grid>

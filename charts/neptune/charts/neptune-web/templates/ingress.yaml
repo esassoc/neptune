@@ -31,6 +31,9 @@ spec:
       hosts:
         - {{ .Values.global.domains.web }}
         - {{ .Values.global.domains.planning }}
+  {{- if eq .Values.global.env.name "prod" }}
+        - ocstormwatertools.org
+  {{- end }}
   rules:
     - host: {{ .Values.global.domains.web }}
       http:
@@ -47,6 +50,25 @@ spec:
               serviceName: {{ $fullName }}
               servicePort: {{ $svcPort }}
               {{- end }}
+  {{- if eq .Values.global.env.name "prod" }}
+    # NPT-1068: legacy ocstormwatertools.org moved here from the retired neptune-webmvc ingress.
+    # The SPA serves it and redirects known legacy MVC paths to their SPA equivalents (see app.routes.ts).
+    - host: ocstormwatertools.org
+      http:
+        paths:
+          - path: /
+            pathType: ImplementationSpecific
+            backend:
+              {{- if semverCompare ">=1.19-0" $.Capabilities.KubeVersion.GitVersion }}
+              service:
+                name: {{ $fullName }}
+                port:
+                  number: {{ $svcPort }}
+              {{- else }}
+              serviceName: {{ $fullName }}
+              servicePort: {{ $svcPort }}
+              {{- end }}
+  {{- end }}
     - host: {{ .Values.global.domains.planning }}
       http:
         paths:

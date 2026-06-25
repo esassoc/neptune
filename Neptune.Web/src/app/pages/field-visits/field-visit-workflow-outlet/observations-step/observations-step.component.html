@@ -16,7 +16,7 @@
 
         @if (isPostMaintenance && assessmentDetail.ObservationTypes.length > 0 && !isReadOnly()) {
             <div class="copy-from-initial">
-                <button type="button" class="btn btn-secondary" (click)="copyFromInitial(workflow)">
+                <button type="button" class="btn btn-primary-outline" (click)="copyFromInitial(workflow)">
                     Copy data from Initial Assessment
                 </button>
             </div>
@@ -28,10 +28,10 @@
 
         @if (!isReadOnly()) {
             <div class="step-footer">
-                <button type="button" class="btn btn-secondary" (click)="save(workflow, 'wrap-up')">
+                <button type="button" class="btn btn-primary-outline" (click)="save(workflow, 'wrap-up')">
                     Save &amp; Wrap Up Visit <i class="fa fa-flag-checkered ml-2"></i>
                 </button>
-                <button type="button" class="btn btn-secondary" (click)="save(workflow, 'stay')">Save</button>
+                <button type="button" class="btn btn-primary-outline" (click)="save(workflow, 'stay')">Save</button>
                 <button type="button" class="btn btn-primary" (click)="save(workflow, 'continue')">
                     Save &amp; Continue <i class="fa fa-caret-right ml-2"></i>
                 </button>

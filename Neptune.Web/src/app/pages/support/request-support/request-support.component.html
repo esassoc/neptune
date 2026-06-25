@@ -79,7 +79,7 @@
             <button type="button" class="btn btn-primary" [disabled]="isSubmitting() || formGroup.invalid" (click)="submit()">
                 @if (isSubmitting()) { <i class="fa fa-spinner fa-spin"></i> Sending... } @else { Submit Request }
             </button>
-            <a class="btn btn-secondary" [routerLink]="['/']">Cancel</a>
+            <a class="btn btn-primary-outline" [routerLink]="['/']">Cancel</a>
         </div>
     }
 </section>

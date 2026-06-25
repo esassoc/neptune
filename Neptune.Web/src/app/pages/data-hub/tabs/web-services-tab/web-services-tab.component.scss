@@ -1,0 +1,24 @@
+@use "/src/scss/abstracts" as *;
+
+.tab-main {
+    padding-bottom: 1.5rem;
+}
+
+.primary-cta {
+    margin-top: 0.5rem;
+    margin-bottom: 1.5rem;
+}
+
+.token-row {
+    margin: 0.5rem 0 1rem;
+
+    code {
+        display: inline-block;
+        padding: 0.4rem 0.75rem;
+        background: #f4f4f4;
+        border: 1px solid #ddd;
+        border-radius: 4px;
+        font-size: $type-size-200;
+        word-break: break-all;
+    }
+}

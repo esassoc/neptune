@@ -1,42 +1,4 @@
 services:
-  neptune.webmvc:
-    build:
-      args:
-        source: .
-    environment:
-      - ASPNETCORE_ENVIRONMENT=Development
-      - ASPNETCORE_HTTP_PORTS=8080
-      - ASPNETCORE_HTTPS_PORTS=8081
-      - SECRET_PATH=${SECRET_PATH}
-      - SitkaEmailRedirect=${SitkaEmailRedirect}
-      - SitkaSupportEmail=${SitkaSupportEmail}
-      - DoNotReplyEmail=${DoNotReplyEmail}
-      - MailLogBcc=${MailLogBcc}
-      - MapServiceUrl=${MapServiceUrl}
-      - NereidUrl=${NereidUrl}
-      - GDALAPIBaseUrl=${GDALAPIBaseUrl}
-      - QGISAPIBaseUrl=${QGISAPIBaseUrl}
-      - OCGISBaseUrl=${OCGISBaseUrl}
-      - PlanningModuleBaseUrl=${PlanningModuleBaseUrl}
-      - TrashModuleBaseUrl=${TrashModuleBaseUrl}
-      - PathToFieldVisitUploadTemplate=${PathToFieldVisitUploadTemplate}
-      - PathToOVTAUploadTemplate=${PathToOVTAUploadTemplate}
-      - PathToSimplifiedBMPTemplate=${PathToSimplifiedBMPTemplate}
-      - PathToBulkUploadWQMPTemplate=${PathToBulkUploadWQMPTemplate}
-      - PathToUploadWQMPBoundaryTemplate=${PathToUploadWQMPBoundaryTemplate}
-      - RecaptchaPublicKey=${RecaptchaPublicKey}
-      - RecaptchaPrivateKey=${RecaptchaPrivateKey}
-      - RecaptchaValidatorUrl=${RecaptchaValidatorUrl}
-      - GoogleRecaptchaV3Config__SiteKey=${GoogleRecaptchaV3SiteKey}
-      - GoogleRecaptchaV3Config__SecretKey=${GoogleRecaptchaV3SecretKey}
-      - GoogleRecaptchaV3Config__VerifyUrl=${GoogleRecaptchaV3VerifyUrl}
-      - AzureBlobStorageConnectionString=${AzureBlobStorageConnectionString}
-    ports:
-      - "6211:8080"
-      - "6212:8081"
-    volumes:
-      - ${APPDATA}/ASP.NET/Https:/home/app/.aspnet/https:ro
-
   neptune.api:
     build:
       args:
@@ -57,10 +19,31 @@ services:
       - OCGISBaseUrl=${OCGISBaseUrl}
       - PlanningModuleBaseUrl=${PlanningModuleBaseUrl}
       - TrashModuleBaseUrl=${TrashModuleBaseUrl}
+      - PathToFieldVisitUploadTemplate=${PathToFieldVisitUploadTemplate}
+      - PathToOVTAUploadTemplate=${PathToOVTAUploadTemplate}
+      - PathToSimplifiedBMPTemplate=${PathToSimplifiedBMPTemplate}
+      - PathToBulkUploadWQMPTemplate=${PathToBulkUploadWQMPTemplate}
+      - PathToUploadWQMPBoundaryTemplate=${PathToUploadWQMPBoundaryTemplate}
       - AzureBlobStorageConnectionString=${AzureBlobStorageConnectionString}
     ports:
       - "8211:8080"
       - "8212:8081"
+    volumes:
+      - ${APPDATA}/ASP.NET/Https:/home/app/.aspnet/https:ro
+
+  neptune.externalapi:
+    build:
+      args:
+        source: .
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Development
+      - ASPNETCORE_HTTP_PORTS=8080
+      - ASPNETCORE_HTTPS_PORTS=8081
+      - SECRET_PATH=${NeptuneExternalAPISecretPath}
+      - AzureBlobStorageConnectionString=${AzureBlobStorageConnectionString}
+    ports:
+      - "8240:8080"
+      - "8241:8081"
     volumes:
       - ${APPDATA}/ASP.NET/Https:/home/app/.aspnet/https:ro
 

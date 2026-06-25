@@ -132,7 +132,7 @@ export class WqmpAnnualReportComponent implements OnInit {
             this.utility.createBasicColumnDef("Priority", "Priority", { CustomDropdownFilterField: "Priority" }),
             this.utility.createBasicColumnDef("Land Use", "LandUse", { CustomDropdownFilterField: "LandUse" }),
             this.utility.createBasicColumnDef("Hydrologic Subarea", "HydrologicSubareaName", { CustomDropdownFilterField: "HydrologicSubareaName" }),
-            this.utility.createDecimalColumnDef("Acres (user-entered)", "RecordedWQMPAreaInAcres", { DecimalPlacesToDisplay: 2 }),
+            this.utility.createDecimalColumnDef("Recorded Acres", "RecordedWQMPAreaInAcres", { DecimalPlacesToDisplay: 2 }),
             this.utility.createDateColumnDef("Date Approved", "ApprovalDate", "shortDate"),
         ];
     }
@@ -145,10 +145,10 @@ export class WqmpAnnualReportComponent implements OnInit {
             this.utility.createBasicColumnDef("WQMP Status at End of Period", "WaterQualityManagementPlanVerifyStatusName", {
                 CustomDropdownFilterField: "WaterQualityManagementPlanVerifyStatusName",
             }),
-            this.utility.createBasicColumnDef("# of BMPs", "NumberOfBMPs"),
-            this.utility.createBasicColumnDef("BMPs Adequate", "NumberOfBMPsAdequate"),
-            this.utility.createBasicColumnDef("BMPs Deficient", "NumberOfBMPsDeficient"),
-            this.utility.createBasicColumnDef("WQMP O&M Verification Comments", "WQMPVerificationComments"),
+            this.utility.createDecimalColumnDef("# of BMPs", "NumberOfBMPs", { DecimalPlacesToDisplay: 0 }),
+            this.utility.createDecimalColumnDef("BMPs Adequate", "NumberOfBMPsAdequate", { DecimalPlacesToDisplay: 0 }),
+            this.utility.createDecimalColumnDef("BMPs Deficient", "NumberOfBMPsDeficient", { DecimalPlacesToDisplay: 0 }),
+            this.utility.createBasicColumnDef("WQMP O&M Verification Comments", "WQMPVerificationComments", { MaxWidth: 400 }),
         ];
     }
 }

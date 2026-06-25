@@ -1,4 +1,5 @@
-﻿using Microsoft.AspNetCore.Mvc;
+﻿using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using Neptune.API.Services;
@@ -72,6 +73,9 @@ public class OnlandVisualTrashAssessmentController(
                         ?.OnlandVisualTrashAssessmentScoreID;
             }
 
+            // DeleteFull runs immediate ExecuteDeleteAsync statements, so the recalculated scores above
+            // are only on the tracked area entity until we persist them here.
+            await DbContext.SaveChangesAsync();
         }
         return Ok();
     }
@@ -194,5 +198,23 @@ public class OnlandVisualTrashAssessmentController(
 
         await DbContext.SaveChangesAsync();
         return Ok();
+    }
+
+    [HttpPost("bulk-upload")]
+    [JurisdictionEditFeature]
+    [RequestSizeLimit(100_000_000)]
+    [RequestFormLimits(MultipartBodyLengthLimit = 100_000_000)]
+    [Consumes("multipart/form-data")]
+    public async Task<ActionResult<OvtaBulkUploadResultDto>> BulkUpload([FromForm] OvtaBulkUploadFormDto form)
+    {
+        if (form.File == null || form.File.Length == 0)
+        {
+            return Ok(new OvtaBulkUploadResultDto { Errors = new List<string> { "Please select an XLSX file to upload." } });
+        }
+
+        var currentPerson = People.GetByID(DbContext, CallingUser.PersonID);
+        await using var stream = form.File.OpenReadStream();
+        var result = await OvtaBulkUploadImporter.BulkUploadAsync(DbContext, stream, currentPerson);
+        return Ok(result);
     }
 }

@@ -203,6 +203,8 @@ public partial class NeptuneDbContext : DbContext
 
     public virtual DbSet<Watershed> Watersheds { get; set; }
 
+    public virtual DbSet<WebServiceAccessLog> WebServiceAccessLogs { get; set; }
+
     public virtual DbSet<vFieldVisitDetailed> vFieldVisitDetaileds { get; set; }
 
     public virtual DbSet<vGeoServerLoadGeneratingUnit> vGeoServerLoadGeneratingUnits { get; set; }
@@ -686,6 +688,8 @@ public partial class NeptuneDbContext : DbContext
         {
             entity.HasKey(e => e.PersonID).HasName("PK_Person_PersonID");
 
+            entity.HasOne(d => d.ImpersonatedPerson).WithMany(p => p.InverseImpersonatedPerson).HasConstraintName("FK_Person_Person_ImpersonatedPersonID_PersonID");
+
             entity.HasOne(d => d.Organization).WithMany(p => p.People).OnDelete(DeleteBehavior.ClientSetNull);
         });
 
@@ -1121,6 +1125,15 @@ public partial class NeptuneDbContext : DbContext
         modelBuilder.Entity<Watershed>(entity =>
         {
             entity.HasKey(e => e.WatershedID).HasName("PK_Watershed_WatershedID");
+        });
+
+        modelBuilder.Entity<WebServiceAccessLog>(entity =>
+        {
+            entity.HasKey(e => e.WebServiceAccessLogID).HasName("PK_WebServiceAccessLog_WebServiceAccessLogID");
+
+            entity.Property(e => e.RequestedDate).HasDefaultValueSql("(getutcdate())", "DF_WebServiceAccessLog_RequestedDate");
+
+            entity.HasOne(d => d.Person).WithMany(p => p.WebServiceAccessLogs).OnDelete(DeleteBehavior.ClientSetNull);
         });
 
         modelBuilder.Entity<vFieldVisitDetailed>(entity =>

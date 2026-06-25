@@ -20,6 +20,7 @@ import { CustomRichTextComponent } from "src/app/shared/components/custom-rich-t
 import { PageHeaderComponent } from "src/app/shared/components/page-header/page-header.component";
 import { WorkflowBodyComponent } from "src/app/shared/components/workflow-body/workflow-body.component";
 import { AlertDisplayComponent } from "src/app/shared/components/alert-display/alert-display.component";
+import { NoteComponent } from "src/app/shared/components/note/note.component";
 import { ProjectWorkflowProgressService } from "src/app/shared/services/project-workflow-progress.service";
 
 @Component({
@@ -37,6 +38,7 @@ import { ProjectWorkflowProgressService } from "src/app/shared/services/project-
         PageHeaderComponent,
         WorkflowBodyComponent,
         AlertDisplayComponent,
+        NoteComponent,
     ],
 })
 export class ReviewComponent {

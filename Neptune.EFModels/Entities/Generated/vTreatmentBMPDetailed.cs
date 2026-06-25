@@ -29,6 +29,12 @@ public partial class vTreatmentBMPDetailed
     [Unicode(false)]
     public string OrganizationName { get; set; } = null!;
 
+    public int? WaterQualityManagementPlanID { get; set; }
+
+    [StringLength(100)]
+    [Unicode(false)]
+    public string? WaterQualityManagementPlanName { get; set; }
+
     public int? RequiredFieldVisitsPerYear { get; set; }
 
     public int? RequiredPostStormFieldVisitsPerYear { get; set; }
@@ -41,6 +47,8 @@ public partial class vTreatmentBMPDetailed
     [StringLength(2000)]
     [Unicode(false)]
     public string? Notes { get; set; }
+
+    public bool InventoryIsVerified { get; set; }
 
     public int OwnerOrganizationID { get; set; }
 

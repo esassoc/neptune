@@ -1,0 +1,13 @@
+@if (disabled) {
+    <span class="btn is-disabled" [class.btn-primary]="icon === 'upload'" [class.btn-primary-outline]="icon !== 'upload'" [title]="disabledTooltip">
+        <i [class]="iconClass"></i> {{ label }}
+    </span>
+} @else if (routerLink) {
+    <a class="btn" [class.btn-primary]="icon === 'upload'" [class.btn-primary-outline]="icon !== 'upload'" [routerLink]="routerLink">
+        <i [class]="iconClass"></i> {{ label }}
+    </a>
+} @else {
+    <button type="button" class="btn" [class.btn-primary]="icon === 'upload'" [class.btn-primary-outline]="icon !== 'upload'" (click)="onClick()">
+        <i [class]="iconClass"></i> {{ label }}
+    </button>
+}

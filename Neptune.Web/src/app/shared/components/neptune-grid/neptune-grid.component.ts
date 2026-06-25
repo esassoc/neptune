@@ -1,4 +1,4 @@
-import { Component, EventEmitter, Input, OnChanges, OnInit, Output, SimpleChanges, ViewChild } from "@angular/core";
+import { Component, ElementRef, EventEmitter, Input, OnChanges, OnInit, Output, SimpleChanges, ViewChild } from "@angular/core";
 import { CommonModule } from "@angular/common";
 import { AgGridAngular, AgGridModule } from "ag-grid-angular";
 import {
@@ -9,7 +9,7 @@ import {
     GridApi,
     GridColumnsChangedEvent,
     GridReadyEvent,
-    RowDataUpdatedEvent,
+    GridSizeChangedEvent,
     SelectionChangedEvent,
 } from "ag-grid-community";
 import { AgGridHelper } from "src/app/shared/helpers/ag-grid-helper";
@@ -80,6 +80,8 @@ export class NeptuneGridComponent implements OnInit, OnChanges {
 
     public fullscreenTitleText = "Make grid full screen";
 
+    constructor(private elementRef: ElementRef) {}
+
     ngOnInit(): void {
         this.autoSizeStrategy = { type: this.sizeColumnsToFitGrid ? "fitGridWidth" : "fitCellContents" };
         this.multiSelectEnabled = this.rowSelection == "multiple";
@@ -111,14 +113,40 @@ export class NeptuneGridComponent implements OnInit, OnChanges {
     }
 
     public onFirstDataRendered(event: FirstDataRenderedEvent) {
-        event.api.sizeColumnsToFit();
+        // The initial fit is owned by [autoSizeStrategy] (fitGridWidth or fitCellContents, set in
+        // ngOnInit). We no longer call sizeColumnsToFit()/autoSizeAllColumns() here — the old code
+        // ran BOTH a width-fit (here) and a content-fit (onRowDataUpdated) on every load, and they
+        // fought each other. Worse, when the container had no width yet (hybrid map grids, hidden
+        // tabs) the width-fit collapsed every column to its min, hiding header and data until the
+        // user dragged them. Responsive re-fitting now happens in the guarded onGridSizeChanged. (NPT-1079)
         this.gridLoaded = true;
 
         this.gridRefReady.emit(this.gridref);
     }
 
     public onGridColumnsChanged(event: GridColumnsChangedEvent) {
-        event.api.sizeColumnsToFit();
+        // Re-fit when the column set changes (e.g. dynamic custom-attribute columns), but only when
+        // the grid is actually laid out — fitting a zero-width container collapses the columns.
+        if (!this.gridHasWidth()) return;
+        if (this.sizeColumnsToFitGrid) {
+            event.api.sizeColumnsToFit();
+        } else {
+            event.api.autoSizeAllColumns();
+        }
+    }
+
+    public onGridSizeChanged(event: GridSizeChangedEvent) {
+        // Fires on container resize and when a hidden grid becomes visible. Only fit-to-width grids
+        // re-flow on resize, and only once the grid has real width — the clientWidth guard is what
+        // prevents the "columns collapsed until manually resized" bug. (NPT-1079)
+        if (this.sizeColumnsToFitGrid && event.clientWidth > 0) {
+            event.api.sizeColumnsToFit();
+        }
+    }
+
+    private gridHasWidth(): boolean {
+        const wrapper = this.elementRef.nativeElement?.querySelector(".ag-root-wrapper");
+        return !!wrapper && wrapper.clientWidth > 0;
     }
 
     public onSelectionChanged(event: SelectionChangedEvent) {
@@ -142,10 +170,6 @@ export class NeptuneGridComponent implements OnInit, OnChanges {
         this.filteredRowsCount = filteredRowsCount;
     }
 
-    public onRowDataUpdated(event: RowDataUpdatedEvent) {
-        event.api.autoSizeAllColumns();
-    }
-
     onSelectAll() {
         this.gridApi.selectAllFiltered();
     }
@@ -160,7 +184,12 @@ export class NeptuneGridComponent implements OnInit, OnChanges {
     }
 
     public handleScreenSizeChangedEvent() {
-        if (this.gridApi) {
+        // Toggling fullscreen changes the grid's available width. Re-fit using the grid's own
+        // strategy (width-fit vs content-fit), guarded so we never fit a zero-width container.
+        if (!this.gridApi || !this.gridHasWidth()) return;
+        if (this.sizeColumnsToFitGrid) {
+            this.gridApi.sizeColumnsToFit();
+        } else {
             this.gridApi.autoSizeAllColumns();
         }
     }

@@ -2,7 +2,7 @@
 
 <ng-template #headerActions>
     <a class="btn btn-primary header-action" [routerLink]="['/delineation', 'gdb-upload']"><i class="fa fa-upload"></i> Bulk Upload Treatment BMP Delineations</a>
-    <a class="btn btn-primary header-action" [routerLink]="['/delineation', 'gdb-download']"><i class="fa fa-download"></i> Download GDB</a>
+    <a class="btn btn-primary-outline header-action" [routerLink]="['/delineation', 'gdb-download']"><i class="fa fa-download"></i> Download GDB</a>
 </ng-template>
 
 <section class="content-section">
@@ -31,8 +31,11 @@
                             <dt>Type</dt>
                             <dd>{{ bmp.TreatmentBMPTypeName }}</dd>
                         </dl>
+                        @if (mode === "idle" && !choosingFlowType()) {
+                            <button type="button" class="btn btn-sm btn-primary" (click)="startEditLocation()">Edit Location</button>
+                        }
 
-                        <h4 class="panel-section-header">Selected Delineation</h4>
+                        <h4 class="panel-section-header panel-section-header--divided">Selected Delineation</h4>
                         <dl class="kv">
                             <dt>Type</dt>
                             <dd>{{ delineationTypeName() }}</dd>
@@ -49,43 +52,59 @@
                         </dl>
 
                         @if (mode === "idle") {
-                            @if (delineation) {
+                            @if (delineation && !choosingFlowType()) {
                                 <div class="inline-actions">
-                                    <button type="button" class="btn btn-sm btn-primary" (click)="editExistingDelineation()">Edit</button>
-                                    <button type="button" class="btn btn-sm btn-danger icon-btn" [disabled]="saving$ | async" (click)="deleteDelineation()" title="Delete Delineation">
-                                        <i class="fa fa-trash"></i>
-                                    </button>
+                                    <button type="button" class="btn btn-sm btn-primary" (click)="openFlowTypeChooser()">Edit</button>
+                                    <button type="button" class="btn btn-sm btn-danger-outline" [disabled]="saving$ | async" (click)="deleteDelineation()">Delete</button>
+                                    @if (delineation.DelineationTypeID === DelineationTypeEnum.Centralized) {
+                                        <a class="btn btn-sm btn-primary" [routerLink]="requestRevisionUrl()">Request Revision</a>
+                                    }
                                 </div>
-                                @if (delineation.DelineationTypeID === DelineationTypeEnum.Centralized) {
-                                    <a class="btn btn-sm btn-primary action-btn request-revision-btn" [routerLink]="requestRevisionUrl()">Request Revision</a>
-                                }
                             } @else {
-                                <p class="explanatory">
-                                    <strong>Distributed</strong> BMPs receive only local surface flow — draw the drainage area on the map.<br />
-                                    <strong>Centralized</strong> BMPs also receive piped flow — we'll trace the regional subbasin network for you.
-                                </p>
-                                <div class="stacked-actions">
-                                    <button type="button" class="btn btn-sm btn-primary" (click)="startEditDistributed()">Add Distributed Delineation</button>
-                                    <button type="button" class="btn btn-sm btn-primary" (click)="startEditCentralized()">Add Centralized Delineation</button>
+                                <!-- NPT-981 r3 (KE): flow-type chooser mirrors the legacy "Delineate Drainage
+                                     Area" control — radio select + a single Delineate button. Shown directly
+                                     when no delineation exists, or via "Edit Delineation" for an existing one
+                                     (where picking the other type switches it). Distributed → draw/edit
+                                     vertices; Centralized → trace the RSB network. -->
+                                <p class="chooser-step">Select the type of flow this BMP receives:</p>
+                                <div class="flow-options">
+                                    <label class="flow-option">
+                                        <input type="radio" name="flowType" [value]="DelineationTypeEnum.Distributed" [(ngModel)]="selectedFlowType" />
+                                        Receives Local Surface Flow Only (Distributed)
+                                    </label>
+                                    <label class="flow-option">
+                                        <input type="radio" name="flowType" [value]="DelineationTypeEnum.Centralized" [(ngModel)]="selectedFlowType" />
+                                        Receives Both Piped Flow and Local Surface Flow (Centralized)
+                                    </label>
+                                </div>
+                                @if (flowTypeHint()) {
+                                    <p class="chooser-hint">{{ flowTypeHint() }}</p>
+                                }
+                                <div class="inline-actions">
+                                    <button type="button" class="btn btn-sm btn-primary" [disabled]="!selectedFlowType" (click)="beginDelineate()">Delineate</button>
+                                    @if (choosingFlowType()) {
+                                        <button type="button" class="btn btn-sm btn-primary-outline" (click)="closeFlowTypeChooser()">Cancel</button>
+                                    }
                                 </div>
                             }
-
-                            <hr />
-
-                            <button type="button" class="btn btn-sm btn-primary action-btn" (click)="startEditLocation()">Edit BMP Location</button>
                         } @else {
                             <hr />
                             <p class="edit-hint">
                                 @switch (mode) {
                                     @case ("editingDistributed") { Use the map tools to draw or edit the polygon, then save. }
-                                    @case ("editingCentralized") { Loaded upstream catchment. Adjust vertices if needed, then save. }
+                                    @case ("editingCentralized") { Traced the upstream catchment. Save to accept it, or Request Revision if the regional subbasin network needs a change. }
                                     @case ("editingLocation") { Drag the BMP marker or click anywhere on the map to relocate it, then Save. }
                                 }
                             </p>
                             <div class="inline-actions">
                                 <button type="button" class="btn btn-sm btn-primary" [disabled]="saving$ | async" (click)="saveEdit()">Save</button>
-                                <button type="button" class="btn btn-sm btn-secondary" (click)="cancelEdit()">Cancel</button>
+                                <button type="button" class="btn btn-sm btn-primary-outline" (click)="cancelEdit()">Cancel</button>
                             </div>
+                            @if (mode === "editingCentralized") {
+                                <!-- NPT-981 r3 (KE id-22): offer Request Revision during the trace, not only
+                                     after a centralized delineation already exists. -->
+                                <a class="btn btn-sm btn-primary action-btn request-revision-btn" [routerLink]="requestRevisionUrl()">Request Revision</a>
+                            }
                         }
                     } @else {
                         <p class="empty-hint">Click a Treatment BMP marker on the map to view details and actions.</p>

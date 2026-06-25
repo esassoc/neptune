@@ -26,22 +26,15 @@
         enter the percentage of this WQMP site treated by each Simplified Structural BMP. The total should not exceed 100%.
     </p>
 
-    <hr />
-
-    <p>
-        Should all BMPs override Dry Weather Flow?&nbsp;&nbsp;
-        <button type="button" class="btn btn-sm btn-primary" (click)="setAllDryWeatherOverridesToYes()">Set all to 'Yes'</button>
-    </p>
-
     @if (quickBMPRows.length) {
+        <p class="mb-3">
+            Should all BMPs override Dry Weather Flow?&nbsp;&nbsp;
+            <button type="button" class="btn btn-sm btn-primary" (click)="setAllDryWeatherOverridesToYes()">Set all to 'Yes'</button>
+        </p>
+
         @for (row of quickBMPRows.controls; track $index) {
-            <div class="quick-bmp-entry" [formGroup]="row">
+            <div class="quick-bmp-entry" [class.first]="$first" [formGroup]="row">
                 <div class="quick-bmp-entry-body">
-                    <div class="quick-bmp-delete-col">
-                        <a class="delete-icon" (click)="removeRow($index)" title="Remove row">
-                            <i class="fa fa-trash"></i>
-                        </a>
-                    </div>
                     <div class="quick-bmp-fields">
                         <div class="field-group field-name">
                             <form-field
@@ -110,6 +103,9 @@
                             fieldLabel="Notes"
                             placeholder=""></form-field>
                     </div>
+                    <div class="quick-bmp-delete-col">
+                        <button type="button" class="btn-delete-row delete-icon" aria-label="Remove row" title="Remove row" (click)="removeRow($index)"></button>
+                    </div>
                 </div>
             </div>
         }
@@ -122,15 +118,13 @@
         <p class="system-text">There are no Simplified Structural BMPs associated with this WQMP. Use the Add button to enter one or more.</p>
     }
 
-    <div class="actions-row mt-3">
-        <button class="btn btn-primary" (click)="addRow()">
-            <i class="fa fa-plus"></i> Add
+    <div class="add-row mt-3">
+        <button class="btn btn-primary-outline" (click)="addRow()">
+            <i class="fa fa-plus"></i> Add Simplified BMP
         </button>
     </div>
 
-    <hr />
-
-    <div class="actions-row mt-3">
+    <div class="page-footer">
         <button class="btn btn-primary" (click)="save()">Save</button>
         <button class="btn btn-primary-outline" (click)="cancel()">Cancel</button>
     </div>

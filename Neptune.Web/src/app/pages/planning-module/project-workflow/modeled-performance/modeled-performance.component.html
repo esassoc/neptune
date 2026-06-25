@@ -1,6 +1,6 @@
 <page-header pageTitle="Modeled Performance and Grant Metrics" [templateRight]="templateRight"> </page-header>
 <ng-template #templateRight>
-    <a href="{{ getAboutModelingPerformanceURL() }}" target="_blank" class="float-right">About Modeling Performance</a>
+    <a [routerLink]="['/modeling-calculations']" class="float-right">About Modeling Performance</a>
 </ng-template>
 @if (project$ | async; as project) {
     <workflow-body>
@@ -90,7 +90,7 @@
                                                 [layerControl]="layerControl"
                                                 [sortOrder]="30"></jurisdictions-layer>
                                             <wqmps-layer [displayOnLoad]="false" [map]="map" [layerControl]="layerControl" [sortOrder]="40"></wqmps-layer>
-                                            <delineations-layer [displayOnLoad]="false" [map]="map" [layerControl]="layerControl" [sortOrder]="50"></delineations-layer>
+                                            <delineations-layer [isAnalyzedInModelingModule]="true" [displayOnLoad]="false" [map]="map" [layerControl]="layerControl" [sortOrder]="50"></delineations-layer>
                                             <inventoried-bmps-layer [displayOnLoad]="false" [map]="map" [layerControl]="layerControl" [sortOrder]="60"></inventoried-bmps-layer>
                                         }
                                     </neptune-map>

@@ -23,7 +23,7 @@ import { NeptunePageTypeEnum } from "src/app/shared/generated/enum/neptune-page-
     template: `
         <page-header pageTitle="Treatment BMP Types" [templateRight]="addButton" [customRichTextTypeID]="NeptunePageTypeEnum.ManageTreatmentBMPTypesList"></page-header>
         <ng-template #addButton>
-            <button class="btn btn-primary" (click)="navigateToNew()">
+            <button class="btn btn-orange" (click)="navigateToNew()">
                 <i class="fa fa-plus"></i> Add Treatment BMP Type
             </button>
         </ng-template>
@@ -70,6 +70,7 @@ export class TreatmentBmpTypesManageComponent implements OnInit {
                 return [
                     {
                         ActionName: "View",
+                        ActionIcon: "fas fa-file-alt",
                         ActionHandler: () => this.router.navigate(["/program-info/treatment-bmp-types", id]),
                     },
                     {
@@ -79,7 +80,7 @@ export class TreatmentBmpTypesManageComponent implements OnInit {
                     },
                     {
                         ActionName: "Delete",
-                        ActionIcon: "fa fa-trash text-danger",
+                        ActionIcon: "fas fa-trash text-danger",
                         ActionHandler: () => this.confirmDelete(row),
                     },
                 ];

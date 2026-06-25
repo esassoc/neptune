@@ -18,7 +18,8 @@ as
 
 select	tb.TreatmentBMPID as PrimaryKey,
 		tb.TreatmentBMPID, tb.TreatmentBMPName, tbt.TreatmentBMPTypeID, tbt.TreatmentBMPTypeName, sj.StormwaterJurisdictionID, o.OrganizationName
-		, tb.RequiredFieldVisitsPerYear, tb.RequiredPostStormFieldVisitsPerYear, tb.TreatmentBMPLifespanEndDate, tb.YearBuilt, tb.Notes
+		, wqmp.WaterQualityManagementPlanID, wqmp.WaterQualityManagementPlanName
+		, tb.RequiredFieldVisitsPerYear, tb.RequiredPostStormFieldVisitsPerYear, tb.TreatmentBMPLifespanEndDate, tb.YearBuilt, tb.Notes, tb.InventoryIsVerified
 		, tb.OwnerOrganizationID, oo.OrganizationName as OwnerOrganizationName
 		, tblt.TreatmentBMPLifespanTypeID, tblt.TreatmentBMPLifespanTypeDisplayName
 		, tcst.TrashCaptureStatusTypeID, tcst.TrashCaptureStatusTypeDisplayName
@@ -37,6 +38,7 @@ join dbo.TreatmentBMPType tbt on tb.TreatmentBMPTypeID = tbt.TreatmentBMPTypeID
 join dbo.StormwaterJurisdiction sj on tb.StormwaterJurisdictionID = sj.StormwaterJurisdictionID
 join dbo.Organization o on sj.OrganizationID = o.OrganizationID
 join dbo.Organization oo on tb.OwnerOrganizationID = oo.OrganizationID
+left join dbo.WaterQualityManagementPlan wqmp on tb.WaterQualityManagementPlanID = wqmp.WaterQualityManagementPlanID
 join dbo.TrashCaptureStatusType tcst on tb.TrashCaptureStatusTypeID = tcst.TrashCaptureStatusTypeID
 join dbo.SizingBasisType sbt on tb.SizingBasisTypeID = sbt.SizingBasisTypeID
 left join dbo.TreatmentBMPLifespanType tblt on tb.TreatmentBMPLifespanTypeID = tblt.TreatmentBMPLifespanTypeID

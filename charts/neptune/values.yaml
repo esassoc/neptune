@@ -8,8 +8,8 @@ global:
     appInsightsInstrumentationKey: "00000000-0000-0000-0000-000000000000"
   domains:
     api: "api-neptune.aks-qa.sitkatech.com"
+    externalApi: "externalapi-neptune.aks-qa.sitkatech.com"
     web: "web-neptune.aks-qa.sitkatech.com"
-    webmvc: "neptune.aks-qa.sitkatech.com"
     geoserver: "geoserver-neptune.aks-qa.sitkatech.com"
     nereid: "neptune-nereid"
     gdalApi: "neptune-gdalapi"
@@ -36,7 +36,7 @@ api:
   nameOverride: ""
   fullnameOverride: ""
   namespace: h2o
-  resources: 
+  resources:
     requests:
       memory: "1G"
     limits:
@@ -79,7 +79,51 @@ api:
     maxReplicas: 100
     targetCPUUtilizationPercentage: 80
     # targetMemoryUtilizationPercentage: 80
-  nodeSelector: 
+  nodeSelector:
+    agentpool: appnodepool
+  tolerations: []
+  affinity: {}
+
+externalapi:
+  replicaCount: 1
+  image:
+    repository: containersesaqa.azurecr.io/neptune/externalapi
+    pullPolicy: Always
+  nameOverride: ""
+  fullnameOverride: ""
+  namespace: h2o
+  resources:
+    requests:
+      memory: "512M"
+    limits:
+      memory: "2G"
+  serviceAccount:
+    create: true
+    annotations: {}
+    name: ""
+  podAnnotations: {}
+  podSecurityContext: {}
+  securityContext: {}
+  service:
+    type: ClusterIP
+    port: 80
+  ingress:
+    enabled: true
+    className: "azure-application-gateway"
+    annotations:
+      cert-manager.io/cluster-issuer: letsencrypt
+      acme.cert-manager.io/http01-edit-in-place: "true"
+      appgw.ingress.kubernetes.io/ssl-redirect: "true"
+      appgw.ingress.kubernetes.io/request-timeout: "300"
+      cert-manager.io/issue-temporary-certificate: "true"
+      appgw.ingress.kubernetes.io/connection-draining: "true"
+      appgw.ingress.kubernetes.io/connection-draining-timeout: "30"
+  autoscaling:
+    enabled: false
+    minReplicas: 1
+    maxReplicas: 100
+    targetCPUUtilizationPercentage: 80
+  nodeSelector:
     agentpool: appnodepool
   tolerations: []
   affinity: {}
@@ -136,62 +180,6 @@ web:
     targetCPUUtilizationPercentage: 80
     # targetMemoryUtilizationPercentage: 80
   nodeSelector: 
-    agentpool: appnodepool
-  tolerations: []
-  affinity: {}
-
-webmvc:
-  replicaCount: 1
-  image:
-    repository: containersesaqa.azurecr.io/neptune/webmvc
-    pullPolicy: Always
-  nameOverride: ""
-  fullnameOverride: ""
-  namespace: h2o
-  resources:
-    requests:
-      memory: "4G"
-    limits:
-      memory: "8G"
-  serviceAccount:
-    # Specifies whether a service account should be created
-    create: true
-    # Annotations to add to the service account
-    annotations: {}
-    # The name of the service account to use.
-    # If not set and create is true, a name is generated using the fullname template
-    name: ""
-  podAnnotations: {}
-  podSecurityContext: {}
-    # fsGroup: 2000
-  securityContext: {}
-    # capabilities:
-    #   drop:
-    #   - ALL
-    # readOnlyRootFilesystem: true
-    # runAsNonRoot: true
-    # runAsUser: 1000
-  service:
-    type: ClusterIP
-    port: 80
-  ingress:
-    enabled: true
-    className: "azure-application-gateway"
-    annotations:
-      cert-manager.io/cluster-issuer: letsencrypt
-      acme.cert-manager.io/http01-edit-in-place: "true"
-      appgw.ingress.kubernetes.io/ssl-redirect: "true"
-      appgw.ingress.kubernetes.io/request-timeout: "1200"
-      cert-manager.io/issue-temporary-certificate: "true"
-      appgw.ingress.kubernetes.io/connection-draining: "true"
-      appgw.ingress.kubernetes.io/connection-draining-timeout: "30"
-  autoscaling:
-    enabled: false
-    minReplicas: 1
-    maxReplicas: 100
-    targetCPUUtilizationPercentage: 80
-    # targetMemoryUtilizationPercentage: 80
-  nodeSelector:
     agentpool: appnodepool
   tolerations: []
   affinity: {}

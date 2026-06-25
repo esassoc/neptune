@@ -1,0 +1,71 @@
+import { HttpClient } from "@angular/common/http";
+import { Component, signal } from "@angular/core";
+import { FormControl, FormsModule, ReactiveFormsModule, Validators } from "@angular/forms";
+import { RouterLink } from "@angular/router";
+import { OnlandVisualTrashAssessmentService } from "src/app/shared/generated/api/onland-visual-trash-assessment.service";
+import { AlertDisplayComponent } from "src/app/shared/components/alert-display/alert-display.component";
+import { CustomRichTextComponent } from "src/app/shared/components/custom-rich-text/custom-rich-text.component";
+import { FormFieldComponent, FormFieldType } from "src/app/shared/components/forms/form-field/form-field.component";
+import { PageHeaderComponent } from "src/app/shared/components/page-header/page-header.component";
+import { NeptunePageTypeEnum } from "src/app/shared/generated/enum/neptune-page-type-enum";
+import { Alert } from "src/app/shared/models/alert";
+import { AlertContext } from "src/app/shared/models/enums/alert-context.enum";
+import { AlertService } from "src/app/shared/services/alert.service";
+import { downloadDataHubTemplate } from "src/app/shared/helpers/data-hub-template-download";
+
+@Component({
+    selector: "ovta-upload",
+    standalone: true,
+    imports: [FormsModule, ReactiveFormsModule, RouterLink, PageHeaderComponent, AlertDisplayComponent, CustomRichTextComponent, FormFieldComponent],
+    templateUrl: "./ovta-upload.component.html",
+})
+export class OvtaUploadComponent {
+    public NeptunePageTypeEnum = NeptunePageTypeEnum;
+    public FormFieldType = FormFieldType;
+
+    public fileControl = new FormControl<File | null>(null, { validators: [Validators.required] });
+
+    public isUploading = signal(false);
+    public isDownloadingTemplate = signal(false);
+    public errors = signal<string[]>([]);
+    public successMessage = signal<string | null>(null);
+
+    constructor(private alertService: AlertService, private ovtaService: OnlandVisualTrashAssessmentService, private httpClient: HttpClient) {}
+
+    public downloadTemplate(): void {
+        downloadDataHubTemplate(this.httpClient, this.alertService, this.isDownloadingTemplate, "ovta", "OVTABulkUploadTemplate.xlsx", "OVTA");
+    }
+
+    public onFileChange(file: File | null): void {
+        if (!file) return;
+        if (!file.name.toLowerCase().endsWith(".xlsx")) {
+            this.alertService.clearAlerts();
+            this.alertService.pushAlert(new Alert("Only XLSX files are accepted.", AlertContext.Danger, true));
+            this.fileControl.setValue(null);
+        }
+    }
+
+    public submit(): void {
+        if (this.fileControl.invalid) return;
+        this.alertService.clearAlerts();
+        this.errors.set([]);
+        this.successMessage.set(null);
+        this.isUploading.set(true);
+
+        this.ovtaService.bulkUploadOnlandVisualTrashAssessment(this.fileControl.value!).subscribe({
+            next: (result) => {
+                this.isUploading.set(false);
+                if (result.Errors && result.Errors.length > 0) {
+                    this.errors.set(result.Errors);
+                    return;
+                }
+                this.successMessage.set(`Successfully bulk uploaded OVTAs from ${result.RowsProcessed} row(s).`);
+                this.fileControl.reset();
+            },
+            error: () => {
+                this.isUploading.set(false);
+                this.alertService.pushAlert(new Alert("Upload failed. Check the file format and try again.", AlertContext.Danger, true));
+            },
+        });
+    }
+}

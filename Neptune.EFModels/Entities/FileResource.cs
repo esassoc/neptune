@@ -1,4 +1,4 @@
-﻿/*-----------------------------------------------------------------------
+/*-----------------------------------------------------------------------
 <copyright file="FileResource.cs" company="Tahoe Regional Planning Agency and Sitka Technology Group">
 Copyright (c) Tahoe Regional Planning Agency and Sitka Technology Group. All rights reserved.
 <author>Sitka Technology Group</author>
@@ -36,11 +36,6 @@ namespace Neptune.EFModels.Entities
             return $"/FileResource/GetFileResourceResized/{GetFileResourceGUIDAsString()}/{maxHeight}/{maxHeight}";
         }
 
-        public string GetFileResourceDataLengthString()
-        {
-            return $"(~{(ContentLength / 1000):##,###} KB)";
-        }
-
         public string GetOriginalCompleteFileName()
         {
             if (string.IsNullOrEmpty(OriginalFileExtension)) return OriginalBaseFilename ?? string.Empty;
@@ -50,37 +45,9 @@ namespace Neptune.EFModels.Entities
             return $"{OriginalBaseFilename}{extensionWithDot}";
         }
 
-        /// <summary>
-        /// Prepare the file bytes for going into blob storage
-        /// </summary>
-        /// <param name="formFile"></param>
-        /// <returns></returns>
-        public static byte[] ConvertHttpPostedFileToByteArray(IFormFile formFile)
-        {
-            using var binaryReader = new BinaryReader(formFile.OpenReadStream());
-            var fileResourceData = binaryReader.ReadBytes((int) formFile.Length);
-            binaryReader.Close();
-            return fileResourceData;
-        }
-
         public static readonly Regex FileResourceUrlRegEx =
             new Regex(@"FileResource\/DisplayResource\/(?<fileResourceGuidCapture>[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12})",
                 RegexOptions.Compiled | RegexOptions.IgnoreCase);
-
-        /// <summary>
-        /// Based on a string that has embedded file resource URLs in it, parse out the URLs and look up the corresponding FileResource stuff
-        /// Made public for testing purposes.
-        /// </summary>
-        public static List<Guid> FindAllFileResourceGuidsFromStringContainingFileResourceUrls(string textWithReferences)
-        {
-            if (String.IsNullOrWhiteSpace(textWithReferences))
-            {
-                return new List<Guid>();
-            }
-            var guidCaptures = FileResourceUrlRegEx.Matches(textWithReferences).Cast<Match>().Select(x => x.Groups["fileResourceGuidCapture"].Value).ToList();
-            var theseGuids = guidCaptures.Select(x => new Guid(x)).Distinct().ToList();
-            return theseGuids;
-        }
 
         public string GetFileResourceGUIDAsString()
         {

@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using Microsoft.EntityFrameworkCore;
 using Neptune.Common.DesignByContract;
 using Neptune.Models.DataTransferObjects;
@@ -30,30 +30,12 @@ public static class WaterQualityManagementPlanDocuments
         return entities.Select(x => x.AsDto()).ToList();
     }
 
-    public static WaterQualityManagementPlanDocument GetByIDWithChangeTracking(NeptuneDbContext dbContext, int waterQualityManagementPlanDocumentID)
-    {
-        var waterQualityManagementPlanDocument = GetImpl(dbContext)
-            .SingleOrDefault(x => x.WaterQualityManagementPlanDocumentID == waterQualityManagementPlanDocumentID);
-        Check.RequireNotNull(waterQualityManagementPlanDocument, $"WaterQualityManagementPlanDocument with ID {waterQualityManagementPlanDocumentID} not found!");
-        return waterQualityManagementPlanDocument;
-    }
-
-    public static WaterQualityManagementPlanDocument GetByIDWithChangeTracking(NeptuneDbContext dbContext, WaterQualityManagementPlanDocumentPrimaryKey waterQualityManagementPlanDocumentPrimaryKey)
-    {
-        return GetByIDWithChangeTracking(dbContext, waterQualityManagementPlanDocumentPrimaryKey.PrimaryKeyValue);
-    }
-
     public static WaterQualityManagementPlanDocument GetByID(NeptuneDbContext dbContext, int waterQualityManagementPlanDocumentID)
     {
         var waterQualityManagementPlanDocument = GetImpl(dbContext).AsNoTracking()
             .SingleOrDefault(x => x.WaterQualityManagementPlanDocumentID == waterQualityManagementPlanDocumentID);
         Check.RequireNotNull(waterQualityManagementPlanDocument, $"WaterQualityManagementPlanDocument with ID {waterQualityManagementPlanDocumentID} not found!");
         return waterQualityManagementPlanDocument;
-    }
-
-    public static WaterQualityManagementPlanDocument GetByID(NeptuneDbContext dbContext, WaterQualityManagementPlanDocumentPrimaryKey waterQualityManagementPlanDocumentPrimaryKey)
-    {
-        return GetByID(dbContext, waterQualityManagementPlanDocumentPrimaryKey.PrimaryKeyValue);
     }
 
     public static async Task<WaterQualityManagementPlanDocumentDto?> GetByIDAsDtoAsync(NeptuneDbContext dbContext, int waterQualityManagementPlanDocumentID)
@@ -79,7 +61,7 @@ public static class WaterQualityManagementPlanDocuments
     }
 
     public static async Task<WaterQualityManagementPlanDocument> CreateFromFileResourceAsync(
-        NeptuneDbContext dbContext, int waterQualityManagementPlanID, int fileResourceID, string displayName, int documentTypeID)
+        NeptuneDbContext dbContext, int waterQualityManagementPlanID, int fileResourceID, string displayName, int documentTypeID, string? description = null)
     {
         var document = new WaterQualityManagementPlanDocument
         {
@@ -88,10 +70,31 @@ public static class WaterQualityManagementPlanDocuments
             DisplayName = displayName,
             UploadDate = DateTime.UtcNow,
             WaterQualityManagementPlanDocumentTypeID = documentTypeID,
+            Description = description,
         };
         dbContext.WaterQualityManagementPlanDocuments.Add(document);
         await dbContext.SaveChangesAsync();
         return document;
+    }
+
+    public static async Task<WaterQualityManagementPlanDocumentDto?> UpdateMetadataAsync(
+        NeptuneDbContext dbContext, int waterQualityManagementPlanDocumentID, int? newFileResourceID,
+        string displayName, int documentTypeID, string? description)
+    {
+        var entity = await dbContext.WaterQualityManagementPlanDocuments
+            .FirstOrDefaultAsync(x => x.WaterQualityManagementPlanDocumentID == waterQualityManagementPlanDocumentID);
+        if (entity == null) return null;
+
+        entity.DisplayName = displayName;
+        entity.WaterQualityManagementPlanDocumentTypeID = documentTypeID;
+        entity.Description = description;
+        if (newFileResourceID.HasValue)
+        {
+            entity.FileResourceID = newFileResourceID.Value;
+            entity.UploadDate = DateTime.UtcNow;
+        }
+        await dbContext.SaveChangesAsync();
+        return await GetByIDAsDtoAsync(dbContext, entity.WaterQualityManagementPlanDocumentID);
     }
 
     public static async Task<bool> DeleteAsync(NeptuneDbContext dbContext, int waterQualityManagementPlanDocumentID)

@@ -1,4 +1,4 @@
-﻿using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore;
 using Neptune.Common.DesignByContract;
 using Neptune.Models.DataTransferObjects;
 
@@ -9,32 +9,6 @@ public static class StormwaterJurisdictionPeople
     private static IQueryable<StormwaterJurisdictionPerson> GetImpl(NeptuneDbContext dbContext)
     {
         return dbContext.StormwaterJurisdictionPeople;
-    }
-
-    public static StormwaterJurisdictionPerson GetByIDWithChangeTracking(NeptuneDbContext dbContext, int stormwaterJurisdictionPersonID)
-    {
-        var stormwaterJurisdictionPerson = GetImpl(dbContext)
-            .SingleOrDefault(x => x.StormwaterJurisdictionPersonID == stormwaterJurisdictionPersonID);
-        Check.RequireNotNull(stormwaterJurisdictionPerson, $"StormwaterJurisdictionPerson with ID {stormwaterJurisdictionPersonID} not found!");
-        return stormwaterJurisdictionPerson;
-    }
-
-    public static StormwaterJurisdictionPerson GetByIDWithChangeTracking(NeptuneDbContext dbContext, StormwaterJurisdictionPersonPrimaryKey stormwaterJurisdictionPersonPrimaryKey)
-    {
-        return GetByIDWithChangeTracking(dbContext, stormwaterJurisdictionPersonPrimaryKey.PrimaryKeyValue);
-    }
-
-    public static StormwaterJurisdictionPerson GetByID(NeptuneDbContext dbContext, int stormwaterJurisdictionPersonID)
-    {
-        var stormwaterJurisdictionPerson = GetImpl(dbContext).AsNoTracking()
-            .SingleOrDefault(x => x.StormwaterJurisdictionPersonID == stormwaterJurisdictionPersonID);
-        Check.RequireNotNull(stormwaterJurisdictionPerson, $"StormwaterJurisdictionPerson with ID {stormwaterJurisdictionPersonID} not found!");
-        return stormwaterJurisdictionPerson;
-    }
-
-    public static StormwaterJurisdictionPerson GetByID(NeptuneDbContext dbContext, StormwaterJurisdictionPersonPrimaryKey stormwaterJurisdictionPersonPrimaryKey)
-    {
-        return GetByID(dbContext, stormwaterJurisdictionPersonPrimaryKey.PrimaryKeyValue);
     }
 
     public static async Task<List<int>> ListViewableStormwaterJurisdictionIDsByPersonIDForBMPsAsync(NeptuneDbContext dbContext, int? personID)
@@ -104,14 +78,6 @@ public static class StormwaterJurisdictionPeople
             .ToDictionary(x => x.Key, x => x.Count);
     }
 
-    public static List<StormwaterJurisdictionPerson> ListByStormwaterJurisdictionID(NeptuneDbContext dbContext, int stormwaterJurisdictionID)
-    {
-        return dbContext.StormwaterJurisdictionPeople
-            .Include(x => x.Person)
-            .ThenInclude(x => x.Organization)
-            .AsNoTracking().Where(x => x.StormwaterJurisdictionID == stormwaterJurisdictionID).ToList();
-    }
-
     public static async Task<List<PersonDisplayDto>> ListByStormwaterJurisdictionIDAsPersonDto(NeptuneDbContext dbContext, int stormwaterJurisdictionID)
     {
         var entities = await dbContext.StormwaterJurisdictionPeople
@@ -119,5 +85,28 @@ public static class StormwaterJurisdictionPeople
             .ThenInclude(x => x.Organization)
             .AsNoTracking().Where(x => x.StormwaterJurisdictionID == stormwaterJurisdictionID).ToListAsync();
         return entities.Select(x => x.Person.AsDisplayDto()).OrderBy(x => x.FullName).ToList();
+    }
+
+    /// <summary>
+    /// Replaces the set of people assigned to a jurisdiction with the supplied PersonIDs — adds the
+    /// newly-selected, removes the deselected, leaves unchanged rows in place (NPT-1061 item 4).
+    /// </summary>
+    public static async Task SetJurisdictionPeopleAsync(NeptuneDbContext dbContext, int stormwaterJurisdictionID, List<int> personIDs)
+    {
+        var desiredPersonIDs = (personIDs ?? new List<int>()).Distinct().ToList();
+        var existing = await dbContext.StormwaterJurisdictionPeople
+            .Where(x => x.StormwaterJurisdictionID == stormwaterJurisdictionID)
+            .ToListAsync();
+        var existingPersonIDs = existing.Select(x => x.PersonID).ToHashSet();
+
+        var toRemove = existing.Where(x => !desiredPersonIDs.Contains(x.PersonID)).ToList();
+        dbContext.StormwaterJurisdictionPeople.RemoveRange(toRemove);
+
+        var toAdd = desiredPersonIDs
+            .Where(id => !existingPersonIDs.Contains(id))
+            .Select(id => new StormwaterJurisdictionPerson { StormwaterJurisdictionID = stormwaterJurisdictionID, PersonID = id });
+        await dbContext.StormwaterJurisdictionPeople.AddRangeAsync(toAdd);
+
+        await dbContext.SaveChangesAsync();
     }
 }

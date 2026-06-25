@@ -47,13 +47,18 @@ public partial class Person
 
     public bool ReceiveRSBRevisionRequestEmails { get; set; }
 
-    public Guid WebServiceAccessToken { get; set; }
+    public Guid? WebServiceAccessToken { get; set; }
+
+    [Column(TypeName = "datetime")]
+    public DateTime? LastWebServiceAccessDate { get; set; }
 
     public bool IsOCTAGrantReviewer { get; set; }
 
     [StringLength(100)]
     [Unicode(false)]
     public string? GlobalID { get; set; }
+
+    public int? ImpersonatedPersonID { get; set; }
 
     [InverseProperty("Person")]
     public virtual ICollection<AITokenUsage> AITokenUsages { get; set; } = new List<AITokenUsage>();
@@ -69,6 +74,13 @@ public partial class Person
 
     [InverseProperty("CreatePerson")]
     public virtual ICollection<FileResource> FileResources { get; set; } = new List<FileResource>();
+
+    [ForeignKey("ImpersonatedPersonID")]
+    [InverseProperty("InverseImpersonatedPerson")]
+    public virtual Person? ImpersonatedPerson { get; set; }
+
+    [InverseProperty("ImpersonatedPerson")]
+    public virtual ICollection<Person> InverseImpersonatedPerson { get; set; } = new List<Person>();
 
     [InverseProperty("UploadedByPerson")]
     public virtual ICollection<LandUseBlockStaging> LandUseBlockStagings { get; set; } = new List<LandUseBlockStaging>();
@@ -124,4 +136,7 @@ public partial class Person
 
     [InverseProperty("LastEditedByPerson")]
     public virtual ICollection<WaterQualityManagementPlanVerify> WaterQualityManagementPlanVerifies { get; set; } = new List<WaterQualityManagementPlanVerify>();
+
+    [InverseProperty("Person")]
+    public virtual ICollection<WebServiceAccessLog> WebServiceAccessLogs { get; set; } = new List<WebServiceAccessLog>();
 }

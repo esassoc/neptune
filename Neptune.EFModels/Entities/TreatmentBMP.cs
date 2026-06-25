@@ -1,4 +1,4 @@
-﻿/*-----------------------------------------------------------------------
+/*-----------------------------------------------------------------------
 <copyright file="TreatmentBMP.cs" company="Tahoe Regional Planning Agency">
 Copyright (c) Tahoe Regional Planning Agency. All rights reserved.
 <author>Sitka Technology Group</author>
@@ -27,20 +27,6 @@ namespace Neptune.EFModels.Entities
 {
     public partial class TreatmentBMP
     {
-        public bool CanView(Person person)
-        {
-            return ProjectID == null && person.IsAssignedToStormwaterJurisdiction(StormwaterJurisdictionID);
-        }
-
-        public bool CanEdit(Person person)
-        {
-            return ProjectID == null && person.IsAssignedToStormwaterJurisdiction(StormwaterJurisdictionID);
-        }
-
-        public bool CanDelete(Person person)
-        {
-            return ProjectID == null && person.IsManagerOrAdmin() && person.IsAssignedToStormwaterJurisdiction(StormwaterJurisdictionID);
-        }
 
         public bool IsBenchmarkAndThresholdsComplete(TreatmentBMPType treatmentBMPType)
         {
@@ -92,24 +78,6 @@ namespace Neptune.EFModels.Entities
                 }
             }
             return string.Empty;
-        }
-
-        public static string GetCustomAttributeStatus(TreatmentBMPType treatmentBMPType,
-            List<CustomAttribute> customAttributes)
-        {
-            var nonMaintenanceTreatmentBMPTypeCustomAttributeTypes =
-                treatmentBMPType.TreatmentBMPTypeCustomAttributeTypes.Where(x =>
-                    x.CustomAttributeType.CustomAttributeTypePurpose != CustomAttributeTypePurpose.Maintenance).ToList();
-
-            var completedObservationCount = nonMaintenanceTreatmentBMPTypeCustomAttributeTypes.Count(x =>
-                x.CustomAttributeType.IsRequired && x.CustomAttributeType.IsCompleteForTreatmentBMP(customAttributes));
-
-            var totalObservationCount = nonMaintenanceTreatmentBMPTypeCustomAttributeTypes.Count(x =>
-                x.CustomAttributeType.IsRequired);
-
-            return completedObservationCount == totalObservationCount
-                ? "All Required Data Provided"
-                : $"In Progress ({completedObservationCount} of {totalObservationCount} required attributes entered)";
         }
 
         public void MarkAsVerified(Person currentPerson)

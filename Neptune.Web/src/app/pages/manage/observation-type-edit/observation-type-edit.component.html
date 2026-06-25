@@ -6,7 +6,7 @@
     </ng-template>
     <ng-template #templateRight>
         @if (collectionMethod() && derivedSpecID()) {
-            <button type="button" class="btn btn-secondary-outline" title="Preview what the Observation Type will look like in a Treatment BMP Assessment form" (click)="openPreview()">
+            <button type="button" class="btn btn-primary" title="Preview what the Observation Type will look like in a Treatment BMP Assessment form" (click)="openPreview()">
                 <i class="fa fa-eye"></i> Preview
             </button>
         }
@@ -91,7 +91,7 @@
 
         <div class="page-footer">
             <button type="button" class="btn btn-primary" (click)="save()" [disabled]="isSaving() || formGroup.invalid || !derivedSpecID() || (activeSchemaGroup() && activeSchemaGroup()!.invalid)">Save</button>
-            <button type="button" class="btn btn-secondary-outline" (click)="cancel()" [disabled]="isSaving()">Cancel</button>
+            <button type="button" class="btn btn-primary-outline" (click)="cancel()" [disabled]="isSaving()">Cancel</button>
         </div>
     </div>
 } @else {

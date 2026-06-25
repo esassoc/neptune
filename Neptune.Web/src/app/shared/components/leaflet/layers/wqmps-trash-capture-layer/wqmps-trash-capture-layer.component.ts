@@ -32,8 +32,4 @@ export class WqmpsTrashCaptureLayerComponent extends MapLayerBase implements OnC
         this.layer = L.tileLayer.wms(environment.geoserverMapServiceUrl + "/wms?", this.wmsOptions);
         this.initLayer();
     }
-
-    public ocstBaseUrl(): string {
-        return environment.ocStormwaterToolsBaseUrl;
-    }
 }

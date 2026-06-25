@@ -7,65 +7,89 @@
                 <li class="nav-item dropdown" routerLinkActive="active">
                     <a href="javascript:void(0);" [dropdownToggle]="bmpMenu" class="nav-link dropdown-toggle"> BMP Inventory <icon icon="AngleDown"></icon> </a>
                     <ul #bmpMenu class="dropdown-menu">
-                        <li><a [routerLink]="['/jurisdictions']" class="dropdown-item">Jurisdictions</a></li>
-                        <li><a [routerLink]="['/find-bmp']" class="dropdown-item">Find a BMP</a></li>
-                        <li><a [routerLink]="['/modeling-parameters']" class="dropdown-item">Modeling Parameters</a></li>
+                        <!-- BMP Inventory item gates, mirroring MVC's per-controller [Feature]
+                             attributes. Anonymous + Unassigned see only the AnonymousUnclassified
+                             items (View All BMPs, Water Quality Management Plans);
+                             Editor+ adds the NeptuneViewFeature-gated items; Admin adds
+                             Jurisdictions (NeptuneAdminFeature). -->
+                        @if (isCurrentUserEditorOrHigher()) {
+                            <li><a [routerLink]="['/modeling-attributes']" class="dropdown-item">Modeling Attributes</a></li>
+                        }
                         <li><a [routerLink]="['/treatment-bmps']" class="dropdown-item">View All BMPs</a></li>
-                        <li><a [routerLink]="['/latest-bmp-assessments']" class="dropdown-item">View Latest BMP Assessments</a></li>
-                        <li><a [routerLink]="['/field-records']" class="dropdown-item">View All Field Records</a></li>
+                        @if (isCurrentUserEditorOrHigher()) {
+                            <li><a [routerLink]="['/latest-bmp-assessments']" class="dropdown-item">View Latest BMP Assessments</a></li>
+                            <li><a [routerLink]="['/field-records']" class="dropdown-item">View All Field Records</a></li>
+                            <li><hr class="dropdown-divider" /></li>
+                        }
                         <li><a [routerLink]="['/water-quality-management-plans']" class="dropdown-item">Water Quality Management Plans</a></li>
-                        <li><a [routerLink]="['/water-quality-management-plan-verifications']" class="dropdown-item">WQMP O&amp;M Verifications</a></li>
-                        <li><a [routerLink]="['/wqmp-annual-report']" class="dropdown-item">WQMP Annual Report</a></li>
-                        <li><a [routerLink]="['/parcels']" class="dropdown-item">Parcels</a></li>
+                        @if (isCurrentUserEditorOrHigher()) {
+                            <li><a [routerLink]="['/water-quality-management-plan-verifications']" class="dropdown-item">WQMP O&amp;M Verifications</a></li>
+                            <li><a [routerLink]="['/wqmp-annual-report']" class="dropdown-item">WQMP Annual Report</a></li>
+                            <li><a [routerLink]="['/parcels']" class="dropdown-item">Parcels</a></li>
+                        }
                     </ul>
                 </li>
-                <!-- Program Info Dropdown -->
+                <!-- Program Info pages have no feature attribute in MVC — anonymous and
+                     Unassigned users can view them. Always visible. -->
                 <li class="nav-item dropdown" routerLinkActive="active">
                     <a href="javascript:void(0);" [dropdownToggle]="programInfoMenu" class="nav-link dropdown-toggle"> Program Info <icon icon="AngleDown"></icon> </a>
                     <ul #programInfoMenu class="dropdown-menu">
                         <li><a [routerLink]="['/program-info/observation-types']" class="dropdown-item">Observation Types</a></li>
                         <li><a [routerLink]="['/program-info/treatment-bmp-types']" class="dropdown-item">Treatment BMP Types</a></li>
-                        <li><a [routerLink]="['/funding-sources']" class="dropdown-item">Funding Sources</a></li>
+                        @if (isCurrentUserAdmin()) {
+                            <li><a [routerLink]="['/funding-sources']" class="dropdown-item">Funding Sources</a></li>
+                        }
+                        @if (isCurrentUserEditorOrHigher()) {
+                            <li><a [routerLink]="['/jurisdictions']" class="dropdown-item">Jurisdictions</a></li>
+                        }
                     </ul>
                 </li>
-                <!-- Dashboard -->
-                <li class="nav-item" routerLinkActive="active">
-                    <a [routerLink]="['/dashboard']" class="nav-link">Dashboard</a>
-                </li>
-                <!-- Delineation Dropdown -->
-                <li class="nav-item dropdown" routerLinkActive="active">
-                    <a href="javascript:void(0);" [dropdownToggle]="delineationMenu" class="nav-link dropdown-toggle"> Delineation <icon icon="AngleDown"></icon> </a>
-                    <ul #delineationMenu class="dropdown-menu">
-                        <li><a [routerLink]="['/delineation/delineation-map']" class="dropdown-item">Delineation Map</a></li>
-                        <li><a [routerLink]="['/delineation/delineation-reconciliation-report']" class="dropdown-item">Delineation Reconciliation Report</a></li>
-                    </ul>
-                </li>
-                <!-- Data Hub -->
-                <li class="nav-item" routerLinkActive="active">
-                    <a [routerLink]="['/data-hub']" class="nav-link">Data Hub</a>
-                </li>
-                <!-- Manage Dropdown -->
-                <li class="nav-item dropdown" routerLinkActive="active">
-                    <a href="javascript:void(0);" [dropdownToggle]="manageMenu" class="nav-link dropdown-toggle"> Manage <icon icon="AngleDown"></icon> </a>
-                    <ul #manageMenu class="dropdown-menu">
-                        <li><a [routerLink]="['/manage/homepage-configuration']" class="dropdown-item">Homepage Configuration</a></li>
-                        <li><a [routerLink]="['/manage/page-content']" class="dropdown-item">Page Content</a></li>
-                        <li><a [routerLink]="['/labels-and-definitions']" class="dropdown-item">Custom Labels & Definitions</a></li>
-                        <li><hr class="dropdown-divider" /></li>
-                        <li><a [routerLink]="['/users']" class="dropdown-item">Users</a></li>
-                        <li><a [routerLink]="['/organizations']" class="dropdown-item">Organizations</a></li>
-                        <li><hr class="dropdown-divider" /></li>
-                        <li><a [routerLink]="['/manage/custom-attributes']" class="dropdown-item">Custom Attributes</a></li>
-                        <li><a [routerLink]="['/manage/treatment-bmp-types']" class="dropdown-item">Treatment BMP Types</a></li>
-                        <li><a [routerLink]="['/manage/observation-types']" class="dropdown-item">Observation Types</a></li>
-                        <li><hr class="dropdown-divider" /></li>
-                        <li><a [routerLink]="['/load-generating-units']" class="dropdown-item">Load Generating Units</a></li>
-                        <li><a [routerLink]="['/hru-characteristics']" class="dropdown-item">HRU Characteristics</a></li>
-                        <li><a [routerLink]="['/regional-subbasins']" class="dropdown-item">Regional Subbasins</a></li>
-                        <li><a [routerLink]="['/delineation/revision-requests']" class="dropdown-item">Regional Subbasin Revision Requests</a></li>
-                        <li><a [routerLink]="['/manage/wqmp-lgu-audit']" class="dropdown-item">Water Quality Management Plan LGU Audit</a></li>
-                    </ul>
-                </li>
+                <!-- Role-specific gates that mirror MVC's per-controller [Feature] attributes.
+                     Dashboard = Manager+, Delineation Reconciliation Report = Editor+, Data
+                     Hub = Editor+, Manage = Admin-only. Anonymous and Unassigned see none. -->
+                @if (isCurrentUserManagerOrAdmin()) {
+                    <!-- Dashboard -->
+                    <li class="nav-item" routerLinkActive="active">
+                        <a [routerLink]="['/dashboard']" class="nav-link">Dashboard</a>
+                    </li>
+                }
+                @if (isCurrentUserEditorOrHigher()) {
+                    <!-- Delineation Dropdown — Delineation Map is JurisdictionEditFeature-gated
+                         in MVC; Reconciliation Report same gate. -->
+                    <li class="nav-item dropdown" routerLinkActive="active">
+                        <a href="javascript:void(0);" [dropdownToggle]="delineationMenu" class="nav-link dropdown-toggle"> Delineation <icon icon="AngleDown"></icon> </a>
+                        <ul #delineationMenu class="dropdown-menu">
+                            <li><a [routerLink]="['/delineation/delineation-map']" class="dropdown-item">Delineation Map</a></li>
+                            <li><a [routerLink]="['/delineation/delineation-reconciliation-report']" class="dropdown-item">Delineation Reconciliation Report</a></li>
+                        </ul>
+                    </li>
+                    <!-- Data Hub -->
+                    <li class="nav-item" routerLinkActive="active">
+                        <a [routerLink]="['/data-hub']" class="nav-link">Data Hub</a>
+                    </li>
+                }
+                @if (isCurrentUserAdmin()) {
+                    <!-- Manage Dropdown — every item is NeptuneAdminFeature in MVC. -->
+                    <li class="nav-item dropdown" routerLinkActive="active">
+                        <a href="javascript:void(0);" [dropdownToggle]="manageMenu" class="nav-link dropdown-toggle"> Manage <icon icon="AngleDown"></icon> </a>
+                        <ul #manageMenu class="dropdown-menu">
+                            <li><a [routerLink]="['/labels-and-definitions']" class="dropdown-item">Custom Labels & Definitions</a></li>
+                            <li><hr class="dropdown-divider" /></li>
+                            <li><a [routerLink]="['/users']" class="dropdown-item">Users</a></li>
+                            <li><a [routerLink]="['/organizations']" class="dropdown-item">Organizations</a></li>
+                            <li><hr class="dropdown-divider" /></li>
+                            <li><a [routerLink]="['/manage/custom-attributes']" class="dropdown-item">Custom Attributes</a></li>
+                            <li><a [routerLink]="['/manage/treatment-bmp-types']" class="dropdown-item">Treatment BMP Types</a></li>
+                            <li><a [routerLink]="['/manage/observation-types']" class="dropdown-item">Observation Types</a></li>
+                            <li><hr class="dropdown-divider" /></li>
+                            <li><a [routerLink]="['/load-generating-units']" class="dropdown-item">Load Generating Units</a></li>
+                            <li><a [routerLink]="['/hru-characteristics']" class="dropdown-item">HRU Characteristics</a></li>
+                            <li><a [routerLink]="['/regional-subbasins']" class="dropdown-item">Regional Subbasins</a></li>
+                            <li><a [routerLink]="['/delineation/revision-requests']" class="dropdown-item">Regional Subbasin Revision Requests</a></li>
+                            <li><a [routerLink]="['/manage/wqmp-lgu-audit']" class="dropdown-item">Water Quality Management Plan LGU Audit</a></li>
+                        </ul>
+                    </li>
+                }
             </ul>
         </div>
     </nav>

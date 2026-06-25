@@ -2,15 +2,31 @@
 @use "/src/scss/abstracts" as *;
 
 :host {
-    display: flex;
+    display: block;
 }
 
-span {
+div {
     background: $yellow-light;
-    padding: 0.5em 1em;
+    padding: $spacing-300 $spacing-400;
     border-radius: 8px;
-    display: inline-block;
-    width: 100%;
+    display: flex;
+    align-items: flex-start;
+    gap: 1rem;
+
+    .note-content {
+        flex: 1;
+
+        ::ng-deep ul,
+        ::ng-deep ol {
+            list-style: revert;
+            margin: revert;
+            padding: revert;
+        }
+
+        ::ng-deep a:not(.btn) {
+            text-decoration: underline;
+        }
+    }
 
     &.default {
         background: $yellow-light;
@@ -23,7 +39,7 @@ span {
     &.info {
         background: $teal-lighter;
         border: 1px solid $teal-light;
-        color: $teal-darker;
+        color: $teal-900;
     }
 
     &.warning {

@@ -35,7 +35,7 @@
         @if (selectedBMPs$ | async; as selectedBMPs) {
             @if (selectedBMPs.length) {
                 <label class="field-label">Associated BMPs</label>
-                <table class="table table-condensed table-bordered">
+                <table class="table framed">
                     <thead>
                         <tr>
                             <th>BMP Name</th>
@@ -49,7 +49,7 @@
                                 <td>{{ bmp.TreatmentBMPName }}</td>
                                 <td>{{ bmp.TreatmentBMPTypeName }}</td>
                                 <td>
-                                    <i class="fa fa-trash fa-lg" style="color: #7c7c7c; cursor: pointer" title="Remove" (click)="removeBMP(bmp.TreatmentBMPID)"></i>
+                                    <button type="button" class="btn-delete-row" aria-label="Remove BMP" title="Remove" (click)="removeBMP(bmp.TreatmentBMPID)"></button>
                                 </td>
                             </tr>
                         }

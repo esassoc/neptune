@@ -11,14 +11,14 @@
                         @if (userIsOCTAGrantReviewer(currentUser)) {
                             <span>
                                 Welcome {{ currentUser.FirstName }} {{ currentUser.LastName }}. You have successfully logged in to the OCST Planning Module, and an administrator
-                                has granted you read-only access to Review Grant Programs. You may <a href="{{ requestSupportUrl() }}">Request Support</a> to contact the
+                                has granted you read-only access to Review Grant Programs. You may <a [routerLink]="['/support']">Request Support</a> to contact the
                                 Administrators with any questions or comments.
                             </span>
                         } @else {
                             <span>
                                 Welcome {{ currentUser.FirstName }} {{ currentUser.LastName }}. You have successfully logged in to the OCST Planning Module, but your account is not
                                 yet configured. You will receive an email from the Administrators when your account is ready to use. You may
-                                <a href="{{ requestSupportUrl() }}">Request Support</a> to contact the Administrators with any questions or comments.
+                                <a [routerLink]="['/support']">Request Support</a> to contact the Administrators with any questions or comments.
                             </span>
                         }
                     </div>
@@ -55,7 +55,7 @@
                 </div>
                 <div class="card-footer">
                     <p>Need help logging in?</p>
-                    <a href="{{ requestSupportUrl() }}">Request Support</a>
+                    <a [routerLink]="['/support']">Request Support</a>
                 </div>
             </div>
         }

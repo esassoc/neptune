@@ -1,4 +1,4 @@
-﻿/*-----------------------------------------------------------------------
+/*-----------------------------------------------------------------------
 <copyright file="Person.cs" company="Tahoe Regional Planning Agency and Sitka Technology Group">
 Copyright (c) Tahoe Regional Planning Agency and Sitka Technology Group. All rights reserved.
 <author>Sitka Technology Group</author>
@@ -38,16 +38,6 @@ namespace Neptune.EFModels.Entities
             return $"{FirstName} {LastName}";
         }
 
-        public string GetFullNameLastFirst()
-        {
-            return $"{LastName}, {FirstName}";
-        }
-
-        public bool IsSitkaAdministrator()
-        {
-            return RoleID == Role.SitkaAdmin.RoleID;
-        }
-
         public bool IsAdministrator()
         {
             return RoleID == Role.SitkaAdmin.RoleID || RoleID == Role.Admin.RoleID;
@@ -63,18 +53,6 @@ namespace Neptune.EFModels.Entities
         {
             return RoleID == Role.Admin.RoleID || RoleID == Role.JurisdictionManager.RoleID ||
                    RoleID == Role.SitkaAdmin.RoleID;
-        }
-
-        public bool IsJurisdictionEditorOrManagerOrAdmin()
-        {
-            return RoleID == Role.Admin.RoleID || RoleID == Role.JurisdictionManager.RoleID ||
-                   RoleID == Role.SitkaAdmin.RoleID || RoleID == Role.JurisdictionEditor.RoleID;
-        }
-
-        public bool IsJurisdictionEditorOrManager()
-        {
-            return RoleID == Role.JurisdictionManager.RoleID || 
-                   RoleID == Role.JurisdictionEditor.RoleID;
         }
 
         public bool IsAnonymousOrUnassigned()

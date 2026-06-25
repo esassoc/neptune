@@ -1,4 +1,5 @@
-﻿using Microsoft.EntityFrameworkCore;
+﻿using Hangfire;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using Neptune.Common.GeoSpatial;
@@ -15,9 +16,22 @@ public class DeltaSolveJob(
     NereidService nereidService)
     : BlobStorageWritingJob<DeltaSolveJob>(configuration, logger, dbContext)
 {
+    // DisableConcurrentExecution: this job is enqueued both on-edit and by the scheduled DeltaSolveScheduledBackgroundJob;
+    // the distributed mutex prevents two runs from overlapping (double Nereid solve / RemoveRange on already-deleted rows),
+    // which matters if the Hangfire worker count is ever raised above 1. AutomaticRetry self-heals a transient Nereid
+    // failure before the nightly Total Network Solve (the global default is 0 retries).
+    [DisableConcurrentExecution(timeoutInSeconds: 600)]
+    [AutomaticRetry(Attempts = 2)]
     public async Task RunJob()
     {
-        var dirtyModelNodes = DbContext.DirtyModelNodes.ToList();
+        // Tracked (not AsNoTracking) because RemoveRange below deletes exactly this snapshot.
+        var dirtyModelNodes = await DbContext.DirtyModelNodes.ToListAsync();
+
+        // Nothing dirty (e.g. a scheduled run with no pending edits) — skip the Nereid round-trips and blob re-uploads.
+        if (dirtyModelNodes.Count == 0)
+        {
+            return;
+        }
 
         await nereidService.DeltaSolve(DbContext, dirtyModelNodes, true);
         await nereidService.DeltaSolve(DbContext, dirtyModelNodes, false);

@@ -10,9 +10,17 @@
             <div class="field g-col-12">
                 <label class="required field-label">Document</label>
                 <div class="file-upload-wrapper pb-2">
-                    <label for="file-upload" class="custom-file-upload">
-                        <input #fileUploadField type="file" class="form-control" name="file-upload" id="fileUpload" (change)="updateFile($event)" required />
-                        <span class="file-name" [title]="fileName + fileExtension || 'No file chosen...'">
+                    <label for="fileUpload" class="custom-file-upload">
+                        <input
+                            #fileUploadField
+                            type="file"
+                            class="form-control"
+                            name="file-upload"
+                            id="fileUpload"
+                            [accept]="uploadFileAccepts"
+                            (change)="updateFile($event)"
+                            required />
+                        <span class="file-name" [title]="fileName ? fileName + fileExtension : 'No file chosen...'">
                             <span class="base"> {{ fileName }} </span
                             ><span class="ext">
                                 {{ fileExtension }}
@@ -21,6 +29,9 @@
                         <button class="btn btn-primary" (click)="onClickFileUpload($event)"><i class="fas fa-folder-open"></i> Browse</button>
                     </label>
                 </div>
+                @if (fileError) {
+                    <div class="text-danger mb-1">{{ fileError }}</div>
+                }
                 <em>Accepted extensions: PDF, PNG, JPG, DOCX, DOC, XLSX, CSV, TXT</em>
                 <i class="fas fa-file-open"></i>
             </div>

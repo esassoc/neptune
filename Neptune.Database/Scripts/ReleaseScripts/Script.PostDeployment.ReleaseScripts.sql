@@ -66,4 +66,18 @@ GO
 GO
 :r ".\029 - WQMP Verification Supporting Documentation help text.sql"
 GO
+:r ".\030 - Seed ExportAssessmentGeospatialData rich text.sql"
+GO
+:r ".\031 - NPT-1078 Make Person.WebServiceAccessToken nullable.sql"
+GO
+:r ".\032 - NPT-1078 Seed WebServices rich text.sql"
+GO
+:r ".\033 - NPT-1068 Seed OCTAPrioritizationDataHub rich text.sql"
+GO
+:r ".\034 - NPT-1078 Update WebServices rich text for PowerBI URL token option.sql"
+GO
+:r ".\035 - NPT-1078 Rename WebServices query param from x-api-key to token.sql"
+GO
+:r ".\036 - Recalculate OVTA Progress Scores for 5yr-1OVTA rule.sql"
+GO
 

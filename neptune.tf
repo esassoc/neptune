@@ -75,11 +75,11 @@ variable "domainApi" {
   type = string
 }
 
-variable "domainWeb" {
+variable "domainExternalApi" {
   type = string
 }
 
-variable "domainWebMvc" {
+variable "domainWeb" {
   type = string
 }
 
@@ -549,6 +549,41 @@ resource "datadog_synthetics_test" "api_test" {
   status = "live"
 }
 
+resource "datadog_synthetics_test" "externalapi_test" {
+  type    = "api"
+  subtype = "http"
+  request_definition {
+    method = "GET"
+    url    = "https://${var.domainExternalApi}/healthz"
+  }
+  request_headers = {
+    Content-Type   = "application/json"
+  }
+  assertion {
+    type     = "statusCode"
+    operator = "is"
+    target   = "200"
+  }
+  locations = ["aws:us-west-1","aws:us-east-1"]
+  options_list {
+    tick_every = 900
+
+    retry {
+      count    = 2
+      interval = 30000
+    }
+
+    monitor_options {
+      renotify_interval = 120
+    }
+  }
+  name    = "${var.environment} - https://${var.domainExternalApi}/healthz ExternalAPI test"
+  message = "Notify @rlee@esassoc.com @sgordon@esassoc.com @team-${var.team}${var.environment == "qa" ? "-qa" : ""}"
+  tags    = ["env:${var.environment}", "managed:terraformed", "team:${var.team}"]
+
+  status = "live"
+}
+
 resource "datadog_synthetics_test" "web_test" {
   type    = "api"
   subtype = "http"
@@ -618,37 +653,3 @@ resource "datadog_synthetics_test" "geoserver_test" {
   status = "live"
 }
 
-resource "datadog_synthetics_test" "webmvc_test" {
-  type    = "api"
-  subtype = "http"
-  request_definition {
-    method = "GET"
-    url    = "https://${var.domainWebMvc}/healthz"
-  }
-  request_headers = {
-    Content-Type   = "application/json"
-  }
-  assertion {
-    type     = "statusCode"
-    operator = "is"
-    target   = "200"
-  }
-  locations = ["aws:us-west-1","aws:us-east-1"]
-  options_list {
-    tick_every = 900
-
-    retry {
-      count    = 2
-      interval = 30000
-    }
-
-    monitor_options {
-      renotify_interval = 120
-    }
-  }
-  name    = "${var.environment} - ${var.domainWebMvc} Web MVC test"
-  message = "Notify @rlee@esassoc.com @sgordon@esassoc.com @team-${var.team}${var.environment == "qa" ? "-qa" : ""}"
-  tags    = ["env:${var.environment}", "managed:terraformed", "team:${var.team}"]
-
-  status = "live"
-}

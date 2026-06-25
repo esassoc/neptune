@@ -1,0 +1,12 @@
+@use "/src/scss/abstracts" as *;
+
+.instructions {
+    ul {
+        list-style: disc;
+        margin-top: $spacing-100;
+        padding-left: 1.5rem;
+    }
+    li + li {
+        margin-top: $spacing-100;
+    }
+}

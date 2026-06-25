@@ -141,6 +141,28 @@ public class QgisRunnerController : ControllerBase
             }
         }
 
+        // NPT-981: the delineation input set is snapshotted at the top of this action, but the QGIS
+        // overlay above runs long enough that a user can delete a delineation on the Delineation Map
+        // before we reach this insert. That would leave an LGU pointing at a now-deleted DelineationID
+        // and trip FK_LoadGeneratingUnit_Delineation_DelineationID. Drop any orphaned rows just before
+        // the insert (a null DelineationID is valid — those are regional-subbasin-only LGUs).
+        var referencedDelineationIDs = loadGeneratingUnits
+            .Where(x => x.DelineationID.HasValue)
+            .Select(x => x.DelineationID!.Value)
+            .Distinct()
+            .ToList();
+        if (referencedDelineationIDs.Any())
+        {
+            var existingDelineationIDs = (await _dbContext.Delineations.AsNoTracking()
+                    .Where(x => referencedDelineationIDs.Contains(x.DelineationID))
+                    .Select(x => x.DelineationID)
+                    .ToListAsync())
+                .ToHashSet();
+            loadGeneratingUnits = loadGeneratingUnits
+                .Where(x => !x.DelineationID.HasValue || existingDelineationIDs.Contains(x.DelineationID.Value))
+                .ToList();
+        }
+
         if (loadGeneratingUnits.Any())
         {
             await _dbContext.LoadGeneratingUnits.AddRangeAsync(loadGeneratingUnits);

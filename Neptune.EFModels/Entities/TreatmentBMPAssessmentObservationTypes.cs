@@ -1,4 +1,4 @@
-﻿using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore;
 using Neptune.Common.DesignByContract;
 using Neptune.Models.DataTransferObjects;
 
@@ -20,29 +20,6 @@ public static class TreatmentBMPAssessmentObservationTypes
             .SingleOrDefault(x => x.TreatmentBMPAssessmentObservationTypeID == treatmentBMPAssessmentObservationTypeID);
         Check.RequireNotNull(treatmentBMPAssessmentObservationType, $"TreatmentBMPAssessmentObservationType with ID {treatmentBMPAssessmentObservationTypeID} not found!");
         return treatmentBMPAssessmentObservationType;
-    }
-
-    public static TreatmentBMPAssessmentObservationType GetByIDWithChangeTracking(NeptuneDbContext dbContext, TreatmentBMPAssessmentObservationTypePrimaryKey treatmentBMPAssessmentObservationTypePrimaryKey)
-    {
-        return GetByIDWithChangeTracking(dbContext, treatmentBMPAssessmentObservationTypePrimaryKey.PrimaryKeyValue);
-    }
-
-    public static TreatmentBMPAssessmentObservationType GetByID(NeptuneDbContext dbContext, int treatmentBMPAssessmentObservationTypeID)
-    {
-        var treatmentBMPAssessmentObservationType = GetImpl(dbContext).AsNoTracking()
-            .SingleOrDefault(x => x.TreatmentBMPAssessmentObservationTypeID == treatmentBMPAssessmentObservationTypeID);
-        Check.RequireNotNull(treatmentBMPAssessmentObservationType, $"TreatmentBMPAssessmentObservationType with ID {treatmentBMPAssessmentObservationTypeID} not found!");
-        return treatmentBMPAssessmentObservationType;
-    }
-
-    public static TreatmentBMPAssessmentObservationType GetByID(NeptuneDbContext dbContext, TreatmentBMPAssessmentObservationTypePrimaryKey treatmentBMPAssessmentObservationTypePrimaryKey)
-    {
-        return GetByID(dbContext, treatmentBMPAssessmentObservationTypePrimaryKey.PrimaryKeyValue);
-    }
-
-    public static List<TreatmentBMPAssessmentObservationType> List(NeptuneDbContext dbContext)
-    {
-        return GetImpl(dbContext).AsNoTracking().ToList();
     }
 
     public static async Task<List<TreatmentBMPAssessmentObservationTypeGridDto>> ListAsGridDtoAsync(NeptuneDbContext dbContext)

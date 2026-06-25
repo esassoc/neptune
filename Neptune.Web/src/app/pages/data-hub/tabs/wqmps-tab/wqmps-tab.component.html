@@ -1,0 +1,34 @@
+<div class="tab-body">
+    <div class="tab-main">
+        <h3>Water Quality Management Plans</h3>
+        <custom-rich-text [customRichTextTypeID]="NeptunePageTypeEnum.WQMPDataHub"></custom-rich-text>
+        <data-hub-action-button
+            label="Upload"
+            icon="upload"
+            [routerLink]="['/data-hub', 'wqmp-upload']"
+            [disabled]="!isAdminOrEditor()"
+            [disabledTooltip]="managerEditorTooltip"
+        ></data-hub-action-button>
+
+        <h3>Simplified BMPs</h3>
+        <custom-rich-text [customRichTextTypeID]="NeptunePageTypeEnum.SimplifiedBMPsDataHub"></custom-rich-text>
+        <data-hub-action-button
+            label="Upload"
+            icon="upload"
+            [routerLink]="['/data-hub', 'simplified-bmp-upload']"
+            [disabled]="!isAdminOrEditor()"
+            [disabledTooltip]="managerEditorTooltip"
+        ></data-hub-action-button>
+
+        <h3>Water Quality Management Plan Locations</h3>
+        <custom-rich-text [customRichTextTypeID]="NeptunePageTypeEnum.WQMPLocationsDataHub"></custom-rich-text>
+        <data-hub-action-button
+            label="Upload"
+            icon="upload"
+            [routerLink]="['/data-hub', 'wqmp-locations-upload']"
+            [disabled]="!isAdminOrEditor()"
+            [disabledTooltip]="managerEditorTooltip"
+        ></data-hub-action-button>
+    </div>
+    <data-hub-quick-links tab="wqmps"></data-hub-quick-links>
+</div>

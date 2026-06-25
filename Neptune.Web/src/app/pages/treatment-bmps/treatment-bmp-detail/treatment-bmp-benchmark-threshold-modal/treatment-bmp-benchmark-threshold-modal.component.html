@@ -3,7 +3,7 @@
 </div>
 <div class="modal-body">
     <app-alert-display></app-alert-display>
-    <table class="table table-condensed">
+    <table class="table framed">
         <thead>
             <tr>
                 <th>Observation Type</th>
@@ -12,14 +12,20 @@
             </tr>
         </thead>
         <tbody>
-            @for (bt of benchmarks; track bt.TreatmentBMPBenchmarkAndThresholdID; let i = $index) {
+            @for (bt of benchmarks; track bt.TreatmentBMPAssessmentObservationTypeID; let i = $index) {
                 <tr [formGroup]="formArray.at(i)">
                     <td>{{ bt.ObservationTypeName }}</td>
                     <td>
                         <input type="number" class="form-control" formControlName="BenchmarkValue" />
+                        @if (bt.BenchmarkUnitLabel) {
+                            {{ bt.BenchmarkUnitLabel }}
+                        }
                     </td>
                     <td>
                         <input type="number" class="form-control" formControlName="ThresholdValue" />
+                        @if (bt.ThresholdUnitLabel) {
+                            {{ bt.ThresholdUnitLabel }}
+                        }
                     </td>
                 </tr>
             }
@@ -28,5 +34,5 @@
 </div>
 <div class="modal-footer">
     <button class="btn btn-primary" (click)="save()" [disabled]="isSaving">Save</button>
-    <button class="btn btn-secondary" (click)="cancel()" [disabled]="isSaving">Cancel</button>
+    <button class="btn btn-primary-outline" (click)="cancel()" [disabled]="isSaving">Cancel</button>
 </div>

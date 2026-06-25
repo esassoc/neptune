@@ -2,14 +2,14 @@
 
 <ng-template #templateRight>
   @if (currentUserHasJurisdictionManagePermission()) {
-    <a class="float-right btn btn-primary mr-2" [href]="url + '/OnlandVisualTrashAssessmentArea/BulkUploadOVTAAreas'"> <icon [icon]="'Upload'"></icon> Upload OVTA Areas </a>
+    <a class="float-right btn btn-primary-outline mr-2" [routerLink]="['/data-hub/ovta-area-upload']"> <icon [icon]="'Upload'"></icon> Upload OVTA Areas </a>
   }
   @if (currentUserHasJurisdictionEditPermission()) {
-    <a class="float-right btn btn-primary mr-2" [href]="url + '/OnlandVisualTrashAssessmentExport/ExportAssessmentGeospatialData'">
+    <a class="float-right btn btn-primary-outline mr-2" [routerLink]="['/data-hub/ovta-area-download']">
       <icon [icon]="'Download'"></icon> Download OVTA Areas
     </a>
   }
-  <a class="float-right btn btn-primary" [routerLink]="['../onland-visual-trash-assessments/new/instructions']">Add New OVTA</a>
+  <a class="float-right btn btn-orange" [routerLink]="['../onland-visual-trash-assessments/new/instructions']">Add New OVTA</a>
 </ng-template>
 
 <app-alert-display></app-alert-display>

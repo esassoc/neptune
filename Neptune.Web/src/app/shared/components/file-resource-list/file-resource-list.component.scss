@@ -41,138 +41,50 @@
     top: 2px;
 }
 
-.existing-file {
+// Match the WQMP detail documents styling: bordered entry panels in a responsive grid, an
+// icon-button action row, and the shared .kv key/value detail grid. No document-type sections
+// here — BMP documents aren't typed — so entries flow directly into the grid.
+.document-entries {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(28rem, 1fr));
+    gap: $spacing-400 $spacing-500;
+}
+
+.document-entry {
+    border: 1px solid $gray-200;
+    border-radius: $border-radius-200;
+    padding: $spacing-400;
+}
+
+.document-entry-header {
     display: flex;
     align-items: center;
-    background: #fff;
-    border: 1px solid #ddd; // Light gray border
-    border-radius: 8px; // Rounded corners
-    padding: 1rem;
-    box-shadow: 0px 1px 3px rgba(0, 0, 0, 0.1); // Subtle shadow
-    margin-bottom: 1rem;
+    justify-content: space-between;
+    gap: $spacing-300;
 }
 
-.file-description {
-    color: $gray-700;
+// Document title: larger and bolder than the field labels below it, same body text color.
+.document-name {
+    font-size: $type-size-300;
+    font-weight: 700;
 }
 
-.file-upload-date {
-    color: $gray-950;
-}
-
-.existing-file .grid-12 {
-    width: 100%;
-    gap: 0.5rem;
-}
-
-.existing-file .grid-12 .g-col-12 {
-    width: 100%;
-    display: block;
-}
-
-.existing-file .g-col-2 {
-    display: inline-block;
-    vertical-align: middle;
-    font-size: 1.5rem;
-    text-align: center;
-}
-
-.file-info {
-    width: 100%;
-}
-
-.file-info .file-name {
-    margin-bottom: 2px;
-    font-size: $type-size-400;
-}
-
-.existing-file .g-col-8 {
-    display: inline-block;
-    vertical-align: middle;
-    padding: 0 1rem;
-}
-
-.actions {
-    display: flex;
-    align-items: center;
-    position: relative;
-    height: 100%;
-}
-
-@include desktop-small {
-    .actions {
-        text-align: left;
-        justify-content: flex-start;
-    }
-}
-
-@include desktop-medium {
-    .actions {
-        text-align: right;
-        justify-content: flex-end;
-    }
-}
-
-.actions > * {
-    vertical-align: middle;
-}
-
-.download-link {
+.document-entry-actions {
     display: inline-flex;
-    align-items: center;
-    vertical-align: middle;
-    text-decoration: none;
+    gap: $spacing-200;
+    white-space: nowrap;
+    flex-shrink: 0;
 }
 
-.download-icon-button {
-    cursor: pointer;
-    ::ng-deep {
-        svg {
-            height: 2rem;
-            width: 2rem;
-            transition: color 0.2s ease-in-out;
-        }
-    }
+// Icon-only action buttons use the shared .btn-icon class (see _btn.scss).
+
+.document-details {
+    margin-top: $spacing-100;
+    margin-left: $spacing-300;
 }
 
-.edit-file-icon-button {
-    cursor: pointer;
-    ::ng-deep {
-        svg {
-            height: 2rem;
-            width: 2rem;
-            color: $gray-400;
-            transition: color 0.2s ease-in-out;
-        }
-    }
-}
-
-.edit-file-icon-button:hover {
-    ::ng-deep {
-        svg {
-            color: $gray-600;
-        }
-    }
-}
-
-.delete-file-icon-button {
-    cursor: pointer;
-    ::ng-deep {
-        svg {
-            height: 2rem;
-            width: 2rem;
-            color: $gray-400;
-            transition: color 0.2s ease-in-out;
-        }
-    }
-}
-
-.delete-file-icon-button:hover {
-    ::ng-deep {
-        svg {
-            color: $red-default;
-        }
-    }
+.image-preview-row {
+    margin-top: $spacing-300;
 }
 
 .file-image-preview {

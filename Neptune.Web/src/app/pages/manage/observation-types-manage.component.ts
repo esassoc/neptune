@@ -22,7 +22,7 @@ import { NeptunePageTypeEnum } from "src/app/shared/generated/enum/neptune-page-
     template: `
         <page-header pageTitle="Observation Types" [templateRight]="addButton" [customRichTextTypeID]="NeptunePageTypeEnum.ManageObservationTypesList"></page-header>
         <ng-template #addButton>
-            <a class="btn btn-primary" [routerLink]="['/manage/observation-types/new']">
+            <a class="btn btn-orange" [routerLink]="['/manage/observation-types/new']">
                 <i class="fa fa-plus"></i> Add Observation Type
             </a>
         </ng-template>
@@ -69,6 +69,7 @@ export class ObservationTypesManageComponent implements OnInit {
                 return [
                     {
                         ActionName: "View",
+                        ActionIcon: "fas fa-file-alt",
                         ActionHandler: () => this.router.navigate(["/program-info/observation-types", id]),
                     },
                     {
@@ -78,7 +79,7 @@ export class ObservationTypesManageComponent implements OnInit {
                     },
                     {
                         ActionName: "Delete",
-                        ActionIcon: "fa fa-trash text-danger",
+                        ActionIcon: "fas fa-trash text-danger",
                         ActionHandler: () => this.confirmDelete(row),
                     },
                 ];

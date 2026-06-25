@@ -15,6 +15,7 @@ import {
 
 import { FieldVisitService } from "src/app/shared/generated/api/field-visit.service";
 import { FieldVisitStatusEnum } from "src/app/shared/generated/enum/field-visit-status-enum";
+import { NeptunePageTypeEnum } from "src/app/shared/generated/enum/neptune-page-type-enum";
 import { TreatmentBMPAssessmentService } from "src/app/shared/generated/api/treatment-bmp-assessment.service";
 import { MaintenanceRecordService } from "src/app/shared/generated/api/maintenance-record.service";
 import { FieldVisitDto } from "src/app/shared/generated/model/field-visit-dto";
@@ -66,6 +67,7 @@ export class FieldRecordsComponent implements OnInit {
     public maintenanceRecordColumnDefs: ColDef[];
 
     public canManage = false;
+    public customRichTextTypeID = NeptunePageTypeEnum.FieldRecords;
 
     /** Tabs are sync'd to a `?tab=` query param so refresh and back-button preserve the user's view. */
     public activeTab: ActiveTab = "field-visits";
@@ -127,20 +129,21 @@ export class FieldRecordsComponent implements OnInit {
                 // #507 #3).
                 const editable = visit.FieldVisitStatusID === FieldVisitStatusEnum.InProgress
                     || visit.FieldVisitStatusID === FieldVisitStatusEnum.ReturnedToEdit;
-                const actions: { ActionName: string; ActionIcon?: string; ActionHandler: () => void }[] = [
+                // ActionLink (vs ActionHandler) makes the context menu render a real <a [routerLink]>,
+                // so ctrl+click opens the field visit in a new tab (NPT-1061 item 7).
+                const actions: { ActionName: string; ActionIcon?: string; ActionLink?: string; ActionHandler?: () => void }[] = [
                     {
                         ActionName: editable ? "Continue" : "View",
-                        ActionHandler: () => this.router.navigate(
-                            editable
-                                ? ["/field-visits", visit.FieldVisitID]
-                                : ["/field-visits", visit.FieldVisitID, "view"],
-                        ),
+                        ActionIcon: editable ? "fas fa-edit" : "fas fa-file-alt",
+                        ActionLink: editable
+                            ? `/field-visits/${visit.FieldVisitID}`
+                            : `/field-visits/${visit.FieldVisitID}/view`,
                     },
                 ];
                 if (this.canManage) {
                     actions.push({
                         ActionName: "Delete",
-                        ActionIcon: "fa fa-trash text-danger",
+                        ActionIcon: "fas fa-trash text-danger",
                         ActionHandler: () => this.deleteFieldVisit(params),
                     });
                 }
@@ -180,6 +183,7 @@ export class FieldRecordsComponent implements OnInit {
                 return [
                     {
                         ActionName: row.IsFieldVisitVerified ? "View Observations" : "Edit Observations",
+                        ActionIcon: row.IsFieldVisitVerified ? "fas fa-file-alt" : "fas fa-edit",
                         ActionHandler: () => this.router.navigate(["/field-visits", row.FieldVisitID, branch, "observations"]),
                     },
                 ];
@@ -207,6 +211,7 @@ export class FieldRecordsComponent implements OnInit {
                 return [
                     {
                         ActionName: row.IsFieldVisitVerified ? "View" : "Edit",
+                        ActionIcon: row.IsFieldVisitVerified ? "fas fa-file-alt" : "fas fa-edit",
                         ActionHandler: () => this.router.navigate(["/field-visits", row.FieldVisitID, "maintenance", "edit"]),
                     },
                 ];

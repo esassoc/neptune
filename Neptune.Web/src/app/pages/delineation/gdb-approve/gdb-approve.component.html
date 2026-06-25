@@ -14,11 +14,11 @@
       <div class="card-body">
         <dl class="kv">
           <dt>Total Staged</dt>
-          <dd>{{ dto.NumberOfDelineations ?? 0 }}</dd>
+          <dd>{{ (dto.NumberOfDelineations ?? 0) | number }}</dd>
           <dt>Will Replace Existing</dt>
-          <dd>{{ dto.NumberOfDelineationsToBeUpdated ?? 0 }}</dd>
+          <dd>{{ (dto.NumberOfDelineationsToBeUpdated ?? 0) | number }}</dd>
           <dt>Will Be Created New</dt>
-          <dd>{{ dto.NumberOfDelineationsToBeCreated ?? 0 }}</dd>
+          <dd>{{ (dto.NumberOfDelineationsToBeCreated ?? 0) | number }}</dd>
         </dl>
 
         @if (hasErrors()) {
@@ -38,8 +38,10 @@
         }
 
         <div class="actions">
-          <button type="button" class="btn btn-primary" [disabled]="isWorking() || hasErrors()" (click)="approve()">Accept</button>
-          <button type="button" class="btn btn-secondary" [disabled]="isWorking()" (click)="cancel()">Cancel</button>
+          <button type="button" class="btn btn-primary" [disabled]="isWorking() || hasErrors()" (click)="approve()">
+            @if (isWorking()) { <i class="fa fa-spinner fa-spin"></i> Working... } @else { <i class="fa fa-check"></i> Accept }
+          </button>
+          <button type="button" class="btn btn-primary-outline" [disabled]="isWorking()" (click)="cancel()">Cancel</button>
         </div>
       </div>
     </div>

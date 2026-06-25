@@ -2,7 +2,7 @@
 
 <div class="review-section">
     <h4>Basics</h4>
-    <dl class="grid-12">
+    <dl class="grid-12 key-value-list">
         <dt class="g-col-4">Verification Type</dt>
         <dd class="g-col-8">{{ getOptionLabel(service.verifyTypeOptions, service.basicsForm.controls.WaterQualityManagementPlanVerifyTypeID.value) }}</dd>
         <dt class="g-col-4">Visit Status</dt>
@@ -17,7 +17,7 @@
 @if (service.treatmentBMPRows().length) {
     <div class="review-section">
         <h4>Structural BMPs ({{ service.treatmentBMPRows().length }})</h4>
-        <table class="table table-condensed">
+        <table class="table framed">
             <thead><tr><th>Name</th><th>Adequate?</th><th>Notes</th></tr></thead>
             <tbody>
                 @for (row of service.treatmentBMPRows(); track row.id) {
@@ -35,7 +35,7 @@
 @if (service.quickBMPRows().length) {
     <div class="review-section">
         <h4>Simplified BMPs ({{ service.quickBMPRows().length }})</h4>
-        <table class="table table-condensed">
+        <table class="table framed">
             <thead><tr><th>Name</th><th>Adequate?</th><th>Notes</th></tr></thead>
             <tbody>
                 @for (row of service.quickBMPRows(); track row.id) {

@@ -1,0 +1,14 @@
+<aside class="quick-links">
+    <h4>Quick Links:</h4>
+    <p class="intro">Tabular data (.csv) can be downloaded from lists throughout the system:</p>
+    <ul>
+        @for (link of links; track link.routerLink) {
+            <li><a [routerLink]="link.routerLink">{{ link.label }}</a></li>
+        }
+    </ul>
+
+    @if (tipText) {
+        <h4>Tip:</h4>
+        <p>{{ tipText }}</p>
+    }
+</aside>

@@ -11,12 +11,14 @@ import { HybridMapGridComponent } from "src/app/shared/components/hybrid-map-gri
 import "leaflet.markercluster";
 import * as L from "leaflet";
 import { ColDef } from "ag-grid-community";
-import { Observable, shareReplay, tap } from "rxjs";
+import { BehaviorSubject, combineLatest, map, Observable, shareReplay, tap } from "rxjs";
 import { TreatmentBMPService } from "src/app/shared/generated/api/treatment-bmp.service";
 import { FieldVisitService } from "src/app/shared/generated/api/field-visit.service";
 import { UtilityFunctionsService } from "src/app/services/utility-functions.service";
 import { AuthenticationService } from "src/app/services/authentication.service";
 import { AsyncPipe } from "@angular/common";
+import { FormsModule } from "@angular/forms";
+import { NgSelectModule } from "@ng-select/ng-select";
 import { LoadingDirective } from "src/app/shared/directives/loading.directive";
 import { BoundingBoxDto } from "src/app/shared/generated/model/bounding-box-dto";
 import { StormwaterJurisdictionService } from "src/app/shared/generated/api/stormwater-jurisdiction.service";
@@ -27,12 +29,36 @@ import {
     BeginFieldVisitModalContext,
 } from "./treatment-bmp-detail/begin-field-visit-modal/begin-field-visit-modal.component";
 import { takeUntilDestroyed } from "@angular/core/rxjs-interop";
+import { RegionalSubbasinsLayerComponent } from "src/app/shared/components/leaflet/layers/regional-subbasins-layer/regional-subbasins-layer.component";
+import { StormwaterNetworkLayerComponent } from "src/app/shared/components/leaflet/layers/stormwater-network-layer/stormwater-network-layer.component";
+import { JurisdictionsLayerComponent } from "src/app/shared/components/leaflet/layers/jurisdictions-layer/jurisdictions-layer.component";
+import { ZoomToMyLocationControlComponent } from "src/app/shared/components/leaflet/features/zoom-to-my-location-control/zoom-to-my-location-control.component";
+import { OverlayMode } from "src/app/shared/components/leaflet/layers/generic-wms-wfs-layer/overlay-mode.enum";
+
+interface FilterOption {
+    ID: number;
+    Name: string;
+}
 
 @Component({
     selector: "treatment-bmps",
     standalone: true,
-    imports: [PageHeaderComponent, AlertDisplayComponent, HybridMapGridComponent, AsyncPipe, LoadingDirective, RouterModule],
+    imports: [
+        PageHeaderComponent,
+        AlertDisplayComponent,
+        HybridMapGridComponent,
+        AsyncPipe,
+        LoadingDirective,
+        RouterModule,
+        FormsModule,
+        NgSelectModule,
+        RegionalSubbasinsLayerComponent,
+        StormwaterNetworkLayerComponent,
+        JurisdictionsLayerComponent,
+        ZoomToMyLocationControlComponent,
+    ],
     templateUrl: "./treatment-bmps.component.html",
+    styleUrl: "./treatment-bmps.component.scss",
 })
 export class TreatmentBmpsComponent {
     private readonly destroyRef = inject(DestroyRef);
@@ -41,13 +67,28 @@ export class TreatmentBmpsComponent {
     public layerControl: any;
     private markerClusterLayer: any;
     private markerMap: Map<number, any> = new Map();
+    private clusterLayerSubscribed = false;
     public treatmentBmps$: Observable<TreatmentBMPGridDto[]>;
+    public filteredTreatmentBmps$: Observable<TreatmentBMPGridDto[]>;
     public columnDefs: ColDef[];
     public isLoading = true;
     public selectedTreatmentBMPID: number;
     public selectionFromMap: boolean;
     public boundingBox$: Observable<BoundingBoxDto>;
     public customRichTextTypeID = NeptunePageTypeEnum.TreatmentBMP;
+    // Gates the "+ Create New Treatment BMP" button — hidden from anonymous/unassigned (NPT-1094). Driven off
+    // getCurrentUser() + async pipe so it reflects the resolved user even if Auth0 / people/me finishes after
+    // first render (zoneless: a once-computed boolean could leave the button hidden for an editor until reload).
+    public currentPersonCanEdit$: Observable<boolean>;
+
+    public OverlayMode = OverlayMode;
+
+    // Find-a-BMP filter bar: empty selection = show all. Drives both the grid rowData and the map markers.
+    public selectedTypeIDs: number[] = [];
+    public selectedJurisdictionIDs: number[] = [];
+    private filter$ = new BehaviorSubject<{ typeIDs: number[]; jurisdictionIDs: number[] }>({ typeIDs: [], jurisdictionIDs: [] });
+    public typeOptions$: Observable<FilterOption[]>;
+    public jurisdictionOptions$: Observable<FilterOption[]>;
 
     constructor(
         private treatmentBMPService: TreatmentBMPService,
@@ -62,23 +103,32 @@ export class TreatmentBmpsComponent {
     ) {}
 
     ngOnInit(): void {
+        this.currentPersonCanEdit$ = this.authenticationService
+            .getCurrentUser()
+            .pipe(
+                map(() => this.authenticationService.doesCurrentUserHaveJurisdictionEditPermission()),
+                shareReplay(1)
+            );
         const canEdit = this.authenticationService.doesCurrentUserHaveJurisdictionEditPermission();
-        this.columnDefs = [
+        const isAnonymousOrUnassigned = this.authenticationService.isCurrentUserAnonymousOrUnassigned();
+        const columnDefs: ColDef[] = [
             this.utilityFunctionsService.createActionsColumnDef((params: any) => {
                 const actions: { ActionName: string; ActionIcon?: string; ActionHandler: () => void }[] = [
                     {
                         ActionName: "View",
+                        ActionIcon: "fas fa-file-alt",
                         ActionHandler: () => this.router.navigate(["/treatment-bmps", params.data.TreatmentBMPID]),
                     },
                 ];
                 if (canEdit) {
                     actions.push({
                         ActionName: "Start Field Visit",
+                        ActionIcon: "fas fa-clipboard-check",
                         ActionHandler: () => this.openBeginFieldVisitModal(params.data.TreatmentBMPID),
                     });
                     actions.push({
                         ActionName: "Delete",
-                        ActionIcon: "fa fa-trash text-danger",
+                        ActionIcon: "fas fa-trash text-danger",
                         ActionHandler: () => this.deleteModal(params),
                     });
                 }
@@ -92,36 +142,95 @@ export class TreatmentBmpsComponent {
             this.utilityFunctionsService.createLinkColumnDef("Jurisdiction", "StormwaterJurisdictionName", "StormwaterJurisdictionID", {
                 InRouterLink: "/jurisdictions/",
                 FieldDefinitionType: "Jurisdiction",
+                UseCustomDropdownFilter: true,
             }),
-            this.utilityFunctionsService.createBasicColumnDef("Owner Organization", "OwnerOrganizationName"),
+            this.utilityFunctionsService.createLinkColumnDef("WQMP Name", "WaterQualityManagementPlanName", "WaterQualityManagementPlanID", {
+                InRouterLink: "/water-quality-management-plans/",
+            }),
+            this.utilityFunctionsService.createBasicColumnDef("Owner Organization", "OwnerOrganizationName", { UseCustomDropdownFilter: true }),
             this.utilityFunctionsService.createBasicColumnDef("Type", "TreatmentBMPTypeName", {
                 FieldDefinitionType: "TreatmentBMPType",
                 FieldDefinitionLabelOverride: "Type",
+                UseCustomDropdownFilter: true,
             }),
             this.utilityFunctionsService.createBasicColumnDef("Year Built", "YearBuilt"),
-            this.utilityFunctionsService.createBasicColumnDef("Notes", "Notes"),
             this.utilityFunctionsService.createDateColumnDef("Last Assessment Date", "LatestAssessmentDate", "MM/dd/yyyy"),
             this.utilityFunctionsService.createBasicColumnDef("Last Assessed Score", "LatestAssessmentScore"),
-            this.utilityFunctionsService.createBasicColumnDef("# of Assessments", "NumberOfAssessments"),
+            this.utilityFunctionsService.createDecimalColumnDef("# of Assessments", "NumberOfAssessments", { DecimalPlacesToDisplay: 0 }),
             this.utilityFunctionsService.createDateColumnDef("Last Maintenance Date", "LatestMaintenanceDate", "MM/dd/yyyy"),
-            this.utilityFunctionsService.createBasicColumnDef("# of Maintenance Events", "NumberOfMaintenanceRecords"),
-            this.utilityFunctionsService.createBasicColumnDef("Benchmark and Threshold Set?", "BenchmarkAndThresholdSet"),
-            this.utilityFunctionsService.createBasicColumnDef("Required Lifespan of Installation", "TreatmentBMPLifespanTypeDisplayName"),
-            this.utilityFunctionsService.createBasicColumnDef("Lifespan End Date (if Fixed End Date)", "TreatmentBMPLifespanEndDate"),
+            this.utilityFunctionsService.createDecimalColumnDef("# of Maintenance Events", "NumberOfMaintenanceRecords", { DecimalPlacesToDisplay: 0 }),
+            this.utilityFunctionsService.createBooleanColumnDef("Benchmark and Threshold Set?", "BenchmarkAndThresholdSet", { UseCustomDropdownFilter: true }),
+            this.utilityFunctionsService.createBasicColumnDef("Required Lifespan of Installation", "TreatmentBMPLifespanTypeDisplayName", { UseCustomDropdownFilter: true }),
+            this.utilityFunctionsService.createDateColumnDef("Lifespan End Date (if Fixed End Date)", "TreatmentBMPLifespanEndDate", "MM/dd/yyyy", { IgnoreLocalTimezone: true }),
             this.utilityFunctionsService.createBasicColumnDef("Required Field Visits/Year", "RequiredFieldVisitsPerYear"),
             this.utilityFunctionsService.createBasicColumnDef("Required Post-Storm Field Visits/Year", "RequiredPostStormFieldVisitsPerYear"),
-            this.utilityFunctionsService.createBasicColumnDef("Sizing Basis", "SizingBasisTypeDisplayName"),
-            this.utilityFunctionsService.createBasicColumnDef("Trash Capture Status", "TrashCaptureStatusTypeDisplayName"),
+            this.utilityFunctionsService.createBasicColumnDef("Sizing Basis", "SizingBasisTypeDisplayName", { UseCustomDropdownFilter: true }),
+            this.utilityFunctionsService.createBasicColumnDef("Trash Capture Status", "TrashCaptureStatusTypeDisplayName", { UseCustomDropdownFilter: true }),
             this.utilityFunctionsService.createBasicColumnDef("Trash Capture Effectiveness (%)", "TrashCaptureEffectiveness"),
-            this.utilityFunctionsService.createBasicColumnDef("Delineation Type", "DelineationTypeDisplayName"),
+            this.utilityFunctionsService.createBasicColumnDef("Delineation Type", "DelineationTypeDisplayName", { UseCustomDropdownFilter: true }),
+            // NPT-1061: Notes was previously mid-grid and dominated visible width on rows with long
+            // entries. Moved to the far right + capped at 300px. Kept on a single line (truncated
+            // with an ellipsis) rather than wrapping with autoHeight — wrapping grew rows unbounded
+            // and made tall, uneven rows. The grid's default tooltipValueGetter shows the full note
+            // on hover, so nothing is lost.
+            {
+                ...this.utilityFunctionsService.createBasicColumnDef("Notes", "Notes"),
+                maxWidth: 300,
+            },
         ];
+        // NPT-1079: public (anonymous) + unassigned users see only the fields the legacy "Find a
+        // BMP" map exposed — Name, Type, WQMP Name, Jurisdiction, and Notes. Hide the actions column
+        // and all operational columns (assessments, maintenance, lifespan, sizing, trash, owner).
+        const publicHeaders = new Set(["Name", "Type", "WQMP Name", "Jurisdiction", "Notes"]);
+        this.columnDefs = isAnonymousOrUnassigned ? columnDefs.filter((c) => publicHeaders.has(c.headerName as string)) : columnDefs;
+
         this.treatmentBmps$ = this.treatmentBMPService
             .listTreatmentBMP()
             .pipe(
                 tap(() => (this.isLoading = false)),
                 shareReplay({ bufferSize: 1, refCount: true })
             );
+
+        this.filteredTreatmentBmps$ = combineLatest([this.treatmentBmps$, this.filter$]).pipe(
+            map(([bmps, f]) =>
+                bmps.filter(
+                    (b) =>
+                        (f.typeIDs.length === 0 || f.typeIDs.includes(b.TreatmentBMPTypeID)) &&
+                        (f.jurisdictionIDs.length === 0 || f.jurisdictionIDs.includes(b.StormwaterJurisdictionID))
+                )
+            ),
+            shareReplay({ bufferSize: 1, refCount: true })
+        );
+
+        // Derive the dropdown options from the loaded data so they always match what's shown.
+        this.typeOptions$ = this.treatmentBmps$.pipe(
+            map((bmps) => this.distinctOptions(bmps, (b) => b.TreatmentBMPTypeID, (b) => b.TreatmentBMPTypeName))
+        );
+        this.jurisdictionOptions$ = this.treatmentBmps$.pipe(
+            map((bmps) => this.distinctOptions(bmps, (b) => b.StormwaterJurisdictionID, (b) => b.StormwaterJurisdictionName))
+        );
+
         this.boundingBox$ = this.stormwaterJurisdictionService.getBoundingBoxStormwaterJurisdiction();
+    }
+
+    private distinctOptions(bmps: TreatmentBMPGridDto[], idSelector: (b: TreatmentBMPGridDto) => number, nameSelector: (b: TreatmentBMPGridDto) => string): FilterOption[] {
+        const byID = new Map<number, string>();
+        bmps.forEach((b) => {
+            const id = idSelector(b);
+            if (id != null && !byID.has(id)) {
+                byID.set(id, nameSelector(b));
+            }
+        });
+        return Array.from(byID, ([ID, Name]) => ({ ID, Name })).sort((a, b) => (a.Name ?? "").localeCompare(b.Name ?? ""));
+    }
+
+    onFilterChange(): void {
+        // ng-select sets the model to null when the clear-all (x) button is used; normalize to []
+        // and clone so the emitted filter state stays immutable and the length checks never throw.
+        this.filter$.next({
+            typeIDs: [...(this.selectedTypeIDs ?? [])],
+            jurisdictionIDs: [...(this.selectedJurisdictionIDs ?? [])],
+        });
     }
 
     handleMapReady(event: any) {
@@ -131,8 +240,9 @@ export class TreatmentBmpsComponent {
     }
 
     private addOrUpdateClusterLayer() {
-        if (!this.map || !this.treatmentBmps$) return;
-        this.treatmentBmps$.pipe(takeUntilDestroyed(this.destroyRef)).subscribe((bmps) => {
+        if (!this.map || !this.filteredTreatmentBmps$ || this.clusterLayerSubscribed) return;
+        this.clusterLayerSubscribed = true;
+        this.filteredTreatmentBmps$.pipe(takeUntilDestroyed(this.destroyRef)).subscribe((bmps) => {
             if (this.markerClusterLayer) {
                 this.map.removeLayer(this.markerClusterLayer);
                 this.layerControl.removeLayer(this.markerClusterLayer);

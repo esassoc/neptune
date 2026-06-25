@@ -1,4 +1,4 @@
-﻿using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore;
 using Neptune.Common.DesignByContract;
 using Neptune.Models.DataTransferObjects;
 
@@ -47,32 +47,6 @@ public static class StormwaterJurisdictions
         return new BoundingBoxDto(jurisdictions.Select(x => x.Geometry4326).ToList());
     }
 
-    public static StormwaterJurisdiction GetByIDWithChangeTracking(NeptuneDbContext dbContext, int stormwaterJurisdictionID)
-    {
-        var stormwaterJurisdiction = GetImpl(dbContext)
-            .SingleOrDefault(x => x.StormwaterJurisdictionID == stormwaterJurisdictionID);
-        Check.RequireNotNull(stormwaterJurisdiction, $"StormwaterJurisdiction with ID {stormwaterJurisdictionID} not found!");
-        return stormwaterJurisdiction;
-    }
-
-    public static StormwaterJurisdiction GetByIDWithChangeTracking(NeptuneDbContext dbContext, StormwaterJurisdictionPrimaryKey stormwaterJurisdictionPrimaryKey)
-    {
-        return GetByIDWithChangeTracking(dbContext, stormwaterJurisdictionPrimaryKey.PrimaryKeyValue);
-    }
-
-    public static StormwaterJurisdiction GetByID(NeptuneDbContext dbContext, int stormwaterJurisdictionID)
-    {
-        var stormwaterJurisdiction = GetImpl(dbContext).AsNoTracking()
-            .SingleOrDefault(x => x.StormwaterJurisdictionID == stormwaterJurisdictionID);
-        Check.RequireNotNull(stormwaterJurisdiction, $"StormwaterJurisdiction with ID {stormwaterJurisdictionID} not found!");
-        return stormwaterJurisdiction;
-    }
-
-    public static StormwaterJurisdiction GetByID(NeptuneDbContext dbContext, StormwaterJurisdictionPrimaryKey stormwaterJurisdictionPrimaryKey)
-    {
-        return GetByID(dbContext, stormwaterJurisdictionPrimaryKey.PrimaryKeyValue);
-    }
-
     private static IQueryable<StormwaterJurisdiction> GetImpl(NeptuneDbContext dbContext)
     {
         return dbContext.StormwaterJurisdictions
@@ -107,6 +81,16 @@ public static class StormwaterJurisdictions
             dto.NumberOfBMPs = bmpCountByStormwaterJurisdiction.GetValueOrDefault(x.StormwaterJurisdictionID, 0);
             return dto;
         }).ToList();
+    }
+
+    public static async Task<StormwaterJurisdictionGridDto> UpdateAsync(NeptuneDbContext dbContext, int stormwaterJurisdictionID, StormwaterJurisdictionUpsertDto dto)
+    {
+        var entity = await dbContext.StormwaterJurisdictions
+            .SingleAsync(x => x.StormwaterJurisdictionID == stormwaterJurisdictionID);
+        entity.StormwaterJurisdictionPublicBMPVisibilityTypeID = dto.StormwaterJurisdictionPublicBMPVisibilityTypeID;
+        entity.StormwaterJurisdictionPublicWQMPVisibilityTypeID = dto.StormwaterJurisdictionPublicWQMPVisibilityTypeID;
+        await dbContext.SaveChangesAsync();
+        return await GetByIDAsDtoAsync(dbContext, stormwaterJurisdictionID);
     }
 
     public static async Task<StormwaterJurisdictionGridDto> GetByIDAsDtoAsync(NeptuneDbContext dbContext,

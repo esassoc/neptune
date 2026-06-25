@@ -1,16 +1,16 @@
 services:
-  neptune.webmvc:
-    image: neptune/webmvc
-    build:
-      context: ..
-      dockerfile: Neptune.WebMvc/Dockerfile
-
   neptune.api:
     image: neptune/api
     build:
       context: ..
       dockerfile: Neptune.API/Dockerfile
-      
+
+  neptune.externalapi:
+    image: neptune/externalapi
+    build:
+      context: ..
+      dockerfile: Neptune.ExternalAPI/Dockerfile
+
   neptune.gdalapi:
     image: neptune/gdalapi
     build:

@@ -2,7 +2,6 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
 using Neptune.Common.Email;
-using Neptune.Common.GeoSpatial;
 using Neptune.EFModels.Entities;
 
 namespace Neptune.Jobs.Hangfire
@@ -24,79 +23,22 @@ namespace Neptune.Jobs.Hangfire
             }
             try
             {
+                // NPT-1077: validation logic is now shared with the controller's staging-report
+                // endpoint so the SPA approve page surfaces the same errors the email used to.
+                // The controller re-runs ValidateStagings on approve and 400s with the report if
+                // errors exist, so in normal flow the job's pre-validation here is a safety net.
                 var landUseBlockStagings = LandUseBlockStagings.ListByPersonID(dbContext, personID);
-                var allowedPermitTypeNames = string.Join(", ", PermitType.All.Select(x => x.PermitTypeDisplayName).ToList());
-                var allowedPriorityLandUseTypeNames = string.Join(", ", PriorityLandUseType.All.Select(x => x.PriorityLandUseTypeDisplayName).ToList());
 
-                var count = 0;
-                var errorList = new List<string>();
-                var landUseBlocksToUpload = new List<LandUseBlock>();
-
-                foreach (var landUseBlockStaging in landUseBlockStagings)
-                {
-                    var landUseBlock = new LandUseBlock();
-                    var landUseBlockPLUType = landUseBlockStaging.PriorityLandUseType;
-                    if (!PriorityLandUseType.All.Select(x => x.PriorityLandUseTypeDisplayName)
-                        .Contains(landUseBlockPLUType, StringComparer.InvariantCultureIgnoreCase))
-                    {
-
-                        errorList.Add(
-                            $"The Priority Land Use Type '{landUseBlockPLUType}' at row {count} was not found. Acceptable values are {allowedPriorityLandUseTypeNames}");
-                    }
-                    else
-                    {
-                        landUseBlock.PriorityLandUseTypeID = PriorityLandUseType.All
-                            .Single(x => x.PriorityLandUseTypeDisplayName == landUseBlockPLUType).PriorityLandUseTypeID;
-                    }
-
-                    landUseBlock.LandUseDescription = landUseBlockStaging.LandUseDescription;
-                    landUseBlock.TrashGenerationRate = landUseBlockStaging.TrashGenerationRate;
-                    landUseBlock.LandUseForTGR = landUseBlockStaging.LandUseForTGR;
-                    landUseBlock.LandUseBlockGeometry = landUseBlockStaging.Geometry;
-                    landUseBlock.LandUseBlockGeometry4326 = landUseBlockStaging.Geometry.ProjectTo4326();
-                    landUseBlock.StormwaterJurisdictionID = landUseBlockStaging.StormwaterJurisdictionID;
-
-                    var landUseForTGR = landUseBlockStaging.LandUseForTGR?.ToUpper();
-                    if (landUseForTGR == "RESIDENTIAL")
-                    {
-                        landUseBlock.MedianHouseholdIncomeResidential = landUseBlockStaging.MedianHouseholdIncomeResidential;
-                        landUseBlock.MedianHouseholdIncomeRetail = 0;
-                    }
-                    else if (landUseForTGR == "RETAIL")
-                    {
-                        landUseBlock.MedianHouseholdIncomeResidential = 0;
-                        landUseBlock.MedianHouseholdIncomeRetail = landUseBlockStaging.MedianHouseholdIncomeRetail;
-                    }
-                    else
-                    {
-                        landUseBlock.MedianHouseholdIncomeResidential = 0;
-                        landUseBlock.MedianHouseholdIncomeRetail = 0;
-                    }
-                    
-                    var permitType = landUseBlockStaging.PermitType;
-                    if (string.IsNullOrEmpty(permitType))
-                    {
-                        errorList.Add(
-                            $"The Permit Type at row {count} is null, empty or whitespace. A value must be provided");
-                    }
-
-                    if (!PermitType.All.Select(x => x.PermitTypeDisplayName).Contains(landUseBlockStaging.PermitType, StringComparer.InvariantCultureIgnoreCase))
-                    {
-                        errorList.Add(
-                            $"The Permit Type '{permitType}' at row {count} was not found. Acceptable values are {allowedPermitTypeNames}");
-                    }
-                    else
-                    {
-                        landUseBlock.PermitTypeID =
-                            PermitType.All.Single(x => x.PermitTypeDisplayName == permitType).PermitTypeID;
-                    }
-
-                    landUseBlocksToUpload.Add(landUseBlock);
-                    count++;
-                }
+                // Copilot review on PR #541: if staging is empty by the time the job runs (e.g.
+                // a race where the user discarded the staging between approve and job execution),
+                // emit an error instead of cascading through to the "successful import" email.
+                var errorList = landUseBlockStagings.Count == 0
+                    ? new List<string> { "There are no staged Land Use Blocks to process. The staging table was empty when the import job ran." }
+                    : LandUseBlockStagings.ValidateStagings(landUseBlockStagings);
 
                 if (!errorList.Any())
                 {
+                    var landUseBlocksToUpload = landUseBlockStagings.Select(LandUseBlocks.FromStaging).ToList();
                     var stormwaterJurisdictionIDsToClear =
                         landUseBlocksToUpload.Select(x => x.StormwaterJurisdictionID).Distinct();
                     await dbContext.TrashGeneratingUnits

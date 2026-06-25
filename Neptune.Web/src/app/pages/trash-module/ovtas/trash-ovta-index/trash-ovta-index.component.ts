@@ -10,7 +10,6 @@ import { AsyncPipe, DatePipe } from "@angular/common";
 import { OnlandVisualTrashAssessmentGridDto } from "src/app/shared/generated/model/onland-visual-trash-assessment-grid-dto";
 import { NeptunePageTypeEnum } from "src/app/shared/generated/enum/neptune-page-type-enum";
 import { LoadingDirective } from "src/app/shared/directives/loading.directive";
-import { environment } from "src/environments/environment";
 import { IconComponent } from "../../../../shared/components/icon/icon.component";
 import { Router, RouterLink } from "@angular/router";
 import { OnlandVisualTrashAssessmentStatusEnum } from "src/app/shared/generated/enum/onland-visual-trash-assessment-status-enum";
@@ -32,7 +31,6 @@ export class TrashOvtaIndexComponent {
     public ovtaColumnDefs: ColDef[];
     public customRichTextID = NeptunePageTypeEnum.OVTAIndex;
     public isLoading: boolean = true;
-    public url = environment.ocStormwaterToolsBaseUrl;
 
     private refreshGridTrigger$ = new BehaviorSubject<void>(null);
 
@@ -50,7 +48,7 @@ export class TrashOvtaIndexComponent {
         this.ovtaColumnDefs = [
             this.utilityFunctionsService.createActionsColumnDef((params: any) => {
                 return [
-                    { ActionName: "View", ActionHandler: () => this.router.navigate(["trash", "onland-visual-trash-assessments", params.data.OnlandVisualTrashAssessmentID]) },
+                    { ActionName: "View", ActionIcon: "fas fa-file-alt", ActionHandler: () => this.router.navigate(["trash", "onland-visual-trash-assessments", params.data.OnlandVisualTrashAssessmentID]) },
                     {
                         ActionName: params.data.OnlandVisualTrashAssessmentStatusID == OnlandVisualTrashAssessmentStatusEnum.Complete ? "Return to Edit" : "Edit",
                         ActionIcon: "fas fa-edit",
@@ -61,6 +59,7 @@ export class TrashOvtaIndexComponent {
                     },
                     {
                         ActionName: "Delete",
+                        ActionIcon: "fas fa-trash text-danger",
                         ActionHandler: () =>
                             this.deleteOVTA(
                                 params.data.OnlandVisualTrashAssessmentID,

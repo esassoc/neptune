@@ -14,6 +14,8 @@ export class StormwaterJurisdictionGridDto {
     StormwaterJurisdictionID?: number;
     StormwaterJurisdictionName?: string | null;
     OrganizationID?: number;
+    StormwaterJurisdictionPublicBMPVisibilityTypeID?: number;
+    StormwaterJurisdictionPublicWQMPVisibilityTypeID?: number;
     StormwaterJurisdictionPublicBMPVisibilityTypeName?: string | null;
     StormwaterJurisdictionPublicWQMPVisibilityTypeName?: string | null;
     NumberOfUsers?: number;
@@ -27,6 +29,8 @@ export interface StormwaterJurisdictionGridDtoForm {
     StormwaterJurisdictionID?: FormControl<number>;
     StormwaterJurisdictionName?: FormControl<string>;
     OrganizationID?: FormControl<number>;
+    StormwaterJurisdictionPublicBMPVisibilityTypeID?: FormControl<number>;
+    StormwaterJurisdictionPublicWQMPVisibilityTypeID?: FormControl<number>;
     StormwaterJurisdictionPublicBMPVisibilityTypeName?: FormControl<string>;
     StormwaterJurisdictionPublicWQMPVisibilityTypeName?: FormControl<string>;
     NumberOfUsers?: FormControl<number>;
@@ -55,6 +59,26 @@ export class StormwaterJurisdictionGridDtoFormControls {
         }
     );
     public static OrganizationID = (value: FormControlState<number> | number = undefined, formControlOptions?: FormControlOptions | null) => new FormControl<number>(
+        value,
+        formControlOptions ?? 
+        {
+            nonNullable: false,
+            validators: 
+            [
+            ],
+        }
+    );
+    public static StormwaterJurisdictionPublicBMPVisibilityTypeID = (value: FormControlState<number> | number = undefined, formControlOptions?: FormControlOptions | null) => new FormControl<number>(
+        value,
+        formControlOptions ?? 
+        {
+            nonNullable: false,
+            validators: 
+            [
+            ],
+        }
+    );
+    public static StormwaterJurisdictionPublicWQMPVisibilityTypeID = (value: FormControlState<number> | number = undefined, formControlOptions?: FormControlOptions | null) => new FormControl<number>(
         value,
         formControlOptions ?? 
         {

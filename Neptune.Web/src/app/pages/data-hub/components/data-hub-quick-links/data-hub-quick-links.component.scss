@@ -1,0 +1,28 @@
+@use "/src/scss/abstracts" as *;
+
+.quick-links {
+    background-color: #eeeeee;
+    padding: 1rem 2rem 2rem 2rem;
+
+    h4 {
+        color: #000;
+        margin-top: 1rem;
+
+        &:first-of-type {
+            margin-top: 0;
+        }
+    }
+
+    .intro {
+        margin-bottom: 0.5rem;
+    }
+
+    ul {
+        padding-left: 1.25rem;
+        margin: 0 0 0.5rem 0;
+    }
+
+    li + li {
+        margin-top: 0.25rem;
+    }
+}

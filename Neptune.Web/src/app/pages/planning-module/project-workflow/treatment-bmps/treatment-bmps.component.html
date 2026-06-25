@@ -36,7 +36,7 @@
                         <stormwater-network-layer [displayOnLoad]="false" [map]="map" [layerControl]="layerControl" [sortOrder]="20"></stormwater-network-layer>
                         <jurisdictions-layer [mode]="OverlayMode.ReferenceOnly" [map]="map" [layerControl]="layerControl" [sortOrder]="30"></jurisdictions-layer>
                         <wqmps-layer [displayOnLoad]="false" [map]="map" [layerControl]="layerControl" [sortOrder]="40"></wqmps-layer>
-                        <delineations-layer [displayOnLoad]="false" [map]="map" [layerControl]="layerControl" [sortOrder]="50"></delineations-layer>
+                        <delineations-layer [isAnalyzedInModelingModule]="true" [displayOnLoad]="false" [map]="map" [layerControl]="layerControl" [sortOrder]="50"></delineations-layer>
                         <inventoried-bmps-layer [displayOnLoad]="false" [map]="map" [layerControl]="layerControl" [sortOrder]="60"></inventoried-bmps-layer>
                     }
                 </neptune-map>
@@ -59,7 +59,7 @@
                             @if (selectedTreatmentBMP.TreatmentBMPID > 0) {
                                 <div>
                                     {{ getTypeNameByTypeID(selectedTreatmentBMP.TreatmentBMPTypeID) }}
-                                    <button class="btn btn-sm btn-secondary l-2" (click)="openEditTreatmentBMPTypeModal()">Change Type</button>
+                                    <button class="btn btn-sm btn-primary-outline l-2" (click)="openEditTreatmentBMPTypeModal()">Change Type</button>
                                 </div>
                             } @else {
                                 <select name="type" [(ngModel)]="selectedTreatmentBMP.TreatmentBMPTypeID" (change)="updateModelingAttributesForSelectedTreatmentBMP()" required>
@@ -85,7 +85,7 @@
                                 <a class="btn btn-primary-outline mr-2" (click)="toggleIsEditingLocation()">
                                     <i class="fa fa-edit mr-1"></i>{{ isEditingLocation ? "Save Location" : "Edit Location" }}
                                 </a>
-                                <a class="btn btn-danger-outline" (click)="onDelete()"> <i class="fa fa-trash mr-1"></i> Delete </a>
+                                <a class="btn btn-danger-outline" (click)="onDelete()"> Delete </a>
                             </div>
                         </div>
                     </div>
@@ -94,26 +94,26 @@
                     <div class="g-col-5">
                         <h3 class="mt-3">Location</h3>
                         @if (selectedTreatmentBMP.Latitude && selectedTreatmentBMP.Longitude) {
-                            <dl class="grid-12 mt-4">
-                                <dt class="g-col-5">Latitude</dt>
-                                <dd class="g-col-7">
+                            <dl class="grid-12 mt-4 key-value-list">
+                                <dt class="g-col-6">Latitude</dt>
+                                <dd class="g-col-6">
                                     {{ selectedTreatmentBMP.Latitude }}
                                 </dd>
-                                <dt class="g-col-5">Longitude</dt>
-                                <dd class="g-col-7">
+                                <dt class="g-col-6">Longitude</dt>
+                                <dd class="g-col-6">
                                     {{ selectedTreatmentBMP.Longitude }}
                                 </dd>
-                                <dt class="g-col-5">
+                                <dt class="g-col-6">
                                     <field-definition fieldDefinitionType="Area" [labelOverride]="'Delineation Area'"></field-definition>
                                 </dt>
-                                <dd class="g-col-7" [class.font-italic]="!treatmentBMPHasDelineation(selectedTreatmentBMP.TreatmentBMPID)">
+                                <dd class="g-col-6" [class.font-italic]="!treatmentBMPHasDelineation(selectedTreatmentBMP.TreatmentBMPID)">
                                     {{ getDelineationAreaForTreatmentBMP(selectedTreatmentBMP.TreatmentBMPID) }}
                                 </dd>
                                 @if (selectedTreatmentBMP.WatershedName) {
-                                    <dt class="g-col-5">
+                                    <dt class="g-col-6">
                                         <field-definition [fieldDefinitionType]="'Watershed'"></field-definition>
                                     </dt>
-                                    <dd class="g-col-7">{{ selectedTreatmentBMP.WatershedName }}</dd>
+                                    <dd class="g-col-6">{{ selectedTreatmentBMP.WatershedName }}</dd>
                                 }
                             </dl>
                         } @else {
@@ -227,13 +227,13 @@
             </div>
             <div class="modal-footer">
                 <button type="button" class="btn btn-primary" (click)="changeTreatmentBMPType(selectedTreatmentBMPType)">Update</button>
-                <button type="button" class="btn btn-secondary" (click)="closeEditTreatmentBMPTypeModal()">Cancel</button>
+                <button type="button" class="btn btn-primary-outline" (click)="closeEditTreatmentBMPTypeModal()">Cancel</button>
             </div>
         </div>
     </ng-template>
 </workflow-body>
 
 <div class="page-footer">
-    <button class="btn btn-primary mr-2" (click)="save()" [disabled]="(isLoadingSubmit$ | async) ?? false">Save</button>
-    <button class="btn btn-primary-outline ml-auto" (click)="save(true)" [disabled]="(isLoadingSubmit$ | async) ?? false">Save & Continue</button>
+    <button class="btn btn-primary-outline mr-2" (click)="save()" [disabled]="(isLoadingSubmit$ | async) ?? false">Save</button>
+    <button class="btn btn-primary ml-auto" (click)="save(true)" [disabled]="(isLoadingSubmit$ | async) ?? false">Save & Continue</button>
 </div>

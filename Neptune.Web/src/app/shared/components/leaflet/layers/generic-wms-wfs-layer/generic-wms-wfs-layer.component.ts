@@ -129,6 +129,17 @@ export class GenericWmsWfsLayerComponent extends MapLayerBase implements OnChang
         }
     }
 
+    /** NPT-981 r3: force the WMS tiles to re-fetch. Bumps a dummy `_dc` param via setParams so
+     *  the tile URLs change and GeoWebCache can't serve stale tiles — a plain redraw() re-requests
+     *  identical URLs and may return cached geometry. Callers use this after a mutation (delineation
+     *  save/delete/verify) so the layer reflects the new server state. No-op if the WMS layer isn't
+     *  built yet (e.g. a WFS-only usage). */
+    public redraw(): void {
+        if (this.layer) {
+            (this.layer as L.TileLayer.WMS).setParams({ _dc: Date.now() } as any);
+        }
+    }
+
     private wireMapClickHandler() {
         if (this.interactive && this.map && !this.mapClickHandlerWired) {
             this.map.on("click", this.onMapClick.bind(this));

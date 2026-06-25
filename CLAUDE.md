@@ -17,9 +17,6 @@ dotnet build Neptune.sln
 # Run API server
 dotnet run --project Neptune.API/Neptune.API.csproj
 
-# Run MVC server
-dotnet run --project Neptune.WebMvc/Neptune.WebMvc.csproj
-
 # Run tests (MSTest + ApprovalTests + Coverlet coverage)
 dotnet test Neptune.Tests/Neptune.Tests.csproj
 
@@ -77,7 +74,7 @@ npm test
 | Project | Role |
 |---|---|
 | **Neptune.API** | REST API (JWT Bearer auth, Swagger/OpenAPI) — consumed by Angular SPA |
-| **Neptune.WebMvc** | Server-rendered MVC app (Auth0 OIDC cookies) — legacy/admin pages |
+| **Neptune.ExternalAPI** | Public-facing external API (Scalar docs, API-key auth) — e.g. PowerBI/Web Services consumers |
 | **Neptune.Web** | Angular 21 SPA — outputs to `wwwroot/`, served as static files |
 | **Neptune.EFModels** | Database-first EF Core entities, generated from SQL Server schema |
 | **Neptune.Models** | Hand-written DTOs (Dto, UpsertDto, SimpleDto, GridDto variants) |
@@ -102,8 +99,7 @@ The database schema is the source of truth. EF entities are **generated** via `B
 
 ### Authentication
 
-- **API**: Auth0 JWT Bearer tokens. Authority: `ocstormwatertools.us.auth0.com`, Audience: `OCSTApi`. All endpoints require auth by default (use `[AllowAnonymous]` for public).
-- **WebMvc**: Auth0 OpenID Connect with cookie auth. On token validation, `AuthenticationHelper.ProcessLoginFromAuth0()` creates/updates `Person` records.
+- **API**: Auth0 JWT Bearer tokens. Authority: `ocstormwatertools.us.auth0.com`, Audience: `OCSTApi`. All endpoints require auth by default (use `[AllowAnonymous]` for public). `Person` records are created/updated from JWT claims on first authenticated request.
 - **SPA**: Auth0 via `@auth0/auth0-angular`. Config loaded at runtime from `assets/config.json` in `app.init.ts`. Route guards in `src/app/shared/guards/`.
 
 ### Authorization
@@ -175,7 +171,6 @@ Services are containerized with multi-stage Dockerfiles (aspnet:10.0 runtime / s
 
 | Service | Local Port |
 |---|---|
-| neptune.webmvc | 6211 |
 | neptune.api | 8211 |
 | neptune.gdalapi | 8231 |
 | neptune.qgisapi | 8232 |

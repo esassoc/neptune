@@ -19,14 +19,6 @@ namespace Neptune.EFModels.Entities
             };
         }
 
-        public static void UpdateFromDto(this FundingEvent entity, FundingEventDto dto)
-        {
-            entity.FundingEventTypeID = dto.FundingEventTypeID;
-            entity.Year = dto.Year;
-            entity.Description = dto.Description;
-            // TreatmentBMPID and FundingEventID are not updated here
-        }
-
         public static FundingEvent AsEntity(this FundingEventUpsertDto dto, int treatmentBMPID)
         {
             return new FundingEvent

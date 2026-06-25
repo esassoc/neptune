@@ -1,0 +1,42 @@
+<div class="tab-body">
+    <div class="tab-main">
+        <h3>Assessment Areas</h3>
+        <custom-rich-text [customRichTextTypeID]="NeptunePageTypeEnum.AssessmentAreasDataHub"></custom-rich-text>
+        <data-hub-action-button
+            label="Upload"
+            icon="upload"
+            [routerLink]="['/data-hub', 'ovta-area-upload']"
+            [disabled]="!isManager()"
+            [disabledTooltip]="managerOnlyTooltip"
+        ></data-hub-action-button>
+        <data-hub-action-button label="Download" icon="download" [routerLink]="['/data-hub', 'ovta-area-download']"></data-hub-action-button>
+
+        <h3>On-land Visual Trash Assessments (OVTAs)</h3>
+        <custom-rich-text [customRichTextTypeID]="NeptunePageTypeEnum.OVTADataHub"></custom-rich-text>
+        <data-hub-action-button
+            label="Upload"
+            icon="upload"
+            [routerLink]="['/data-hub', 'ovta-upload']"
+            [disabled]="!isManager()"
+            [disabledTooltip]="managerOnlyTooltip"
+        ></data-hub-action-button>
+
+        <h3>Land Use Blocks</h3>
+        <custom-rich-text [customRichTextTypeID]="NeptunePageTypeEnum.LandUseBlockDataHub"></custom-rich-text>
+        <data-hub-action-button
+            label="Upload"
+            icon="upload"
+            [routerLink]="['/data-hub', 'land-use-block-upload']"
+            [disabled]="!isAdminOrEditor()"
+            [disabledTooltip]="managerEditorTooltip"
+        ></data-hub-action-button>
+        <data-hub-action-button
+            label="Download"
+            icon="download"
+            [routerLink]="['/data-hub', 'land-use-block-download']"
+            [disabled]="!isAdminOrEditor()"
+            [disabledTooltip]="managerEditorTooltip"
+        ></data-hub-action-button>
+    </div>
+    <data-hub-quick-links tab="trash"></data-hub-quick-links>
+</div>

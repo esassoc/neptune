@@ -36,3 +36,37 @@ dl.kv {
         margin: 0;
     }
 }
+
+// Detail-page key/value list. Renders as a compact two-column grid whose label column
+// hugs its content and values sit immediately beside it (no cavernous gutter, no ragged
+// right-aligned labels). The auto/1fr layout governs regardless of any grid-12 / g-col-*
+// spans the markup carries, so every detail page reads consistently — mirrors .kv.
+dl.key-value-list {
+    display: grid;
+    grid-template-columns: auto 1fr;
+    column-gap: $spacing-300;
+    row-gap: $spacing-200;
+    align-items: baseline;
+
+    &.grid-12 {
+        row-gap: $spacing-300;
+    }
+
+    // Neutralize the grid-12 g-col-* spans (out-specify `.grid-12 > .g-col-N`) so the
+    // auto/1fr label/value layout governs.
+    &.grid-12 > dt,
+    &.grid-12 > dd {
+        grid-column: auto;
+    }
+
+    dt {
+        padding-bottom: 0;
+        text-align: left;
+        font-weight: 600;
+        font-size: inherit;
+    }
+
+    dd {
+        margin: 0;
+    }
+}

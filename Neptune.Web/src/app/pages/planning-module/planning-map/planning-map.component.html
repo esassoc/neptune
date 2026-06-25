@@ -54,9 +54,9 @@
                 </div>
             </div>
 
-            <div class="card mt-4">
+            <div class="card mt-3">
                 <div class="card-header">
-                    <h3 class="card-title">Selected Project</h3>
+                    <h3 class="card-title">@if (selectedProject) { Selected Project } @else { Select a Project }</h3>
                 </div>
                 @if (selectedProject) {
                 <div class="card-body">
@@ -66,7 +66,7 @@
                             <a [routerLink]="['/planning/projects', selectedProject.ProjectID]" class="btn btn-sm btn-primary ml-auto">View Project Details</a>
                         </div>
                     </div>
-                    <dl class="grid-12 mt-3">
+                    <dl class="grid-12 mt-3 key-value-list">
                         <dt class="g-col-4">Name</dt>
                         <dd class="g-col-8">
                             {{ selectedProject.ProjectName }}
@@ -79,7 +79,7 @@
                     @if (selectedTreatmentBMP != null) {
                     <hr />
                     <div class="content-section">Selected BMP</div>
-                    <dl class="grid-12 mt-2">
+                    <dl class="grid-12 mt-2 key-value-list">
                         <dt class="g-col-4">Name</dt>
                         <dd class="g-col-8">
                             {{ selectedTreatmentBMP.TreatmentBMPName }}
@@ -111,7 +111,7 @@
                     } @if (relatedTreatmentBMPs.length != 0) {
                     <hr />
                     <div class="content-section">Other BMPs</div>
-                    <dl class="grid-12 mt-2">
+                    <dl class="grid-12 mt-2 key-value-list">
                         @for (bmp of getRelatedBMPsToShow(); track bmp) {
                         <dt class="g-col-4 mb-1">
                             <button class="btn btn-primary btn-sm" (click)="selectTreatmentBMPImpl(bmp.TreatmentBMPID)">Select</button>
@@ -145,7 +145,7 @@
 
                 <wqmps-layer [displayOnLoad]="false" [map]="map" [layerControl]="layerControl" [sortOrder]="40"></wqmps-layer>
 
-                <delineations-layer [displayOnLoad]="false" [map]="map" [layerControl]="layerControl" [sortOrder]="50"></delineations-layer>
+                <delineations-layer [isAnalyzedInModelingModule]="true" [displayOnLoad]="false" [map]="map" [layerControl]="layerControl" [sortOrder]="50"></delineations-layer>
 
                 <inventoried-bmps-layer [displayOnLoad]="false" [map]="map" [layerControl]="layerControl" [sortOrder]="60"></inventoried-bmps-layer>
                 }

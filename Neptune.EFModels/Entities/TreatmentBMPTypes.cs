@@ -1,4 +1,4 @@
-﻿using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore;
 using Neptune.Common.DesignByContract;
 
 namespace Neptune.EFModels.Entities;
@@ -22,22 +22,12 @@ public static class TreatmentBMPTypes
         return treatmentBMPType;
     }
 
-    public static TreatmentBMPType GetByIDWithChangeTracking(NeptuneDbContext dbContext, TreatmentBMPTypePrimaryKey treatmentBMPTypePrimaryKey)
-    {
-        return GetByIDWithChangeTracking(dbContext, treatmentBMPTypePrimaryKey.PrimaryKeyValue);
-    }
-
     public static TreatmentBMPType GetByID(NeptuneDbContext dbContext, int treatmentBMPTypeID)
     {
         var treatmentBMPType = GetImpl(dbContext).AsNoTracking()
             .SingleOrDefault(x => x.TreatmentBMPTypeID == treatmentBMPTypeID);
         Check.RequireNotNull(treatmentBMPType, $"TreatmentBMPType with ID {treatmentBMPTypeID} not found!");
         return treatmentBMPType;
-    }
-
-    public static TreatmentBMPType GetByID(NeptuneDbContext dbContext, TreatmentBMPTypePrimaryKey treatmentBMPTypePrimaryKey)
-    {
-        return GetByID(dbContext, treatmentBMPTypePrimaryKey.PrimaryKeyValue);
     }
 
     public static List<TreatmentBMPType> List(NeptuneDbContext dbContext)
