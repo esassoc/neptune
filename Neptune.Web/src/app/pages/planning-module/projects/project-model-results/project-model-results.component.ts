@@ -1,6 +1,5 @@
-import { Component, DestroyRef, Input, OnInit, inject } from "@angular/core";
-import { BehaviorSubject, Observable, combineLatest, distinctUntilChanged, filter, forkJoin, map, merge, shareReplay, startWith, switchMap } from "rxjs";
-import { takeUntilDestroyed } from "@angular/core/rxjs-interop";
+import { Component, Input, OnInit } from "@angular/core";
+import { BehaviorSubject, Observable, combineLatest, distinctUntilChanged, filter, forkJoin, map, merge, shareReplay, startWith, switchMap, tap } from "rxjs";
 import { ProjectService } from "src/app/shared/generated/api/project.service";
 import { ProjectNetworkSolveHistoryStatusTypeEnum } from "src/app/shared/generated/enum/project-network-solve-history-status-type-enum";
 import { DelineationUpsertDto } from "src/app/shared/generated/model/delineation-upsert-dto";
@@ -34,11 +33,14 @@ import { FormFieldComponent, FormFieldType, FormInputOption } from "src/app/shar
     ],
 })
 export class ProjectModelResultsComponent implements OnInit {
-    private readonly destroyRef = inject(DestroyRef);
-
     public FormFieldType = FormFieldType;
 
     public isLoading$!: Observable<boolean>;
+
+    // Drives the panel reactively (zoneless): the async pipe over vm$ is what renders the results / empty-state,
+    // rather than an imperative subscribe (which wouldn't trigger change detection when results arrive — the
+    // reason the workflow panel rendered blank even though the API returned results).
+    public vm$!: Observable<{ hasLoaded: boolean; hasResults: boolean }>;
 
     private readonly projectIDSubject = new BehaviorSubject<number | null>(null);
     private readonly projectNetworkSolveHistoriesSubject = new BehaviorSubject<ProjectNetworkSolveHistorySimpleDto[] | null>(null);
@@ -101,6 +103,10 @@ export class ProjectModelResultsComponent implements OnInit {
 
     ngOnInit(): void {
         const projectID$ = this.projectIDSubject.asObservable().pipe(
+            // Route-param component-input binding can deliver projectID as a string ("296"), and
+            // Number.isFinite rejects strings — which silently prevented the modeled-results load from
+            // ever firing in the project workflow (the panel rendered blank with no spinner). Coerce first.
+            map((id) => (id == null ? null : Number(id))),
             filter((id): id is number => id != null && Number.isFinite(id)),
             distinctUntilChanged()
         );
@@ -131,11 +137,11 @@ export class ProjectModelResultsComponent implements OnInit {
         // Show spinner while waiting for modeled results to come back for the current project.
         this.isLoading$ = merge(shouldLoadProjectID$.pipe(map(() => true)), load$.pipe(map(() => false))).pipe(startWith(false), distinctUntilChanged(), shareReplay(1));
 
-        // Single subscription: keeps component state synchronized with both
-        // (a) incoming modeled results and (b) selection changes.
-        combineLatest([load$.pipe(startWith(null as any)), selectedTreatmentBMPID$])
-            .pipe(takeUntilDestroyed(this.destroyRef))
-            .subscribe(([loadResult, selectedTreatmentBMPID]) => {
+        // View-model the template subscribes to via `| async`, so results render reactively under zoneless
+        // change detection. Keeps component state synchronized with both (a) incoming modeled results and
+        // (b) selection changes; emits the gate flags (hasLoaded / hasResults) for the results vs empty-state.
+        this.vm$ = combineLatest([load$.pipe(startWith(null as any)), selectedTreatmentBMPID$]).pipe(
+            tap(([loadResult, selectedTreatmentBMPID]) => {
                 this.treatmentBMPIDForSelectedProjectLoadReducingResult = selectedTreatmentBMPID;
 
                 if (loadResult) {
@@ -154,7 +160,13 @@ export class ProjectModelResultsComponent implements OnInit {
                 }
 
                 this.updateSelectedProjectLoadReducingResult();
-            });
+            }),
+            map(([loadResult]) => ({
+                hasLoaded: !!loadResult,
+                hasResults: !!loadResult && (this.projectLoadReducingResults?.length ?? 0) > 0,
+            })),
+            shareReplay(1)
+        );
     }
 
     populateModeledResultsOptions() {

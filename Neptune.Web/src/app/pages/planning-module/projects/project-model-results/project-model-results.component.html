@@ -1,5 +1,5 @@
 <div [loadingSpinner]="{ isLoading: (isLoading$ | async) ?? false, loadingHeight: 400 }">
-    @if (selectedProjectLoadReducingResult) {
+    @if ((vm$ | async)?.hasResults) {
         @if (getNotFullyParameterizedBMPNames().length > 0) {
             <div class="alert alert-warning">
                 <div class="alert-content">
@@ -97,5 +97,10 @@
         </div>
 
         <p class="text-italic mt-2">{{ getModelResultsLastCalculatedText() }}</p>
+    } @else if ((vm$ | async)?.hasLoaded) {
+        <p class="system-text">
+            No modeled results for this project yet. Make sure each Treatment BMP has a verified delineation within a
+            regional subbasin, then press Calculate above.
+        </p>
     }
 </div>
