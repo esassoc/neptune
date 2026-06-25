@@ -9,6 +9,7 @@ import { DomSanitizer, SafeHtml } from "@angular/platform-browser";
 import { NeptunePageDto } from "src/app/shared/generated/model/neptune-page-dto";
 import { CustomRichTextService } from "src/app/shared/generated/api/custom-rich-text.service";
 import { FormsModule } from "@angular/forms";
+import { fileResourceUrl } from "src/app/shared/helpers/file-resource-url";
 
 import { LoadingDirective } from "src/app/shared/directives/loading.directive";
 import { IconComponent } from "src/app/shared/components/icon/icon.component";
@@ -73,11 +74,25 @@ export class CustomRichTextComponent implements OnInit, AfterViewChecked, OnDest
     private loadCustomRichText(customRichText: NeptunePageDto) {
         this.editedTitle = this.customRichTextTitle;
 
-        this.customRichTextContent = this.sanitizer.bypassSecurityTrustHtml(customRichText.NeptunePageContent);
+        this.customRichTextContent = this.sanitizer.bypassSecurityTrustHtml(this.rewriteFileResourceUrls(customRichText.NeptunePageContent));
         this.editedContent = customRichText.NeptunePageContent;
         this.isEmptyContent = customRichText.IsEmptyContent;
         this.isLoading = false;
         this.cdr.detectChanges();
+    }
+
+    // Stored rich-text content references FileResources two ways the rendered DOM can't resolve directly:
+    //   - relative `/file-resources/{guid}` (the SPA and API are separate origins, so a relative path hits the SPA), and
+    //   - legacy absolute MVC `…/FileResource/DisplayResource/{guid}` URLs left over from before the WebMvc retirement.
+    // Rewrite both to the absolute API URL at render time ONLY. editedContent is left untouched so an admin saving
+    // through the editor never persists an environment-specific host back into the database.
+    private rewriteFileResourceUrls(html: string): string {
+        if (!html) {
+            return html;
+        }
+        return html
+            .replace(/https?:\/\/[^"'()\s]*?\/FileResource\/DisplayResource\/([0-9a-fA-F-]{36})/gi, (_match, guid) => fileResourceUrl(guid))
+            .replace(/(["'(])\/file-resources\/([0-9a-fA-F-]{36})/gi, (_match, prefix, guid) => `${prefix}${fileResourceUrl(guid)}`);
     }
 
     public showEditButton(): boolean {

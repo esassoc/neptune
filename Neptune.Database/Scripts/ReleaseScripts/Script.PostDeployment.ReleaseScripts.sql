@@ -80,4 +80,6 @@ GO
 GO
 :r ".\036 - Recalculate OVTA Progress Scores for 5yr-1OVTA rule.sql"
 GO
+:r ".\037 - NPT-1068 Rewrite legacy FileResource URLs in NeptunePage content.sql"
+GO
 
