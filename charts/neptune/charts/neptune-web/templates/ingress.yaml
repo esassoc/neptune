@@ -30,7 +30,6 @@ spec:
     - secretName: neptune-web-tls
       hosts:
         - {{ .Values.global.domains.web }}
-        - {{ .Values.global.domains.planning }}
   {{- if eq .Values.global.env.name "prod" }}
         # NPT-1098: prod canonical host is the apex (domains.web = ocstormwatertools.org).
         # Keep www on the cert so the www -> apex canonical redirect is served over HTTPS.
@@ -74,19 +73,4 @@ spec:
               servicePort: {{ $svcPort }}
               {{- end }}
   {{- end }}
-    - host: {{ .Values.global.domains.planning }}
-      http:
-        paths:
-          - path: /
-            pathType: ImplementationSpecific
-            backend:
-              {{- if semverCompare ">=1.19-0" $.Capabilities.KubeVersion.GitVersion }}
-              service:
-                name: {{ $fullName }}
-                port:
-                  number: {{ $svcPort }}
-              {{- else }}
-              serviceName: {{ $fullName }}
-              servicePort: {{ $svcPort }}
-              {{- end }}
 {{- end }}
