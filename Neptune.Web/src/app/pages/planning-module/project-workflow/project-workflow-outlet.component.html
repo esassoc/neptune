@@ -7,7 +7,7 @@
                     <p>Project Name: &nbsp;</p>
                     @if (progressDto?.ProjectID) {
                     <p>
-                        <strong>{{ progressDto.ProjectName }}</strong>
+                        <strong><a [routerLink]="['/planning/projects', progressDto.ProjectID]">{{ progressDto.ProjectName }}</a></strong>
                     </p>
                     } @else {
                     <p><strong>Project Name Here</strong></p>

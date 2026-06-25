@@ -36,7 +36,9 @@
                     <ul #programInfoMenu class="dropdown-menu">
                         <li><a [routerLink]="['/program-info/observation-types']" class="dropdown-item">Observation Types</a></li>
                         <li><a [routerLink]="['/program-info/treatment-bmp-types']" class="dropdown-item">Treatment BMP Types</a></li>
-                        <li><a [routerLink]="['/funding-sources']" class="dropdown-item">Funding Sources</a></li>
+                        @if (isCurrentUserAdmin()) {
+                            <li><a [routerLink]="['/funding-sources']" class="dropdown-item">Funding Sources</a></li>
+                        }
                         @if (isCurrentUserEditorOrHigher()) {
                             <li><a [routerLink]="['/jurisdictions']" class="dropdown-item">Jurisdictions</a></li>
                         }
