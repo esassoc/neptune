@@ -1,6 +1,6 @@
 import { Injectable } from "@angular/core";
 import { Observable, ReplaySubject, Subject, of, race } from "rxjs";
-import { first, switchMap, takeUntil } from "rxjs/operators";
+import { first, map, switchMap, takeUntil } from "rxjs/operators";
 import { Router } from "@angular/router";
 import { AlertService } from "../shared/services/alert.service";
 import { Alert } from "../shared/models/alert";
@@ -103,6 +103,31 @@ export class AuthenticationService {
             first((loading) => loading === false),
             switchMap(() => of(null as any))
         );
+    }
+
+    // Shared role-gate for route guards. Distinguishes anonymous visitors (never logged in) from
+    // authenticated-but-insufficient-role users:
+    //   - Anonymous  → send through Auth0 login and return to `targetUrl` afterwards (don't bounce to home).
+    //   - Logged in  → wait for the /people/me roundtrip to populate currentUser, then role-check.
+    //                  If the role isn't allowed, fall back to the home redirect + unauthorized alert.
+    public guardWithRoleCheck(targetUrl: string, isAllowed: (user: PersonDto | null) => boolean): Observable<boolean> {
+        return this.guardInitObservable().pipe(
+            switchMap(() => {
+                if (!this.isAuthenticated()) {
+                    this.login(targetUrl);
+                    return of(false);
+                }
+
+                return this.getCurrentUser().pipe(map((user) => (isAllowed(user) ? true : this.returnUnauthorized())));
+            })
+        );
+    }
+
+    private returnUnauthorized(): boolean {
+        this.router.navigate(["/"]).then(() => {
+            this.alertService.pushNotFoundUnauthorizedAlert();
+        });
+        return false;
     }
 
     private storePostAuthTarget(target?: string) {

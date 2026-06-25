@@ -1,44 +1,15 @@
-import { ActivatedRouteSnapshot, RouterStateSnapshot, Router } from '@angular/router';
+import { ActivatedRouteSnapshot, RouterStateSnapshot } from "@angular/router";
 import { Observable } from "rxjs";
-import { map } from "rxjs/operators";
-import { Injectable } from '@angular/core';
-import { AlertService } from '../../services/alert.service';
-import { AuthenticationService } from 'src/app/services/authentication.service';
+import { Injectable } from "@angular/core";
+import { AuthenticationService } from "src/app/services/authentication.service";
 
 @Injectable({
-  providedIn: 'root'
+    providedIn: "root",
 })
-export class OCTAGrantReviewerOnlyGuard  {
-  constructor(
-    private router: Router,
-    private alertService: AlertService, 
-    private authenticationService: AuthenticationService) { }
-    
-  canActivate(next: ActivatedRouteSnapshot, state: RouterStateSnapshot): Observable<boolean> | Promise<boolean> | boolean {
-    if (!this.authenticationService.isCurrentUserNullOrUndefined()) {
-      if (this.authenticationService.isCurrentUserAnOCTAGrantReviewer()) {
-        return true;
-      } else {
-        return this.returnUnauthorized();
-      }
+export class OCTAGrantReviewerOnlyGuard {
+    constructor(private authenticationService: AuthenticationService) {}
+
+    canActivate(next: ActivatedRouteSnapshot, state: RouterStateSnapshot): Observable<boolean> | Promise<boolean> | boolean {
+        return this.authenticationService.guardWithRoleCheck(state.url, (user) => !!user?.IsOCTAGrantReviewer);
     }
-
-    return this.authenticationService.currentUserSetObservable
-      .pipe(
-        map(x => {
-          if (x.IsOCTAGrantReviewer) {
-            return true;
-          } else {
-            return this.returnUnauthorized();
-          }
-        })
-      );
-  }
-
-  private returnUnauthorized() {
-    this.router.navigate(["/"]).then(() => {
-      this.alertService.pushNotFoundUnauthorizedAlert();
-    });
-    return false;
-  }
 }
