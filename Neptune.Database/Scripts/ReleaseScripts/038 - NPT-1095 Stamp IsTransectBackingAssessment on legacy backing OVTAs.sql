@@ -11,9 +11,10 @@ BEGIN
         with no flagged backing assessment never updated their stored TransectLine when the backing points were
         edited (NPT-1095). The code fix adds a runtime "no other backing exists" fallback, but for legacy
         multi-assessment areas that would anchor to whichever assessment is edited first. Stamp the correct
-        backing up front: the earliest-completed assessment per area, matching
-        OnlandVisualTrashAssessmentAreas.RecomputeTransectLine (Complete status + MIN(CompletedDate),
-        tie-broken by OnlandVisualTrashAssessmentID).
+        backing up front: the earliest-completed assessment per area (Complete status + MIN(CompletedDate)) —
+        the same selection as OnlandVisualTrashAssessmentAreas.RecomputeTransectLine, plus an
+        OnlandVisualTrashAssessmentID tie-break for deterministic results (RecomputeTransectLine's
+        MinBy(CompletedDate) does not itself tie-break).
 
         Touches only areas that currently have ZERO assessments flagged backing, so it's idempotent. Geometry
         is NOT recomputed here — existing TransectLines refresh on the next edit via the code fix.

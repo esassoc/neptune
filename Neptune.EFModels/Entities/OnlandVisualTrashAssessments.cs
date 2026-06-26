@@ -178,8 +178,8 @@ public static class OnlandVisualTrashAssessments
             // though they're the area's backing assessment, so the flag-or-wasNeverSet gate silently skipped the
             // transect update forever. Treat this assessment as backing when no OTHER assessment in the area is
             // flagged backing, and stamp the flag below so subsequent saves take the flag path directly.
-            var noOtherBackingExists = !dbContext.OnlandVisualTrashAssessments
-                .Any(x => x.OnlandVisualTrashAssessmentAreaID == onlandVisualTrashAssessment.OnlandVisualTrashAssessmentAreaID
+            var noOtherBackingExists = !await dbContext.OnlandVisualTrashAssessments
+                .AnyAsync(x => x.OnlandVisualTrashAssessmentAreaID == onlandVisualTrashAssessment.OnlandVisualTrashAssessmentAreaID
                           && x.IsTransectBackingAssessment
                           && x.OnlandVisualTrashAssessmentID != onlandVisualTrashAssessment.OnlandVisualTrashAssessmentID);
             var isBackingAssessment = onlandVisualTrashAssessment.IsTransectBackingAssessment || wasNeverSet || noOtherBackingExists;

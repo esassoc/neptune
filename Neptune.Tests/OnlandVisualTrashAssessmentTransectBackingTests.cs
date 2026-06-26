@@ -42,8 +42,13 @@ namespace Neptune.Tests
             _dbContext = GetDbContext();
             _transaction = _dbContext.Database.BeginTransaction();
 
-            _jurisdictionID = _dbContext.StormwaterJurisdictions.AsNoTracking().OrderBy(x => x.StormwaterJurisdictionID).Select(x => x.StormwaterJurisdictionID).First();
-            _personID = _dbContext.People.AsNoTracking().OrderBy(x => x.PersonID).Select(x => x.PersonID).First();
+            var jurisdictionID = _dbContext.StormwaterJurisdictions.AsNoTracking().OrderBy(x => x.StormwaterJurisdictionID).Select(x => (int?)x.StormwaterJurisdictionID).FirstOrDefault();
+            Assert.IsNotNull(jurisdictionID, "Tests require at least 1 StormwaterJurisdiction row in the local DB.");
+            _jurisdictionID = jurisdictionID.Value;
+
+            var personID = _dbContext.People.AsNoTracking().OrderBy(x => x.PersonID).Select(x => (int?)x.PersonID).FirstOrDefault();
+            Assert.IsNotNull(personID, "Tests require at least 1 Person row in the local DB.");
+            _personID = personID.Value;
         }
 
         [TestCleanup]
