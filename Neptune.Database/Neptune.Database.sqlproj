@@ -441,6 +441,7 @@
     <None Include="Scripts\ReleaseScripts\020 - Drop WaterQualityManagementPlanDocumentVectorStore table.sql" />
     <None Include="Scripts\ReleaseScripts\036 - Recalculate OVTA Progress Scores for 5yr-1OVTA rule.sql" />
     <None Include="Scripts\ReleaseScripts\037 - NPT-1068 Rewrite legacy FileResource URLs in NeptunePage content.sql" />
+    <None Include="Scripts\ReleaseScripts\038 - NPT-1095 Stamp IsTransectBackingAssessment on legacy backing OVTAs.sql" />
     <Build Include="dbo\Tables\dbo.WaterQualityManagementPlanExtractionResult.sql" />
     <Build Include="dbo\Tables\dbo.AITokenUsage.sql" />
   </ItemGroup>

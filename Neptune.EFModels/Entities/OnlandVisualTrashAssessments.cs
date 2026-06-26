@@ -174,7 +174,15 @@ public static class OnlandVisualTrashAssessments
             // is flagged as the backing one (return-to-edit). Repeat assessments on an area
             // that already has a backing-derived transect leave it alone.
             var wasNeverSet = onlandVisualTrashAssessment.OnlandVisualTrashAssessmentArea.TransectLine == null;
-            var isBackingAssessment = onlandVisualTrashAssessment.IsTransectBackingAssessment || wasNeverSet;
+            // Assessments finalized before the IsTransectBackingAssessment flag existed have it set false even
+            // though they're the area's backing assessment, so the flag-or-wasNeverSet gate silently skipped the
+            // transect update forever. Treat this assessment as backing when no OTHER assessment in the area is
+            // flagged backing, and stamp the flag below so subsequent saves take the flag path directly.
+            var noOtherBackingExists = !await dbContext.OnlandVisualTrashAssessments
+                .AnyAsync(x => x.OnlandVisualTrashAssessmentAreaID == onlandVisualTrashAssessment.OnlandVisualTrashAssessmentAreaID
+                          && x.IsTransectBackingAssessment
+                          && x.OnlandVisualTrashAssessmentID != onlandVisualTrashAssessment.OnlandVisualTrashAssessmentID);
+            var isBackingAssessment = onlandVisualTrashAssessment.IsTransectBackingAssessment || wasNeverSet || noOtherBackingExists;
 
             if (isBackingAssessment && onlandVisualTrashAssessment.OnlandVisualTrashAssessmentObservations.Count >= 2)
             {
@@ -182,10 +190,10 @@ public static class OnlandVisualTrashAssessments
                 onlandVisualTrashAssessment.OnlandVisualTrashAssessmentArea.TransectLine = transect;
                 onlandVisualTrashAssessment.OnlandVisualTrashAssessmentArea.TransectLine4326 = transect.ProjectTo4326();
 
-                if (wasNeverSet)
+                if (wasNeverSet || noOtherBackingExists)
                 {
-                    // First finalize — stamp this assessment as backing and demote any stale
-                    // flag elsewhere (defensive for odd states).
+                    // First finalize, or a legacy backing assessment that was never stamped — stamp this
+                    // assessment as backing and demote any stale flag elsewhere (defensive for odd states).
                     onlandVisualTrashAssessment.IsTransectBackingAssessment = true;
                     var existingBacking = GetTransectBackingAssessment(dbContext, onlandVisualTrashAssessment.OnlandVisualTrashAssessmentAreaID);
                     if (existingBacking != null && existingBacking.OnlandVisualTrashAssessmentID != onlandVisualTrashAssessment.OnlandVisualTrashAssessmentID)
