@@ -78,7 +78,15 @@ namespace Neptune.EFModels.Entities
             if (assessment?.OnlandVisualTrashAssessmentArea == null) return;
 
             var wasNeverSet = assessment.OnlandVisualTrashAssessmentArea.TransectLine == null;
-            var isBacking = assessment.IsTransectBackingAssessment || wasNeverSet;
+            // Assessments finalized before the IsTransectBackingAssessment flag existed have it set false even
+            // though they're the area's backing assessment, so the flag-or-wasNeverSet gate silently skipped the
+            // transect update forever. Treat this assessment as backing when no OTHER assessment in the area is
+            // flagged backing, and stamp the flag below so subsequent saves take the flag path directly.
+            var noOtherBackingExists = !dbContext.OnlandVisualTrashAssessments
+                .Any(x => x.OnlandVisualTrashAssessmentAreaID == assessment.OnlandVisualTrashAssessmentAreaID
+                          && x.IsTransectBackingAssessment
+                          && x.OnlandVisualTrashAssessmentID != assessment.OnlandVisualTrashAssessmentID);
+            var isBacking = assessment.IsTransectBackingAssessment || wasNeverSet || noOtherBackingExists;
 
             if (isBacking && assessment.OnlandVisualTrashAssessmentObservations.Count >= 2)
             {
@@ -87,6 +95,7 @@ namespace Neptune.EFModels.Entities
                 {
                     assessment.OnlandVisualTrashAssessmentArea.TransectLine = transect;
                     assessment.OnlandVisualTrashAssessmentArea.TransectLine4326 = transect.ProjectTo4326();
+                    assessment.IsTransectBackingAssessment = true;
                     await dbContext.SaveChangesAsync();
                 }
             }
