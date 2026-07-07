@@ -65,6 +65,12 @@ public class TreatmentBMPDto
 
     public bool HasSettableBenchmarkAndThresholdValues { get; set; }
 
+    // NPT-1104: per-BMP edit authorization for the current user, computed server-side with the same
+    // logic as the [TreatmentBMPEditFeature] gate (Admin/SitkaAdmin always; JurisdictionManager/Editor
+    // only when assigned to this BMP's jurisdiction). The SPA gates edit controls on this so it never
+    // shows an editor of a different jurisdiction a button that would 403 on submit.
+    public bool CurrentPersonCanEdit { get; set; }
+
     // Display Names
     public SizingBasisTypeDto? SizingBasisType { get; set; }
     public TrashCaptureStatusTypeDto? TrashCaptureStatusType { get; set; }

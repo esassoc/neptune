@@ -176,7 +176,7 @@ export class TreatmentBmpDetailComponent implements OnInit, OnChanges {
     openRevisionRequest: RegionalSubbasinRevisionRequestDto = null;
     openRevisionRequestDetailUrl = "";
     currentPersonCanManage = false;
-    canEditStormwaterJurisdiction = false;
+    currentPersonCanEdit = false;
     // Sourced from TreatmentBMPType.IsAnalyzedInModelingModule via the BMP DTO. Gates the
     // "Modeled BMP Performance" panel. Distinct from `hasModelingAttributes` — a BMP type can
     // be modeled without exposing any user-configurable Modeling-purpose custom attributes.
@@ -258,7 +258,6 @@ export class TreatmentBmpDetailComponent implements OnInit, OnChanges {
             this.isAnonymousOrUnassigned = !user || user.RoleID == RoleEnum.Unassigned;
             this.isSitkaAdmin = user.RoleID == RoleEnum.SitkaAdmin;
             this.currentPersonCanManage = this.authenticationService.doesCurrentUserHaveJurisdictionManagePermission();
-            this.canEditStormwaterJurisdiction = this.authenticationService.doesCurrentUserHaveJurisdictionManagePermission();
         });
     }
 
@@ -359,8 +358,11 @@ export class TreatmentBmpDetailComponent implements OnInit, OnChanges {
                     );
                 }
 
+                // NPT-1104: per-BMP edit authorization computed server-side (mirrors [TreatmentBMPEditFeature]),
+                // so an editor of a different jurisdiction never sees controls that would 403 on submit.
+                this.currentPersonCanEdit = bmp?.CurrentPersonCanEdit ?? false;
                 this.hasSettableBenchmarkAndThresholdValues = bmp?.HasSettableBenchmarkAndThresholdValues ?? false;
-                this.canEditBenchmarkAndThresholds = this.currentPersonCanManage && this.hasSettableBenchmarkAndThresholdValues;
+                this.canEditBenchmarkAndThresholds = this.currentPersonCanEdit && this.hasSettableBenchmarkAndThresholdValues;
                 this.isAnalyzedInModelingModule = bmp?.IsAnalyzedInModelingModule ?? false;
             }),
             shareReplay(1)

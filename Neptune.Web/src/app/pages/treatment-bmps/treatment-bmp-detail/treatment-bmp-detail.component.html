@@ -81,7 +81,7 @@
             <div class="card">
                 <div class="card-header">
                     <span class="card-title">Basics</span>
-                    @if (currentPersonCanManage) {
+                    @if (currentPersonCanEdit) {
                         <a class="btn btn-primary btn-sm" [routerLink]="['edit-basic-info']">
                             Edit
                         </a>
@@ -96,7 +96,7 @@
                         </dt>
                         <dd class="g-col-7">
                             {{ treatmentBMP.TreatmentBMPTypeName }}
-                            @if (currentPersonCanManage) {
+                            @if (currentPersonCanEdit) {
                                 <button class="btn-edit-inline ml-2" (click)="openUpdateTypeModal(treatmentBMP)" title="Update Treatment BMP Type" aria-label="Update Treatment BMP Type"></button>
                             }
                         </dd>
@@ -156,7 +156,7 @@
                         <div class="card">
                             <div class="card-header">
                                 <span class="card-title">Modeling Attributes</span>
-                                @if (currentPersonCanManage) {
+                                @if (currentPersonCanEdit) {
                                     <a class="btn btn-primary btn-sm" [routerLink]="['/treatment-bmps', treatmentBMP.TreatmentBMPID, 'edit-custom-attributes', CustomAttributeTypePurposeEnum.Modeling]">
                                         Edit
                                     </a>
@@ -237,7 +237,7 @@
                         <div class="card">
                             <div class="card-header">
                                 <span class="card-title">Other Design Attributes</span>
-                                @if (currentPersonCanManage) {
+                                @if (currentPersonCanEdit) {
                                     <a
                                         class="btn btn-primary btn-sm"
                                         [routerLink]="[
@@ -268,7 +268,7 @@
             <div class="card">
                 <div class="card-header">
                     <span class="card-title">Images</span>
-                    @if (currentPersonCanManage) {
+                    @if (currentPersonCanEdit) {
                         <a class="btn btn-primary btn-sm" [routerLink]="['edit-images']">
                             Edit
                         </a>
@@ -283,7 +283,7 @@
             <div class="card">
                 <div class="card-header">
                     <span class="card-title">Location & Map</span>
-                    @if (currentPersonCanManage) {
+                    @if (currentPersonCanEdit) {
                         <a class="btn btn-primary btn-sm" [routerLink]="['edit-location']">
                             Edit
                         </a>
@@ -329,7 +329,7 @@
                                 } @else {
                                     <span class="system-text">No Delineation Provided</span>
                                 }
-                                @if (!upstreamestBMPErrors.UpstreamestBMP && canEditStormwaterJurisdiction) {
+                                @if (!upstreamestBMPErrors.UpstreamestBMP && currentPersonCanEdit) {
                                     <a [routerLink]="['/delineation', 'delineation-map']" [queryParams]="{ treatmentBMPID: treatmentBMP.TreatmentBMPID }" class="btn-edit-inline ml-2" title="Edit Delineation Type" aria-label="Edit Delineation Type"></a>
                                 }
                             </dd>
@@ -359,7 +359,7 @@
                                         } @else {
                                             <a [routerLink]="['treatment-bmps', treatmentBMP.UpstreamBMP.TreatmentBMPID]">{{ treatmentBMP.UpstreamBMP.TreatmentBMPName }}</a>
                                         }
-                                        @if (currentPersonCanManage) {
+                                        @if (currentPersonCanEdit) {
                                             <button class="btn-edit-inline ml-2" (click)="openEditUpstreamBMPModal(treatmentBMP)" title="Edit Upstream BMP" aria-label="Edit Upstream BMP"></button>
                                         }
                                     </dd>
@@ -422,7 +422,7 @@
         <div class="card">
             <div class="card-header">
                 <span class="card-title">Field Visits</span>
-                @if (currentPersonCanManage) {
+                @if (currentPersonCanEdit) {
                     <button class="btn btn-primary btn-sm" (click)="openBeginFieldVisitModal()"><i class="fa fa-plus"></i> Begin Field Visit</button>
                 }
             </div>
@@ -442,7 +442,7 @@
         <div class="card g-col-6">
             <div class="card-header">
                 <span class="card-title">Funding Events</span>
-                @if (currentPersonCanManage) {
+                @if (currentPersonCanEdit) {
                     <button class="btn btn-primary btn-sm" (click)="openAddFundingEventModal()"><i class="fa fa-plus"></i> Add Funding Event</button>
                 }
             </div>
@@ -452,7 +452,7 @@
                         @for (fundingEvent of fundingEvents; track fundingEvent.FundingEventID) {
                             <div class="grid-12 mt-2">
                                 <h4 class="mb-0 g-col-6">{{ fundingEvent.DisplayName }}</h4>
-                                @if (currentPersonCanManage) {
+                                @if (currentPersonCanEdit) {
                                     <div class="g-col-6" style="justify-self: end">
                                         <button class="btn btn-sm btn-primary-outline mr-2" (click)="openEditFundingEventModal(fundingEvent)">
                                             <span class="icon-edit"></span> Edit
@@ -545,7 +545,7 @@
             <div class="card">
                 <div class="card-header">
                     <span class="card-title">Documents</span>
-                    @if (currentPersonCanManage) {
+                    @if (currentPersonCanEdit) {
                         <button class="btn btn-primary btn-sm" (click)="openDocumentUploadModal()"><i class="fa fa-plus"></i> Upload Document</button>
                     }
                 </div>

@@ -81,7 +81,7 @@ const ANON_REGEX: RegexMap = {
 
   ],
   'PUT': [
-    new RegExp("^/treatment-bmps/[^/]+/basic-info$"),
+
   ],
 };
 
@@ -248,6 +248,7 @@ const SECURED_REGEX: RegexMap = {
     new RegExp("^/treatment-bmp-assessments/[^/]+/observations$"),
     new RegExp("^/treatment-bmp-assessments/[^/]+/photos/[^/]+$"),
     new RegExp("^/treatment-bmp-types/[^/]+$"),
+    new RegExp("^/treatment-bmps/[^/]+/basic-info$"),
     new RegExp("^/treatment-bmps/[^/]+/benchmarks-and-thresholds/[^/]+$"),
     new RegExp("^/treatment-bmps/[^/]+/custom-attribute-type-purposes/[^/]+/custom-attributes$"),
     new RegExp("^/treatment-bmps/[^/]+/funding-events/[^/]+$"),

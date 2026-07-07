@@ -82,4 +82,6 @@ GO
 GO
 :r ".\037 - NPT-1068 Rewrite legacy FileResource URLs in NeptunePage content.sql"
 GO
+:r ".\038 - NPT-1095 Stamp IsTransectBackingAssessment on legacy backing OVTAs.sql"
+GO
 

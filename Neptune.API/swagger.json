@@ -8676,9 +8676,7 @@
               }
             }
           }
-        },
-        "x-anonymous": true,
-        "x-optional-auth": true
+        }
       }
     },
     "/treatment-bmps/{treatmentBMPID}/type": {
@@ -21956,6 +21954,9 @@
             "$ref": "#/components/schemas/StormwaterJurisdictionDisplayDto"
           },
           "HasSettableBenchmarkAndThresholdValues": {
+            "type": "boolean"
+          },
+          "CurrentPersonCanEdit": {
             "type": "boolean"
           },
           "SizingBasisType": {
