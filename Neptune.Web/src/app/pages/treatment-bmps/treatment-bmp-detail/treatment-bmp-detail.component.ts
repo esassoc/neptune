@@ -176,7 +176,7 @@ export class TreatmentBmpDetailComponent implements OnInit, OnChanges {
     openRevisionRequest: RegionalSubbasinRevisionRequestDto = null;
     openRevisionRequestDetailUrl = "";
     currentPersonCanManage = false;
-    canEditStormwaterJurisdiction = false;
+    currentPersonCanEdit = false;
     // Sourced from TreatmentBMPType.IsAnalyzedInModelingModule via the BMP DTO. Gates the
     // "Modeled BMP Performance" panel. Distinct from `hasModelingAttributes` — a BMP type can
     // be modeled without exposing any user-configurable Modeling-purpose custom attributes.
@@ -258,7 +258,7 @@ export class TreatmentBmpDetailComponent implements OnInit, OnChanges {
             this.isAnonymousOrUnassigned = !user || user.RoleID == RoleEnum.Unassigned;
             this.isSitkaAdmin = user.RoleID == RoleEnum.SitkaAdmin;
             this.currentPersonCanManage = this.authenticationService.doesCurrentUserHaveJurisdictionManagePermission();
-            this.canEditStormwaterJurisdiction = this.authenticationService.doesCurrentUserHaveJurisdictionManagePermission();
+            this.currentPersonCanEdit = this.authenticationService.doesCurrentUserHaveJurisdictionEditPermission();
         });
     }
 
@@ -360,7 +360,7 @@ export class TreatmentBmpDetailComponent implements OnInit, OnChanges {
                 }
 
                 this.hasSettableBenchmarkAndThresholdValues = bmp?.HasSettableBenchmarkAndThresholdValues ?? false;
-                this.canEditBenchmarkAndThresholds = this.currentPersonCanManage && this.hasSettableBenchmarkAndThresholdValues;
+                this.canEditBenchmarkAndThresholds = this.currentPersonCanEdit && this.hasSettableBenchmarkAndThresholdValues;
                 this.isAnalyzedInModelingModule = bmp?.IsAnalyzedInModelingModule ?? false;
             }),
             shareReplay(1)

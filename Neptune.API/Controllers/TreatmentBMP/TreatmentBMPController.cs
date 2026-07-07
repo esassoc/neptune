@@ -178,8 +178,7 @@ public class TreatmentBMPController(
     }
 
     [HttpPut("{treatmentBMPID}/basic-info")]
-    [AllowAnonymous]
-    [OptionalAuth]
+    [TreatmentBMPEditFeature]
     [EntityNotFound(typeof(TreatmentBMP), "treatmentBMPID")]
     public async Task<ActionResult<TreatmentBMPDto>> UpdateBasicInfo([FromRoute] int treatmentBMPID, [FromBody] TreatmentBMPBasicInfoUpdateDto updateDto)
     {
@@ -196,7 +195,7 @@ public class TreatmentBMPController(
     }
 
     [HttpPut("{treatmentBMPID}/type")]
-    [UserViewFeature]
+    [TreatmentBMPEditFeature]
     [EntityNotFound(typeof(TreatmentBMP), "treatmentBMPID")]
     public async Task<ActionResult<TreatmentBMPDto>> UpdateType([FromRoute] int treatmentBMPID, [FromBody] TreatmentBMPTypeUpdateDto typeUpdateDto)
     {
@@ -213,7 +212,7 @@ public class TreatmentBMPController(
     }
 
     [HttpPut("{treatmentBMPID}/location")]
-    [UserViewFeature]
+    [TreatmentBMPEditFeature]
     [EntityNotFound(typeof(TreatmentBMP), "treatmentBMPID")]
     public async Task<ActionResult<TreatmentBMPDto>> UpdateLocation([FromRoute] int treatmentBMPID, [FromBody] TreatmentBMPLocationUpdateDto locationUpdateDto)
     {
@@ -229,7 +228,7 @@ public class TreatmentBMPController(
     }
 
     [HttpPut("{treatmentBMPID}/custom-attribute-type-purposes/{customAttributeTypePurposeID}/custom-attributes")]
-    [UserViewFeature]
+    [TreatmentBMPEditFeature]
     [EntityNotFound(typeof(TreatmentBMP), "treatmentBMPID")]
     public async Task<ActionResult<List<CustomAttributeDto>>> UpdateCustomAttributes([FromRoute] int treatmentBMPID, [FromRoute] int customAttributeTypePurposeID, [FromBody] List<CustomAttributeUpsertDto> customAttributes)
     {
@@ -251,7 +250,7 @@ public class TreatmentBMPController(
     }
 
     [HttpPut("{treatmentBMPID}/upstream-bmp")]
-    [UserViewFeature]
+    [TreatmentBMPEditFeature]
     [EntityNotFound(typeof(TreatmentBMP), "treatmentBMPID")]
     public async Task<ActionResult<TreatmentBMPDto>> UpdateUpstreamBMP([FromRoute] int treatmentBMPID, [FromBody] TreatmentBMPUpstreamBMPUpdateDto upstreamBMPUpdateDto)
     {
