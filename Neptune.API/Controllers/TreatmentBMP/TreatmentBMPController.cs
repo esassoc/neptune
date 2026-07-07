@@ -142,6 +142,12 @@ public class TreatmentBMPController(
     public async Task<ActionResult<TreatmentBMPDto>> GetByID([FromRoute] int treatmentBMPID)
     {
         var treatmentBMPDto = await TreatmentBMPs.GetByIDAsDtoAsync(DbContext, treatmentBMPID);
+        // NPT-1104: mirror the [TreatmentBMPEditFeature] gate so the SPA only shows edit controls the
+        // caller can actually use. CanEditJurisdiction short-circuits Admin/SitkaAdmin to true and
+        // otherwise checks the caller's assigned jurisdictions against this BMP's jurisdiction.
+        treatmentBMPDto.CurrentPersonCanEdit = CallingUser != null
+            && treatmentBMPDto.StormwaterJurisdictionID.HasValue
+            && await CallingUser.CanEditJurisdiction(treatmentBMPDto.StormwaterJurisdictionID.Value, DbContext);
         return Ok(treatmentBMPDto);
     }
 
@@ -178,8 +184,7 @@ public class TreatmentBMPController(
     }
 
     [HttpPut("{treatmentBMPID}/basic-info")]
-    [AllowAnonymous]
-    [OptionalAuth]
+    [TreatmentBMPEditFeature]
     [EntityNotFound(typeof(TreatmentBMP), "treatmentBMPID")]
     public async Task<ActionResult<TreatmentBMPDto>> UpdateBasicInfo([FromRoute] int treatmentBMPID, [FromBody] TreatmentBMPBasicInfoUpdateDto updateDto)
     {
@@ -196,7 +201,7 @@ public class TreatmentBMPController(
     }
 
     [HttpPut("{treatmentBMPID}/type")]
-    [UserViewFeature]
+    [TreatmentBMPEditFeature]
     [EntityNotFound(typeof(TreatmentBMP), "treatmentBMPID")]
     public async Task<ActionResult<TreatmentBMPDto>> UpdateType([FromRoute] int treatmentBMPID, [FromBody] TreatmentBMPTypeUpdateDto typeUpdateDto)
     {
@@ -213,7 +218,7 @@ public class TreatmentBMPController(
     }
 
     [HttpPut("{treatmentBMPID}/location")]
-    [UserViewFeature]
+    [TreatmentBMPEditFeature]
     [EntityNotFound(typeof(TreatmentBMP), "treatmentBMPID")]
     public async Task<ActionResult<TreatmentBMPDto>> UpdateLocation([FromRoute] int treatmentBMPID, [FromBody] TreatmentBMPLocationUpdateDto locationUpdateDto)
     {
@@ -229,7 +234,7 @@ public class TreatmentBMPController(
     }
 
     [HttpPut("{treatmentBMPID}/custom-attribute-type-purposes/{customAttributeTypePurposeID}/custom-attributes")]
-    [UserViewFeature]
+    [TreatmentBMPEditFeature]
     [EntityNotFound(typeof(TreatmentBMP), "treatmentBMPID")]
     public async Task<ActionResult<List<CustomAttributeDto>>> UpdateCustomAttributes([FromRoute] int treatmentBMPID, [FromRoute] int customAttributeTypePurposeID, [FromBody] List<CustomAttributeUpsertDto> customAttributes)
     {
@@ -251,7 +256,7 @@ public class TreatmentBMPController(
     }
 
     [HttpPut("{treatmentBMPID}/upstream-bmp")]
-    [UserViewFeature]
+    [TreatmentBMPEditFeature]
     [EntityNotFound(typeof(TreatmentBMP), "treatmentBMPID")]
     public async Task<ActionResult<TreatmentBMPDto>> UpdateUpstreamBMP([FromRoute] int treatmentBMPID, [FromBody] TreatmentBMPUpstreamBMPUpdateDto upstreamBMPUpdateDto)
     {
