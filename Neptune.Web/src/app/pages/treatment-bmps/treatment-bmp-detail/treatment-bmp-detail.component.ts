@@ -258,7 +258,6 @@ export class TreatmentBmpDetailComponent implements OnInit, OnChanges {
             this.isAnonymousOrUnassigned = !user || user.RoleID == RoleEnum.Unassigned;
             this.isSitkaAdmin = user.RoleID == RoleEnum.SitkaAdmin;
             this.currentPersonCanManage = this.authenticationService.doesCurrentUserHaveJurisdictionManagePermission();
-            this.currentPersonCanEdit = this.authenticationService.doesCurrentUserHaveJurisdictionEditPermission();
         });
     }
 
@@ -359,6 +358,9 @@ export class TreatmentBmpDetailComponent implements OnInit, OnChanges {
                     );
                 }
 
+                // NPT-1104: per-BMP edit authorization computed server-side (mirrors [TreatmentBMPEditFeature]),
+                // so an editor of a different jurisdiction never sees controls that would 403 on submit.
+                this.currentPersonCanEdit = bmp?.CurrentPersonCanEdit ?? false;
                 this.hasSettableBenchmarkAndThresholdValues = bmp?.HasSettableBenchmarkAndThresholdValues ?? false;
                 this.canEditBenchmarkAndThresholds = this.currentPersonCanEdit && this.hasSettableBenchmarkAndThresholdValues;
                 this.isAnalyzedInModelingModule = bmp?.IsAnalyzedInModelingModule ?? false;

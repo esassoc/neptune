@@ -21956,6 +21956,9 @@
           "HasSettableBenchmarkAndThresholdValues": {
             "type": "boolean"
           },
+          "CurrentPersonCanEdit": {
+            "type": "boolean"
+          },
           "SizingBasisType": {
             "$ref": "#/components/schemas/SizingBasisTypeDto"
           },

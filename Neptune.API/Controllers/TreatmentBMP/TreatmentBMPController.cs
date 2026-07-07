@@ -142,6 +142,12 @@ public class TreatmentBMPController(
     public async Task<ActionResult<TreatmentBMPDto>> GetByID([FromRoute] int treatmentBMPID)
     {
         var treatmentBMPDto = await TreatmentBMPs.GetByIDAsDtoAsync(DbContext, treatmentBMPID);
+        // NPT-1104: mirror the [TreatmentBMPEditFeature] gate so the SPA only shows edit controls the
+        // caller can actually use. CanEditJurisdiction short-circuits Admin/SitkaAdmin to true and
+        // otherwise checks the caller's assigned jurisdictions against this BMP's jurisdiction.
+        treatmentBMPDto.CurrentPersonCanEdit = CallingUser != null
+            && treatmentBMPDto.StormwaterJurisdictionID.HasValue
+            && await CallingUser.CanEditJurisdiction(treatmentBMPDto.StormwaterJurisdictionID.Value, DbContext);
         return Ok(treatmentBMPDto);
     }
 

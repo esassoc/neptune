@@ -17,8 +17,10 @@ namespace Neptune.Tests
     /// every signed-in role, including Unassigned, with no jurisdiction check). These reflection
     /// tests fail loudly if any of the five edits ever regresses off <c>[TreatmentBMPEditFeature]</c>.
     ///
-    /// The jurisdiction-matrix tests document the per-BMP decision <c>TreatmentBMPEditFeature</c>
-    /// makes via the Person helpers, mapping to the acceptance-criteria 401/403/200 outcomes.
+    /// The 401 (unauthenticated) outcome is pinned by the attribute tests below asserting no
+    /// <c>[AllowAnonymous]</c>/<c>[OptionalAuth]</c>. The jurisdiction-matrix tests document the
+    /// per-BMP decision <c>TreatmentBMPEditFeature</c> makes via the Person helpers, covering the
+    /// 403 (wrong/absent jurisdiction) and 200 (assigned jurisdiction) outcomes.
     /// </summary>
     [TestClass]
     public class TreatmentBMPControllerAuthorizationTests
