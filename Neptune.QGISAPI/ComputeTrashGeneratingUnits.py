@@ -34,7 +34,6 @@ import argparse
 
 from pyqgis_utils import (
     duplicateLayer,
-    fetchLayerFromDatabase,
     fetchLayerFromFileSystem,
     raiseIfLayerInvalid,
     bufferSnapFix,

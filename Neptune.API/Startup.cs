@@ -237,7 +237,7 @@ namespace Neptune.API
             services.AddHttpClient<QGISAPIService>(c =>
             {
                 c.BaseAddress = new Uri(configuration.QGISAPIBaseUrl);
-                c.Timeout = TimeSpan.FromDays(1);
+                c.Timeout = TimeSpan.FromMinutes(configuration.QGISAPIHttpClientTimeoutMinutes);
             }).ConfigurePrimaryHttpMessageHandler(() =>
             {
                 var httpClientHandler = new HttpClientHandler();
