@@ -1353,6 +1353,7 @@ export class WqmpReviewComponent implements OnInit, IDeactivateComponent {
             next: () => {
                 this.alertService.pushAlert(new Alert("Source Control BMPs saved.", AlertContext.Success));
                 this.sourceControlDirty.set(false);
+                this.refreshLiveWqmp();
             },
             error: (err: HttpErrorResponse) => this.handleSectionSaveError(err, "Source Control BMPs"),
         });
