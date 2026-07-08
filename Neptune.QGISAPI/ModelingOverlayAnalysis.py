@@ -26,7 +26,6 @@ import argparse
 
 from pyqgis_utils import (
     duplicateLayer,
-    fetchLayerFromDatabase,
     raiseIfLayerInvalid,
     bufferZero,
     fixGeometriesWithinLayer,
@@ -105,14 +104,6 @@ if __name__ == '__main__':
     PROCESSING_CONTEXT = dataobjects.createContext()
     PROCESSING_CONTEXT.setInvalidGeometryCheck(QgsFeatureRequest.GeometrySkipInvalid)
 
-    #neptuneConnectionString = "MSSQL:driver={ODBC Driver 18 For SQL Server};trustservercertificate=yes;" + DATABASE_SERVER_NAME + ";database=" + DATABASE_NAME + ";UID=" + DATABASE_USER_NAME + ";PWD=" + DATABASE_PASSWORD
-    #neptuneDataSource = QgsDataSourceUri(neptuneConnectionString)
-    #neptuneDataSource.setConnection(DATABASE_SERVER_NAME, "1433", DATABASE_NAME, DATABASE_USER_NAME, DATABASE_PASSWORD)
-    #print(neptuneDataSource)
-    
-    #def fetchLayer(spatialTableName, geometryColumnName):
-    #    return fetchLayerFromDatabase(neptuneDataSource, spatialTableName, geometryColumnName)
-        
     delineationLayer = None
 
     delineationLayer_buffersnapfixpath = OUTPUT_FOLDER_AND_FILE_PREFIX + 'delineationLayer_buffersnapfix.geojson'

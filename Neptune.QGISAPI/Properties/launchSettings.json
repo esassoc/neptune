@@ -9,7 +9,7 @@
     }
   },
   "profiles": {
-    "Neptune.Ogr2OgrAPI": {
+    "Neptune.QGISAPI": {
       "commandName": "Project",
       "launchBrowser": true,
       "launchUrl": "swagger",

@@ -5,3 +5,6 @@ metadata:
 data:
   ASPNETCORE_URLS: "http://+:80"
   SECRET_PATH: "/app/secrets/neptuneQgisApiSecrets"
+  # Upper bound on a single python3/QGIS overlay run; retune here (no code deploy) if the nightly
+  # full TGU refresh grows past it. Must stay below Neptune.API's QGISAPIHttpClientTimeoutMinutes (270).
+  QgisProcessTimeoutMinutes: "240"

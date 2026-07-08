@@ -95,13 +95,25 @@ namespace Neptune.Common
 
             if (!hasExited)
             {
-                objProc.Kill();
+                try
+                {
+                    // Kill the whole tree — python3 (QGIS) and ogr2ogr can spawn children that would
+                    // otherwise be orphaned and keep chewing CPU/memory after we give up on the parent.
+                    objProc.Kill(entireProcessTree: true);
+                }
+                catch (InvalidOperationException)
+                {
+                    // process exited between the timed wait and the Kill — nothing to do
+                }
             }
+
+            // The parameterless WaitForExit is documented to wait for the redirected stdout/stderr async
+            // handlers to drain (the timed overload is not), so the tail of the output — usually the
+            // interesting part on a failure — is captured. Replaces a 2011-era Thread.Sleep(250ms) hack.
+            objProc.WaitForExit();
 
             if (redirectStdErrAndStdOut)
             {
-                // TODO: Fix this so it works without a hacky "Sleep", right now this hack waits for the output to trickle in. The asynchronous reads of STDERR and STDOUT may not yet be complete (run unit test under debugger for example) even though the process has exited. -MF & ASW 11/21/2011
-                Thread.Sleep(TimeSpan.FromSeconds(.25));
                 stdErrAndStdOut = streamReader.StdOutAndStdErr;
             }
 

@@ -47,6 +47,24 @@ spec:
             - name: http
               containerPort: 80
               protocol: TCP
+          # Deliberately lenient probes: the container is CPU-saturated for hours during an overlay run
+          # and QgisService.Run blocks a threadpool thread, so slow probe responses are expected mid-run.
+          # failureThreshold 8 x 15s = ~2 min of consecutive failures before a restart — a liveness restart
+          # kills the in-flight refresh, so we only want it for a genuinely wedged pod.
+          livenessProbe:
+            httpGet:
+              path: /
+              port: http
+            initialDelaySeconds: 15
+            periodSeconds: 15
+            timeoutSeconds: 10
+            failureThreshold: 8
+          readinessProbe:
+            httpGet:
+              path: /
+              port: http
+            periodSeconds: 15
+            timeoutSeconds: 10
           resources:
             {{- toYaml .Values.resources | nindent 12 }}
           envFrom:

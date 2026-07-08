@@ -34,11 +34,12 @@ builder.Services.AddDbContext<NeptuneDbContext>(c =>
     });
 });
 
-builder.Services.AddScoped<IAzureStorage, AzureStorage>();
-
 builder.WebHost.ConfigureKestrel(serverOptions =>
 {
-    serverOptions.Limits.KeepAliveTimeout = TimeSpan.FromDays(1);
+    // KeepAliveTimeout only governs idle connections between requests (it does not bound an in-flight POST).
+    // Kept just above the QGISAPIService HttpClient timeout (270 min) and the python3 process timeout (240 min)
+    // so the layers fail in order: process < HTTP client < Kestrel.
+    serverOptions.Limits.KeepAliveTimeout = TimeSpan.FromMinutes(300);
 });
 
 // Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
