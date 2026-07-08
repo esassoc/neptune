@@ -93,7 +93,7 @@ The measured scale confirms feasibility of alternatives: ~4M vertices / ~135K po
 - **Shapely 2 / GeoPandas (fallback, same isolation).** If the NTS spike disappoints: keep the container boundary, replace the QGIS image with python:slim + GeoPandas (~500 MB). Native GEOS speed retained; `geopandas.overlay(how="union")` replaces `native:union`. Least rewrite, but keeps the subprocess-or-python-web-service layer and a second language in the stack.
 - **Rejected:** in-process in Neptune.API (violates the isolation constraint above); PostGIS (right tool, wrong stack — adds a second DB engine to an Azure/SQL Server shop); SQL Server native spatial (poor overlay performance at this scale, no layer-union primitive).
 
-**Decision point:** after the Phase 2 spike results are in. The parity harness and the NTS benchmark are prerequisites under every future; the QGIS 3.40 upgrade is a consequence of the decision (stay-track only), not a prerequisite of it.
+**Decision (2026-07-08): ditch QGIS — port to NTS in the dedicated overlay service.** The Phase 2 benchmark spike remains the go/no-go check on NTS overlay performance before the full port is built; Shapely 2/GeoPandas is the fallback engine *only if* the spike shows managed-NTS overlay times that are operationally unacceptable. The QGIS 3.40 upgrade is off the roadmap; QGIS retires on the pinned 3.28 image (mirror it to ACR as insurance until retirement completes).
 
 ## Key files
 
