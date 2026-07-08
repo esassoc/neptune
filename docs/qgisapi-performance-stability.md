@@ -71,11 +71,15 @@ Deliberately *not* done: Hangfire retries (the delete-before-insert stored procs
 | Phase | What | Risk |
 |---|---|---|
 | ~~1. Stability quick wins~~ | Shipped (above) | Low |
-| 2. Parity harness + QGIS 3.40.15 upgrade | Capture golden inputs/outputs; pin `qgis/qgis:3.40.15-jammy`; migrate `qgis:` → `native:` algorithm ids | Medium (GEOS behavioral deltas — use area tolerances, not exact equality) |
-| 3. TGU Flatten rework — **or** engine port (see below) | Batch provider edits, dict lookups, in-memory intermediates; fix the stale-variable bug explicitly | Medium-high (output parity) |
-| 4. C# pipeline slimming | Streaming GeoJSON write (`GeoJsonSerializer.SerializeToFileAsync` already exists), async process invocation, chunked inserts | Low-medium |
+| 2. Parity harness + NTS benchmark spike (the decision gate) | Capture golden TGU/LGU inputs+outputs; run the captured TGU inputs through an NTS OverlayNG prototype; measure wall time + memory | Low (throwaway prototype; harness is reusable under every future) |
+| 3. Engine decision → port **or** stay-on-QGIS track | **Port**: NTS in the dedicated overlay service (see below), validated against the harness. **Stay**: QGIS 3.40.15 upgrade *then* Flatten rework | Medium-high (output parity either way) |
+| 4. C# pipeline slimming | Streaming GeoJSON write (`GeoJsonSerializer.SerializeToFileAsync` already exists), async process invocation, chunked inserts — largely dissolves into the port if 3 goes that way | Low-medium |
 
-Pre-work for Phase 2 tuning: pull actual job durations from Hangfire dashboard history and pod memory high-water from Datadog/`kubectl top` during a nightly run; raise the 240-min default if full TGU exceeds ~3 h.
+**The QGIS 3.40 upgrade is deliberately *not* scheduled ahead of the engine decision.** Its real cost is not the one-line Dockerfile bump but the `qgis:` → `native:` algorithm-id migration, a parity run, and a ~week QA soak — all sunk cost if the port follows. It happens only on the stay-on-QGIS track (or if the port is deferred long enough that maintaining QGIS becomes ongoing reality). EOL exposure is tolerable in the meantime: qgisapi is ClusterIP-only with no ingress.
+
+Cheap insurance to do regardless: **mirror `qgis/qgis:release-3_28` into the project ACR** (`containersesaqa.azurecr.io`) — the `release-3_XX` tag scheme is abandoned upstream, and a pruned Docker Hub tag would break CI builds with no recovery path.
+
+Pre-work for tuning: pull actual job durations from Hangfire dashboard history and pod memory high-water from Datadog/`kubectl top` during a nightly run; raise the 240-min default if full TGU exceeds ~3 h.
 
 ## Strategic direction — should QGIS stay?
 
@@ -89,7 +93,7 @@ The measured scale confirms feasibility of alternatives: ~4M vertices / ~135K po
 - **Shapely 2 / GeoPandas (fallback, same isolation).** If the NTS spike disappoints: keep the container boundary, replace the QGIS image with python:slim + GeoPandas (~500 MB). Native GEOS speed retained; `geopandas.overlay(how="union")` replaces `native:union`. Least rewrite, but keeps the subprocess-or-python-web-service layer and a second language in the stack.
 - **Rejected:** in-process in Neptune.API (violates the isolation constraint above); PostGIS (right tool, wrong stack — adds a second DB engine to an Azure/SQL Server shop); SQL Server native spatial (poor overlay performance at this scale, no layer-union primitive).
 
-**Decision point:** at Phase 3 card-creation. Phases 1–2 are prerequisites either way — the parity harness is exactly the asset that de-risks an engine swap.
+**Decision point:** after the Phase 2 spike results are in. The parity harness and the NTS benchmark are prerequisites under every future; the QGIS 3.40 upgrade is a consequence of the decision (stay-track only), not a prerequisite of it.
 
 ## Key files
 
