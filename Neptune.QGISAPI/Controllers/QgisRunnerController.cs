@@ -1,9 +1,12 @@
+using System.Diagnostics;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Options;
 using Neptune.Common.GeoSpatial;
 using Neptune.Common.Services.GDAL;
 using Neptune.EFModels.Entities;
 using Neptune.QGISAPI.Services;
+using Neptune.QGISAPI.Services.Overlay;
 using NetTopologySuite.Features;
 using NetTopologySuite.Geometries;
 
@@ -14,13 +17,14 @@ public class QgisRunnerController : ControllerBase
 {
     private readonly ILogger<QgisRunnerController> _logger;
     private readonly NeptuneDbContext _dbContext;
-    private readonly QgisService _qgisService;
+    private readonly QGISAPIConfiguration _configuration;
 
-    public QgisRunnerController(ILogger<QgisRunnerController> logger, NeptuneDbContext dbContext, QgisService qgisService)
+    public QgisRunnerController(ILogger<QgisRunnerController> logger, NeptuneDbContext dbContext,
+        IOptions<QGISAPIConfiguration> configuration)
     {
         _logger = logger;
         _dbContext = dbContext;
-        _qgisService = qgisService;
+        _configuration = configuration.Value;
     }
 
     [HttpGet("/")]
@@ -29,8 +33,41 @@ public class QgisRunnerController : ControllerBase
         return Ok("Hello from the QGIS API!");
     }
 
+    // The in-process overlay is fast enough that direct/manual endpoint calls can realistically overlap
+    // (Hangfire's single worker only serializes the job path). Overlapping runs deadlock on the
+    // TRUNCATE + constraint-drop delete procs — observed locally — so one service-wide gate serializes
+    // all three overlay endpoints; a second caller gets 409 instead of corrupting the target tables.
+    private static readonly SemaphoreSlim OverlayGate = new(1, 1);
+
+    private async Task<IActionResult> RunGated(Func<Task<IActionResult>> overlayAction)
+    {
+        if (!await OverlayGate.WaitAsync(TimeSpan.Zero))
+        {
+            return Conflict("Another overlay run is already in progress; retry after it completes.");
+        }
+        try
+        {
+            return await overlayAction();
+        }
+        finally
+        {
+            OverlayGate.Release();
+        }
+    }
+
     [HttpPost("qgis/generate-plgus")]
-    public async Task<IActionResult> GenerateProjectLoadGeneratingUnits([FromBody] GenerateProjectLoadGeneratingUnitRequestDto requestDto)
+    public Task<IActionResult> GenerateProjectLoadGeneratingUnits([FromBody] GenerateProjectLoadGeneratingUnitRequestDto requestDto)
+        => RunGated(() => GenerateProjectLoadGeneratingUnitsImpl(requestDto));
+
+    [HttpPost("qgis/generate-lgus")]
+    public Task<IActionResult> GenerateLoadGeneratingUnits([FromBody] GenerateLoadGeneratingUnitRequestDto requestDto)
+        => RunGated(() => GenerateLoadGeneratingUnitsImpl(requestDto));
+
+    [HttpPost("qgis/generate-tgus")]
+    public Task<IActionResult> GenerateTrashGeneratingUnits([FromBody] GenerateTrashGeneratingUnitRequestDto requestDto)
+        => RunGated(() => GenerateTrashGeneratingUnitsImpl(requestDto));
+
+    private async Task<IActionResult> GenerateProjectLoadGeneratingUnitsImpl(GenerateProjectLoadGeneratingUnitRequestDto requestDto)
     {
         var projectID = requestDto.ProjectID;
         var project = _dbContext.Projects.AsNoTracking().SingleOrDefault(x => x.ProjectID == projectID);
@@ -40,441 +77,313 @@ public class QgisRunnerController : ControllerBase
         }
 
         var regionalSubbasinIDs = requestDto.RegionalSubbasinIDs;
-        var regionalSubbasinInputFeatures = _dbContext.vPyQgisRegionalSubbasinLGUInputs.AsNoTracking()
+        var regionalSubbasins = OverlayEngine.Clean(_dbContext.vPyQgisRegionalSubbasinLGUInputs.AsNoTracking()
             .Where(x => regionalSubbasinIDs.Contains(x.RSBID)).Select(x =>
-                new Feature(x.CatchmentGeometry, new AttributesTable { { "RSBID", x.RSBID }, { "ModelID", x.ModelID } }))
-            .ToList();
-        var lguInputs = _dbContext.vPyQgisProjectDelineationLGUInputs.AsNoTracking()
+                new OverlayFeature { Geometry = x.CatchmentGeometry, RegionalSubbasinID = x.RSBID, ModelBasinID = x.ModelID }).ToList());
+        var delineations = OverlayEngine.Clean(_dbContext.vPyQgisProjectDelineationLGUInputs.AsNoTracking()
             .Where(x => x.ProjectID == null || x.ProjectID == projectID).Select(x =>
-                new Feature(x.DelineationGeometry, new AttributesTable { { "DelinID", x.DelinID } })).ToList();
-        var outputFolder = Path.GetTempPath();
-        var outputLayerPrefix = $"{"PLGU"}{DateTime.Now.Ticks}";
-        // Success deletes the temp GeoJSON inputs and Python intermediates (all share the prefix); failure
-        // quarantines them for debugging instead of leaking them loose in the temp folder (bounded retention).
-        try
-        {
-            var featureCollection = await GenerateLGUsImpl(regionalSubbasinInputFeatures, lguInputs, outputFolder, outputLayerPrefix, regionalSubbasinIDs, null);
-            var projectLoadGeneratingUnits = new List<ProjectLoadGeneratingUnit>();
+                new OverlayFeature { Geometry = x.DelineationGeometry, DelineationID = x.DelinID }).ToList());
 
-            foreach (var feature in featureCollection.Where(x => x.Geometry != null).ToList())
+        var pieces = RunLoadGeneratingUnitOverlay(regionalSubbasins, delineations, null);
+
+        var projectLoadGeneratingUnits = new List<ProjectLoadGeneratingUnit>();
+        foreach (var (feature, polygon) in OverlayEngine.ExplodeAndDropSlivers(pieces))
+        {
+            if (feature.RegionalSubbasinID == null) continue;
+            projectLoadGeneratingUnits.Add(new ProjectLoadGeneratingUnit
             {
-                var loadGeneratingUnitResult = GeoJsonSerializer.DeserializeFromFeature<LoadGeneratingUnitResult>(feature, GeoJsonSerializer.DefaultSerializerOptions);
-
-                // we should only get Polygons from the Pyqgis rodeo overlay, but when we convert geojson to Geometry, they can result in invalid geometries
-                // however, when we run makevalid, it can potentially change the geometry type from Polygon to a MultiPolygon or GeometryCollection
-                // so we need to explode them if that happens since we are only expecting polygons for LGUs
-                var geometries = GeometryHelper.MakeValidAndExplodeIfNeeded(loadGeneratingUnitResult.Geometry);
-
-                projectLoadGeneratingUnits.AddRange(geometries.Select(geometry =>
-                {
-                    geometry.SRID = Proj4NetHelper.NAD_83_HARN_CA_ZONE_VI_SRID;
-                    return new ProjectLoadGeneratingUnit
-                    {
-                        ProjectLoadGeneratingUnitGeometry = geometry,
-                        ProjectID = projectID,
-                        DelineationID = loadGeneratingUnitResult.DelineationID,
-                        WaterQualityManagementPlanID = loadGeneratingUnitResult.WaterQualityManagementPlanID,
-                        ModelBasinID = loadGeneratingUnitResult.ModelBasinID,
-                        RegionalSubbasinID = loadGeneratingUnitResult.RegionalSubbasinID
-                    };
-                }));
-            }
-
-            await _dbContext.Database.ExecuteSqlAsync($"EXEC dbo.pDeleteProjectLoadGeneratingUnitsPriorToRefreshForProject @ProjectID = {projectID}");
-
-            if (projectLoadGeneratingUnits.Any())
-            {
-                await _dbContext.ProjectLoadGeneratingUnits.AddRangeAsync(projectLoadGeneratingUnits);
-                await _dbContext.SaveChangesAsync();
-                await _dbContext.Database.ExecuteSqlRawAsync("EXEC dbo.pProjectLoadGeneratingUnitMakeValid");
-            }
-
-            return Ok();
+                ProjectLoadGeneratingUnitGeometry = polygon,
+                ProjectID = projectID,
+                DelineationID = feature.DelineationID,
+                WaterQualityManagementPlanID = feature.WaterQualityManagementPlanID,
+                ModelBasinID = feature.ModelBasinID,
+                RegionalSubbasinID = feature.RegionalSubbasinID
+            });
         }
-        catch
+
+        await _dbContext.Database.ExecuteSqlAsync($"EXEC dbo.pDeleteProjectLoadGeneratingUnitsPriorToRefreshForProject @ProjectID = {projectID}");
+
+        if (projectLoadGeneratingUnits.Any())
         {
-            QuarantineTempFilesForDebugging(outputFolder, outputLayerPrefix);
-            throw;
+            await _dbContext.ProjectLoadGeneratingUnits.AddRangeAsync(projectLoadGeneratingUnits);
+            await _dbContext.SaveChangesAsync();
+            await _dbContext.Database.ExecuteSqlRawAsync("EXEC dbo.pProjectLoadGeneratingUnitMakeValid");
         }
-        finally
-        {
-            DeleteTempFiles(outputFolder, outputLayerPrefix);
-        }
+
+        return Ok();
     }
 
-    [HttpPost("qgis/generate-lgus")]
-    public async Task<IActionResult> GenerateLoadGeneratingUnits([FromBody] GenerateLoadGeneratingUnitRequestDto requestDto)
+    private async Task<IActionResult> GenerateLoadGeneratingUnitsImpl(GenerateLoadGeneratingUnitRequestDto requestDto)
     {
-        var outputFolder = Path.GetTempPath();
-        var outputLayerPrefix = $"LGU{DateTime.Now.Ticks}";
-        // Success deletes the temp GeoJSON inputs and Python intermediates (all share the prefix, including the
-        // _inputFilter clip layer); failure quarantines them for debugging instead of leaking them loose in the
-        // temp folder (bounded retention).
-        try
+        var loadGeneratingUnitRefreshArea = await GetLoadGeneratingUnitRefreshAreaIfProvided(requestDto);
+
+        var delineations = OverlayEngine.Clean(_dbContext.vPyQgisDelineationLGUInputs.AsNoTracking().Select(x =>
+            new OverlayFeature { Geometry = x.DelineationGeometry, DelineationID = x.DelinID }).ToList());
+        var regionalSubbasins = OverlayEngine.Clean(_dbContext.vPyQgisRegionalSubbasinLGUInputs.AsNoTracking().Select(x =>
+            new OverlayFeature { Geometry = x.CatchmentGeometry, RegionalSubbasinID = x.RSBID, ModelBasinID = x.ModelID }).ToList());
+
+        var pieces = RunLoadGeneratingUnitOverlay(regionalSubbasins, delineations,
+            loadGeneratingUnitRefreshArea?.LoadGeneratingUnitRefreshAreaGeometry);
+
+        if (loadGeneratingUnitRefreshArea != null)
         {
-            var lguInputFeatures = _dbContext.vPyQgisDelineationLGUInputs.AsNoTracking().Select(x =>
-                new Feature(x.DelineationGeometry, new AttributesTable { { "DelinID", x.DelinID } })).ToList();
-            var regionalSubbasinInputFeatures = _dbContext.vPyQgisRegionalSubbasinLGUInputs.AsNoTracking().Select(x =>
-                new Feature(x.CatchmentGeometry, new AttributesTable { { "RSBID", x.RSBID }, { "ModelID", x.ModelID } })).ToList();
-            var filterLayerPath = $"{Path.Combine(outputFolder, outputLayerPrefix)}_inputFilter.geojson";
-            var loadGeneratingUnitRefreshArea = await CreateLoadGeneratingUnitRefreshAreaIfProvided(requestDto, filterLayerPath);
-            var featureCollection = await GenerateLGUsImpl(regionalSubbasinInputFeatures, lguInputFeatures, outputFolder, outputLayerPrefix, new List<int>(), loadGeneratingUnitRefreshArea != null ? filterLayerPath : null);
+            await _dbContext.Database.ExecuteSqlAsync($"EXEC dbo.pDeleteLoadGeneratingUnitsPriorToDeltaRefresh @LoadGeneratingUnitRefreshAreaID = {loadGeneratingUnitRefreshArea.LoadGeneratingUnitRefreshAreaID}");
+        }
+        else
+        {
+            await _dbContext.Database.ExecuteSqlRawAsync("EXEC dbo.pDeleteLoadGeneratingUnitsPriorToTotalRefresh");
+        }
 
-            if (loadGeneratingUnitRefreshArea != null)
+        var loadGeneratingUnits = new List<LoadGeneratingUnit>();
+        var exportFeatures = _configuration.OverlayDebugExportFolder != null ? new FeatureCollection() : null;
+        foreach (var (feature, polygon) in OverlayEngine.ExplodeAndDropSlivers(pieces))
+        {
+            if (feature.RegionalSubbasinID == null) continue;
+            loadGeneratingUnits.Add(new LoadGeneratingUnit
             {
-                await _dbContext.Database.ExecuteSqlAsync($"EXEC dbo.pDeleteLoadGeneratingUnitsPriorToDeltaRefresh @LoadGeneratingUnitRefreshAreaID = {loadGeneratingUnitRefreshArea.LoadGeneratingUnitRefreshAreaID}");
-            }
-            else
+                LoadGeneratingUnitGeometry = polygon,
+                DelineationID = feature.DelineationID,
+                WaterQualityManagementPlanID = feature.WaterQualityManagementPlanID,
+                ModelBasinID = feature.ModelBasinID,
+                RegionalSubbasinID = feature.RegionalSubbasinID,
+                LoadGeneratingUnitGeometry4326 = polygon.ProjectTo4326(),
+            });
+            exportFeatures?.Add(new Feature(polygon, new AttributesTable
             {
-                await _dbContext.Database.ExecuteSqlRawAsync("EXEC dbo.pDeleteLoadGeneratingUnitsPriorToTotalRefresh");
-            }
+                { "DelinID", feature.DelineationID }, { "WQMPID", feature.WaterQualityManagementPlanID },
+                { "ModelID", feature.ModelBasinID }, { "RSBID", feature.RegionalSubbasinID },
+            }));
+        }
 
-            var loadGeneratingUnits = new List<LoadGeneratingUnit>();
-
-            foreach (var feature in featureCollection.Where(x => x.Geometry != null).ToList())
-            {
-                var loadGeneratingUnitResult = GeoJsonSerializer.DeserializeFromFeature<LoadGeneratingUnitResult>(feature, GeoJsonSerializer.DefaultSerializerOptions);
-
-                // we should only get Polygons from the Pyqgis rodeo overlay, but when we convert geojson to Geometry, they can result in invalid geometries
-                // however, when we run makevalid, it can potentially change the geometry type from Polygon to a MultiPolygon or GeometryCollection
-                // so we need to explode them if that happens since we are only expecting polygons for LGUs
-                var geometries = GeometryHelper.MakeValidAndExplodeIfNeeded(loadGeneratingUnitResult.Geometry);
-
-                foreach (var geometry in geometries)
-                {
-                    geometry.SRID = Proj4NetHelper.NAD_83_HARN_CA_ZONE_VI_SRID;
-                    var loadGeneratingUnit = new LoadGeneratingUnit()
-                    {
-                        LoadGeneratingUnitGeometry = geometry,
-                        DelineationID = loadGeneratingUnitResult.DelineationID,
-                        WaterQualityManagementPlanID = loadGeneratingUnitResult.WaterQualityManagementPlanID,
-                        ModelBasinID = loadGeneratingUnitResult.ModelBasinID,
-                        RegionalSubbasinID = loadGeneratingUnitResult.RegionalSubbasinID,
-                        LoadGeneratingUnitGeometry4326 = geometry.ProjectTo4326(),
-                    };
-                    loadGeneratingUnits.Add(loadGeneratingUnit);
-                }
-            }
-
-            // NPT-981: the delineation input set is snapshotted at the top of this action, but the QGIS
-            // overlay above runs long enough that a user can delete a delineation on the Delineation Map
-            // before we reach this insert. That would leave an LGU pointing at a now-deleted DelineationID
-            // and trip FK_LoadGeneratingUnit_Delineation_DelineationID. Drop any orphaned rows just before
-            // the insert (a null DelineationID is valid — those are regional-subbasin-only LGUs).
-            var referencedDelineationIDs = loadGeneratingUnits
-                .Where(x => x.DelineationID.HasValue)
-                .Select(x => x.DelineationID!.Value)
-                .Distinct()
+        // NPT-981: the delineation input set is snapshotted at the top of this action; a user can delete a
+        // delineation while the overlay runs. That would leave an LGU pointing at a now-deleted DelineationID
+        // and trip FK_LoadGeneratingUnit_Delineation_DelineationID. Drop any orphaned rows just before the
+        // insert (a null DelineationID is valid — those are regional-subbasin-only LGUs). The in-process
+        // overlay shrank the window from ~minutes to ~seconds, but it hasn't closed.
+        var referencedDelineationIDs = loadGeneratingUnits
+            .Where(x => x.DelineationID.HasValue)
+            .Select(x => x.DelineationID!.Value)
+            .Distinct()
+            .ToList();
+        if (referencedDelineationIDs.Any())
+        {
+            var existingDelineationIDs = (await _dbContext.Delineations.AsNoTracking()
+                    .Where(x => referencedDelineationIDs.Contains(x.DelineationID))
+                    .Select(x => x.DelineationID)
+                    .ToListAsync())
+                .ToHashSet();
+            loadGeneratingUnits = loadGeneratingUnits
+                .Where(x => !x.DelineationID.HasValue || existingDelineationIDs.Contains(x.DelineationID.Value))
                 .ToList();
-            if (referencedDelineationIDs.Any())
-            {
-                var existingDelineationIDs = (await _dbContext.Delineations.AsNoTracking()
-                        .Where(x => referencedDelineationIDs.Contains(x.DelineationID))
-                        .Select(x => x.DelineationID)
-                        .ToListAsync())
-                    .ToHashSet();
-                loadGeneratingUnits = loadGeneratingUnits
-                    .Where(x => !x.DelineationID.HasValue || existingDelineationIDs.Contains(x.DelineationID.Value))
-                    .ToList();
-            }
-
-            if (loadGeneratingUnits.Any())
-            {
-                await _dbContext.LoadGeneratingUnits.AddRangeAsync(loadGeneratingUnits);
-                await _dbContext.SaveChangesAsync();
-                await _dbContext.Database.ExecuteSqlRawAsync("EXEC dbo.pLoadGeneratingUnitMakeValid");
-            }
-
-            if (loadGeneratingUnitRefreshArea != null)
-            {
-                loadGeneratingUnitRefreshArea.ProcessDate = DateTime.UtcNow;
-                await _dbContext.SaveChangesAsync();
-            }
-
-            return Ok();
         }
-        catch
+
+        if (loadGeneratingUnits.Any())
         {
-            QuarantineTempFilesForDebugging(outputFolder, outputLayerPrefix);
-            throw;
+            await _dbContext.LoadGeneratingUnits.AddRangeAsync(loadGeneratingUnits);
+            await _dbContext.SaveChangesAsync();
+            await _dbContext.Database.ExecuteSqlRawAsync("EXEC dbo.pLoadGeneratingUnitMakeValid");
         }
-        finally
+
+        if (loadGeneratingUnitRefreshArea != null)
         {
-            DeleteTempFiles(outputFolder, outputLayerPrefix);
+            loadGeneratingUnitRefreshArea.ProcessDate = DateTime.UtcNow;
+            await _dbContext.SaveChangesAsync();
         }
+
+        if (exportFeatures != null)
+        {
+            var exportPath = Path.Combine(_configuration.OverlayDebugExportFolder!, $"LGU{DateTime.Now.Ticks}_nts.geojson");
+            Directory.CreateDirectory(_configuration.OverlayDebugExportFolder!);
+            await GeoJsonSerializer.SerializeToFileAsync(exportFeatures, exportPath, GeoJsonSerializer.DefaultSerializerOptions);
+            _logger.LogInformation("LGU overlay: parity export written to {ExportPath}", exportPath);
+        }
+
+        return Ok();
     }
 
-    [HttpPost("qgis/generate-tgus")]
-    public async Task<IActionResult> GenerateTrashGeneratingUnits([FromBody] GenerateTrashGeneratingUnitRequestDto requestDto)
+    // The shared LGU/PLGU overlay, replacing ModelingOverlayAnalysis.py: clip the inputs to the modeling
+    // extent (union of model basins — the basins contribute clip geometry only, no attributes), union
+    // RSB+WQMP then delineations, and for a delta refresh keep only pieces touching the refresh area.
+    // Note: the python's --rsb_ids branch was dead code (missing `global`), so PLGU runs always clipped
+    // to the model-basin extent too — this port replicates that actual behavior.
+    private List<OverlayFeature> RunLoadGeneratingUnitOverlay(List<OverlayFeature> regionalSubbasins,
+        List<OverlayFeature> delineations, Geometry? refreshAreaFilter)
     {
-        var outputFolder = Path.GetTempPath();
-        var outputLayerPrefix = $"TGU{DateTime.Now.Ticks}";
-        // Success deletes the temp GeoJSON inputs and Python intermediates (all share the prefix); failure
-        // quarantines them for debugging instead of leaking them loose in the temp folder (bounded retention).
-        try
-        {
-            var outputFolderAndPrefix = Path.Combine(outputFolder, outputLayerPrefix);
-            var outputLayerPath = $"{outputFolderAndPrefix}.geojson";
-            var tguInputPath = $"{outputFolderAndPrefix}delineationLayer.geojson";
-            var ovtaInputPath = $"{outputFolderAndPrefix}ovtaLayer.geojson";
-            var wqmpInputPath = $"{outputFolderAndPrefix}wqmpLayer.geojson";
-            var landUseBlockInputPath = $"{outputFolderAndPrefix}landUseBlockLayer.geojson";
+        var modelBasinGeometries = OverlayEngine.Clean(_dbContext.vPyQgisModelBasinLGUInputs.AsNoTracking().Select(x =>
+            new OverlayFeature { Geometry = x.ModelBasinGeometry }).ToList());
+        var wqmps = OverlayEngine.Clean(_dbContext.vPyQgisWaterQualityManagementPlanLGUInputs.AsNoTracking()
+            .Where(x => x.WaterQualityManagementPlanBoundary != null).Select(x =>
+                new OverlayFeature { Geometry = x.WaterQualityManagementPlanBoundary!, WaterQualityManagementPlanID = x.WQMPID }).ToList());
 
-            var tguInputFeatures = _dbContext.vPyQgisDelineationTGUInputs.AsNoTracking().Select(x =>
-                new Feature(x.DelineationGeometry, new AttributesTable { { "DelinID", x.DelinID }, { "SJID", x.SJID }, { "TCEffect", x.TCEffect } })).ToList();
-            await WriteFeaturesToGeoJsonFile(tguInputPath, tguInputFeatures);
+        var modelingExtent = OverlayEngine.ToPolygonal2D(
+            NetTopologySuite.Operation.Union.UnaryUnionOp.Union(modelBasinGeometries.Select(x => x.Geometry).ToList()));
+        var clippedRegionalSubbasins = OverlayEngine.Clip(regionalSubbasins, modelingExtent);
+        var clippedDelineations = OverlayEngine.Clip(delineations, modelingExtent);
+        var clippedWqmps = OverlayEngine.Clip(wqmps, modelingExtent);
 
-            var ovtaInputFeatures = _dbContext.vPyQgisOnlandVisualTrashAssessmentAreaDateds.AsNoTracking().Select(x => new Feature(x.OnlandVisualTrashAssessmentAreaGeometry, new AttributesTable { { "OVTAID", x.OVTAID }, { "AssessDate", x.AssessDate } })).ToList();
-            await WriteFeaturesToGeoJsonFile(ovtaInputPath, ovtaInputFeatures);
+        var rsbWqmp = OverlayEngine.UnionLayers(clippedRegionalSubbasins, clippedWqmps);
+        var master = OverlayEngine.UnionLayers(rsbWqmp, clippedDelineations);
 
-            var wqmpInputFeatures = _dbContext.vPyQgisWaterQualityManagementPlanTGUInputs.AsNoTracking().Select(x =>
-                new Feature(x.WaterQualityManagementPlanBoundary, new AttributesTable { { "WQMPID", x.WQMPID }, { "TCEffect", x.TCEffect } })).ToList();
-            await WriteFeaturesToGeoJsonFile(wqmpInputPath, wqmpInputFeatures);
+        return refreshAreaFilter != null ? OverlayEngine.FilterIntersecting(master, refreshAreaFilter) : master;
+    }
 
-            var landUseBlockInputFeatures = _dbContext.vPyQgisLandUseBlockTGUInputs.AsNoTracking().Select(x =>
-                new Feature(x.LandUseBlockGeometry, new AttributesTable { { "LUBID", x.LUBID }, { "SJID", x.SJID } })).ToList();
-            await WriteFeaturesToGeoJsonFile(landUseBlockInputPath, landUseBlockInputFeatures);
+    // NPT-1105 Part 2: TGU generation runs in-process on NetTopologySuite (OverlayEngine) — no python
+    // subprocess, no temp GeoJSON. Winner rules match the retired ComputeTrashGeneratingUnits.py
+    // (delineations/WQMPs: higher TCEffect wins; OVTAs: later AssessDate wins) with one deliberate
+    // change: ties break deterministically on ID (higher wins) where QGIS was iteration-order-dependent.
+    private async Task<IActionResult> GenerateTrashGeneratingUnitsImpl(GenerateTrashGeneratingUnitRequestDto requestDto)
+    {
+        var stopwatch = Stopwatch.StartNew();
 
-            var commandLineArguments = new List<string>
+        var delineations = OverlayEngine.Clean(_dbContext.vPyQgisDelineationTGUInputs.AsNoTracking().Select(x =>
+            new OverlayFeature
             {
-                "ComputeTrashGeneratingUnits.py", outputFolder, outputLayerPrefix, tguInputPath, ovtaInputPath, wqmpInputPath, landUseBlockInputPath
+                Geometry = x.DelineationGeometry,
+                DelineationID = x.DelinID,
+                StormwaterJurisdictionID = x.SJID,
+                TrashCaptureEffectiveness = x.TCEffect,
+            }).ToList());
+        var ovtas = OverlayEngine.Clean(_dbContext.vPyQgisOnlandVisualTrashAssessmentAreaDateds.AsNoTracking().Select(x =>
+            new OverlayFeature
+            {
+                Geometry = x.OnlandVisualTrashAssessmentAreaGeometry,
+                OnlandVisualTrashAssessmentAreaID = x.OVTAID,
+                AssessmentDate = x.AssessDate,
+            }).ToList());
+        var wqmps = OverlayEngine.Clean(_dbContext.vPyQgisWaterQualityManagementPlanTGUInputs.AsNoTracking()
+            .Where(x => x.WaterQualityManagementPlanBoundary != null).Select(x =>
+            new OverlayFeature
+            {
+                Geometry = x.WaterQualityManagementPlanBoundary!,
+                WaterQualityManagementPlanID = x.WQMPID,
+                TrashCaptureEffectiveness = x.TCEffect,
+            }).ToList());
+        var landUseBlocks = OverlayEngine.Clean(_dbContext.vPyQgisLandUseBlockTGUInputs.AsNoTracking().Select(x =>
+            new OverlayFeature
+            {
+                Geometry = x.LandUseBlockGeometry,
+                LandUseBlockID = x.LUBID,
+                StormwaterJurisdictionID = x.SJID,
+            }).ToList());
+        _logger.LogInformation("TGU overlay: loaded+cleaned delin={DelinCount} ovta={OvtaCount} wqmp={WqmpCount} lub={LubCount} in {Elapsed}s",
+            delineations.Count, ovtas.Count, wqmps.Count, landUseBlocks.Count, stopwatch.Elapsed.TotalSeconds);
+
+        // de-overlap each layer by its winner rule; ties break on ID (higher wins) for determinism
+        delineations = OverlayEngine.Flatten(delineations, x => x.DelineationID!.Value,
+            (a, b) => LosesByTrashCaptureEffectiveness(a, b, x => x.DelineationID!.Value));
+        ovtas = OverlayEngine.Flatten(ovtas, x => x.OnlandVisualTrashAssessmentAreaID!.Value,
+            (a, b) =>
+            {
+                var (dateA, dateB) = (a.AssessmentDate ?? DateTime.MinValue, b.AssessmentDate ?? DateTime.MinValue);
+                return dateA != dateB
+                    ? dateA < dateB
+                    : a.OnlandVisualTrashAssessmentAreaID!.Value < b.OnlandVisualTrashAssessmentAreaID!.Value;
+            });
+        wqmps = OverlayEngine.Flatten(wqmps, x => x.WaterQualityManagementPlanID!.Value,
+            (a, b) => LosesByTrashCaptureEffectiveness(a, b, x => x.WaterQualityManagementPlanID!.Value));
+
+        // union order matches the python: (OVTA ∪ Delin) ∪ WQMP, then LUB first so its SJID wins the merge
+        var odw = OverlayEngine.UnionLayers(ovtas, delineations);
+        odw = OverlayEngine.UnionLayers(odw, wqmps);
+        var pieces = OverlayEngine.UnionLayers(landUseBlocks, odw);
+        _logger.LogInformation("TGU overlay: flatten+union produced {PieceCount} pieces at {Elapsed}s", pieces.Count, stopwatch.Elapsed.TotalSeconds);
+
+        var trashGeneratingUnits = new List<TrashGeneratingUnit>();
+        var trashGeneratingUnit4326s = new List<TrashGeneratingUnit4326>();
+        var exportFeatures = _configuration.OverlayDebugExportFolder != null ? new FeatureCollection() : null;
+        var lastUpdateDate = DateTime.UtcNow;
+        foreach (var (feature, polygon) in OverlayEngine.ExplodeAndDropSlivers(pieces))
+        {
+            // pieces without a land use block (delineation remainders over unmapped ground) are not TGUs
+            if (feature.LandUseBlockID == null || feature.StormwaterJurisdictionID == null) continue;
+
+            var trashGeneratingUnit = new TrashGeneratingUnit
+            {
+                StormwaterJurisdictionID = feature.StormwaterJurisdictionID.Value,
+                TrashGeneratingUnitGeometry = polygon,
+                DelineationID = feature.DelineationID,
+                WaterQualityManagementPlanID = feature.WaterQualityManagementPlanID,
+                LandUseBlockID = feature.LandUseBlockID,
+                OnlandVisualTrashAssessmentAreaID = feature.OnlandVisualTrashAssessmentAreaID,
+                LastUpdateDate = lastUpdateDate
             };
-            _qgisService.Run(commandLineArguments);
-
-            FeatureCollection featureCollection;
-            await using (var openStream = System.IO.File.OpenRead(outputLayerPath))
+            trashGeneratingUnits.Add(trashGeneratingUnit);
+            trashGeneratingUnit4326s.Add(new TrashGeneratingUnit4326
             {
-                featureCollection = await GeoJsonSerializer.GetFeatureCollectionFromGeoJsonStream(openStream,
-                    GeoJsonSerializer.DefaultSerializerOptions);
-            }
-
-            await _dbContext.Database.ExecuteSqlRawAsync($"EXEC dbo.pTrashGeneratingUnitDelete");
-            var trashGeneratingUnits = new List<TrashGeneratingUnit>();
-            var trashGeneratingUnit4326s = new List<TrashGeneratingUnit4326>();
-
-            foreach (var feature in featureCollection.Where(x => x.Geometry != null && x.Attributes["LUBID"] != null && x.Attributes["SJID"] != null).ToList())
+                StormwaterJurisdictionID = feature.StormwaterJurisdictionID.Value,
+                TrashGeneratingUnit4326Geometry = polygon.ProjectTo4326(),
+                DelineationID = feature.DelineationID,
+                WaterQualityManagementPlanID = feature.WaterQualityManagementPlanID,
+                LandUseBlockID = feature.LandUseBlockID,
+                OnlandVisualTrashAssessmentAreaID = feature.OnlandVisualTrashAssessmentAreaID,
+                LastUpdateDate = lastUpdateDate,
+                TrashGeneratingUnit = trashGeneratingUnit
+            });
+            exportFeatures?.Add(new Feature(polygon, new AttributesTable
             {
-                var trashGeneratingUnitResult = GeoJsonSerializer.DeserializeFromFeature<TrashGeneratingUnitResult>(feature, GeoJsonSerializer.DefaultSerializerOptions);
-
-                // we should only get Polygons from the Pyqgis rodeo overlay, but when we convert geojson to Geometry, they can result in invalid geometries
-                // however, when we run makevalid, it can potentially change the geometry type from Polygon to a MultiPolygon or GeometryCollection
-                // so we need to explode them if that happens since we are only expecting polygons for TGUs
-                var geometries = GeometryHelper.MakeValidAndExplodeIfNeeded(trashGeneratingUnitResult.Geometry);
-                var stormwaterJurisdictionID = trashGeneratingUnitResult.StormwaterJurisdictionID;
-                var delineationID = trashGeneratingUnitResult.DelineationID;
-                var waterQualityManagementPlanID = trashGeneratingUnitResult.WaterQualityManagementPlanID;
-                var landUseBlockID = trashGeneratingUnitResult.LandUseBlockID;
-                var onlandVisualTrashAssessmentAreaID = trashGeneratingUnitResult.OnlandVisualTrashAssessmentAreaID;
-
-                foreach (var geometry in geometries)
-                {
-                    geometry.SRID = Proj4NetHelper.NAD_83_HARN_CA_ZONE_VI_SRID;
-                    var trashGeneratingUnit = new TrashGeneratingUnit
-                    {
-                        StormwaterJurisdictionID = stormwaterJurisdictionID,
-                        TrashGeneratingUnitGeometry = geometry,
-                        DelineationID = delineationID,
-                        WaterQualityManagementPlanID = waterQualityManagementPlanID,
-                        LandUseBlockID = landUseBlockID,
-                        OnlandVisualTrashAssessmentAreaID = onlandVisualTrashAssessmentAreaID,
-                        LastUpdateDate = DateTime.UtcNow
-                    };
-                    trashGeneratingUnits.Add(trashGeneratingUnit);
-
-                    var trashGeneratingUnit4326 = new TrashGeneratingUnit4326
-                    {
-                        StormwaterJurisdictionID = stormwaterJurisdictionID,
-                        TrashGeneratingUnit4326Geometry = geometry.ProjectTo4326(),
-                        DelineationID = delineationID,
-                        WaterQualityManagementPlanID = waterQualityManagementPlanID,
-                        LandUseBlockID = landUseBlockID,
-                        OnlandVisualTrashAssessmentAreaID = onlandVisualTrashAssessmentAreaID,
-                        LastUpdateDate = DateTime.UtcNow,
-                        TrashGeneratingUnit = trashGeneratingUnit
-                    };
-                    trashGeneratingUnit4326s.Add(trashGeneratingUnit4326);
-                }
-            }
-
-            if (trashGeneratingUnits.Any())
-            {
-                await _dbContext.TrashGeneratingUnits.AddRangeAsync(trashGeneratingUnits);
-                await _dbContext.SaveChangesAsync();
-                await _dbContext.Database.ExecuteSqlRawAsync("EXEC dbo.pTrashGeneratingUnitMakeValid");
-            }
-
-            if (trashGeneratingUnit4326s.Any())
-            {
-                await _dbContext.TrashGeneratingUnit4326s.AddRangeAsync(trashGeneratingUnit4326s);
-                await _dbContext.SaveChangesAsync();
-                await _dbContext.Database.ExecuteSqlRawAsync("EXEC dbo.pTrashGeneratingUnit4326MakeValid");
-            }
-
-            return Ok();
+                { "DelinID", feature.DelineationID }, { "OVTAID", feature.OnlandVisualTrashAssessmentAreaID },
+                { "WQMPID", feature.WaterQualityManagementPlanID }, { "LUBID", feature.LandUseBlockID },
+                { "SJID", feature.StormwaterJurisdictionID },
+            }));
         }
-        catch
+
+        await _dbContext.Database.ExecuteSqlRawAsync($"EXEC dbo.pTrashGeneratingUnitDelete");
+        await InsertTrashGeneratingUnitsChunked(trashGeneratingUnits, trashGeneratingUnit4326s);
+        if (trashGeneratingUnits.Count > 0)
         {
-            QuarantineTempFilesForDebugging(outputFolder, outputLayerPrefix);
-            throw;
+            await _dbContext.Database.ExecuteSqlRawAsync("EXEC dbo.pTrashGeneratingUnitMakeValid");
+            await _dbContext.Database.ExecuteSqlRawAsync("EXEC dbo.pTrashGeneratingUnit4326MakeValid");
         }
-        finally
+        _logger.LogInformation("TGU overlay: inserted {RowCount} rows (x2 with 4326); total {Elapsed}s", trashGeneratingUnits.Count, stopwatch.Elapsed.TotalSeconds);
+
+        if (exportFeatures != null)
         {
-            DeleteTempFiles(outputFolder, outputLayerPrefix);
+            var exportPath = Path.Combine(_configuration.OverlayDebugExportFolder!, $"TGU{DateTime.Now.Ticks}_nts.geojson");
+            Directory.CreateDirectory(_configuration.OverlayDebugExportFolder!);
+            await GeoJsonSerializer.SerializeToFileAsync(exportFeatures, exportPath, GeoJsonSerializer.DefaultSerializerOptions);
+            _logger.LogInformation("TGU overlay: parity export written to {ExportPath}", exportPath);
+        }
+
+        return Ok();
+    }
+
+    // Winner rule for delineations and WQMPs: higher TCEffect wins; TCEffect tie → higher ID wins.
+    private static bool LosesByTrashCaptureEffectiveness(OverlayFeature a, OverlayFeature b, Func<OverlayFeature, int> idOf)
+    {
+        var (effectA, effectB) = (a.TrashCaptureEffectiveness ?? double.MinValue, b.TrashCaptureEffectiveness ?? double.MinValue);
+        return effectA != effectB ? effectA < effectB : idOf(a) < idOf(b);
+    }
+
+    // Chunked inserts: ~300K entities in one SaveChanges was the pipeline's real memory peak (5.5 GiB
+    // measured). Each TGU chunk carries its 4326 twins so EF's navigation fixup resolves the FK in-chunk.
+    private async Task InsertTrashGeneratingUnitsChunked(List<TrashGeneratingUnit> trashGeneratingUnits, List<TrashGeneratingUnit4326> trashGeneratingUnit4326s, int chunkSize = 2000)
+    {
+        for (var offset = 0; offset < trashGeneratingUnits.Count; offset += chunkSize)
+        {
+            var count = Math.Min(chunkSize, trashGeneratingUnits.Count - offset);
+            _dbContext.TrashGeneratingUnits.AddRange(trashGeneratingUnits.GetRange(offset, count));
+            _dbContext.TrashGeneratingUnit4326s.AddRange(trashGeneratingUnit4326s.GetRange(offset, count));
+            await _dbContext.SaveChangesAsync();
+            _dbContext.ChangeTracker.Clear();
         }
     }
 
-    private async Task<FeatureCollection> GenerateLGUsImpl(IEnumerable<Feature> regionalSubbasinInputFeatures, IEnumerable<Feature> lguInputFeatures, string outputFolder, string outputLayerPrefix, List<int> regionalSubbasinIDs, string? filterLayerPath)
+    private async Task<LoadGeneratingUnitRefreshArea?> GetLoadGeneratingUnitRefreshAreaIfProvided(GenerateLoadGeneratingUnitRequestDto requestDto)
     {
-        var outputLayerPath = $"{Path.Combine(outputFolder, outputLayerPrefix)}.geojson";
-        var lguInputPath = $"{Path.Combine(outputFolder, outputLayerPrefix)}delineationLayer.geojson";
-        var modelBasinInputPath = $"{Path.Combine(outputFolder, outputLayerPrefix)}modelBasinLayer.geojson";
-        var regionalSubbasinInputPath = $"{Path.Combine(outputFolder, outputLayerPrefix)}regionalSubbasinLayer.geojson";
-        var wqmpInputPath = $"{Path.Combine(outputFolder, outputLayerPrefix)}wqmpLayer.geojson";
-        var commandLineArguments = new List<string>
-        {
-            "ModelingOverlayAnalysis.py", outputFolder, outputLayerPrefix, lguInputPath, modelBasinInputPath, regionalSubbasinInputPath, wqmpInputPath
-        };
-        if (regionalSubbasinIDs.Any())
-        {
-            commandLineArguments.AddRange(new List<string> { "--rsb_ids", string.Join(", ", regionalSubbasinIDs) });
-        }
-        if (!string.IsNullOrWhiteSpace(filterLayerPath))
-        {
-            commandLineArguments.AddRange(new List<string> { "--filter", filterLayerPath });
-        }
-
-        await WriteFeaturesToGeoJsonFile(lguInputPath, lguInputFeatures);
-
-        var modelBasinInputFeatures = _dbContext.vPyQgisModelBasinLGUInputs.AsNoTracking().Select(x =>
-            new Feature(x.ModelBasinGeometry, new AttributesTable { { "ModelID", x.ModelID } })).ToList();
-        await WriteFeaturesToGeoJsonFile(modelBasinInputPath, modelBasinInputFeatures);
-
-        await WriteFeaturesToGeoJsonFile(regionalSubbasinInputPath, regionalSubbasinInputFeatures);
-
-        var wqmpInputFeatures = _dbContext.vPyQgisWaterQualityManagementPlanLGUInputs.AsNoTracking().Select(x =>
-            new Feature(x.WaterQualityManagementPlanBoundary, new AttributesTable { { "WQMPID", x.WQMPID } })).ToList();
-        await WriteFeaturesToGeoJsonFile(wqmpInputPath, wqmpInputFeatures);
-
-        _qgisService.Run(commandLineArguments);
-
-        await using var openStream = System.IO.File.OpenRead(outputLayerPath);
-        var featureCollection =
-            await GeoJsonSerializer.GetFeatureCollectionFromGeoJsonStream(openStream,
-                GeoJsonSerializer.DefaultSerializerOptions);
-        return featureCollection;
-    }
-
-    private async Task<LoadGeneratingUnitRefreshArea?> CreateLoadGeneratingUnitRefreshAreaIfProvided(GenerateLoadGeneratingUnitRequestDto requestDto,
-        string clipLayerPath)
-    {
-        LoadGeneratingUnitRefreshArea? loadGeneratingUnitRefreshArea = null;
         var loadGeneratingUnitRefreshAreaID = requestDto.LoadGeneratingUnitRefreshAreaID;
-        if (loadGeneratingUnitRefreshAreaID != null)
+        if (loadGeneratingUnitRefreshAreaID == null)
         {
-            await _dbContext.Database.ExecuteSqlRawAsync($"EXEC dbo.pLoadGeneratingUnitRefreshAreaMakeValid @LoadGeneratingUnitRefreshAreaID = {loadGeneratingUnitRefreshAreaID.Value}");
-            loadGeneratingUnitRefreshArea =
-                await _dbContext.LoadGeneratingUnitRefreshAreas.FindAsync(loadGeneratingUnitRefreshAreaID.Value);
-            if (loadGeneratingUnitRefreshArea == null)
-            {
-                // A nonexistent ID (bad caller input, or the area was deleted between enqueue and processing)
-                // previously surfaced as a NullReferenceException on the line below.
-                throw new ApplicationException($"LoadGeneratingUnitRefreshArea {loadGeneratingUnitRefreshAreaID.Value} does not exist; cannot run a delta LGU refresh against it.");
-            }
-            var loadGeneratingUnitRefreshAreaGeometry = loadGeneratingUnitRefreshArea
-                .LoadGeneratingUnitRefreshAreaGeometry;
-            //var lguRefreshAreaGeometry = _dbContext.LoadGeneratingUnits.AsNoTracking()
-            //    .Where(x => x.LoadGeneratingUnitGeometry.Intersects(loadGeneratingUnitRefreshAreaGeometry)).Select(x => x.LoadGeneratingUnitGeometry).ToList().UnionListGeometries();
-            var lguInputClipFeatures = new Feature(loadGeneratingUnitRefreshAreaGeometry, new AttributesTable());
-            await WriteFeaturesToGeoJsonFile(clipLayerPath, new[] { lguInputClipFeatures }, loadGeneratingUnitRefreshAreaGeometry);
+            return null;
         }
 
+        await _dbContext.Database.ExecuteSqlRawAsync($"EXEC dbo.pLoadGeneratingUnitRefreshAreaMakeValid @LoadGeneratingUnitRefreshAreaID = {loadGeneratingUnitRefreshAreaID.Value}");
+        var loadGeneratingUnitRefreshArea = await _dbContext.LoadGeneratingUnitRefreshAreas.FindAsync(loadGeneratingUnitRefreshAreaID.Value);
+        if (loadGeneratingUnitRefreshArea == null)
+        {
+            // A nonexistent ID (bad caller input, or the area was deleted between enqueue and processing)
+            // previously surfaced as a NullReferenceException here.
+            throw new ApplicationException($"LoadGeneratingUnitRefreshArea {loadGeneratingUnitRefreshAreaID.Value} does not exist; cannot run a delta LGU refresh against it.");
+        }
         return loadGeneratingUnitRefreshArea;
-    }
-
-    private static async Task WriteFeaturesToGeoJsonFile(string outputFilePath, IEnumerable<Feature> features)
-    {
-        await WriteFeaturesToGeoJsonFile(outputFilePath, features, null);
-    }
-
-    private static async Task WriteFeaturesToGeoJsonFile(string outputFilePath, IEnumerable<Feature> features, Geometry? extraGeometryToAppend)
-    {
-        var featureCollection = new FeatureCollection();
-        foreach (var feature in features)
-        {
-            featureCollection.Add(feature);
-        }
-
-        if (extraGeometryToAppend != null)
-        {
-            featureCollection.Add(new Feature(extraGeometryToAppend, new AttributesTable()));
-        }
-
-        var geoJsonString = GeoJsonSerializer.Serialize(featureCollection);
-        await System.IO.File.WriteAllTextAsync(outputFilePath, geoJsonString);
-    }
-
-    private void DeleteTempFiles(string outputFolder, string outputLayerPrefix)
-    {
-        // NPT-1105 Part 2: temp-file cleanup is intentionally disabled while golden parity sets are being
-        // captured for the QGIS -> NTS port — every run keeps its inputs/intermediates/output in the temp
-        // folder. Nothing releases to prod before the cutover, and this whole temp-file pipeline (including
-        // this method and the quarantine) is deleted when QGIS retires. Restore the deletion loop from git
-        // history if a cleanup is ever needed before then.
-        _logger.LogInformation("Temp-file cleanup disabled for golden-set capture — keeping files for run {OutputLayerPrefix} in {OutputFolder}.", outputLayerPrefix, outputFolder);
-    }
-
-    private const string QuarantineFolderName = "qgis-failed-runs";
-    private const int QuarantinedRunsToKeep = 3;
-
-    /// <summary>
-    /// Preserves the input/intermediate GeoJSON of a failed run for debugging: moves everything matching the
-    /// run's prefix into a per-run quarantine folder, keeping only the <see cref="QuarantinedRunsToKeep"/> most
-    /// recent failed runs so /tmp can't fill up. Quarantined files live in the container filesystem, so they
-    /// are lost on pod restart — grab them (docker cp / kubectl cp) before restarting. Never throws: this runs
-    /// from catch blocks and must not mask the original exception.
-    /// </summary>
-    private void QuarantineTempFilesForDebugging(string outputFolder, string outputLayerPrefix)
-    {
-        try
-        {
-            var quarantineRoot = Path.Combine(outputFolder, QuarantineFolderName);
-            var quarantineFolder = Path.Combine(quarantineRoot, outputLayerPrefix);
-            Directory.CreateDirectory(quarantineFolder);
-            foreach (var fileToQuarantine in Directory.EnumerateFiles(outputFolder, outputLayerPrefix + "*"))
-            {
-                try
-                {
-                    System.IO.File.Move(fileToQuarantine, Path.Combine(quarantineFolder, Path.GetFileName(fileToQuarantine)));
-                }
-                catch (Exception e)
-                {
-                    // leave it in place; the finally-block DeleteTempFiles will remove it
-                    _logger.LogWarning(e, "Could not quarantine temp file {FileToQuarantine}.", fileToQuarantine);
-                }
-            }
-
-            _logger.LogError("QGIS run {OutputLayerPrefix} failed; its GeoJSON files are preserved for debugging at {QuarantineFolder} (last {QuarantinedRunsToKeep} failed runs are kept; files are lost on pod restart).",
-                outputLayerPrefix, quarantineFolder, QuarantinedRunsToKeep);
-
-            // prune oldest failed runs beyond the retention count (prefixes embed DateTime.Now.Ticks, so the
-            // folder name sorts chronologically within a run type; creation time covers mixed LGU/TGU/PLGU runs)
-            foreach (var expiredRunFolder in Directory.GetDirectories(quarantineRoot)
-                         .OrderByDescending(Directory.GetCreationTimeUtc)
-                         .Skip(QuarantinedRunsToKeep))
-            {
-                try
-                {
-                    Directory.Delete(expiredRunFolder, true);
-                }
-                catch (Exception e)
-                {
-                    _logger.LogWarning(e, "Could not prune quarantined run folder {ExpiredRunFolder}.", expiredRunFolder);
-                }
-            }
-        }
-        catch (Exception e)
-        {
-            _logger.LogWarning(e, "Could not quarantine temp files for prefix {OutputLayerPrefix}.", outputLayerPrefix);
-        }
     }
 }
