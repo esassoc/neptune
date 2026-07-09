@@ -20,7 +20,9 @@ namespace Neptune.API.Controllers
         : SitkaController<FundingSourceController>(dbContext, logger, neptuneConfiguration)
     {
         [HttpGet]
-        [AdminFeature]
+        // NPT-1104: reference list consumed by JE/JM-facing flows (BMP Edit Basics owner-org dropdown /
+        // funding-event modal / BMP create / project basics) - AdminFeature 403d those flows on open.
+        [JurisdictionEditFeature]
         public async Task<ActionResult<IEnumerable<FundingSourceDto>>> List()
         {
             var sources = await FundingSources.ListAsDtoAsync(DbContext);
