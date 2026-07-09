@@ -43,5 +43,17 @@ namespace Neptune.Tests
             Assert.IsFalse(method.GetCustomAttributes(typeof(AdminFeature), true).Any(),
                 "GET /funding-sources must not be [AdminFeature] — that 403'd the JE/JM funding modal on open.");
         }
+
+        [TestMethod]
+        public void WaterQualityManagementPlanDisplayDtos_IsReachableByJurisdictionEditorsAndManagers()
+        {
+            var method = typeof(WaterQualityManagementPlanController)
+                .GetMethod("ListAsDisplayDtos", BindingFlags.Public | BindingFlags.Instance);
+            Assert.IsNotNull(method, "Expected ListAsDisplayDtos() on WaterQualityManagementPlanController.");
+            Assert.IsTrue(method!.GetCustomAttributes(typeof(JurisdictionEditFeature), true).Any(),
+                "GET /water-quality-management-plans/display-dtos must be [JurisdictionEditFeature] — the BMP Edit Basic Info WQMP dropdown and BMP create load it for JE/JM users.");
+            Assert.IsFalse(method.GetCustomAttributes(typeof(AdminFeature), true).Any(),
+                "GET /water-quality-management-plans/display-dtos must not be [AdminFeature] — that 403'd the JE/JM Edit Basics flow on open.");
+        }
     }
 }
