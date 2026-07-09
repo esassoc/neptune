@@ -1,6 +1,6 @@
 # Neptune.QGISAPI — Performance & Stability Analysis
 
-*Analysis date: July 2026. Companion to the phased improvement roadmap below; Phase 1 shipped as the PR that added this document.*
+*Analysis date: July 2026. Companion to the phased improvement roadmap below; Phase 1 shipped as the PR that added this document. The port and QGIS retirement described below are complete — the service is now **Neptune.OverlayAPI** — and this document is kept as the historical record. See the dated addenda at the end for findings made during the port.*
 
 ## What the service does
 
@@ -105,3 +105,40 @@ The measured scale confirms feasibility of alternatives: ~4M vertices / ~135K po
 - `Neptune.Common/ProcessUtility.cs` — subprocess spawn/kill/capture
 - `Neptune.Jobs/Hangfire/{LoadGeneratingUnitRefreshJob,TrashGeneratingUnitRefreshJob,ProjectNetworkSolveJob}.cs` — callers
 - `charts/neptune/charts/neptune-qgisapi/` — deployment, probes, resources
+
+---
+
+## Addendum (2026-07-09): the capture-status tie-break — a latent QGIS-era defect surfaced by the port
+
+During cutover validation, a prod-vs-local comparison of the Trash Module (City of Tustin) showed
+~300 acres of Priority Land Use and ~430 acres of Alternate Land Use flipped from **Partial
+Capture to Untreated** locally, even though total areas agreed to 0.0006% and every automated
+parity check had passed.
+
+**Root cause — in both engines.** The Flatten winner rule ranked overlapping delineations by
+`TCEffect` only. But TCEffect equality does not imply equal trash capture *status*: an in-stream
+trash boom (status **Partial**) and an unscreened catch-basin inlet (status **No Capture**) both
+carry TCEffect 0, and the Full/Partial/Untreated area results classify by **status**. The tie pool
+is large — ~2,400 TCEffect-0 delineations and ~1,300 TCEffect-0 WQMPs with mixed statuses. QGIS
+broke these ties by iteration order, i.e. **the trash map's Partial/Untreated split in tie zones
+was a coin flip on every QGIS run**; prod's most recent run happened to favor the boom. The port's
+first deterministic tie-break (by ID) was status-blind, which made the flip visible as a stable
+difference instead of run-to-run noise.
+
+**Fix** (commit `b5174737d`): the winner rule is now `TCEffect` → **capture status**
+(Full > Partial > None/NotProvided) → ID, for both delineation and WQMP flattens, with a named
+regression test (`Flatten_TieBreaksOnCaptureStatus_BeforeID`). Verified against prod's Tustin
+numbers: PLU 1,603/493/248 vs prod 1,605/489/250; ALU 1,340/1,027/654 vs prod 1,346/1,001/675.
+The small Partial surplus vs prod is the deterministic rule beating prod's coin flips wherever
+they had landed on the worse status — **trash results in tie zones improve slightly at cutover**.
+
+**Two lessons worth keeping:**
+
+1. *Structural parity checks have a blind spot for semantic attribution.* The harness grouped
+   area by ID tuples; two outputs can match on totals and per-group areas while attributing
+   contested ground to BMPs with different capture statuses. Overlay validation should also
+   compare **acreage grouped by capture status per jurisdiction** — which is exactly the trash
+   module's header rollup, and exactly what the human prod-vs-local eyeball compared.
+2. *An earlier conclusion in this effort — "TCEffect-0 tie swaps are business-neutral" — was
+   wrong,* and the automated evidence looked consistent with it. The correction came from looking
+   at the product, not the pipeline.
