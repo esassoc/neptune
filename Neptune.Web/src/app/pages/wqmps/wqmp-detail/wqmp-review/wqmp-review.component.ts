@@ -119,7 +119,10 @@ export class WqmpReviewComponent implements OnInit, IDeactivateComponent {
     // What's actually saved on the WQMP record, keyed by AttributeID. Refreshed every time the
     // inner forkJoin runs (initial mount + reload$ emissions). Drives the "WQMP Record" column
     // on the Step 5 Review summary — Step 4 itself stays AI-only.
-    private existingSourceControlByAttributeID = new Map<number, SourceControlBMPDto>();
+    // NPT-1106: a signal (not a plain field) so rebuilding it after a Source Control save
+    // schedules change detection in this zoneless app — the Step 5 summary getter reads it,
+    // and a bare field mutation inside .subscribe() wouldn't repaint until the next click.
+    private existingSourceControlByAttributeID = signal(new Map<number, SourceControlBMPDto>());
     public readonly BMP_FIELD_KEYS = [
         "QuickBMPName",
         "TreatmentBMPType",
@@ -329,11 +332,11 @@ export class WqmpReviewComponent implements OnInit, IDeactivateComponent {
             tap(({ extractionResult, wqmp, existingSourceControl }) => {
                 this.currentResult.set(extractionResult);
                 this.liveWqmp.set(wqmp);
-                this.existingSourceControlByAttributeID = new Map(
+                this.existingSourceControlByAttributeID.set(new Map(
                     (existingSourceControl ?? [])
                         .filter((e) => e?.SourceControlBMPAttributeID != null)
                         .map((e) => [e.SourceControlBMPAttributeID!, e] as const)
-                );
+                ));
                 if (extractionResult?.ExtractionResultJson) {
                     this.parseExtractionResult(extractionResult.ExtractionResultJson);
                 } else {
@@ -532,7 +535,7 @@ export class WqmpReviewComponent implements OnInit, IDeactivateComponent {
             const extractedEntry = extractedByName.get(attr.SourceControlBMPAttributeName?.toLowerCase() ?? "");
             const isPresentExtracted = extractedEntry?.IsPresent;
             const noteExtracted = extractedEntry?.SourceControlBMPNote;
-            const saved = this.existingSourceControlByAttributeID.get(attr.SourceControlBMPAttributeID);
+            const saved = this.existingSourceControlByAttributeID().get(attr.SourceControlBMPAttributeID);
 
             // Coerce "Yes"/"No"/true/false from Claude to the boolean | null shape the
             // form-field Radio + isPresentOptions expect.
@@ -635,7 +638,7 @@ export class WqmpReviewComponent implements OnInit, IDeactivateComponent {
             const isPresent = row.get("IsPresent")!.value as boolean | null;
             const note = ((row.get("SourceControlBMPNote")!.value as string) ?? "").trim();
             const attrID = row.get("SourceControlBMPAttributeID")!.value as number;
-            const saved = this.existingSourceControlByAttributeID.get(attrID);
+            const saved = this.existingSourceControlByAttributeID().get(attrID);
             const savedDisplay = this.formatSavedSourceControlValue(saved);
             // Reuse Step 4's origin classifier so the Review's AI pill only fires when the
             // displayed value actually came from the AI extraction — not when the user accepted
@@ -663,7 +666,7 @@ export class WqmpReviewComponent implements OnInit, IDeactivateComponent {
     public getSourceControlRowOrigin(row: FormGroup): "ai" | "record" | "edited" | "blank" {
         if (row.dirty) return "edited";
         const attrID = row.get("SourceControlBMPAttributeID")!.value as number;
-        const saved = this.existingSourceControlByAttributeID.get(attrID);
+        const saved = this.existingSourceControlByAttributeID().get(attrID);
         const isPresent = saved?.IsPresent ?? null;
         const note = (saved?.SourceControlBMPNote ?? "").trim();
         if (saved && (isPresent != null || note)) return "record";
@@ -1354,8 +1357,25 @@ export class WqmpReviewComponent implements OnInit, IDeactivateComponent {
                 this.alertService.pushAlert(new Alert("Source Control BMPs saved.", AlertContext.Success));
                 this.sourceControlDirty.set(false);
                 this.refreshLiveWqmp();
+                this.refreshExistingSourceControl();
             },
             error: (err: HttpErrorResponse) => this.handleSectionSaveError(err, "Source Control BMPs"),
+        });
+    }
+
+    // NPT-1106: the Step 5 Review's "WQMP Record" column for Source Control rows compares
+    // against existingSourceControlByAttributeID, which was only built during initial load —
+    // after a save the rows kept comparing against pre-save state and showed "Pending Save"
+    // forever. Rebuild the map from the freshly persisted records (mirrors the initial load).
+    private refreshExistingSourceControl(): void {
+        this.wqmpService.listSourceControlBMPsWaterQualityManagementPlan(this.waterQualityManagementPlanID).pipe(
+            catchError(() => of([] as SourceControlBMPDto[])),
+        ).subscribe((existingSourceControl) => {
+            this.existingSourceControlByAttributeID.set(new Map(
+                (existingSourceControl ?? [])
+                    .filter((e) => e?.SourceControlBMPAttributeID != null)
+                    .map((e) => [e.SourceControlBMPAttributeID!, e] as const)
+            ));
         });
     }
 
@@ -1576,10 +1596,11 @@ export class WqmpReviewComponent implements OnInit, IDeactivateComponent {
             return `${mm}/${dd}/${yyyy}`;
         }
         if (field.key === "TrashCaptureEffectiveness") {
-            // Suffix the saved percentage so the Step 5 row reads "75%" instead of bare "75".
-            // When the WQMP status isn't Partial the persisted value is null; getWqmpFieldValueForRow
-            // returns null for null/empty above, so no special handling is needed here.
-            return `${raw}%`;
+            // NPT-1106: no "%" suffix — the Review summary compares this against displayFor()'s
+            // raw number ("75"), and the suffixed "75%" failed strict equality so the row showed
+            // "Pending Save" forever. When the WQMP status isn't Partial the persisted value is
+            // null; the null/empty check above already handles that.
+            return String(raw);
         }
         return String(raw);
     }
@@ -1587,22 +1608,26 @@ export class WqmpReviewComponent implements OnInit, IDeactivateComponent {
     // After a successful section save, reset the reviewer's per-field marks so the page
     // re-pends those fields against the now-up-to-date live WQMP. The next pass starts
     // clean; hasUnsavedChanges recomputes from there.
+    // NPT-1106: acceptedValue must be PRESERVED — the Review summary's displayValue is
+    // computed as `acceptedValue ?? value`, so nulling it here made every user-edited field
+    // fall back to the original AI extraction and read as "Pending Save" forever, even
+    // though the save persisted. Resetting state alone keeps hasUnsavedChanges correct.
     private markSectionFieldsClean(sectionKeys: string[]): void {
         const keyset = new Set(sectionKeys);
         this.fields.update((current) => current.map((f) => keyset.has(f.key)
-            ? { ...f, state: "pending" as const, acceptedValue: null }
+            ? { ...f, state: "pending" as const }
             : f));
     }
 
     private markParcelFieldsClean(): void {
         this.fields.update((current) => current.map((f) => f.key.startsWith(this.PARCEL_KEY_PREFIX)
-            ? { ...f, state: "pending" as const, acceptedValue: null }
+            ? { ...f, state: "pending" as const }
             : f));
     }
 
     private markBmpFieldsClean(): void {
         this.fields.update((current) => current.map((f) => f.key.startsWith(this.BMP_KEY_PREFIX)
-            ? { ...f, state: "pending" as const, acceptedValue: null }
+            ? { ...f, state: "pending" as const }
             : f));
         this.rejectedBmpIndices.set(new Set());
     }
