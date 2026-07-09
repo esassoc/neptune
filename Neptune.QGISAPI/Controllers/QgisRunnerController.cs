@@ -374,6 +374,12 @@ public class QgisRunnerController : ControllerBase
             await _dbContext.Database.ExecuteSqlRawAsync($"EXEC dbo.pLoadGeneratingUnitRefreshAreaMakeValid @LoadGeneratingUnitRefreshAreaID = {loadGeneratingUnitRefreshAreaID.Value}");
             loadGeneratingUnitRefreshArea =
                 await _dbContext.LoadGeneratingUnitRefreshAreas.FindAsync(loadGeneratingUnitRefreshAreaID.Value);
+            if (loadGeneratingUnitRefreshArea == null)
+            {
+                // A nonexistent ID (bad caller input, or the area was deleted between enqueue and processing)
+                // previously surfaced as a NullReferenceException on the line below.
+                throw new ApplicationException($"LoadGeneratingUnitRefreshArea {loadGeneratingUnitRefreshAreaID.Value} does not exist; cannot run a delta LGU refresh against it.");
+            }
             var loadGeneratingUnitRefreshAreaGeometry = loadGeneratingUnitRefreshArea
                 .LoadGeneratingUnitRefreshAreaGeometry;
             //var lguRefreshAreaGeometry = _dbContext.LoadGeneratingUnits.AsNoTracking()
@@ -409,19 +415,12 @@ public class QgisRunnerController : ControllerBase
 
     private void DeleteTempFiles(string outputFolder, string outputLayerPrefix)
     {
-        // Called from finally blocks — swallow per-file failures (e.g. a half-written file from a killed
-        // python process) so cleanup can't throw and mask the original exception; log so leaks are visible.
-        foreach (var fileToDelete in Directory.EnumerateFiles(outputFolder, outputLayerPrefix + "*"))
-        {
-            try
-            {
-                System.IO.File.Delete(fileToDelete);
-            }
-            catch (Exception e)
-            {
-                _logger.LogWarning(e, "Could not delete temp file {FileToDelete}; it will be orphaned in {OutputFolder}.", fileToDelete, outputFolder);
-            }
-        }
+        // NPT-1105 Part 2: temp-file cleanup is intentionally disabled while golden parity sets are being
+        // captured for the QGIS -> NTS port — every run keeps its inputs/intermediates/output in the temp
+        // folder. Nothing releases to prod before the cutover, and this whole temp-file pipeline (including
+        // this method and the quarantine) is deleted when QGIS retires. Restore the deletion loop from git
+        // history if a cleanup is ever needed before then.
+        _logger.LogInformation("Temp-file cleanup disabled for golden-set capture — keeping files for run {OutputLayerPrefix} in {OutputFolder}.", outputLayerPrefix, outputFolder);
     }
 
     private const string QuarantineFolderName = "qgis-failed-runs";
