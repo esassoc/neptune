@@ -29,8 +29,11 @@ export class TreatmentBmpEditAccessGuard {
     ) {}
 
     canActivate(next: ActivatedRouteSnapshot): Observable<boolean> | boolean {
-        const treatmentBMPID = Number(next.paramMap.get("treatmentBMPID"));
-        if (!Number.isFinite(treatmentBMPID)) {
+        // Number(null) === 0, so check the raw param and require a positive integer ID —
+        // otherwise a missing/malformed param would fire a pointless API call for ID 0.
+        const rawTreatmentBMPID = next.paramMap.get("treatmentBMPID");
+        const treatmentBMPID = Number(rawTreatmentBMPID);
+        if (!rawTreatmentBMPID || !Number.isInteger(treatmentBMPID) || treatmentBMPID <= 0) {
             return true; // malformed URL: let routing/component handle it
         }
 
