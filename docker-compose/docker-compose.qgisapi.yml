@@ -1,6 +1,0 @@
-services:
-  neptune.qgisapi:
-    image: neptune/qgisapi
-    build:
-      context: ..
-      dockerfile: Neptune.QGISAPI/Dockerfile

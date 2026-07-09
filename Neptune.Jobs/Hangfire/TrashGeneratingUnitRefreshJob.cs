@@ -8,12 +8,12 @@ namespace Neptune.Jobs.Hangfire;
 public class TrashGeneratingUnitRefreshJob
 {
     private readonly ILogger<TrashGeneratingUnitRefreshJob> _logger;
-    private readonly QGISAPIService _qgisApiService;
+    private readonly OverlayAPIService _overlayApiService;
 
-    public TrashGeneratingUnitRefreshJob(ILogger<TrashGeneratingUnitRefreshJob> logger, QGISAPIService qgisAPIService)
+    public TrashGeneratingUnitRefreshJob(ILogger<TrashGeneratingUnitRefreshJob> logger, OverlayAPIService overlayApiService)
     {
         _logger = logger;
-        _qgisApiService = qgisAPIService;
+        _overlayApiService = overlayApiService;
     }
 
     // DisableConcurrentExecution: the nightly 22:30 scheduled refresh and any manually-enqueued run must not
@@ -24,6 +24,6 @@ public class TrashGeneratingUnitRefreshJob
     [DisableConcurrentExecution(timeoutInSeconds: 3600)]
     public async Task RunJob()
     {
-        await _qgisApiService.GenerateTGUs(new GenerateTrashGeneratingUnitRequestDto());
+        await _overlayApiService.GenerateTGUs(new GenerateTrashGeneratingUnitRequestDto());
     }
 }

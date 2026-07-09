@@ -15,7 +15,7 @@ data:
   OcStormwaterToolsBaseUrl: "https://{{ .Values.global.domains.web }}"
   NereidUrl: "http://{{ .Values.global.domains.nereid }}"
   GDALAPIBaseUrl: "http://{{ .Values.global.domains.gdalApi }}"
-  QGISAPIBaseUrl: "http://{{ .Values.global.domains.qgisApi }}"
+  OverlayAPIBaseUrl: "http://{{ .Values.global.domains.overlayApi }}"
   OCGISBaseUrl: "https://ocgis.com/arcpub/rest/services/"
   PathToFieldVisitUploadTemplate: "Bulk_Upload_FieldVisists_for_Trash_Screens_Template.xlsx"
   PathToOVTAUploadTemplate: "OVTAAssessment_BulkUpload_Template.xlsx"

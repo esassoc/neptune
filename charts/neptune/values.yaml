@@ -13,7 +13,7 @@ global:
     geoserver: "geoserver-neptune.aks-qa.sitkatech.com"
     nereid: "neptune-nereid"
     gdalApi: "neptune-gdalapi"
-    qgisApi: "neptune-qgisapi"
+    overlayApi: "neptune-overlayapi"
     nereidRedis: "neptune-nereid-redis:6379"
   secrets:
     geoserverSqlServerPassword: "passwordhere"
@@ -285,23 +285,23 @@ gdalapi:
   tolerations: []
   affinity: {}
 
-qgisapi:
+overlayapi:
   replicaCount: 1
   image:
-    repository: containersesaqa.azurecr.io/neptune/qgisapi
+    repository: containersesaqa.azurecr.io/neptune/overlayapi
     pullPolicy: Always
   nameOverride: ""
   fullnameOverride: ""
   namespace: h2o
-  # Starting guesses — QGIS overlay runs are memory-hungry and previously ran with no limits at all
-  # (an unbounded pod risks node-level OOM). Capture kubectl top / Datadog during a nightly TGU
-  # refresh (22:30) and tune. No CPU limit on purpose: don't throttle the multi-hour overlay.
+  # Sized from measured NPT-1105 NTS-port numbers: full TGU refresh peaks ~1.6-2.5 GiB working set.
+  # No CPU limit on purpose: the parallel layer union deliberately saturates the node's cores for
+  # the few minutes a full refresh runs.
   resources:
     requests:
-      memory: "2Gi"
+      memory: "1Gi"
       cpu: "250m"
     limits:
-      memory: "8Gi"
+      memory: "4Gi"
   serviceAccount:
     # Specifies whether a service account should be created
     create: true

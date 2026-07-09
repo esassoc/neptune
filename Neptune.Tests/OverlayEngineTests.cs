@@ -1,7 +1,7 @@
 using System.Collections.Generic;
 using System.Linq;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
-using Neptune.QGISAPI.Services.Overlay;
+using Neptune.OverlayAPI.Services.Overlay;
 using NetTopologySuite.Geometries;
 
 namespace Neptune.Tests;

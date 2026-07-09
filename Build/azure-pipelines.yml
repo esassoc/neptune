@@ -159,8 +159,8 @@ stages:
         imageNames:
           - neptune/web
 
-  - job: BuildQGIS
-    displayName: Build QGISApi
+  - job: BuildOverlayApi
+    displayName: Build OverlayApi
     condition: eq(variables['build'], 'true')
     pool:
       vmImage: ubuntu-latest
@@ -178,16 +178,16 @@ stages:
     - template: azure-pipelines/templates/docker/docker-template.yml@BuildTemplates
       parameters:
         projectName: 'neptune'
-        displayName: 'QGISApi'
+        displayName: 'OverlayApi'
         subscription: '$(azureSubscription)'
         containerRegistry: '$(kv-containerRegistry)'
-        dockerComposeFile: 'docker-compose/docker-compose.qgisapi.yml'
+        dockerComposeFile: 'docker-compose/docker-compose.overlayapi.yml'
         dockerComposeFileArgs: 'env=$(environment)'
         additionalImageTags: |
           $(Build.BuildNumber)-$(environment)
         includeLatestTag: true
         imageNames:
-          - neptune/qgisapi
+          - neptune/overlayapi
 
 - stage: BuildNereid
   displayName: Build Nereid
@@ -696,8 +696,8 @@ stages:
                 geoserver.image.repository="$(kv-containerRegistry)/kartoza/geoserver"
                 gdalapi.image.tag="$(Build.BuildNumber)-$(environment)"
                 gdalapi.image.repository="$(kv-containerRegistry)/neptune/gdalapi"
-                qgisapi.image.tag="$(Build.BuildNumber)-$(environment)"
-                qgisapi.image.repository="$(kv-containerRegistry)/neptune/qgisapi"
+                overlayapi.image.tag="$(Build.BuildNumber)-$(environment)"
+                overlayapi.image.repository="$(kv-containerRegistry)/neptune/overlayapi"
                 nereid.image.repository="$(kv-containerRegistry)/neptune/nereid"
                 nereid.image.tag="$(nereidTag)"
                 nereid-tests.image.repository="$(kv-containerRegistry)/neptune/nereid-tests"
