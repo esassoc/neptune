@@ -68,11 +68,19 @@ export class HttpErrorInterceptor implements HttpInterceptor {
                             });
                         }
                         if (error.status == 403) {
-                            this.router.navigateByUrl("/subscription-insufficient", { replaceUrl: false }).then((x) => {
-                                if (typeof error.error === "string") {
-                                    this.alertService.pushAlert(new Alert(error.error, AlertContext.Danger));
-                                }
-                            });
+                            // NPT-1104: a 403 on a mutation (save/delete) should not eject the user from
+                            // the page they are on — surface it inline like a validation failure instead.
+                            // Page-level data denials (GETs) keep the hard redirect.
+                            if (request.method !== "GET") {
+                                const message = typeof error.error === "string" && error.error ? error.error : "You are not authorized to perform this action.";
+                                this.alertService.pushAlert(new Alert(message, AlertContext.Danger));
+                            } else {
+                                this.router.navigateByUrl("/subscription-insufficient", { replaceUrl: false }).then((x) => {
+                                    if (typeof error.error === "string") {
+                                        this.alertService.pushAlert(new Alert(error.error, AlertContext.Danger));
+                                    }
+                                });
+                            }
                         }
                         if (error.status == 404) {
                             // Bare 404s from EntityNotFoundMiddleware have no response body, so

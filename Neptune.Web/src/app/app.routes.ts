@@ -3,6 +3,7 @@ import { ManagerOnlyGuard } from "./shared/guards/unauthenticated-access/manager
 import { ManagerOrAdminOnlyGuard } from "./shared/guards/unauthenticated-access/manager-or-admin-only-guard";
 import { JurisdictionManagerOrEditorOnlyGuard } from "./shared/guards/unauthenticated-access/jurisdiction-manager-or-editor-only-guard.guard";
 import { UnsavedChangesGuard } from "./shared/guards/unsaved-changes.guard";
+import { TreatmentBmpEditAccessGuard } from "src/app/shared/guards/treatment-bmp-edit-access.guard";
 import { OCTAGrantReviewerOnlyGuard } from "./shared/guards/unauthenticated-access/octa-grant-reviewer-only.guard";
 import { AdminOnlyGuard } from "./shared/guards/unauthenticated-access/admin-only-guard";
 import { authGuardFn } from "@auth0/auth0-angular";
@@ -451,6 +452,7 @@ export const routes: Routes = [
                     import("./pages/treatment-bmps/treatment-bmp-detail/treatment-bmp-update-basic-info/treatment-bmp-update-basic-info.component").then(
                         (m) => m.TreatmentBmpUpdateBasicInfoComponent
                     ),
+                canActivate: [TreatmentBmpEditAccessGuard],
                 canDeactivate: [UnsavedChangesGuard],
             },
             {
@@ -460,6 +462,7 @@ export const routes: Routes = [
                     import("./pages/treatment-bmps/treatment-bmp-detail/treatment-bmp-update-images/treatment-bmp-update-images.component").then(
                         (m) => m.TreatmentBmpUpdateImagesComponent
                     ),
+                canActivate: [TreatmentBmpEditAccessGuard],
                 canDeactivate: [UnsavedChangesGuard],
             },
             {
@@ -469,6 +472,7 @@ export const routes: Routes = [
                     import("./pages/treatment-bmps/treatment-bmp-detail/treatment-bmp-update-location/treatment-bmp-update-location.component").then(
                         (m) => m.TreatmentBmpUpdateLocationComponent
                     ),
+                canActivate: [TreatmentBmpEditAccessGuard],
                 canDeactivate: [UnsavedChangesGuard],
             },
             {
@@ -478,6 +482,7 @@ export const routes: Routes = [
                     import("./pages/treatment-bmps/treatment-bmp-detail/treatment-bmp-update-custom-attributes/treatment-bmp-update-custom-attributes.component").then(
                         (m) => m.TreatmentBmpUpdateCustomAttributesComponent
                     ),
+                canActivate: [TreatmentBmpEditAccessGuard],
                 canDeactivate: [UnsavedChangesGuard],
             },
             {
