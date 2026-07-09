@@ -29,9 +29,10 @@ namespace Neptune.API.Services
 
             // Impersonation: flip to the effective (impersonated) user if the authenticated
             // user has ImpersonatedPersonID set. Non-production only (the service no-ops in
-            // prod). BaseAuthorizationAttribute still uses GetUserFromHttpContext (raw Person)
-            // so role-based gates evaluate against the authenticated user, not the impersonated
-            // one — admins keep admin perms while impersonating.
+            // prod). NPT-1104 rework: BaseAuthorizationAttribute ALSO evaluates the effective
+            // user now (via ImpersonationService.GetEffectivePerson), so impersonation
+            // faithfully exercises authorization; only the impersonation start/stop features
+            // authorize against the raw authenticated admin.
             var impersonationService = httpContext.RequestServices.GetService(typeof(ImpersonationService)) as ImpersonationService;
             return impersonationService?.GetEffectiveUser(dbContext, dto) ?? dto;
         }
