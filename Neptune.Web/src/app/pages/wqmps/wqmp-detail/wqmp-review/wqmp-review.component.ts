@@ -18,6 +18,7 @@ import { WaterQualityManagementPlanExtractionResultDto } from "src/app/shared/ge
 import { WaterQualityManagementPlanDto } from "src/app/shared/generated/model/water-quality-management-plan-dto";
 import { WaterQualityManagementPlanUpsertDto } from "src/app/shared/generated/model/water-quality-management-plan-upsert-dto";
 import { QuickBMPUpsertDto } from "src/app/shared/generated/model/quick-bmp-upsert-dto";
+import { QuickBMPDto } from "src/app/shared/generated/model/quick-bmp-dto";
 import { QuickBMPMergeSkipDto } from "src/app/shared/generated/model/quick-bmp-merge-skip-dto";
 import { WaterQualityManagementPlanSectionSaveResponseDto } from "src/app/shared/generated/model/water-quality-management-plan-section-save-response-dto";
 import { EvidenceBoundingBox, FieldCardComponent, SourceNavigation } from "src/app/pages/wqmps/wqmp-detail/wqmp-review/field-card/field-card.component";
@@ -123,6 +124,13 @@ export class WqmpReviewComponent implements OnInit, IDeactivateComponent {
     // schedules change detection in this zoneless app — the Step 5 summary getter reads it,
     // and a bare field mutation inside .subscribe() wouldn't repaint until the next click.
     private existingSourceControlByAttributeID = signal(new Map<number, SourceControlBMPDto>());
+    // NPT-1106 round 2: QuickBMPs currently persisted on the WQMP record, keyed by trimmed
+    // QuickBMPName (the same match key the backend merge uses). Drives the "WQMP Record"
+    // column for the Step 5 BMP rows — those rows previously hard-coded wqmpRecordValue to
+    // null, so getSaveStatus() could never return "saved" and every BMP showed "Pending save"
+    // even after a successful section save. Signal for the same zoneless-repaint reason as
+    // existingSourceControlByAttributeID above.
+    private existingQuickBmpNamesByKey = signal(new Map<string, string>());
     public readonly BMP_FIELD_KEYS = [
         "QuickBMPName",
         "TreatmentBMPType",
@@ -328,8 +336,14 @@ export class WqmpReviewComponent implements OnInit, IDeactivateComponent {
                 existingSourceControl: this.wqmpService.listSourceControlBMPsWaterQualityManagementPlan(this.waterQualityManagementPlanID).pipe(
                     catchError(() => of([] as SourceControlBMPDto[]))
                 ),
+                // NPT-1106 round 2: previously-saved QuickBMPs feed the Step 5 Review's
+                // "WQMP Record" column for BMP rows, same as existingSourceControl does for
+                // Source Control rows.
+                existingQuickBmps: this.wqmpService.listQuickBMPsWaterQualityManagementPlan(this.waterQualityManagementPlanID).pipe(
+                    catchError(() => of([] as QuickBMPDto[]))
+                ),
             })),
-            tap(({ extractionResult, wqmp, existingSourceControl }) => {
+            tap(({ extractionResult, wqmp, existingSourceControl, existingQuickBmps }) => {
                 this.currentResult.set(extractionResult);
                 this.liveWqmp.set(wqmp);
                 this.existingSourceControlByAttributeID.set(new Map(
@@ -337,6 +351,7 @@ export class WqmpReviewComponent implements OnInit, IDeactivateComponent {
                         .filter((e) => e?.SourceControlBMPAttributeID != null)
                         .map((e) => [e.SourceControlBMPAttributeID!, e] as const)
                 ));
+                this.existingQuickBmpNamesByKey.set(WqmpReviewComponent.buildQuickBmpNameMap(existingQuickBmps));
                 if (extractionResult?.ExtractionResultJson) {
                     this.parseExtractionResult(extractionResult.ExtractionResultJson);
                 } else {
@@ -479,7 +494,7 @@ export class WqmpReviewComponent implements OnInit, IDeactivateComponent {
     get summaryParcelFields(): ExtractedField[] {
         return this.fields().filter((f) => f.key.startsWith(this.PARCEL_KEY_PREFIX));
     }
-    get summaryBmpGroups(): { bmpIndex: number; displayName: string | null; fields: ExtractedField[]; isRejected: boolean }[] {
+    get summaryBmpGroups(): { bmpIndex: number; displayName: string | null; fields: ExtractedField[]; isRejected: boolean; wqmpRecordValue: string | null }[] {
         // Same grouping logic as bmpGroupsForCurrentStep but without the step==3 gate
         // (the summary view runs on Step 4).
         const groups = new Map<number, ExtractedField[]>();
@@ -494,12 +509,20 @@ export class WqmpReviewComponent implements OnInit, IDeactivateComponent {
             groups.get(bmpIndex)!.push(field);
         }
         const rejected = this.rejectedBmpIndices();
+        // NPT-1106 round 2: surface the persisted QuickBMP (matched by name — the backend
+        // merge's key) as the row's WQMP Record value so getSaveStatus() can flip the row
+        // to "Saved" once the section save lands. Previously always null → always pending.
+        const persistedNames = this.existingQuickBmpNamesByKey();
         return Array.from(groups.entries())
             .sort(([a], [b]) => a - b)
             .map(([bmpIndex, fields]) => {
                 const nameField = fields.find((f) => f.key.endsWith("-QuickBMPName"));
                 const displayName = (nameField?.acceptedValue ?? nameField?.value) ?? null;
-                return { bmpIndex, displayName, fields, isRejected: rejected.has(bmpIndex) };
+                // Echo the workflow's own string on a trimmed-name match (not the persisted
+                // spelling) so the summary's strict displayValue === wqmpRecordValue equality
+                // can't fail on whitespace-only differences.
+                const wqmpRecordValue = displayName && persistedNames.has(displayName.trim()) ? displayName : null;
+                return { bmpIndex, displayName, fields, isRejected: rejected.has(bmpIndex), wqmpRecordValue };
             });
     }
     /**
@@ -1299,6 +1322,7 @@ export class WqmpReviewComponent implements OnInit, IDeactivateComponent {
                 this.warnAboutSkippedBMPs(response?.SkippedBMPs);
                 this.markBmpFieldsClean();
                 this.refreshLiveWqmp();
+                this.refreshExistingQuickBmps();
             },
             error: (err: HttpErrorResponse) => this.handleSectionSaveError(err, "BMPs"),
         });
@@ -1364,6 +1388,28 @@ export class WqmpReviewComponent implements OnInit, IDeactivateComponent {
                 this.refreshExistingSourceControl();
             },
             error: (err: HttpErrorResponse) => this.handleSectionSaveError(err, "Source Control BMPs"),
+        });
+    }
+
+    // NPT-1106 round 2: key by trimmed name, echo the persisted name — the backend merge
+    // matches QuickBMPs by exact QuickBMPName, so the trim only forgives whitespace the
+    // review form may carry around an otherwise-identical name.
+    private static buildQuickBmpNameMap(quickBmps: QuickBMPDto[] | null | undefined): Map<string, string> {
+        return new Map(
+            (quickBmps ?? [])
+                .filter((b) => (b?.QuickBMPName ?? "").trim().length > 0)
+                .map((b) => [b.QuickBMPName!.trim(), b.QuickBMPName!] as const)
+        );
+    }
+
+    // NPT-1106 round 2: same shape as refreshExistingSourceControl below — after a BMPs
+    // section save, rebuild the persisted-QuickBMP name map so the Step 5 rows flip to
+    // "Saved" against the freshly persisted records.
+    private refreshExistingQuickBmps(): void {
+        this.wqmpService.listQuickBMPsWaterQualityManagementPlan(this.waterQualityManagementPlanID).pipe(
+            catchError(() => of([] as QuickBMPDto[])),
+        ).subscribe((quickBmps) => {
+            this.existingQuickBmpNamesByKey.set(WqmpReviewComponent.buildQuickBmpNameMap(quickBmps));
         });
     }
 
