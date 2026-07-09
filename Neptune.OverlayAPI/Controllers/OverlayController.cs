@@ -230,10 +230,20 @@ public class OverlayController : ControllerBase
     // NPT-1105 Part 2: TGU generation runs in-process on NetTopologySuite (OverlayEngine) — no python
     // subprocess, no temp GeoJSON. Winner rules match the retired ComputeTrashGeneratingUnits.py
     // (delineations/WQMPs: higher TCEffect wins; OVTAs: later AssessDate wins) with one deliberate
-    // change: ties break deterministically on ID (higher wins) where QGIS was iteration-order-dependent.
+    // improvement: TCEffect ties break on trash capture STATUS (Full > Partial > None), then ID —
+    // QGIS was iteration-order-dependent on ties, which flipped Partial/Untreated acreage run-to-run
+    // (e.g. an in-stream trash boom vs an unscreened inlet, both TCEffect 0, different statuses).
     private async Task<IActionResult> GenerateTrashGeneratingUnitsImpl(GenerateTrashGeneratingUnitRequestDto requestDto)
     {
         var stopwatch = Stopwatch.StartNew();
+
+        // status ranks for the TCEffect tie-break — the vPyQgis views don't carry status
+        var delineationStatusPriorities = await _dbContext.Delineations.AsNoTracking()
+            .Select(x => new { x.DelineationID, x.TreatmentBMP.TrashCaptureStatusTypeID })
+            .ToDictionaryAsync(x => x.DelineationID, x => TrashCaptureStatusPriority(x.TrashCaptureStatusTypeID));
+        var wqmpStatusPriorities = await _dbContext.WaterQualityManagementPlans.AsNoTracking()
+            .Select(x => new { x.WaterQualityManagementPlanID, x.TrashCaptureStatusTypeID })
+            .ToDictionaryAsync(x => x.WaterQualityManagementPlanID, x => TrashCaptureStatusPriority(x.TrashCaptureStatusTypeID));
 
         var delineations = OverlayEngine.Clean(_dbContext.vPyQgisDelineationTGUInputs.AsNoTracking().Select(x =>
             new OverlayFeature
@@ -242,6 +252,7 @@ public class OverlayController : ControllerBase
                 DelineationID = x.DelinID,
                 StormwaterJurisdictionID = x.SJID,
                 TrashCaptureEffectiveness = x.TCEffect,
+                TrashCaptureStatusPriority = delineationStatusPriorities.GetValueOrDefault(x.DelinID, 1),
             }).ToList());
         var ovtas = OverlayEngine.Clean(_dbContext.vPyQgisOnlandVisualTrashAssessmentAreaDateds.AsNoTracking().Select(x =>
             new OverlayFeature
@@ -257,6 +268,7 @@ public class OverlayController : ControllerBase
                 Geometry = x.WaterQualityManagementPlanBoundary!,
                 WaterQualityManagementPlanID = x.WQMPID,
                 TrashCaptureEffectiveness = x.TCEffect,
+                TrashCaptureStatusPriority = wqmpStatusPriorities.GetValueOrDefault(x.WQMPID, 1),
             }).ToList());
         var landUseBlocks = OverlayEngine.Clean(_dbContext.vPyQgisLandUseBlockTGUInputs.AsNoTracking().Select(x =>
             new OverlayFeature
@@ -268,7 +280,7 @@ public class OverlayController : ControllerBase
         _logger.LogInformation("TGU overlay: loaded+cleaned delin={DelinCount} ovta={OvtaCount} wqmp={WqmpCount} lub={LubCount} in {Elapsed}s",
             delineations.Count, ovtas.Count, wqmps.Count, landUseBlocks.Count, stopwatch.Elapsed.TotalSeconds);
 
-        // de-overlap each layer by its winner rule; ties break on ID (higher wins) for determinism
+        // de-overlap each layer by its winner rule; TCEffect ties break on capture status, then ID
         delineations = OverlayEngine.Flatten(delineations, x => x.DelineationID!.Value,
             (a, b) => LosesByTrashCaptureEffectiveness(a, b, x => x.DelineationID!.Value));
         ovtas = OverlayEngine.Flatten(ovtas, x => x.OnlandVisualTrashAssessmentAreaID!.Value,
@@ -347,12 +359,27 @@ public class OverlayController : ControllerBase
         return Ok();
     }
 
-    // Winner rule for delineations and WQMPs: higher TCEffect wins; TCEffect tie → higher ID wins.
+    // Winner rule for delineations and WQMPs: higher TCEffect wins; TCEffect tie → better trash capture
+    // STATUS wins (a Partial in-stream boom must beat a No-Capture inlet even though both are TCEffect 0,
+    // because the Full/Partial/Untreated trash results classify by status); status tie → higher ID wins.
     private static bool LosesByTrashCaptureEffectiveness(OverlayFeature a, OverlayFeature b, Func<OverlayFeature, int> idOf)
     {
         var (effectA, effectB) = (a.TrashCaptureEffectiveness ?? double.MinValue, b.TrashCaptureEffectiveness ?? double.MinValue);
-        return effectA != effectB ? effectA < effectB : idOf(a) < idOf(b);
+        if (effectA != effectB)
+        {
+            return effectA < effectB;
+        }
+        var (priorityA, priorityB) = (a.TrashCaptureStatusPriority ?? 1, b.TrashCaptureStatusPriority ?? 1);
+        return priorityA != priorityB ? priorityA < priorityB : idOf(a) < idOf(b);
     }
+
+    // TrashCaptureStatusType: 1=Full, 2=Partial, 3=None, 4=NotProvided → rank capture "goodness"
+    private static int TrashCaptureStatusPriority(int trashCaptureStatusTypeID) => trashCaptureStatusTypeID switch
+    {
+        1 => 3, // Full
+        2 => 2, // Partial
+        _ => 1, // None / NotProvided
+    };
 
     // Chunked inserts: ~300K entities in one SaveChanges was the pipeline's real memory peak (5.5 GiB
     // measured). Each TGU chunk carries its 4326 twins so EF's navigation fixup resolves the FK in-chunk.

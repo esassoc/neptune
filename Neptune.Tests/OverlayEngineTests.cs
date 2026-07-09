@@ -54,7 +54,12 @@ public class OverlayEngineTests
     private static bool LosesByTcEffect(OverlayFeature a, OverlayFeature b)
     {
         var (effectA, effectB) = (a.TrashCaptureEffectiveness ?? double.MinValue, b.TrashCaptureEffectiveness ?? double.MinValue);
-        return effectA != effectB ? effectA < effectB : a.DelineationID!.Value < b.DelineationID!.Value;
+        if (effectA != effectB)
+        {
+            return effectA < effectB;
+        }
+        var (priorityA, priorityB) = (a.TrashCaptureStatusPriority ?? 1, b.TrashCaptureStatusPriority ?? 1);
+        return priorityA != priorityB ? priorityA < priorityB : a.DelineationID!.Value < b.DelineationID!.Value;
     }
 
     private static List<OverlayFeature> FlattenDelineations(List<OverlayFeature> layer) =>
@@ -195,6 +200,33 @@ public class OverlayEngineTests
             Assert.AreEqual(100, winner.Geometry.Area, AreaTolerance, $"reversed={reversed}: higher ID must win the tie");
             Assert.AreEqual(50, loser.Geometry.Area, AreaTolerance, $"reversed={reversed}");
         }
+    }
+
+    [TestMethod]
+    public void Flatten_TieBreaksOnCaptureStatus_BeforeID()
+    {
+        // The Tustin trash-map regression: an in-stream trash boom (Partial status) and an unscreened
+        // inlet (No Capture) both carry TCEffect 0. Status must decide the winner — even when the
+        // no-capture feature has the higher ID — or Partial acreage silently becomes Untreated.
+        var boom = new OverlayFeature
+        {
+            Geometry = Square(0, 0, 10),
+            DelineationID = 100,               // LOWER id
+            TrashCaptureEffectiveness = 0,
+            TrashCaptureStatusPriority = 2,    // Partial
+        };
+        var unscreenedInlet = new OverlayFeature
+        {
+            Geometry = Square(5, 0, 10),
+            DelineationID = 200,               // higher id would win a bare-ID tie-break
+            TrashCaptureEffectiveness = 0,
+            TrashCaptureStatusPriority = 1,    // No Capture
+        };
+
+        var flattened = FlattenDelineations(new List<OverlayFeature> { unscreenedInlet, boom });
+
+        Assert.AreEqual(100, flattened.Single(x => x.DelineationID == 100).Geometry.Area, AreaTolerance, "Partial-status boom keeps its full footprint");
+        Assert.AreEqual(50, flattened.Single(x => x.DelineationID == 200).Geometry.Area, AreaTolerance, "No-capture inlet loses the contested strip");
     }
 
     [TestMethod]

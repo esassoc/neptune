@@ -24,6 +24,13 @@ public sealed class OverlayFeature
     public double? TrashCaptureEffectiveness { get; init; }
     public DateTime? AssessmentDate { get; init; }
 
+    // Tie-break rank when TrashCaptureEffectiveness is equal (Full=3 > Partial=2 > None/NotProvided=1).
+    // TCEffect equality does NOT imply equal capture STATUS — an in-stream trash boom (Partial) and an
+    // unscreened inlet (No Capture) both carry TCEffect 0, and the trash results classify by status.
+    // QGIS broke these ties by iteration order, silently flipping acreage between Partial and Untreated
+    // run-to-run; ranking by status is the correct deterministic rule.
+    public int? TrashCaptureStatusPriority { get; init; }
+
     /// <summary>
     /// Merge for the attribute-carrying layer union: this feature's values win, the other side
     /// fills the gaps. (Fields are disjoint between layers except StormwaterJurisdictionID,
@@ -53,5 +60,6 @@ public sealed class OverlayFeature
         ModelBasinID = ModelBasinID,
         TrashCaptureEffectiveness = TrashCaptureEffectiveness,
         AssessmentDate = AssessmentDate,
+        TrashCaptureStatusPriority = TrashCaptureStatusPriority,
     };
 }
