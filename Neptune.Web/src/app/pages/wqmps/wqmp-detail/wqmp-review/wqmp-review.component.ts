@@ -1356,6 +1356,10 @@ export class WqmpReviewComponent implements OnInit, IDeactivateComponent {
             next: () => {
                 this.alertService.pushAlert(new Alert("Source Control BMPs saved.", AlertContext.Success));
                 this.sourceControlDirty.set(false);
+                // The origin pill reads row.dirty ("edited"); mark the rows pristine so saved
+                // rows flip to "record" (via the refreshed comparison map) instead of staying
+                // "edited" forever, keeping the pills consistent with hasUnsavedChanges.
+                this.sourceControlRows.markAsPristine();
                 this.refreshLiveWqmp();
                 this.refreshExistingSourceControl();
             },
@@ -1426,10 +1430,15 @@ export class WqmpReviewComponent implements OnInit, IDeactivateComponent {
             // Rejected fields preserve the live value — skip the overlay entirely.
             if (field.state === "rejected") continue;
 
-            // pending → AI value (auto-accept on save); accepted/edited → reviewer's value.
+            // accepted/edited → reviewer's value. pending → last-saved reviewer value if one
+            // exists (acceptedValue survives markSectionFieldsClean), else the AI value
+            // (auto-accept on save). Without the acceptedValue preference, re-saving a section
+            // reverted previously-saved edits back to the original AI extraction, because every
+            // save resets its fields to pending. Explicit clears are "" (not null), so `??`
+            // correctly keeps them instead of falling through to the AI value.
             const raw = (field.state === "edited" || field.state === "accepted")
                 ? field.acceptedValue
-                : field.value;
+                : (field.acceptedValue ?? field.value);
             const v = this.normalizeOverlayValue(raw);
 
             // Trash Capture Effectiveness must run BEFORE the null-skip below: when status
