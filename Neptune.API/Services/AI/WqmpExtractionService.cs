@@ -427,16 +427,17 @@ public class WqmpExtractionService
         {
             Name = $"emit_{categoryKey.ToLower()}_extraction",
             Description = $"Emit the extracted {categoryKey} fields as structured JSON matching the required schema.",
-            InputSchema = new()
-            {
-                Properties = parsed?.Where(kvp => kvp.Key == "properties")
-                    .SelectMany(kvp => kvp.Value.EnumerateObject())
-                    .ToDictionary(prop => prop.Name, prop => JsonSerializer.SerializeToElement(JsonSerializer.Deserialize<object>(prop.Value.GetRawText())))
-                    ?? new Dictionary<string, JsonElement>(),
-                Required = parsed != null && parsed.TryGetValue("required", out var req)
-                    ? JsonSerializer.Deserialize<List<string>>(req.GetRawText()) ?? []
-                    : [],
-            },
+            // NPT-1106: strict tool use (GA, no beta header) — the API validates the tool input
+            // against the schema server-side, guaranteeing well-formed JSON that matches it
+            // exactly. Kills the recurring UnwrapItems failure class: `items` emitted as a
+            // double-encoded string with unescaped quotes / trailing commas that no regex
+            // cleanup could reliably repair. Strict requires additionalProperties:false +
+            // required on every object INCLUDING the root, so the schema JSON is passed to
+            // InputSchema wholesale via the raw-data constructor — the previous
+            // Properties/Required-only initializer silently dropped the root-level
+            // additionalProperties:false.
+            Strict = true,
+            InputSchema = new(parsed ?? new Dictionary<string, JsonElement>()),
         };
     }
 

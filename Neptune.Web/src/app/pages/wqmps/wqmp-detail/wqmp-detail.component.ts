@@ -3,7 +3,7 @@ import { HttpErrorResponse } from "@angular/common/http";
 import { Router, RouterLink } from "@angular/router";
 import { DatePipe, AsyncPipe, CommonModule } from "@angular/common";
 import { BehaviorSubject, Observable, of } from "rxjs";
-import { finalize, shareReplay, switchMap, tap } from "rxjs/operators";
+import { finalize, map, shareReplay, switchMap, tap } from "rxjs/operators";
 import { DialogService } from "@ngneat/dialog";
 import { ColDef } from "ag-grid-community";
 import * as L from "leaflet";
@@ -279,6 +279,9 @@ export class WqmpDetailComponent implements OnInit, OnChanges {
         });
 
         this.sourceControlBMPs$ = this.wqmpService.listSourceControlBMPsWaterQualityManagementPlan(this.waterQualityManagementPlanID).pipe(
+            // NPT-1106 round 2: the endpoint now returns explicit "No" rows too (the AI-review
+            // Step 5 needs them); this panel keeps its affirmative-only display.
+            map((bmps) => bmps.filter((b) => b.IsPresent === true || (b.SourceControlBMPNote ?? "").trim().length > 0)),
             tap((bmps) => {
                 const grouped = this.groupByPipe.transform(bmps, "SourceControlBMPAttributeCategoryName");
                 this.sourceControlBMPsByCategory = Object.entries(grouped).map(([category, items]) => ({

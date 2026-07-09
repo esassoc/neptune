@@ -204,7 +204,13 @@ export class WqmpVerificationWorkflowService {
                     };
                 }));
 
-                this.sourceControlRows.set(sourceControlBMPs.map((bmp: any) => {
+                // NPT-1106 round 2: the list endpoint now returns explicit "No" rows (needed by
+                // the AI-review Step 5); the verification checklist keeps its affirmative-only
+                // scope — verifiers assess controls that are on the record, not absent ones.
+                const affirmativeSourceControlBMPs = sourceControlBMPs.filter(
+                    (bmp: any) => bmp.IsPresent === true || ((bmp.SourceControlBMPNote ?? "") as string).trim().length > 0
+                );
+                this.sourceControlRows.set(affirmativeSourceControlBMPs.map((bmp: any) => {
                     const existing = verify?.SourceControlBMPs?.find((v: any) => v.SourceControlBMPID === bmp.SourceControlBMPID);
                     return {
                         sourceControlBMPID: bmp.SourceControlBMPID,
