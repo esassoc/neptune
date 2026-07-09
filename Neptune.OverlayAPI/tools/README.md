@@ -84,3 +84,13 @@ Candidate acceptance therefore is:
 
 Do not chase individual sub-envelope area deltas — they are indistinguishable from
 re-running QGIS itself.
+
+## Lesson from the Tustin trash-map regression (2026-07-09)
+
+ID-tuple grouping cannot see *status* flips: two runs can agree on total and per-group area
+while attributing contested pieces to delineations with different trash capture **statuses**,
+silently moving acreage between Partial and Untreated in the results. When validating overlay
+changes, ALSO compare acreage grouped by capture status per jurisdiction (the trash module's
+header numbers are exactly this rollup — a prod-vs-local eyeball of one jurisdiction caught
+what the ID-grouped harness could not). The engine now breaks TCEffect ties on capture status
+(Full > Partial > None) before ID, so this class of flip is deterministic going forward.
