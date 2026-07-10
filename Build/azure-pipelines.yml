@@ -105,6 +105,20 @@ stages:
     - checkout: self
       fetchDepth: 0
 
+    # This job builds three images (api, externalapi, gdalapi — the osgeo-based gdalapi alone is
+    # ~1.5GB) and the Defender scan then extracts their layers, pushing the hosted agent's small
+    # / disk past 95%. Reclaim space up front by removing preinstalled toolsets this job never
+    # uses (same fix as psinfo's build). NPT-1107 (gdalapi image rebase) will shrink the worst
+    # offender at the source.
+    - bash: |
+        echo "Disk before cleanup:"; df -h /
+        sudo rm -rf /usr/local/lib/android || true
+        sudo rm -rf /opt/ghc /usr/local/.ghcup || true
+        sudo rm -rf /opt/hostedtoolcache/CodeQL || true
+        docker builder prune -af || true
+        echo "Disk after cleanup:"; df -h /
+      displayName: 'Free up agent disk space'
+
     - task: AzureKeyVault@2
       inputs:
         azureSubscription: "$(azureSubscription)"
