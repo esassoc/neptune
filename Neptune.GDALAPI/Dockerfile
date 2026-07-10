@@ -7,7 +7,13 @@ EXPOSE 80
 # Install ASP.NET Core 10.0 runtime via Microsoft's dotnet-install script.
 # Avoids the dotnet/backports PPA (which requires reaching launchpad.net at build
 # time and was timing out from the QA build agent).
-RUN apt-get update && \
+# The base image ships the Apache Arrow apt repo (parquet support); its upstream
+# signing key rotated (NO_PUBKEY 9E922B2D60E9FD1C, 2026-07-10 QA build failure),
+# which fails ALL apt-get update runs. The arrow libs are already baked into the
+# image — we never apt-install from that repo — so drop its source entry rather
+# than chase the new key.
+RUN rm -f /etc/apt/sources.list.d/apache-arrow.sources /etc/apt/sources.list.d/*arrow*.list && \
+    apt-get update && \
     apt-get install -y --no-install-recommends wget ca-certificates && \
     rm -rf /var/lib/apt/lists/* && \
     wget -O /tmp/dotnet-install.sh https://dot.net/v1/dotnet-install.sh && \
