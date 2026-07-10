@@ -8,16 +8,16 @@ namespace Neptune.Jobs.Hangfire
     public class LoadGeneratingUnitRefreshJob
     {
         private readonly ILogger<LoadGeneratingUnitRefreshJob> _logger;
-        private readonly QGISAPIService _qgisApiService;
+        private readonly OverlayAPIService _overlayApiService;
 
-        public LoadGeneratingUnitRefreshJob(ILogger<LoadGeneratingUnitRefreshJob> logger, QGISAPIService qgisAPIService)
+        public LoadGeneratingUnitRefreshJob(ILogger<LoadGeneratingUnitRefreshJob> logger, OverlayAPIService overlayApiService)
         {
             _logger = logger;
-            _qgisApiService = qgisAPIService;
+            _overlayApiService = overlayApiService;
         }
 
         // DisableConcurrentExecution: LGU refreshes are enqueued on every delineation/BMP/WQMP boundary edit and
-        // chained from RSB refreshes; two overlapping QGIS overlay runs would race the delete-then-insert stored
+        // chained from RSB refreshes; two overlapping overlay runs would race the delete-then-insert stored
         // procs. Defense in depth — today the single Hangfire worker (WorkerCount = 1) already serializes jobs,
         // but this survives that ever being raised. Timeout is generous because a full refresh runs for hours;
         // a delta refresh queued behind one should wait rather than fail fast. No AutomaticRetry on purpose:
@@ -25,7 +25,7 @@ namespace Neptune.Jobs.Hangfire
         [DisableConcurrentExecution(timeoutInSeconds: 3600)]
         public async Task RunJob(int? loadGeneratingUnitRefreshAreaID)
         {
-            await _qgisApiService.GenerateLGUs(new GenerateLoadGeneratingUnitRequestDto()
+            await _overlayApiService.GenerateLGUs(new GenerateLoadGeneratingUnitRequestDto()
                 { LoadGeneratingUnitRefreshAreaID = loadGeneratingUnitRefreshAreaID });
             if (!loadGeneratingUnitRefreshAreaID.HasValue) 
             {

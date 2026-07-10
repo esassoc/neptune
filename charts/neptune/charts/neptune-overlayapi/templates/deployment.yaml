@@ -1,0 +1,91 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "overlayapi.fullname" . }}
+  labels:
+    tags.datadoghq.com/env: {{ .Values.global.env.name | quote }}
+    tags.datadoghq.com/service: {{ include "overlayapi.fullname" . }}
+    tags.datadoghq.com/version: {{ .Values.image.tag | quote }}
+    {{- include "overlayapi.labels" . | nindent 4 }}
+spec:
+  revisionHistoryLimit: 1 # Default to 10 if not specified
+  {{- if not .Values.autoscaling.enabled }}
+  replicas: {{ .Values.replicaCount }}
+  {{- end }}
+  selector:
+    matchLabels:
+      {{- include "overlayapi.selectorLabels" . | nindent 6 }}
+  template:
+    metadata:
+      annotations:
+        ad.datadoghq.com/tags: '{"teamName": "{{ .Values.namespace }}"}'
+        rollme: {{ randAlphaNum 5 | quote }}  # roll deployments on every upgrade: https://helm.sh/docs/howto/charts_tips_and_tricks/#automatically-roll-deployments
+      {{- with .Values.podAnnotations }}
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      labels:
+        {{- include "overlayapi.selectorLabels" . | nindent 8 }}
+    spec:
+      volumes:
+      - name: secrets
+        secret:
+          secretName: neptune-overlayapi-secrets
+      {{- with .Values.imagePullSecrets }}
+      imagePullSecrets:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      serviceAccountName: {{ include "overlayapi.serviceAccountName" . }}
+      securityContext:
+        {{- toYaml .Values.podSecurityContext | nindent 8 }}
+      containers:
+        - name: {{ .Chart.Name }}
+          securityContext:
+            {{- toYaml .Values.securityContext | nindent 12 }}
+          image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          ports:
+            - name: http
+              containerPort: 80
+              protocol: TCP
+          # Deliberately lenient probes: the parallel NTS union saturates the pod's cores for the few
+          # minutes a full overlay refresh runs, so slow probe responses are expected mid-run.
+          # failureThreshold 8 x 15s = ~2 min of consecutive failures before a restart — a liveness restart
+          # kills the in-flight refresh, so we only want it for a genuinely wedged pod.
+          livenessProbe:
+            httpGet:
+              path: /
+              port: http
+            initialDelaySeconds: 15
+            periodSeconds: 15
+            timeoutSeconds: 10
+            failureThreshold: 8
+          readinessProbe:
+            httpGet:
+              path: /
+              port: http
+            periodSeconds: 15
+            timeoutSeconds: 10
+          resources:
+            {{- toYaml .Values.resources | nindent 12 }}
+          envFrom:
+          - configMapRef:
+              name: {{ include "overlayapi.fullname" . }}-configmap
+          volumeMounts:
+          - name: secrets
+            mountPath: /app/secrets
+            readOnly: true
+          # - name: certs
+          #   mountPath: /https
+          #   readOnly: true
+      {{- with .Values.nodeSelector }}
+      nodeSelector:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.affinity }}
+      affinity:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.tolerations }}
+      tolerations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}

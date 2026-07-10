@@ -21,7 +21,7 @@ namespace Neptune.Jobs.Hangfire
         SitkaSmtpClientService sitkaSmtpClientService,
         NereidService nereidService,
         OCGISService ocgisService,
-        QGISAPIService qgisApiService)
+        OverlayAPIService overlayApiService)
     {
         public const string JobName = "Nereid Planned Project Network Solve";
 
@@ -107,7 +107,7 @@ You can view the results or trigger another network solve <a href='{planningURL}
 
         private async Task LoadGeneratingUnitRefreshImpl(int projectID, List<int> regionalSubbasinIDs)
         {
-            await qgisApiService.GeneratePLGUs(new GenerateProjectLoadGeneratingUnitRequestDto() { ProjectID = projectID, RegionalSubbasinIDs = regionalSubbasinIDs });
+            await overlayApiService.GeneratePLGUs(new GenerateProjectLoadGeneratingUnitRequestDto() { ProjectID = projectID, RegionalSubbasinIDs = regionalSubbasinIDs });
         }
 
         private async Task HRURefreshImpl(int projectID)

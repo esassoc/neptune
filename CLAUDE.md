@@ -82,7 +82,7 @@ npm test
 | **Neptune.Database** | SQL Server project (tables, views, stored procs, DacPac) |
 | **Neptune.Jobs** | Hangfire background jobs (HRU refresh, trash stats, network solves) |
 | **Neptune.GDALAPI** | Microservice wrapping GDAL/OGR2OGR for file format conversions |
-| **Neptune.QGISAPI** | Microservice wrapping QGIS for spatial analysis |
+| **Neptune.OverlayAPI** | Microservice computing LGU/TGU/PLGU polygon overlays in-process on NetTopologySuite (formerly Neptune.QGISAPI/QGIS) |
 | **Neptune.Tests** | MSTest unit tests with ApprovalTests |
 
 ### Data Flow
@@ -132,7 +132,7 @@ Configured with SQL Server storage, 1 worker, 0 auto-retries. Dashboard at `/han
 | Nereid | Stormwater load reduction modeling | `NereidUrl` |
 | OCGIS | HRU characteristics lookup (land use, precip zone) | `OCGISBaseUrl` |
 | GDAL API | OGR2OGR file format conversions | `GDALAPIBaseUrl` |
-| QGIS API | Spatial analysis | `QGISAPIBaseUrl` |
+| Overlay API | LGU/TGU/PLGU polygon overlays | `OverlayAPIBaseUrl` |
 | Azure Blob Storage | File/photo storage | `AzureBlobStorageConnectionString` |
 | SendGrid | Email notifications | `SendGridApiKey` |
 | Anthropic Claude | AI chat + WQMP document extraction | `AnthropicApiKey`, `ClaudeModelId` |
@@ -173,7 +173,7 @@ Services are containerized with multi-stage Dockerfiles (aspnet:10.0 runtime / s
 |---|---|
 | neptune.api | 8211 |
 | neptune.gdalapi | 8231 |
-| neptune.qgisapi | 8232 |
+| neptune.overlayapi | 8232 |
 | geoserver | 8780 |
 
 CI/CD is Azure Pipelines (`Build/azure-pipelines.yml`) deploying to Azure Kubernetes via Helm. Infrastructure managed by Terraform (`neptune.tf/`).

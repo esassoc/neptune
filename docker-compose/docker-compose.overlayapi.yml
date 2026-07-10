@@ -1,0 +1,6 @@
+services:
+  neptune.overlayapi:
+    image: neptune/overlayapi
+    build:
+      context: ..
+      dockerfile: Neptune.OverlayAPI/Dockerfile

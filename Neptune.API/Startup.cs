@@ -234,10 +234,10 @@ namespace Neptune.API
                 return httpClientHandler;
             });
 
-            services.AddHttpClient<QGISAPIService>(c =>
+            services.AddHttpClient<OverlayAPIService>(c =>
             {
-                c.BaseAddress = new Uri(configuration.QGISAPIBaseUrl);
-                c.Timeout = TimeSpan.FromMinutes(configuration.QGISAPIHttpClientTimeoutMinutes);
+                c.BaseAddress = new Uri(configuration.OverlayAPIBaseUrl);
+                c.Timeout = TimeSpan.FromMinutes(configuration.OverlayAPIHttpClientTimeoutMinutes);
             }).ConfigurePrimaryHttpMessageHandler(() =>
             {
                 var httpClientHandler = new HttpClientHandler();
