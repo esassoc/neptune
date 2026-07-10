@@ -293,7 +293,12 @@ overlayapi:
   nameOverride: ""
   fullnameOverride: ""
   namespace: h2o
-  # Sized from measured NPT-1105 NTS-port numbers: full TGU refresh peaks ~1.6-2.5 GiB working set.
+  # The 4Gi limit sized from pre-merge NPT-1105 benchmarks (~1.6-2.5 GiB peak) OOMKilled the pod
+  # (exit 137) ~7 min into the first QA-scale full TGU refresh on 2026-07-09 — QA data is heavier
+  # than the benchmark set, and working set scales with the parallel layer union's fan-out across
+  # every node core. 8Gi unblocks the soak; capture the Datadog peak-memory curve on the next
+  # nightly run to right-size, and consider bounding the union's degree of parallelism in code so
+  # memory is bounded regardless of node size.
   # No CPU limit on purpose: the parallel layer union deliberately saturates the node's cores for
   # the few minutes a full refresh runs.
   resources:
@@ -301,7 +306,7 @@ overlayapi:
       memory: "1Gi"
       cpu: "250m"
     limits:
-      memory: "4Gi"
+      memory: "8Gi"
   serviceAccount:
     # Specifies whether a service account should be created
     create: true
