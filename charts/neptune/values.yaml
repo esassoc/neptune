@@ -293,6 +293,15 @@ qgisapi:
   nameOverride: ""
   fullnameOverride: ""
   namespace: h2o
+  # Starting guesses — QGIS overlay runs are memory-hungry and previously ran with no limits at all
+  # (an unbounded pod risks node-level OOM). Capture kubectl top / Datadog during a nightly TGU
+  # refresh (22:30) and tune. No CPU limit on purpose: don't throttle the multi-hour overlay.
+  resources:
+    requests:
+      memory: "2Gi"
+      cpu: "250m"
+    limits:
+      memory: "8Gi"
   serviceAccount:
     # Specifies whether a service account should be created
     create: true

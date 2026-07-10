@@ -10,6 +10,10 @@ namespace Neptune.API.Services.Authorization
     // stop action. OnAuthorizationCore tightens to "must currently be impersonating."
     public class StopImpersonationFeature : BaseAuthorizationAttribute
     {
+        // Impersonation start/stop must authorize the REAL (authenticated) admin, even while
+        // they are wearing a low-privilege impersonated identity.
+        protected override bool EvaluateAuthenticatedUserOnly => true;
+
         public StopImpersonationFeature() : base(new[] { RoleEnum.Admin, RoleEnum.SitkaAdmin })
         {
         }

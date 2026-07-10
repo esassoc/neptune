@@ -12,6 +12,11 @@ public class NeptuneConfiguration : NeptuneJobConfiguration
 
     public string GDALAPIBaseUrl { get; set; }
     public string QGISAPIBaseUrl { get; set; }
+
+    // Backstop above the QGIS API's python3 process timeout (QgisProcessTimeoutMinutes, default 240) so the
+    // QGIS side times out first and returns a real 500 (stderr detail -> support email) before this client gives up.
+    public int QGISAPIHttpClientTimeoutMinutes { get; set; } = 270;
+
     public string OCGISBaseUrl { get; set; }
 
     public string AnthropicApiKey { get; set; }
