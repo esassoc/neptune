@@ -28,6 +28,17 @@ public static class OverlayEngine
         new PrecisionModel(), Neptune.Common.GeoSpatial.Proj4NetHelper.NAD_83_HARN_CA_ZONE_VI_SRID,
         PackedCoordinateSequenceFactory.DoubleFactory);
 
+    // Leave one core free for Kestrel. Unbounded Parallel.ForEach saturated every thread-pool
+    // worker with long CPU-bound iterations for the entire multi-minute run, so the pod's
+    // health endpoints couldn't get a thread — the kubelet liveness probe timed out repeatedly
+    // and SIGKILLed the container mid-refresh (QA nightly TGU, 2026-07-09 and -10; the API
+    // sees it as "response ended prematurely"). Costs ~1/8 of throughput on the QA nodes;
+    // keeps the pod responsive to probes and concurrent overlay calls.
+    private static readonly ParallelOptions ParallelOpts = new()
+    {
+        MaxDegreeOfParallelism = Math.Max(1, Environment.ProcessorCount - 1),
+    };
+
     /// <summary>
     /// Make valid + buffer(0) + force polygonal/2D. Replaces the QGIS bufferSnapFix pipeline.
     /// Features whose geometry cleans to empty are dropped.
@@ -124,7 +135,7 @@ public static class OverlayEngine
         var results = new ConcurrentBag<OverlayFeature>();
         var bIntersectorGeometries = new ConcurrentDictionary<int, ConcurrentBag<Geometry>>();
 
-        Parallel.ForEach(layerA, a =>
+        Parallel.ForEach(layerA, ParallelOpts, a =>
         {
             var prepared = PreparedGeometryFactory.Prepare(a.Geometry);
             var hits = new List<int>();
@@ -189,7 +200,7 @@ public static class OverlayEngine
     {
         var prepared = PreparedGeometryFactory.Prepare(clipBoundary);
         var results = new ConcurrentBag<OverlayFeature>();
-        Parallel.ForEach(layer, feature =>
+        Parallel.ForEach(layer, ParallelOpts, feature =>
         {
             if (!prepared.Intersects(feature.Geometry)) return;
             if (prepared.Contains(feature.Geometry))
