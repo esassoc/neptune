@@ -30,10 +30,10 @@ public static class OverlayEngine
 
     // Leave one core free for Kestrel. Unbounded Parallel.ForEach saturated every thread-pool
     // worker with long CPU-bound iterations for the entire multi-minute run, so the pod's
-    // health endpoints couldn't get a thread — the kubelet liveness probe timed out 8+ times
-    // in a row and SIGKILLed the container mid-refresh (QA nightly TGU, 2026-07-09 and -10;
-    // the API sees it as "response ended prematurely"). Costs ~1/8 of throughput on the QA
-    // nodes; keeps the pod responsive to probes and concurrent overlay calls.
+    // health endpoints couldn't get a thread — the kubelet liveness probe timed out repeatedly
+    // and SIGKILLed the container mid-refresh (QA nightly TGU, 2026-07-09 and -10; the API
+    // sees it as "response ended prematurely"). Costs ~1/8 of throughput on the QA nodes;
+    // keeps the pod responsive to probes and concurrent overlay calls.
     private static readonly ParallelOptions ParallelOpts = new()
     {
         MaxDegreeOfParallelism = Math.Max(1, Environment.ProcessorCount - 1),
