@@ -293,18 +293,18 @@ overlayapi:
   nameOverride: ""
   fullnameOverride: ""
   namespace: h2o
-  # The 4Gi limit sized from pre-merge NPT-1105 benchmarks (~1.6-2.5 GiB peak) OOMKilled the pod
-  # (exit 137) ~7 min into the first QA-scale full TGU refresh on 2026-07-09 — QA data is heavier
-  # than the benchmark set, and working set scales with the parallel layer union's fan-out across
-  # every node core. 8Gi unblocks the soak; capture the Datadog peak-memory curve on the next
-  # nightly run to right-size, and consider bounding the union's degree of parallelism in code so
-  # memory is bounded regardless of node size.
-  # No CPU limit on purpose: the parallel layer union deliberately saturates the node's cores for
-  # the few minutes a full refresh runs.
+  # 2026-07-10 postmortem: the 7/9 and 7/10 exit-137 kills were the kubelet LIVENESS probe (thread
+  # pool starved by the then-unbounded parallel union — see OverlayEngine.ParallelOpts), not OOM;
+  # observed memory peak was well under 1Gi on the full QA TGU refresh. Keeping the 8Gi limit as
+  # headroom anyway. CPU request raised 250m -> 2000m: with no CPU limit the pod bursts to ~6.4
+  # cores on the 8-core QA nodes, and a 250m request gave it almost no CFS share under node
+  # contention (daytime delta solves would crawl) and understated scheduling needs.
+  # No CPU limit on purpose: the parallel layer union deliberately saturates cores-1 for the few
+  # minutes a full refresh runs.
   resources:
     requests:
       memory: "1Gi"
-      cpu: "250m"
+      cpu: "2000m"
     limits:
       memory: "8Gi"
   serviceAccount:

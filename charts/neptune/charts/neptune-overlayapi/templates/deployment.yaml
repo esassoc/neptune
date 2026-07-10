@@ -49,8 +49,13 @@ spec:
               protocol: TCP
           # Deliberately lenient probes: the parallel NTS union saturates the pod's cores for the few
           # minutes a full overlay refresh runs, so slow probe responses are expected mid-run.
-          # failureThreshold 8 x 15s = ~2 min of consecutive failures before a restart — a liveness restart
-          # kills the in-flight refresh, so we only want it for a genuinely wedged pod.
+          # The original 8 x 15s (~2 min) tolerance was NOT lenient enough — the 7/9 and 7/10 QA
+          # nightly TGU refreshes starved Kestrel for the whole ~8-min run and kubelet SIGKILLed the
+          # pod mid-job (the API saw "response ended prematurely"). OverlayEngine now caps its
+          # parallelism at cores-1 so probes should answer; this 40 x 15s (~10 min) threshold is
+          # belt-and-braces so a saturated-but-healthy run can never be mistaken for a wedged pod.
+          # The cost: a genuinely wedged pod takes up to 10 min to restart — acceptable for an
+          # internal batch service.
           livenessProbe:
             httpGet:
               path: /
@@ -58,7 +63,7 @@ spec:
             initialDelaySeconds: 15
             periodSeconds: 15
             timeoutSeconds: 10
-            failureThreshold: 8
+            failureThreshold: 40
           readinessProbe:
             httpGet:
               path: /
