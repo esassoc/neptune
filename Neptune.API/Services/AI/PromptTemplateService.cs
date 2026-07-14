@@ -27,10 +27,15 @@ public sealed class PromptTemplateService : IPromptTemplateService
     // callers can still pass an explicit version to override for A/B testing.
     private static readonly Dictionary<PromptTemplate, string> ActiveVersion = new()
     {
-        [PromptTemplate.ExtractWqmpFields] = "v2",
-        [PromptTemplate.ExtractParcels] = "v2",
-        [PromptTemplate.ExtractQuickBMPs] = "v3",
-        [PromptTemplate.ExtractSourceControlBMPs] = "v3",
+        // NPT-1106 round 3: v3/v4 switch "not found" from null to sentinels ("" for strings,
+        // all-zero BoundingBox) — strict tool use caps union-typed schema params at 16 per
+        // request, and the nullable-everywhere schemas carried 132. WqmpExtractionService
+        // normalizes the sentinels back to nulls before storage, so the persisted
+        // ExtractionResultJson contract is unchanged.
+        [PromptTemplate.ExtractWqmpFields] = "v3",
+        [PromptTemplate.ExtractParcels] = "v3",
+        [PromptTemplate.ExtractQuickBMPs] = "v4",
+        [PromptTemplate.ExtractSourceControlBMPs] = "v4",
     };
 
     private readonly string _promptsDirectory;
