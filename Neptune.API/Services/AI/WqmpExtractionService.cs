@@ -4,6 +4,7 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
 using System.Text.Json;
+using System.Text.Json.Nodes;
 using System.Threading;
 using System.Threading.Tasks;
 using Anthropic;
@@ -71,14 +72,18 @@ public class WqmpExtractionService
 
         var domainContext = await BuildDomainContext();
 
+        // NPT-1106 round 3: "not found" is expressed with sentinels ("" for the three strings,
+        // all-zero BoundingBox) instead of nulls — strict tool use caps union-typed schema
+        // parameters at 16 per request, and nullable-everywhere schemas carried 132.
+        // NormalizeNotFoundSentinels converts the sentinels back to nulls post-receive, so the
+        // stored ExtractionResultJson contract is unchanged.
         var evidenceInstructions =
             $"SchemaVersion: {SchemaVersion}. Use ONLY the provided WQMP PDF. Each attribute object MUST match ExtractedValueSchema. " +
-            "Value = raw extracted string or null; ExtractionEvidence = source snippet (preceding sentence, target sentence, following sentence OR nearby table text); DocumentSource = page reference (e.g. 'Page 12'). " +
+            "Value = raw extracted string, or empty string \"\" when not found; ExtractionEvidence = source snippet (preceding sentence, target sentence, following sentence OR nearby table text); DocumentSource = page reference (e.g. 'Page 12'). " +
             "BoundingBox = {PageNumber, X, Y, Width, Height} locating the evidence on the page. X/Y/Width/Height are 0-1 fractions of page size where (0,0) is top-left and (1,1) is bottom-right. " +
-            "ALWAYS emit BoundingBox whenever Value is not null. The rectangle should tightly cover the ACTUAL TEXT of ExtractionEvidence — measure from the top of the character baselines to the bottom, and from the first character to the last. Do NOT center the box on surrounding whitespace, adjacent paragraphs, or 'the general area'; point directly at the text characters themselves. " +
+            "ALWAYS emit a real BoundingBox whenever Value is non-empty. The rectangle should tightly cover the ACTUAL TEXT of ExtractionEvidence — measure from the top of the character baselines to the bottom, and from the first character to the last. Do NOT center the box on surrounding whitespace, adjacent paragraphs, or 'the general area'; point directly at the text characters themselves. " +
             "For scanned/rasterized pages, look at the page image and estimate from the ink positions. Use a typical line height of ~0.02–0.04 (2–4% of page height) for a single-line field value; taller for multi-line evidence. " +
-            "Only set BoundingBox to null if Value is also null (field not found in the document). " +
-            "If not found, set Value, ExtractionEvidence, DocumentSource, BoundingBox to null. Do not add or rename properties.\n" +
+            "If a field is not found in the document: set Value, ExtractionEvidence, and DocumentSource to empty strings and set every BoundingBox number (PageNumber, X, Y, Width, Height) to 0. Do not add or rename properties.\n" +
             $"ExtractedValueSchema: {ExtractedValueSchema.Value}";
 
         // Build all 4 tools upfront — identical across all parallel calls so the tools-level cache is shared.
@@ -200,6 +205,12 @@ public class WqmpExtractionService
                 }
                 else
                 {
+                    // NPT-1106 round 3: the strict schemas express "not found" as sentinels
+                    // ("" strings / all-zero BoundingBox) to stay under the 16-union strict
+                    // compilation cap. Convert them back to nulls here so the stored
+                    // ExtractionResultJson keeps the original null-based contract the SPA
+                    // review wizard and the approve endpoint consume.
+                    output = NormalizeNotFoundSentinels(output);
                     _logger.LogInformation("Finished extraction category: {Category} in {ElapsedMs}ms ({OutputChars} chars, cached={CachedTokens})",
                         key, catSw.ElapsedMilliseconds, output.Length, cachedTokens);
                 }
@@ -433,10 +444,18 @@ public class WqmpExtractionService
             // double-encoded string with unescaped quotes / trailing commas that no regex
             // cleanup could reliably repair. Strict requires additionalProperties:false +
             // required on every object INCLUDING the root, so the schema JSON is passed to
-            // InputSchema wholesale via the raw-data constructor — the previous
-            // Properties/Required-only initializer silently dropped the root-level
-            // additionalProperties:false.
-            Strict = true,
+            // InputSchema wholesale via the raw-data constructor.
+            //
+            // Strict is per-category: the API compiles EVERY strict tool in the request into a
+            // grammar and rejects the request when the combined grammar is too large ("The
+            // compiled grammar is too large"). All four tools ride in every request so the
+            // prompt-cache prefix (tools -> system -> the large PDF) stays identical across the
+            // four parallel category calls — flipping Strict per call would split that cache
+            // four ways. Instead the WQMP tool (22 of the 33 ExtractedValue objects — the bulk
+            // of the grammar) stays non-strict: its single-object output has never exhibited
+            // the corruption class, which lives in the array categories' `items` handling
+            // (SourceControlBMPs above all — see NPT-1054). The three array tools stay strict.
+            Strict = categoryKey != "WQMP",
             InputSchema = new(parsed ?? new Dictionary<string, JsonElement>()),
         };
     }
@@ -480,15 +499,78 @@ public class WqmpExtractionService
         try { using var _ = JsonDocument.Parse(candidate); return true; } catch { return false; }
     }
 
+    // NPT-1106 round 3: the strict tool schemas can't use nullable/union types (Anthropic caps
+    // union-typed parameters at 16 per request; nullable-everywhere carried 132), so "not
+    // found" arrives as sentinels: empty strings for Value/ExtractionEvidence/DocumentSource
+    // and an all-zero BoundingBox (PageNumber 0). This walks the category output and restores
+    // the null-based contract every downstream consumer (SPA review wizard, approve endpoint,
+    // stored ExtractionResultJson) was built against. Defensive: any parse hiccup returns the
+    // input unchanged — the caller already validated it as JSON.
+    public static string NormalizeNotFoundSentinels(string json)
+    {
+        try
+        {
+            var root = JsonNode.Parse(json);
+            if (root == null) return json;
+            NormalizeNode(root);
+            return root.ToJsonString();
+        }
+        catch (Exception)
+        {
+            return json;
+        }
+    }
+
+    private static void NormalizeNode(JsonNode node)
+    {
+        switch (node)
+        {
+            case JsonObject obj when obj.ContainsKey("Value") && obj.ContainsKey("BoundingBox"):
+                // ExtractedValue shape — apply the sentinel conversions and stop descending.
+                foreach (var key in new[] { "Value", "ExtractionEvidence", "DocumentSource" })
+                {
+                    if (obj[key] is JsonValue v && v.TryGetValue<string>(out var s) && string.IsNullOrWhiteSpace(s))
+                    {
+                        obj[key] = null;
+                    }
+                }
+                if (obj["BoundingBox"] is JsonObject boundingBox
+                    && boundingBox["PageNumber"] is JsonValue pageNumber
+                    && pageNumber.TryGetValue<double>(out var page) && page < 1)
+                {
+                    obj["BoundingBox"] = null;
+                }
+                break;
+            case JsonObject obj:
+                foreach (var property in obj.ToList())
+                {
+                    if (property.Value != null) NormalizeNode(property.Value);
+                }
+                break;
+            case JsonArray array:
+                foreach (var item in array.ToList())
+                {
+                    if (item != null) NormalizeNode(item);
+                }
+                break;
+        }
+    }
+
+    // NPT-1106 round 3: no union types anywhere in these schemas. Strict tool use compiles
+    // schemas into grammars server-side and caps union-typed parameters (type arrays / anyOf)
+    // at 16 per request; the previous nullable-everywhere shape carried 132 across the four
+    // tools and every extraction 400'd. "Not found" is now an empty string ("") for the three
+    // strings and an all-zero BoundingBox — NormalizeNotFoundSentinels restores nulls
+    // post-receive so downstream consumers see the original contract.
     private static object ExtractedValueProp(string description) => new
     {
         type = "object",
         description,
         properties = new
         {
-            Value = new { type = new[] { "string", "null" }, description = "Raw extracted value or null." },
-            ExtractionEvidence = new { type = new[] { "string", "null" }, description = "Source snippet or null." },
-            DocumentSource = new { type = new[] { "string", "null" }, description = "Page reference or null." },
+            Value = new { type = "string", description = "Raw extracted value; empty string when not found." },
+            ExtractionEvidence = new { type = "string", description = "Source snippet; empty string when not found." },
+            DocumentSource = new { type = "string", description = "Page reference; empty string when not found." },
             BoundingBox = BoundingBoxProp()
         },
         required = new[] { "Value", "ExtractionEvidence", "DocumentSource", "BoundingBox" },
@@ -496,16 +578,16 @@ public class WqmpExtractionService
     };
 
     // Spatial hint for the evidence region on the page. Normalized 0-1 fractions relative
-    // to the page's own width/height, top-left origin. Claude should emit this whenever
-    // Value is non-null — a rough estimate is more useful than null. Only null when the
-    // field wasn't found in the document.
+    // to the page's own width/height, top-left origin. Claude should emit a real box whenever
+    // Value is non-empty — a rough estimate is more useful than none. All-zero (PageNumber 0)
+    // is the not-found sentinel; NormalizeNotFoundSentinels converts it back to null.
     private static object BoundingBoxProp() => new
     {
-        type = new[] { "object", "null" },
-        description = "Required {PageNumber, X, Y, Width, Height} locating the evidence on its page. X/Y/Width/Height are 0-1 fractions of page size (top-left origin). Null only when Value is null.",
+        type = "object",
+        description = "Required {PageNumber, X, Y, Width, Height} locating the evidence on its page. X/Y/Width/Height are 0-1 fractions of page size (top-left origin). Set every number to 0 only when Value is empty (field not found).",
         properties = new
         {
-            PageNumber = new { type = "integer", description = "1-based page index." },
+            PageNumber = new { type = "integer", description = "1-based page index; 0 when the field was not found." },
             X = new { type = "number", description = "Left edge, fraction of page width." },
             Y = new { type = "number", description = "Top edge, fraction of page height." },
             Width = new { type = "number", description = "Width, fraction of page width." },
@@ -525,9 +607,9 @@ public class WqmpExtractionService
             description = "ExtractedValue schema. Attribute with evidence.",
             properties = new
             {
-                Value = new { type = new[] { "string", "null" }, description = "Raw extracted value or null." },
-                ExtractionEvidence = new { type = new[] { "string", "null" }, description = "Snippet: preceding, target, following sentence OR nearby table text." },
-                DocumentSource = new { type = new[] { "string", "null" }, description = "Page reference (e.g. 'Page 12')." },
+                Value = new { type = "string", description = "Raw extracted value; empty string when not found." },
+                ExtractionEvidence = new { type = "string", description = "Snippet: preceding, target, following sentence OR nearby table text; empty string when not found." },
+                DocumentSource = new { type = "string", description = "Page reference (e.g. 'Page 12'); empty string when not found." },
                 BoundingBox = BoundingBoxProp()
             },
             required = new[] { "Value", "ExtractionEvidence", "DocumentSource", "BoundingBox" },
@@ -574,27 +656,45 @@ public class WqmpExtractionService
         return JsonSerializer.Serialize(schema);
     }
 
+    // NPT-1106 round 3: the array-category schemas define ExtractedValue ONCE in $defs and
+    // $ref it per field. Strict grammar compilation counts every inlined object — the three
+    // array tools inlined (11 ExtractedValues) exceeded the "compiled grammar is too large"
+    // cap (QuickBMPs' 7 alone did), while the identical shapes with $refs compile fine
+    // (verified against the live API). Per-field guidance rides as a sibling `description`
+    // next to each $ref, which the strict validator accepts.
     private static string WrapAsArraySchema(string description, object itemSchema)
     {
-        var schema = new
+        var schema = new Dictionary<string, object>
         {
-            type = "object",
-            description,
-            properties = new Dictionary<string, object>
+            ["type"] = "object",
+            ["description"] = description,
+            ["$defs"] = new Dictionary<string, object>
+            {
+                ["ExtractedValue"] = ExtractedValueProp("Attribute with evidence.")
+            },
+            ["properties"] = new Dictionary<string, object>
             {
                 ["items"] = new { type = "array", items = itemSchema }
             },
-            required = new[] { "items" },
-            additionalProperties = false
+            ["required"] = new[] { "items" },
+            ["additionalProperties"] = false
         };
         return JsonSerializer.Serialize(schema);
     }
+
+    // Field property for array-category item schemas: a $ref to the shared ExtractedValue
+    // definition plus the per-field guidance as a sibling description.
+    private static Dictionary<string, object> ExtractedValueRef(string description) => new()
+    {
+        ["$ref"] = "#/$defs/ExtractedValue",
+        ["description"] = description
+    };
 
     private static object BuildParcelItemSchema()
     {
         var properties = new Dictionary<string, object>
         {
-            ["ParcelNumber"] = ExtractedValueProp("APN (e.g. XXX-XX-XXX or XXX-XXX-XX)")
+            ["ParcelNumber"] = ExtractedValueRef("APN (e.g. XXX-XX-XXX or XXX-XXX-XX)")
         };
         return new
         {
@@ -616,13 +716,13 @@ public class WqmpExtractionService
     {
         var properties = new Dictionary<string, object>
         {
-            ["QuickBMPName"] = ExtractedValueProp("Simple BMP name as written in the document."),
-            ["TreatmentBMPType"] = ExtractedValueProp("BMP type/classification name; should match a TreatmentBMPType from DomainContext when possible."),
-            ["NumberOfIndividualBMPs"] = ExtractedValueProp("Count of individual physical BMP units this row represents (default 1 if not stated)."),
-            ["PercentOfSiteTreated"] = ExtractedValueProp("% of the WQMP site this BMP treats (0-100)."),
-            ["PercentCaptured"] = ExtractedValueProp("% of design storm captured by this BMP (0-100)."),
-            ["PercentRetained"] = ExtractedValueProp("% of design storm retained on-site (0-100; must be <= PercentCaptured)."),
-            ["QuickBMPNote"] = ExtractedValueProp("Free-form note about this BMP (≤200 chars).")
+            ["QuickBMPName"] = ExtractedValueRef("Simple BMP name as written in the document."),
+            ["TreatmentBMPType"] = ExtractedValueRef("BMP type/classification name; should match a TreatmentBMPType from DomainContext when possible."),
+            ["NumberOfIndividualBMPs"] = ExtractedValueRef("Count of individual physical BMP units this row represents (default 1 if not stated)."),
+            ["PercentOfSiteTreated"] = ExtractedValueRef("% of the WQMP site this BMP treats (0-100)."),
+            ["PercentCaptured"] = ExtractedValueRef("% of design storm captured by this BMP (0-100)."),
+            ["PercentRetained"] = ExtractedValueRef("% of design storm retained on-site (0-100; must be <= PercentCaptured)."),
+            ["QuickBMPNote"] = ExtractedValueRef("Free-form note about this BMP (≤200 chars).")
         };
         return new
         {
@@ -640,9 +740,9 @@ public class WqmpExtractionService
     {
         var properties = new Dictionary<string, object>
         {
-            ["SourceControlBMPAttribute"] = ExtractedValueProp("Source control attribute name."),
-            ["IsPresent"] = ExtractedValueProp("Indicates presence (Yes/No)."),
-            ["SourceControlBMPNote"] = ExtractedValueProp("Attribute notes.")
+            ["SourceControlBMPAttribute"] = ExtractedValueRef("Source control attribute name."),
+            ["IsPresent"] = ExtractedValueRef("Indicates presence (Yes/No)."),
+            ["SourceControlBMPNote"] = ExtractedValueRef("Attribute notes.")
         };
         return new
         {
