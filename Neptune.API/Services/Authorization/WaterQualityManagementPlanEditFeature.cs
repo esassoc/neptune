@@ -24,6 +24,15 @@ namespace Neptune.API.Services.Authorization
 
             var waterQualityManagementPlan = WaterQualityManagementPlans.GetByIDForFeatureContextCheck(dbContext, waterQualityManagementPlanID);
 
+            // Authorization filters run before EntityNotFoundAttribute — translate a
+            // nonexistent WQMP into the 404 that attribute would have produced, rather
+            // than throwing (which would 500).
+            if (waterQualityManagementPlan == null)
+            {
+                context.Result = new NotFoundResult();
+                return;
+            }
+
             if (user == null || user.IsAnonymousOrUnassigned())
             {
                 context.Result = new ForbidResult();
