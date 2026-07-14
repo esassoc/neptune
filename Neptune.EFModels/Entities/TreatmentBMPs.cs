@@ -698,17 +698,17 @@ public static class TreatmentBMPs
         }).ToList();
     }
 
-    public static TreatmentBMP GetByIDForFeatureContextCheck(NeptuneDbContext dbContext, int treatmentBMPID)
+    // NPT-1109 (Copilot follow-up): returns null rather than throwing for a nonexistent ID —
+    // authorization filters run BEFORE EntityNotFoundAttribute, so a throw here surfaced a
+    // bogus route id as a 500 instead of a 404. The calling feature attributes translate
+    // null into NotFoundResult themselves.
+    public static TreatmentBMP? GetByIDForFeatureContextCheck(NeptuneDbContext dbContext, int treatmentBMPID)
     {
-        var treatmentBMP = dbContext.TreatmentBMPs
+        return dbContext.TreatmentBMPs
             .Include(x => x.StormwaterJurisdiction)
             .ThenInclude(x => x.Organization)
             .AsNoTracking()
             .SingleOrDefault(x => x.TreatmentBMPID == treatmentBMPID);
-
-        Check.RequireNotNull(treatmentBMP, $"TreatmentBMP with ID {treatmentBMPID} not found!");
-
-        return treatmentBMP;
     }
 
     public static List<TreatmentBMP> ListByWaterQualityManagementPlanIDWithChangeTracking(
