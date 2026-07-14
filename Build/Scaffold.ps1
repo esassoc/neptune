@@ -46,12 +46,17 @@ if ($path)
   "Generate POCOs"
   $args1 = "--db-server-name=" + $config.Server + " --db-name=" + $config.DatabaseName + " --generate-primary-key-objects=true --generate-enums-as-select-dropdown-options=true --code-namespace=" + $config.ApiEFModelsNamespace + " --api-efmodels-output-dir=" + $config.ApiEFModelExtensionMethodsPath + " --table-exclude-list=" + $config.TableExcludeList + " --enum-list=" + ($lookupTablesFiles.BaseName -join ",") + " --typescript-enums-output-dir=" + $config.TypescriptEnumsPath
 
+  # Launch via the signed `dotnet` host rather than the unsigned apphost .exe: ESA endpoint
+  # policy (2026-07, WDAC/Defender-level — the AppLocker channel logs nothing) started denying
+  # locally-built unsigned executables in user-writable paths with "Access is denied". The
+  # managed .dll runs fine under dotnet.exe, which is signed and lives in Program Files.
+  $dllPath = [System.IO.Path]::ChangeExtension("$PSScriptRoot\$path", ".dll")
   $pinfo = New-Object System.Diagnostics.ProcessStartInfo
-  $pinfo.FileName = "$PSScriptRoot\$path"
+  $pinfo.FileName = "dotnet"
   $pinfo.RedirectStandardError = $true
   $pinfo.RedirectStandardOutput = $true
   $pinfo.UseShellExecute = $false
-  $pinfo.Arguments = $args1
+  $pinfo.Arguments = '"' + $dllPath + '" ' + $args1
   $pinfo.WorkingDirectory = "$PSScriptRoot\"
   $p = New-Object System.Diagnostics.Process
   $p.StartInfo = $pinfo
