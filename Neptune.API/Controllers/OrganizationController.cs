@@ -1,4 +1,4 @@
-﻿using System.Collections.Generic;
+using System.Collections.Generic;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Logging;
@@ -17,7 +17,9 @@ public class OrganizationController(NeptuneDbContext dbContext, ILogger<Organiza
     : SitkaController<OrganizationController>(dbContext, logger, neptuneConfiguration)
 {
     [HttpGet]
-    [AdminFeature]
+    // NPT-1104: reference list consumed by JE/JM-facing flows (BMP Edit Basics owner-org dropdown /
+    // funding-event modal / BMP create / project basics) — AdminFeature 403'd those flows on open.
+    [JurisdictionEditFeature]
     public async Task<ActionResult<List<OrganizationDto>>> List()
     {
         var organizations = await Organizations.ListAsDtoAsync(DbContext);

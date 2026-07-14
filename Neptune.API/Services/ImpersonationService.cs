@@ -23,6 +23,23 @@ namespace Neptune.API.Services
             return impersonatedUser?.AsDto() ?? authenticatedUser;
         }
 
+        /// <summary>
+        /// Entity twin of <see cref="GetEffectiveUser"/> for the authorization pipeline (NPT-1104 rework):
+        /// authorization gates must evaluate the impersonated person — including their
+        /// StormwaterJurisdictionPeople assignments (People.GetByID includes them) — or impersonation can
+        /// never surface authorization failures (the UI wears the impersonated identity while every gate
+        /// passes as the admin). Production behavior is unchanged: impersonation no-ops there.
+        /// </summary>
+        public Person? GetEffectivePerson(NeptuneDbContext dbContext, Person? authenticatedUser)
+        {
+            if (environment.IsProduction() || authenticatedUser?.ImpersonatedPersonID == null)
+            {
+                return authenticatedUser;
+            }
+
+            return People.GetByID(dbContext, authenticatedUser.ImpersonatedPersonID.Value) ?? authenticatedUser;
+        }
+
         public async Task<PersonDto?> ImpersonateUserAsync(NeptuneDbContext dbContext, HttpContext httpContext, int targetPersonID)
         {
             // Use UserContext to resolve the authenticated user — handles both the standard

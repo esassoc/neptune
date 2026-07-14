@@ -20,10 +20,16 @@ public static class SourceControlBMPs
     public static async Task<List<SourceControlBMPDto>> ListByWaterQualityManagementPlanIDAsDtoAsync(
         NeptuneDbContext dbContext, int waterQualityManagementPlanID)
     {
+        // NPT-1106 round 2: return every persisted row, including IsPresent=false with no note.
+        // MergeAsync stores explicit "No" answers, but this list used to filter them out —
+        // so the AI-review Step 5 compared a saved "No" against an apparently-empty record
+        // ("Pending Save" forever), and the SC editor prefilled those rows as unset (a
+        // subsequent replace-all save then deleted the persisted "No" via MergeDelete).
+        // Display surfaces that only want affirmative rows (WQMP detail panel, verification
+        // workflow) filter client-side.
         var dtos = await dbContext.SourceControlBMPs
             .AsNoTracking()
             .Where(x => x.WaterQualityManagementPlanID == waterQualityManagementPlanID)
-            .Where(x => x.SourceControlBMPNote != null || x.IsPresent == true)
             .OrderBy(x => x.SourceControlBMPAttributeID)
             .Select(SourceControlBMPProjections.AsDto)
             .ToListAsync();

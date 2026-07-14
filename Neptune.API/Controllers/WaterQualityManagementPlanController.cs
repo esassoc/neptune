@@ -74,7 +74,9 @@ namespace Neptune.API.Controllers
         }
 
         [HttpGet("display-dtos")]
-        [AdminFeature]
+        // NPT-1104: reference list consumed by JE/JM-facing flows (BMP Edit Basics WQMP dropdown /
+        // BMP create) — AdminFeature 403'd those flows on open.
+        [JurisdictionEditFeature]
         public async Task<ActionResult<List<WaterQualityManagementPlanDisplayDto>>> ListAsDisplayDtos()
         {
             var plans = await WaterQualityManagementPlans.ListAsDisplayDtoAsync(DbContext);

@@ -47,7 +47,10 @@ export class ReviewSummaryComponent {
     @Input() locationFields: ExtractedField[] = [];
     @Input() basicsFields: ExtractedField[] = [];
     @Input() parcelFields: ExtractedField[] = [];
-    @Input() bmpGroups: { bmpIndex: number; displayName: string | null; fields: ExtractedField[]; isRejected: boolean }[] = [];
+    // NPT-1106 round 2: wqmpRecordValue carries the persisted QuickBMP name (matched by the
+    // backend merge's name key) so BMP rows can reach "Saved" — it was previously hard-coded
+    // null in toRow, which made getSaveStatus() return "pending" for every BMP forever.
+    @Input() bmpGroups: { bmpIndex: number; displayName: string | null; fields: ExtractedField[]; isRejected: boolean; wqmpRecordValue: string | null }[] = [];
     // NPT-1054: flat list of Source Control BMP rows. origin mirrors Step 4's row classifier
     // (getSourceControlRowOrigin) so the AI pill only shows when the displayed value actually
     // came from the AI — not when the user accepted a value that was already on the record.
@@ -126,8 +129,10 @@ export class ReviewSummaryComponent {
                 return {
                     label: `BMP #${g.bmpIndex + 1}`,
                     displayValue: g.isRejected ? "(rejected)" : display,
-                    // BMP rows don't map to a single WQMP-record column — leave blank.
-                    wqmpRecordValue: null,
+                    // NPT-1106 round 2: persisted-QuickBMP match from the parent. A saved BMP
+                    // now compares equal and shows "Saved"; unmatched (unsaved / renamed) rows
+                    // keep the empty record value and show "Pending save".
+                    wqmpRecordValue: g.wqmpRecordValue,
                     state,
                     origin: "ai",
                 };
