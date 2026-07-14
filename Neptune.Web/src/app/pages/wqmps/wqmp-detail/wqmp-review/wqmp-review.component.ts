@@ -399,9 +399,10 @@ export class WqmpReviewComponent implements OnInit, IDeactivateComponent {
     }
 
     runExtraction(): void {
-        // NPT-984: backend endpoint is [JurisdictionManageFeature], same as the upload flow
-        // that landed the user here. No frontend role gate — the wizard route itself is
-        // only reachable via paths that already require manage permission.
+        // NPT-1109: backend endpoint is [WaterQualityManagementPlanEditFeature] — Editor and
+        // up, jurisdiction-matched to this WQMP. No frontend role gate here: the wizard's
+        // entry points (Create from PDF on the list page, Review AI Extraction on the detail
+        // page) are both currentPersonCanEdit-gated, and the API enforces the rest.
         this.isExtracting.set(true);
         this.alertService.clearAlerts();
         this.wqmpService.runExtractionWaterQualityManagementPlan(this.waterQualityManagementPlanID)

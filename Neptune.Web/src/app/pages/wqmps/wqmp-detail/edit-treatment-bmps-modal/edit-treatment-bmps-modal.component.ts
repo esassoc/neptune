@@ -25,6 +25,13 @@ export class EditTreatmentBMPsModalComponent implements OnInit {
     public availableBMPs$: Observable<TreatmentBMPMinimalDto[]>;
     public pickerBMPID: number | null = null;
 
+    // NPT-1109: ng-select custom search matching what the option template renders —
+    // "TreatmentBMPName (TreatmentBMPTypeName)" — case-insensitive substring, so hyphenated
+    // names like "YOL-TC-WQ 003-1", partial terms, and type-name searches all work.
+    // Class-field arrow keeps `this`-free semantics and a stable reference across CD passes.
+    public searchBMPs = (term: string, item: TreatmentBMPMinimalDto): boolean =>
+        `${item.TreatmentBMPName ?? ""} ${item.TreatmentBMPTypeName ?? ""}`.toLowerCase().includes(term.toLowerCase());
+
     ngOnInit(): void {
         this.alertService.clearAlerts();
         const currentBMPIDs = new Set(this.ref.data?.currentBMPIDs ?? []);
