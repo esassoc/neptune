@@ -110,9 +110,14 @@ Custom `BaseAuthorizationAttribute` (implements `IAuthorizationFilter`). Derived
 |---|---|
 | `SitkaAdminFeature` | SitkaAdmin |
 | `AdminFeature` | Admin, SitkaAdmin |
-| `JurisdictionEditFeature` | Admin, SitkaAdmin, JurisdictionManager, JurisdictionEditor (+ jurisdiction match) |
+| `JurisdictionManageFeature` | Admin, SitkaAdmin, JurisdictionManager (role check only — no jurisdiction match) |
+| `JurisdictionEditFeature` | Admin, SitkaAdmin, JurisdictionManager, JurisdictionEditor (role check only — no jurisdiction match) |
+| `TreatmentBMPEditFeature` | Same as JurisdictionEditFeature + jurisdiction match against the routed TreatmentBMP |
+| `WaterQualityManagementPlanEditFeature` | Same as JurisdictionEditFeature + jurisdiction match against the routed WQMP |
 | `UserViewFeature` | Any authenticated user |
 | `LoggedInUnclassifiedFeature` | Unassigned users |
+
+Note: the plain `Jurisdiction*Feature` attributes check **role only** — jurisdiction scoping must come from an entity-scoped attribute (the `*EditFeature` variants above, which resolve the route id and require `IsAssignedToStormwaterJurisdiction`) or an in-controller check against the caller's assigned jurisdictions.
 
 Roles: Admin(1), SitkaAdmin(2), JurisdictionManager(3), JurisdictionEditor(4), Unassigned(5), Viewer(6), ExternalViewer(7).
 

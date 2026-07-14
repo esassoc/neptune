@@ -11,11 +11,17 @@
         <div style="display: flex; gap: 0.5rem; align-items: flex-end; margin-bottom: 1rem">
             <div style="flex: 1 1 0; min-width: 0; overflow: hidden">
                 <label class="field-label">Add BMPs</label>
+                <!-- NPT-1109: bindLabel + searchFn are load-bearing. Without bindLabel,
+                     ng-select searches String(item) === "[object Object]" and every term
+                     returns zero results; the searchFn extends matching to the type name
+                     since the option template renders "Name (Type)". -->
                 <ng-select
                     [items]="availableBMPs"
+                    bindLabel="TreatmentBMPName"
                     bindValue="TreatmentBMPID"
                     [(ngModel)]="pickerBMPID"
                     [searchable]="true"
+                    [searchFn]="searchBMPs"
                     [clearable]="true"
                     appendTo="body"
                     placeholder="Search for a BMP...">
