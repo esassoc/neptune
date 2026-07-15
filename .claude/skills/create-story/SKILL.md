@@ -40,7 +40,7 @@ After you have the initial context (either from an existing card, the user's des
 - **Scope**: What specific behaviors or screens are involved? What is explicitly out of scope?
 - **Acceptance criteria**: What are the testable conditions for "done"? Walk through user flows and edge cases.
 - **Data model**: Are there new entities, fields, lookup tables, or relationships?
-- **Permissions/roles**: Does this feature have role-based access differences?
+- **Permissions/roles**: Does this feature have role-based access differences? If the feature involves any action gated to JurisdictionManager, flag it — JurisdictionEditors should have access to almost everything Managers can. The only Manager-only exceptions are (1) deleting primary records (WQMPs, BMPs, verifications) and (2) attestation/verification actions (marking BMPs verified, promoting WQMP status). If a draft requirement restricts Editors from anything outside those two categories, call it out and ask if that's intentional.
 - **UI/UX**: Any wireframes, Figma links, or specific UI patterns to follow? Which existing page/component is this most similar to?
 - **Dependencies**: Does this depend on or block other work?
 

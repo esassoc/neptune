@@ -19,7 +19,7 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Neptune.Tests", "Neptune.Te
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Neptune.GDALAPI", "Neptune.GDALAPI\Neptune.GDALAPI.csproj", "{D7F95B96-AC4F-47C6-896A-562DACCB307D}"
 EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Neptune.QGISAPI", "Neptune.QGISAPI\Neptune.QGISAPI.csproj", "{77F95B96-AC4F-47C6-896A-562DACCB307D}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Neptune.OverlayAPI", "Neptune.OverlayAPI\Neptune.OverlayAPI.csproj", "{77F95B96-AC4F-47C6-896A-562DACCB307D}"
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Neptune.Jobs", "Neptune.Jobs\Neptune.Jobs.csproj", "{8C60CD8A-AF42-4AAB-A513-E5EAE128E45C}"
 EndProject

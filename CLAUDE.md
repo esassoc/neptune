@@ -82,7 +82,7 @@ npm test
 | **Neptune.Database** | SQL Server project (tables, views, stored procs, DacPac) |
 | **Neptune.Jobs** | Hangfire background jobs (HRU refresh, trash stats, network solves) |
 | **Neptune.GDALAPI** | Microservice wrapping GDAL/OGR2OGR for file format conversions |
-| **Neptune.QGISAPI** | Microservice wrapping QGIS for spatial analysis |
+| **Neptune.OverlayAPI** | Microservice computing LGU/TGU/PLGU polygon overlays in-process on NetTopologySuite (formerly Neptune.QGISAPI/QGIS) |
 | **Neptune.Tests** | MSTest unit tests with ApprovalTests |
 
 ### Data Flow
@@ -110,11 +110,22 @@ Custom `BaseAuthorizationAttribute` (implements `IAuthorizationFilter`). Derived
 |---|---|
 | `SitkaAdminFeature` | SitkaAdmin |
 | `AdminFeature` | Admin, SitkaAdmin |
-| `JurisdictionEditFeature` | Admin, SitkaAdmin, JurisdictionManager, JurisdictionEditor (+ jurisdiction match) |
+| `JurisdictionManageFeature` | Admin, SitkaAdmin, JurisdictionManager (role check only — no jurisdiction match) |
+| `JurisdictionEditFeature` | Admin, SitkaAdmin, JurisdictionManager, JurisdictionEditor (role check only — no jurisdiction match) |
+| `TreatmentBMPEditFeature` | Same as JurisdictionEditFeature + jurisdiction match against the routed TreatmentBMP |
+| `WaterQualityManagementPlanEditFeature` | Same as JurisdictionEditFeature + jurisdiction match against the routed WQMP |
 | `UserViewFeature` | Any authenticated user |
 | `LoggedInUnclassifiedFeature` | Unassigned users |
 
+Note: the plain `Jurisdiction*Feature` attributes check **role only** — jurisdiction scoping must come from an entity-scoped attribute (the `*EditFeature` variants above, which resolve the route id and require `IsAssignedToStormwaterJurisdiction`) or an in-controller check against the caller's assigned jurisdictions.
+
 Roles: Admin(1), SitkaAdmin(2), JurisdictionManager(3), JurisdictionEditor(4), Unassigned(5), Viewer(6), ExternalViewer(7).
+
+**JurisdictionEditor vs JurisdictionManager:** The two roles are nearly identical — both operate within their assigned jurisdiction. Editors should be able to do almost everything Managers can. The narrow exceptions where Manager-only (`[JurisdictionManageFeature]`) is correct:
+- **Deleting primary records** — WQMPs, BMPs, verifications
+- **Attestation/verification actions** — marking BMPs as verified, promoting a WQMP from Draft to Active
+
+Everything else — CRUD on supporting data (documents, attributes, delineations), creating WQMPs from PDF upload, running AI extraction, editing metadata — should use `[JurisdictionEditFeature]`. When an endpoint or UI gate is set to `[JurisdictionManageFeature]`, verify it falls into one of the above exceptions before assuming the restriction is correct.
 
 ### Background Jobs (Hangfire)
 
@@ -132,7 +143,7 @@ Configured with SQL Server storage, 1 worker, 0 auto-retries. Dashboard at `/han
 | Nereid | Stormwater load reduction modeling | `NereidUrl` |
 | OCGIS | HRU characteristics lookup (land use, precip zone) | `OCGISBaseUrl` |
 | GDAL API | OGR2OGR file format conversions | `GDALAPIBaseUrl` |
-| QGIS API | Spatial analysis | `QGISAPIBaseUrl` |
+| Overlay API | LGU/TGU/PLGU polygon overlays | `OverlayAPIBaseUrl` |
 | Azure Blob Storage | File/photo storage | `AzureBlobStorageConnectionString` |
 | SendGrid | Email notifications | `SendGridApiKey` |
 | Anthropic Claude | AI chat + WQMP document extraction | `AnthropicApiKey`, `ClaudeModelId` |
@@ -173,7 +184,7 @@ Services are containerized with multi-stage Dockerfiles (aspnet:10.0 runtime / s
 |---|---|
 | neptune.api | 8211 |
 | neptune.gdalapi | 8231 |
-| neptune.qgisapi | 8232 |
+| neptune.overlayapi | 8232 |
 | geoserver | 8780 |
 
 CI/CD is Azure Pipelines (`Build/azure-pipelines.yml`) deploying to Azure Kubernetes via Helm. Infrastructure managed by Terraform (`neptune.tf/`).

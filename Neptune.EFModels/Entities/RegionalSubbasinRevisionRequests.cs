@@ -39,6 +39,17 @@ public static class RegionalSubbasinRevisionRequests
         return regionalSubbasinRevisionRequest;
     }
 
+    // NPT-1109 (Copilot follow-up): authorization-filter fetch — returns null rather than
+    // throwing for a nonexistent ID, since authorization filters run BEFORE
+    // EntityNotFoundAttribute and a throw surfaces a bogus route id as a 500 instead of a
+    // 404. Fetches only the row (the feature attributes need just TreatmentBMPID).
+    public static RegionalSubbasinRevisionRequest? GetByIDForFeatureContextCheck(NeptuneDbContext dbContext, int regionalSubbasinRevisionRequestID)
+    {
+        return dbContext.RegionalSubbasinRevisionRequests
+            .AsNoTracking()
+            .SingleOrDefault(x => x.RegionalSubbasinRevisionRequestID == regionalSubbasinRevisionRequestID);
+    }
+
     public static List<RegionalSubbasinRevisionRequestDto> ListAsDto(NeptuneDbContext dbContext, Person currentPerson)
     {
         var jurisdictionIDs = currentPerson.IsAdministrator()

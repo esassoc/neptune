@@ -41,6 +41,20 @@ public static partial class WaterQualityManagementPlans
         return waterQualityManagementPlan;
     }
 
+    // NPT-1109: authorization-filter fetch for WaterQualityManagementPlanEditFeature. The
+    // jurisdiction check only needs the row's StormwaterJurisdictionID, so skip GetImpl's
+    // heavy include graph (parcels, BMPs + delineations) that GetByID drags in — this runs
+    // on every request to a WQMP-scoped endpoint. Returns null (rather than throwing) for a
+    // nonexistent ID: authorization filters run BEFORE EntityNotFoundAttribute, so a throw
+    // here would surface a bogus route id as a 500 instead of the intended 404 — the
+    // attribute translates null into NotFoundResult itself.
+    public static WaterQualityManagementPlan? GetByIDForFeatureContextCheck(NeptuneDbContext dbContext, int waterQualityManagementPlanID)
+    {
+        return dbContext.WaterQualityManagementPlans
+            .AsNoTracking()
+            .SingleOrDefault(x => x.WaterQualityManagementPlanID == waterQualityManagementPlanID);
+    }
+
 
     public static async Task<List<WaterQualityManagementPlanDto>> ListAsDtoAsync(NeptuneDbContext dbContext)
     {

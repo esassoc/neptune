@@ -129,10 +129,6 @@ export class WqmpDetailComponent implements OnInit, OnChanges {
     // (the JE/JM Begin-button bug from NPT-995's first round).
     currentUser: PersonDto;
 
-    public get currentPersonCanManage(): boolean {
-        return this.authenticationService.doesCurrentUserHaveJurisdictionManagePermission();
-    }
-
     public get currentPersonCanEdit(): boolean {
         return this.authenticationService.doesCurrentUserHaveJurisdictionEditPermission();
     }

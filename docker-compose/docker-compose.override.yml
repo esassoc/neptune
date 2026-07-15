@@ -15,7 +15,7 @@ services:
       - OcStormwaterToolsBaseUrl=${OcStormwaterToolsBaseUrl}
       - NereidUrl=${NereidUrl}
       - GDALAPIBaseUrl=${GDALAPIBaseUrl}
-      - QGISAPIBaseUrl=${QGISAPIBaseUrl}
+      - OverlayAPIBaseUrl=${OverlayAPIBaseUrl}
       - OCGISBaseUrl=${OCGISBaseUrl}
       - PlanningModuleBaseUrl=${PlanningModuleBaseUrl}
       - TrashModuleBaseUrl=${TrashModuleBaseUrl}
@@ -59,18 +59,18 @@ services:
     ports:
       - "8231:8080"
 
-  neptune.qgisapi:
-    image: neptune/qgisapi
+  neptune.overlayapi:
+    image: neptune/overlayapi
     build:
       context: ..
-      dockerfile: Neptune.QGISAPI/Dockerfile
+      dockerfile: Neptune.OverlayAPI/Dockerfile
       args:
         source: .
-    hostname: qgisapi
+    hostname: overlayapi
     environment:
       - ASPNETCORE_ENVIRONMENT=Development
       - ASPNETCORE_HTTP_PORTS=8080
-      - SECRET_PATH=${QGISAPISecretPath}
+      - SECRET_PATH=${OverlayAPISecretPath}
     ports:
       - "8232:8080"
 

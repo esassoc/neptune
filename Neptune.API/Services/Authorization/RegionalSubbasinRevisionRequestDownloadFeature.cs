@@ -24,8 +24,15 @@ namespace Neptune.API.Services.Authorization
                 return;
             }
 
-            var revisionRequest = RegionalSubbasinRevisionRequests.GetByID(dbContext, regionalSubbasinRevisionRequestID);
-            var treatmentBMP = TreatmentBMPs.GetByIDForFeatureContextCheck(dbContext, revisionRequest.TreatmentBMPID);
+            // Null-tolerant fetches: authorization filters run before EntityNotFoundAttribute,
+            // so a throwing lookup surfaces a bogus route id as a 500 instead of a 404.
+            var revisionRequest = RegionalSubbasinRevisionRequests.GetByIDForFeatureContextCheck(dbContext, regionalSubbasinRevisionRequestID);
+            var treatmentBMP = revisionRequest == null ? null : TreatmentBMPs.GetByIDForFeatureContextCheck(dbContext, revisionRequest.TreatmentBMPID);
+            if (revisionRequest == null || treatmentBMP == null)
+            {
+                context.Result = new NotFoundResult();
+                return;
+            }
 
             if (user.RoleID == Role.JurisdictionManager.RoleID && user.IsAssignedToStormwaterJurisdiction(treatmentBMP.StormwaterJurisdictionID))
             {

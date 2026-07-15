@@ -15,6 +15,15 @@ namespace Neptune.API.Services.Authorization
 
             var treatmentBMP = TreatmentBMPs.GetByIDForFeatureContextCheck(dbContext, treatmentBMPID);
 
+            // Authorization filters run before EntityNotFoundAttribute — translate a
+            // nonexistent BMP into the 404 that attribute would have produced, rather than
+            // throwing (which surfaced as a 500).
+            if (treatmentBMP == null)
+            {
+                context.Result = new NotFoundResult();
+                return;
+            }
+
             if (user == null || user.IsAnonymousOrUnassigned())
             {
                 context.Result = new ForbidResult();

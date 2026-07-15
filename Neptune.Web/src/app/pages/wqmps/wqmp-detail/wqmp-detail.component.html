@@ -395,7 +395,9 @@
             <div class="card g-col-12">
                 <div class="card-header">
                     <span class="card-title">Documents</span>
-                    @if (currentPersonCanManage) {
+                    <!-- NPT-1109: Editors and up — document CRUD is supporting-data editing; backend
+                         is [WaterQualityManagementPlanEditFeature] (was Manager-only). -->
+                    @if (currentPersonCanEdit) {
                         <button class="btn btn-primary btn-sm" (click)="openDocumentUploadModal()">
                             <i class="fa fa-plus"></i> Upload Document
                         </button>
@@ -420,7 +422,7 @@
                                                         <i class="fa fa-download"></i>
                                                     </a>
                                                 }
-                                                @if (currentPersonCanManage) {
+                                                @if (currentPersonCanEdit) {
                                                     <button type="button" class="btn btn-sm btn-primary-outline btn-icon" (click)="openDocumentEditModal(doc)" title="Edit document" aria-label="Edit document">
                                                         <i class="fa fa-pencil"></i>
                                                     </button>

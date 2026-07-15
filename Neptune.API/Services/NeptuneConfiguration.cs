@@ -11,11 +11,11 @@ public class NeptuneConfiguration : NeptuneJobConfiguration
     public GoogleRecaptchaV3Config GoogleRecaptchaV3Config { get; set; }
 
     public string GDALAPIBaseUrl { get; set; }
-    public string QGISAPIBaseUrl { get; set; }
+    public string OverlayAPIBaseUrl { get; set; }
 
-    // Backstop above the QGIS API's python3 process timeout (QgisProcessTimeoutMinutes, default 240) so the
-    // QGIS side times out first and returns a real 500 (stderr detail -> support email) before this client gives up.
-    public int QGISAPIHttpClientTimeoutMinutes { get; set; } = 270;
+    // The in-process NTS overlay finishes a full TGU refresh in ~4 minutes (measured NPT-1105); 30 gives
+    // generous headroom for slower prod SQL while still failing a genuinely wedged run inside the hour.
+    public int OverlayAPIHttpClientTimeoutMinutes { get; set; } = 30;
 
     public string OCGISBaseUrl { get; set; }
 

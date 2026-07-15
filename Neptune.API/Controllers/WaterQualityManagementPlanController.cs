@@ -151,8 +151,12 @@ namespace Neptune.API.Controllers
         // (FinalWQMP / AsBuiltDrawings / OMPlan / Other). Mirrors the BMP doc-by-BMP pattern but
         // lives on WaterQualityManagementPlanController so the existing GET .../documents list
         // endpoint keeps its current route.
+        // NPT-1109: document CRUD was [JurisdictionManageFeature] — Manager-only AND
+        // jurisdiction-blind. Documents are supporting-data editing per the JE/JM doctrine
+        // (CLAUDE.md), and the entity-scoped gate adds the per-WQMP jurisdiction match that
+        // was previously missing entirely.
         [HttpPost("{waterQualityManagementPlanID}/documents")]
-        [JurisdictionManageFeature]
+        [WaterQualityManagementPlanEditFeature]
         [EntityNotFound(typeof(WaterQualityManagementPlan), "waterQualityManagementPlanID")]
         public async Task<ActionResult<WaterQualityManagementPlanDocumentDto>> CreateDocument(
             [FromRoute] int waterQualityManagementPlanID,
@@ -181,7 +185,7 @@ namespace Neptune.API.Controllers
 
         // File is optional — when present we delete the old blob and swap the FileResource.
         [HttpPut("{waterQualityManagementPlanID}/documents/{waterQualityManagementPlanDocumentID}")]
-        [JurisdictionManageFeature]
+        [WaterQualityManagementPlanEditFeature]
         [EntityNotFound(typeof(WaterQualityManagementPlan), "waterQualityManagementPlanID")]
         [EntityNotFound(typeof(WaterQualityManagementPlanDocument), "waterQualityManagementPlanDocumentID")]
         public async Task<ActionResult<WaterQualityManagementPlanDocumentDto>> UpdateDocument(
@@ -230,7 +234,7 @@ namespace Neptune.API.Controllers
         }
 
         [HttpDelete("{waterQualityManagementPlanID}/documents/{waterQualityManagementPlanDocumentID}")]
-        [JurisdictionManageFeature]
+        [WaterQualityManagementPlanEditFeature]
         [EntityNotFound(typeof(WaterQualityManagementPlan), "waterQualityManagementPlanID")]
         [EntityNotFound(typeof(WaterQualityManagementPlanDocument), "waterQualityManagementPlanDocumentID")]
         public async Task<IActionResult> DeleteDocument(
@@ -609,12 +613,13 @@ namespace Neptune.API.Controllers
             return Ok(response);
         }
 
-        // NPT-984: Create-via-AI is a Manager-level entry point. Previously [AdminFeature]
-        // (Admin + SitkaAdmin only) which locked out Jurisdiction Managers even though they
-        // own WQMP records for their jurisdictions. Editors stay excluded — creating a new
-        // WQMP record is an attestation action above performing field work on an existing one.
+        // NPT-984 opened this to JurisdictionManagers (was [AdminFeature]); NPT-1109 opens it
+        // to JurisdictionEditors — per the JE/JM doctrine (CLAUDE.md), creating a WQMP from a
+        // PDF is data entry, not an attestation action (promoting Draft->Active is the
+        // attestation). No route id here, so the plain role gate applies; the in-body
+        // jurisdiction check below scopes the request to the caller's assigned jurisdictions.
         [HttpPost("upload")]
-        [JurisdictionManageFeature]
+        [JurisdictionEditFeature]
         [Consumes("multipart/form-data")]
         [RequestSizeLimit(200 * 1024 * 1024)]
         [RequestFormLimits(MultipartBodyLengthLimit = 200 * 1024 * 1024)]
@@ -654,9 +659,10 @@ namespace Neptune.API.Controllers
             }
 
             // NPT-984: defense-in-depth — even though the frontend modal only offers the
-            // user's manageable jurisdictions, validate the requested jurisdiction is in
-            // the caller's manageable set. Admin / SitkaAdmin see all jurisdictions; a
-            // JurisdictionManager is restricted to their assigned set.
+            // user's assigned jurisdictions, validate the requested jurisdiction is in
+            // the caller's set. Admin / SitkaAdmin see all jurisdictions; a
+            // JurisdictionManager or JurisdictionEditor is restricted to their assigned set
+            // (the helper is role-agnostic below admin).
             var currentPerson = People.GetByID(DbContext, CallingUser.PersonID);
             var manageableJurisdictionIDs = StormwaterJurisdictionPeople
                 .ListViewableStormwaterJurisdictionIDsByPersonForWQMPs(DbContext, currentPerson)
@@ -724,19 +730,23 @@ namespace Neptune.API.Controllers
             });
         }
 
-        // NPT-984: Run AI extraction — Manager-level. The Manager created the WQMP via the
-        // upload flow (also [JurisdictionManageFeature]); they need to run extractions on
-        // their own WQMPs. Was [AdminFeature] which left JMs unable to use the wizard they
-        // just opened.
+        // NPT-1109: Editor and up, jurisdiction-matched to the routed WQMP (was
+        // [JurisdictionManageFeature] via NPT-984, [AdminFeature] before that). Whoever can
+        // edit the WQMP can run extractions on it.
         [HttpPost("{waterQualityManagementPlanID}/extract")]
-        [JurisdictionManageFeature]
+        [WaterQualityManagementPlanEditFeature]
         [EntityNotFound(typeof(WaterQualityManagementPlan), "waterQualityManagementPlanID")]
         public async Task<ActionResult<WaterQualityManagementPlanExtractionResultDto>> RunExtraction(
             [FromRoute] int waterQualityManagementPlanID)
         {
-            // Primary document for the WQMP — uploaded in Step 1 (UploadDocument).
-            var document = WaterQualityManagementPlanDocuments.ListByWaterQualityManagementPlanID(DbContext, waterQualityManagementPlanID)
-                .FirstOrDefault();
+            // Primary document for the WQMP. Step 1 (UploadDocument) tags the initial upload as
+            // FinalWQMP, but a WQMP can accumulate other doc types (as-builts, O&M plans). NPT-1109
+            // (Kathleen): extract from the Final WQMP when one exists; otherwise fall back to the
+            // first document (list is ordered by DisplayName) so a WQMP whose docs were re-typed
+            // still extracts rather than erroring.
+            var documents = WaterQualityManagementPlanDocuments.ListByWaterQualityManagementPlanID(DbContext, waterQualityManagementPlanID);
+            var document = documents.FirstOrDefault(x => x.WaterQualityManagementPlanDocumentTypeID == (int)WaterQualityManagementPlanDocumentTypeEnum.FinalWQMP)
+                ?? documents.FirstOrDefault();
             if (document == null)
             {
                 return BadRequest(new { message = "No uploaded document found for this WQMP. Upload a PDF before running extraction." });
@@ -839,10 +849,10 @@ namespace Neptune.API.Controllers
             return rawMessage;
         }
 
-        // NPT-984: Manager-level — the review wizard loads this on mount to show the AI's
-        // suggestions; JMs need access to review their own WQMPs.
+        // NPT-1109: Editor and up, jurisdiction-matched — the review wizard loads this on
+        // mount to show the AI's suggestions (was Manager-only via NPT-984).
         [HttpGet("{waterQualityManagementPlanID}/extraction-result")]
-        [JurisdictionManageFeature]
+        [WaterQualityManagementPlanEditFeature]
         [EntityNotFound(typeof(WaterQualityManagementPlan), "waterQualityManagementPlanID")]
         public async Task<ActionResult<WaterQualityManagementPlanExtractionResultDto>> GetExtractionResult(
             [FromRoute] int waterQualityManagementPlanID)
