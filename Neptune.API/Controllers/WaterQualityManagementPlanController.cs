@@ -739,9 +739,14 @@ namespace Neptune.API.Controllers
         public async Task<ActionResult<WaterQualityManagementPlanExtractionResultDto>> RunExtraction(
             [FromRoute] int waterQualityManagementPlanID)
         {
-            // Primary document for the WQMP — uploaded in Step 1 (UploadDocument).
-            var document = WaterQualityManagementPlanDocuments.ListByWaterQualityManagementPlanID(DbContext, waterQualityManagementPlanID)
-                .FirstOrDefault();
+            // Primary document for the WQMP. Step 1 (UploadDocument) tags the initial upload as
+            // FinalWQMP, but a WQMP can accumulate other doc types (as-builts, O&M plans). NPT-1109
+            // (Kathleen): extract from the Final WQMP when one exists; otherwise fall back to the
+            // first document (list is ordered by DisplayName) so a WQMP whose docs were re-typed
+            // still extracts rather than erroring.
+            var documents = WaterQualityManagementPlanDocuments.ListByWaterQualityManagementPlanID(DbContext, waterQualityManagementPlanID);
+            var document = documents.FirstOrDefault(x => x.WaterQualityManagementPlanDocumentTypeID == (int)WaterQualityManagementPlanDocumentTypeEnum.FinalWQMP)
+                ?? documents.FirstOrDefault();
             if (document == null)
             {
                 return BadRequest(new { message = "No uploaded document found for this WQMP. Upload a PDF before running extraction." });

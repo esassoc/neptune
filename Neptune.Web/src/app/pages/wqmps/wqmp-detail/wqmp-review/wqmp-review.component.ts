@@ -1537,7 +1537,9 @@ export class WqmpReviewComponent implements OnInit, IDeactivateComponent {
                     dto.RecordedWQMPAreaInAcres = null;
                 } else {
                     const parsed = parseFloat(v);
-                    if (!isNaN(parsed)) dto.RecordedWQMPAreaInAcres = parsed;
+                    // NPT-1109: guard the decimal(6,2) column — round even if a 4-decimal value
+                    // slips past makeField's rounding (e.g. a manually typed entry).
+                    if (!isNaN(parsed)) dto.RecordedWQMPAreaInAcres = Math.round(parsed * 100) / 100;
                 }
                 continue;
             }
@@ -1670,13 +1672,18 @@ export class WqmpReviewComponent implements OnInit, IDeactivateComponent {
     // though the save persisted. Resetting state alone keeps hasUnsavedChanges correct.
     private markSectionFieldsClean(sectionKeys: string[]): void {
         const keyset = new Set(sectionKeys);
-        this.fields.update((current) => current.map((f) => keyset.has(f.key)
+        // NPT-1109 (Kathleen): a rejected field must STAY rejected after a save. Resetting it to
+        // "pending" here re-offered the AI value as a fresh suggestion (initialValue is
+        // acceptedValue ?? value, and reject nulls acceptedValue) — so returning to the step made
+        // the rejection vanish and the next save would re-write the value the reviewer rejected.
+        this.fields.update((current) => current.map((f) => (keyset.has(f.key) && f.state !== "rejected")
             ? { ...f, state: "pending" as const }
             : f));
     }
 
     private markParcelFieldsClean(): void {
-        this.fields.update((current) => current.map((f) => f.key.startsWith(this.PARCEL_KEY_PREFIX)
+        // NPT-1109: preserve rejected parcels for the same reason as markSectionFieldsClean.
+        this.fields.update((current) => current.map((f) => (f.key.startsWith(this.PARCEL_KEY_PREFIX) && f.state !== "rejected")
             ? { ...f, state: "pending" as const }
             : f));
     }
@@ -1949,6 +1956,15 @@ export class WqmpReviewComponent implements OnInit, IDeactivateComponent {
             }
         } else if (key === "RecordedWQMPAreaInAcres") {
             fieldType = FormFieldType.Number;
+            // NPT-1109 (Kathleen): the DB column is decimal(6,2), but the AI can extract 4+
+            // decimals. Round to 2 decimals up front so the auto-filled value matches what the
+            // column stores — otherwise the save persists the rounded value while the wizard's
+            // displayValue keeps the 4-decimal string, and the Review summary reads "Pending save"
+            // forever (getSaveStatus is a pure displayValue === wqmpRecordValue diff).
+            if (rawValue != null && rawValue !== "") {
+                const parsed = parseFloat(rawValue);
+                if (!isNaN(parsed)) value = parsed.toFixed(2);
+            }
         } else if (key === "TrashCaptureEffectiveness") {
             // AI extraction doesn't produce this; it's a manual percentage the user enters when
             // TrashCaptureStatus = Partial. The post-build pass in parseExtractionResult marks
