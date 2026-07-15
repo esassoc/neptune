@@ -57,6 +57,10 @@ export interface ExtractedField {
     step: number;
     acceptedValue?: string | null;
     state: "pending" | "accepted" | "edited" | "rejected";
+    // NPT-1109: set once a rejection has been committed by a section save. Keeps the field
+    // rejected (so the AI value isn't re-offered) while telling hasUnsavedChanges it's clean —
+    // a bare "rejected" state counts as dirty and would strand the UnsavedChangesGuard.
+    rejectionSaved?: boolean;
     fieldType?: FormFieldType;
     selectOptions?: SelectDropdownOption[];
     // ngx-mask pattern to apply in the form-field (e.g. "(000) 000-0000"). Optional.
@@ -190,6 +194,8 @@ export class WqmpReviewComponent implements OnInit, IDeactivateComponent {
         return this.fields().some((f) => {
             if (f.state === "pending") return false;
             if (f.isUserEntered && f.state === "accepted") return false;
+            // NPT-1109: a rejection already committed by a save is settled, not pending work.
+            if (f.state === "rejected" && f.rejectionSaved) return false;
             return true;
         }) || this.rejectedBmpIndices().size > 0;
     });
@@ -1144,6 +1150,8 @@ export class WqmpReviewComponent implements OnInit, IDeactivateComponent {
     onFieldRejected(field: ExtractedField): void {
         field.state = "rejected";
         field.acceptedValue = null;
+        // NPT-1109: a brand-new rejection is unsaved work until the section Save commits it.
+        field.rejectionSaved = false;
         if (field.key === "TrashCaptureStatusType") this.syncTrashCaptureEffectivenessReadOnly();
         this.fields.update((f) => [...f]);
     }
@@ -1537,7 +1545,10 @@ export class WqmpReviewComponent implements OnInit, IDeactivateComponent {
                     dto.RecordedWQMPAreaInAcres = null;
                 } else {
                     const parsed = parseFloat(v);
-                    if (!isNaN(parsed)) dto.RecordedWQMPAreaInAcres = parsed;
+                    // NPT-1109: guard the decimal(6,2) column — round even if a 4-decimal value
+                    // slips past makeField's rounding (e.g. a manually typed entry). toFixed(2)
+                    // gives predictable half-up rounding vs. Math.round's float-multiply edge cases.
+                    if (!isNaN(parsed)) dto.RecordedWQMPAreaInAcres = Number(parsed.toFixed(2));
                 }
                 continue;
             }
@@ -1670,21 +1681,41 @@ export class WqmpReviewComponent implements OnInit, IDeactivateComponent {
     // though the save persisted. Resetting state alone keeps hasUnsavedChanges correct.
     private markSectionFieldsClean(sectionKeys: string[]): void {
         const keyset = new Set(sectionKeys);
-        this.fields.update((current) => current.map((f) => keyset.has(f.key)
-            ? { ...f, state: "pending" as const }
-            : f));
+        // NPT-1109 (Kathleen): a rejected field must STAY rejected after a save. Resetting it to
+        // "pending" here re-offered the AI value as a fresh suggestion (initialValue is
+        // acceptedValue ?? value, and reject nulls acceptedValue) — so returning to the step made
+        // the rejection vanish and the next save would re-write the value the reviewer rejected.
+        // Keep the rejected state but flag it saved so hasUnsavedChanges stops counting it dirty.
+        this.fields.update((current) => current.map((f) => {
+            if (!keyset.has(f.key)) return f;
+            return f.state === "rejected"
+                ? { ...f, rejectionSaved: true }
+                : { ...f, state: "pending" as const, rejectionSaved: false };
+        }));
     }
 
     private markParcelFieldsClean(): void {
-        this.fields.update((current) => current.map((f) => f.key.startsWith(this.PARCEL_KEY_PREFIX)
-            ? { ...f, state: "pending" as const }
-            : f));
+        // NPT-1109: preserve rejected parcels for the same reason as markSectionFieldsClean.
+        this.fields.update((current) => current.map((f) => {
+            if (!f.key.startsWith(this.PARCEL_KEY_PREFIX)) return f;
+            return f.state === "rejected"
+                ? { ...f, rejectionSaved: true }
+                : { ...f, state: "pending" as const, rejectionSaved: false };
+        }));
     }
 
     private markBmpFieldsClean(): void {
-        this.fields.update((current) => current.map((f) => f.key.startsWith(this.BMP_KEY_PREFIX)
-            ? { ...f, state: "pending" as const }
-            : f));
+        // NPT-1109: preserve per-field BMP attribute rejections after a save for the same reason
+        // as markSectionFieldsClean — buildQuickBMPsForSave blanks rejected attributes (valueOf
+        // returns null), so resetting them to "pending" would re-offer the AI value in the card
+        // and re-write it on the next save. Card-level rejections (rejectedBmpIndices) are cleared
+        // as before: a dropped BMP isn't created, so there's no per-field value to keep rejected.
+        this.fields.update((current) => current.map((f) => {
+            if (!f.key.startsWith(this.BMP_KEY_PREFIX)) return f;
+            return f.state === "rejected"
+                ? { ...f, rejectionSaved: true }
+                : { ...f, state: "pending" as const, rejectionSaved: false };
+        }));
         this.rejectedBmpIndices.set(new Set());
     }
 
@@ -1949,6 +1980,18 @@ export class WqmpReviewComponent implements OnInit, IDeactivateComponent {
             }
         } else if (key === "RecordedWQMPAreaInAcres") {
             fieldType = FormFieldType.Number;
+            // NPT-1109 (Kathleen): the DB column is decimal(6,2), but the AI can extract 4+
+            // decimals. Round to 2 decimals up front so the auto-filled value matches what the
+            // column stores — otherwise the save persists the rounded value while the wizard's
+            // displayValue keeps the 4-decimal string, and the Review summary reads "Pending save"
+            // forever (getSaveStatus is a pure displayValue === wqmpRecordValue diff). Round with
+            // toFixed(2) for predictable half-up behavior, then coerce back through Number(...) so
+            // the string shape matches the record column — which comes back as String(raw) ("1.2",
+            // not "1.20"). String(Number(...)) drops the trailing zero toFixed would otherwise add.
+            if (rawValue != null && rawValue !== "") {
+                const parsed = parseFloat(rawValue);
+                if (!isNaN(parsed)) value = String(Number(parsed.toFixed(2)));
+            }
         } else if (key === "TrashCaptureEffectiveness") {
             // AI extraction doesn't produce this; it's a manual percentage the user enters when
             // TrashCaptureStatus = Partial. The post-build pass in parseExtractionResult marks
