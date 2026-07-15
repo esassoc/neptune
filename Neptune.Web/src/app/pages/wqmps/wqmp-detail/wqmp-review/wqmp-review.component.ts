@@ -1546,8 +1546,9 @@ export class WqmpReviewComponent implements OnInit, IDeactivateComponent {
                 } else {
                     const parsed = parseFloat(v);
                     // NPT-1109: guard the decimal(6,2) column — round even if a 4-decimal value
-                    // slips past makeField's rounding (e.g. a manually typed entry).
-                    if (!isNaN(parsed)) dto.RecordedWQMPAreaInAcres = Math.round(parsed * 100) / 100;
+                    // slips past makeField's rounding (e.g. a manually typed entry). toFixed(2)
+                    // gives predictable half-up rounding vs. Math.round's float-multiply edge cases.
+                    if (!isNaN(parsed)) dto.RecordedWQMPAreaInAcres = Number(parsed.toFixed(2));
                 }
                 continue;
             }
@@ -1704,9 +1705,17 @@ export class WqmpReviewComponent implements OnInit, IDeactivateComponent {
     }
 
     private markBmpFieldsClean(): void {
-        this.fields.update((current) => current.map((f) => f.key.startsWith(this.BMP_KEY_PREFIX)
-            ? { ...f, state: "pending" as const }
-            : f));
+        // NPT-1109: preserve per-field BMP attribute rejections after a save for the same reason
+        // as markSectionFieldsClean — buildQuickBMPsForSave blanks rejected attributes (valueOf
+        // returns null), so resetting them to "pending" would re-offer the AI value in the card
+        // and re-write it on the next save. Card-level rejections (rejectedBmpIndices) are cleared
+        // as before: a dropped BMP isn't created, so there's no per-field value to keep rejected.
+        this.fields.update((current) => current.map((f) => {
+            if (!f.key.startsWith(this.BMP_KEY_PREFIX)) return f;
+            return f.state === "rejected"
+                ? { ...f, rejectionSaved: true }
+                : { ...f, state: "pending" as const, rejectionSaved: false };
+        }));
         this.rejectedBmpIndices.set(new Set());
     }
 
@@ -1975,12 +1984,13 @@ export class WqmpReviewComponent implements OnInit, IDeactivateComponent {
             // decimals. Round to 2 decimals up front so the auto-filled value matches what the
             // column stores — otherwise the save persists the rounded value while the wizard's
             // displayValue keeps the 4-decimal string, and the Review summary reads "Pending save"
-            // forever (getSaveStatus is a pure displayValue === wqmpRecordValue diff). Canonicalize
-            // via String(number) rather than toFixed(2) so the shape matches the record column,
-            // which comes back as String(raw) ("1.2", not "1.20") — toFixed would re-strand the row.
+            // forever (getSaveStatus is a pure displayValue === wqmpRecordValue diff). Round with
+            // toFixed(2) for predictable half-up behavior, then coerce back through Number(...) so
+            // the string shape matches the record column — which comes back as String(raw) ("1.2",
+            // not "1.20"). String(Number(...)) drops the trailing zero toFixed would otherwise add.
             if (rawValue != null && rawValue !== "") {
                 const parsed = parseFloat(rawValue);
-                if (!isNaN(parsed)) value = String(Math.round(parsed * 100) / 100);
+                if (!isNaN(parsed)) value = String(Number(parsed.toFixed(2)));
             }
         } else if (key === "TrashCaptureEffectiveness") {
             // AI extraction doesn't produce this; it's a manual percentage the user enters when
