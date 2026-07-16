@@ -4,7 +4,7 @@
 // Update here if any of the limits change; all UI surfaces will follow.
 
 export const PDF_EXTRACTION_MAX_PAGES = 100;
-export const PDF_EXTRACTION_MAX_SIZE_MB = 200;
+export const PDF_EXTRACTION_MAX_SIZE_MB = 400;
 
 /**
  * Verbose bullet list — used in the Create-from-PDF upload modal where

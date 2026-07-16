@@ -26,13 +26,13 @@ public class FileResources
             });
         }
 
-        const double maxFileSize = 500d * 1024d * 1024d;
+        const double maxFileSize = 400d * 1024d * 1024d;
         if (inputFile.Length > maxFileSize)
         {
             errors.Add(new ErrorMessage
             {
                 Type = "File Resource",
-                Message = "File size cannot exceed 500MB."
+                Message = "File size cannot exceed 400MB."
             });
         }
 

@@ -4,7 +4,9 @@ using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.Http.Features;
 using Microsoft.AspNetCore.ResponseCompression;
+using Microsoft.AspNetCore.Server.Kestrel.Core;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
@@ -50,6 +52,17 @@ namespace Neptune.API
         // This method gets called by the runtime. Use this method to add services to the container.
         public void ConfigureServices(IServiceCollection services)
         {
+            // Kestrel's default MaxRequestBodySize is 30,000,000 bytes (~28.6 MB). Legitimate
+            // uploads — WQMP PDFs bound for AI extraction, GIS files, land use blocks — are
+            // larger, so raise the global transport cap. A per-endpoint [RequestFormLimits] is
+            // NOT enough on its own: it only lifts the multipart form-length limit, not Kestrel's
+            // body cap, so without this an oversized upload fails with "Request body too large.
+            // The max request body size is 30000000 bytes." before the endpoint's form is read.
+            // Per-endpoint [RequestSizeLimit] still narrows this where a smaller cap is wanted.
+            const long maxUploadBytes = 400L * 1024 * 1024; // 400 MB — unified WQMP PDF/upload ceiling
+            services.Configure<KestrelServerOptions>(options => options.Limits.MaxRequestBodySize = maxUploadBytes);
+            services.Configure<FormOptions>(options => options.MultipartBodyLengthLimit = maxUploadBytes);
+
             services.AddControllers(options =>
                 {
                     options.SuppressImplicitRequiredAttributeForNonNullableReferenceTypes = true;
