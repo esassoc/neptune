@@ -157,6 +157,9 @@ namespace Neptune.API.Controllers
         // was previously missing entirely.
         [HttpPost("{waterQualityManagementPlanID}/documents")]
         [WaterQualityManagementPlanEditFeature]
+        [Consumes("multipart/form-data")]
+        [RequestSizeLimit(400 * 1024 * 1024)]
+        [RequestFormLimits(MultipartBodyLengthLimit = 400 * 1024 * 1024)]
         [EntityNotFound(typeof(WaterQualityManagementPlan), "waterQualityManagementPlanID")]
         public async Task<ActionResult<WaterQualityManagementPlanDocumentDto>> CreateDocument(
             [FromRoute] int waterQualityManagementPlanID,
@@ -186,6 +189,9 @@ namespace Neptune.API.Controllers
         // File is optional — when present we delete the old blob and swap the FileResource.
         [HttpPut("{waterQualityManagementPlanID}/documents/{waterQualityManagementPlanDocumentID}")]
         [WaterQualityManagementPlanEditFeature]
+        [Consumes("multipart/form-data")]
+        [RequestSizeLimit(400 * 1024 * 1024)]
+        [RequestFormLimits(MultipartBodyLengthLimit = 400 * 1024 * 1024)]
         [EntityNotFound(typeof(WaterQualityManagementPlan), "waterQualityManagementPlanID")]
         [EntityNotFound(typeof(WaterQualityManagementPlanDocument), "waterQualityManagementPlanDocumentID")]
         public async Task<ActionResult<WaterQualityManagementPlanDocumentDto>> UpdateDocument(
@@ -345,8 +351,8 @@ namespace Neptune.API.Controllers
         [HttpPost("{waterQualityManagementPlanID}/verifications/{waterQualityManagementPlanVerifyID}/supporting-documentation")]
         [JurisdictionEditFeature]
         [Consumes("multipart/form-data")]
-        [RequestSizeLimit(500 * 1024 * 1024)]
-        [RequestFormLimits(MultipartBodyLengthLimit = 500 * 1024 * 1024)]
+        [RequestSizeLimit(400 * 1024 * 1024)]
+        [RequestFormLimits(MultipartBodyLengthLimit = 400 * 1024 * 1024)]
         [EntityNotFound(typeof(WaterQualityManagementPlan), "waterQualityManagementPlanID")]
         [EntityNotFound(typeof(WaterQualityManagementPlanVerify), "waterQualityManagementPlanVerifyID")]
         public async Task<ActionResult<WaterQualityManagementPlanVerifyDetailDto>> UploadVerificationSupportingDocumentation(
@@ -621,8 +627,8 @@ namespace Neptune.API.Controllers
         [HttpPost("upload")]
         [JurisdictionEditFeature]
         [Consumes("multipart/form-data")]
-        [RequestSizeLimit(200 * 1024 * 1024)]
-        [RequestFormLimits(MultipartBodyLengthLimit = 200 * 1024 * 1024)]
+        [RequestSizeLimit(400 * 1024 * 1024)]
+        [RequestFormLimits(MultipartBodyLengthLimit = 400 * 1024 * 1024)]
         public async Task<ActionResult<WqmpUploadResultDto>> UploadDocument(
             IFormFile file, [FromForm] int stormwaterJurisdictionID, [FromForm] string wqmpName, [FromForm] bool overwrite = false)
         {
@@ -1040,8 +1046,8 @@ namespace Neptune.API.Controllers
 
         [HttpPost("bulk-upload-xlsx")]
         [JurisdictionEditFeature]
-        [RequestSizeLimit(100_000_000)]
-        [RequestFormLimits(MultipartBodyLengthLimit = 100_000_000)]
+        [RequestSizeLimit(400 * 1024 * 1024)]
+        [RequestFormLimits(MultipartBodyLengthLimit = 400 * 1024 * 1024)]
         [Consumes("multipart/form-data")]
         public async Task<ActionResult<WqmpBulkUploadResultDto>> BulkUploadXlsx([FromForm] WQMPBulkUploadFormDto form)
         {
@@ -1083,8 +1089,8 @@ namespace Neptune.API.Controllers
 
         [HttpPost("upload-simplified-bmps")]
         [JurisdictionEditFeature]
-        [RequestSizeLimit(100_000_000)]
-        [RequestFormLimits(MultipartBodyLengthLimit = 100_000_000)]
+        [RequestSizeLimit(400 * 1024 * 1024)]
+        [RequestFormLimits(MultipartBodyLengthLimit = 400 * 1024 * 1024)]
         [Consumes("multipart/form-data")]
         public async Task<ActionResult<WqmpBulkUploadResultDto>> UploadSimplifiedBMPs([FromForm] WQMPBulkUploadFormDto form)
         {
@@ -1126,8 +1132,8 @@ namespace Neptune.API.Controllers
 
         [HttpPost("upload-boundary-from-apns")]
         [JurisdictionEditFeature]
-        [RequestSizeLimit(100_000_000)]
-        [RequestFormLimits(MultipartBodyLengthLimit = 100_000_000)]
+        [RequestSizeLimit(400 * 1024 * 1024)]
+        [RequestFormLimits(MultipartBodyLengthLimit = 400 * 1024 * 1024)]
         [Consumes("multipart/form-data")]
         public async Task<ActionResult<WQMPBoundaryUploadResultDto>> UploadBoundaryFromAPNs([FromForm] WQMPBulkUploadFormDto form)
         {

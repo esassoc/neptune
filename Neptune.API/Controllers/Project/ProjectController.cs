@@ -123,8 +123,8 @@ namespace Neptune.API.Controllers
 
         [HttpPost("{projectID}/attachments")]
         [EntityNotFound(typeof(Project), "projectID")]
-        [RequestSizeLimit(30 * 1024 * 1024)]
-        [RequestFormLimits(MultipartBodyLengthLimit = 30 * 1024 * 1024), ProducesResponseType(StatusCodes.Status413RequestEntityTooLarge)]
+        [RequestSizeLimit(400 * 1024 * 1024)]
+        [RequestFormLimits(MultipartBodyLengthLimit = 400 * 1024 * 1024), ProducesResponseType(StatusCodes.Status413RequestEntityTooLarge)]
         [JurisdictionEditFeature]
         public async Task<ActionResult<ProjectDocumentDto>> AddAttachment([FromRoute] int projectID, [FromForm] ProjectDocumentUpsertDto projectDocumentUpsertDto)
         {

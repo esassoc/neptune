@@ -486,8 +486,8 @@ public class TreatmentBMPController(
 
     [HttpPost("bulk-upload")]
     [AdminFeature]
-    [RequestSizeLimit(100_000_000)]
-    [RequestFormLimits(MultipartBodyLengthLimit = 100_000_000)]
+    [RequestSizeLimit(400 * 1024 * 1024)]
+    [RequestFormLimits(MultipartBodyLengthLimit = 400 * 1024 * 1024)]
     [Consumes("multipart/form-data")]
     public async Task<ActionResult<TreatmentBMPCsvUploadResultDto>> BulkUpload([FromForm] TreatmentBMPCsvUploadFormDto form)
     {

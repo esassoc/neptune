@@ -50,8 +50,8 @@ public class LandUseBlockController(
 
     [HttpPost("upload-gdb")]
     [JurisdictionEditFeature]
-    [RequestSizeLimit(524_288_000)]
-    [RequestFormLimits(MultipartBodyLengthLimit = 524_288_000)]
+    [RequestSizeLimit(400 * 1024 * 1024)]
+    [RequestFormLimits(MultipartBodyLengthLimit = 400 * 1024 * 1024)]
     [Consumes("multipart/form-data")]
     public async Task<ActionResult<LandUseBlockGdbUploadResultDto>> UploadGdb([FromForm] LandUseBlockGdbUploadFormDto form)
     {

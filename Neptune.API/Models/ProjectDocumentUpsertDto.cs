@@ -27,8 +27,8 @@ namespace Neptune.Models.DataTransferObjects
             if (extension == null || !acceptableExtensions.Contains(extension.ToLower()))
                 yield return new ValidationResult("File extension is not valid", new[] { "FileResource" });
 
-            if (size > 30 * 1024 * 1024)
-                yield return new ValidationResult("File size is greater than 30MB", new[] { "FileResource" });
+            if (size > 400 * 1024 * 1024)
+                yield return new ValidationResult("File size is greater than 400MB", new[] { "FileResource" });
         }
     }
 }

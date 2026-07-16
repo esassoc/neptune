@@ -37,7 +37,7 @@ public class NeptuneConfiguration : NeptuneJobConfiguration
     /// 99%+ of real-world scanned WQMPs with headroom). Override per environment if
     /// needed.
     /// </summary>
-    public long MaxExtractablePdfSizeBytes { get; set; } = 200L * 1024 * 1024;
+    public long MaxExtractablePdfSizeBytes { get; set; } = 400L * 1024 * 1024;
     public string Auth0Domain { get; set; }
     public string Auth0ClientID { get; set; }
 }

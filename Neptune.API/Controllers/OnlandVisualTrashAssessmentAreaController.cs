@@ -187,7 +187,7 @@ public class OnlandVisualTrashAssessmentAreaController(
 
     [HttpPost("gdb-upload")]
     [JurisdictionEditFeature]
-    [RequestFormLimits(MultipartBodyLengthLimit = 524288000)]
+    [RequestFormLimits(MultipartBodyLengthLimit = 400 * 1024 * 1024)]
     [Consumes("multipart/form-data")]
     public async Task<ActionResult<OvtaAreaGdbStagingReportDto>> GdbUpload([FromForm] OvtaAreaGdbUploadFormDto form)
     {
