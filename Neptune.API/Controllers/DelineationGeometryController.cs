@@ -30,7 +30,7 @@ namespace Neptune.API.Controllers
     {
         [HttpPost("upload")]
         [JurisdictionEditFeature]
-        [RequestFormLimits(MultipartBodyLengthLimit = 524288000)]
+        [RequestFormLimits(MultipartBodyLengthLimit = 400 * 1024 * 1024)]
         [Consumes("multipart/form-data")]
         public async Task<ActionResult<DelineationGdbUploadValidationDto>> Upload([FromForm] DelineationGdbUploadFormDto form)
         {
