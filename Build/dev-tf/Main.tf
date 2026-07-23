@@ -11,10 +11,11 @@
 # identity reads secrets via DefaultAzureCredential once their AAD group has the
 # "Key Vault Secrets User" role (var.devReaderGroupObjectId below).
 #
-# Dev blob storage is OWNED here (neptuneappdev + its `files` container). It is
-# distinct from the root neptune.tf storageAccountDevApplicationName account —
-# if that root account is still present, retire it so one account never sits
-# under two Terraform states (see README).
+# Dev blob storage is OWNED here (neptuneappdev + its `files` container). The
+# same NPT-1112 change removes it from the root neptune.tf
+# (storageAccountDevApplicationName), so one account never sits under two
+# Terraform states. This is a globally-unique-name move — run the root apply
+# (destroys the old account) BEFORE this stack's apply (recreates it). See README.
 # =============================================================================
 
 variable "keyVaultName" {

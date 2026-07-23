@@ -40,9 +40,21 @@ SP holds **Key Vault Data Access Administrator** on the dev vault's resource
 group (same manual RBAC prereq as the root stack). Then run the
 `dev-terraform.yml` pipeline: **plan → approval → apply**.
 
-## Note on the root storageAccountDevApplicationName
+## Cutover from the root stack (one-time, ordered)
 
-The root `neptune.tf` still defines an optional dev storage account via
-`storageAccountDevApplicationName`. If that account is in use, retire it (or
-leave that variable empty) once this stack owns `neptuneappdev`, so one account
-never sits under two Terraform states.
+`neptuneappdev` was originally created by the root `neptune.tf`
+(`storageAccountDevApplicationName`) under the **root** tfstate. This commit
+removes that resource + variable from `neptune.tf` and the `-var` from
+`Build/azure-pipelines.yml`, so `neptuneappdev` moves under **this** dev stack.
+Storage-account names are globally unique, so ordering matters and the old
+account's blobs are treated as **throwaway dev data**:
+
+1. **Run the main QA pipeline** (with this branch merged) — its Terraform apply
+   **destroys** the old `neptuneappdev` in `neptune-qa` (the plan will show the
+   destroy; that's expected).
+2. **Run this `dev-terraform.yml` pipeline** — it recreates `neptuneappdev` in
+   `neptune-dev` with the `files` container and seeds the vault secrets.
+3. **Refresh the `storageAccountDevAccountKey`** Azure DevOps variable to the
+   new account's key so `Build/restore-dev-blob.yml` (which restores prod blobs
+   into `neptuneappdev` by name) keeps working. The account **name** is
+   unchanged, so no YAML edit is needed there.
