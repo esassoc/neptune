@@ -106,6 +106,53 @@ variable "amd_id" {
   default = "1"
 }
 
+# --- NPT-1112: workload identity + Key Vault runtime config ------------------
+
+# AKS cluster OIDC issuer URL (spoke KV secret kv-clusterOidcIssuerUrl) — the
+# issuer for the federated workload-identity credentials. Neptune shares the
+# cluster with wave-runup, so this is the same issuer.
+variable "clusterOidcIssuerUrl" {
+  type = string
+}
+
+# K8s namespace the Neptune ServiceAccounts live in (helm deploys to $(team)).
+variable "aksNamespace" {
+  type    = string
+  default = "h2o"
+}
+
+# Runtime app secrets seeded into the vault (only when non-empty).
+variable "sendGridApiKey" {
+  type      = string
+  sensitive = true
+  default   = ""
+}
+
+variable "anthropicApiKey" {
+  type      = string
+  sensitive = true
+  default   = ""
+}
+
+# H2O Entra group object IDs (identifiers, not secrets) for Key Vault read
+# access via `az login` + DefaultAzureCredential. Neptune shares the h2o team
+# with wave-runup, so these are the same groups the pipeline's db-aad-user
+# grants reference by display name. Empty string skips the grant.
+variable "h2oQaGroupObjectId" {
+  type    = string
+  default = "c17266ef-57de-4cb9-b505-80a1eeccec60"
+}
+
+variable "h2oProdGroupObjectId" {
+  type    = string
+  default = "63de4f43-d4c8-4ba6-8718-a8a20a06f7cd"
+}
+
+variable "h2oReadersGroupObjectId" {
+  type    = string
+  default = "5136cec4-2c3d-41c5-b938-1a8053938118"
+}
+
 terraform {
 	required_version   = ">= 0.11"
 	backend "azurerm" {
@@ -120,6 +167,10 @@ terraform {
     random = {
       source = "hashicorp/random"
       version = "~> 3.2.0"
+    }
+    time = {
+      source  = "hashicorp/time"
+      version = "~> 0.9"
     }
       datadog = {
       source = "DataDog/datadog"
@@ -383,25 +434,17 @@ resource "azurerm_key_vault" "web" {
   tenant_id                    = data.azurerm_client_config.current.tenant_id
   tags                         = local.tags
 
+  # NPT-1112: RBAC authorization — data-plane access via role assignments (the
+  # pipeline SP's Secrets Officer grant, the workload identity, and the H2O
+  # groups; see the workload-identity section below). PREREQ (manual,
+  # out-of-band, per environment): the pipeline SP holds Key Vault Data Access
+  # Administrator (or Role Based Access Control Administrator) on this vault
+  # BEFORE the apply that flips the model, or the SP cannot create the role
+  # assignments below and its own secret writes 403. Do the QA vault first,
+  # verify, then prod.
+  enable_rbac_authorization = true
+
   sku_name = "standard"
-}
-
-resource "azurerm_key_vault_access_policy" "thisPipeline" {
-  key_vault_id = azurerm_key_vault.web.id
-  tenant_id    = data.azurerm_client_config.current.tenant_id
-  object_id    = data.azurerm_client_config.current.object_id
-
-  key_permissions = [
-    "Backup", "Create", "Decrypt", "Delete", "Encrypt", "Get", "Import", "List", "Purge", "Recover", "Restore", "Sign", "UnwrapKey", "Update", "Verify", "WrapKey"
-  ]
-
-  secret_permissions = [
-    "Backup", "Delete", "Get", "List", "Purge", "Recover", "Restore", "Set"
-  ]
-
-  storage_permissions = [
-    "Backup", "Delete", "DeleteSAS", "Get", "GetSAS", "List", "ListSAS", "Recover", "RegenerateKey", "Restore", "Set", "SetSAS", "Update"
-  ]
 }
 
 resource "azurerm_key_vault_secret" "sqlAdminPass" {
@@ -411,7 +454,7 @@ resource "azurerm_key_vault_secret" "sqlAdminPass" {
 
   tags                         = local.tags
   depends_on = [
-    azurerm_key_vault_access_policy.thisPipeline
+    time_sleep.kv_rbac_propagation
   ]
 }
  
@@ -422,7 +465,7 @@ resource "azurerm_key_vault_secret" "sqlAdminUser" {
 
   tags                         = local.tags
   depends_on = [
-    azurerm_key_vault_access_policy.thisPipeline
+    time_sleep.kv_rbac_propagation
   ]
 }
  
@@ -433,7 +476,7 @@ resource "azurerm_key_vault_secret" "sqlApiUsername" {
 
   tags                         = local.tags
   depends_on = [
-    azurerm_key_vault_access_policy.thisPipeline
+    time_sleep.kv_rbac_propagation
   ]
 }
 
@@ -444,7 +487,7 @@ resource "azurerm_key_vault_secret" "sqlApiPassword" {
 
   tags                         = local.tags
   depends_on = [
-    azurerm_key_vault_access_policy.thisPipeline
+    time_sleep.kv_rbac_propagation
   ]
 }
 
@@ -455,7 +498,7 @@ resource "azurerm_key_vault_secret" "sqlApiConnectionString" {
 
   tags                         = local.tags
   depends_on = [
-    azurerm_key_vault_access_policy.thisPipeline
+    time_sleep.kv_rbac_propagation
   ]
 }
 
@@ -466,7 +509,7 @@ resource "azurerm_key_vault_secret" "sqlGeoserverUsername" {
 
   tags                         = local.tags
   depends_on = [
-    azurerm_key_vault_access_policy.thisPipeline
+    time_sleep.kv_rbac_propagation
   ]
 }
 
@@ -477,7 +520,7 @@ resource "azurerm_key_vault_secret" "sqlGeoserverPassword" {
 
   tags                         = local.tags
   depends_on = [
-    azurerm_key_vault_access_policy.thisPipeline
+    time_sleep.kv_rbac_propagation
   ]
 }
 
@@ -488,7 +531,7 @@ resource "azurerm_key_vault_secret" "sqlGeoserverConnectionString" {
 
   tags                         = local.tags
   depends_on = [
-    azurerm_key_vault_access_policy.thisPipeline
+    time_sleep.kv_rbac_propagation
   ]
 }
 
@@ -499,19 +542,180 @@ resource "azurerm_key_vault_secret" "geoserverAdminPassword" {
 
   tags                         = local.tags
   depends_on = [
-    azurerm_key_vault_access_policy.thisPipeline
+    time_sleep.kv_rbac_propagation
   ]
 }
 
 resource "azurerm_key_vault_secret" "hangfirePassword" {
+  # NPT-1112: this secret doubles as the runtime HangfirePassword config value —
+  # KV secret names and .NET config keys are both case-insensitive, so do NOT
+  # seed a second HangfirePassword secret (it would be the SAME underlying vault
+  # secret managed by two Terraform resources).
   name                         = "hangfirePassword"
   value                        = random_password.hangfirePassword.result
   key_vault_id                 = azurerm_key_vault.web.id
 
   tags                         = local.tags
   depends_on = [
-    azurerm_key_vault_access_policy.thisPipeline
+    time_sleep.kv_rbac_propagation
   ]
+}
+
+# =============================================================================
+# NPT-1112: workload identity + Key Vault runtime config
+# =============================================================================
+# QA/prod neptune-api and neptune-externalapi pods carry no Kubernetes secret:
+# they authenticate as the user-assigned identity below (federated to their
+# ServiceAccounts via the cluster OIDC issuer) and read config from this env's
+# Key Vault at startup (KeyVaultName -> AddAzureKeyVault(DefaultAzureCredential)
+# in Neptune.{API,ExternalAPI} Program.cs). SQL auth for the API is
+# 'Authentication=Active Directory Default' — no SQL usernames/passwords.
+# Mirrors wave-runup WAVE-30.
+#
+# GeoServer, OverlayAPI, GDALAPI and the nereid services stay on SQL auth and
+# keep reading their password-based secrets (sqlApi*/sqlGeoserver*/geoserver*)
+# above — they are intentionally NOT federated here.
+
+# The pipeline SP writes/seeds secrets via RBAC once the vault flips.
+resource "azurerm_role_assignment" "pipeline_kv_secrets_officer" {
+  scope                = azurerm_key_vault.web.id
+  role_definition_name = "Key Vault Secrets Officer"
+  principal_id         = data.azurerm_client_config.current.object_id
+}
+
+# RBAC role assignments take seconds-to-minutes to propagate; secret writes in
+# the same apply 403 without this buffer. Worst case the apply is re-runnable.
+resource "time_sleep" "kv_rbac_propagation" {
+  depends_on      = [azurerm_role_assignment.pipeline_kv_secrets_officer]
+  create_duration = "120s"
+}
+
+resource "azurerm_user_assigned_identity" "neptune" {
+  # var.environment is already lowercase; the pipeline's db-aad-user step must
+  # reference this exact name/casing (neptune-<env>-identity).
+  name                = "neptune-${var.environment}-identity"
+  location            = azurerm_resource_group.web.location
+  resource_group_name = azurerm_resource_group.web.name
+  tags                = local.tags
+}
+
+locals {
+  # ServiceAccount names = helm fullname = "<release>-<chart>". The release is
+  # 'neptune' and the subchart Chart.yaml names are the BARE words
+  # api/externalapi (the neptune-* directory names are just folders), so the
+  # fullnames are neptune-api and neptune-externalapi — renaming a subchart's
+  # Chart.yaml name would change its ServiceAccount name and break federation.
+  # Only these two pods make Azure calls; web is static and the geoserver/
+  # overlayapi/gdalapi/nereid pods stay on SQL auth.
+  workload_identity_subjects = [
+    "neptune-api",
+    "neptune-externalapi",
+  ]
+
+  is_prod = var.environment == "prod"
+}
+
+resource "azurerm_federated_identity_credential" "neptune" {
+  for_each            = toset(local.workload_identity_subjects)
+  name                = each.value
+  resource_group_name = azurerm_resource_group.web.name
+  audience            = ["api://AzureADTokenExchange"]
+  issuer              = var.clusterOidcIssuerUrl
+  parent_id           = azurerm_user_assigned_identity.neptune.id
+  subject             = "system:serviceaccount:${var.aksNamespace}:${each.value}"
+}
+
+# The workload identity reads secrets at pod startup.
+resource "azurerm_role_assignment" "identity_kv_secrets_user" {
+  scope                = azurerm_key_vault.web.id
+  role_definition_name = "Key Vault Secrets User"
+  principal_id         = azurerm_user_assigned_identity.neptune.principal_id
+}
+
+# --- H2O group vault access --------------------------------------------------
+# Prod group: Officer everywhere. QA group: Officer on QA, read-only on prod.
+# Readers: read-only on QA. Guarded so an empty object id skips the grant.
+resource "azurerm_role_assignment" "h2o_prod_group_kv_secrets_officer" {
+  count                = var.h2oProdGroupObjectId != "" ? 1 : 0
+  scope                = azurerm_key_vault.web.id
+  role_definition_name = "Key Vault Secrets Officer"
+  principal_id         = var.h2oProdGroupObjectId
+}
+
+resource "azurerm_role_assignment" "h2o_qa_group_kv_secrets_officer" {
+  count                = var.h2oQaGroupObjectId != "" && !local.is_prod ? 1 : 0
+  scope                = azurerm_key_vault.web.id
+  role_definition_name = "Key Vault Secrets Officer"
+  principal_id         = var.h2oQaGroupObjectId
+}
+
+resource "azurerm_role_assignment" "h2o_qa_group_kv_secrets_user_on_prod" {
+  count                = var.h2oQaGroupObjectId != "" && local.is_prod ? 1 : 0
+  scope                = azurerm_key_vault.web.id
+  role_definition_name = "Key Vault Secrets User"
+  principal_id         = var.h2oQaGroupObjectId
+}
+
+resource "azurerm_role_assignment" "h2o_readers_group_kv_secrets_user" {
+  count                = var.h2oReadersGroupObjectId != "" && !local.is_prod ? 1 : 0
+  scope                = azurerm_key_vault.web.id
+  role_definition_name = "Key Vault Secrets User"
+  principal_id         = var.h2oReadersGroupObjectId
+}
+
+# --- Runtime app secrets (read by Neptune.API + Neptune.ExternalAPI) ---------
+# KV secret names map 1:1 onto Neptune's flat PascalCase config keys (see
+# NeptuneKeyVaultSecretManager) — no name transformation. Case-insensitive, so
+# the hangfirePassword secret above already satisfies the HangfirePassword
+# config key; a second one is not seeded.
+resource "azurerm_key_vault_secret" "appDatabaseConnectionString" {
+  name = "DatabaseConnectionString"
+  # AAD-based auth. Pods authenticate via DefaultAzureCredential (workload
+  # identity -> azurerm_user_assigned_identity.neptune). The DB user for the
+  # identity is created by the pipeline's db-aad-user.yml@BuildTemplates step
+  # after every DacPac deploy (CREATE USER FROM EXTERNAL PROVIDER); the shared
+  # spoke SQL server's Entra admin is already configured. The legacy sqlApi*
+  # secrets + SQL login are retained during the transition; remove them once
+  # nothing reads the password path.
+  value        = "Server=tcp:${data.azurerm_mssql_server.spoke.fully_qualified_domain_name},1433;Database=${var.databaseName};Authentication=Active Directory Default;Encrypt=True;"
+  key_vault_id = azurerm_key_vault.web.id
+  tags         = local.tags
+  depends_on   = [time_sleep.kv_rbac_propagation]
+}
+
+resource "azurerm_key_vault_secret" "appBlobConnectionString" {
+  name         = "AzureBlobStorageConnectionString"
+  value        = azurerm_storage_account.web.primary_connection_string
+  key_vault_id = azurerm_key_vault.web.id
+  tags         = local.tags
+  depends_on   = [time_sleep.kv_rbac_propagation]
+}
+
+# Only seed when a value was supplied (avoids writing empty secrets).
+resource "azurerm_key_vault_secret" "appSendGridApiKey" {
+  count        = var.sendGridApiKey != "" ? 1 : 0
+  name         = "SendGridApiKey"
+  value        = var.sendGridApiKey
+  key_vault_id = azurerm_key_vault.web.id
+  tags         = local.tags
+  depends_on   = [time_sleep.kv_rbac_propagation]
+}
+
+resource "azurerm_key_vault_secret" "appAnthropicApiKey" {
+  count        = var.anthropicApiKey != "" ? 1 : 0
+  name         = "AnthropicApiKey"
+  value        = var.anthropicApiKey
+  key_vault_id = azurerm_key_vault.web.id
+  tags         = local.tags
+  depends_on   = [time_sleep.kv_rbac_propagation]
+}
+
+output "workload_identity_client_id" {
+  value = azurerm_user_assigned_identity.neptune.client_id
+}
+
+output "workload_identity_tenant_id" {
+  value = azurerm_user_assigned_identity.neptune.tenant_id
 }
 
 resource "datadog_synthetics_test" "api_test" {
