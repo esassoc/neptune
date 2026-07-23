@@ -420,11 +420,13 @@ resource "azurerm_key_vault" "web" {
   # NPT-1112: RBAC authorization — data-plane access via role assignments (the
   # pipeline SP's Secrets Officer grant, the workload identity, and the H2O
   # groups; see the workload-identity section below). PREREQ (manual,
-  # out-of-band, per environment): the pipeline SP holds Key Vault Data Access
-  # Administrator (or Role Based Access Control Administrator) on this vault
-  # BEFORE the apply that flips the model, or the SP cannot create the role
-  # assignments below and its own secret writes 403. Do the QA vault first,
-  # verify, then prod.
+  # out-of-band, per environment): the pipeline SP holds "Role Based Access
+  # Control Administrator" on this vault BEFORE the apply — the SP's Contributor
+  # covers flipping enable_rbac_authorization (vaults/write) but NOT
+  # Microsoft.Authorization/roleAssignments/write, which it needs to create the
+  # Secrets Officer/User/group assignments below (else those, and its own secret
+  # writes, 403). This is the same grant used on the other ESA apps (riparis,
+  # wave-runup). Do the QA vault first, verify, then prod.
   enable_rbac_authorization = true
 
   sku_name = "standard"
