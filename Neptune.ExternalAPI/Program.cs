@@ -1,3 +1,4 @@
+extern alias AzureIdentity;
 using System.IO.Compression;
 using System.Text.Json;
 using System.Text.Json.Serialization;
@@ -6,6 +7,7 @@ using Microsoft.AspNetCore.HttpOverrides;
 using Microsoft.AspNetCore.ResponseCompression;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.OpenApi;
+using Neptune.Common;
 using Neptune.Common.Services;
 using Neptune.EFModels.Entities;
 using Neptune.ExternalAPI;
@@ -17,10 +19,33 @@ using Serilog;
 
 var builder = WebApplication.CreateBuilder(args);
 
-// Configuration: env vars + secrets JSON (per SECRET_PATH) + appsettings.json
-builder.Configuration.AddEnvironmentVariables()
-    .AddJsonFile(builder.Configuration["SECRET_PATH"], optional: false, reloadOnChange: true)
-    .AddJsonFile("appsettings.json", optional: true);
+// Configuration: env vars + secrets JSON (per SECRET_PATH) + appsettings.json, then
+// optional Azure Key Vault as the real-secret source. The SECRET_PATH file load is
+// File.Exists-guarded so a missing secrets file does not throw when Key Vault is the
+// source (deployed pods have no mounted secret file).
+builder.Configuration.AddEnvironmentVariables();
+
+var secretPath = builder.Configuration["SECRET_PATH"];
+if (File.Exists(secretPath))
+{
+    builder.Configuration.AddJsonFile(secretPath, optional: false, reloadOnChange: true);
+}
+builder.Configuration.AddJsonFile("appsettings.json", optional: true);
+
+// Opt-in: only wired when KeyVaultName is set, so local dev with no vault / no
+// `az login` is unaffected. DefaultAzureCredential uses the developer's `az login`
+// identity in dev and the pod's workload identity in deployed environments.
+var keyVaultName = builder.Configuration["KeyVaultName"];
+if (!string.IsNullOrWhiteSpace(keyVaultName))
+{
+    var kvUri = new Uri($"https://{keyVaultName}.vault.azure.net/");
+    // Alias-qualified: DefaultAzureCredential is type-forwarded between Azure.Core
+    // and Azure.Identity, so an unaliased name is ambiguous.
+    builder.Configuration.AddAzureKeyVault(kvUri, new AzureIdentity::Azure.Identity.DefaultAzureCredential(),
+        new NeptuneKeyVaultSecretManager());
+    // Re-add env vars after the vault so local overrides still win.
+    builder.Configuration.AddEnvironmentVariables();
+}
 
 builder.Host.UseSerilog((context, services, configuration) =>
 {
