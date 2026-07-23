@@ -602,14 +602,16 @@ resource "azurerm_user_assigned_identity" "neptune" {
 locals {
   # ServiceAccount names = helm fullname = "<release>-<chart>". The release is
   # 'neptune' and the subchart Chart.yaml names are the BARE words
-  # api/externalapi (the neptune-* directory names are just folders), so the
-  # fullnames are neptune-api and neptune-externalapi — renaming a subchart's
-  # Chart.yaml name would change its ServiceAccount name and break federation.
-  # Only these two pods make Azure calls; web is static and the geoserver/
-  # overlayapi/gdalapi/nereid pods stay on SQL auth.
+  # api/externalapi/overlayapi (the neptune-* directory names are just folders),
+  # so the fullnames are neptune-api etc. — renaming a subchart's Chart.yaml
+  # name would change its ServiceAccount name and break federation. These three
+  # .NET pods read the DB/secrets from Azure. GDALAPI is excluded (no DB — blob
+  # only); GeoServer stays on SQL auth (Java/kartoza image, no DefaultAzureCredential);
+  # web is static.
   workload_identity_subjects = [
     "neptune-api",
     "neptune-externalapi",
+    "neptune-overlayapi",
   ]
 
   is_prod = var.environment == "prod"

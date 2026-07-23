@@ -1,4 +1,6 @@
+extern alias AzureIdentity;
 using Microsoft.EntityFrameworkCore;
+using Neptune.Common;
 using Neptune.EFModels.Entities;
 using Neptune.OverlayAPI.Services;
 using Serilog;
@@ -7,7 +9,28 @@ using Serilog.Core;
 var builder = WebApplication.CreateBuilder(args);
 
 builder.Configuration.AddEnvironmentVariables();
-builder.Configuration.AddJsonFile(builder.Configuration["SECRET_PATH"], optional: false, reloadOnChange: true);
+
+// Guarded so a missing secrets file does not throw when Key Vault is the source
+// (deployed pods have no mounted secret file).
+var secretPath = builder.Configuration["SECRET_PATH"];
+if (File.Exists(secretPath))
+{
+    builder.Configuration.AddJsonFile(secretPath, optional: false, reloadOnChange: true);
+}
+
+// Opt-in Azure Key Vault: only wired when KeyVaultName is set, so local dev with
+// no vault / no `az login` is unaffected. DefaultAzureCredential uses the pod's
+// workload identity in AKS and the developer's `az login` identity locally.
+var keyVaultName = builder.Configuration["KeyVaultName"];
+if (!string.IsNullOrWhiteSpace(keyVaultName))
+{
+    var kvUri = new Uri($"https://{keyVaultName}.vault.azure.net/");
+    // Alias-qualified: DefaultAzureCredential is type-forwarded between Azure.Core
+    // and Azure.Identity, so an unaliased name is ambiguous.
+    builder.Configuration.AddAzureKeyVault(kvUri, new AzureIdentity::Azure.Identity.DefaultAzureCredential(),
+        new NeptuneKeyVaultSecretManager());
+    builder.Configuration.AddEnvironmentVariables();
+}
 
 builder.Logging.ClearProviders();
 builder.Logging.AddConsole();
