@@ -1,0 +1,40 @@
+{
+    "name": "Neptune",
+    "dockerComposeFile": "docker-compose.yml",
+    "service": "neptune.dev",
+    "workspaceFolder": "/workspace",
+    "remoteUser": "root",
+    "features": {
+        "ghcr.io/devcontainers/features/dotnet:2": {
+            "version": "10.0"
+        },
+        "ghcr.io/devcontainers/features/github-cli:1": {},
+        "ghcr.io/devcontainers/features/azure-cli:1": {},
+        "ghcr.io/anthropics/devcontainer-features/claude-code:1": {}
+    },
+    "containerEnv": {
+        "CLAUDE_CONFIG_DIR": "/root/.claude"
+    },
+    "postCreateCommand": "bash /workspace/.devcontainer/scripts/post-create.sh",
+    "//": "Auth state (claude / az / gh) is mounted as SHARED named volumes in docker-compose.yml so one `make auth` + `claude` login seeds every worktree on this host and survives rebuilds.",
+    "//ports": "docker-compose `ports:` is the single source of truth. We deliberately do NOT set forwardPorts/portsAttributes — with per-worktree port slots, VS Code's speculative 127.0.0.1:<port> pre-bind on every window steals traffic from the container that actually owns the port. `otherPortsAttributes: ignore` skips auto-forward; Docker still publishes via compose.",
+    "otherPortsAttributes": {
+        "onAutoForward": "ignore"
+    },
+    "customizations": {
+        "vscode": {
+            "extensions": [
+                "Angular.ng-template",
+                "esbenp.prettier-vscode",
+                "EditorConfig.EditorConfig",
+                "ms-dotnettools.csharp",
+                "ms-dotnettools.csdevkit",
+                "anthropic.claude-code"
+            ],
+            "settings": {
+                "editor.defaultFormatter": "esbenp.prettier-vscode",
+                "editor.formatOnSave": true
+            }
+        }
+    }
+}
