@@ -45,6 +45,7 @@
                     @if (mapIsReady) {
                         <parcel-layer [displayOnLoad]="true" [map]="map" [layerControl]="layerControl"></parcel-layer>
                         <wqmps-layer [mode]="OverlayMode.ReferenceOnly" [map]="map" [layerControl]="layerControl"></wqmps-layer>
+                        <treatment-bmps-layer [waterQualityManagementPlanID]="waterQualityManagementPlanID" [displayOnLoad]="true" [map]="map" [layerControl]="layerControl"></treatment-bmps-layer>
                     }
                 </neptune-map>
             </div>

@@ -10,6 +10,7 @@ import { FormFieldComponent } from "src/app/shared/components/forms/form-field/f
 import { NeptuneMapComponent, NeptuneMapInitEvent } from "src/app/shared/components/leaflet/neptune-map/neptune-map.component";
 import { ParcelLayerComponent } from "src/app/shared/components/leaflet/layers/parcel-layer/parcel-layer.component";
 import { WqmpsLayerComponent } from "src/app/shared/components/leaflet/layers/wqmps-layer/wqmps-layer.component";
+import { TreatmentBMPsLayerComponent } from "src/app/shared/components/leaflet/layers/treatment-bmps-layer/treatment-bmps-layer.component";
 import { OverlayMode } from "src/app/shared/components/leaflet/layers/generic-wms-wfs-layer/overlay-mode.enum";
 import { AlertService } from "src/app/shared/services/alert.service";
 import { WfsService } from "src/app/shared/services/wfs.service";
@@ -28,6 +29,7 @@ import { BoundingBoxDto } from "src/app/shared/generated/model/bounding-box-dto"
         NeptuneMapComponent,
         ParcelLayerComponent,
         WqmpsLayerComponent,
+        TreatmentBMPsLayerComponent,
         FormFieldComponent,
         RouterLink,
         AsyncPipe,

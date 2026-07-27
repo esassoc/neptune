@@ -184,6 +184,7 @@ const SECURED_REGEX: RegexMap = {
     new RegExp("^/water-quality-management-plans/[^/]+/boundary$"),
     new RegExp("^/water-quality-management-plans/[^/]+/extraction-result$"),
     new RegExp("^/water-quality-management-plans/[^/]+/parcel-ids$"),
+    new RegExp("^/water-quality-management-plans/[^/]+/treatment-bmps/feature-collection$"),
     new RegExp("^/water-quality-management-plans/[^/]+/verifications/[^/]+$"),
   ],
   'POST': [

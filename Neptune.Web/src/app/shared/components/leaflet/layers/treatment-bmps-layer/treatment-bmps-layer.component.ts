@@ -1,0 +1,68 @@
+import { CommonModule } from "@angular/common";
+import { Component, Input, OnInit } from "@angular/core";
+import "leaflet.markercluster";
+import * as L from "leaflet";
+import { MapLayerBase } from "../map-layer-base.component";
+import { MarkerHelper } from "src/app/shared/helpers/marker-helper";
+import { WaterQualityManagementPlanService } from "src/app/shared/generated/api/water-quality-management-plan.service";
+import { Observable, tap } from "rxjs";
+import { IFeature } from "src/app/shared/generated/model/i-feature";
+
+// NPT-1092: reference layer of the WQMP's inventoried Treatment BMPs, for the boundary editors.
+// Mirrors inventoried-bmps-layer but scoped to a single WQMP via [waterQualityManagementPlanID].
+@Component({
+    selector: "treatment-bmps-layer",
+    imports: [CommonModule],
+    templateUrl: "./treatment-bmps-layer.component.html",
+    styleUrls: ["./treatment-bmps-layer.component.scss"],
+})
+export class TreatmentBMPsLayerComponent extends MapLayerBase implements OnInit {
+    @Input() waterQualityManagementPlanID: number;
+
+    public layer: L.MarkerClusterGroup = new L.MarkerClusterGroup({
+        iconCreateFunction: function (cluster) {
+            var childCount = cluster.getChildCount();
+
+            return new L.DivIcon({
+                html: "<div><span>" + childCount + "</span></div>",
+                className: "treatment-bmp-cluster",
+                iconSize: new L.Point(40, 40),
+            });
+        },
+    });
+
+    public treatmentBMPs$: Observable<IFeature[]>;
+
+    constructor(private waterQualityManagementPlanService: WaterQualityManagementPlanService) {
+        super();
+    }
+
+    // Assigned in ngOnInit (not ngAfterViewInit) so the template's `@if (treatmentBMPs$ | async)`
+    // sees the observable on the first template check and the async pipe actually subscribes.
+    // ViewChild template refs used by initLayer() are still safely available by the time the
+    // HTTP response arrives and the tap fires.
+    ngOnInit(): void {
+        const request$ = this.waterQualityManagementPlanService.listTreatmentBMPsAsFeatureCollectionWaterQualityManagementPlan(this.waterQualityManagementPlanID);
+        this.treatmentBMPs$ = this.trackLayerRequest$(request$).pipe(
+            tap((treatmentBMPs) => {
+                const treatmentBMPsLayer = new L.GeoJSON(treatmentBMPs as any, {
+                    pointToLayer: (feature, latlng) => {
+                        return L.marker(latlng, { icon: MarkerHelper.inventoriedTreatmentBMPMarker });
+                    },
+                    onEachFeature: (feature, layer) => {
+                        // SPA detail route. Leaflet popups are raw HTML so we can't use
+                        // [routerLink]; root-relative path + target="_blank" still opens
+                        // the SPA in a fresh tab.
+                        layer.bindPopup(
+                            `<b>Name:</b> <a target="_blank" href="/treatment-bmps/${feature.properties.TreatmentBMPID}">${
+                                feature.properties.TreatmentBMPName
+                            }</a><br>` + `<b>Type:</b> ${feature.properties.TreatmentBMPTypeName}`
+                        );
+                    },
+                });
+                this.layer.addLayer(treatmentBMPsLayer);
+                this.initLayer();
+            })
+        );
+    }
+}
