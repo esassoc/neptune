@@ -95,8 +95,19 @@
             [columnDefs]="ovtaColumnDefs"
             downloadFileName="onland-visual-trash-assessments"
             [pagination]="true"
-            [sizeColumnsToFitGrid]="true">
-            <a customGridActionsRight class="btn btn-sm btn-primary-outline" (click)="moveOVTAAssessments(onlandVisualTrashAssessmentArea, onlandVisualTrashAssessments)">Move Assessments</a>
+            [sizeColumnsToFitGrid]="true"
+            rowSelection="multiple"
+            [suppressRowClickSelection]="true"
+            [isRowSelectable]="isRowCompleteSelectable"
+            (selectionChanged)="onAssessmentSelectionChanged($event)">
+            <button
+              customGridActionsRight
+              type="button"
+              class="btn btn-sm btn-primary-outline"
+              [disabled]="selectedRowIDs().length === 0"
+              (click)="moveOVTAAssessments(onlandVisualTrashAssessmentArea)">
+              Move Assessments ({{ selectedRowIDs().length }})
+            </button>
           </neptune-grid>
         </div>
       </div>

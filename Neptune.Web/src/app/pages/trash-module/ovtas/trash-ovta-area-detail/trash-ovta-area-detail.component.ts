@@ -1,4 +1,4 @@
-import { ApplicationRef, Component } from "@angular/core";
+import { ApplicationRef, Component, signal } from "@angular/core";
 import { ActivatedRoute, Router, RouterLink } from "@angular/router";
 import { Input } from "@angular/core";
 import { BehaviorSubject, Observable, switchMap, tap } from "rxjs";
@@ -9,7 +9,7 @@ import { AlertDisplayComponent } from "../../../../shared/components/alert-displ
 import { AsyncPipe, DatePipe } from "@angular/common";
 import { FieldDefinitionComponent } from "../../../../shared/components/field-definition/field-definition.component";
 import { NeptuneGridComponent } from "../../../../shared/components/neptune-grid/neptune-grid.component";
-import { ColDef } from "ag-grid-community";
+import { ColDef, IsRowSelectable, SelectionChangedEvent } from "ag-grid-community";
 import { UtilityFunctionsService } from "src/app/services/utility-functions.service";
 import { NeptuneMapComponent, NeptuneMapInitEvent } from "../../../../shared/components/leaflet/neptune-map/neptune-map.component";
 import * as L from "leaflet";
@@ -51,6 +51,11 @@ export class TrashOvtaAreaDetailComponent {
     public ovtaColumnDefs: ColDef[];
     public onlandVisualTrashAssessments$: Observable<OnlandVisualTrashAssessmentGridDto[]>;
 
+    // Only completed assessments are movable; in-progress rows render a disabled checkbox.
+    public selectedRowIDs = signal<number[]>([]);
+    public isRowCompleteSelectable: IsRowSelectable = (node) =>
+        node.data?.OnlandVisualTrashAssessmentStatusID === OnlandVisualTrashAssessmentStatusEnum.Complete;
+
     public refreshOVTAAreasTrigger: BehaviorSubject<void> = new BehaviorSubject(null);
     public refreshOVTAAreasTrigger$: Observable<void> = this.refreshOVTAAreasTrigger.asObservable();
 
@@ -79,6 +84,7 @@ export class TrashOvtaAreaDetailComponent {
 
     ngOnInit(): void {
         this.ovtaColumnDefs = [
+            { ...this.utilityFunctionsService.createCheckboxSelectionColumnDef(), showDisabledCheckboxes: true },
             this.utilityFunctionsService.createActionsColumnDef((params: any) => {
                 const actions = [
                     { ActionName: "View", ActionIcon: "fas fa-file-alt", ActionHandler: () => this.router.navigate(["trash", "onland-visual-trash-assessments", params.data.OnlandVisualTrashAssessmentID]) },
@@ -132,10 +138,18 @@ export class TrashOvtaAreaDetailComponent {
         );
 
         this.onlandVisualTrashAssessments$ = this.refreshOVTAGridTrigger$.pipe(
-            tap(() => (this.isLoadingGrid = true)),
+            tap(() => {
+                this.isLoadingGrid = true;
+                this.selectedRowIDs.set([]);
+            }),
             switchMap(() => this.onlandVisualTrashAssessmentAreaService.listAssessmentsByOVTAIDOnlandVisualTrashAssessmentArea(this.onlandVisualTrashAssessmentAreaID)),
             tap(() => (this.isLoadingGrid = false))
         );
+    }
+
+    public onAssessmentSelectionChanged(event: SelectionChangedEvent): void {
+        const selected = event.api.getSelectedRows() as OnlandVisualTrashAssessmentGridDto[];
+        this.selectedRowIDs.set(selected.map((r) => r.OnlandVisualTrashAssessmentID));
     }
 
     public handleMapReady(event: NeptuneMapInitEvent): void {
@@ -240,18 +254,29 @@ export class TrashOvtaAreaDetailComponent {
         });
     }
 
-    moveOVTAAssessments(ovtaAreaDto: OnlandVisualTrashAssessmentAreaDetailDto, assessments: OnlandVisualTrashAssessmentGridDto[]) {
+    moveOVTAAssessments(ovtaAreaDto: OnlandVisualTrashAssessmentAreaDetailDto) {
+        const selectedIDs = this.selectedRowIDs();
+        if (selectedIDs.length === 0) return;
+
         const dialogRef = this.dialogService.open(MoveOvtaAssessmentsModalComponent, {
             data: {
                 SourceOnlandVisualTrashAssessmentAreaID: ovtaAreaDto.OnlandVisualTrashAssessmentAreaID,
                 SourceOnlandVisualTrashAssessmentAreaName: ovtaAreaDto.OnlandVisualTrashAssessmentAreaName,
                 SourceStormwaterJurisdictionID: ovtaAreaDto.StormwaterJurisdictionID,
-                SourceAssessmentCount: assessments.length,
+                SelectedAssessmentIDs: selectedIDs,
+                SourceAssessmentCount: selectedIDs.length,
             } as MoveOvtaAssessmentsModalContext,
         });
 
         dialogRef.afterClosed$.subscribe((result) => {
             if (result) {
+                // Push the success alert here (after the modal closes) rather than inside the modal:
+                // the modal's own <app-alert-display> clears alerts on destroy, so a modal-pushed
+                // alert never survives to the detail page.
+                this.alertService.clearAlerts();
+                this.alertService.pushAlert(
+                    new Alert(`Successfully moved ${selectedIDs.length} assessment${selectedIDs.length === 1 ? "" : "s"} to the selected OVTA Area.`, AlertContext.Success)
+                );
                 this.refreshOVTAAreasTrigger.next();
                 this.refreshOVTAGridTrigger.next();
             }

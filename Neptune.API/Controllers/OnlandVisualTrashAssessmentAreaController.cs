@@ -134,6 +134,12 @@ public class OnlandVisualTrashAssessmentAreaController(
             return BadRequest("A target OVTA Area must be specified.");
         }
 
+        var assessmentIDsToMove = dto.OnlandVisualTrashAssessmentIDs?.Distinct().ToList() ?? new List<int>();
+        if (!assessmentIDsToMove.Any())
+        {
+            return BadRequest("At least one assessment must be selected to move.");
+        }
+
         if (onlandVisualTrashAssessmentAreaID == dto.TargetOnlandVisualTrashAssessmentAreaID)
         {
             return BadRequest("Cannot move an OVTA Area's assessments to itself.");
@@ -157,15 +163,19 @@ public class OnlandVisualTrashAssessmentAreaController(
             return Forbid();
         }
 
-        var hasInProgressAssessment = DbContext.OnlandVisualTrashAssessments.Any(x =>
-            x.OnlandVisualTrashAssessmentAreaID == onlandVisualTrashAssessmentAreaID &&
-            x.OnlandVisualTrashAssessmentStatusID != (int)OnlandVisualTrashAssessmentStatusEnum.Complete);
-        if (hasInProgressAssessment)
+        // Every selected assessment must be a completed assessment belonging to the source area.
+        // In-progress assessments are not movable (disabled checkbox client-side; enforced here too).
+        var selectableCompletedAssessmentIDs = DbContext.OnlandVisualTrashAssessments.AsNoTracking()
+            .Where(x => x.OnlandVisualTrashAssessmentAreaID == onlandVisualTrashAssessmentAreaID &&
+                        x.OnlandVisualTrashAssessmentStatusID == (int)OnlandVisualTrashAssessmentStatusEnum.Complete)
+            .Select(x => x.OnlandVisualTrashAssessmentID)
+            .ToHashSet();
+        if (!assessmentIDsToMove.All(id => selectableCompletedAssessmentIDs.Contains(id)))
         {
-            return BadRequest("Cannot move assessments: the source OVTA Area has assessments still in progress. Finish or delete those assessments first.");
+            return BadRequest("Every selected assessment must be a completed assessment belonging to the source OVTA Area.");
         }
 
-        await OnlandVisualTrashAssessmentAreas.MoveAssessmentsAsync(DbContext, onlandVisualTrashAssessmentAreaID, dto.TargetOnlandVisualTrashAssessmentAreaID);
+        await OnlandVisualTrashAssessmentAreas.MoveAssessmentsAsync(DbContext, onlandVisualTrashAssessmentAreaID, dto.TargetOnlandVisualTrashAssessmentAreaID, assessmentIDsToMove);
 
         return Ok();
     }
