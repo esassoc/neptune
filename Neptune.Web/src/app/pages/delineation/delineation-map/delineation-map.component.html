@@ -126,7 +126,7 @@
                              (selected) on each layer emits the clicked DelineationID; the parent
                              matches it to the local BMP cache to populate the side panel. -->
                         <delineations-layer [delineationStatus]="'Verified'" [displayOnLoad]="true" [map]="map" [layerControl]="layerControl" [sortOrder]="50" (selected)="onDelineationSelected($event)"></delineations-layer>
-                        <delineations-layer [delineationStatus]="'Provisional'" [displayOnLoad]="false" [map]="map" [layerControl]="layerControl" [sortOrder]="51" (selected)="onDelineationSelected($event)"></delineations-layer>
+                        <delineations-layer [delineationStatus]="'Provisional'" [displayOnLoad]="true" [map]="map" [layerControl]="layerControl" [sortOrder]="51" (selected)="onDelineationSelected($event)"></delineations-layer>
                         <parcels-layer [mode]="OverlayMode.ReferenceOnly" [displayOnLoad]="false" [map]="map" [layerControl]="layerControl" [sortOrder]="60"></parcels-layer>
                     }
                 </neptune-map>

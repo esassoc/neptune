@@ -203,6 +203,11 @@ public static class DelineationStagings
         }
 
         await dbContext.SaveChangesAsync();
+
+        // NPT-1115: repair any SQL-invalid geometry brought in by the staging import so GeoServer
+        // (WMS) and the NTS overlay never see invalid polygons.
+        await dbContext.Database.ExecuteSqlRawAsync("EXEC dbo.pDelineationMakeValid");
+
         await dbContext.DelineationStagings
             .Where(x => x.UploadedByPersonID == currentPerson.PersonID)
             .ExecuteDeleteAsync();
