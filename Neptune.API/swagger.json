@@ -418,6 +418,19 @@
         }
       }
     },
+    "/data-hub/upload-templates/trash-screen": {
+      "get": {
+        "tags": [
+          "DataHub"
+        ],
+        "operationId": "DownloadTrashScreenUploadTemplate_DataHub",
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
     "/delineations": {
       "get": {
         "tags": [

@@ -34,7 +34,7 @@ export class TrashScreenFieldVisitUploadComponent {
     constructor(private alertService: AlertService, private fieldVisitService: FieldVisitService, private httpClient: HttpClient) {}
 
     public downloadTemplate(): void {
-        downloadDataHubTemplate(this.httpClient, this.alertService, this.isDownloadingTemplate, "trash-screen-field-visit", "TrashScreenBulkUploadTemplate.xlsx", "Trash Screen Field Visit");
+        downloadDataHubTemplate(this.httpClient, this.alertService, this.isDownloadingTemplate, "trash-screen", "TrashScreenBulkUploadTemplate.xlsx", "Trash Screen Field Visit");
     }
 
     public onFileChange(file: File | null): void {
