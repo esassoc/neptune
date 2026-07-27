@@ -105,10 +105,11 @@ namespace Neptune.Tests
             var source = CreateArea(_jurisdictionID, $"Test Source {unique}", 0);
             var target = CreateArea(_jurisdictionID, $"Test Target {unique}", 200);
 
-            CreateCompletedAssessment(_jurisdictionID, source.OnlandVisualTrashAssessmentAreaID, new DateOnly(2020, 5, 1), OnlandVisualTrashAssessmentScoreEnum.B);
-            CreateCompletedAssessment(_jurisdictionID, source.OnlandVisualTrashAssessmentAreaID, new DateOnly(2021, 5, 1), OnlandVisualTrashAssessmentScoreEnum.C);
+            var a1 = CreateCompletedAssessment(_jurisdictionID, source.OnlandVisualTrashAssessmentAreaID, new DateOnly(2020, 5, 1), OnlandVisualTrashAssessmentScoreEnum.B);
+            var a2 = CreateCompletedAssessment(_jurisdictionID, source.OnlandVisualTrashAssessmentAreaID, new DateOnly(2021, 5, 1), OnlandVisualTrashAssessmentScoreEnum.C);
 
-            await OnlandVisualTrashAssessmentAreas.MoveAssessmentsAsync(_dbContext, source.OnlandVisualTrashAssessmentAreaID, target.OnlandVisualTrashAssessmentAreaID);
+            await OnlandVisualTrashAssessmentAreas.MoveAssessmentsAsync(_dbContext, source.OnlandVisualTrashAssessmentAreaID, target.OnlandVisualTrashAssessmentAreaID,
+                new[] { a1.OnlandVisualTrashAssessmentID, a2.OnlandVisualTrashAssessmentID });
 
             var sourceAssessments = _dbContext.OnlandVisualTrashAssessments.AsNoTracking().Count(x => x.OnlandVisualTrashAssessmentAreaID == source.OnlandVisualTrashAssessmentAreaID);
             var targetAssessments = _dbContext.OnlandVisualTrashAssessments.AsNoTracking().Count(x => x.OnlandVisualTrashAssessmentAreaID == target.OnlandVisualTrashAssessmentAreaID);
@@ -127,10 +128,11 @@ namespace Neptune.Tests
             // Existing baseline on target (1 assessment) — not enough alone
             CreateCompletedAssessment(_jurisdictionID, target.OnlandVisualTrashAssessmentAreaID, new DateOnly(2019, 5, 1), OnlandVisualTrashAssessmentScoreEnum.B);
             // Source has 2 baselines that, together with target's 1, average to a single rounded score
-            CreateCompletedAssessment(_jurisdictionID, source.OnlandVisualTrashAssessmentAreaID, new DateOnly(2020, 5, 1), OnlandVisualTrashAssessmentScoreEnum.A); // 1
-            CreateCompletedAssessment(_jurisdictionID, source.OnlandVisualTrashAssessmentAreaID, new DateOnly(2021, 5, 1), OnlandVisualTrashAssessmentScoreEnum.A); // 1
+            var s1 = CreateCompletedAssessment(_jurisdictionID, source.OnlandVisualTrashAssessmentAreaID, new DateOnly(2020, 5, 1), OnlandVisualTrashAssessmentScoreEnum.A); // 1
+            var s2 = CreateCompletedAssessment(_jurisdictionID, source.OnlandVisualTrashAssessmentAreaID, new DateOnly(2021, 5, 1), OnlandVisualTrashAssessmentScoreEnum.A); // 1
 
-            await OnlandVisualTrashAssessmentAreas.MoveAssessmentsAsync(_dbContext, source.OnlandVisualTrashAssessmentAreaID, target.OnlandVisualTrashAssessmentAreaID);
+            await OnlandVisualTrashAssessmentAreas.MoveAssessmentsAsync(_dbContext, source.OnlandVisualTrashAssessmentAreaID, target.OnlandVisualTrashAssessmentAreaID,
+                new[] { s1.OnlandVisualTrashAssessmentID, s2.OnlandVisualTrashAssessmentID });
 
             var refreshedTarget = _dbContext.OnlandVisualTrashAssessmentAreas.AsNoTracking().Single(x => x.OnlandVisualTrashAssessmentAreaID == target.OnlandVisualTrashAssessmentAreaID);
             // Average of A(1), A(1), B(2) = 1.33 → rounds to 1 → score A
@@ -143,9 +145,11 @@ namespace Neptune.Tests
             var unique = Guid.NewGuid().ToString().Substring(0, 8);
             var source = CreateArea(_jurisdictionID, $"Test Source {unique}", 0);
             var target = CreateArea(_otherJurisdictionID, $"Test Target {unique}", 200);
+            var a1 = CreateCompletedAssessment(_jurisdictionID, source.OnlandVisualTrashAssessmentAreaID, new DateOnly(2020, 5, 1), OnlandVisualTrashAssessmentScoreEnum.B);
 
             await Assert.ThrowsAsync<Common.DesignByContract.PreconditionException>(async () =>
-                await OnlandVisualTrashAssessmentAreas.MoveAssessmentsAsync(_dbContext, source.OnlandVisualTrashAssessmentAreaID, target.OnlandVisualTrashAssessmentAreaID));
+                await OnlandVisualTrashAssessmentAreas.MoveAssessmentsAsync(_dbContext, source.OnlandVisualTrashAssessmentAreaID, target.OnlandVisualTrashAssessmentAreaID,
+                    new[] { a1.OnlandVisualTrashAssessmentID }));
         }
 
         [TestMethod]
@@ -155,33 +159,101 @@ namespace Neptune.Tests
             var source = CreateArea(_jurisdictionID, $"Test Source {unique}", 0);
 
             await Assert.ThrowsAsync<Common.DesignByContract.PreconditionException>(async () =>
-                await OnlandVisualTrashAssessmentAreas.MoveAssessmentsAsync(_dbContext, source.OnlandVisualTrashAssessmentAreaID, source.OnlandVisualTrashAssessmentAreaID));
+                await OnlandVisualTrashAssessmentAreas.MoveAssessmentsAsync(_dbContext, source.OnlandVisualTrashAssessmentAreaID, source.OnlandVisualTrashAssessmentAreaID,
+                    new[] { 1 }));
+        }
+
+        private OnlandVisualTrashAssessment CreateInProgressAssessment(int jurisdictionID, int areaID)
+        {
+            // Status != Complete with an official area (no DraftGeometry) passes the table CHECK constraints.
+            var assessment = new OnlandVisualTrashAssessment
+            {
+                CreatedByPersonID = _personID,
+                CreatedDate = DateTime.UtcNow,
+                OnlandVisualTrashAssessmentAreaID = areaID,
+                StormwaterJurisdictionID = jurisdictionID,
+                OnlandVisualTrashAssessmentStatusID = (int)OnlandVisualTrashAssessmentStatusEnum.InProgress,
+                IsTransectBackingAssessment = false,
+                IsProgressAssessment = false,
+            };
+            _dbContext.OnlandVisualTrashAssessments.Add(assessment);
+            _dbContext.SaveChanges();
+            return assessment;
         }
 
         [TestMethod]
-        public async Task MoveAssessments_RejectsWhenSourceHasInProgressAssessment()
+        public async Task MoveAssessments_PartialMove_MovesOnlySelected_LeavesInProgressAndUnselectedOnSource()
         {
             var unique = Guid.NewGuid().ToString().Substring(0, 8);
             var source = CreateArea(_jurisdictionID, $"Test Source {unique}", 0);
             var target = CreateArea(_jurisdictionID, $"Test Target {unique}", 200);
 
-            // In-progress assessment with the source as official area is forbidden by check constraint, so use a "complete except status" hack via direct SQL.
-            // Simplest: assessment with OnlandVisualTrashAssessmentAreaID set but Status != Complete, no DraftGeometry — passes the CHECK constraint.
-            var inProgress = new OnlandVisualTrashAssessment
-            {
-                CreatedByPersonID = _personID,
-                CreatedDate = DateTime.UtcNow,
-                OnlandVisualTrashAssessmentAreaID = source.OnlandVisualTrashAssessmentAreaID,
-                StormwaterJurisdictionID = _jurisdictionID,
-                OnlandVisualTrashAssessmentStatusID = (int)OnlandVisualTrashAssessmentStatusEnum.InProgress,
-                IsTransectBackingAssessment = false,
-                IsProgressAssessment = false,
-            };
-            _dbContext.OnlandVisualTrashAssessments.Add(inProgress);
-            _dbContext.SaveChanges();
+            var moved = CreateCompletedAssessment(_jurisdictionID, source.OnlandVisualTrashAssessmentAreaID, new DateOnly(2020, 5, 1), OnlandVisualTrashAssessmentScoreEnum.B);
+            var stays = CreateCompletedAssessment(_jurisdictionID, source.OnlandVisualTrashAssessmentAreaID, new DateOnly(2021, 5, 1), OnlandVisualTrashAssessmentScoreEnum.C);
+            var inProgress = CreateInProgressAssessment(_jurisdictionID, source.OnlandVisualTrashAssessmentAreaID);
+
+            // A source with an in-progress assessment used to block the whole move; now a subset of
+            // completed assessments moves fine while the in-progress one is left behind.
+            await OnlandVisualTrashAssessmentAreas.MoveAssessmentsAsync(_dbContext, source.OnlandVisualTrashAssessmentAreaID, target.OnlandVisualTrashAssessmentAreaID,
+                new[] { moved.OnlandVisualTrashAssessmentID });
+
+            OnlandVisualTrashAssessment Reload(int id) => _dbContext.OnlandVisualTrashAssessments.AsNoTracking().Single(x => x.OnlandVisualTrashAssessmentID == id);
+            Assert.AreEqual(target.OnlandVisualTrashAssessmentAreaID, Reload(moved.OnlandVisualTrashAssessmentID).OnlandVisualTrashAssessmentAreaID, "Selected assessment should have moved to target.");
+            Assert.AreEqual(source.OnlandVisualTrashAssessmentAreaID, Reload(stays.OnlandVisualTrashAssessmentID).OnlandVisualTrashAssessmentAreaID, "Unselected completed assessment should stay on source.");
+            Assert.AreEqual(source.OnlandVisualTrashAssessmentAreaID, Reload(inProgress.OnlandVisualTrashAssessmentID).OnlandVisualTrashAssessmentAreaID, "In-progress assessment should stay on source.");
+        }
+
+        [TestMethod]
+        public async Task MoveAssessments_RejectsInProgressIDInSelection()
+        {
+            var unique = Guid.NewGuid().ToString().Substring(0, 8);
+            var source = CreateArea(_jurisdictionID, $"Test Source {unique}", 0);
+            var target = CreateArea(_jurisdictionID, $"Test Target {unique}", 200);
+            var inProgress = CreateInProgressAssessment(_jurisdictionID, source.OnlandVisualTrashAssessmentAreaID);
 
             await Assert.ThrowsAsync<Common.DesignByContract.PreconditionException>(async () =>
-                await OnlandVisualTrashAssessmentAreas.MoveAssessmentsAsync(_dbContext, source.OnlandVisualTrashAssessmentAreaID, target.OnlandVisualTrashAssessmentAreaID));
+                await OnlandVisualTrashAssessmentAreas.MoveAssessmentsAsync(_dbContext, source.OnlandVisualTrashAssessmentAreaID, target.OnlandVisualTrashAssessmentAreaID,
+                    new[] { inProgress.OnlandVisualTrashAssessmentID }));
+        }
+
+        [TestMethod]
+        public async Task MoveAssessments_RejectsAssessmentIDNotOnSource()
+        {
+            var unique = Guid.NewGuid().ToString().Substring(0, 8);
+            var source = CreateArea(_jurisdictionID, $"Test Source {unique}", 0);
+            var target = CreateArea(_jurisdictionID, $"Test Target {unique}", 200);
+            // A completed assessment that lives on the TARGET, not the source — must not be movable from source.
+            var foreign = CreateCompletedAssessment(_jurisdictionID, target.OnlandVisualTrashAssessmentAreaID, new DateOnly(2020, 5, 1), OnlandVisualTrashAssessmentScoreEnum.B);
+
+            await Assert.ThrowsAsync<Common.DesignByContract.PreconditionException>(async () =>
+                await OnlandVisualTrashAssessmentAreas.MoveAssessmentsAsync(_dbContext, source.OnlandVisualTrashAssessmentAreaID, target.OnlandVisualTrashAssessmentAreaID,
+                    new[] { foreign.OnlandVisualTrashAssessmentID }));
+        }
+
+        [TestMethod]
+        public async Task MoveAssessments_RecomputesBothSourceAndTargetBaselineScores()
+        {
+            var unique = Guid.NewGuid().ToString().Substring(0, 8);
+            var source = CreateArea(_jurisdictionID, $"Test Source {unique}", 0);
+            var target = CreateArea(_jurisdictionID, $"Test Target {unique}", 200);
+
+            // Source: two A's and one D. Moving the D out should pull the source baseline to a pure-A average.
+            CreateCompletedAssessment(_jurisdictionID, source.OnlandVisualTrashAssessmentAreaID, new DateOnly(2020, 5, 1), OnlandVisualTrashAssessmentScoreEnum.A);
+            CreateCompletedAssessment(_jurisdictionID, source.OnlandVisualTrashAssessmentAreaID, new DateOnly(2021, 5, 1), OnlandVisualTrashAssessmentScoreEnum.A);
+            var d = CreateCompletedAssessment(_jurisdictionID, source.OnlandVisualTrashAssessmentAreaID, new DateOnly(2022, 5, 1), OnlandVisualTrashAssessmentScoreEnum.D);
+            // Target starts with one assessment (baseline needs >= 2, so target baseline is null until it receives the D).
+            CreateCompletedAssessment(_jurisdictionID, target.OnlandVisualTrashAssessmentAreaID, new DateOnly(2019, 5, 1), OnlandVisualTrashAssessmentScoreEnum.A);
+
+            await OnlandVisualTrashAssessmentAreas.MoveAssessmentsAsync(_dbContext, source.OnlandVisualTrashAssessmentAreaID, target.OnlandVisualTrashAssessmentAreaID,
+                new[] { d.OnlandVisualTrashAssessmentID });
+
+            var refreshedSource = _dbContext.OnlandVisualTrashAssessmentAreas.AsNoTracking().Single(x => x.OnlandVisualTrashAssessmentAreaID == source.OnlandVisualTrashAssessmentAreaID);
+            var refreshedTarget = _dbContext.OnlandVisualTrashAssessmentAreas.AsNoTracking().Single(x => x.OnlandVisualTrashAssessmentAreaID == target.OnlandVisualTrashAssessmentAreaID);
+
+            // Source recomputed from the remaining two A's → A.
+            Assert.AreEqual((int)OnlandVisualTrashAssessmentScoreEnum.A, refreshedSource.OnlandVisualTrashAssessmentBaselineScoreID, "Source baseline should be recomputed from its remaining assessments.");
+            // Target went from 1 assessment (null baseline) to 2 → a baseline is now computed.
+            Assert.IsNotNull(refreshedTarget.OnlandVisualTrashAssessmentBaselineScoreID, "Target baseline should be recomputed after receiving the moved assessment.");
         }
 
         [TestMethod]
@@ -231,11 +303,12 @@ namespace Neptune.Tests
             var source = CreateArea(_jurisdictionID, $"Camino Real Dup {unique}", 0);
             var target = CreateArea(_jurisdictionID, $"Camino Real {unique}", 200);
 
-            CreateCompletedAssessment(_jurisdictionID, source.OnlandVisualTrashAssessmentAreaID, new DateOnly(2020, 5, 1), OnlandVisualTrashAssessmentScoreEnum.B);
-            CreateCompletedAssessment(_jurisdictionID, source.OnlandVisualTrashAssessmentAreaID, new DateOnly(2021, 5, 1), OnlandVisualTrashAssessmentScoreEnum.B);
+            var m1 = CreateCompletedAssessment(_jurisdictionID, source.OnlandVisualTrashAssessmentAreaID, new DateOnly(2020, 5, 1), OnlandVisualTrashAssessmentScoreEnum.B);
+            var m2 = CreateCompletedAssessment(_jurisdictionID, source.OnlandVisualTrashAssessmentAreaID, new DateOnly(2021, 5, 1), OnlandVisualTrashAssessmentScoreEnum.B);
             CreateCompletedAssessment(_jurisdictionID, target.OnlandVisualTrashAssessmentAreaID, new DateOnly(2018, 5, 1), OnlandVisualTrashAssessmentScoreEnum.A);
 
-            await OnlandVisualTrashAssessmentAreas.MoveAssessmentsAsync(_dbContext, source.OnlandVisualTrashAssessmentAreaID, target.OnlandVisualTrashAssessmentAreaID);
+            await OnlandVisualTrashAssessmentAreas.MoveAssessmentsAsync(_dbContext, source.OnlandVisualTrashAssessmentAreaID, target.OnlandVisualTrashAssessmentAreaID,
+                new[] { m1.OnlandVisualTrashAssessmentID, m2.OnlandVisualTrashAssessmentID });
             await OnlandVisualTrashAssessmentAreas.DeleteAreaAsync(_dbContext, source.OnlandVisualTrashAssessmentAreaID);
 
             var sourceExists = _dbContext.OnlandVisualTrashAssessmentAreas.AsNoTracking().Any(x => x.OnlandVisualTrashAssessmentAreaID == source.OnlandVisualTrashAssessmentAreaID);

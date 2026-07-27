@@ -10,6 +10,7 @@ import {
     GridColumnsChangedEvent,
     GridReadyEvent,
     GridSizeChangedEvent,
+    IsRowSelectable,
     SelectionChangedEvent,
 } from "ag-grid-community";
 import { AgGridHelper } from "src/app/shared/helpers/ag-grid-helper";
@@ -48,6 +49,7 @@ export class NeptuneGridComponent implements OnInit, OnChanges {
     @Input() rowSelection: "single" | "multiple";
     @Input() suppressRowClickSelection: boolean = false;
     @Input() rowMultiSelectWithClick: boolean = false;
+    @Input() isRowSelectable: IsRowSelectable;
     @Input() pagination: boolean = false;
     @Input() paginationPageSize: number = 100;
     @Input() getRowId: GetRowIdFunc;
