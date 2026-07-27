@@ -351,7 +351,12 @@ public static class TreatmentBMPs
     // verifiedOnly filters to InventoryIsVerified (the editors pass false to show all linked BMPs).
     public static async Task<FeatureCollection> ListByWaterQualityManagementPlanIDAsFeatureCollectionAsync(NeptuneDbContext dbContext, int waterQualityManagementPlanID, bool verifiedOnly = false)
     {
-        var treatmentBMPs = await GetImpl(dbContext).AsNoTracking()
+        // Query directly with only the real navigation AsFeatureCollection reads (TreatmentBMPType)
+        // rather than GetImpl, which eager-loads a heavy unrelated graph (CustomAttributes + values,
+        // OwnerOrganization, WQMP, …) — wasteful for a marker layer. TrashCaptureStatusType is a
+        // generated in-memory lookup property (not a mapped nav), so it needs no Include.
+        var treatmentBMPs = await dbContext.TreatmentBMPs.AsNoTracking()
+            .Include(x => x.TreatmentBMPType)
             .Where(x => x.WaterQualityManagementPlanID == waterQualityManagementPlanID
                         && x.ProjectID == null                 // inventoried BMPs only, not planning-module
                         && x.LocationPoint4326 != null          // a point is required to render a marker

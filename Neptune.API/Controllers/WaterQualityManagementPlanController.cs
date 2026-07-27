@@ -490,8 +490,10 @@ namespace Neptune.API.Controllers
         }
 
         // NPT-1092: inventoried BMPs linked to this WQMP, as a marker layer for the boundary editors.
+        // Entity-scoped auth (resolves the routed WQMP + requires jurisdiction assignment) rather than
+        // role-only JurisdictionEditFeature, so an editor can't read another jurisdiction's BMPs by ID.
         [HttpGet("{waterQualityManagementPlanID}/treatment-bmps/feature-collection")]
-        [JurisdictionEditFeature]
+        [WaterQualityManagementPlanEditFeature]
         [EntityNotFound(typeof(WaterQualityManagementPlan), "waterQualityManagementPlanID")]
         public async Task<ActionResult<FeatureCollection>> ListTreatmentBMPsAsFeatureCollection([FromRoute] int waterQualityManagementPlanID, [FromQuery] bool verifiedOnly = false)
         {

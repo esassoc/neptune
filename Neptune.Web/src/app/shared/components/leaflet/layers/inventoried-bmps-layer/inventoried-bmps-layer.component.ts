@@ -8,6 +8,7 @@ import { TreatmentBMPService } from "src/app/shared/generated/api/treatment-bmp.
 import { WaterQualityManagementPlanService } from "src/app/shared/generated/api/water-quality-management-plan.service";
 import { Observable, tap } from "rxjs";
 import { IFeature } from "src/app/shared/generated/model/i-feature";
+import { escapeHtml } from "src/app/shared/helpers/html-escape";
 
 @Component({
     selector: "inventoried-bmps-layer",
@@ -61,11 +62,13 @@ export class InventoriedBMPsLayerComponent extends MapLayerBase implements OnCha
                     onEachFeature: (feature, layer) => {
                         // SPA detail route. Leaflet popups are raw HTML so we can't use
                         // [routerLink]; root-relative path + target="_blank" still opens
-                        // the SPA in a fresh tab.
+                        // the SPA in a fresh tab. Escape server-provided strings (BMP name/type
+                        // are user-editable) to prevent stored XSS, and rel="noopener" the link.
+                        const name = escapeHtml(feature.properties.TreatmentBMPName ?? "");
+                        const type = escapeHtml(feature.properties.TreatmentBMPTypeName ?? "");
                         layer.bindPopup(
-                            `<b>Name:</b> <a target="_blank" href="/treatment-bmps/${feature.properties.TreatmentBMPID}">${
-                                feature.properties.TreatmentBMPName
-                            }</a><br>` + `<b>Type:</b> ${feature.properties.TreatmentBMPTypeName}`
+                            `<b>Name:</b> <a target="_blank" rel="noopener noreferrer" href="/treatment-bmps/${feature.properties.TreatmentBMPID}">${name}</a><br>` +
+                                `<b>Type:</b> ${type}`
                         );
                     },
                 });
