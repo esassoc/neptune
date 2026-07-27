@@ -14,6 +14,7 @@ using Microsoft.AspNetCore.Mvc.ModelBinding;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
+using NetTopologySuite.Features;
 using Neptune.API.Common;
 using Neptune.Common.Services;
 using Neptune.API.Services;
@@ -486,6 +487,18 @@ namespace Neptune.API.Controllers
             var wqmp = WaterQualityManagementPlans.GetByID(DbContext, waterQualityManagementPlanID);
             var availableBMPs = await TreatmentBMPs.ListAvailableForWaterQualityManagementPlanAsync(DbContext, wqmp.StormwaterJurisdictionID, waterQualityManagementPlanID);
             return Ok(availableBMPs);
+        }
+
+        // NPT-1092: inventoried BMPs linked to this WQMP, as a marker layer for the boundary editors.
+        // Entity-scoped auth (resolves the routed WQMP + requires jurisdiction assignment) rather than
+        // role-only JurisdictionEditFeature, so an editor can't read another jurisdiction's BMPs by ID.
+        [HttpGet("{waterQualityManagementPlanID}/treatment-bmps/feature-collection")]
+        [WaterQualityManagementPlanEditFeature]
+        [EntityNotFound(typeof(WaterQualityManagementPlan), "waterQualityManagementPlanID")]
+        public async Task<ActionResult<FeatureCollection>> ListTreatmentBMPsAsFeatureCollection([FromRoute] int waterQualityManagementPlanID, [FromQuery] bool verifiedOnly = false)
+        {
+            var featureCollection = await TreatmentBMPs.ListByWaterQualityManagementPlanIDAsFeatureCollectionAsync(DbContext, waterQualityManagementPlanID, verifiedOnly);
+            return Ok(featureCollection);
         }
 
         [HttpPut("{waterQualityManagementPlanID}/quick-bmps")]
