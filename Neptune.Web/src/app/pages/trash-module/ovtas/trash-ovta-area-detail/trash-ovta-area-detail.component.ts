@@ -273,6 +273,7 @@ export class TrashOvtaAreaDetailComponent {
                 // Push the success alert here (after the modal closes) rather than inside the modal:
                 // the modal's own <app-alert-display> clears alerts on destroy, so a modal-pushed
                 // alert never survives to the detail page.
+                this.alertService.clearAlerts();
                 this.alertService.pushAlert(
                     new Alert(`Successfully moved ${selectedIDs.length} assessment${selectedIDs.length === 1 ? "" : "s"} to the selected OVTA Area.`, AlertContext.Success)
                 );
