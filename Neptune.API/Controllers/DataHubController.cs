@@ -51,6 +51,7 @@ public class DataHubController(
     /// </summary>
     [HttpGet("upload-templates/{templateKey}")]
     [JurisdictionEditFeature]
+    [ProducesResponseType(typeof(FileStreamResult), StatusCodes.Status200OK)]
     public async Task<IActionResult> DownloadUploadTemplate([FromRoute] string templateKey)
     {
         var config = neptuneConfiguration.Value;
@@ -100,6 +101,7 @@ public class DataHubController(
     /// </summary>
     [HttpGet("upload-templates/trash-screen")]
     [JurisdictionEditFeature]
+    [ProducesResponseType(typeof(FileStreamResult), StatusCodes.Status200OK)]
     public async Task<IActionResult> DownloadTrashScreenUploadTemplate()
     {
         var config = neptuneConfiguration.Value;
