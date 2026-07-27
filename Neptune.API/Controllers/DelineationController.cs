@@ -103,12 +103,17 @@ namespace Neptune.API.Controllers
 
             await DbContext.SaveChangesAsync();
 
-            // NPT-1115: repair the just-saved geometry if the freehand draw produced a SQL-invalid
-            // polygon (self-intersection). Uses SQL Server MakeValid — NTS validity differs from
-            // STIsValid, and both the GeoServer WMS layer and the NTS overlay key off STIsValid.
             if (existing != null)
             {
+                // NPT-1115: repair the just-saved geometry if the freehand draw produced a SQL-invalid
+                // polygon (self-intersection). Uses SQL Server MakeValid — NTS validity differs from
+                // STIsValid, and both the GeoServer WMS layer and the NTS overlay key off STIsValid.
                 await DbContext.Database.ExecuteSqlRawAsync("EXEC dbo.pDelineationMakeValid @DelineationID = {0}", existing.DelineationID);
+                // Reload so the LGU refresh below unions the actually-stored (now valid) geometry
+                // rather than the pre-repair in-memory shape: the original could be NTS-invalid and
+                // throw in QueueLGURefreshForArea's Union, and would compute the wrong refresh area.
+                await DbContext.Entry(existing).ReloadAsync();
+                newShape = existing.DelineationGeometry;
             }
 
             var treatmentBMPType = TreatmentBMPTypes.GetByIDWithChangeTracking(DbContext, treatmentBMP.TreatmentBMPTypeID);
