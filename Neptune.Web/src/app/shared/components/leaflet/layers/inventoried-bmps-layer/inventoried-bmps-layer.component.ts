@@ -1,10 +1,11 @@
 import { CommonModule } from "@angular/common";
-import { Component, OnChanges } from "@angular/core";
+import { Component, Input, OnChanges } from "@angular/core";
 import "leaflet.markercluster";
 import * as L from "leaflet";
 import { MapLayerBase } from "../map-layer-base.component";
 import { MarkerHelper } from "src/app/shared/helpers/marker-helper";
 import { TreatmentBMPService } from "src/app/shared/generated/api/treatment-bmp.service";
+import { WaterQualityManagementPlanService } from "src/app/shared/generated/api/water-quality-management-plan.service";
 import { Observable, tap } from "rxjs";
 import { IFeature } from "src/app/shared/generated/model/i-feature";
 
@@ -15,6 +16,13 @@ import { IFeature } from "src/app/shared/generated/model/i-feature";
     styleUrls: ["./inventoried-bmps-layer.component.scss"],
 })
 export class InventoriedBMPsLayerComponent extends MapLayerBase implements OnChanges {
+    // NPT-1092: when set, scope the layer to a single WQMP's linked BMPs (the boundary editors);
+    // otherwise it shows all inventory-verified BMPs the caller can view (the default use).
+    @Input() waterQualityManagementPlanID?: number;
+    // Only applies in WQMP-scoped mode (the all-inventory endpoint is verified-only by definition).
+    @Input() verifiedOnly: boolean = true;
+    @Input() layerLabel: string = "Inventoried BMP Locations";
+
     public layer: L.MarkerClusterGroup = new L.MarkerClusterGroup({
         iconCreateFunction: function (cluster) {
             var childCount = cluster.getChildCount();
@@ -29,7 +37,10 @@ export class InventoriedBMPsLayerComponent extends MapLayerBase implements OnCha
 
     public treatmentBMPs$: Observable<IFeature[]>;
 
-    constructor(private treatmentBMPService: TreatmentBMPService) {
+    constructor(
+        private treatmentBMPService: TreatmentBMPService,
+        private waterQualityManagementPlanService: WaterQualityManagementPlanService
+    ) {
         super();
     }
 
@@ -38,7 +49,9 @@ export class InventoriedBMPsLayerComponent extends MapLayerBase implements OnCha
     // ViewChild template refs used by initLayer() are still safely available by the time the
     // HTTP response arrives and the tap fires.
     ngOnInit(): void {
-        const request$ = this.treatmentBMPService.listInventoryVerifiedTreatmentBMPsAsFeatureCollectionTreatmentBMP();
+        const request$ = this.waterQualityManagementPlanID
+            ? this.waterQualityManagementPlanService.listTreatmentBMPsAsFeatureCollectionWaterQualityManagementPlan(this.waterQualityManagementPlanID, this.verifiedOnly)
+            : this.treatmentBMPService.listInventoryVerifiedTreatmentBMPsAsFeatureCollectionTreatmentBMP();
         this.treatmentBMPs$ = this.trackLayerRequest$(request$).pipe(
             tap((treatmentBMPs) => {
                 const inventoriedTreatmentBMPsLayer = new L.GeoJSON(treatmentBMPs as any, {

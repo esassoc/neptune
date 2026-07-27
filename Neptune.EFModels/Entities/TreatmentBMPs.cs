@@ -348,12 +348,14 @@ public static class TreatmentBMPs
     }
 
     // NPT-1092: inventoried Treatment BMPs linked to a WQMP, as map markers for the boundary editors.
-    public static async Task<FeatureCollection> ListByWaterQualityManagementPlanIDAsFeatureCollectionAsync(NeptuneDbContext dbContext, int waterQualityManagementPlanID)
+    // verifiedOnly filters to InventoryIsVerified (the editors pass false to show all linked BMPs).
+    public static async Task<FeatureCollection> ListByWaterQualityManagementPlanIDAsFeatureCollectionAsync(NeptuneDbContext dbContext, int waterQualityManagementPlanID, bool verifiedOnly = false)
     {
         var treatmentBMPs = await GetImpl(dbContext).AsNoTracking()
             .Where(x => x.WaterQualityManagementPlanID == waterQualityManagementPlanID
                         && x.ProjectID == null                 // inventoried BMPs only, not planning-module
-                        && x.LocationPoint4326 != null)         // a point is required to render a marker
+                        && x.LocationPoint4326 != null          // a point is required to render a marker
+                        && (!verifiedOnly || x.InventoryIsVerified))
             .ToListAsync();
         return AsFeatureCollection(treatmentBMPs);
     }

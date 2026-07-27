@@ -1663,16 +1663,21 @@ export class WaterQualityManagementPlanService extends BaseService {
 
     /**
      * @param waterQualityManagementPlanID 
+     * @param verifiedOnly 
      * @param observe set whether or not to return the data Observable as the body, response or events. defaults to returning the body.
      * @param reportProgress flag to report request and response progress.
      */
-    public listTreatmentBMPsAsFeatureCollectionWaterQualityManagementPlan(waterQualityManagementPlanID: number, observe?: 'body', reportProgress?: boolean, options?: {httpHeaderAccept?: 'text/plain' | 'application/json' | 'text/json', context?: HttpContext, transferCache?: boolean}): Observable<Array<IFeature>>;
-    public listTreatmentBMPsAsFeatureCollectionWaterQualityManagementPlan(waterQualityManagementPlanID: number, observe?: 'response', reportProgress?: boolean, options?: {httpHeaderAccept?: 'text/plain' | 'application/json' | 'text/json', context?: HttpContext, transferCache?: boolean}): Observable<HttpResponse<Array<IFeature>>>;
-    public listTreatmentBMPsAsFeatureCollectionWaterQualityManagementPlan(waterQualityManagementPlanID: number, observe?: 'events', reportProgress?: boolean, options?: {httpHeaderAccept?: 'text/plain' | 'application/json' | 'text/json', context?: HttpContext, transferCache?: boolean}): Observable<HttpEvent<Array<IFeature>>>;
-    public listTreatmentBMPsAsFeatureCollectionWaterQualityManagementPlan(waterQualityManagementPlanID: number, observe: any = 'body', reportProgress: boolean = false, options?: {httpHeaderAccept?: 'text/plain' | 'application/json' | 'text/json', context?: HttpContext, transferCache?: boolean}): Observable<any> {
+    public listTreatmentBMPsAsFeatureCollectionWaterQualityManagementPlan(waterQualityManagementPlanID: number, verifiedOnly?: boolean, observe?: 'body', reportProgress?: boolean, options?: {httpHeaderAccept?: 'text/plain' | 'application/json' | 'text/json', context?: HttpContext, transferCache?: boolean}): Observable<Array<IFeature>>;
+    public listTreatmentBMPsAsFeatureCollectionWaterQualityManagementPlan(waterQualityManagementPlanID: number, verifiedOnly?: boolean, observe?: 'response', reportProgress?: boolean, options?: {httpHeaderAccept?: 'text/plain' | 'application/json' | 'text/json', context?: HttpContext, transferCache?: boolean}): Observable<HttpResponse<Array<IFeature>>>;
+    public listTreatmentBMPsAsFeatureCollectionWaterQualityManagementPlan(waterQualityManagementPlanID: number, verifiedOnly?: boolean, observe?: 'events', reportProgress?: boolean, options?: {httpHeaderAccept?: 'text/plain' | 'application/json' | 'text/json', context?: HttpContext, transferCache?: boolean}): Observable<HttpEvent<Array<IFeature>>>;
+    public listTreatmentBMPsAsFeatureCollectionWaterQualityManagementPlan(waterQualityManagementPlanID: number, verifiedOnly?: boolean, observe: any = 'body', reportProgress: boolean = false, options?: {httpHeaderAccept?: 'text/plain' | 'application/json' | 'text/json', context?: HttpContext, transferCache?: boolean}): Observable<any> {
         if (waterQualityManagementPlanID === null || waterQualityManagementPlanID === undefined) {
             throw new Error('Required parameter waterQualityManagementPlanID was null or undefined when calling listTreatmentBMPsAsFeatureCollectionWaterQualityManagementPlan.');
         }
+
+        let localVarQueryParameters = new HttpParams({encoder: this.encoder});
+        localVarQueryParameters = this.addToHttpParams(localVarQueryParameters,
+          <any>verifiedOnly, 'verifiedOnly');
 
         let localVarHeaders = this.defaultHeaders;
 
@@ -1706,6 +1711,7 @@ export class WaterQualityManagementPlanService extends BaseService {
         return this.httpClient.request<Array<IFeature>>('get', `${basePath}${localVarPath}`,
             {
                 context: localVarHttpContext,
+                params: localVarQueryParameters,
                 responseType: <any>responseType_,
                 ...(withCredentials ? { withCredentials } : {}),
                 headers: localVarHeaders,

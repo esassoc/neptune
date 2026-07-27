@@ -493,9 +493,9 @@ namespace Neptune.API.Controllers
         [HttpGet("{waterQualityManagementPlanID}/treatment-bmps/feature-collection")]
         [JurisdictionEditFeature]
         [EntityNotFound(typeof(WaterQualityManagementPlan), "waterQualityManagementPlanID")]
-        public async Task<ActionResult<FeatureCollection>> ListTreatmentBMPsAsFeatureCollection([FromRoute] int waterQualityManagementPlanID)
+        public async Task<ActionResult<FeatureCollection>> ListTreatmentBMPsAsFeatureCollection([FromRoute] int waterQualityManagementPlanID, [FromQuery] bool verifiedOnly = false)
         {
-            var featureCollection = await TreatmentBMPs.ListByWaterQualityManagementPlanIDAsFeatureCollectionAsync(DbContext, waterQualityManagementPlanID);
+            var featureCollection = await TreatmentBMPs.ListByWaterQualityManagementPlanIDAsFeatureCollectionAsync(DbContext, waterQualityManagementPlanID, verifiedOnly);
             return Ok(featureCollection);
         }
 

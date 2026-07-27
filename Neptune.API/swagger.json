@@ -13715,6 +13715,14 @@
               "type": "integer",
               "format": "int32"
             }
+          },
+          {
+            "name": "verifiedOnly",
+            "in": "query",
+            "schema": {
+              "type": "boolean",
+              "default": false
+            }
           }
         ],
         "responses": {
