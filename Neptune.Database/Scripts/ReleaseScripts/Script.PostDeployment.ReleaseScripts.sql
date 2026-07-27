@@ -84,4 +84,6 @@ GO
 GO
 :r ".\038 - NPT-1095 Stamp IsTransectBackingAssessment on legacy backing OVTAs.sql"
 GO
+:r ".\039 - MakeValid on invalid Delineation geometries (recurrence).sql"
+GO
 

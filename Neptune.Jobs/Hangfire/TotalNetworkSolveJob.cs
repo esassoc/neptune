@@ -20,6 +20,12 @@ public class TotalNetworkSolveJob(
 
     public async Task RunJob()
     {
+        // NPT-1115: repair any SQL-invalid delineation geometry before the solve consumes it.
+        // Invalid geometry breaks NetTopologySuite overlay operations and also blanks the
+        // GeoServer Delineations WMS layer (SQL error 24144); the nightly full run is the
+        // natural place to re-heal the whole table.
+        await DbContext.Database.ExecuteSqlRawAsync("EXEC dbo.pDelineationMakeValid");
+
         // clear out all dirty nodes since the whole network is being run.
         await DbContext.DirtyModelNodes.ExecuteDeleteAsync();
         // clear out all the nereid results since we are rerunning it for the whole network
