@@ -33,6 +33,12 @@
         } @else if (mapIsReady) {
         <land-use-block-layer [displayOnLoad]="true" [map]="map" [layerControl]="layerControl" [sortOrder]="20"></land-use-block-layer>
         } @if (mapIsReady) {
+        <ovta-areas-layer
+            [displayOnLoad]="true"
+            [map]="map"
+            [layerControl]="layerControl"
+            [sortOrder]="10"
+            [selectedJurisdictionID]="stormwaterJurisdictionID"></ovta-areas-layer>
         <transect-line-layer
             [displayOnLoad]="true"
             [map]="map"
