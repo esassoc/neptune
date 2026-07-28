@@ -1,6 +1,9 @@
 import { AsyncPipe } from "@angular/common";
-import { Component } from "@angular/core";
+import { Component, signal, ViewChild } from "@angular/core";
+import { HttpClient } from "@angular/common/http";
 import { Router, RouterLink } from "@angular/router";
+import { environment } from "src/environments/environment";
+import { saveBlobResponse } from "src/app/shared/helpers/download-file";
 import { ColDef } from "ag-grid-community";
 import { BehaviorSubject, map, Observable, shareReplay, switchMap, tap } from "rxjs";
 import { DialogService } from "@ngneat/dialog";
@@ -47,6 +50,8 @@ export class WqmpsComponent {
     public mapIsReady = false;
     public wqmpJurisdictionIDs: number[];
     public currentPersonCanEdit$: Observable<boolean>;
+    public isDownloadingGdb = signal(false);
+    @ViewChild(HybridMapGridComponent) private hybridGrid: HybridMapGridComponent;
     private wqmps: WaterQualityManagementPlanGridDto[] = [];
     private reload$ = new BehaviorSubject<void>(undefined);
     private static NO_BOUNDARY_ALERT = "WqmpNoBoundary";
@@ -58,8 +63,29 @@ export class WqmpsComponent {
         private utilityFunctionsService: UtilityFunctionsService,
         private alertService: AlertService,
         private dialogService: DialogService,
-        private router: Router
+        private router: Router,
+        private httpClient: HttpClient
     ) {}
+
+    // NPT-943: export the WQMPs currently shown in the grid (respects the active client-side filters)
+    // to a File Geodatabase. The generated client types the zip endpoint as JSON, so call HttpClient
+    // directly for the blob + Content-Disposition filename.
+    public downloadGdb(): void {
+        this.isDownloadingGdb.set(true);
+        const body = { WaterQualityManagementPlanIDs: this.hybridGrid?.getDisplayedEntityIDs() ?? [] };
+        this.httpClient
+            .post(`${environment.mainAppApiUrl}/water-quality-management-plans/download-gdb`, body, { responseType: "blob", observe: "response" })
+            .subscribe({
+                next: (response) => {
+                    this.isDownloadingGdb.set(false);
+                    saveBlobResponse(response, "WaterQualityManagementPlans_Export.zip");
+                },
+                error: () => {
+                    this.isDownloadingGdb.set(false);
+                    this.alertService.pushAlert(new Alert("Failed to build the WQMP geodatabase export.", AlertContext.Danger, true));
+                },
+            });
+    }
 
     // Match against headerName (not `field`) because utilityFunctionsService.createBasicColumnDef
     // doesn't populate ColDef.field — it uses a valueGetter against fieldName instead. A filter

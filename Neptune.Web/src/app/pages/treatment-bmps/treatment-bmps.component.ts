@@ -1,6 +1,9 @@
-import { Component, DestroyRef, inject } from "@angular/core";
+import { Component, DestroyRef, inject, signal } from "@angular/core";
+import { HttpClient } from "@angular/common/http";
 import { Router, RouterModule } from "@angular/router";
 import { DialogService } from "@ngneat/dialog";
+import { environment } from "src/environments/environment";
+import { saveBlobResponse } from "src/app/shared/helpers/download-file";
 import { ConfirmService } from "src/app/shared/services/confirm/confirm.service";
 import { AlertService } from "src/app/shared/services/alert.service";
 import { Alert } from "src/app/shared/models/alert";
@@ -99,8 +102,28 @@ export class TreatmentBmpsComponent {
         private dialogService: DialogService,
         private router: Router,
         private confirmService: ConfirmService,
-        private alertService: AlertService
+        private alertService: AlertService,
+        private httpClient: HttpClient
     ) {}
+
+    public isDownloadingGdb = signal(false);
+
+    // NPT-943: reuse the existing Data Hub BMP GDB endpoint (whole inventory the user can see).
+    public downloadGdb(): void {
+        this.isDownloadingGdb.set(true);
+        this.httpClient
+            .get(`${environment.mainAppApiUrl}/treatment-bmps/download-gdb`, { responseType: "blob", observe: "response" })
+            .subscribe({
+                next: (response) => {
+                    this.isDownloadingGdb.set(false);
+                    saveBlobResponse(response, "TreatmentBMPs_Export.zip");
+                },
+                error: () => {
+                    this.isDownloadingGdb.set(false);
+                    this.alertService.pushAlert(new Alert("Failed to build the BMP geodatabase export.", AlertContext.Danger, true));
+                },
+            });
+    }
 
     ngOnInit(): void {
         this.currentPersonCanEdit$ = this.authenticationService
