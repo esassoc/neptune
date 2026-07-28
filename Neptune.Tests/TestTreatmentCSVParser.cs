@@ -1410,5 +1410,116 @@ Frank,30,10,City of Orange,Sitka Technology Group,2008,ABCD,Perpetuity/Life of P
             Assert.IsTrue(errorList.Any(x => x.Contains(attributeName) && x.Contains("is not a valid")),
                 "A purely invalid multi-select entry should be rejected.");
         }
+
+        // ---- NPT-1108: case-insensitive headers + attribute values, with canonical normalization ----
+
+        // Swaps the case of each letter, so the result differs from the input for any value that has letters.
+        private static string FlipCase(string value) =>
+            new string(value.Select(c => char.IsUpper(c) ? char.ToLower(c) : char.ToUpper(c)).ToArray());
+
+        private (int TreatmentBMPTypeID, string AttributeName, List<string> ValidValues)? FindPickFromListCustomAttribute()
+        {
+            var pickFromListDataTypeID = (int)CustomAttributeDataTypeEnum.PickFromList;
+            var candidate = _dbContext.CustomAttributeTypes
+                .Include(x => x.TreatmentBMPTypeCustomAttributeTypes)
+                .AsNoTracking()
+                .Where(x => x.CustomAttributeDataTypeID == pickFromListDataTypeID
+                            && x.CustomAttributeTypeOptionsSchema != null
+                            && x.TreatmentBMPTypeCustomAttributeTypes.Any())
+                .ToList()
+                .Select(x => new
+                {
+                    Type = x,
+                    Options = System.Text.Json.JsonSerializer.Deserialize<List<string>>(x.CustomAttributeTypeOptionsSchema)
+                })
+                .FirstOrDefault(x => x.Options != null && x.Options.Count >= 1);
+
+            if (candidate == null)
+            {
+                return null;
+            }
+
+            return (candidate.Type.TreatmentBMPTypeCustomAttributeTypes.First().TreatmentBMPTypeID,
+                candidate.Type.CustomAttributeTypeName,
+                candidate.Options);
+        }
+
+        [TestMethod]
+        public void TestHeaderMatchingIsCaseInsensitive()
+        {
+            // Same valid header as TestValidColumns, upper-cased. Case-insensitive header matching means
+            // no "required headers"/"did not match a property" errors.
+            const string header = "BMP Name,Latitude,Longitude,Jurisdiction, Owner,Year Built or Installed,Asset ID in System of Record, Required Lifespan of Installation,Allowable End Date of Installation (if applicable), Required Field Visits Per Year, Required Post-Storm Field Visits Per Year,Notes,Trash Capture Status,Sizing Basis";
+            var csv = header.ToUpperInvariant();
+            const int treatmentBMPTypeID = 17;
+            TreatmentBMPCsvParserHelper.CSVUpload(_dbContext, csv, treatmentBMPTypeID, out var errorList, out _, out _);
+            Assert.IsTrue(!errorList.Any(), "Upper-cased headers should be accepted (case-insensitive header matching). Errors: " + string.Join("; ", errorList));
+        }
+
+        [TestMethod]
+        public void TestLookupValuesAreCaseInsensitive()
+        {
+            // Jurisdiction / Owner / Trash Capture Status lower-cased — all lookups must still resolve.
+            const string csv = @"BMP Name,Latitude,Longitude,Jurisdiction, Owner,Year Built or Installed,Asset ID in System of Record, Required Lifespan of Installation,Allowable End Date of Installation (if applicable), Required Field Visits Per Year, Required Post-Storm Field Visits Per Year,Notes,Trash Capture Status,Sizing Basis
+Frank,30,10,city of dana point,sitka technology group,2008,ABCD,Perpetuity/Life of Project,11/12/2022,5,6,Happy,full,Not Provided";
+            const int treatmentBMPTypeID = 17;
+            var treatmentBMPs = TreatmentBMPCsvParserHelper.CSVUpload(_dbContext, csv, treatmentBMPTypeID, out var errorList, out _, out _);
+            Assert.IsFalse(errorList.Any(x => x.Contains("No Jurisdiction with the name")), "Lower-cased jurisdiction should resolve.");
+            Assert.IsFalse(errorList.Any(x => x.Contains("No Owner with the name")), "Lower-cased owner should resolve.");
+            Assert.IsFalse(errorList.Any(x => x.Contains("No Trash Capture Status with the name")), "Lower-cased Trash Capture Status should resolve.");
+            Assert.AreEqual(2, treatmentBMPs[0].StormwaterJurisdictionID, "Jurisdiction should resolve to the same ID regardless of casing.");
+        }
+
+        [TestMethod]
+        public void TestCustomAttributeMultiSelectValueIsCaseInsensitiveAndNormalized()
+        {
+            var ms = FindMultiSelectCustomAttribute();
+            if (ms == null)
+            {
+                Assert.Inconclusive("No MultiSelect custom attribute type with options exists in the local database.");
+            }
+            var (treatmentBMPTypeID, attributeName, validValues) = ms.Value;
+            var canonical = validValues.FirstOrDefault(v => FlipCase(v) != v);
+            if (canonical == null)
+            {
+                Assert.Inconclusive("No alphabetic MultiSelect option available to exercise casing.");
+            }
+
+            var csv = BuildMultiSelectCsv("NPT1108 MultiSelect CaseInsensitive", attributeName, FlipCase(canonical));
+            TreatmentBMPCsvParserHelper.CSVUpload(_dbContext, csv, treatmentBMPTypeID, out var errorList, out _, out var customAttributeValues);
+
+            Assert.IsFalse(errorList.Any(x => x.Contains(attributeName)),
+                "A differently-cased valid MultiSelect value should be accepted. Errors: " + string.Join("; ", errorList));
+            Assert.IsTrue(customAttributeValues.Any(v => v.AttributeValue == canonical),
+                "The stored value should use the canonical casing from the acceptable-values list.");
+            Assert.IsFalse(customAttributeValues.Any(v => v.AttributeValue == FlipCase(canonical)),
+                "The user's non-canonical casing should not be stored.");
+        }
+
+        [TestMethod]
+        public void TestCustomAttributePickFromListValueIsCaseInsensitiveAndNormalized()
+        {
+            var pick = FindPickFromListCustomAttribute();
+            if (pick == null)
+            {
+                Assert.Inconclusive("No PickFromList custom attribute type with options exists in the local database.");
+            }
+            var (treatmentBMPTypeID, attributeName, validValues) = pick.Value;
+            var canonical = validValues.FirstOrDefault(v => FlipCase(v) != v);
+            if (canonical == null)
+            {
+                Assert.Inconclusive("No alphabetic PickFromList option available to exercise casing.");
+            }
+
+            var csv = BuildMultiSelectCsv("NPT1108 PickFromList CaseInsensitive", attributeName, FlipCase(canonical));
+            TreatmentBMPCsvParserHelper.CSVUpload(_dbContext, csv, treatmentBMPTypeID, out var errorList, out _, out var customAttributeValues);
+
+            Assert.IsFalse(errorList.Any(x => x.Contains(attributeName)),
+                "A differently-cased valid PickFromList value should be accepted. Errors: " + string.Join("; ", errorList));
+            Assert.IsTrue(customAttributeValues.Any(v => v.AttributeValue == canonical),
+                "The stored PickFromList value should use the canonical casing from the acceptable-values list.");
+            Assert.IsFalse(customAttributeValues.Any(v => v.AttributeValue == FlipCase(canonical)),
+                "The user's non-canonical casing should not be stored.");
+        }
     }
 }

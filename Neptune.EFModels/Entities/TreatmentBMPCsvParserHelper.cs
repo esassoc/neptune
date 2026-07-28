@@ -342,7 +342,7 @@ namespace Neptune.EFModels.Entities
                 var fieldValue = row[fieldsDict[fieldName]];
                 if (!string.IsNullOrWhiteSpace(fieldValue))
                 {
-                    if (!lookupValues.Select(funcDisplayName.Invoke).Contains(fieldValue))
+                    if (!lookupValues.Select(funcDisplayName.Invoke).Contains(fieldValue, StringComparer.OrdinalIgnoreCase))
                     {
                         var errorMessage = $"No {fieldName} with the name '{fieldValue}' exists in our records, row: {rowNumber}.";
                         if (showAvailableValuesInErrorMessage)
@@ -353,7 +353,7 @@ namespace Neptune.EFModels.Entities
                     }
                     else
                     {
-                        var entity = lookupValues.Single(x => funcDisplayName.Invoke(x) == fieldValue);
+                        var entity = lookupValues.Single(x => string.Equals(funcDisplayName.Invoke(x), fieldValue, StringComparison.OrdinalIgnoreCase));
                         return funcID.Invoke(entity);
                     }
                 }
@@ -502,17 +502,24 @@ namespace Neptune.EFModels.Entities
 
                         if (customAttributeType.CustomAttributeDataType == CustomAttributeDataType.MultiSelect)
                         {
+                            // NPT-1108: store the canonical casing from the acceptable-values list
+                            // (e.g. user typed "liner" -> stored "Liner").
                             var attributeValues = value.Split(new[] {','}).Select(x => x.Trim())
                                 .Where(x => !string.IsNullOrEmpty(x))
                                 .Select(x =>
-                                new CustomAttributeValue { CustomAttribute = customAttribute, AttributeValue = x });
+                                new CustomAttributeValue { CustomAttribute = customAttribute, AttributeValue = NormalizeToCanonicalCasing(x, customAttributeTypeAcceptableValues) });
                             customAttributeValues.AddRange(attributeValues);
                         }
                         else
                         {
+                            // NPT-1108: normalize PickFromList to canonical casing; leave Integer/Decimal/
+                            // DateTime/String values verbatim (this branch is shared by all of them).
+                            var storedValue = customAttributeType.CustomAttributeDataType == CustomAttributeDataType.PickFromList
+                                ? NormalizeToCanonicalCasing(value, customAttributeTypeAcceptableValues)
+                                : value;
                             customAttributeValues.Add(new CustomAttributeValue
                             {
-                                CustomAttribute = customAttribute, AttributeValue = value
+                                CustomAttribute = customAttribute, AttributeValue = storedValue
                             });
                         }
                     }
@@ -539,7 +546,7 @@ namespace Neptune.EFModels.Entities
                     // mixed multi-select like "Gravel, InvalidMedia" reports only "InvalidMedia".
                     var invalidEntries = value.Split(',').Select(x => x.Trim())
                         .Where(x => !string.IsNullOrEmpty(x))
-                        .Where(x => customAttributeTypeAcceptableValues == null || !customAttributeTypeAcceptableValues.Contains(x))
+                        .Where(x => customAttributeTypeAcceptableValues == null || !customAttributeTypeAcceptableValues.Contains(x, StringComparer.OrdinalIgnoreCase))
                         .Distinct()
                         .ToList();
                     var invalidEntryDisplay = invalidEntries.Any() ? string.Join(", ", invalidEntries) : value;
@@ -549,6 +556,14 @@ namespace Neptune.EFModels.Entities
                     return
                         $"{customAttributeTypeName} entry at row: {rowNumber} experienced an unknown error. Please double check the sheet, and contact support with further questions.";
             }
+        }
+
+        // NPT-1108: resolve a case-insensitively-matched entry to the canonical casing stored in the
+        // custom attribute's acceptable-values (options schema). Returns the input unchanged when there
+        // is no match (invalid entries are already rejected during validation).
+        private static string NormalizeToCanonicalCasing(string value, List<string> acceptableValues)
+        {
+            return acceptableValues?.FirstOrDefault(o => string.Equals(o, value, StringComparison.OrdinalIgnoreCase)) ?? value;
         }
 
         private static bool ValidateCustomAttributeValueEntry(string value, CustomAttributeDataTypeEnum customAttributeDataType, List<string> customAttributeTypeAcceptableValues)
@@ -571,7 +586,7 @@ namespace Neptune.EFModels.Entities
 
                     return splitValues.Any() &&
                            customAttributeTypeAcceptableValues != null &&
-                           splitValues.All(customAttributeTypeAcceptableValues.Contains);
+                           splitValues.All(v => customAttributeTypeAcceptableValues.Contains(v, StringComparer.OrdinalIgnoreCase));
                 case CustomAttributeDataTypeEnum.String:
                     return true;
                 default:
@@ -583,7 +598,10 @@ namespace Neptune.EFModels.Entities
         private static Dictionary<string, int> ValidateHeader(string[] row, List<string> requiredFields, List<string> optionalFields, List<string> customAttributes, out List<string> errorList, TreatmentBMPType treatmentBMPType)
         {
             errorList = new List<string>();
-            var fieldsDict = new Dictionary<string, int>();
+            // NPT-1108: case-insensitive header matching. This dict's keys are looked up throughout the
+            // parser (fieldsDict.ContainsKey / fieldsDict[fieldName]), so OrdinalIgnoreCase here makes
+            // every header lookup case-insensitive in one shot.
+            var fieldsDict = new Dictionary<string, int>(StringComparer.OrdinalIgnoreCase);
 
             for (var fieldIndex = 0; fieldIndex < row.Length; fieldIndex++)
             {
@@ -595,9 +613,9 @@ namespace Neptune.EFModels.Entities
             }
 
             var headers = fieldsDict.Keys.ToList();
-            var requiredFieldDifference = requiredFields.Except(headers).ToList();
-            var optionalFieldDifference = headers.Except(requiredFields).Except(optionalFields);
-            var customAttributesDifference = optionalFieldDifference.Except(customAttributes).ToList();
+            var requiredFieldDifference = requiredFields.Except(headers, StringComparer.OrdinalIgnoreCase).ToList();
+            var optionalFieldDifference = headers.Except(requiredFields, StringComparer.OrdinalIgnoreCase).Except(optionalFields, StringComparer.OrdinalIgnoreCase);
+            var customAttributesDifference = optionalFieldDifference.Except(customAttributes, StringComparer.OrdinalIgnoreCase).ToList();
 
             if (requiredFieldDifference.Any())
             {
