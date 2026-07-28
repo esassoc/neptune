@@ -15,6 +15,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using NetTopologySuite.Features;
+using Neptune.Common.Services.GDAL;
 using Neptune.API.Common;
 using Neptune.Common.Services;
 using Neptune.API.Services;
@@ -39,7 +40,8 @@ namespace Neptune.API.Controllers
         IOptions<NeptuneConfiguration> neptuneConfiguration,
         AzureBlobStorageService azureBlobStorageService,
         WqmpExtractionService wqmpExtractionService,
-        SitkaSmtpClientService sitkaSmtpClientService)
+        SitkaSmtpClientService sitkaSmtpClientService,
+        GDALAPIService gdalApiService)
         : SitkaController<WaterQualityManagementPlanController>(dbContext, logger,
             neptuneConfiguration)
     {
@@ -64,6 +66,22 @@ namespace Neptune.API.Controllers
             var entities = await vWaterQualityManagementPlanDetaileds.ListViewableByPersonDtoAsync(DbContext, CallingUser);
             var gridDtos = entities.Select(x => x.AsGridDto()).ToList();
             return Ok(gridDtos);
+        }
+
+        // NPT-943: export WQMP boundary polygons + attributes to a File Geodatabase. The Index page
+        // sends its post-filter WQMP IDs; the Data Hub tab sends an empty list (⇒ all viewable).
+        // Write-only (JurisdictionEditFeature); the export is scoped to the caller's jurisdictions so
+        // a client-supplied ID list can't leak cross-jurisdiction WQMPs.
+        [HttpPost("download-gdb")]
+        [JurisdictionEditFeature]
+        [Produces("application/zip")]
+        public async Task<FileResult> DownloadGdb([FromBody] WaterQualityManagementPlanGdbDownloadRequestDto dto)
+        {
+            var currentPerson = People.GetByID(DbContext, CallingUser.PersonID);
+            var viewableJurisdictionIDs = StormwaterJurisdictionPeople.ListViewableStormwaterJurisdictionIDsByPersonForWQMPs(DbContext, currentPerson).ToList();
+            var (bytes, fileName) = await WaterQualityManagementPlanGdbExport.BuildGdbExportAsync(
+                DbContext, gdalApiService, viewableJurisdictionIDs, dto.WaterQualityManagementPlanIDs ?? new List<int>());
+            return File(bytes, "application/zip", fileName);
         }
 
         [HttpGet("lgu-audit-grid")]

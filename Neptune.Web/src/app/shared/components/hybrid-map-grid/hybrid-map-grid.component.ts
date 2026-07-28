@@ -89,6 +89,17 @@ export class HybridMapGridComponent {
         this.gridApi = event.api;
     }
 
+    // NPT-943: the entityIDField values of the rows currently displayed (post filter + sort) — used
+    // by server-side exports (e.g. GDB) that must respect the grid's active client-side filters.
+    public getDisplayedEntityIDs(): number[] {
+        const ids: number[] = [];
+        this.gridApi?.forEachNodeAfterFilterAndSort((node) => {
+            const id = node.data?.[this.entityIDField];
+            if (id != null) ids.push(id);
+        });
+        return ids;
+    }
+
     public onGridRefReady(gridRef: AgGridAngular) {
         this.gridRef = gridRef;
     }

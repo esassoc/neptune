@@ -9,6 +9,13 @@
             [disabled]="!isAdminOrEditor()"
             [disabledTooltip]="managerEditorTooltip"
         ></data-hub-action-button>
+        <data-hub-action-button
+            label="Download"
+            icon="download"
+            [routerLink]="['/data-hub', 'wqmp-download']"
+            [disabled]="!isAdminOrEditor()"
+            [disabledTooltip]="managerEditorTooltip"
+        ></data-hub-action-button>
 
         <h3>Simplified BMPs</h3>
         <custom-rich-text [customRichTextTypeID]="NeptunePageTypeEnum.SimplifiedBMPsDataHub"></custom-rich-text>

@@ -218,6 +218,7 @@ export * from './water-quality-management-plan-document-dto';
 export * from './water-quality-management-plan-document-upsert-dto';
 export * from './water-quality-management-plan-dto';
 export * from './water-quality-management-plan-extraction-result-dto';
+export * from './water-quality-management-plan-gdb-download-request-dto';
 export * from './water-quality-management-plan-grid-dto';
 export * from './water-quality-management-plan-lgu-audit-grid-dto';
 export * from './water-quality-management-plan-post-construction-verification-grid-dto';
