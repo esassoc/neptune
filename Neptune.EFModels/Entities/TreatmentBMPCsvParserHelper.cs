@@ -559,11 +559,14 @@ namespace Neptune.EFModels.Entities
         }
 
         // NPT-1108: resolve a case-insensitively-matched entry to the canonical casing stored in the
-        // custom attribute's acceptable-values (options schema). Returns the input unchanged when there
-        // is no match (invalid entries are already rejected during validation).
+        // custom attribute's acceptable-values (options schema). Trims first to match how validation
+        // compares entries, so a value like " liner " (which passes validation) still normalizes to
+        // "Liner". Returns the trimmed input when there is no match (invalid entries are already
+        // rejected during validation).
         private static string NormalizeToCanonicalCasing(string value, List<string> acceptableValues)
         {
-            return acceptableValues?.FirstOrDefault(o => string.Equals(o, value, StringComparison.OrdinalIgnoreCase)) ?? value;
+            var trimmed = (value ?? "").Trim();
+            return acceptableValues?.FirstOrDefault(o => string.Equals(o, trimmed, StringComparison.OrdinalIgnoreCase)) ?? trimmed;
         }
 
         private static bool ValidateCustomAttributeValueEntry(string value, CustomAttributeDataTypeEnum customAttributeDataType, List<string> customAttributeTypeAcceptableValues)

@@ -1414,8 +1414,9 @@ Frank,30,10,City of Orange,Sitka Technology Group,2008,ABCD,Perpetuity/Life of P
         // ---- NPT-1108: case-insensitive headers + attribute values, with canonical normalization ----
 
         // Swaps the case of each letter, so the result differs from the input for any value that has letters.
+        // Invariant casing avoids locale-dependent behavior (e.g. Turkish dotless-I).
         private static string FlipCase(string value) =>
-            new string(value.Select(c => char.IsUpper(c) ? char.ToLower(c) : char.ToUpper(c)).ToArray());
+            new string(value.Select(c => char.IsUpper(c) ? char.ToLowerInvariant(c) : char.ToUpperInvariant(c)).ToArray());
 
         private (int TreatmentBMPTypeID, string AttributeName, List<string> ValidValues)? FindPickFromListCustomAttribute()
         {
