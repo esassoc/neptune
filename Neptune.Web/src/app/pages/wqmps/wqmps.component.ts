@@ -71,8 +71,16 @@ export class WqmpsComponent {
     // to a File Geodatabase. The generated client types the zip endpoint as JSON, so call HttpClient
     // directly for the blob + Content-Disposition filename.
     public downloadGdb(): void {
+        // Guard the empty case: the endpoint treats an empty ID list as "all viewable" (the Data Hub
+        // download path relies on that), so a grid filtered down to zero rows must NOT fall through to
+        // exporting everything — surface a message and stop instead.
+        const ids = this.hybridGrid?.getDisplayedEntityIDs() ?? [];
+        if (ids.length === 0) {
+            this.alertService.pushAlert(new Alert("There are no WQMPs matching the current filters to export.", AlertContext.Info, true));
+            return;
+        }
         this.isDownloadingGdb.set(true);
-        const body = { WaterQualityManagementPlanIDs: this.hybridGrid?.getDisplayedEntityIDs() ?? [] };
+        const body = { WaterQualityManagementPlanIDs: ids };
         this.httpClient
             .post(`${environment.mainAppApiUrl}/water-quality-management-plans/download-gdb`, body, { responseType: "blob", observe: "response" })
             .subscribe({
