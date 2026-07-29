@@ -308,14 +308,14 @@ stages:
           -var "azureClusterResourceGroup=$(kv-azureClusterResourceGroup)" 
           -var "databaseResourceGroup=$(kv-databaseResourceGroup)" 
           -var "sqlApiUsername=$(sqlApiUsername)" 
-          -var "sqlGeoserverUsername=$(sqlGeoserverUsername)"
-          -var "team=$(team)"
-          -var "projectNumber=$(projectNumber)"
-          -var "elasticPoolName=$(kv-elasticPoolName)"
-          -var "clusterOidcIssuerUrl=$(kv-clusterOidcIssuerUrl)"
-          -var "aksNamespace=$(team)"
-          -var "sendGridApiKey=$(kv-sendGridApiKey)"
-          -var "anthropicApiKey=$(anthropicApiKey)"
+          -var "sqlGeoserverUsername=$(sqlGeoserverUsername)" 
+          -var "team=$(team)" 
+          -var "projectNumber=$(projectNumber)" 
+          -var "elasticPoolName=$(kv-elasticPoolName)" 
+          -var "clusterOidcIssuerUrl=$(kv-clusterOidcIssuerUrl)" 
+          -var "aksNamespace=$(team)" 
+          -var "sendGridApiKey=$(kv-sendGridApiKey)" 
+          -var "anthropicApiKey=$(anthropicApiKey)" 
 
     - task: CopyFiles@2
       inputs:
