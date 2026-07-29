@@ -1,8 +1,8 @@
-<a
+<button
+    type="button"
     class="btn btn-sm btn-primary-outline grid-footer-action"
     (click)="isFullScreen ? exitFullScreen() : enterFullScreen()"
-    role="button"
     title="{{ !isFullScreen ? enterFullScreenTitleText : exitFullScreenTitleText }}">
     {{ isFullScreen ? "Collapse" : "Expand" }}
     <icon [icon]="!isFullScreen ? 'EnterFullScreen' : 'ExitFullScreen'"></icon>
-</a>
+</button>

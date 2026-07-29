@@ -1,16 +1,15 @@
-<a
+<button
+    type="button"
     class="btn btn-sm btn-primary-outline grid-download-trigger"
-    id="grid-download-menu-trigger"
     [dropdownToggle]="downloadMenuTemplate"
     [attachToBody]="true"
-    role="button"
     title="Download grid data">
     Download
     <icon [icon]="'Download'"></icon>
     <i class="fas fa-chevron-down caret"></i>
-</a>
+</button>
 <ng-template #downloadMenuTemplate>
-    <div class="grid-download-menu" aria-labelledby="grid-download-menu-trigger">
+    <div class="grid-download-menu">
         <a href="javascript:void(0);" (click)="exportCsv()">Text File (.csv)</a>
         @if (showGdbOption) {
             <a href="javascript:void(0);" [class.disabled]="isDownloadingGdb" (click)="onGdbClick()">
