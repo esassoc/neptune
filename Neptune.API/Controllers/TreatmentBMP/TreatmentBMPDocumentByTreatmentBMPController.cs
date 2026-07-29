@@ -21,11 +21,24 @@ public class TreatmentBMPDocumentByTreatmentBMPController(NeptuneDbContext dbCon
 {
     [HttpPost]
     [JurisdictionEditFeature]
+    // NPT-1110: unify the upload cap at 400 MB. The global Kestrel/FormOptions cap (Startup.cs) already
+    // covers this endpoint, but set the per-action attributes for parity with WQMP CreateDocument and
+    // every other upload endpoint.
+    [Consumes("multipart/form-data")]
+    [RequestSizeLimit(400 * 1024 * 1024)]
+    [RequestFormLimits(MultipartBodyLengthLimit = 400 * 1024 * 1024)]
     [EntityNotFound(typeof(TreatmentBMP), "treatmentBMPID")]
     public async Task<ActionResult<TreatmentBMPDocumentDto>> Create([FromRoute] int treatmentBMPID, [FromForm] TreatmentBMPDocumentCreateDto documentCreateDto)
     {
+        // ModelState must be valid before we call ValidateFileUpload — that helper dereferences
+        // documentCreateDto.File.FileName and would throw if binding failed and File is null (File is
+        // [Required], so an absent file surfaces here as a clean 400). Mirrors WQMP CreateDocument.
+        if (!ModelState.IsValid)
+        {
+            return BadRequest(ModelState);
+        }
         var errors = FileResources.ValidateFileUpload(documentCreateDto.File);
-        if (!ModelState.IsValid || errors.Any())
+        if (errors.Any())
         {
             errors.ForEach(x => ModelState.AddModelError(x.Type, x.Message));
             return BadRequest(ModelState);
