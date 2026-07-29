@@ -66,7 +66,12 @@ namespace Neptune.Tests
         // names and indices (e.g. for the all-or-nothing assessment block checks).
         private static readonly string[] Columns =
         {
-            "BMP Name", "Jurisdiction", "Field Visit Type", "Field Visit Date",
+            "BMP Name", "Jurisdiction",
+            // NPT-1114: reference columns the pre-populated download fills in. Kept between
+            // Jurisdiction and Field Visit Type to mirror the production "Field Visits" layout.
+            "Year Built", "BMP Notes",
+            "# of inlet screens", "# of trash baskets", "# of connector pipe screens",
+            "Field Visit Type", "Field Visit Date",
 
             // Initial assessment block (ends with "Notes")
             "Inlet Condition", "Inlet Condition Notes",
@@ -319,6 +324,64 @@ namespace Neptune.Tests
             var afterCount = await _dbContext.FieldVisits.CountAsync(x => x.TreatmentBMPID == bmp.TreatmentBMPID);
             Assert.AreEqual(beforeCount + 1, afterCount,
                 "Exactly one new FieldVisit should have been added for this BMP.");
+        }
+
+        [TestMethod]
+        public async Task PrePopulatedReferenceRows_AreSkipped_OnlyFilledRowProcessed()
+        {
+            // NPT-1114 rework: the pre-populated template lists one row per BMP. Rows the user didn't
+            // fill in (only the reference columns populated, no field-visit data) must be ignored, not
+            // treated as incomplete visits. A fake BMP name on the reference row proves it's skipped
+            // before the BMP lookup — otherwise we'd get "Invalid BMP Name or Jurisdiction".
+            var bmp = GetAnyTrashScreenBMP();
+            if (bmp == null)
+            {
+                Assert.Inconclusive("No Inlet-And-Trash-Screen BMPs in dev DB.");
+                return;
+            }
+            var jurisdictionName = bmp.StormwaterJurisdiction.Organization.OrganizationName;
+
+            var referenceOnlyRow = BlankRow();
+            Set(referenceOnlyRow, "BMP Name", "___NPT_1114_REFERENCE_ONLY___");
+            Set(referenceOnlyRow, "Jurisdiction", jurisdictionName);
+            Set(referenceOnlyRow, "Year Built", "2001");
+            Set(referenceOnlyRow, "# of inlet screens", "2");
+
+            var filledRow = BlankRow();
+            Set(filledRow, "BMP Name", bmp.TreatmentBMPName);
+            Set(filledRow, "Jurisdiction", jurisdictionName);
+            Set(filledRow, "Field Visit Type", FieldVisitType.All.First().FieldVisitTypeDisplayName);
+            Set(filledRow, "Field Visit Date", "01/02/2099");
+
+            using var xlsx = BuildXlsx(new[] { referenceOnlyRow, filledRow });
+            var result = await TrashScreenFieldVisitImporter.BulkUploadAsync(_dbContext, xlsx, GetAdminPerson());
+
+            Assert.AreEqual(0, result.Errors.Count, string.Join("; ", result.Errors));
+            Assert.AreEqual(1, result.RowsProcessed,
+                "Only the filled row should be imported; the reference-only row is skipped.");
+        }
+
+        [TestMethod]
+        public async Task NonAdmin_BlankRow_NotBlockedByPermissionCheck()
+        {
+            // NPT-1114 rework regression: a blank row (a cleared pre-populated row, or a trailing
+            // empty row in the template's used range) used to make the non-admin permission pre-check
+            // read an empty Jurisdiction and fail with "...in Jurisdiction , which you do not have
+            // permission to manage." Blank/reference-only rows must be skipped instead.
+            var editor = _dbContext.People.AsNoTracking()
+                .FirstOrDefault(x => x.RoleID == (int)RoleEnum.JurisdictionEditor || x.RoleID == (int)RoleEnum.JurisdictionManager);
+            if (editor == null)
+            {
+                Assert.Inconclusive("No JurisdictionEditor/Manager users in dev DB.");
+                return;
+            }
+
+            using var xlsx = BuildXlsx(new[] { BlankRow() });
+            var result = await TrashScreenFieldVisitImporter.BulkUploadAsync(_dbContext, xlsx, editor);
+
+            Assert.IsFalse(result.Errors.Any(x => x.Contains("do not have permission to manage")),
+                "A blank row must not trip the jurisdiction permission pre-check. Errors: " + string.Join("; ", result.Errors));
+            Assert.AreEqual(0, result.RowsProcessed);
         }
 
         // ----- NPT-1071 Bug #2: numeric range validation (pure helpers) -----

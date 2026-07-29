@@ -1,3 +1,5 @@
+using System;
+using System.Collections.Generic;
 using System.IO;
 using System.Threading.Tasks;
 using ClosedXML.Excel;
@@ -90,6 +92,17 @@ public class DataHubController(
     // pre-populated rows must land on this exact tab.
     private const string TrashScreenTemplateWorksheetName = "Field Visits";
 
+    // Header text of the pre-populated columns in the "Field Visits" sheet. Resolved by name at
+    // generation time (see DownloadTrashScreenUploadTemplate) so the generator doesn't couple to
+    // column letters and stays aligned with the importer, which reads back by header name. (NPT-1114)
+    private const string BMPNameHeader = "BMP Name";
+    private const string JurisdictionHeader = "Jurisdiction";
+    private const string YearBuiltHeader = "Year Built";
+    private const string NotesHeader = "BMP Notes";
+    private const string InletScreensHeader = "# of inlet screens";
+    private const string TrashBasketsHeader = "# of trash baskets";
+    private const string ConnectorPipeScreensHeader = "# of connector pipe screens";
+
     /// <summary>
     /// NPT-1114: regenerates the Trash Screen Field Visit upload template with one pre-populated
     /// row per trash-screen BMP (TreatmentBMPType "Inlet and Trash Screen") the caller can access,
@@ -130,22 +143,42 @@ public class DataHubController(
                 statusCode: StatusCodes.Status500InternalServerError);
         }
 
+        // NPT-1114: resolve target columns by header text instead of hard-coded letters, so the
+        // generated cells stay aligned with the importer (which reads by header name) even if the
+        // template's column order changes. BMP Name + Jurisdiction are the importer's lookup keys, so
+        // the file is unusable on re-upload if either is missing — guard those explicitly.
+        var headerColumns = BuildHeaderColumnMap(worksheet);
+        if (!headerColumns.TryGetValue(BMPNameHeader, out var bmpNameColumn) ||
+            !headerColumns.TryGetValue(JurisdictionHeader, out var jurisdictionColumn))
+        {
+            return Problem(
+                $"The Trash Screen upload template is missing the '{BMPNameHeader}' or '{JurisdictionHeader}' column.",
+                statusCode: StatusCodes.Status500InternalServerError);
+        }
+
+        int? ColumnFor(string header) => headerColumns.TryGetValue(header, out var c) ? c : null;
+        var yearBuiltColumn = ColumnFor(YearBuiltHeader);
+        var notesColumn = ColumnFor(NotesHeader);
+        var inletScreensColumn = ColumnFor(InletScreensHeader);
+        var trashBasketsColumn = ColumnFor(TrashBasketsHeader);
+        var connectorPipeScreensColumn = ColumnFor(ConnectorPipeScreensHeader);
+
         var row = 2;
         foreach (var bmp in trashScreens)
         {
-            worksheet.Cell($"A{row}").Value = bmp.TreatmentBMPName;
-            worksheet.Cell($"B{row}").Value = bmp.StormwaterJurisdictionName;
-            if (bmp.YearBuilt.HasValue)
+            worksheet.Cell(row, bmpNameColumn).Value = bmp.TreatmentBMPName;
+            worksheet.Cell(row, jurisdictionColumn).Value = bmp.StormwaterJurisdictionName;
+            if (yearBuiltColumn.HasValue && bmp.YearBuilt.HasValue)
             {
-                worksheet.Cell($"C{row}").Value = bmp.YearBuilt.Value;
+                worksheet.Cell(row, yearBuiltColumn.Value).Value = bmp.YearBuilt.Value;
             }
-            if (!string.IsNullOrWhiteSpace(bmp.Notes))
+            if (notesColumn.HasValue && !string.IsNullOrWhiteSpace(bmp.Notes))
             {
-                worksheet.Cell($"D{row}").Value = bmp.Notes;
+                worksheet.Cell(row, notesColumn.Value).Value = bmp.Notes;
             }
-            SetIntAttributeCell(worksheet, bmp, CustomAttributeTypes.CustomAttributeTypeIDNumberOfInletScreens, "E", row);
-            SetIntAttributeCell(worksheet, bmp, CustomAttributeTypes.CustomAttributeTypeIDNumberOfTrashBaskets, "F", row);
-            SetIntAttributeCell(worksheet, bmp, CustomAttributeTypes.CustomAttributeTypeIDNumberOfConnectorPipeScreens, "G", row);
+            SetIntAttributeCell(worksheet, bmp, CustomAttributeTypes.CustomAttributeTypeIDNumberOfInletScreens, inletScreensColumn, row);
+            SetIntAttributeCell(worksheet, bmp, CustomAttributeTypes.CustomAttributeTypeIDNumberOfTrashBaskets, trashBasketsColumn, row);
+            SetIntAttributeCell(worksheet, bmp, CustomAttributeTypes.CustomAttributeTypeIDNumberOfConnectorPipeScreens, connectorPipeScreensColumn, row);
             row++;
         }
 
@@ -155,13 +188,33 @@ public class DataHubController(
         return File(stream.ToArray(), "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", downloadFileName);
     }
 
-    // Writes a custom-attribute count into the given column only when the stored value parses as an
-    // int — matches the legacy SetCellValueFromCustomAttribute (numeric cell, blank otherwise).
-    private static void SetIntAttributeCell(IXLWorksheet worksheet, TreatmentBMPByTypeGridDto bmp, int customAttributeTypeID, string column, int row)
+    // Writes a custom-attribute count into the given column only when the column exists in the
+    // template (non-null) and the stored value parses as an int — matches the legacy
+    // SetCellValueFromCustomAttribute (numeric cell, blank otherwise).
+    private static void SetIntAttributeCell(IXLWorksheet worksheet, TreatmentBMPByTypeGridDto bmp, int customAttributeTypeID, int? column, int row)
     {
-        if (bmp.CustomAttributeValues.TryGetValue(customAttributeTypeID, out var raw) && int.TryParse(raw, out var value))
+        if (column.HasValue
+            && bmp.CustomAttributeValues.TryGetValue(customAttributeTypeID, out var raw)
+            && int.TryParse(raw, out var value))
         {
-            worksheet.Cell($"{column}{row}").Value = value;
+            worksheet.Cell(row, column.Value).Value = value;
         }
+    }
+
+    // NPT-1114: maps each non-empty header cell in row 1 to its 1-based column number
+    // (case-insensitive, trimmed; first occurrence wins) so the generator can address columns by
+    // header text rather than assuming a fixed A/B/C… order.
+    private static Dictionary<string, int> BuildHeaderColumnMap(IXLWorksheet worksheet)
+    {
+        var map = new Dictionary<string, int>(StringComparer.OrdinalIgnoreCase);
+        foreach (var cell in worksheet.Row(1).CellsUsed())
+        {
+            var header = cell.GetString().Trim();
+            if (!string.IsNullOrEmpty(header) && !map.ContainsKey(header))
+            {
+                map[header] = cell.Address.ColumnNumber;
+            }
+        }
+        return map;
     }
 }
