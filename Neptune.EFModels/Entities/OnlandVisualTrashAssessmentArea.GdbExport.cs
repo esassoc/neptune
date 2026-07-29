@@ -82,8 +82,11 @@ public static class OnlandVisualTrashAssessmentAreaGdbExport
             if (existingAreas.TryGetValue(staging.AreaName, out var existing))
             {
                 existing.AssessmentAreaDescription = staging.Description;
-                existing.OnlandVisualTrashAssessmentAreaGeometry = staging.Geometry.ProjectTo2771();
-                existing.OnlandVisualTrashAssessmentAreaGeometry4326 = staging.Geometry.ProjectTo4326();
+                // NPT-1099: MakeValid before storing — the GDB validator checks NTS IsValid, but that
+                // disagrees with SQL STIsValid in edge cases and reprojection can re-introduce invalidity,
+                // which would blank the OVTA GeoServer layer (SQL 24144).
+                existing.OnlandVisualTrashAssessmentAreaGeometry = staging.Geometry.ProjectTo2771().MakeValid();
+                existing.OnlandVisualTrashAssessmentAreaGeometry4326 = staging.Geometry.ProjectTo4326().MakeValid();
             }
             else
             {
@@ -92,8 +95,8 @@ public static class OnlandVisualTrashAssessmentAreaGdbExport
                     OnlandVisualTrashAssessmentAreaName = staging.AreaName,
                     AssessmentAreaDescription = staging.Description,
                     StormwaterJurisdictionID = staging.StormwaterJurisdictionID,
-                    OnlandVisualTrashAssessmentAreaGeometry = staging.Geometry,
-                    OnlandVisualTrashAssessmentAreaGeometry4326 = staging.Geometry.ProjectTo4326(),
+                    OnlandVisualTrashAssessmentAreaGeometry = staging.Geometry.MakeValid(),
+                    OnlandVisualTrashAssessmentAreaGeometry4326 = staging.Geometry.ProjectTo4326().MakeValid(),
                 });
             }
         }

@@ -72,23 +72,30 @@ public static class OnlandVisualTrashAssessmentAreas
             // or wiping the non-nullable area geometry — an empty save is a no-op.
             if (geometry != null)
             {
-                onlandVisualTrashAssessmentArea.OnlandVisualTrashAssessmentAreaGeometry = geometry;
-                onlandVisualTrashAssessmentArea.OnlandVisualTrashAssessmentAreaGeometry4326 = geometry.ProjectTo4326();
+                // NPT-1099: MakeValid before storing so GeoServer's WMS/WFS render (and the .NET GeoJSON
+                // path) never hit SQL-invalid geometry that throws SQL error 24144 and blanks the layer.
+                // Reprojection can re-introduce invalidity, so repair each stored SRID. Mirrors
+                // WaterQualityManagementPlanBoundaries.UpdateBoundary.
+                onlandVisualTrashAssessmentArea.OnlandVisualTrashAssessmentAreaGeometry = geometry.MakeValid();
+                onlandVisualTrashAssessmentArea.OnlandVisualTrashAssessmentAreaGeometry4326 = geometry.ProjectTo4326().MakeValid();
             }
         }
         else if (onlandVisualTrashAssessmentAreaGeometryDto.OvtaAreaSourceTypeID == (int)OvtaAreaSourceTypeEnum.Parcel)
         {
-            // parcels are already in the correct system (State Plane); no reprojection needed
-            onlandVisualTrashAssessmentArea.OnlandVisualTrashAssessmentAreaGeometry = ParcelGeometries.UnionAggregateByParcelIDs(dbContext, onlandVisualTrashAssessmentAreaGeometryDto.ParcelIDs);
-            onlandVisualTrashAssessmentArea.OnlandVisualTrashAssessmentAreaGeometry4326 = ParcelGeometries.UnionAggregate4326ByParcelIDs(dbContext, onlandVisualTrashAssessmentAreaGeometryDto.ParcelIDs);
+            // parcels are already in the correct system (State Plane); no reprojection needed.
+            // NPT-1099: MakeValid the union result before storing (see LandUseBlock branch).
+            onlandVisualTrashAssessmentArea.OnlandVisualTrashAssessmentAreaGeometry = ParcelGeometries.UnionAggregateByParcelIDs(dbContext, onlandVisualTrashAssessmentAreaGeometryDto.ParcelIDs).MakeValid();
+            onlandVisualTrashAssessmentArea.OnlandVisualTrashAssessmentAreaGeometry4326 = ParcelGeometries.UnionAggregate4326ByParcelIDs(dbContext, onlandVisualTrashAssessmentAreaGeometryDto.ParcelIDs).MakeValid();
         }
         else
         {
             // manually drawn (Geoman) — comes from the browser, so transform to State Plane
             var newGeometry4326 = GeoJsonSerializer.Deserialize<IFeature>(onlandVisualTrashAssessmentAreaGeometryDto.GeometryAsGeoJson);
             newGeometry4326.Geometry.SRID = Proj4NetHelper.WEB_MERCATOR;
-            onlandVisualTrashAssessmentArea.OnlandVisualTrashAssessmentAreaGeometry4326 = newGeometry4326.Geometry;
-            onlandVisualTrashAssessmentArea.OnlandVisualTrashAssessmentAreaGeometry = newGeometry4326.Geometry.ProjectTo2771();
+            // NPT-1099: repair self-intersecting freehand (Geoman) draws before storing (see LandUseBlock branch).
+            var validGeometry4326 = newGeometry4326.Geometry.MakeValid();
+            onlandVisualTrashAssessmentArea.OnlandVisualTrashAssessmentAreaGeometry4326 = validGeometry4326;
+            onlandVisualTrashAssessmentArea.OnlandVisualTrashAssessmentAreaGeometry = validGeometry4326.ProjectTo2771().MakeValid();
         }
     }
 
