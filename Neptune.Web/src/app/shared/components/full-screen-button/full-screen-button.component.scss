@@ -1,3 +1,11 @@
+// Matches .grid-download-trigger so the footer's Expand and Download pills are identical in size.
+.grid-footer-action {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+    font-weight: 600;
+}
+
 .fullscreen {
     position: fixed !important;
     width: 100% !important;

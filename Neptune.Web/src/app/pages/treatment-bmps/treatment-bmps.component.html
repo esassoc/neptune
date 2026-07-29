@@ -1,9 +1,6 @@
 <page-header pageTitle="All Treatment BMPs" [customRichTextTypeID]="customRichTextTypeID" [templateRight]="headerActions"></page-header>
 <ng-template #headerActions>
     @if (currentPersonCanEdit$ | async) {
-        <button class="btn btn-primary-outline ml-2" style="margin-right: 0.5rem" type="button" [disabled]="isDownloadingGdb()" (click)="downloadGdb()">
-            @if (isDownloadingGdb()) { <i class="fa fa-spinner fa-spin"></i> Building... } @else { <i class="fa fa-download"></i> Download GDB }
-        </button>
         <button class="btn btn-orange" [routerLink]="['/treatment-bmps/new']" type="button">+ Create New Treatment BMP</button>
     }
 </ng-template>
@@ -49,6 +46,9 @@
         [selectedValue]="selectedTreatmentBMPID"
         [selectionFromMap]="selectionFromMap"
         (selectedValueChange)="onSelectedTreatmentBMPChangedFromGrid($event)"
+        [showGdbDownloadOption]="(currentPersonCanEdit$ | async) ?? false"
+        [isDownloadingGdb]="isDownloadingGdb()"
+        (gdbDownloadRequested)="downloadGdb()"
         [boundingBox]="boundingBox$ | async">
         <ng-container mapLayers>
             @if (map) {

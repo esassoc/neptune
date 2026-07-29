@@ -25,9 +25,13 @@ export class HybridMapGridComponent {
     @Input() entityIDField: string = "";
     @Input() gridHeight: string = "675px";
     @Input() boundingBox: BoundingBoxDto;
+    // NPT-943: forwarded to neptune-grid's footer download menu; the host page owns the GDB export.
+    @Input() showGdbDownloadOption: boolean = false;
+    @Input() isDownloadingGdb: boolean = false;
 
     @Output() onMapLoad: EventEmitter<NeptuneMapInitEvent> = new EventEmitter();
     @Output() selectedValueChange: EventEmitter<number> = new EventEmitter<number>();
+    @Output() gdbDownloadRequested: EventEmitter<void> = new EventEmitter<void>();
     public gridApi: GridApi;
     public gridRef: AgGridAngular;
 

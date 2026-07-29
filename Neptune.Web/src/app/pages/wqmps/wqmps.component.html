@@ -23,11 +23,6 @@
             <a class="dropdown-item" [routerLink]="['/data-hub/wqmp-locations-upload']">Bulk Upload WQMP Boundaries From APNs</a>
         </div>
     }
-    @if (currentPersonCanEdit$ | async) {
-        <button type="button" class="btn btn-primary-outline ml-2" style="margin-left: 0.5rem" [disabled]="isDownloadingGdb()" (click)="downloadGdb()">
-            @if (isDownloadingGdb()) { <i class="fa fa-spinner fa-spin"></i> Building... } @else { <i class="fa fa-download"></i> Download GDB }
-        </button>
-    }
 </ng-template>
 <page-header pageTitle="Water Quality Management Plans" [customRichTextTypeID]="customRichTextTypeID" [templateRight]="addButton"></page-header>
 <app-alert-display></app-alert-display>
@@ -43,6 +38,9 @@
                 [selectedValue]="selectedWaterQualityManagementPlanID"
                 [selectionFromMap]="true"
                 (selectedValueChange)="onSelectedWaterQualityManagementPlanIDChanged($event)"
+                [showGdbDownloadOption]="(currentPersonCanEdit$ | async) ?? false"
+                [isDownloadingGdb]="isDownloadingGdb()"
+                (gdbDownloadRequested)="downloadGdb()"
                 [boundingBox]="boundingBox">
                 <wqmps-layer
                     [map]="map"
