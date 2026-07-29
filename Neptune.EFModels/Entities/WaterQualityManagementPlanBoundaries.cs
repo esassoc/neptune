@@ -29,7 +29,12 @@ public static class WaterQualityManagementPlanBoundaries
 
     public static FeatureCollection GetBoundaryAsFeatureCollection(NeptuneDbContext dbContext, int waterQualityManagementPlanID)
     {
-        var boundary = GetByWaterQualityManagementPlanID(dbContext, waterQualityManagementPlanID);
+        return GetBoundaryAsFeatureCollection(GetByWaterQualityManagementPlanID(dbContext, waterQualityManagementPlanID));
+    }
+
+    // NPT-1092: overload that reuses an already-loaded boundary so GetBoundary doesn't re-query it.
+    public static FeatureCollection GetBoundaryAsFeatureCollection(WaterQualityManagementPlanBoundary? boundary)
+    {
         if (boundary?.Geometry4326 != null)
         {
             return boundary.Geometry4326.MultiPolygonToFeatureCollection();
@@ -76,7 +81,12 @@ public static class WaterQualityManagementPlanBoundaries
 
     public static double? CalculateAcreage(NeptuneDbContext dbContext, int waterQualityManagementPlanID)
     {
-        var boundary = GetByWaterQualityManagementPlanID(dbContext, waterQualityManagementPlanID);
+        return CalculateAcreage(GetByWaterQualityManagementPlanID(dbContext, waterQualityManagementPlanID));
+    }
+
+    // NPT-1092: overload that reuses an already-loaded boundary so GetBoundary doesn't re-query it.
+    public static double? CalculateAcreage(WaterQualityManagementPlanBoundary? boundary)
+    {
         if (boundary?.GeometryNative != null)
         {
             return Math.Round(boundary.GeometryNative.Area * Constants.SquareMetersToAcres, 1);
