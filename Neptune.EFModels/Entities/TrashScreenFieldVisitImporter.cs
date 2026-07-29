@@ -49,7 +49,16 @@ public static class TrashScreenFieldVisitImporter
         {
             foreach (DataRow row in dataTable.Rows)
             {
-                var rowJurisdiction = row["Jurisdiction"].ToString();
+                // NPT-1114: the pre-populated template lists one row per BMP. Skip rows the user
+                // didn't fill in (fully blank, or reference-only rows with no field-visit data) so a
+                // blank row doesn't read an empty Jurisdiction and fail this check with a blank
+                // jurisdiction name ("...in Jurisdiction , which you do not have permission to manage").
+                if (RowHasNoFieldVisitData(row))
+                {
+                    continue;
+                }
+
+                var rowJurisdiction = row["Jurisdiction"].ToString()?.Trim();
                 if (!stormwaterJurisdictionsPersonCanView.Select(x => x.Organization.OrganizationName).Contains(rowJurisdiction))
                 {
                     result.Errors.Add($"You attempted to upload a spreadsheet containing BMPs in Jurisdiction {rowJurisdiction}, which you do not have permission to manage.");
@@ -79,7 +88,6 @@ public static class TrashScreenFieldVisitImporter
             .ToDictionary(name => name, name => treatmentBMPTypeAssessmentObservationTypes.Select(x => x.TreatmentBMPAssessmentObservationType).Single(x => x.TreatmentBMPAssessmentObservationTypeName == name));
 
         var numRows = dataTable.Rows.Count;
-        var numColumns = dataTable.Columns.Count;
         var errors = new List<string>();
 
         try
@@ -89,13 +97,13 @@ public static class TrashScreenFieldVisitImporter
                 try
                 {
                     var row = dataTable.Rows[i];
-                    var rowEmpty = true;
-                    for (var j = 0; j < numColumns; j++)
+                    // NPT-1114: ignore rows with no field-visit data — both fully blank rows and the
+                    // reference-only rows the pre-populated template lists for BMPs the user didn't
+                    // visit. Only rows carrying actual field-visit data are imported/validated.
+                    if (RowHasNoFieldVisitData(row))
                     {
-                        rowEmpty = string.IsNullOrWhiteSpace(row[j].ToString());
-                        if (!rowEmpty) break;
+                        continue;
                     }
-                    if (rowEmpty) continue;
 
                     var treatmentBMPName = row["BMP Name"].ToString()?.Trim();
                     var jurisdictionName = row["Jurisdiction"].ToString()?.Trim();
@@ -527,6 +535,25 @@ public static class TrashScreenFieldVisitImporter
             await dbContext.TreatmentBMPObservations.AddAsync(observation);
         }
         return observation;
+    }
+
+    // NPT-1114: a row carries no field-visit data when every column from "Field Visit Type" onward
+    // is blank. That covers both fully blank rows and the reference-only rows the pre-populated
+    // download lists (BMP Name / Jurisdiction / Year Built / Notes / screen-count columns filled, but
+    // no visit entered). Such rows are skipped rather than validated as incomplete field visits.
+    private static bool RowHasNoFieldVisitData(DataRow row)
+    {
+        var fieldVisitStartIndex = row.Table.Columns.IndexOf("Field Visit Type");
+        // Defensive: if the expected header is absent, fall back to "row is entirely blank".
+        var startIndex = fieldVisitStartIndex >= 0 ? fieldVisitStartIndex : 0;
+        for (var j = startIndex; j < row.Table.Columns.Count; j++)
+        {
+            if (!string.IsNullOrWhiteSpace(row[j].ToString()))
+            {
+                return false;
+            }
+        }
+        return true;
     }
 
     private static DataTable ReadDataTableFromExcel(Stream inputStream, string worksheetName)
