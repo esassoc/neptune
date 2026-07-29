@@ -56,6 +56,17 @@ public static partial class WaterQualityManagementPlans
     }
 
 
+    // NPT-1092: the boundary endpoint's no-boundary bbox fallback only needs the row's jurisdiction
+    // id. Project just that column instead of GetByID's heavy include graph (parcels, BMPs +
+    // delineations, jurisdiction geometry, ...), which would undercut this endpoint's perf goal.
+    public static int GetStormwaterJurisdictionID(NeptuneDbContext dbContext, int waterQualityManagementPlanID)
+    {
+        return dbContext.WaterQualityManagementPlans
+            .Where(x => x.WaterQualityManagementPlanID == waterQualityManagementPlanID)
+            .Select(x => x.StormwaterJurisdictionID)
+            .Single();
+    }
+
     public static async Task<List<WaterQualityManagementPlanDto>> ListAsDtoAsync(NeptuneDbContext dbContext)
     {
         var dtos = await dbContext.WaterQualityManagementPlans

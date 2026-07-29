@@ -585,7 +585,7 @@ namespace Neptune.API.Controllers
                     ? new BoundingBoxDto(boundary.Geometry4326)
                     : StormwaterJurisdictions.GetBoundingBoxDtoByJurisdictionID(
                         DbContext,
-                        WaterQualityManagementPlans.GetByID(DbContext, waterQualityManagementPlanID).StormwaterJurisdictionID)
+                        WaterQualityManagementPlans.GetStormwaterJurisdictionID(DbContext, waterQualityManagementPlanID))
             };
             return Ok(response);
         }
