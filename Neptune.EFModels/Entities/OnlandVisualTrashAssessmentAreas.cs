@@ -83,9 +83,16 @@ public static class OnlandVisualTrashAssessmentAreas
         else if (onlandVisualTrashAssessmentAreaGeometryDto.OvtaAreaSourceTypeID == (int)OvtaAreaSourceTypeEnum.Parcel)
         {
             // parcels are already in the correct system (State Plane); no reprojection needed.
-            // NPT-1099: MakeValid the union result before storing (see LandUseBlock branch).
-            onlandVisualTrashAssessmentArea.OnlandVisualTrashAssessmentAreaGeometry = ParcelGeometries.UnionAggregateByParcelIDs(dbContext, onlandVisualTrashAssessmentAreaGeometryDto.ParcelIDs).MakeValid();
-            onlandVisualTrashAssessmentArea.OnlandVisualTrashAssessmentAreaGeometry4326 = ParcelGeometries.UnionAggregate4326ByParcelIDs(dbContext, onlandVisualTrashAssessmentAreaGeometryDto.ParcelIDs).MakeValid();
+            var parcelGeometry = ParcelGeometries.UnionAggregateByParcelIDs(dbContext, onlandVisualTrashAssessmentAreaGeometryDto.ParcelIDs);
+            var parcelGeometry4326 = ParcelGeometries.UnionAggregate4326ByParcelIDs(dbContext, onlandVisualTrashAssessmentAreaGeometryDto.ParcelIDs);
+            // UnionAggregate*ByParcelIDs return null for an empty selection (UnionListGeometries). Guard
+            // as a no-op like the LandUseBlock branch — avoids an NRE on .MakeValid() and avoids nulling
+            // the non-nullable native geometry column. NPT-1099: MakeValid before storing.
+            if (parcelGeometry != null && parcelGeometry4326 != null)
+            {
+                onlandVisualTrashAssessmentArea.OnlandVisualTrashAssessmentAreaGeometry = parcelGeometry.MakeValid();
+                onlandVisualTrashAssessmentArea.OnlandVisualTrashAssessmentAreaGeometry4326 = parcelGeometry4326.MakeValid();
+            }
         }
         else
         {
