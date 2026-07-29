@@ -574,10 +574,18 @@ namespace Neptune.API.Controllers
             var boundary = WaterQualityManagementPlanBoundaries.GetByWaterQualityManagementPlanID(DbContext, waterQualityManagementPlanID);
             var response = new WaterQualityManagementPlanBoundaryResponseDto
             {
-                BoundaryAsFeatureCollection = WaterQualityManagementPlanBoundaries.GetBoundaryAsFeatureCollection(DbContext, waterQualityManagementPlanID),
+                BoundaryAsFeatureCollection = WaterQualityManagementPlanBoundaries.GetBoundaryAsFeatureCollection(boundary),
                 Parcels = WaterQualityManagementPlanParcels.ListAsParcelDisplayDtos(DbContext, waterQualityManagementPlanID),
-                CalculatedWQMPAcreage = WaterQualityManagementPlanBoundaries.CalculateAcreage(DbContext, waterQualityManagementPlanID),
-                BoundingBox = boundary?.Geometry4326 != null ? new BoundingBoxDto(boundary.Geometry4326) : new BoundingBoxDto()
+                CalculatedWQMPAcreage = WaterQualityManagementPlanBoundaries.CalculateAcreage(boundary),
+                // NPT-1092: when the WQMP has no boundary yet (the normal Pick Parcels case), fall back
+                // to the WQMP's jurisdiction extent rather than the whole-county BoundingBoxDto default,
+                // so the map opens zoomed to the jurisdiction and the parcel WMS isn't forced to
+                // rasterize every OC parcel at county scale (>1 min / timeout).
+                BoundingBox = boundary?.Geometry4326 != null
+                    ? new BoundingBoxDto(boundary.Geometry4326)
+                    : StormwaterJurisdictions.GetBoundingBoxDtoByJurisdictionID(
+                        DbContext,
+                        WaterQualityManagementPlans.GetStormwaterJurisdictionID(DbContext, waterQualityManagementPlanID))
             };
             return Ok(response);
         }
