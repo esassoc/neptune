@@ -17,13 +17,13 @@ import { AgGridHelper } from "src/app/shared/helpers/ag-grid-helper";
 import { TooltipComponent } from "src/app/shared/components/ag-grid/tooltip/tooltip.component";
 import { FormsModule } from "@angular/forms";
 import { PaginationControlsComponent } from "src/app/shared/components/ag-grid/pagination-controls/pagination-controls.component";
-import { CsvDownloadButtonComponent } from "../csv-download-button/csv-download-button.component";
+import { GridDownloadMenuComponent } from "../neptune-grid-download-menu/neptune-grid-download-menu.component";
 import { NeptuneGridHeaderComponent } from "../neptune-grid-header/neptune-grid-header.component";
 import { FullScreenButtonComponent } from "../full-screen-button/full-screen-button.component";
 
 @Component({
     selector: "neptune-grid",
-    imports: [CommonModule, AgGridModule, FormsModule, PaginationControlsComponent, CsvDownloadButtonComponent, NeptuneGridHeaderComponent, FullScreenButtonComponent],
+    imports: [CommonModule, AgGridModule, FormsModule, PaginationControlsComponent, GridDownloadMenuComponent, NeptuneGridHeaderComponent, FullScreenButtonComponent],
     templateUrl: "./neptune-grid.component.html",
     styleUrls: ["./neptune-grid.component.scss"]
 })
@@ -61,6 +61,11 @@ export class NeptuneGridComponent implements OnInit, OnChanges {
     @Input() downloadFileName: string = "grid-data";
     @Input() colIDsToExclude: string[] = [];
     @Input() hideDownloadButton: boolean = false;
+    // When true, the footer download menu offers a "GIS (.gdb.zip)" option; the host page performs the
+    // actual export via (gdbDownloadRequested) and reports progress via [isDownloadingGdb]. (NPT-943)
+    @Input() showGdbDownloadOption: boolean = false;
+    @Input() isDownloadingGdb: boolean = false;
+    @Output() gdbDownloadRequested: EventEmitter<void> = new EventEmitter<void>();
     @Input() hideFullscreenButton: boolean = false;
     @Input() hideTooltips: boolean = false;
     @Input() hideGlobalFilter: boolean = false;

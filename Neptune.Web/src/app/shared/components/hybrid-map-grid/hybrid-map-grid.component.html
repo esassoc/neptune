@@ -39,7 +39,10 @@
       (gridRefReady)="onGridRefReady($event)"
       (selectionChanged)="onGridSelectionChanged()"
       [downloadFileName]="downloadFileName"
-    [colIDsToExclude]=""></neptune-grid>
+      [colIDsToExclude]=""
+      [showGdbDownloadOption]="showGdbDownloadOption"
+      [isDownloadingGdb]="isDownloadingGdb"
+    (gdbDownloadRequested)="gdbDownloadRequested.emit()"></neptune-grid>
   </div>
 
   <div class="tab-nav-container__panel tab-nav-container__map-panel" [class.hidden]="selectedPanel === 'Grid'">

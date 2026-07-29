@@ -1,0 +1,21 @@
+<a
+    class="btn btn-sm btn-primary-outline grid-download-trigger"
+    id="grid-download-menu-trigger"
+    [dropdownToggle]="downloadMenuTemplate"
+    [attachToBody]="true"
+    role="button"
+    title="Download grid data">
+    Download
+    <icon [icon]="'Download'"></icon>
+    <i class="fas fa-chevron-down caret"></i>
+</a>
+<ng-template #downloadMenuTemplate>
+    <div class="grid-download-menu" aria-labelledby="grid-download-menu-trigger">
+        <a href="javascript:void(0);" (click)="exportCsv()">Text File (.csv)</a>
+        @if (showGdbOption) {
+            <a href="javascript:void(0);" [class.disabled]="isDownloadingGdb" (click)="onGdbClick()">
+                @if (isDownloadingGdb) { <i class="fa fa-spinner fa-spin"></i> Building... } @else { GIS (.gdb.zip) }
+            </a>
+        }
+    </div>
+</ng-template>
