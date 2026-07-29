@@ -13,6 +13,13 @@
 *.sql     -text
 *.build   -text
 
+# NPT-1112: files executed/read inside the Linux devcontainer must be LF on
+# every platform (bash rejects CRLF shebangs; the container bind-mounts the
+# working tree, so working-tree line endings matter, not just the repo blob).
+*.sh              text eol=lf
+Makefile          text eol=lf
+/.devcontainer/** text eol=lf
+
 # Images should be treated as binary
 # (binary is a macro for -text -diff)
 *.png     binary

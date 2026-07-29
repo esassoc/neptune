@@ -6,6 +6,8 @@ metadata:
 data:
   DOCKER_BUILD_SOURCE: "."
   ASPNETCORE_ENVIRONMENT: "Staging"
-  SECRET_PATH: "/app/secrets/neptuneExternalAPISecrets"
+  # NPT-1112: KeyVaultName drives the startup secret load (DefaultAzureCredential
+  # via workload identity); SECRET_PATH from the mounted-secret era is gone.
+  KeyVaultName: "{{ .Values.global.env.keyVaultName }}"
   APPINSIGHTS_INSTRUMENTATIONKEY: "{{ .Values.global.env.appInsightsInstrumentationKey }}"
 {{ end }}
