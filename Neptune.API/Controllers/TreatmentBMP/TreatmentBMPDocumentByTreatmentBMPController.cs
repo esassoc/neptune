@@ -30,8 +30,15 @@ public class TreatmentBMPDocumentByTreatmentBMPController(NeptuneDbContext dbCon
     [EntityNotFound(typeof(TreatmentBMP), "treatmentBMPID")]
     public async Task<ActionResult<TreatmentBMPDocumentDto>> Create([FromRoute] int treatmentBMPID, [FromForm] TreatmentBMPDocumentCreateDto documentCreateDto)
     {
+        // ModelState must be valid before we call ValidateFileUpload — that helper dereferences
+        // documentCreateDto.File.FileName and would throw if binding failed and File is null (File is
+        // [Required], so an absent file surfaces here as a clean 400). Mirrors WQMP CreateDocument.
+        if (!ModelState.IsValid)
+        {
+            return BadRequest(ModelState);
+        }
         var errors = FileResources.ValidateFileUpload(documentCreateDto.File);
-        if (!ModelState.IsValid || errors.Any())
+        if (errors.Any())
         {
             errors.ForEach(x => ModelState.AddModelError(x.Type, x.Message));
             return BadRequest(ModelState);

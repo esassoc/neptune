@@ -55,7 +55,7 @@ export class FileUploadModalComponent {
                 this.fileName = null;
                 this.fileExtension = null;
                 event.target.value = "";
-                this.fileError = `${extension ? extension.slice(1).toUpperCase() : "This file type"} is not an accepted file type. Accepted extensions: PDF, PNG, JPG, DOCX, DOC, XLSX, CSV, TXT.`;
+                this.fileError = `${extension ? extension.slice(1).toUpperCase() : "This file type"} is not an accepted file type. Accepted extensions: PDF, PNG, JPG, JPEG, DOCX, DOC, XLSX, CSV, TXT.`;
                 this.fileChanged.emit(null);
                 return;
             }
