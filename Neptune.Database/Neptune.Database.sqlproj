@@ -69,6 +69,7 @@
     <Folder Include="Scripts\PreReleaseScripts" />
     <Folder Include="Scripts\ReleaseScripts" />
     <Folder Include="Scripts\Utility" />
+    <Folder Include="Security" />
   </ItemGroup>
   <ItemGroup>
     <None Include="Neptune.Database.publish.xml" />
@@ -83,6 +84,7 @@
     <None Include="Scripts\ReleaseScripts\Script.PostDeployment.ReleaseScripts.sql" />
     <None Include="Scripts\Utility\Script.PostDeployment.Utility.sql" />
     <Build Include="HangFire\HangFire.sql" />
+    <Build Include="Security\db_executor.sql" />
     <Build Include="dbo\Tables\dbo.County.sql" />
     <Build Include="dbo\Tables\dbo.CustomAttribute.sql" />
     <Build Include="dbo\Tables\dbo.CustomAttributeDataType.sql" />

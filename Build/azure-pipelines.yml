@@ -511,7 +511,7 @@ stages:
               serverName: '$(kv-dbServerName).database.windows.net'
               databaseName: '$(databaseName)'
               aadPrincipalName: 'neptune-$(Environment)-identity'
-              roles: 'db_datareader,db_datawriter,db_ddladmin'
+              roles: 'db_datareader,db_datawriter,db_ddladmin,db_executor'
 
           # NPT-1112: human access via the H2O Entra groups, granted as contained DB
           # users. This is how team members get DB access (e.g. H2O QA Group members
