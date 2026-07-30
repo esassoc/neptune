@@ -513,6 +513,78 @@ stages:
               aadPrincipalName: 'neptune-$(Environment)-identity'
               roles: 'db_datareader,db_datawriter,db_ddladmin'
 
+          # NPT-1112: human access via the H2O Entra groups, granted as contained DB
+          # users. This is how team members get DB access (e.g. H2O QA Group members
+          # on qa). Kept in-repo (not the shared db-aad-user template) because the
+          # per-env access matrix is app-specific: QA group writes on qa / reads on
+          # prod; Prod group writes everywhere. (H2O Readers Group is omitted while it
+          # has 0 members -- CREATE USER FROM EXTERNAL PROVIDER can't resolve an empty
+          # group; re-add it once it has members.)
+          #
+          # Gated at RUNTIME on $(Environment) inside the script. Do NOT gate with a
+          # compile-time ${{ if eq(variables['Environment'], ...) }}: Environment is a
+          # runtime variable (variable group / UI), empty at YAML compile time, so the
+          # whole block would be silently stripped from the pipeline.
+          - task: AzureCLI@2
+            displayName: 'Grant DB access to H2O Entra groups'
+            inputs:
+              azureSubscription: '$(azureSubscription)'
+              scriptType: pscore
+              scriptLocation: inlineScript
+              inlineScript: |
+                $ErrorActionPreference = 'Stop'
+
+                # SqlServer module is preinstalled on hosted agents; bootstrap
+                # defensively. We pass the AAD token to Invoke-Sqlcmd as an
+                # -AccessToken parameter (not via `sqlcmd -P`, which caps at 128
+                # chars and would truncate the ~1.5KB JWT).
+                if (-not (Get-Module -ListAvailable -Name SqlServer)) {
+                    Install-PackageProvider -Name NuGet -MinimumVersion 2.8.5.201 -Force -Scope CurrentUser | Out-Null
+                    Set-PSRepository -Name PSGallery -InstallationPolicy Trusted -ErrorAction SilentlyContinue
+                    Install-Module -Name SqlServer -Scope CurrentUser -Force -AllowClobber
+                }
+                Import-Module SqlServer
+
+                # The Azure DevOps SP running this task must be the SQL server's
+                # AAD admin (or in its admin group); otherwise CREATE USER FROM
+                # EXTERNAL PROVIDER fails with a permissions error.
+                $token = az account get-access-token --resource https://database.windows.net/ --query accessToken -o tsv
+                if ([string]::IsNullOrWhiteSpace($token)) { throw 'Failed to acquire an AAD access token for Azure SQL.' }
+
+                $server = '$(kv-dbServerName).database.windows.net'
+                $db     = '$(databaseName)'
+
+                # group display name -> comma-separated roles, per environment
+                $matrix = @{
+                    qa = @{
+                        'H2O Prod Group' = 'db_datareader,db_datawriter'
+                        'H2O QA Group'   = 'db_datareader,db_datawriter'
+                    }
+                    prod = @{
+                        'H2O Prod Group' = 'db_datareader,db_datawriter'
+                        'H2O QA Group'   = 'db_datareader'
+                    }
+                }
+                if (-not $matrix.ContainsKey('$(Environment)')) { throw "No H2O access matrix defined for Environment '$(Environment)'." }
+
+                # Idempotent: CREATE USER only if missing; add each role only if
+                # not already a member.
+                foreach ($principal in $matrix['$(Environment)'].Keys) {
+                    $roles = $matrix['$(Environment)'][$principal]
+                    $sql = @"
+                SET ANSI_NULLS ON;
+                SET QUOTED_IDENTIFIER ON;
+                IF NOT EXISTS (SELECT 1 FROM sys.database_principals WHERE name = N'$principal')
+                    CREATE USER [$principal] FROM EXTERNAL PROVIDER;
+                "@
+                    foreach ($role in $roles.Split(',')) {
+                        $r = $role.Trim()
+                        if ($r) { $sql += "`nIF IS_ROLEMEMBER('$r', N'$principal') = 0 ALTER ROLE [$r] ADD MEMBER [$principal];" }
+                    }
+                    Write-Host "Granting [$principal]: $roles on $db"
+                    Invoke-Sqlcmd -ServerInstance $server -Database $db -AccessToken $token -Query $sql -ConnectionTimeout 60 -ErrorAction Stop
+                }
+
 - stage: DeployGeoServer
   displayName: Deploy GeoServer
   dependsOn: DeployTerraform
