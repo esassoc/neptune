@@ -3,11 +3,7 @@ Select
 	2 * DelineationID - 1 as PrimaryKey,
 	d.DelineationID,
 	Null as WaterQualityManagementPlanID,
-	-- NPT-1115: guard against SQL-invalid geometry (self-intersecting freehand draws). A single
-	-- invalid row makes GeoServer's WMS GetMap throw SQL error 24144 and blanks the whole layer.
-	-- Repair only invalid rows on read so GeoServer never sees invalid geometry (valid polygons
-	-- pass through untouched, avoiding needless normalization / geometry-type shifts).
-	case when DelineationGeometry4326.STIsValid() = 1 then DelineationGeometry4326 else DelineationGeometry4326.MakeValid() end as DelineationGeometry,
+	DelineationGeometry4326 as DelineationGeometry,
 	DelineationTypeName as DelineationType,
 	t.TreatmentBMPID,
 	sj.StormwaterJurisdictionID,
@@ -25,3 +21,9 @@ from
 	left join dbo.StormwaterJurisdiction sj on t.StormwaterJurisdictionID = sj.StormwaterJurisdictionID
 	left join dbo.Organization o on sj.OrganizationID = o.OrganizationID
 	where t.ProjectID is null
+		-- NPT-1115: exclude SQL-invalid geometry rows so GeoServer's WMS/WFS render never hits SQL error
+		-- 24144 (a single invalid row blanks the whole layer). STIsValid() tests validity without throwing.
+		-- Invalid rows are repaired at the source (save-path MakeValid, plus the nightly pDelineationMakeValid)
+		-- and reappear here once valid. Deliberately NOT MakeValid-ing on read, matching
+		-- vGeoServerOnlandVisualTrashAssessmentArea (Ray's preferred pattern).
+		and DelineationGeometry4326.STIsValid() = 1
