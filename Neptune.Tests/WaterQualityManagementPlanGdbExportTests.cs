@@ -2,7 +2,9 @@ using System;
 using System.Linq;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
+using Neptune.Common;
 using Neptune.EFModels.Entities;
+using NetTopologySuite.Geometries;
 
 namespace Neptune.Tests
 {
@@ -93,10 +95,58 @@ namespace Neptune.Tests
 
             Assert.AreEqual(wqmps.Count, fc.Count, "One feature per WQMP.");
             Assert.IsTrue(fc.All(f => f.Geometry != null), "Every feature has boundary geometry.");
-            foreach (var key in new[] { "Name", "Priority", "Trash_Capture_Status", "Maintenance_Contact_Name", "Recorded_WQMP_Area_Acres" })
+            foreach (var key in new[] { "Name", "Jurisdiction", "Priority", "Trash_Capture_Status", "Maintenance_Contact_Name", "Recorded_WQMP_Area_Acres", "Calculated_Boundary_Acreage" })
             {
                 Assert.IsTrue(fc.All(f => f.Attributes.Exists(key)), $"Every feature must carry the '{key}' attribute.");
             }
+        }
+
+        // A real exportable WQMP (valid lookup FKs so BuildAttributes' lookup getters resolve); we then
+        // mutate just the date / geometry in-memory to exercise the export projection deterministically.
+        private WaterQualityManagementPlan FirstExportableWqmp()
+        {
+            var jurisdictionID = JurisdictionWithBoundaries();
+            if (jurisdictionID == null) return null;
+            return WaterQualityManagementPlanGdbExport
+                .ListForGdbExport(_dbContext, new[] { jurisdictionID.Value }, Array.Empty<int>())
+                .FirstOrDefault();
+        }
+
+        [TestMethod]
+        public void ToFeatureCollection_EmitsDateOnlyStringAndCalculatedAcreage()
+        {
+            var wqmp = FirstExportableWqmp();
+            if (wqmp == null) { Assert.Inconclusive("No exportable WQMP in the local DB."); return; }
+
+            // Seed a value with a time component to prove it is dropped (not shifted to a UTC timestamp).
+            wqmp.ApprovalDate = new DateTime(2004, 11, 10, 8, 30, 0);
+            var attrs = WaterQualityManagementPlanGdbExport.ToFeatureCollection(new[] { wqmp }).Single().Attributes;
+
+            // Date-only, timezone-naive (NPT-943 item 3).
+            Assert.AreEqual("2004-11-10", attrs["Approval_Date"], "Approval_Date must be a date-only string with no time/offset.");
+            // Calculated acreage matches the exported polygon area (NPT-943 item 2), same formula as DtoProjections.
+            var expectedAcres = Math.Round(wqmp.WaterQualityManagementPlanBoundary.GeometryNative.Area * Constants.SquareMetersToAcres, 1);
+            Assert.AreEqual(expectedAcres, attrs["Calculated_Boundary_Acreage"], "Calculated_Boundary_Acreage must equal the polygon area in acres.");
+        }
+
+        [TestMethod]
+        public void ToFeatureCollection_RepairsInvalidBoundaryGeometry()
+        {
+            var wqmp = FirstExportableWqmp();
+            if (wqmp == null) { Assert.Inconclusive("No exportable WQMP in the local DB."); return; }
+
+            // Replace the boundary with a self-intersecting "bowtie" ring — invalid per OGC, like the
+            // parcel-union pinch points KE flagged — keeping the WQMP's real lookup FKs intact.
+            var srid = wqmp.WaterQualityManagementPlanBoundary.GeometryNative.SRID;
+            var bowtie = new GeometryFactory(new PrecisionModel(), srid).CreatePolygon(new[]
+            {
+                new Coordinate(0, 0), new Coordinate(2, 2), new Coordinate(0, 2), new Coordinate(2, 0), new Coordinate(0, 0),
+            });
+            Assert.IsFalse(bowtie.IsValid, "Precondition: the constructed bowtie should be invalid.");
+            wqmp.WaterQualityManagementPlanBoundary.GeometryNative = bowtie;
+
+            var feature = WaterQualityManagementPlanGdbExport.ToFeatureCollection(new[] { wqmp }).Single();
+            Assert.IsTrue(feature.Geometry.IsValid, "Export must repair invalid boundary geometry (NPT-943 item 5a).");
         }
     }
 }
