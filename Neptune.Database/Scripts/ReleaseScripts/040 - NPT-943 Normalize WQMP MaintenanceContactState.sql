@@ -12,6 +12,13 @@ SET MaintenanceContactState = LTRIM(RTRIM(MaintenanceContactState))
 WHERE MaintenanceContactState IS NOT NULL
   AND MaintenanceContactState <> LTRIM(RTRIM(MaintenanceContactState));
 
+-- 1b) Uppercase existing 2-letter codes to canonical USPS casing (e.g. 'ca' -> 'CA').
+UPDATE dbo.WaterQualityManagementPlan
+SET MaintenanceContactState = UPPER(MaintenanceContactState)
+WHERE MaintenanceContactState IS NOT NULL
+  AND LEN(MaintenanceContactState) = 2
+  AND MaintenanceContactState <> UPPER(MaintenanceContactState);
+
 -- 2) Map any full state / territory name to its 2-letter code (default CI collation = case-insensitive).
 ;WITH StateMap(FullName, Abbr) AS (
     SELECT * FROM (VALUES

@@ -8,6 +8,7 @@ using Neptune.Common;
 using Neptune.Common.GeoSpatial;
 using Neptune.Common.Services.GDAL;
 using NetTopologySuite.Features;
+using NetTopologySuite.Geometries;
 using NetTopologySuite.Geometries.Utilities;
 
 namespace Neptune.EFModels.Entities;
@@ -46,19 +47,22 @@ public static class WaterQualityManagementPlanGdbExport
         {
             // NPT-943: repair SQL-invalid boundaries (self-intersecting parcel-union bowties) before export
             // so ArcGIS Check Geometry / geoprocessing tools don't error on them. Fixed NTS-side because the
-            // geometry is materialized as NTS here (NTS IsValid != SQL STIsValid); the repair preserves area.
+            // geometry is materialized as NTS here (NTS IsValid != SQL STIsValid). The repaired geometry is
+            // also what Calculated_Boundary_Acreage is derived from, so the acreage always describes the
+            // polygon actually written.
             var geometry = wqmp.WaterQualityManagementPlanBoundary.GeometryNative;
             if (!geometry.IsValid)
             {
                 geometry = GeometryFixer.Fix(geometry);
             }
-            featureCollection.Add(new Feature(geometry, BuildAttributes(wqmp)));
+            featureCollection.Add(new Feature(geometry, BuildAttributes(wqmp, geometry)));
         }
         return featureCollection;
     }
 
-    // GDB column names must be GDB-safe (letters/digits/underscores).
-    private static AttributesTable BuildAttributes(WaterQualityManagementPlan wqmp)
+    // GDB column names must be GDB-safe (letters/digits/underscores). `geometry` is the geometry actually
+    // exported for this WQMP (post-repair), so Calculated_Boundary_Acreage describes the delivered polygon.
+    private static AttributesTable BuildAttributes(WaterQualityManagementPlan wqmp, Geometry geometry)
     {
         return new AttributesTable
         {
@@ -81,9 +85,10 @@ public static class WaterQualityManagementPlanGdbExport
             { "Date_of_Construction", wqmp.DateOfConstruction?.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture) },
             { "Recorded_WQMP_Area_Acres", wqmp.RecordedWQMPAreaInAcres },
             // NPT-943 rework: area of the exported polygon (the recorded acreage above does not describe the
-            // delivered geometry). Same formula as WaterQualityManagementPlan.DtoProjections "CalculatedWQMPAcreage".
-            { "Calculated_Boundary_Acreage", wqmp.WaterQualityManagementPlanBoundary?.GeometryNative != null
-                ? (double?)Math.Round(wqmp.WaterQualityManagementPlanBoundary.GeometryNative.Area * Constants.SquareMetersToAcres, 1)
+            // delivered geometry). Computed from the exported geometry; same acres formula as
+            // WaterQualityManagementPlan.DtoProjections "CalculatedWQMPAcreage".
+            { "Calculated_Boundary_Acreage", geometry != null
+                ? (double?)Math.Round(geometry.Area * Constants.SquareMetersToAcres, 1)
                 : null },
             { "Trash_Capture_Effectiveness", wqmp.TrashCaptureEffectiveness },
             { "Maintenance_Contact_Name", wqmp.MaintenanceContactName },
