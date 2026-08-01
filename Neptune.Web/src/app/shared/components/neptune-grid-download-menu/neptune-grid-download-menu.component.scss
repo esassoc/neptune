@@ -51,4 +51,12 @@
             text-decoration: none;
         }
     }
+
+    // NPT-943: muted CRS caption under the GIS option.
+    .gdb-crs-note {
+        margin-top: 0.5rem;
+        font-size: $type-size-200;
+        color: rgba($black, 0.6);
+        line-height: 1.3;
+    }
 }
