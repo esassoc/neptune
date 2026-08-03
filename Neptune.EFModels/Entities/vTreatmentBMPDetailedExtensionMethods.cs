@@ -12,6 +12,7 @@ namespace Neptune.EFModels.Entities
                 TreatmentBMPName = entity.TreatmentBMPName,
                 TreatmentBMPTypeID = entity.TreatmentBMPTypeID,
                 TreatmentBMPTypeName = entity.TreatmentBMPTypeName,
+                InventoryStatus = entity.InventoryIsVerified ? "Verified" : "Provisional",
                 StormwaterJurisdictionID = entity.StormwaterJurisdictionID,
                 StormwaterJurisdictionName = entity.OrganizationName,
                 WaterQualityManagementPlanID = entity.WaterQualityManagementPlanID,

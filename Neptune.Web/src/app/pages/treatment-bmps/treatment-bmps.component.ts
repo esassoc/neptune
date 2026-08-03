@@ -176,6 +176,9 @@ export class TreatmentBmpsComponent {
                 FieldDefinitionLabelOverride: "Type",
                 UseCustomDropdownFilter: true,
             }),
+            // NPT-1116: Verified/Provisional inventory status. Hidden from anonymous/unassigned users by the
+            // publicHeaders filter below (not in that allow-list), and null-served to them by the API.
+            this.utilityFunctionsService.createBasicColumnDef("Status", "InventoryStatus", { UseCustomDropdownFilter: true }),
             this.utilityFunctionsService.createBasicColumnDef("Year Built", "YearBuilt"),
             this.utilityFunctionsService.createDateColumnDef("Last Assessment Date", "LatestAssessmentDate", "MM/dd/yyyy"),
             this.utilityFunctionsService.createBasicColumnDef("Last Assessed Score", "LatestAssessmentScore"),
