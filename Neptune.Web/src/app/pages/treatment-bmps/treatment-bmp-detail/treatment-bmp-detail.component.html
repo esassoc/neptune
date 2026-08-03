@@ -25,10 +25,12 @@
 <app-alert-display></app-alert-display>
 @if (treatmentBMP$ | async; as treatmentBMP) {
     <div class="grid-12">
-    <!-- NPT-1117: provisional state — info banner (matches the WQMP promote banner). Provisional gates PUBLIC VISIBILITY only, not modeling/trash. -->
+    <!-- NPT-1117: provisional state — info banner (matches the WQMP promote banner). Provisional gates PUBLIC VISIBILITY only, not modeling/trash —
+         and only in jurisdictions whose StormwaterJurisdictionPublicBMPVisibilityType is VerifiedOnly. Most jurisdictions are set to None, where
+         verifying changes nothing publicly, so this copy must not promise a public-visibility outcome. (NPT-1117 rework) -->
     @if (!treatmentBMP.InventoryIsVerified && !isAnonymousOrUnassigned) {
         <note noteType="info" class="g-col-12">
-            This BMP's inventory is <strong>provisional</strong>. Provisional BMPs are hidden from public users until the inventory is verified.
+            This BMP's inventory is <strong>provisional</strong>. Review the record below and mark verified when ready.
             @if (treatmentBMP.CurrentPersonCanManage) {
                 <div note-action class="flex">
                     <button type="button" class="btn btn-sm btn-primary" [disabled]="isVerifying" (click)="confirmVerifyInventory(treatmentBMP)">

@@ -219,7 +219,7 @@ export class TreatmentBmpDetailComponent implements OnInit, OnChanges {
         const confirmed = await this.confirmService.confirm(
             {
                 title: "Verify Inventory",
-                message: `Verify the inventory for "${escapeHtml(treatmentBMP.TreatmentBMPName)}"? Once verified, this BMP becomes visible to public users.`,
+                message: `Verify the inventory for "${escapeHtml(treatmentBMP.TreatmentBMPName)}"? You will be recorded as the verifier as of today.`,
                 buttonTextYes: "Verify Inventory",
                 buttonTextNo: "Cancel",
                 buttonClassYes: "btn-primary",
@@ -248,7 +248,7 @@ export class TreatmentBmpDetailComponent implements OnInit, OnChanges {
         const confirmed = await this.confirmService.confirm(
             {
                 title: "Mark as Provisional",
-                message: `Mark "${escapeHtml(treatmentBMP.TreatmentBMPName)}" as provisional? Provisional BMPs are hidden from public users.`,
+                message: `Mark "${escapeHtml(treatmentBMP.TreatmentBMPName)}" as provisional? You can verify it again at any time.`,
                 buttonTextYes: "Mark as Provisional",
                 buttonTextNo: "Cancel",
                 buttonClassYes: "btn-primary",
