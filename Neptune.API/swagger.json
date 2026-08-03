@@ -413,7 +413,60 @@
         ],
         "responses": {
           "200": {
-            "description": "OK"
+            "description": "OK",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "type": "string",
+                  "format": "binary"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "type": "string",
+                  "format": "binary"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "type": "string",
+                  "format": "binary"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/data-hub/upload-templates/trash-screen": {
+      "get": {
+        "tags": [
+          "DataHub"
+        ],
+        "operationId": "DownloadTrashScreenUploadTemplate_DataHub",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "type": "string",
+                  "format": "binary"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "type": "string",
+                  "format": "binary"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "type": "string",
+                  "format": "binary"
+                }
+              }
+            }
           }
         }
       }
@@ -8536,6 +8589,88 @@
         }
       }
     },
+    "/treatment-bmps/{treatmentBMPID}/verify-inventory": {
+      "post": {
+        "tags": [
+          "TreatmentBMP"
+        ],
+        "operationId": "VerifyInventory_TreatmentBMP",
+        "parameters": [
+          {
+            "name": "treatmentBMPID",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/TreatmentBMPDto"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TreatmentBMPDto"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TreatmentBMPDto"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/treatment-bmps/{treatmentBMPID}/mark-provisional": {
+      "post": {
+        "tags": [
+          "TreatmentBMP"
+        ],
+        "operationId": "MarkProvisional_TreatmentBMP",
+        "parameters": [
+          {
+            "name": "treatmentBMPID",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/TreatmentBMPDto"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TreatmentBMPDto"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TreatmentBMPDto"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/treatment-bmps/{treatmentBMPID}/load-reducing-result": {
       "get": {
         "tags": [
@@ -12292,6 +12427,38 @@
         "x-optional-auth": true
       }
     },
+    "/water-quality-management-plans/download-gdb": {
+      "post": {
+        "tags": [
+          "WaterQualityManagementPlan"
+        ],
+        "operationId": "DownloadGdb_WaterQualityManagementPlan",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/WaterQualityManagementPlanGdbDownloadRequestDto"
+              }
+            },
+            "text/json": {
+              "schema": {
+                "$ref": "#/components/schemas/WaterQualityManagementPlanGdbDownloadRequestDto"
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "$ref": "#/components/schemas/WaterQualityManagementPlanGdbDownloadRequestDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
     "/water-quality-management-plans/lgu-audit-grid": {
       "get": {
         "tags": [
@@ -13639,6 +13806,64 @@
                   "type": "array",
                   "items": {
                     "$ref": "#/components/schemas/TreatmentBMPMinimalDto"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/water-quality-management-plans/{waterQualityManagementPlanID}/treatment-bmps/feature-collection": {
+      "get": {
+        "tags": [
+          "WaterQualityManagementPlan"
+        ],
+        "operationId": "ListTreatmentBMPsAsFeatureCollection_WaterQualityManagementPlan",
+        "parameters": [
+          {
+            "name": "waterQualityManagementPlanID",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          },
+          {
+            "name": "verifiedOnly",
+            "in": "query",
+            "schema": {
+              "type": "boolean",
+              "default": false
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/IFeature"
+                  }
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/IFeature"
+                  }
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/IFeature"
                   }
                 }
               }
@@ -17670,6 +17895,14 @@
           "TargetOnlandVisualTrashAssessmentAreaID": {
             "type": "integer",
             "format": "int32"
+          },
+          "OnlandVisualTrashAssessmentIDs": {
+            "type": "array",
+            "items": {
+              "type": "integer",
+              "format": "int32"
+            },
+            "nullable": true
           }
         },
         "additionalProperties": false
@@ -21851,6 +22084,10 @@
             "format": "int32",
             "nullable": true
           },
+          "InventoryVerifiedByPersonName": {
+            "type": "string",
+            "nullable": true
+          },
           "InventoryLastChangedDate": {
             "type": "string",
             "format": "date-time",
@@ -21959,6 +22196,9 @@
           "CurrentPersonCanEdit": {
             "type": "boolean"
           },
+          "CurrentPersonCanManage": {
+            "type": "boolean"
+          },
           "SizingBasisType": {
             "$ref": "#/components/schemas/SizingBasisTypeDto"
           },
@@ -21987,6 +22227,10 @@
             "format": "int32"
           },
           "TreatmentBMPTypeName": {
+            "type": "string",
+            "nullable": true
+          },
+          "InventoryStatus": {
             "type": "string",
             "nullable": true
           },
@@ -23579,6 +23823,20 @@
           },
           "ErrorCode": {
             "type": "string",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "WaterQualityManagementPlanGdbDownloadRequestDto": {
+        "type": "object",
+        "properties": {
+          "WaterQualityManagementPlanIDs": {
+            "type": "array",
+            "items": {
+              "type": "integer",
+              "format": "int32"
+            },
             "nullable": true
           }
         },

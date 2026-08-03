@@ -14,6 +14,8 @@ using Microsoft.AspNetCore.Mvc.ModelBinding;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
+using NetTopologySuite.Features;
+using Neptune.Common.Services.GDAL;
 using Neptune.API.Common;
 using Neptune.Common.Services;
 using Neptune.API.Services;
@@ -38,7 +40,8 @@ namespace Neptune.API.Controllers
         IOptions<NeptuneConfiguration> neptuneConfiguration,
         AzureBlobStorageService azureBlobStorageService,
         WqmpExtractionService wqmpExtractionService,
-        SitkaSmtpClientService sitkaSmtpClientService)
+        SitkaSmtpClientService sitkaSmtpClientService,
+        GDALAPIService gdalApiService)
         : SitkaController<WaterQualityManagementPlanController>(dbContext, logger,
             neptuneConfiguration)
     {
@@ -63,6 +66,22 @@ namespace Neptune.API.Controllers
             var entities = await vWaterQualityManagementPlanDetaileds.ListViewableByPersonDtoAsync(DbContext, CallingUser);
             var gridDtos = entities.Select(x => x.AsGridDto()).ToList();
             return Ok(gridDtos);
+        }
+
+        // NPT-943: export WQMP boundary polygons + attributes to a File Geodatabase. The Index page
+        // sends its post-filter WQMP IDs; the Data Hub tab sends an empty list (⇒ all viewable).
+        // Write-only (JurisdictionEditFeature); the export is scoped to the caller's jurisdictions so
+        // a client-supplied ID list can't leak cross-jurisdiction WQMPs.
+        [HttpPost("download-gdb")]
+        [JurisdictionEditFeature]
+        [Produces("application/zip")]
+        public async Task<FileResult> DownloadGdb([FromBody] WaterQualityManagementPlanGdbDownloadRequestDto dto)
+        {
+            var currentPerson = People.GetByID(DbContext, CallingUser.PersonID);
+            var viewableJurisdictionIDs = StormwaterJurisdictionPeople.ListViewableStormwaterJurisdictionIDsByPersonForWQMPs(DbContext, currentPerson).ToList();
+            var (bytes, fileName) = await WaterQualityManagementPlanGdbExport.BuildGdbExportAsync(
+                DbContext, gdalApiService, viewableJurisdictionIDs, dto.WaterQualityManagementPlanIDs ?? new List<int>());
+            return File(bytes, "application/zip", fileName);
         }
 
         [HttpGet("lgu-audit-grid")]
@@ -488,6 +507,18 @@ namespace Neptune.API.Controllers
             return Ok(availableBMPs);
         }
 
+        // NPT-1092: inventoried BMPs linked to this WQMP, as a marker layer for the boundary editors.
+        // Entity-scoped auth (resolves the routed WQMP + requires jurisdiction assignment) rather than
+        // role-only JurisdictionEditFeature, so an editor can't read another jurisdiction's BMPs by ID.
+        [HttpGet("{waterQualityManagementPlanID}/treatment-bmps/feature-collection")]
+        [WaterQualityManagementPlanEditFeature]
+        [EntityNotFound(typeof(WaterQualityManagementPlan), "waterQualityManagementPlanID")]
+        public async Task<ActionResult<FeatureCollection>> ListTreatmentBMPsAsFeatureCollection([FromRoute] int waterQualityManagementPlanID, [FromQuery] bool verifiedOnly = false)
+        {
+            var featureCollection = await TreatmentBMPs.ListByWaterQualityManagementPlanIDAsFeatureCollectionAsync(DbContext, waterQualityManagementPlanID, verifiedOnly);
+            return Ok(featureCollection);
+        }
+
         [HttpPut("{waterQualityManagementPlanID}/quick-bmps")]
         [JurisdictionEditFeature]
         [EntityNotFound(typeof(WaterQualityManagementPlan), "waterQualityManagementPlanID")]
@@ -543,10 +574,18 @@ namespace Neptune.API.Controllers
             var boundary = WaterQualityManagementPlanBoundaries.GetByWaterQualityManagementPlanID(DbContext, waterQualityManagementPlanID);
             var response = new WaterQualityManagementPlanBoundaryResponseDto
             {
-                BoundaryAsFeatureCollection = WaterQualityManagementPlanBoundaries.GetBoundaryAsFeatureCollection(DbContext, waterQualityManagementPlanID),
+                BoundaryAsFeatureCollection = WaterQualityManagementPlanBoundaries.GetBoundaryAsFeatureCollection(boundary),
                 Parcels = WaterQualityManagementPlanParcels.ListAsParcelDisplayDtos(DbContext, waterQualityManagementPlanID),
-                CalculatedWQMPAcreage = WaterQualityManagementPlanBoundaries.CalculateAcreage(DbContext, waterQualityManagementPlanID),
-                BoundingBox = boundary?.Geometry4326 != null ? new BoundingBoxDto(boundary.Geometry4326) : new BoundingBoxDto()
+                CalculatedWQMPAcreage = WaterQualityManagementPlanBoundaries.CalculateAcreage(boundary),
+                // NPT-1092: when the WQMP has no boundary yet (the normal Pick Parcels case), fall back
+                // to the WQMP's jurisdiction extent rather than the whole-county BoundingBoxDto default,
+                // so the map opens zoomed to the jurisdiction and the parcel WMS isn't forced to
+                // rasterize every OC parcel at county scale (>1 min / timeout).
+                BoundingBox = boundary?.Geometry4326 != null
+                    ? new BoundingBoxDto(boundary.Geometry4326)
+                    : StormwaterJurisdictions.GetBoundingBoxDtoByJurisdictionID(
+                        DbContext,
+                        WaterQualityManagementPlans.GetStormwaterJurisdictionID(DbContext, waterQualityManagementPlanID))
             };
             return Ok(response);
         }

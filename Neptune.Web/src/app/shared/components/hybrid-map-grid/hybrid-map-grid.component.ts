@@ -25,9 +25,13 @@ export class HybridMapGridComponent {
     @Input() entityIDField: string = "";
     @Input() gridHeight: string = "675px";
     @Input() boundingBox: BoundingBoxDto;
+    // NPT-943: forwarded to neptune-grid's footer download menu; the host page owns the GDB export.
+    @Input() showGdbDownloadOption: boolean = false;
+    @Input() isDownloadingGdb: boolean = false;
 
     @Output() onMapLoad: EventEmitter<NeptuneMapInitEvent> = new EventEmitter();
     @Output() selectedValueChange: EventEmitter<number> = new EventEmitter<number>();
+    @Output() gdbDownloadRequested: EventEmitter<void> = new EventEmitter<void>();
     public gridApi: GridApi;
     public gridRef: AgGridAngular;
 
@@ -87,6 +91,17 @@ export class HybridMapGridComponent {
 
     public onGridReady(event: GridReadyEvent) {
         this.gridApi = event.api;
+    }
+
+    // NPT-943: the entityIDField values of the rows currently displayed (post filter + sort) — used
+    // by server-side exports (e.g. GDB) that must respect the grid's active client-side filters.
+    public getDisplayedEntityIDs(): number[] {
+        const ids: number[] = [];
+        this.gridApi?.forEachNodeAfterFilterAndSort((node) => {
+            const id = node.data?.[this.entityIDField];
+            if (id != null) ids.push(id);
+        });
+        return ids;
     }
 
     public onGridRefReady(gridRef: AgGridAngular) {

@@ -25,6 +25,10 @@ export class ParcelLayerComponent extends MapLayerBase implements OnChanges, Aft
             format: "image/png",
             tiled: true,
             styles: this.styles,
+            // NPT-1092: guardrail against GeoServer rasterizing every OC parcel at county-wide scale
+            // (the >1 min / never-loads symptom). Below this zoom the parcel tiles aren't requested;
+            // jurisdiction-and-tighter views (the normal editing zoom) still render.
+            minZoom: 11,
             maxZoom: 22,
         } as any;
 

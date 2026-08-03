@@ -1,0 +1,62 @@
+services:
+  neptune.db:
+    image: mcr.microsoft.com/mssql/server:2025-latest
+    environment:
+      ACCEPT_EULA: "Y"
+      MSSQL_SA_PASSWORD: ${DB_PASSWORD}
+      MSSQL_PID: Express
+    ports:
+      - "${DB_PORT:-8257}:1433"
+    volumes:
+      - sqldata:/var/opt/mssql
+    healthcheck:
+      test: /opt/mssql-tools18/bin/sqlcmd -S localhost -U sa -P "${DB_PASSWORD}" -C -Q "SELECT 1" || exit 1
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 30s
+
+  neptune.dev:
+    build:
+      context: ..
+      dockerfile: .devcontainer/Dockerfile.dev
+    env_file:
+      - .env
+      # Per-developer overrides (gitignored). Optional — see .developer.env.template.
+      - path: .developer.env
+        required: false
+    environment:
+      ASPNETCORE_URLS: "http://+:${API_PORT:-8250}"
+      SECRET_PATH: /workspace/Neptune.API/appsecrets.json
+    ports:
+      - "${API_PORT:-8250}:${API_PORT:-8250}"
+      - "${WEB_PORT:-8252}:${WEB_PORT:-8252}"
+    volumes:
+      - ..:/workspace:cached
+      - node_modules:/workspace/Neptune.Web/node_modules
+      # Auth state (claude / az / gh) shared across ALL Neptune devcontainers
+      # (main + every worktree) via the `name:` overrides in the volumes block
+      # below. One `make auth` (and one `claude` login) seeds every current and
+      # future devcontainer on this host, and rebuilds preserve it. Wipe with:
+      #   docker volume rm neptune-claude-config neptune-azure-config neptune-gh-config
+      - neptune-claude-config:/root/.claude
+      - neptune-azure-config:/root/.azure
+      - neptune-gh-config:/root/.config/gh
+    command: sleep infinity
+    depends_on:
+      neptune.db:
+        condition: service_healthy
+
+volumes:
+  node_modules:
+  sqldata:
+  # Shared auth volumes (claude / az / gh). Explicit `name:` bypasses the
+  # compose-project-name prefix so the main devcontainer, every worktree, and
+  # any future devcontainer reference the SAME underlying volume. Created lazily
+  # on first `compose up` if absent.
+  neptune-claude-config:
+    name: neptune-claude-config
+  neptune-azure-config:
+    name: neptune-azure-config
+  neptune-gh-config:
+    name: neptune-gh-config

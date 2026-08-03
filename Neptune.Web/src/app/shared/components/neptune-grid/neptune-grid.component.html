@@ -28,6 +28,7 @@
     [rowSelection]="rowSelection"
     [suppressRowClickSelection]="suppressRowClickSelection"
     [rowMultiSelectWithClick]="rowMultiSelectWithClick"
+    [isRowSelectable]="isRowSelectable"
     [suppressRowTransform]="true"
     [suppressMenuHide]="true"
     [pagination]="pagination"
@@ -55,7 +56,13 @@
       }
       @if (!hideDownloadButton) {
         <div class="download-button">
-          <neptune-csv-download-button [grid]="gridref" [fileName]="downloadFileName" [colIDsToExclude]="colIDsToExclude"></neptune-csv-download-button>
+          <neptune-grid-download-menu
+            [grid]="gridref"
+            [fileName]="downloadFileName"
+            [colIDsToExclude]="colIDsToExclude"
+            [showGdbOption]="showGdbDownloadOption"
+            [isDownloadingGdb]="isDownloadingGdb"
+          (gdbDownloadRequested)="gdbDownloadRequested.emit()"></neptune-grid-download-menu>
         </div>
       }
     </div>

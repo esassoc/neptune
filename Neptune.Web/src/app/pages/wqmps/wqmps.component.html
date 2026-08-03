@@ -38,6 +38,9 @@
                 [selectedValue]="selectedWaterQualityManagementPlanID"
                 [selectionFromMap]="true"
                 (selectedValueChange)="onSelectedWaterQualityManagementPlanIDChanged($event)"
+                [showGdbDownloadOption]="(currentPersonCanEdit$ | async) ?? false"
+                [isDownloadingGdb]="isDownloadingGdb()"
+                (gdbDownloadRequested)="downloadGdb()"
                 [boundingBox]="boundingBox">
                 <wqmps-layer
                     [map]="map"

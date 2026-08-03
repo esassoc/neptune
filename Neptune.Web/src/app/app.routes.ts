@@ -928,6 +928,12 @@ export const routes: Routes = [
                 canActivate: [JurisdictionManagerOrEditorOnlyGuard],
             },
             {
+                path: "data-hub/wqmp-download",
+                title: "Download WQMPs",
+                loadComponent: () => import("./pages/data-hub/wqmp-download/wqmp-download.component").then((m) => m.WqmpDownloadComponent),
+                canActivate: [JurisdictionManagerOrEditorOnlyGuard],
+            },
+            {
                 path: "data-hub/trash-screen-field-visit-upload",
                 title: "Upload Trash Screen Field Visits",
                 loadComponent: () =>

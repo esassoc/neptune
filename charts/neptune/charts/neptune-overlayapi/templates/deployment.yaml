@@ -24,12 +24,14 @@ spec:
         {{- toYaml . | nindent 8 }}
       {{- end }}
       labels:
+        # NPT-1112: workload-identity webhook opt-in. A literal line on purpose —
+        # NOT part of selectorLabels, which also renders the immutable
+        # spec.selector.matchLabels.
+        azure.workload.identity/use: "true"
         {{- include "overlayapi.selectorLabels" . | nindent 8 }}
     spec:
-      volumes:
-      - name: secrets
-        secret:
-          secretName: neptune-overlayapi-secrets
+      # NPT-1112: secret file mount removed — secrets flow from Azure Key Vault
+      # at startup via DefaultAzureCredential (KeyVaultName in the ConfigMap).
       {{- with .Values.imagePullSecrets }}
       imagePullSecrets:
         {{- toYaml . | nindent 8 }}
@@ -75,13 +77,6 @@ spec:
           envFrom:
           - configMapRef:
               name: {{ include "overlayapi.fullname" . }}-configmap
-          volumeMounts:
-          - name: secrets
-            mountPath: /app/secrets
-            readOnly: true
-          # - name: certs
-          #   mountPath: /https
-          #   readOnly: true
       {{- with .Values.nodeSelector }}
       nodeSelector:
         {{- toYaml . | nindent 8 }}

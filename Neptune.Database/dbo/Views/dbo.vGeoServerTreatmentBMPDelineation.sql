@@ -1,7 +1,9 @@
 Create View dbo.vGeoServerTreatmentBMPDelineation as
 Select
 	d.DelineationID as PrimaryKey,
-	DelineationGeometry4326 as DelineationGeometry,
+	-- NPT-1115: repair SQL-invalid geometry on read so GeoServer's WMS never throws error 24144
+	-- (see vGeoServerDelineation). Valid polygons pass through untouched.
+	case when DelineationGeometry4326.STIsValid() = 1 then DelineationGeometry4326 else DelineationGeometry4326.MakeValid() end as DelineationGeometry,
 	t.TreatmentBMPID,
 	t.TreatmentBMPName,
 	p.ProjectName

@@ -1,0 +1,18 @@
+# Devcontainer image with Node, Angular CLI, sqlcmd, Azure CLI, and a JRE for
+# openapi-generator (npm run gen-model). No Python — Neptune has no worker /
+# scenario runner. sqlpackage + dotnet-ef are installed as global .NET tools in
+# post-create.sh (both cross-platform).
+FROM mcr.microsoft.com/devcontainers/javascript-node:22 AS devcontainer
+
+RUN npm install -g @angular/cli
+
+# Install sqlcmd (standalone Go binary) — used by the database-restore script.
+RUN curl -sSL https://github.com/microsoft/go-sqlcmd/releases/latest/download/sqlcmd-linux-amd64.tar.bz2 \
+    | tar -xj -C /usr/local/bin sqlcmd
+
+# Install Azure CLI (make auth / database-download / Key Vault).
+RUN curl -sSL https://aka.ms/InstallAzureCLIDeb | bash
+
+# JRE for openapi-generator-cli (Neptune.Web `npm run gen-model`).
+RUN apt-get update && apt-get install -y --no-install-recommends default-jre-headless \
+    && rm -rf /var/lib/apt/lists/*

@@ -6,8 +6,6 @@ import { AlertDisplayComponent } from "src/app/shared/components/alert-display/a
 import { OnlandVisualTrashAssessmentAreaService } from "src/app/shared/generated/api/onland-visual-trash-assessment-area.service";
 import { OnlandVisualTrashAssessmentAreaMoveAssessmentsDto } from "src/app/shared/generated/model/onland-visual-trash-assessment-area-move-assessments-dto";
 import { AlertService } from "src/app/shared/services/alert.service";
-import { Alert } from "src/app/shared/models/alert";
-import { AlertContext } from "src/app/shared/models/enums/alert-context.enum";
 
 @Component({
     selector: "move-ovta-assessments-modal",
@@ -50,11 +48,12 @@ export class MoveOvtaAssessmentsModalComponent implements OnInit {
     save(): void {
         const dto: OnlandVisualTrashAssessmentAreaMoveAssessmentsDto = {
             TargetOnlandVisualTrashAssessmentAreaID: this.formGroup.controls.TargetOnlandVisualTrashAssessmentAreaID.value!,
+            OnlandVisualTrashAssessmentIDs: this.ref.data.SelectedAssessmentIDs,
         };
         this.onlandVisualTrashAssessmentAreaService.moveAssessmentsOnlandVisualTrashAssessmentArea(this.ref.data.SourceOnlandVisualTrashAssessmentAreaID, dto).subscribe({
             next: () => {
-                this.alertService.clearAlerts();
-                this.alertService.pushAlert(new Alert("Successfully moved assessments to the selected OVTA Area.", AlertContext.Success));
+                // Success alert is pushed by the caller after this modal closes — the modal's own
+                // <app-alert-display> clears alerts on destroy, so pushing it here would not survive.
                 this.ref.close(true);
             },
             // httpErrorInterceptor surfaces the failure alert; modal stays open so the user can retry.
@@ -71,5 +70,6 @@ export class MoveOvtaAssessmentsModalContext {
     SourceOnlandVisualTrashAssessmentAreaID: number;
     SourceOnlandVisualTrashAssessmentAreaName: string;
     SourceStormwaterJurisdictionID: number;
+    SelectedAssessmentIDs: number[];
     SourceAssessmentCount: number;
 }

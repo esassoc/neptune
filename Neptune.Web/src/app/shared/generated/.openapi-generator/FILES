@@ -274,6 +274,7 @@ model/water-quality-management-plan-document-dto.ts
 model/water-quality-management-plan-document-upsert-dto.ts
 model/water-quality-management-plan-dto.ts
 model/water-quality-management-plan-extraction-result-dto.ts
+model/water-quality-management-plan-gdb-download-request-dto.ts
 model/water-quality-management-plan-grid-dto.ts
 model/water-quality-management-plan-lgu-audit-grid-dto.ts
 model/water-quality-management-plan-post-construction-verification-grid-dto.ts

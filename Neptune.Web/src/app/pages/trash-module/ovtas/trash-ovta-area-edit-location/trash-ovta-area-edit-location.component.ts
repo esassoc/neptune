@@ -5,6 +5,7 @@ import { NeptuneMapComponent, NeptuneMapInitEvent } from "../../../../shared/com
 import * as L from "leaflet";
 import "@geoman-io/leaflet-geoman-free";
 import { LandUseBlockLayerComponent } from "../../../../shared/components/leaflet/layers/land-use-block-layer/land-use-block-layer.component";
+import { OvtaAreasLayerComponent } from "../../../../shared/components/leaflet/layers/ovta-areas-layer/ovta-areas-layer.component";
 import { SelectedLandUseBlockLayerComponent } from "../../../../shared/components/leaflet/layers/selected-land-use-block-layer/selected-land-use-block-layer.component";
 import { AsyncPipe } from "@angular/common";
 import { FormsModule } from "@angular/forms";
@@ -33,6 +34,7 @@ type EditMode = OvtaAreaSourceTypeEnum | "Draw";
         PageHeaderComponent,
         NeptuneMapComponent,
         LandUseBlockLayerComponent,
+        OvtaAreasLayerComponent,
         SelectedLandUseBlockLayerComponent,
         AsyncPipe,
         FormsModule,

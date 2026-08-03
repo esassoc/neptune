@@ -11,6 +11,7 @@ import { NeptuneMapComponent, NeptuneMapInitEvent } from "src/app/shared/compone
 
 import { ParcelLayerComponent } from "src/app/shared/components/leaflet/layers/parcel-layer/parcel-layer.component";
 import { WqmpsLayerComponent } from "src/app/shared/components/leaflet/layers/wqmps-layer/wqmps-layer.component";
+import { InventoriedBMPsLayerComponent } from "src/app/shared/components/leaflet/layers/inventoried-bmps-layer/inventoried-bmps-layer.component";
 import { OverlayMode } from "src/app/shared/components/leaflet/layers/generic-wms-wfs-layer/overlay-mode.enum";
 import { IconComponent } from "src/app/shared/components/icon/icon.component";
 import { AlertService } from "src/app/shared/services/alert.service";
@@ -31,6 +32,7 @@ import { WaterQualityManagementPlanBoundaryUpsertDto } from "src/app/shared/gene
         NeptuneMapComponent,
         ParcelLayerComponent,
         WqmpsLayerComponent,
+        InventoriedBMPsLayerComponent,
         IconComponent,
         RouterLink,
         AsyncPipe,

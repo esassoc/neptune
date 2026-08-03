@@ -1,0 +1,23 @@
+<button
+    type="button"
+    class="btn btn-sm btn-primary-outline grid-download-trigger"
+    [dropdownToggle]="downloadMenuTemplate"
+    [attachToBody]="true"
+    title="Download grid data">
+    Download
+    <icon [icon]="'Download'"></icon>
+    <i class="fas fa-chevron-down caret"></i>
+</button>
+<ng-template #downloadMenuTemplate>
+    <div class="grid-download-menu">
+        <a href="javascript:void(0);" (click)="exportCsv()">Text File (.csv)</a>
+        @if (showGdbOption) {
+            <a href="javascript:void(0);" [class.disabled]="isDownloadingGdb" (click)="onGdbClick()">
+                @if (isDownloadingGdb) { <i class="fa fa-spinner fa-spin"></i> Building... } @else { GIS (.gdb.zip) }
+            </a>
+            <!-- NPT-943: state the export CRS so users aren't surprised by the unit mismatch with the
+                 State Plane feet (Zone 406) convention used for PLU/land-use uploads. -->
+            <span class="gdb-crs-note">Projection: NAD83(HARN) CA Zone VI · meters</span>
+        }
+    </div>
+</ng-template>

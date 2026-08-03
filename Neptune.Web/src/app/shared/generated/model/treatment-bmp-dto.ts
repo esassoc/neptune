@@ -44,6 +44,7 @@ export class TreatmentBMPDto {
     InventoryIsVerifiedByPerson?: boolean | null;
     DateOfLastInventoryVerification?: string | null;
     InventoryVerifiedByPersonID?: number | null;
+    InventoryVerifiedByPersonName?: string | null;
     InventoryLastChangedDate?: string | null;
     TrashCaptureStatusTypeID?: number | null;
     SizingBasisTypeID?: number | null;
@@ -71,6 +72,7 @@ export class TreatmentBMPDto {
     StormwaterJurisdiction?: StormwaterJurisdictionDisplayDto;
     HasSettableBenchmarkAndThresholdValues?: boolean;
     CurrentPersonCanEdit?: boolean;
+    CurrentPersonCanManage?: boolean;
     SizingBasisType?: SizingBasisTypeDto;
     TrashCaptureStatusType?: TrashCaptureStatusTypeDto;
     TreatmentBMPLifespanType?: TreatmentBMPLifeSpanTypeDto;
@@ -102,6 +104,7 @@ export interface TreatmentBMPDtoForm {
     InventoryIsVerifiedByPerson?: FormControl<boolean>;
     DateOfLastInventoryVerification?: FormControl<string>;
     InventoryVerifiedByPersonID?: FormControl<number>;
+    InventoryVerifiedByPersonName?: FormControl<string>;
     InventoryLastChangedDate?: FormControl<string>;
     TrashCaptureStatusTypeID?: FormControl<number>;
     SizingBasisTypeID?: FormControl<number>;
@@ -129,6 +132,7 @@ export interface TreatmentBMPDtoForm {
     StormwaterJurisdiction?: FormControl<StormwaterJurisdictionDisplayDto>;
     HasSettableBenchmarkAndThresholdValues?: FormControl<boolean>;
     CurrentPersonCanEdit?: FormControl<boolean>;
+    CurrentPersonCanManage?: FormControl<boolean>;
     SizingBasisType?: FormControl<SizingBasisTypeDto>;
     TrashCaptureStatusType?: FormControl<TrashCaptureStatusTypeDto>;
     TreatmentBMPLifespanType?: FormControl<TreatmentBMPLifeSpanTypeDto>;
@@ -346,6 +350,16 @@ export class TreatmentBMPDtoFormControls {
         }
     );
     public static InventoryVerifiedByPersonID = (value: FormControlState<number> | number = undefined, formControlOptions?: FormControlOptions | null) => new FormControl<number>(
+        value,
+        formControlOptions ?? 
+        {
+            nonNullable: false,
+            validators: 
+            [
+            ],
+        }
+    );
+    public static InventoryVerifiedByPersonName = (value: FormControlState<string> | string = undefined, formControlOptions?: FormControlOptions | null) => new FormControl<string>(
         value,
         formControlOptions ?? 
         {
@@ -616,6 +630,16 @@ export class TreatmentBMPDtoFormControls {
         }
     );
     public static CurrentPersonCanEdit = (value: FormControlState<boolean> | boolean = undefined, formControlOptions?: FormControlOptions | null) => new FormControl<boolean>(
+        value,
+        formControlOptions ?? 
+        {
+            nonNullable: false,
+            validators: 
+            [
+            ],
+        }
+    );
+    public static CurrentPersonCanManage = (value: FormControlState<boolean> | boolean = undefined, formControlOptions?: FormControlOptions | null) => new FormControl<boolean>(
         value,
         formControlOptions ?? 
         {

@@ -3,13 +3,13 @@ import { FundingEventModalComponent, FundingEventModalContext } from "../funding
 import { BeginFieldVisitModalComponent, BeginFieldVisitModalContext } from "./begin-field-visit-modal/begin-field-visit-modal.component";
 import { FieldVisitService } from "src/app/shared/generated/api/field-visit.service";
 import { ConfirmService } from "src/app/shared/services/confirm/confirm.service";
-import { Component, OnInit, OnChanges, SimpleChanges, ViewChild, TemplateRef, Input } from "@angular/core";
+import { Component, OnInit, OnChanges, SimpleChanges, ViewChild, TemplateRef, Input, ViewContainerRef } from "@angular/core";
 import { Router, RouterLink } from "@angular/router";
 import { DatePipe, AsyncPipe, CommonModule } from "@angular/common";
 import { HttpErrorResponse } from "@angular/common/http";
 import { escapeHtml } from "src/app/shared/helpers/html-escape";
 import { BehaviorSubject, Observable } from "rxjs";
-import { shareReplay, switchMap, tap } from "rxjs/operators";
+import { finalize, shareReplay, switchMap, tap } from "rxjs/operators";
 import { PageHeaderComponent } from "src/app/shared/components/page-header/page-header.component";
 import { AlertDisplayComponent } from "src/app/shared/components/alert-display/alert-display.component";
 import * as L from "leaflet";
@@ -177,6 +177,9 @@ export class TreatmentBmpDetailComponent implements OnInit, OnChanges {
     openRevisionRequestDetailUrl = "";
     currentPersonCanManage = false;
     currentPersonCanEdit = false;
+    // NPT-1117: in-flight flags for the inventory verify / mark-provisional actions.
+    isVerifying = false;
+    isMarkingProvisional = false;
     // Sourced from TreatmentBMPType.IsAnalyzedInModelingModule via the BMP DTO. Gates the
     // "Modeled BMP Performance" panel. Distinct from `hasModelingAttributes` — a BMP type can
     // be modeled without exposing any user-configurable Modeling-purpose custom attributes.
@@ -207,8 +210,68 @@ export class TreatmentBmpDetailComponent implements OnInit, OnChanges {
         private authenticationService: AuthenticationService,
         private benchmarkAndThresholdService: TreatmentBMPBenchmarkAndThresholdService,
         private fieldVisitService: FieldVisitService,
-        private router: Router
+        private router: Router,
+        private viewContainerRef: ViewContainerRef
     ) {}
+
+    // NPT-1117: restore the single-BMP inventory verification affordance (mirrors WQMP confirmPromote).
+    async confirmVerifyInventory(treatmentBMP: TreatmentBMPDto): Promise<void> {
+        const confirmed = await this.confirmService.confirm(
+            {
+                title: "Verify Inventory",
+                message: `Verify the inventory for "${escapeHtml(treatmentBMP.TreatmentBMPName)}"? You will be recorded as the verifier as of today.`,
+                buttonTextYes: "Verify Inventory",
+                buttonTextNo: "Cancel",
+                buttonClassYes: "btn-primary",
+            },
+            this.viewContainerRef
+        );
+        if (!confirmed) return;
+
+        this.isVerifying = true;
+        this.alertService.clearAlerts();
+        this.treatmentBMPService
+            .verifyInventoryTreatmentBMP(treatmentBMP.TreatmentBMPID)
+            .pipe(finalize(() => (this.isVerifying = false)))
+            .subscribe({
+                next: () => {
+                    this.alertService.pushAlert(new Alert("Inventory has been verified.", AlertContext.Success));
+                    this.loadData();
+                },
+                error: (error: HttpErrorResponse) => {
+                    this.alertService.pushAlert(new Alert(escapeHtml(error?.error?.detail ?? "There was an error verifying the inventory."), AlertContext.Danger));
+                },
+            });
+    }
+
+    async confirmMarkProvisional(treatmentBMP: TreatmentBMPDto): Promise<void> {
+        const confirmed = await this.confirmService.confirm(
+            {
+                title: "Mark as Provisional",
+                message: `Mark "${escapeHtml(treatmentBMP.TreatmentBMPName)}" as provisional? You can verify it again at any time.`,
+                buttonTextYes: "Mark as Provisional",
+                buttonTextNo: "Cancel",
+                buttonClassYes: "btn-primary",
+            },
+            this.viewContainerRef
+        );
+        if (!confirmed) return;
+
+        this.isMarkingProvisional = true;
+        this.alertService.clearAlerts();
+        this.treatmentBMPService
+            .markProvisionalTreatmentBMP(treatmentBMP.TreatmentBMPID)
+            .pipe(finalize(() => (this.isMarkingProvisional = false)))
+            .subscribe({
+                next: () => {
+                    this.alertService.pushAlert(new Alert("Inventory has been marked as provisional.", AlertContext.Success));
+                    this.loadData();
+                },
+                error: (error: HttpErrorResponse) => {
+                    this.alertService.pushAlert(new Alert(escapeHtml(error?.error?.detail ?? "There was an error marking the inventory as provisional."), AlertContext.Danger));
+                },
+            });
+    }
 
     ngOnInit(): void {
         this.fieldVisitColumnDefs = [

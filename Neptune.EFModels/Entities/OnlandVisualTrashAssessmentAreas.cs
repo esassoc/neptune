@@ -72,23 +72,37 @@ public static class OnlandVisualTrashAssessmentAreas
             // or wiping the non-nullable area geometry — an empty save is a no-op.
             if (geometry != null)
             {
-                onlandVisualTrashAssessmentArea.OnlandVisualTrashAssessmentAreaGeometry = geometry;
-                onlandVisualTrashAssessmentArea.OnlandVisualTrashAssessmentAreaGeometry4326 = geometry.ProjectTo4326();
+                // NPT-1099: MakeValid before storing so GeoServer's WMS/WFS render (and the .NET GeoJSON
+                // path) never hit SQL-invalid geometry that throws SQL error 24144 and blanks the layer.
+                // Reprojection can re-introduce invalidity, so repair each stored SRID. Mirrors
+                // WaterQualityManagementPlanBoundaries.UpdateBoundary.
+                onlandVisualTrashAssessmentArea.OnlandVisualTrashAssessmentAreaGeometry = geometry.MakeValid();
+                onlandVisualTrashAssessmentArea.OnlandVisualTrashAssessmentAreaGeometry4326 = geometry.ProjectTo4326().MakeValid();
             }
         }
         else if (onlandVisualTrashAssessmentAreaGeometryDto.OvtaAreaSourceTypeID == (int)OvtaAreaSourceTypeEnum.Parcel)
         {
-            // parcels are already in the correct system (State Plane); no reprojection needed
-            onlandVisualTrashAssessmentArea.OnlandVisualTrashAssessmentAreaGeometry = ParcelGeometries.UnionAggregateByParcelIDs(dbContext, onlandVisualTrashAssessmentAreaGeometryDto.ParcelIDs);
-            onlandVisualTrashAssessmentArea.OnlandVisualTrashAssessmentAreaGeometry4326 = ParcelGeometries.UnionAggregate4326ByParcelIDs(dbContext, onlandVisualTrashAssessmentAreaGeometryDto.ParcelIDs);
+            // parcels are already in the correct system (State Plane); no reprojection needed.
+            var parcelGeometry = ParcelGeometries.UnionAggregateByParcelIDs(dbContext, onlandVisualTrashAssessmentAreaGeometryDto.ParcelIDs);
+            var parcelGeometry4326 = ParcelGeometries.UnionAggregate4326ByParcelIDs(dbContext, onlandVisualTrashAssessmentAreaGeometryDto.ParcelIDs);
+            // UnionAggregate*ByParcelIDs return null for an empty selection (UnionListGeometries). Guard
+            // as a no-op like the LandUseBlock branch — avoids an NRE on .MakeValid() and avoids nulling
+            // the non-nullable native geometry column. NPT-1099: MakeValid before storing.
+            if (parcelGeometry != null && parcelGeometry4326 != null)
+            {
+                onlandVisualTrashAssessmentArea.OnlandVisualTrashAssessmentAreaGeometry = parcelGeometry.MakeValid();
+                onlandVisualTrashAssessmentArea.OnlandVisualTrashAssessmentAreaGeometry4326 = parcelGeometry4326.MakeValid();
+            }
         }
         else
         {
             // manually drawn (Geoman) — comes from the browser, so transform to State Plane
             var newGeometry4326 = GeoJsonSerializer.Deserialize<IFeature>(onlandVisualTrashAssessmentAreaGeometryDto.GeometryAsGeoJson);
             newGeometry4326.Geometry.SRID = Proj4NetHelper.WEB_MERCATOR;
-            onlandVisualTrashAssessmentArea.OnlandVisualTrashAssessmentAreaGeometry4326 = newGeometry4326.Geometry;
-            onlandVisualTrashAssessmentArea.OnlandVisualTrashAssessmentAreaGeometry = newGeometry4326.Geometry.ProjectTo2771();
+            // NPT-1099: repair self-intersecting freehand (Geoman) draws before storing (see LandUseBlock branch).
+            var validGeometry4326 = newGeometry4326.Geometry.MakeValid();
+            onlandVisualTrashAssessmentArea.OnlandVisualTrashAssessmentAreaGeometry4326 = validGeometry4326;
+            onlandVisualTrashAssessmentArea.OnlandVisualTrashAssessmentAreaGeometry = validGeometry4326.ProjectTo2771().MakeValid();
         }
     }
 
@@ -164,10 +178,13 @@ public static class OnlandVisualTrashAssessmentAreas
         return null;
     }
 
-    public static async Task MoveAssessmentsAsync(NeptuneDbContext dbContext, int sourceOnlandVisualTrashAssessmentAreaID, int targetOnlandVisualTrashAssessmentAreaID)
+    public static async Task MoveAssessmentsAsync(NeptuneDbContext dbContext, int sourceOnlandVisualTrashAssessmentAreaID, int targetOnlandVisualTrashAssessmentAreaID, IEnumerable<int> onlandVisualTrashAssessmentIDs)
     {
         Check.Require(sourceOnlandVisualTrashAssessmentAreaID != targetOnlandVisualTrashAssessmentAreaID,
             "Cannot move an OVTA Area's assessments to itself.");
+
+        var assessmentIDsToMove = onlandVisualTrashAssessmentIDs?.Distinct().ToList() ?? new List<int>();
+        Check.Require(assessmentIDsToMove.Any(), "No assessments were selected to move.");
 
         var sourceArea = GetByIDWithChangeTracking(dbContext, sourceOnlandVisualTrashAssessmentAreaID);
         var targetArea = GetByIDWithChangeTracking(dbContext, targetOnlandVisualTrashAssessmentAreaID);
@@ -175,37 +192,52 @@ public static class OnlandVisualTrashAssessmentAreas
         Check.Require(sourceArea.StormwaterJurisdictionID == targetArea.StormwaterJurisdictionID,
             "Source and target OVTA Areas must belong to the same Jurisdiction.");
 
-        var hasInProgressAssessment = sourceArea.OnlandVisualTrashAssessments
-            .Any(x => x.OnlandVisualTrashAssessmentStatusID != (int)OnlandVisualTrashAssessmentStatusEnum.Complete);
-        Check.Require(!hasInProgressAssessment,
-            "Cannot move assessments: the source OVTA Area has assessments still in progress. Finish or delete those assessments first.");
+        // Every selected assessment must be a completed assessment belonging to the source area.
+        // In-progress assessments are never movable (they render with a disabled checkbox client-side;
+        // this enforces it server-side). Replaces the former blanket "source has no in-progress" guard,
+        // which would have blocked every partial move whenever the source held an in-progress assessment.
+        var movableSourceAssessmentIDs = sourceArea.OnlandVisualTrashAssessments
+            .Where(x => x.OnlandVisualTrashAssessmentStatusID == (int)OnlandVisualTrashAssessmentStatusEnum.Complete)
+            .Select(x => x.OnlandVisualTrashAssessmentID)
+            .ToHashSet();
+        Check.Require(assessmentIDsToMove.All(id => movableSourceAssessmentIDs.Contains(id)),
+            "Cannot move assessments: every selected assessment must be a completed assessment belonging to the source OVTA Area.");
 
         await dbContext.OnlandVisualTrashAssessments
-            .Where(x => x.OnlandVisualTrashAssessmentAreaID == sourceOnlandVisualTrashAssessmentAreaID)
+            .Where(x => x.OnlandVisualTrashAssessmentAreaID == sourceOnlandVisualTrashAssessmentAreaID
+                        && assessmentIDsToMove.Contains(x.OnlandVisualTrashAssessmentID))
             .ExecuteUpdateAsync(s => s
                 .SetProperty(a => a.OnlandVisualTrashAssessmentAreaID, targetOnlandVisualTrashAssessmentAreaID)
                 .SetProperty(a => a.IsTransectBackingAssessment, false));
 
-        var refreshedTargetAssessments = await dbContext.OnlandVisualTrashAssessments
+        // A partial move changes both rosters, so recompute baseline score, progress score, and
+        // transect line for the source area as well as the target (previously target-only).
+        await RecomputeAreaScoresAndTransectAsync(dbContext, sourceArea);
+        await RecomputeAreaScoresAndTransectAsync(dbContext, targetArea);
+
+        await dbContext.SaveChangesAsync();
+    }
+
+    private static async Task RecomputeAreaScoresAndTransectAsync(NeptuneDbContext dbContext, OnlandVisualTrashAssessmentArea area)
+    {
+        var assessments = await dbContext.OnlandVisualTrashAssessments
             .Include(x => x.OnlandVisualTrashAssessmentObservations)
-            .Where(x => x.OnlandVisualTrashAssessmentAreaID == targetOnlandVisualTrashAssessmentAreaID)
+            .Where(x => x.OnlandVisualTrashAssessmentAreaID == area.OnlandVisualTrashAssessmentAreaID)
             .ToListAsync();
 
-        foreach (var assessment in refreshedTargetAssessments)
+        foreach (var assessment in assessments)
         {
             assessment.IsTransectBackingAssessment = false;
         }
 
-        var newTransect = RecomputeTransectLine(refreshedTargetAssessments);
-        targetArea.TransectLine = newTransect;
-        targetArea.TransectLine4326 = newTransect?.ProjectTo4326();
+        var newTransect = RecomputeTransectLine(assessments);
+        area.TransectLine = newTransect;
+        area.TransectLine4326 = newTransect?.ProjectTo4326();
 
-        targetArea.OnlandVisualTrashAssessmentBaselineScoreID =
-            CalculateBaselineScoreFromBackingData(refreshedTargetAssessments)?.OnlandVisualTrashAssessmentScoreID;
-        targetArea.OnlandVisualTrashAssessmentProgressScoreID =
-            OnlandVisualTrashAssessments.CalculateProgressScore(refreshedTargetAssessments)?.OnlandVisualTrashAssessmentScoreID;
-
-        await dbContext.SaveChangesAsync();
+        area.OnlandVisualTrashAssessmentBaselineScoreID =
+            CalculateBaselineScoreFromBackingData(assessments)?.OnlandVisualTrashAssessmentScoreID;
+        area.OnlandVisualTrashAssessmentProgressScoreID =
+            OnlandVisualTrashAssessments.CalculateProgressScore(assessments)?.OnlandVisualTrashAssessmentScoreID;
     }
 
     public static async Task DeleteAreaAsync(NeptuneDbContext dbContext, int onlandVisualTrashAssessmentAreaID)

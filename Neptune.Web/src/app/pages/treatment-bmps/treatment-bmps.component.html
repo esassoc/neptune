@@ -46,6 +46,9 @@
         [selectedValue]="selectedTreatmentBMPID"
         [selectionFromMap]="selectionFromMap"
         (selectedValueChange)="onSelectedTreatmentBMPChangedFromGrid($event)"
+        [showGdbDownloadOption]="(currentPersonCanEdit$ | async) ?? false"
+        [isDownloadingGdb]="isDownloadingGdb()"
+        (gdbDownloadRequested)="downloadGdb()"
         [boundingBox]="boundingBox$ | async">
         <ng-container mapLayers>
             @if (map) {

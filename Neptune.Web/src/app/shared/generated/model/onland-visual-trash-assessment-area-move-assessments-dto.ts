@@ -12,6 +12,7 @@
 import { FormControl, FormControlOptions, FormControlState, Validators } from "@angular/forms";
 export class OnlandVisualTrashAssessmentAreaMoveAssessmentsDto { 
     TargetOnlandVisualTrashAssessmentAreaID?: number;
+    OnlandVisualTrashAssessmentIDs?: Array<number> | null;
     constructor(obj?: any) {
         Object.assign(this, obj);
     }
@@ -19,10 +20,21 @@ export class OnlandVisualTrashAssessmentAreaMoveAssessmentsDto {
 
 export interface OnlandVisualTrashAssessmentAreaMoveAssessmentsDtoForm { 
     TargetOnlandVisualTrashAssessmentAreaID?: FormControl<number>;
+    OnlandVisualTrashAssessmentIDs?: FormControl<Array<number>>;
 }
 
 export class OnlandVisualTrashAssessmentAreaMoveAssessmentsDtoFormControls { 
     public static TargetOnlandVisualTrashAssessmentAreaID = (value: FormControlState<number> | number = undefined, formControlOptions?: FormControlOptions | null) => new FormControl<number>(
+        value,
+        formControlOptions ?? 
+        {
+            nonNullable: false,
+            validators: 
+            [
+            ],
+        }
+    );
+    public static OnlandVisualTrashAssessmentIDs = (value: FormControlState<Array<number>> | Array<number> = undefined, formControlOptions?: FormControlOptions | null) => new FormControl<Array<number>>(
         value,
         formControlOptions ?? 
         {

@@ -1,0 +1,62 @@
+@use "/src/scss/abstracts" as *;
+
+.grid-download-trigger {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+    font-weight: 600;
+
+    .caret {
+        font-size: 0.65rem;
+    }
+}
+
+// Rendered in a CDK overlay (attachToBody) so the grid's footer / table-responsive container
+// can't clip it. Mirrors the Qanat grid-download-menu pattern.
+.grid-download-menu {
+    display: grid;
+    position: absolute;
+    min-width: 11rem;
+    top: 0.65rem;
+    left: 0.25rem;
+    background: white;
+    padding: 0.75rem;
+    box-shadow: 0 2px 8px rgba($black, 0.15);
+    border-radius: 0.25rem;
+    border: 1px solid $primary;
+
+    a {
+        font-size: $type-size-200;
+        display: inline-block;
+        padding: 0;
+        border: none;
+        text-align: left;
+        color: $primary;
+        background: none;
+        line-height: 1.5em;
+        cursor: pointer;
+
+        & + a {
+            margin-top: 0.5rem;
+        }
+
+        &:hover {
+            text-decoration: underline;
+        }
+
+        &.disabled {
+            opacity: 0.6;
+            cursor: default;
+            pointer-events: none;
+            text-decoration: none;
+        }
+    }
+
+    // NPT-943: muted CRS caption under the GIS option.
+    .gdb-crs-note {
+        margin-top: 0.5rem;
+        font-size: $type-size-200;
+        color: rgba($black, 0.6);
+        line-height: 1.3;
+    }
+}

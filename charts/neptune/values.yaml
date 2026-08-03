@@ -1,10 +1,16 @@
 global:
   env:
     name: "qa"
+    # NPT-1112: named Key Vault the API + ExternalAPI read at startup via
+    # DefaultAzureCredential; set by the pipeline (--set global.env.keyVaultName).
+    keyVaultName: ""
     dbServer: "db-server.database.windows.net"
     databaseName: "NeptuneDB"
     sqlUsername: "SqlAdministrator"
     sqlGeoserverUsername: "NeptuneGeo"
+    # NPT-1112: non-secret app config, moved out of the deleted API k8s secret
+    # into the ConfigMap.
+    claudeModelId: "claude-sonnet-4-6"
     appInsightsInstrumentationKey: "00000000-0000-0000-0000-000000000000"
   domains:
     api: "api-neptune.aks-qa.sitkatech.com"
@@ -26,7 +32,11 @@ global:
     recaptchaV3SiteKey: "recaptchaV3SiteKeyHere"
     recaptchaV3SecretKey: "recaptchaV3SecretKeyHere"
     anthropicApiKey: "anthropicApiKeyHere"
-    claudeModelId: "claude-sonnet-4-6"
+  # NPT-1112: user-assigned managed identity the api/externalapi ServiceAccounts
+  # federate to; ids come from neptune.tf outputs via helm --set.
+  workloadIdentity:
+    clientId: ""
+    tenantId: ""
 
 api:
   replicaCount: 1

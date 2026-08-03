@@ -347,6 +347,24 @@ public static class TreatmentBMPs
         return AsFeatureCollection(treatmentBmps.Where(x => x.ProjectID == null && x.StormwaterJurisdictionID == jurisdictionID && x.InventoryIsVerified).ToList());
     }
 
+    // NPT-1092: inventoried Treatment BMPs linked to a WQMP, as map markers for the boundary editors.
+    // verifiedOnly filters to InventoryIsVerified (the editors pass false to show all linked BMPs).
+    public static async Task<FeatureCollection> ListByWaterQualityManagementPlanIDAsFeatureCollectionAsync(NeptuneDbContext dbContext, int waterQualityManagementPlanID, bool verifiedOnly = false)
+    {
+        // Query directly with only the real navigation AsFeatureCollection reads (TreatmentBMPType)
+        // rather than GetImpl, which eager-loads a heavy unrelated graph (CustomAttributes + values,
+        // OwnerOrganization, WQMP, …) — wasteful for a marker layer. TrashCaptureStatusType is a
+        // generated in-memory lookup property (not a mapped nav), so it needs no Include.
+        var treatmentBMPs = await dbContext.TreatmentBMPs.AsNoTracking()
+            .Include(x => x.TreatmentBMPType)
+            .Where(x => x.WaterQualityManagementPlanID == waterQualityManagementPlanID
+                        && x.ProjectID == null                 // inventoried BMPs only, not planning-module
+                        && x.LocationPoint4326 != null          // a point is required to render a marker
+                        && (!verifiedOnly || x.InventoryIsVerified))
+            .ToListAsync();
+        return AsFeatureCollection(treatmentBMPs);
+    }
+
     public static async Task<List<TreatmentBMPDisplayDto>> ListWithProjectByPersonAsDisplayDtoAsync(NeptuneDbContext dbContext, PersonDto person)
     {
         var jurisdictionIDs = (person == null || !(person.RoleID == (int)RoleEnum.Admin || person.RoleID == (int)RoleEnum.SitkaAdmin))

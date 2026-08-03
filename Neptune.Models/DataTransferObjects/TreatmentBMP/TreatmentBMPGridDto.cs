@@ -6,6 +6,9 @@ public class TreatmentBMPGridDto
     public string? TreatmentBMPName { get; set; }
     public int TreatmentBMPTypeID { get; set; }
     public string? TreatmentBMPTypeName { get; set; }
+    // NPT-1116: "Verified"/"Provisional" from InventoryIsVerified. Null when the caller's role isn't
+    // permitted to see the Status column (gated server-side in TreatmentBMPController.List).
+    public string? InventoryStatus { get; set; }
     public int StormwaterJurisdictionID { get; set; }
     public string StormwaterJurisdictionName { get; set; }
     public int? WaterQualityManagementPlanID { get; set; }

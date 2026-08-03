@@ -198,6 +198,11 @@ namespace Neptune.EFModels.Entities
                 allDelineationsInDatabase);
 
             await dbContext.SaveChangesAsync();
+
+            // NPT-1115: repair any SQL-invalid geometry persisted by this bulk upsert so GeoServer
+            // (WMS) and the NTS overlay never see invalid polygons. STIsValid-based, so it no-ops
+            // when everything is already valid.
+            await dbContext.Database.ExecuteSqlRawAsync("EXEC dbo.pDelineationMakeValid");
         }
 
         public static Delineation DelineationFromUpsertDto(DelineationUpsertDto delineationUpsertDto)

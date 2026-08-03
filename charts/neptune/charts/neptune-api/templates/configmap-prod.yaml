@@ -6,7 +6,11 @@ metadata:
 data:
   DOCKER_BUILD_SOURCE: "."
   ASPNETCORE_ENVIRONMENT: "Production"
-  SECRET_PATH: "/app/secrets/neptuneApiSecrets"
+  # NPT-1112: KeyVaultName drives the startup secret load (DefaultAzureCredential
+  # via workload identity); SECRET_PATH from the mounted-secret era is gone.
+  KeyVaultName: "{{ .Values.global.env.keyVaultName }}"
+  HangfireUserName: "HangfireAdmin"
+  ClaudeModelId: "{{ .Values.global.env.claudeModelId }}"
   APPINSIGHTS_INSTRUMENTATIONKEY: "{{ .Values.global.env.appInsightsInstrumentationKey }}"
   SitkaEmailRedirect: ""
   SitkaSupportEmail: "h2o.team@esassoc.com"

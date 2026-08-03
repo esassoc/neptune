@@ -1,7 +1,10 @@
-﻿using System.IO;
+﻿extern alias AzureIdentity;
+using System;
+using System.IO;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Hosting;
+using Neptune.Common;
 using Serilog;
 
 namespace Neptune.API
@@ -23,6 +26,25 @@ namespace Neptune.API
                     if (File.Exists(secretPath))
                     {
                         config.AddJsonFile(secretPath);
+                    }
+
+                    // Optional Azure Key Vault as the real-secret source. Opt-in: only
+                    // wired when KeyVaultName is set (configmap in deployed envs,
+                    // .devcontainer/.env locally), so local dev with no vault / no
+                    // `az login` is unaffected. DefaultAzureCredential uses the
+                    // developer's `az login` identity in dev and the pod's workload
+                    // identity in deployed environments.
+                    var keyVaultName = configurationRoot["KeyVaultName"];
+                    if (!string.IsNullOrWhiteSpace(keyVaultName))
+                    {
+                        var kvUri = new Uri($"https://{keyVaultName}.vault.azure.net/");
+                        // Alias-qualified: DefaultAzureCredential is type-forwarded
+                        // between Azure.Core and Azure.Identity, so an unaliased name
+                        // is ambiguous.
+                        config.AddAzureKeyVault(kvUri, new AzureIdentity::Azure.Identity.DefaultAzureCredential(),
+                            new NeptuneKeyVaultSecretManager());
+                        // Re-add env vars after the vault so local overrides still win.
+                        config.AddEnvironmentVariables();
                     }
                 })
                 .UseSerilog((context, services, configuration) =>
