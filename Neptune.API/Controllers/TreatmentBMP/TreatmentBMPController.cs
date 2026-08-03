@@ -165,7 +165,51 @@ public class TreatmentBMPController(
         treatmentBMPDto.CurrentPersonCanEdit = CallingUser != null
             && treatmentBMPDto.StormwaterJurisdictionID.HasValue
             && await CallingUser.CanEditJurisdiction(treatmentBMPDto.StormwaterJurisdictionID.Value, DbContext);
+        // NPT-1117: manage-level gate for the Verify Inventory / Mark as Provisional buttons (manager-only,
+        // jurisdiction-scoped). [JurisdictionManageFeature] on those endpoints is role-only, so the buttons
+        // must not appear for a manager of a different jurisdiction.
+        treatmentBMPDto.CurrentPersonCanManage = CallingUser != null
+            && treatmentBMPDto.StormwaterJurisdictionID.HasValue
+            && await CallingUser.CanManageJurisdiction(treatmentBMPDto.StormwaterJurisdictionID.Value, DbContext);
         return Ok(treatmentBMPDto);
+    }
+
+    // NPT-1117: restore the single-BMP inventory verification affordance dropped in the MVC->SPA migration.
+    // Two explicit endpoints (not one toggle) so a stale page can't flip a state the user didn't intend.
+    // [JurisdictionManageFeature] is role-only, so each also does an in-controller jurisdiction check.
+    [HttpPost("{treatmentBMPID}/verify-inventory")]
+    [JurisdictionManageFeature]
+    [EntityNotFound(typeof(TreatmentBMP), "treatmentBMPID")]
+    public async Task<ActionResult<TreatmentBMPDto>> VerifyInventory([FromRoute] int treatmentBMPID)
+    {
+        var treatmentBMP = TreatmentBMPs.GetByIDWithChangeTracking(DbContext, treatmentBMPID);
+        if (!await CallingUser.CanManageJurisdiction(treatmentBMP.StormwaterJurisdictionID, DbContext))
+        {
+            return Forbid();
+        }
+
+        var currentPerson = People.GetByID(DbContext, CallingUser.PersonID);
+        treatmentBMP.MarkAsVerified(currentPerson);
+        await DbContext.SaveChangesAsync();
+
+        return Ok(await TreatmentBMPs.GetByIDAsDtoAsync(DbContext, treatmentBMPID));
+    }
+
+    [HttpPost("{treatmentBMPID}/mark-provisional")]
+    [JurisdictionManageFeature]
+    [EntityNotFound(typeof(TreatmentBMP), "treatmentBMPID")]
+    public async Task<ActionResult<TreatmentBMPDto>> MarkProvisional([FromRoute] int treatmentBMPID)
+    {
+        var treatmentBMP = TreatmentBMPs.GetByIDWithChangeTracking(DbContext, treatmentBMPID);
+        if (!await CallingUser.CanManageJurisdiction(treatmentBMP.StormwaterJurisdictionID, DbContext))
+        {
+            return Forbid();
+        }
+
+        treatmentBMP.MarkAsProvisional();
+        await DbContext.SaveChangesAsync();
+
+        return Ok(await TreatmentBMPs.GetByIDAsDtoAsync(DbContext, treatmentBMPID));
     }
 
     /// <summary>

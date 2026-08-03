@@ -25,6 +25,8 @@ public class TreatmentBMPDto
     public bool? InventoryIsVerifiedByPerson { get; set; }
     public DateTime? DateOfLastInventoryVerification { get; set; }
     public int? InventoryVerifiedByPersonID { get; set; }
+    // NPT-1117: display name of the verifier for the "Inventory verified by … on …" detail-page text.
+    public string? InventoryVerifiedByPersonName { get; set; }
     public DateTime? InventoryLastChangedDate { get; set; }
     public int? TrashCaptureStatusTypeID { get; set; }
     public int? SizingBasisTypeID { get; set; }
@@ -70,6 +72,11 @@ public class TreatmentBMPDto
     // only when assigned to this BMP's jurisdiction). The SPA gates edit controls on this so it never
     // shows an editor of a different jurisdiction a button that would 403 on submit.
     public bool CurrentPersonCanEdit { get; set; }
+
+    // NPT-1117: per-BMP manage (attestation) authorization for the current user, computed server-side like
+    // CurrentPersonCanEdit but manager-only. The SPA gates the Verify Inventory / Mark as Provisional buttons
+    // on this so a manager of a different jurisdiction sees the status but no button.
+    public bool CurrentPersonCanManage { get; set; }
 
     // Display Names
     public SizingBasisTypeDto? SizingBasisType { get; set; }

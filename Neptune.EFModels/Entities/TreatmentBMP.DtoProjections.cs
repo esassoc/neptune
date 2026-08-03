@@ -62,6 +62,8 @@ public static class TreatmentBMPDtoProjections
         RequiredPostStormFieldVisitsPerYear = x.RequiredPostStormFieldVisitsPerYear,
         DateOfLastInventoryVerification = x.DateOfLastInventoryVerification,
         InventoryVerifiedByPersonID = x.InventoryVerifiedByPersonID,
+        // NPT-1117: verifier display name (First Last). Inline because Person.GetFullNameFirstLast() isn't EF-translatable.
+        InventoryVerifiedByPersonName = x.InventoryVerifiedByPerson != null ? x.InventoryVerifiedByPerson.FirstName + " " + x.InventoryVerifiedByPerson.LastName : null,
         InventoryLastChangedDate = x.InventoryLastChangedDate,
         TrashCaptureStatusTypeID = x.TrashCaptureStatusTypeID,
         SizingBasisTypeID = x.SizingBasisTypeID,
