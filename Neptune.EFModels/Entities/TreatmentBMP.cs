@@ -87,6 +87,13 @@ namespace Neptune.EFModels.Entities
             InventoryVerifiedByPersonID = currentPerson.PersonID;
         }
 
+        // NPT-1117: un-verify. Only the flag flips — DateOfLastInventoryVerification and
+        // InventoryVerifiedByPersonID are preserved as the last-verification audit trail (matches legacy).
+        public void MarkAsProvisional()
+        {
+            InventoryIsVerified = false;
+        }
+
         public async Task DeleteFull(NeptuneDbContext dbContext)
         {
             await dbContext.CustomAttributeValues.Include(x => x.CustomAttribute)

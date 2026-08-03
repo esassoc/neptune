@@ -88,4 +88,22 @@ public static class PersonExtensionMethods
 
         return false;
     }
+
+    // NPT-1117: manage-level (attestation) authorization for a jurisdiction. Mirrors CanEditJurisdiction
+    // but only JurisdictionManager qualifies among the jurisdiction roles — Editors cannot verify inventory.
+    public static async Task<bool> CanManageJurisdiction(this PersonDto person, int stormwaterJurisdictionID, NeptuneDbContext dbContext)
+    {
+        if (person.RoleID == (int)RoleEnum.Admin || person.RoleID == (int)RoleEnum.SitkaAdmin)
+        {
+            return true;
+        }
+
+        if (person.RoleID == (int)RoleEnum.JurisdictionManager)
+        {
+            var stormwaterJurisdictionIDs = await StormwaterJurisdictionPeople.ListViewableStormwaterJurisdictionIDsByPersonIDForBMPsAsync(dbContext, person.PersonID);
+            return stormwaterJurisdictionIDs.Contains(stormwaterJurisdictionID);
+        }
+
+        return false;
+    }
 }

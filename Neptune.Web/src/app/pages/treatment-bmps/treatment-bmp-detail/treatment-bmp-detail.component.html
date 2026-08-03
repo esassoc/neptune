@@ -1,10 +1,23 @@
 <!-- Alerts and Info -->
 @if (treatmentBMP$ | async; as treatmentBMP) {
-    <page-header [pageTitle]="treatmentBMP.TreatmentBMPName" [templateAbove]="templateAbove">
+    <page-header [pageTitle]="treatmentBMP.TreatmentBMPName" [templateAbove]="templateAbove" [templateRight]="templateRight">
         <ng-template #templateAbove>
             <div class="back">
                 <a [routerLink]="['/treatment-bmps']" class="back__link"><i class="fa fa-arrow-left"></i> Back to BMP List</a>
             </div>
+        </ng-template>
+        <!-- NPT-1117: verified state — italic verifier text (+ Mark as Provisional for managers of this jurisdiction). No banner when verified. -->
+        <ng-template #templateRight>
+            @if (treatmentBMP.InventoryIsVerified && !isAnonymousOrUnassigned) {
+                <div class="flex">
+                    <em>Inventory verified by {{ treatmentBMP.InventoryVerifiedByPersonName || "an unknown user" }}@if (treatmentBMP.DateOfLastInventoryVerification) { on {{ treatmentBMP.DateOfLastInventoryVerification | date: "MM/dd/yyyy" : "+0000" }} }</em>
+                    @if (treatmentBMP.CurrentPersonCanManage) {
+                        <button type="button" class="btn btn-sm btn-secondary" [disabled]="isMarkingProvisional" (click)="confirmMarkProvisional(treatmentBMP)">
+                            @if (isMarkingProvisional) { <i class="fa fa-spinner fa-spin"></i> Working... } @else { Mark as Provisional }
+                        </button>
+                    }
+                </div>
+            }
         </ng-template>
     </page-header>
 }
@@ -12,6 +25,20 @@
 <app-alert-display></app-alert-display>
 @if (treatmentBMP$ | async; as treatmentBMP) {
     <div class="grid-12">
+    <!-- NPT-1117: provisional state — info banner (matches the WQMP promote banner). Provisional gates PUBLIC VISIBILITY only, not modeling/trash. -->
+    @if (!treatmentBMP.InventoryIsVerified && !isAnonymousOrUnassigned) {
+        <note noteType="info" class="g-col-12">
+            This BMP's inventory is <strong>provisional</strong>. Provisional BMPs are hidden from public users until the inventory is verified.
+            @if (treatmentBMP.CurrentPersonCanManage) {
+                <div note-action class="flex">
+                    <button type="button" class="btn btn-sm btn-primary" [disabled]="isVerifying" (click)="confirmVerifyInventory(treatmentBMP)">
+                        @if (isVerifying) { <i class="fa fa-spinner fa-spin"></i> Working... } @else { Verify Inventory }
+                    </button>
+                </div>
+            }
+        </note>
+    }
+
     @if (delineationErrors$ | async; as delineationErrors) {
         @if (delineationErrors.HasDiscrepancies || delineationErrors.OverlappingTreatmentBMPs.length > 0) {
             <note noteType="warning" class="g-col-12">

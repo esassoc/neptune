@@ -8589,6 +8589,88 @@
         }
       }
     },
+    "/treatment-bmps/{treatmentBMPID}/verify-inventory": {
+      "post": {
+        "tags": [
+          "TreatmentBMP"
+        ],
+        "operationId": "VerifyInventory_TreatmentBMP",
+        "parameters": [
+          {
+            "name": "treatmentBMPID",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/TreatmentBMPDto"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TreatmentBMPDto"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TreatmentBMPDto"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/treatment-bmps/{treatmentBMPID}/mark-provisional": {
+      "post": {
+        "tags": [
+          "TreatmentBMP"
+        ],
+        "operationId": "MarkProvisional_TreatmentBMP",
+        "parameters": [
+          {
+            "name": "treatmentBMPID",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/TreatmentBMPDto"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TreatmentBMPDto"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TreatmentBMPDto"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/treatment-bmps/{treatmentBMPID}/load-reducing-result": {
       "get": {
         "tags": [
@@ -22002,6 +22084,10 @@
             "format": "int32",
             "nullable": true
           },
+          "InventoryVerifiedByPersonName": {
+            "type": "string",
+            "nullable": true
+          },
           "InventoryLastChangedDate": {
             "type": "string",
             "format": "date-time",
@@ -22108,6 +22194,9 @@
             "type": "boolean"
           },
           "CurrentPersonCanEdit": {
+            "type": "boolean"
+          },
+          "CurrentPersonCanManage": {
             "type": "boolean"
           },
           "SizingBasisType": {
