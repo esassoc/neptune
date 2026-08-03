@@ -22141,6 +22141,10 @@
             "type": "string",
             "nullable": true
           },
+          "InventoryStatus": {
+            "type": "string",
+            "nullable": true
+          },
           "StormwaterJurisdictionID": {
             "type": "integer",
             "format": "int32"

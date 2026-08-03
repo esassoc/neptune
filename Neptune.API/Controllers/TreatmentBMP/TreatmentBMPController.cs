@@ -63,6 +63,17 @@ public class TreatmentBMPController(
             .ToListAsync();
 
         var treatmentBMPGridDtos = entities.Select(x => x.AsGridDto()).ToList();
+
+        // NPT-1116: the Verified/Provisional Status column is only for Admin/SitkaAdmin/JurisdictionManager/
+        // JurisdictionEditor. Null the value for anyone else (Unassigned/anonymous) so it is not served via
+        // the API to roles that don't see the column (defense in depth; the SPA also hides the column).
+        var canSeeInventoryStatus = CallingUser.RoleID is (int)RoleEnum.Admin or (int)RoleEnum.SitkaAdmin
+            or (int)RoleEnum.JurisdictionManager or (int)RoleEnum.JurisdictionEditor;
+        if (!canSeeInventoryStatus)
+        {
+            treatmentBMPGridDtos.ForEach(x => x.InventoryStatus = null);
+        }
+
         return Ok(treatmentBMPGridDtos);
     }
 
