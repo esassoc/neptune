@@ -59,86 +59,108 @@ namespace Neptune.API.Controllers
             var blobName = Guid.NewGuid().ToString();
             await azureBlobStorageService.UploadToBlobStorage(file.OpenReadStream(), blobName, ".gdb");
 
-            var featureClasses = await gdalApiService.OgrInfoGdbToFeatureClassInfo(AzureBlobStorageService.BlobContainerName, blobName);
-            if (featureClasses.Count != 1)
-            {
-                // Don't leave an orphan blob behind for a file we're rejecting.
-                await azureBlobStorageService.DeleteFromBlobStorage(blobName);
-                dto.Errors.Add(featureClasses.Count == 0
-                    ? "The file geodatabase contained no feature class. Please upload a file geodatabase containing exactly one feature class."
-                    : "The file geodatabase contained more than one feature class. Please upload a file geodatabase containing exactly one feature class.");
-                return Ok(dto);
-            }
-
-            var featureClassName = featureClasses.Single().LayerName;
-
+            // The staged GDB is only needed for the feature-class check and the GeoJSON conversion below.
+            // blobName is never persisted or returned, so nothing can reference the blob once this request
+            // completes — drop it however we exit, or uploads accumulate in blob storage.
             try
             {
-                var columns = new List<string>
+                var featureClasses = await gdalApiService.OgrInfoGdbToFeatureClassInfo(AzureBlobStorageService.BlobContainerName, blobName);
+                if (featureClasses.Count != 1)
                 {
-                    $"{currentPerson.PersonID} as UploadedByPersonID",
-                    $"{stormwaterJurisdictionID} as StormwaterJurisdictionID",
-                    $"{treatmentBMPNameField} as TreatmentBMPName",
-                };
-                if (!string.IsNullOrWhiteSpace(delineationStatusField))
-                {
-                    columns.Add($"{delineationStatusField} as DelineationStatus");
+                    dto.Errors.Add(featureClasses.Count == 0
+                        ? "The file geodatabase contained no feature class. Please upload a file geodatabase containing exactly one feature class."
+                        : "The file geodatabase contained more than one feature class. Please upload a file geodatabase containing exactly one feature class.");
+                    return Ok(dto);
                 }
 
-                var apiRequest = new GdbToGeoJsonRequestDto
+                var featureClassName = featureClasses.Single().LayerName;
+
+                try
                 {
-                    BlobContainer = AzureBlobStorageService.BlobContainerName,
-                    CanonicalName = blobName,
-                    GdbLayerOutputs = new List<GdbLayerOutput>
+                    var columns = new List<string>
                     {
-                        new()
+                        $"{currentPerson.PersonID} as UploadedByPersonID",
+                        $"{stormwaterJurisdictionID} as StormwaterJurisdictionID",
+                        $"{treatmentBMPNameField} as TreatmentBMPName",
+                    };
+                    if (!string.IsNullOrWhiteSpace(delineationStatusField))
+                    {
+                        columns.Add($"{delineationStatusField} as DelineationStatus");
+                    }
+
+                    var apiRequest = new GdbToGeoJsonRequestDto
+                    {
+                        BlobContainer = AzureBlobStorageService.BlobContainerName,
+                        CanonicalName = blobName,
+                        GdbLayerOutputs = new List<GdbLayerOutput>
                         {
-                            Columns = columns,
-                            FeatureLayerName = featureClassName,
-                            NumberOfSignificantDigits = 4,
-                            Filter = "",
-                            CoordinateSystemID = Proj4NetHelper.NAD_83_HARN_CA_ZONE_VI_SRID,
+                            new()
+                            {
+                                Columns = columns,
+                                FeatureLayerName = featureClassName,
+                                NumberOfSignificantDigits = 4,
+                                Filter = "",
+                                CoordinateSystemID = Proj4NetHelper.NAD_83_HARN_CA_ZONE_VI_SRID,
+                            },
                         },
-                    },
-                };
+                    };
 
-                var geoJson = await gdalApiService.Ogr2OgrGdbToGeoJson(apiRequest);
-                var processErrors = await DelineationStagings.ProcessDeserializedStagingAsync(DbContext, geoJson, currentPerson);
-                dto.Errors.AddRange(processErrors);
+                    var geoJson = await gdalApiService.Ogr2OgrGdbToGeoJson(apiRequest);
+                    var processErrors = await DelineationStagings.ProcessDeserializedStagingAsync(DbContext, geoJson, currentPerson);
+                    dto.Errors.AddRange(processErrors);
 
-                if (dto.Errors.Count > 0)
+                    if (dto.Errors.Count > 0)
+                    {
+                        await DelineationStagings.DiscardForUserAsync(DbContext, currentPerson);
+                        return Ok(dto);
+                    }
+                }
+                catch (DbUpdateException dbEx) when (dbEx.InnerException?.Message.Contains("AK_DelineationStaging_TreatmentBMPName_StormwaterJurisdictionID") == true)
                 {
+                    var msg = dbEx.InnerException!.Message;
+                    var start = msg.IndexOf('(') + 1;
+                    var end = msg.IndexOf(',');
+                    var duplicate = end > start ? msg.Substring(start, end - start) : "(unknown)";
+                    dto.Errors.Add($"The Treatment BMP Name field must contain unique values. There was at least one duplicated Treatment BMP Name: {duplicate}");
                     await DelineationStagings.DiscardForUserAsync(DbContext, currentPerson);
                     return Ok(dto);
                 }
+                catch (Exception ex) when (ex.Message.Contains("Unrecognized field name", StringComparison.InvariantCultureIgnoreCase))
+                {
+                    dto.Errors.Add("The columns in the uploaded file did not match the Delineation schema. Ensure that your field names match the GDB exactly, and if DelineationStatus is not present in the GDB ensure that field is left blank.");
+                    await DelineationStagings.DiscardForUserAsync(DbContext, currentPerson);
+                    return Ok(dto);
+                }
+                catch (Exception ex)
+                {
+                    Logger.LogError(ex, "Failed to process delineation GDB upload");
+                    dto.Errors.Add($"There was a problem processing the Feature Class \"{featureClassName}\". The file may be corrupted or invalid. Ensure that your field names entered above match the GDB exactly, and if DelineationStatus is not present in the GDB ensure that field is left blank.");
+                    await DelineationStagings.DiscardForUserAsync(DbContext, currentPerson);
+                    return Ok(dto);
+                }
+
+                // After staging persisted, build the report so the SPA can advance straight to Approve.
+                var report = DelineationStagings.BuildReportForCurrentUser(DbContext, currentPerson);
+                return Ok(report);
             }
-            catch (DbUpdateException dbEx) when (dbEx.InnerException?.Message.Contains("AK_DelineationStaging_TreatmentBMPName_StormwaterJurisdictionID") == true)
+            finally
             {
-                var msg = dbEx.InnerException!.Message;
-                var start = msg.IndexOf('(') + 1;
-                var end = msg.IndexOf(',');
-                var duplicate = end > start ? msg.Substring(start, end - start) : "(unknown)";
-                dto.Errors.Add($"The Treatment BMP Name field must contain unique values. There was at least one duplicated Treatment BMP Name: {duplicate}");
-                await DelineationStagings.DiscardForUserAsync(DbContext, currentPerson);
-                return Ok(dto);
+                await DeleteStagedGdbBlobAsync(blobName);
             }
-            catch (Exception ex) when (ex.Message.Contains("Unrecognized field name", StringComparison.InvariantCultureIgnoreCase))
+        }
+
+        // Cleanup must never mask the response (or an in-flight exception) — a leftover temp blob is the
+        // lesser problem, so failures here are logged and swallowed.
+        private async Task DeleteStagedGdbBlobAsync(string blobName)
+        {
+            try
             {
-                dto.Errors.Add("The columns in the uploaded file did not match the Delineation schema. Ensure that your field names match the GDB exactly, and if DelineationStatus is not present in the GDB ensure that field is left blank.");
-                await DelineationStagings.DiscardForUserAsync(DbContext, currentPerson);
-                return Ok(dto);
+                await azureBlobStorageService.DeleteFromBlobStorage(blobName);
             }
             catch (Exception ex)
             {
-                Logger.LogError(ex, "Failed to process delineation GDB upload");
-                dto.Errors.Add($"There was a problem processing the Feature Class \"{featureClassName}\". The file may be corrupted or invalid. Ensure that your field names entered above match the GDB exactly, and if DelineationStatus is not present in the GDB ensure that field is left blank.");
-                await DelineationStagings.DiscardForUserAsync(DbContext, currentPerson);
-                return Ok(dto);
+                Logger.LogWarning(ex, "Failed to clean up staged GDB blob {BlobName}", blobName);
             }
-
-            // After staging persisted, build the report so the SPA can advance straight to Approve.
-            var report = DelineationStagings.BuildReportForCurrentUser(DbContext, currentPerson);
-            return Ok(report);
         }
 
         [HttpGet("staging-report")]

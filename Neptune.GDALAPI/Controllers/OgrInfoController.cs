@@ -28,7 +28,7 @@ public class OgrInfoController : ControllerBase
     {
         using var disposableTempGdbZipFile = DisposableTempFile.MakeDisposableTempFileEndingIn(".gdb.zip");
 
-        _logger.LogInformation($"Retrieving GDB File from blob storage: {requestDto.CanonicalName}");
+        _logger.LogInformation("Retrieving GDB File from blob storage: {CanonicalName}", requestDto.CanonicalName);
         await _azureStorage.DownloadToAsync(requestDto.BlobContainer, requestDto.CanonicalName,
             disposableTempGdbZipFile.FileInfo.FullName);
 

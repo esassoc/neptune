@@ -220,97 +220,119 @@ public class OnlandVisualTrashAssessmentAreaController(
         var blobName = Guid.NewGuid().ToString();
         await azureBlobStorageService.UploadToBlobStorage(form.File.OpenReadStream(), blobName, ".gdb");
 
-        var featureClasses = await gdalApiService.OgrInfoGdbToFeatureClassInfo(AzureBlobStorageService.BlobContainerName, blobName);
-        if (featureClasses.Count != 1)
-        {
-            // Don't leave an orphan blob behind for a file we're rejecting.
-            await azureBlobStorageService.DeleteFromBlobStorage(blobName);
-            report.Errors.Add(featureClasses.Count == 0
-                ? "The file geodatabase contained no feature class. Please upload a file geodatabase containing exactly one feature class."
-                : "The file geodatabase contained more than one feature class. Please upload a file geodatabase containing exactly one feature class.");
-            return Ok(report);
-        }
-
-        var featureClassName = featureClasses.Single().LayerName;
-
+        // The staged GDB is only needed for the feature-class check and the GeoJSON conversion below.
+        // blobName is never persisted or returned, so nothing can reference the blob once this request
+        // completes — drop it however we exit, or uploads accumulate in blob storage.
         try
         {
-            var columns = new List<string>
+            var featureClasses = await gdalApiService.OgrInfoGdbToFeatureClassInfo(AzureBlobStorageService.BlobContainerName, blobName);
+            if (featureClasses.Count != 1)
             {
-                $"{form.StormwaterJurisdictionID} as StormwaterJurisdictionID",
-                $"{form.AreaNameField} as AreaName",
-                "Description",
-                $"{currentPerson.PersonID} as UploadedByPersonID",
-            };
-            var apiRequest = new GdbToGeoJsonRequestDto
+                report.Errors.Add(featureClasses.Count == 0
+                    ? "The file geodatabase contained no feature class. Please upload a file geodatabase containing exactly one feature class."
+                    : "The file geodatabase contained more than one feature class. Please upload a file geodatabase containing exactly one feature class.");
+                return Ok(report);
+            }
+
+            var featureClassName = featureClasses.Single().LayerName;
+
+            try
             {
-                BlobContainer = AzureBlobStorageService.BlobContainerName,
-                CanonicalName = blobName,
-                GdbLayerOutputs = new List<GdbLayerOutput>
+                var columns = new List<string>
                 {
-                    new()
+                    $"{form.StormwaterJurisdictionID} as StormwaterJurisdictionID",
+                    $"{form.AreaNameField} as AreaName",
+                    "Description",
+                    $"{currentPerson.PersonID} as UploadedByPersonID",
+                };
+                var apiRequest = new GdbToGeoJsonRequestDto
+                {
+                    BlobContainer = AzureBlobStorageService.BlobContainerName,
+                    CanonicalName = blobName,
+                    GdbLayerOutputs = new List<GdbLayerOutput>
                     {
-                        Columns = columns,
-                        FeatureLayerName = featureClassName,
-                        NumberOfSignificantDigits = 4,
-                        Filter = "",
-                        CoordinateSystemID = Proj4NetHelper.NAD_83_HARN_CA_ZONE_VI_SRID,
+                        new()
+                        {
+                            Columns = columns,
+                            FeatureLayerName = featureClassName,
+                            NumberOfSignificantDigits = 4,
+                            Filter = "",
+                            CoordinateSystemID = Proj4NetHelper.NAD_83_HARN_CA_ZONE_VI_SRID,
+                        },
                     },
-                },
-            };
+                };
 
-            var geoJson = await gdalApiService.Ogr2OgrGdbToGeoJson(apiRequest);
-            var stagings = (await GeoJsonSerializer.DeserializeFromFeatureCollectionWithCCWCheck<OnlandVisualTrashAssessmentAreaStaging>(
-                geoJson, GeoJsonSerializer.DefaultSerializerOptions, Proj4NetHelper.NAD_83_HARN_CA_ZONE_VI_SRID)).ToList();
+                var geoJson = await gdalApiService.Ogr2OgrGdbToGeoJson(apiRequest);
+                var stagings = (await GeoJsonSerializer.DeserializeFromFeatureCollectionWithCCWCheck<OnlandVisualTrashAssessmentAreaStaging>(
+                    geoJson, GeoJsonSerializer.DefaultSerializerOptions, Proj4NetHelper.NAD_83_HARN_CA_ZONE_VI_SRID)).ToList();
 
-            if (stagings.Count == 0)
+                if (stagings.Count == 0)
+                {
+                    report.Errors.Add("No OVTA Area features were found in the upload.");
+                    await OnlandVisualTrashAssessmentAreaGdbExport.DiscardStagingForUserAsync(DbContext, currentPerson);
+                    return Ok(report);
+                }
+
+                // NPT-1075 round 2: replace the silent geometry filter + generic "corrupted file"
+                // catch with per-feature error messages (null/blank AreaName, invalid geometry,
+                // oversized Description) so users can find and fix the offending features.
+                report.Errors.AddRange(OnlandVisualTrashAssessmentAreaGdbValidator.Validate(stagings));
+
+                // Skip null/blank names here — the validator above already reports those as their own
+                // per-feature error; grouping them would produce a confusing "Duplicate OVTA Area
+                // Names: " (empty value) message that just duplicates the missing-name signal.
+                var duplicateNames = stagings.Where(x => !string.IsNullOrWhiteSpace(x.AreaName))
+                    .GroupBy(x => x.AreaName).Where(g => g.Count() > 1).Select(g => g.Key).ToList();
+                if (duplicateNames.Count > 0)
+                {
+                    report.Errors.Add($"Duplicate OVTA Area Names: {string.Join(", ", duplicateNames)}");
+                }
+
+                if (report.Errors.Count > 0)
+                {
+                    await OnlandVisualTrashAssessmentAreaGdbExport.DiscardStagingForUserAsync(DbContext, currentPerson);
+                    return Ok(report);
+                }
+
+                await DbContext.OnlandVisualTrashAssessmentAreaStagings
+                    .Where(x => x.UploadedByPersonID == currentPerson.PersonID).ExecuteDeleteAsync();
+                DbContext.OnlandVisualTrashAssessmentAreaStagings.AddRange(stagings);
+                await DbContext.SaveChangesAsync();
+            }
+            catch (Exception ex) when (ex.Message.Contains("Unrecognized field name", StringComparison.InvariantCultureIgnoreCase))
             {
-                report.Errors.Add("No OVTA Area features were found in the upload.");
+                report.Errors.Add("The columns in the uploaded file did not match the OVTA area schema. Ensure your AreaName / Description field names match the GDB exactly.");
+                await OnlandVisualTrashAssessmentAreaGdbExport.DiscardStagingForUserAsync(DbContext, currentPerson);
+                return Ok(report);
+            }
+            catch (Exception ex)
+            {
+                Logger.LogError(ex, "Failed to process OVTA Area GDB upload");
+                report.Errors.Add($"There was a problem processing the Feature Class \"{featureClassName}\". The file may be corrupted or invalid.");
                 await OnlandVisualTrashAssessmentAreaGdbExport.DiscardStagingForUserAsync(DbContext, currentPerson);
                 return Ok(report);
             }
 
-            // NPT-1075 round 2: replace the silent geometry filter + generic "corrupted file"
-            // catch with per-feature error messages (null/blank AreaName, invalid geometry,
-            // oversized Description) so users can find and fix the offending features.
-            report.Errors.AddRange(OnlandVisualTrashAssessmentAreaGdbValidator.Validate(stagings));
-
-            // Skip null/blank names here — the validator above already reports those as their own
-            // per-feature error; grouping them would produce a confusing "Duplicate OVTA Area
-            // Names: " (empty value) message that just duplicates the missing-name signal.
-            var duplicateNames = stagings.Where(x => !string.IsNullOrWhiteSpace(x.AreaName))
-                .GroupBy(x => x.AreaName).Where(g => g.Count() > 1).Select(g => g.Key).ToList();
-            if (duplicateNames.Count > 0)
-            {
-                report.Errors.Add($"Duplicate OVTA Area Names: {string.Join(", ", duplicateNames)}");
-            }
-
-            if (report.Errors.Count > 0)
-            {
-                await OnlandVisualTrashAssessmentAreaGdbExport.DiscardStagingForUserAsync(DbContext, currentPerson);
-                return Ok(report);
-            }
-
-            await DbContext.OnlandVisualTrashAssessmentAreaStagings
-                .Where(x => x.UploadedByPersonID == currentPerson.PersonID).ExecuteDeleteAsync();
-            DbContext.OnlandVisualTrashAssessmentAreaStagings.AddRange(stagings);
-            await DbContext.SaveChangesAsync();
+            return Ok(OnlandVisualTrashAssessmentAreaGdbExport.BuildStagingReportForCurrentUser(DbContext, currentPerson));
         }
-        catch (Exception ex) when (ex.Message.Contains("Unrecognized field name", StringComparison.InvariantCultureIgnoreCase))
+        finally
         {
-            report.Errors.Add("The columns in the uploaded file did not match the OVTA area schema. Ensure your AreaName / Description field names match the GDB exactly.");
-            await OnlandVisualTrashAssessmentAreaGdbExport.DiscardStagingForUserAsync(DbContext, currentPerson);
-            return Ok(report);
+            await DeleteStagedGdbBlobAsync(blobName);
+        }
+    }
+
+    // Cleanup must never mask the response (or an in-flight exception) — a leftover temp blob is the
+    // lesser problem, so failures here are logged and swallowed.
+    private async Task DeleteStagedGdbBlobAsync(string blobName)
+    {
+        try
+        {
+            await azureBlobStorageService.DeleteFromBlobStorage(blobName);
         }
         catch (Exception ex)
         {
-            Logger.LogError(ex, "Failed to process OVTA Area GDB upload");
-            report.Errors.Add($"There was a problem processing the Feature Class \"{featureClassName}\". The file may be corrupted or invalid.");
-            await OnlandVisualTrashAssessmentAreaGdbExport.DiscardStagingForUserAsync(DbContext, currentPerson);
-            return Ok(report);
+            Logger.LogWarning(ex, "Failed to clean up staged GDB blob {BlobName}", blobName);
         }
-
-        return Ok(OnlandVisualTrashAssessmentAreaGdbExport.BuildStagingReportForCurrentUser(DbContext, currentPerson));
     }
 
     [HttpGet("gdb-staging-report")]
