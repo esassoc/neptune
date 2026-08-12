@@ -57,8 +57,11 @@ export class LandUseBlockUploadApproveComponent implements OnInit {
                 const message =
                     `${count} Land Use Block${count === 1 ? "" : "s"} queued for processing. ` +
                     "You'll receive an email when the import completes.";
-                this.alertService.pushAlert(new Alert(message, AlertContext.Success, true));
-                this.router.navigate(["/data-hub"]);
+                // Push after the navigation resolves — AlertDisplayComponent clears alerts on destroy,
+                // so an alert pushed before navigating away is dropped with this page.
+                this.router.navigate(["/data-hub"]).then(() => {
+                    this.alertService.pushAlert(new Alert(message, AlertContext.Success, true));
+                });
             },
             error: () => {
                 this.isWorking.set(false);

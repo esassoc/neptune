@@ -1,3 +1,4 @@
+import { DecimalPipe } from "@angular/common";
 import { Component, OnInit, signal } from "@angular/core";
 import { Router, RouterLink } from "@angular/router";
 import { OnlandVisualTrashAssessmentAreaService } from "src/app/shared/generated/api/onland-visual-trash-assessment-area.service";
@@ -11,8 +12,9 @@ import { AlertService } from "src/app/shared/services/alert.service";
 @Component({
     selector: "ovta-area-approve",
     standalone: true,
-    imports: [RouterLink, PageHeaderComponent, AlertDisplayComponent],
+    imports: [RouterLink, PageHeaderComponent, AlertDisplayComponent, DecimalPipe],
     templateUrl: "./ovta-area-approve.component.html",
+    styleUrl: "./ovta-area-approve.component.scss",
 })
 export class OvtaAreaApproveComponent implements OnInit {
     public report = signal<OvtaAreaGdbStagingReportDto | null>(null);
@@ -35,15 +37,27 @@ export class OvtaAreaApproveComponent implements OnInit {
         });
     }
 
-    public approve(): void {
+    public hasErrors(): boolean {
         const r = this.report();
-        if (!r || (r.Errors && r.Errors.length > 0)) return;
+        return !!r && r.Errors.length > 0;
+    }
+
+    public hasStaging(): boolean {
+        const r = this.report();
+        return !!r && (r.NumberOfOvtaAreas ?? 0) > 0;
+    }
+
+    public approve(): void {
+        if (this.hasErrors() || !this.hasStaging()) return;
         this.isWorking.set(true);
         this.ovtaAreaService.gdbApproveOnlandVisualTrashAssessmentArea().subscribe({
             next: (count) => {
                 this.isWorking.set(false);
-                this.alertService.pushAlert(new Alert(`${count} OVTA Area(s) successfully uploaded.`, AlertContext.Success, true));
-                this.router.navigate(["/data-hub"], { queryParams: { tab: "trash" } });
+                // Push after the navigation resolves — AlertDisplayComponent clears alerts on destroy,
+                // so an alert pushed before navigating away is dropped with this page.
+                this.router.navigate(["/data-hub"], { queryParams: { tab: "trash" } }).then(() => {
+                    this.alertService.pushAlert(new Alert(`${count} OVTA Area(s) successfully uploaded.`, AlertContext.Success, true));
+                });
             },
             error: () => {
                 this.isWorking.set(false);
@@ -53,13 +67,14 @@ export class OvtaAreaApproveComponent implements OnInit {
         });
     }
 
-    public discard(): void {
+    public cancel(): void {
         this.isWorking.set(true);
         this.ovtaAreaService.gdbDiscardStagingOnlandVisualTrashAssessmentArea().subscribe({
             next: () => {
                 this.isWorking.set(false);
-                this.alertService.pushAlert(new Alert("Staged OVTA Areas discarded.", AlertContext.Info, true));
-                this.router.navigate(["/data-hub"], { queryParams: { tab: "trash" } });
+                this.router.navigate(["/data-hub"], { queryParams: { tab: "trash" } }).then(() => {
+                    this.alertService.pushAlert(new Alert("Staged OVTA Areas discarded.", AlertContext.Info, true));
+                });
             },
             error: () => {
                 this.isWorking.set(false);

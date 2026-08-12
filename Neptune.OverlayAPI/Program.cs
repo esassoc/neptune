@@ -1,4 +1,4 @@
-extern alias AzureIdentity;
+using Azure.Identity;
 using Microsoft.EntityFrameworkCore;
 using Neptune.Common;
 using Neptune.EFModels.Entities;
@@ -25,9 +25,7 @@ var keyVaultName = builder.Configuration["KeyVaultName"];
 if (!string.IsNullOrWhiteSpace(keyVaultName))
 {
     var kvUri = new Uri($"https://{keyVaultName}.vault.azure.net/");
-    // Alias-qualified: DefaultAzureCredential is type-forwarded between Azure.Core
-    // and Azure.Identity, so an unaliased name is ambiguous.
-    builder.Configuration.AddAzureKeyVault(kvUri, new AzureIdentity::Azure.Identity.DefaultAzureCredential(),
+    builder.Configuration.AddAzureKeyVault(kvUri, new DefaultAzureCredential(),
         new NeptuneKeyVaultSecretManager());
     builder.Configuration.AddEnvironmentVariables();
 }
