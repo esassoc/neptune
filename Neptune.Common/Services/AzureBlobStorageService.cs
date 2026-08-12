@@ -712,12 +712,22 @@ public class AzureBlobStorageService
     public async Task<bool> UploadToBlobStorage(byte[] fileBytes, string blobName, string extension)
     {
         using var ms = new MemoryStream(fileBytes);
+        return await UploadToBlobStorage(ms, blobName, extension);
+    }
+
+    /// <summary>
+    /// Stream overload — lets callers hand off an upload (e.g. IFormFile.OpenReadStream()) without
+    /// first materializing the whole file as a byte[], which matters for the large File Geodatabase
+    /// uploads.
+    /// </summary>
+    public async Task<bool> UploadToBlobStorage(Stream fileStream, string blobName, string extension)
+    {
         var blobClient = _fileResourceContainerClient.GetBlobClient(blobName);
         var exists = await blobClient.ExistsAsync();
 
         if (!exists.Value)
         {
-            await blobClient.UploadAsync(ms, new BlobHttpHeaders { ContentType = GetContentTypeFromExtension(extension) });
+            await blobClient.UploadAsync(fileStream, new BlobHttpHeaders { ContentType = GetContentTypeFromExtension(extension) });
         }
 
         return await blobClient.ExistsAsync();

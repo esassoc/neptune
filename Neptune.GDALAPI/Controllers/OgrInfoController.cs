@@ -20,17 +20,17 @@ public class OgrInfoController : ControllerBase
         _azureStorage = azureStorage;
     }
 
+    // Takes a pointer to a File Geodatabase already staged in blob storage rather than the file itself.
+    // The caller has to upload it to blob storage anyway for the subsequent gdb-geojson conversion, so
+    // pushing the bytes through here as well meant reading and buffering the same upload twice.
     [HttpPost("ogrinfo/gdb-feature-classes")]
-    [RequestSizeLimit(10_000_000_000)]
-    [RequestFormLimits(MultipartBodyLengthLimit = 10_000_000_000)]
-    public async Task<ActionResult<List<FeatureClassInfo>>> GdbToFeatureClassInfo([FromForm] IFormFile file)
+    public async Task<ActionResult<List<FeatureClassInfo>>> GdbToFeatureClassInfo([FromBody] GdbFeatureClassInfoRequestDto requestDto)
     {
         using var disposableTempGdbZipFile = DisposableTempFile.MakeDisposableTempFileEndingIn(".gdb.zip");
 
-        await using (var fileStream = new FileStream(disposableTempGdbZipFile.FileInfo.FullName, FileMode.Create))
-        {
-            await file.CopyToAsync(fileStream);
-        }
+        _logger.LogInformation($"Retrieving GDB File from blob storage: {requestDto.CanonicalName}");
+        await _azureStorage.DownloadToAsync(requestDto.BlobContainer, requestDto.CanonicalName,
+            disposableTempGdbZipFile.FileInfo.FullName);
 
         var args = BuildOgrInfoCommandLineArgumentsToListFeatureClassInfos(disposableTempGdbZipFile.FileInfo.FullName,
             null);
@@ -71,7 +71,7 @@ public class OgrInfoController : ControllerBase
         }
         catch (Exception e)
         {
-            Console.WriteLine(e);
+            _logger.LogError(e, "Error occurred while listing feature classes for {CanonicalName}", requestDto.CanonicalName);
             throw;
         }
     }

@@ -52,25 +52,25 @@ namespace Neptune.API.Controllers
                 return Ok(dto);
             }
 
-            // Validate the GDB feature-class shape BEFORE uploading to blob storage so a malformed file
-            // doesn't leave an orphan blob behind.
-            var featureClasses = await gdalApiService.OgrInfoGdbToFeatureClassInfo(file);
-            if (featureClasses.Count == 0)
+            var currentPerson = People.GetByID(DbContext, CallingUser.PersonID);
+
+            // Stage the upload in blob storage first so both the feature-class validation below and the
+            // GDB-to-GeoJSON conversion further down can work from it without re-reading the request.
+            var blobName = Guid.NewGuid().ToString();
+            await azureBlobStorageService.UploadToBlobStorage(file.OpenReadStream(), blobName, ".gdb");
+
+            var featureClasses = await gdalApiService.OgrInfoGdbToFeatureClassInfo(AzureBlobStorageService.BlobContainerName, blobName);
+            if (featureClasses.Count != 1)
             {
-                dto.Errors.Add("The file geodatabase contained no feature class. Please upload a file geodatabase containing exactly one feature class.");
-                return Ok(dto);
-            }
-            if (featureClasses.Count > 1)
-            {
-                dto.Errors.Add("The file geodatabase contained more than one feature class. Please upload a file geodatabase containing exactly one feature class.");
+                // Don't leave an orphan blob behind for a file we're rejecting.
+                await azureBlobStorageService.DeleteFromBlobStorage(blobName);
+                dto.Errors.Add(featureClasses.Count == 0
+                    ? "The file geodatabase contained no feature class. Please upload a file geodatabase containing exactly one feature class."
+                    : "The file geodatabase contained more than one feature class. Please upload a file geodatabase containing exactly one feature class.");
                 return Ok(dto);
             }
 
             var featureClassName = featureClasses.Single().LayerName;
-            var currentPerson = People.GetByID(DbContext, CallingUser.PersonID);
-
-            var blobName = Guid.NewGuid().ToString();
-            await azureBlobStorageService.UploadToBlobStorage(await FileStreamHelpers.StreamToBytes(file), blobName, ".gdb");
 
             try
             {

@@ -63,7 +63,7 @@
           </div>
         </div>
 
-        <div class="actions">
+        <div class="actions actions--end">
           @if (canClose() && !showCloseForm()) {
             <button type="button" class="btn btn-primary" (click)="openCloseForm()">Close Request</button>
           }
@@ -79,7 +79,7 @@
             </div>
             <div class="card-body">
               <form-field [formControl]="closeNotesControl" [type]="FormFieldType.Textarea" fieldLabel="Close Notes"></form-field>
-              <div class="actions">
+              <div class="actions actions--end">
                 <button type="button" class="btn btn-primary" [disabled]="saving$ | async" (click)="submitClose()">Save</button>
                 <button type="button" class="btn btn-primary-outline" (click)="cancelClose()">Cancel</button>
               </div>

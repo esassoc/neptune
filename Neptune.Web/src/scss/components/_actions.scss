@@ -1,0 +1,16 @@
+@use "/src/scss/abstracts" as *;
+
+// Row of buttons closing out a form, card, or page section.
+// Left-aligned by default, which suits a full-width page section; add the
+// `actions--end` modifier to right-align, the convention when the row sits
+// inside a card or narrow panel.
+.actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: $spacing-400;
+    margin-top: $spacing-400;
+
+    &--end {
+        justify-content: flex-end;
+    }
+}

@@ -966,7 +966,7 @@ export const routes: Routes = [
             },
             {
                 path: "data-hub/ovta-area-approve",
-                title: "Approve OVTA Areas",
+                title: "Approve Uploaded OVTA Assessment Areas",
                 loadComponent: () => import("./pages/data-hub/ovta-area-approve/ovta-area-approve.component").then((m) => m.OvtaAreaApproveComponent),
                 canActivate: [JurisdictionManagerOrEditorOnlyGuard],
             },

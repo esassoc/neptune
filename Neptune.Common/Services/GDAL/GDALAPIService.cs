@@ -1,8 +1,5 @@
-﻿using Microsoft.Extensions.Logging;
-using NetTopologySuite.Geometries;
-using System.Net.Http.Headers;
+using Microsoft.Extensions.Logging;
 using System.Net.Http.Json;
-using Microsoft.AspNetCore.Http;
 
 namespace Neptune.Common.Services.GDAL
 {
@@ -14,101 +11,113 @@ namespace Neptune.Common.Services.GDAL
         /// </summary>
         private readonly HttpClient _httpClient;
         private readonly ILogger<GDALAPIService> _logger;
+        private readonly AzureBlobStorageService _azureBlobStorageService;
 
-        public GDALAPIService(ILogger<GDALAPIService> logger, HttpClient httpClient)
+        public GDALAPIService(ILogger<GDALAPIService> logger, HttpClient httpClient, AzureBlobStorageService azureBlobStorageService)
         {
             _logger = logger;
             _httpClient = httpClient;
+            _azureBlobStorageService = azureBlobStorageService;
         }
 
         public async Task Ogr2OgrInputToGdb(GdbInputToGdbRequestDto gdbInputToGdbRequestDto)
         {
-            var requestContent = gdbInputToGdbRequestDto.ToMultipartFormDataContent();
-            _logger.LogInformation("Sending request to GDAL API");
-            var response = await _httpClient.PostAsync("/ogr2ogr/upsert-gdb", requestContent);
-            if (!response.IsSuccessStatusCode)
+            var stagedBlobNames = await StageFileContentsToBlobStorage(new[] { gdbInputToGdbRequestDto.GdbInput });
+            try
             {
-                throw new Exception("Failed");
+                _logger.LogInformation("Sending request to GDAL API");
+                var response = await _httpClient.PostAsJsonAsync("/ogr2ogr/upsert-gdb", gdbInputToGdbRequestDto);
+                await EnsureSuccessAsync(response, "ogr2ogr/upsert-gdb");
+            }
+            finally
+            {
+                await DeleteStagedBlobs(stagedBlobNames);
             }
         }
 
         public async Task<byte[]> Ogr2OgrInputToGdbAsZip(GdbInputsToGdbRequestDto gdbInputsToGdbRequestDto)
         {
-            var requestContent = gdbInputsToGdbRequestDto.ToMultipartFormDataContent();
-            _logger.LogInformation("Sending request to GDAL API");
-            var response = await _httpClient.PostAsync("/ogr2ogr/upsert-gdb-as-zip", requestContent);
-            if (!response.IsSuccessStatusCode)
+            var stagedBlobNames = await StageFileContentsToBlobStorage(gdbInputsToGdbRequestDto.GdbInputs);
+            try
             {
-                throw new Exception("Failed");
+                _logger.LogInformation("Sending request to GDAL API");
+                var response = await _httpClient.PostAsJsonAsync("/ogr2ogr/upsert-gdb-as-zip", gdbInputsToGdbRequestDto);
+                await EnsureSuccessAsync(response, "ogr2ogr/upsert-gdb-as-zip");
+                return await response.Content.ReadAsByteArrayAsync();
             }
-            var gdbZip = await response.Content.ReadAsByteArrayAsync();
-
-            return gdbZip;
+            finally
+            {
+                await DeleteStagedBlobs(stagedBlobNames);
+            }
         }
 
         public async Task<byte[]> Ogr2OgrGdbToGeoJson(GdbToGeoJsonRequestDto geoJsonRequestToGdbDto)
         {
             _logger.LogInformation("Sending request to GDAL API");
             var response = await _httpClient.PostAsJsonAsync("/ogr2ogr/gdb-geojson", geoJsonRequestToGdbDto);
-            if (response.IsSuccessStatusCode)
-            {
-                var result = await response.Content.ReadAsByteArrayAsync();
-                return result;
-            }
-
-            var content = await response.Content.ReadAsStringAsync();
-            throw new Exception($"Ogr2OgrGdbToGeoJson request failed: {content}");
+            await EnsureSuccessAsync(response, "ogr2ogr/gdb-geojson");
+            return await response.Content.ReadAsByteArrayAsync();
         }
 
-        public async Task<List<FeatureClassInfo>> OgrInfoGdbToFeatureClassInfo(IFormFile formFile)
+        public async Task<List<FeatureClassInfo>> OgrInfoGdbToFeatureClassInfo(string blobContainer, string canonicalName)
         {
-            using var ms = new MemoryStream();
-            await formFile.CopyToAsync(ms);
-            ms.Seek(0, SeekOrigin.Begin);
-            var byteContent = new StreamContent(ms);
-            byteContent.Headers.ContentType = new MediaTypeHeaderValue(formFile.ContentType);
-
-            var form = new MultipartFormDataContent();
-            form.Add(byteContent, "file", formFile.FileName);
-
             _logger.LogInformation("Sending request to GDAL API");
+            var response = await _httpClient.PostAsJsonAsync("/ogrinfo/gdb-feature-classes",
+                new GdbFeatureClassInfoRequestDto { BlobContainer = blobContainer, CanonicalName = canonicalName });
+            await EnsureSuccessAsync(response, "ogrinfo/gdb-feature-classes");
+            return await response.Content.ReadFromJsonAsync<List<FeatureClassInfo>>();
+        }
 
-            var response = await _httpClient.PostAsync("/ogrinfo/gdb-feature-classes", form);
-            if (response.IsSuccessStatusCode)
+        /// <summary>
+        /// Callers build their GeoJSON in memory and hand it over as <see cref="GdbInput.FileContents"/>.
+        /// Rather than shipping those bytes to the GDAL API as multipart form data — which required the
+        /// form field names on both sides to stay in lockstep by convention alone — stage them in blob
+        /// storage and let the request carry only a pointer, matching how the GDB-to-GeoJSON direction
+        /// already works. Returns the temporary blob names so they can be cleaned up afterwards.
+        /// </summary>
+        private async Task<List<string>> StageFileContentsToBlobStorage(IEnumerable<GdbInput> gdbInputs)
+        {
+            var stagedBlobNames = new List<string>();
+            foreach (var gdbInput in gdbInputs.Where(x => x.FileContents != null))
             {
-                var result = await response.Content.ReadFromJsonAsync<List<FeatureClassInfo>>();
-                return result;
+                var blobName = Guid.NewGuid().ToString();
+                await _azureBlobStorageService.UploadToBlobStorage(gdbInput.FileContents!, blobName, ".json");
+                gdbInput.BlobContainer = AzureBlobStorageService.BlobContainerName;
+                gdbInput.CanonicalName = blobName;
+                // Drop the in-memory copy now that it is in blob storage; it is [JsonIgnore]d anyway,
+                // and these payloads can be large.
+                gdbInput.FileContents = null;
+                stagedBlobNames.Add(blobName);
             }
-            else
+
+            return stagedBlobNames;
+        }
+
+        private async Task DeleteStagedBlobs(List<string> stagedBlobNames)
+        {
+            foreach (var blobName in stagedBlobNames)
             {
-                throw new Exception("Failed to POST");
+                try
+                {
+                    await _azureBlobStorageService.DeleteFromBlobStorage(blobName);
+                }
+                catch (Exception ex)
+                {
+                    // A leftover temp blob is not worth failing (or masking) the caller's operation over.
+                    _logger.LogWarning(ex, "Failed to clean up staged GDAL input blob {BlobName}", blobName);
+                }
             }
         }
 
-        public async Task<Envelope> OgrInfoGdbExtent(IFormFile formFile, string featureClassName, int? boundingBoxBufferInFeet)
+        private static async Task EnsureSuccessAsync(HttpResponseMessage response, string operation)
         {
-            using var ms = new MemoryStream();
-            await formFile.CopyToAsync(ms);
-            ms.Seek(0, SeekOrigin.Begin);
-            var byteContent = new StreamContent(ms);
-            byteContent.Headers.ContentType = new MediaTypeHeaderValue(formFile.ContentType);
-
-            var form = new MultipartFormDataContent();
-            form.Add(byteContent, "file", formFile.FileName);
-
-
-            _logger.LogInformation("Sending request to GDAL API");
-
-            var response = await _httpClient.PostAsync("/ogrinfo/gdb-feature-classes", form);
             if (response.IsSuccessStatusCode)
             {
-                var result = await response.Content.ReadFromJsonAsync<Envelope>();
-                return result;
+                return;
             }
-            else
-            {
-                throw new Exception("Failed to POST MyDto");
-            }
+
+            var body = await response.Content.ReadAsStringAsync();
+            throw new Exception($"GDAL API request to '{operation}' failed with status {(int)response.StatusCode} ({response.ReasonPhrase}): {body}");
         }
     }
 }

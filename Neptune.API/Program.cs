@@ -1,6 +1,6 @@
-﻿extern alias AzureIdentity;
-using System;
+﻿using System;
 using System.IO;
+using Azure.Identity;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Hosting;
@@ -38,10 +38,7 @@ namespace Neptune.API
                     if (!string.IsNullOrWhiteSpace(keyVaultName))
                     {
                         var kvUri = new Uri($"https://{keyVaultName}.vault.azure.net/");
-                        // Alias-qualified: DefaultAzureCredential is type-forwarded
-                        // between Azure.Core and Azure.Identity, so an unaliased name
-                        // is ambiguous.
-                        config.AddAzureKeyVault(kvUri, new AzureIdentity::Azure.Identity.DefaultAzureCredential(),
+                        config.AddAzureKeyVault(kvUri, new DefaultAzureCredential(),
                             new NeptuneKeyVaultSecretManager());
                         // Re-add env vars after the vault so local overrides still win.
                         config.AddEnvironmentVariables();
