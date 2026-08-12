@@ -74,7 +74,7 @@
         "@angular-eslint/schematics": "^21.1.0",
         "@angular-eslint/template-parser": "^21.1.0",
         "@angular/build": "^21.2.7",
-        "@angular/cli": "^21.2.7",
+        "@angular/cli": "^21.2.21",
         "@angular/compiler-cli": "^21.2.8",
         "@angular/language-service": "^21.2.8",
         "@fortawesome/fontawesome-free": "^7.1.0",
