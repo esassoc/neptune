@@ -22,6 +22,15 @@ public static class WaterQualityManagementPlanDocumentExtensionMethods
     public static void UpdateFromUpsertDto(this WaterQualityManagementPlanDocument entity, WaterQualityManagementPlanDocumentUpsertDto dto)
     {
         entity.WaterQualityManagementPlanID = dto.WaterQualityManagementPlanID;
+        // Swapping the underlying file invalidates the cached Anthropic upload — it was
+        // made from the *old* PDF. Leaving the id set makes AI extraction and chat keep
+        // reading the replaced document, silently and indefinitely (NPT-1121). The caller
+        // is responsible for deleting the now-unreferenced remote file.
+        if (entity.FileResourceID != dto.FileResourceID)
+        {
+            entity.AnthropicFileID = null;
+            entity.AnthropicFileUploadedDate = null;
+        }
         entity.FileResourceID = dto.FileResourceID;
         entity.DisplayName = dto.DisplayName;
         entity.Description = dto.Description;

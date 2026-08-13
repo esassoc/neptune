@@ -41,7 +41,8 @@ namespace Neptune.API.Controllers
         AzureBlobStorageService azureBlobStorageService,
         WqmpExtractionService wqmpExtractionService,
         SitkaSmtpClientService sitkaSmtpClientService,
-        GDALAPIService gdalApiService)
+        GDALAPIService gdalApiService,
+        AnthropicFileService anthropicFileService)
         : SitkaController<WaterQualityManagementPlanController>(dbContext, logger,
             neptuneConfiguration)
     {
@@ -226,6 +227,7 @@ namespace Neptune.API.Controllers
 
             int? newFileResourceID = null;
             int? oldFileResourceID = null;
+            string oldAnthropicFileID = null;
             if (dto.File != null)
             {
                 var errors = FileResources.ValidateFileUpload(dto.File);
@@ -236,6 +238,9 @@ namespace Neptune.API.Controllers
                 }
 
                 oldFileResourceID = existing.FileResourceID;
+                // UpdateMetadataAsync clears the cached id because it belongs to the file
+                // we're replacing; hold onto it so we can delete the upload upstream too.
+                oldAnthropicFileID = existing.AnthropicFileID;
                 var fileResource = await HttpUtilities.MakeFileResourceFromFormFileAsync(DbContext, HttpContext, azureBlobStorageService, dto.File);
                 newFileResourceID = fileResource.FileResourceID;
             }
@@ -255,6 +260,12 @@ namespace Neptune.API.Controllers
                 }
             }
 
+            // Same for the Anthropic upload made from the replaced file — nothing references
+            // it now, and nothing else ever reclaims it. Best-effort; never fails the request.
+            // Deliberately not the request token: the row is already updated, so a client
+            // disconnect here would strand the very file we are trying to reclaim.
+            await anthropicFileService.DeleteRemoteFileAsync(oldAnthropicFileID, CancellationToken.None);
+
             return Ok(updated);
         }
 
@@ -271,11 +282,15 @@ namespace Neptune.API.Controllers
             if (existing.WaterQualityManagementPlanID != waterQualityManagementPlanID) return NotFound();
 
             var fileResource = FileResources.GetByID(DbContext, existing.FileResourceID);
+            // Capture before the row goes away — it is the only record of the upload (NPT-1121).
+            var anthropicFileID = existing.AnthropicFileID;
             await WaterQualityManagementPlanDocuments.DeleteAsync(DbContext, waterQualityManagementPlanDocumentID);
             if (fileResource != null)
             {
                 await azureBlobStorageService.DeleteFileResourceBlob(fileResource.FileResourceGUID);
             }
+            // Best-effort, and deliberately not the request token — see UpdateDocument.
+            await anthropicFileService.DeleteRemoteFileAsync(anthropicFileID, CancellationToken.None);
             return NoContent();
         }
 
