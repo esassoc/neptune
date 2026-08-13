@@ -2,6 +2,7 @@ using System;
 using System.Collections.Concurrent;
 using System.IO;
 using System.Linq;
+using System.Net;
 using System.Net.Http;
 using System.Net.Http.Headers;
 using System.Net.Http.Json;
@@ -352,21 +353,60 @@ public class AnthropicFileService
     }
 
     /// <summary>
-    /// Clear the cached file_id for a document, e.g., after Anthropic returned a 404
-    /// for a stale id. The next <see cref="EnsureUploadedFileIDAsync"/> call will
-    /// re-upload.
+    /// Best-effort delete of a remote Anthropic upload. Call this whenever a cached
+    /// <c>file_id</c> stops being referenced — the document row is deleted, or its
+    /// PDF is replaced — otherwise the upload is orphaned on the account permanently
+    /// and nothing ever reclaims it (NPT-1121).
+    ///
+    /// Never throws. A leftover remote file is not worth failing (or masking) the
+    /// caller's operation over — same posture as
+    /// <c>GDALAPIService.DeleteStagedBlobs</c>. Callers should invoke this *after*
+    /// the database change commits, so a cleanup failure can't leave the row
+    /// pointing at a file we already deleted.
+    ///
+    /// Do not call this on the stale-id 404 path in <see cref="RefreshFileIDAsync"/>:
+    /// upstream has already reported the file missing, so there is nothing to delete
+    /// and the extra round trip only adds latency to an error path.
     /// </summary>
-    public async Task InvalidateFileIDAsync(
-        int waterQualityManagementPlanDocumentID, CancellationToken cancellationToken)
+    public async Task DeleteRemoteFileAsync(string fileID, CancellationToken cancellationToken)
     {
-        var document = await _dbContext.WaterQualityManagementPlanDocuments
-            .SingleAsync(x => x.WaterQualityManagementPlanDocumentID == waterQualityManagementPlanDocumentID, cancellationToken);
+        if (string.IsNullOrEmpty(fileID))
+        {
+            return;
+        }
 
-        document.AnthropicFileID = null;
-        document.AnthropicFileUploadedDate = null;
-        await _dbContext.SaveChangesAsync(cancellationToken);
+        try
+        {
+            // Raw HttpClient rather than the SDK, matching the upload path — see the
+            // NPT-1044 note in UploadAndCacheAsync.
+            using var client = _httpClientFactory.CreateClient();
+            using var request = new HttpRequestMessage(HttpMethod.Delete, $"{AnthropicFilesUrl}/{fileID}");
+            request.Headers.Add("x-api-key", _configuration.AnthropicApiKey);
+            request.Headers.Add("anthropic-version", "2023-06-01");
+            request.Headers.Add("anthropic-beta", "files-api-2025-04-14");
 
-        _logger.LogWarning("Invalidated Anthropic file cache for documentID={DocumentID}",
-            waterQualityManagementPlanDocumentID);
+            using var response = await client.SendAsync(request, cancellationToken);
+
+            // Already gone upstream is the outcome we wanted, not a failure.
+            if (response.StatusCode == HttpStatusCode.NotFound)
+            {
+                _logger.LogInformation("Anthropic file {FileID} was already absent upstream; nothing to delete.", fileID);
+                return;
+            }
+
+            if (!response.IsSuccessStatusCode)
+            {
+                var body = await response.Content.ReadAsStringAsync(cancellationToken);
+                _logger.LogWarning("Failed to delete Anthropic file {FileID} (status={Status}): {Body}",
+                    fileID, (int)response.StatusCode, body);
+                return;
+            }
+
+            _logger.LogInformation("Deleted Anthropic file {FileID}.", fileID);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex, "Failed to delete Anthropic file {FileID}", fileID);
+        }
     }
 }

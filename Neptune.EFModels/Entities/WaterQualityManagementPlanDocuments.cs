@@ -92,6 +92,11 @@ public static class WaterQualityManagementPlanDocuments
         {
             entity.FileResourceID = newFileResourceID.Value;
             entity.UploadDate = DateTime.UtcNow;
+            // The cached Anthropic upload was made from the file we just replaced; keeping
+            // it would leave extraction and chat reading the old PDF (NPT-1121). The caller
+            // deletes the now-unreferenced remote file after this commits.
+            entity.AnthropicFileID = null;
+            entity.AnthropicFileUploadedDate = null;
         }
         await dbContext.SaveChangesAsync();
         return await GetByIDAsDtoAsync(dbContext, entity.WaterQualityManagementPlanDocumentID);
