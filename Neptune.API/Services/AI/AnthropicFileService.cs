@@ -171,8 +171,9 @@ public class AnthropicFileService
             canonicalName, document.WaterQualityManagementPlanDocumentID, cancellationToken);
 
         using var blobDownload = headerOffset == 0
-            ? await _blobService.DownloadBlobFromBlobStorageAsStream(canonicalName)
-            : await _blobService.DownloadBlobRangeFromBlobStorageAsStream(canonicalName, headerOffset);
+            ? await _blobService.DownloadBlobFromBlobStorageAsStream(canonicalName, cancellationToken)
+            : await _blobService.DownloadBlobRangeFromBlobStorageAsStream(
+                canonicalName, headerOffset, cancellationToken: cancellationToken);
 
         var filename = document.FileResource.GetOriginalCompleteFileName();
         if (string.IsNullOrWhiteSpace(filename))
@@ -218,7 +219,7 @@ public class AnthropicFileService
         string canonicalName, int documentID, CancellationToken cancellationToken)
     {
         using var head = await _blobService.DownloadBlobRangeFromBlobStorageAsStream(
-            canonicalName, 0, PdfHeaderScanBytes);
+            canonicalName, 0, PdfHeaderScanBytes, cancellationToken);
         using var buffer = new MemoryStream();
         await head.Content.CopyToAsync(buffer, cancellationToken);
         var bytes = buffer.ToArray();

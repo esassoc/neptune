@@ -4,6 +4,7 @@ using Azure.Storage.Blobs.Models;
 using Azure.Storage.Sas;
 using System.Collections.Generic;
 using System.IO;
+using System.Threading;
 using System.Threading.Tasks;
 
 namespace Neptune.Common.Services;
@@ -766,10 +767,11 @@ public class AzureBlobStorageService
         return downloadResult.Value;
     }
 
-    public async Task<BlobDownloadStreamingResult> DownloadBlobFromBlobStorageAsStream(string canonicalName)
+    public async Task<BlobDownloadStreamingResult> DownloadBlobFromBlobStorageAsStream(
+        string canonicalName, CancellationToken cancellationToken = default)
     {
         var blobClient = _fileResourceContainerClient.GetBlobClient(canonicalName);
-        var downloadResult = await blobClient.DownloadStreamingAsync();
+        var downloadResult = await blobClient.DownloadStreamingAsync(cancellationToken: cancellationToken);
         return downloadResult.Value;
     }
 
@@ -780,11 +782,11 @@ public class AzureBlobStorageService
     /// Pass a null <paramref name="length"/> to read from <paramref name="offset"/> to the end.
     /// </summary>
     public async Task<BlobDownloadStreamingResult> DownloadBlobRangeFromBlobStorageAsStream(
-        string canonicalName, long offset, long? length = null)
+        string canonicalName, long offset, long? length = null, CancellationToken cancellationToken = default)
     {
         var blobClient = _fileResourceContainerClient.GetBlobClient(canonicalName);
         var downloadResult = await blobClient.DownloadStreamingAsync(
-            new BlobDownloadOptions { Range = new Azure.HttpRange(offset, length) });
+            new BlobDownloadOptions { Range = new Azure.HttpRange(offset, length) }, cancellationToken);
         return downloadResult.Value;
     }
 
