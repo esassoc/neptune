@@ -32,6 +32,13 @@ public class AnthropicFileService
 {
     private const string AnthropicFilesUrl = "https://api.anthropic.com/v1/files";
 
+    /// <summary>
+    /// Ceiling on the best-effort cleanup DELETE in <see cref="DeleteRemoteFileAsync"/>.
+    /// Short on purpose: it runs inline on user-facing delete and file-swap requests, and
+    /// abandoning an orphaned file is much cheaper than making someone wait on it.
+    /// </summary>
+    private static readonly TimeSpan DeleteTimeout = TimeSpan.FromSeconds(10);
+
     // Serializes upload attempts per documentID so concurrent callers (extract+chat
     // hitting the same doc, or two users on the same doc) don't both upload the same
     // PDF when the cache is empty. Same gate covers the stale-id refresh path so
@@ -370,7 +377,7 @@ public class AnthropicFileService
     /// </summary>
     public async Task DeleteRemoteFileAsync(string fileID, CancellationToken cancellationToken)
     {
-        if (string.IsNullOrEmpty(fileID))
+        if (string.IsNullOrWhiteSpace(fileID))
         {
             return;
         }
@@ -380,7 +387,16 @@ public class AnthropicFileService
             // Raw HttpClient rather than the SDK, matching the upload path — see the
             // NPT-1044 note in UploadAndCacheAsync.
             using var client = _httpClientFactory.CreateClient();
-            using var request = new HttpRequestMessage(HttpMethod.Delete, $"{AnthropicFilesUrl}/{fileID}");
+            // Callers pass CancellationToken.None so a client disconnect can't strand the
+            // file, which means nothing else bounds this wait. Without an explicit timeout
+            // an unreachable Anthropic would hang every document delete and file swap for
+            // HttpClient's 100s default. Cleanup is best-effort, so give up quickly and
+            // leave the orphan behind rather than making the user wait on it.
+            client.Timeout = DeleteTimeout;
+            // fileID is Anthropic-generated and read back from the database; escape it
+            // rather than trusting that round trip to keep it URL-safe.
+            using var request = new HttpRequestMessage(
+                HttpMethod.Delete, $"{AnthropicFilesUrl}/{Uri.EscapeDataString(fileID)}");
             request.Headers.Add("x-api-key", _configuration.AnthropicApiKey);
             request.Headers.Add("anthropic-version", "2023-06-01");
             request.Headers.Add("anthropic-beta", "files-api-2025-04-14");
