@@ -165,7 +165,15 @@ public class AnthropicFileService
         // so the multipart envelope is well-formed without a server-side buffer.
         // Cuts peak memory from O(file size) to a small read window per upload.
         var canonicalName = document.FileResource.GetFileResourceGUIDAsString().ToLower();
-        using var blobDownload = await _blobService.DownloadBlobFromBlobStorageAsStream(canonicalName);
+
+        // Skip any junk ahead of the %PDF signature — see FindPdfHeaderOffsetAsync.
+        var headerOffset = await FindPdfHeaderOffsetAsync(
+            canonicalName, document.WaterQualityManagementPlanDocumentID, cancellationToken);
+
+        using var blobDownload = headerOffset == 0
+            ? await _blobService.DownloadBlobFromBlobStorageAsStream(canonicalName)
+            : await _blobService.DownloadBlobRangeFromBlobStorageAsStream(canonicalName, headerOffset);
+
         var filename = document.FileResource.GetOriginalCompleteFileName();
         if (string.IsNullOrWhiteSpace(filename))
         {
@@ -173,7 +181,7 @@ public class AnthropicFileService
         }
 
         var fileID = await UploadViaHttpClientAsync(
-            blobDownload.Content, document.FileResource.ContentLength, filename, cancellationToken);
+            blobDownload.Content, document.FileResource.ContentLength - headerOffset, filename, cancellationToken);
 
         document.AnthropicFileID = fileID;
         document.AnthropicFileUploadedDate = DateTime.UtcNow;
@@ -183,6 +191,78 @@ public class AnthropicFileService
             document.WaterQualityManagementPlanDocumentID, fileID);
 
         return fileID;
+    }
+
+    /// <summary>
+    /// Number of leading bytes scanned for the %PDF signature. Matches the tolerance window
+    /// used by mainstream readers, which is where these files pick up their reputation for
+    /// being fine.
+    /// </summary>
+    private const int PdfHeaderScanBytes = 1024;
+
+    private static readonly byte[] PdfSignature = "%PDF"u8.ToArray();
+
+    /// <summary>
+    /// Returns the offset of the %PDF signature within the first <see cref="PdfHeaderScanBytes"/>
+    /// bytes of the blob, or 0 if it is already at byte 0 (or cannot be found).
+    ///
+    /// A valid PDF starts with %PDF at byte 0, but real-world files sometimes carry junk ahead
+    /// of it — one WQMP arrived with a single stray 0x01 byte. Acrobat and browsers scan the
+    /// leading kilobyte for the signature and open such files without complaint, so they look
+    /// healthy to the uploader. Anthropic's parser requires the signature at byte 0; without it
+    /// the document is sniffed as application/octet-stream and the extraction call fails with
+    /// "Unsupported document file format", which names the wrong problem entirely and sends you
+    /// hunting for a MIME-type bug. Trimming the leading bytes makes those documents extractable.
+    /// </summary>
+    private async Task<int> FindPdfHeaderOffsetAsync(
+        string canonicalName, int documentID, CancellationToken cancellationToken)
+    {
+        using var head = await _blobService.DownloadBlobRangeFromBlobStorageAsStream(
+            canonicalName, 0, PdfHeaderScanBytes);
+        using var buffer = new MemoryStream();
+        await head.Content.CopyToAsync(buffer, cancellationToken);
+        var bytes = buffer.ToArray();
+
+        var offset = IndexOfSignature(bytes);
+        if (offset < 0)
+        {
+            // Not a PDF as far as we can tell. Upload unchanged rather than inventing a new
+            // failure mode — Anthropic will reject it, and that rejection is the honest answer.
+            _logger.LogWarning(
+                "No %PDF signature in the first {ScanBytes} bytes for documentID={DocumentID}; uploading unchanged. Extraction will likely fail — the file may not be a PDF.",
+                PdfHeaderScanBytes, documentID);
+            return 0;
+        }
+
+        if (offset > 0)
+        {
+            _logger.LogWarning(
+                "PDF for documentID={DocumentID} has {Offset} junk byte(s) before the %PDF signature; skipping them so Anthropic can parse the document.",
+                documentID, offset);
+        }
+
+        return offset;
+    }
+
+    private static int IndexOfSignature(byte[] bytes)
+    {
+        for (var i = 0; i + PdfSignature.Length <= bytes.Length; i++)
+        {
+            var matched = true;
+            for (var j = 0; j < PdfSignature.Length; j++)
+            {
+                if (bytes[i + j] != PdfSignature[j])
+                {
+                    matched = false;
+                    break;
+                }
+            }
+            if (matched)
+            {
+                return i;
+            }
+        }
+        return -1;
     }
 
     private async Task<string> UploadViaHttpClientAsync(

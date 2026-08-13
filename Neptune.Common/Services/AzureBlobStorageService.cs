@@ -773,6 +773,21 @@ public class AzureBlobStorageService
         return downloadResult.Value;
     }
 
+    /// <summary>
+    /// Streams a byte range of a blob. The stream returned by the download is not seekable,
+    /// so callers that need to inspect a file's leading bytes and then send it from an offset
+    /// have to ask for the range up front rather than peeking and rewinding.
+    /// Pass a null <paramref name="length"/> to read from <paramref name="offset"/> to the end.
+    /// </summary>
+    public async Task<BlobDownloadStreamingResult> DownloadBlobRangeFromBlobStorageAsStream(
+        string canonicalName, long offset, long? length = null)
+    {
+        var blobClient = _fileResourceContainerClient.GetBlobClient(canonicalName);
+        var downloadResult = await blobClient.DownloadStreamingAsync(
+            new BlobDownloadOptions { Range = new Azure.HttpRange(offset, length) });
+        return downloadResult.Value;
+    }
+
     public async Task<bool> ExistsFromBlobStorage(string canonicalName)
     {
         var blobClient = _fileResourceContainerClient.GetBlobClient(canonicalName);
