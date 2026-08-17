@@ -579,7 +579,20 @@ stages:
                 "@
                     foreach ($role in $roles.Split(',')) {
                         $r = $role.Trim()
-                        if ($r) { $sql += "`nIF IS_ROLEMEMBER('$r', N'$principal') = 0 ALTER ROLE [$r] ADD MEMBER [$principal];" }
+                        if (-not $r) { continue }
+                        # Assert the ROLE exists BEFORE testing membership. IS_ROLEMEMBER returns
+                        # NULL for an unknown role, and `NULL = 0` evaluates to UNKNOWN rather than
+                        # TRUE, so a bare `= 0` check skips the grant SILENTLY and still reports
+                        # success. db_executor is created by this repo's own Database project, so a
+                        # DacPac deploy that has not landed yet would leave every db_executor grant
+                        # quietly undone behind a green pipeline.
+                        #
+                        # Checks sys.database_principals with type = 'R' rather than
+                        # DATABASE_PRINCIPAL_ID, which resolves ANY principal (users, application
+                        # roles). A same-named non-role would satisfy that weaker test and then fail
+                        # in ALTER ROLE with a murkier message.
+                        $sql += "`nIF NOT EXISTS (SELECT 1 FROM sys.database_principals WHERE name = N'$r' AND type = 'R') THROW 50000, 'Database role [$r] does not exist -- deploy the DacPac before granting.', 1;"
+                        $sql += "`nIF IS_ROLEMEMBER('$r', N'$principal') = 0 ALTER ROLE [$r] ADD MEMBER [$principal];"
                     }
                     Write-Host "Granting [$principal]: $roles on $db"
                     Invoke-Sqlcmd -ServerInstance $server -Database $db -AccessToken $token -Query $sql -ConnectionTimeout 60 -ErrorAction Stop
