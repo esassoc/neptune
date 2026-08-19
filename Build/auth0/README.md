@@ -77,11 +77,17 @@ whenever a claim carries one.
 Names on **County/Entra** users prove nothing about this — they come from the root profile via Graph
 userinfo and never depended on the form.
 
-## `update-names-form.json` — not here yet
+## `update-names-form.json`
 
-Needs an export from the tenant: Forms → the name form → Export, top-right of the form editor. With the
-flow node removed it should now show `"flows": {}` and `"connections": {}` — that is what a corrected
-form looks like, and **an export carrying a flow node is a regression, not a richer form.**
+Exported from the tenant after the flow node was removed: `"flows": {}` and `"connections": {}`, a single
+step (prompt, two required fields, Continue) that resumes the auth flow. That is the whole form and it is
+meant to stay that way. **An export carrying a flow node is a regression, not a richer form** — check
+those two keys on any future export.
 
 The field ids must stay `first_name` and `last_name`: the Action reads the submission by exactly those
 keys and falls back silently to empty names if they are renamed.
+
+This export is byte-identical to the one in `esassoc/biochar-atlas`, node ids included, so the two
+tenants really are running the same form definition. Handy, and also a trap worth naming: importing a
+form into a new tenant produces a **new Form id**, so the id in the Action is per-tenant even when the
+form body is not.
