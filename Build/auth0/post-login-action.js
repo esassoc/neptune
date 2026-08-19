@@ -34,12 +34,19 @@
 
 const FORM_ID = "ap_fM32bSgX3ifwS7bqyp5pey";
 
+/**
+ * A whitespace-only value is not a name. An Auth0 Form's `required: true` accepts
+ * spaces, so without this "   " would count as a name: it would satisfy the checks
+ * below, get written to user_metadata, and the user would never be re-prompted.
+ */
+const clean = (value) => (typeof value === "string" ? value.trim() : "");
+
 /** Names we already hold: root profile (Entra via Graph userinfo) then user_metadata. */
 const existingNames = (event) => {
   const md = event.user.user_metadata || {};
   return {
-    givenName: event.user.given_name || md.first_name || "",
-    familyName: event.user.family_name || md.last_name || "",
+    givenName: clean(event.user.given_name) || clean(md.first_name),
+    familyName: clean(event.user.family_name) || clean(md.last_name),
   };
 };
 
@@ -88,8 +95,8 @@ exports.onContinuePostLogin = async (event, api) => {
   const submitted = event.prompt?.fields ?? event.prompt?.form?.fields ?? {};
   const existing = existingNames(event);
 
-  const givenName = submitted.first_name || existing.givenName;
-  const familyName = submitted.last_name || existing.familyName;
+  const givenName = clean(submitted.first_name) || existing.givenName;
+  const familyName = clean(submitted.last_name) || existing.familyName;
 
   // THE WRITE. This is what the form's flow was being trusted to do.
   if (givenName) api.user.setUserMetadata("first_name", givenName);
