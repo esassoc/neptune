@@ -1,0 +1,79 @@
+{
+  "version": "4.0.0",
+  "form": {
+    "name": "Update Names",
+    "languages": {
+      "primary": "en"
+    },
+    "nodes": [
+      {
+        "id": "step_q5A1",
+        "type": "STEP",
+        "coordinates": {
+          "x": 500,
+          "y": 0
+        },
+        "alias": "New step",
+        "config": {
+          "components": [
+            {
+              "id": "rich_text_bhUq",
+              "category": "BLOCK",
+              "type": "RICH_TEXT",
+              "config": {
+                "content": "<p><strong>Please enter your first and last name:</strong></p>"
+              }
+            },
+            {
+              "id": "first_name",
+              "category": "FIELD",
+              "type": "TEXT",
+              "label": "First Name",
+              "required": true,
+              "sensitive": false,
+              "config": {
+                "multiline": false
+              }
+            },
+            {
+              "id": "last_name",
+              "category": "FIELD",
+              "type": "TEXT",
+              "label": "Last Name",
+              "required": true,
+              "sensitive": false,
+              "config": {
+                "multiline": false
+              }
+            },
+            {
+              "id": "next_button_w3D1",
+              "category": "BLOCK",
+              "type": "NEXT_BUTTON",
+              "config": {
+                "text": "Continue"
+              }
+            }
+          ],
+          "next_node": "$ending"
+        }
+      }
+    ],
+    "start": {
+      "next_node": "step_q5A1",
+      "coordinates": {
+        "x": 0,
+        "y": 0
+      }
+    },
+    "ending": {
+      "resume_flow": true,
+      "coordinates": {
+        "x": 1485,
+        "y": 30
+      }
+    }
+  },
+  "flows": {},
+  "connections": {}
+}

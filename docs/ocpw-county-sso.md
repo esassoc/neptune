@@ -60,6 +60,8 @@ Two behaviors are gated on connection type via `event.connection.strategy === "a
 1. **Email-verification wall — database signups only.** Federated users have **no `email_verified` field at all** in their Auth0 profile (absent, not `false`), because Auth0 only sets it when the upstream IdP asserts it and Entra does not. Applying a verification check to them denies every County login. This was the original defect: a standalone marketplace "Require Email Verification" action in the flow blocked all federated users.
 2. **Name-collection form** (`ap_fM32bSgX3ifwS7bqyp5pey`) — rendered only for database signups still missing a first or last name. County users get their names from Entra.
 
+**The Action persists the collected names; the form does not.** As of 2026-08-19 the Action writes `first_name`/`last_name` to `user_metadata` itself, and the form's `UPDATE_USER` flow node has been removed. That node used to do the write, and it is capable of writing nothing while every layer reports success — the tells are absences, not errors (empty `artifacts` in the flow output, and no `API Operation: Update a User` in the tenant log). `Person` 1446, a March 2026 database signup with NULL names, is what that looks like in the data. Do not move this write back into a flow; `Build/auth0/README.md` has the full account.
+
 There is also a guard denying any *federated* login that arrives with no `email` claim, with a message directing the user to support. Entra emits `email` only when the directory has `mail` populated; without it, account linking silently creates a duplicate account (below), so failing loudly is preferable.
 
 ### Auth0 changes cannot be staged
