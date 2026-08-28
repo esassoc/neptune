@@ -648,10 +648,17 @@ resource "azurerm_role_assignment" "identity_kv_secrets_user" {
 #
 # Guarded on a non-empty object id so a group that does not exist yet can be
 # skipped by clearing its variable.
+#
+# PREREQUISITE: the prod group must be NESTED INSIDE the qa group. Its grants below
+# are prod-only, so prod staff reach QA and dev through the qa group's grants and
+# Azure RBAC's transitive membership resolution -- not through a grant of their own.
+# The pipeline's database matrix relies on the same nesting. Un-nesting the groups
+# therefore removes prod staff's non-prod access, in Azure and in SQL, with no code
+# change to warn anybody: re-add the non-prod grants at the same time.
 
 # --- Key Vault ---
 resource "azurerm_role_assignment" "h2o_prod_group_kv_secrets_officer" {
-  count                = var.h2oProdGroupObjectId != "" ? 1 : 0
+  count                = var.h2oProdGroupObjectId != "" && local.is_prod ? 1 : 0
   scope                = azurerm_key_vault.web.id
   role_definition_name = "Key Vault Secrets Officer"
   principal_id         = var.h2oProdGroupObjectId
@@ -677,7 +684,7 @@ resource "azurerm_role_assignment" "h2o_readers_group_kv_secrets_user" {
 # neither implies the other -- Contributor on a storage account still cannot read
 # a blob over Entra auth.
 resource "azurerm_role_assignment" "h2o_prod_group_rg_reader" {
-  count                = var.h2oProdGroupObjectId != "" ? 1 : 0
+  count                = var.h2oProdGroupObjectId != "" && local.is_prod ? 1 : 0
   scope                = azurerm_resource_group.web.id
   role_definition_name = "Reader"
   principal_id         = var.h2oProdGroupObjectId
@@ -703,7 +710,7 @@ resource "azurerm_role_assignment" "h2o_readers_group_rg_reader" {
 # mirror restore-dev-blob.yml populates rather than application data, and it
 # exists only when storageAccountDevApplicationName is set.
 resource "azurerm_role_assignment" "h2o_prod_group_blob_contributor" {
-  count                = var.h2oProdGroupObjectId != "" ? 1 : 0
+  count                = var.h2oProdGroupObjectId != "" && local.is_prod ? 1 : 0
   scope                = azurerm_storage_account.web.id
   role_definition_name = "Storage Blob Data Contributor"
   principal_id         = var.h2oProdGroupObjectId
