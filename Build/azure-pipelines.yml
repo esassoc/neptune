@@ -561,8 +561,12 @@ stages:
                         'H2O QA Group'   = 'db_datareader,db_datawriter,db_executor'
                     }
                     prod = @{
+                        # H2O QA Group and H2O Readers Group are intentionally ABSENT:
+                        # the environment is the boundary and neither has prod access.
+                        # Mirrors the access matrix in the root Terraform, which grants
+                        # the same groups the same way on the vault, the resource group
+                        # and the storage account. Change both together.
                         'H2O Prod Group' = 'db_datareader,db_datawriter,db_executor'
-                        'H2O QA Group'   = 'db_datareader'
                     }
                 }
                 if (-not $matrix.ContainsKey('$(Environment)')) { throw "No H2O access matrix defined for Environment '$(Environment)'." }
