@@ -619,9 +619,37 @@ resource "azurerm_role_assignment" "identity_kv_secrets_user" {
   principal_id         = azurerm_user_assigned_identity.neptune.principal_id
 }
 
-# --- H2O group vault access --------------------------------------------------
-# Prod group: Officer everywhere. QA group: Officer on QA, read-only on prod.
-# Readers: read-only on QA. Guarded so an empty object id skips the grant.
+# --- H2O group access matrix -------------------------------------------------
+# The environment is the boundary:
+#
+#   H2O Prod     works in QA and prod    -- read and write
+#   H2O QA       works in QA and dev     -- read and write, NO prod access
+#   H2O Readers  reads QA                -- no prod access
+#
+# The same matrix governs database access, granted as contained users by the
+# 'Grant DB access to H2O Entra groups' step in Build/azure-pipelines.yml. Change
+# both together or the boundary is fiction: an earlier pass removed the prod vault
+# grant and left the prod database grant behind, which is worse than either
+# consistent state.
+#
+# H2O Prod is nested inside H2O QA, and Azure RBAC resolves membership
+# transitively, so prod staff reach the non-prod grants through the nesting even
+# without a grant of their own. The H2O Prod grants below on the non-prod
+# environments are therefore redundant, and kept deliberately: if the groups are
+# ever un-nested, prod staff keep QA access instead of silently losing it. The
+# nesting does not weaken the boundary -- it runs prod-into-QA, so somebody in
+# H2O QA alone still gets nothing on prod.
+#
+# Each grant needs BOTH halves to be useful, which is the usual Azure trip-up:
+# Reader at resource-group scope makes the resources visible in the portal but
+# grants no blob access whatsoever, and the Storage Blob Data roles grant blob
+# access but do not make the account visible. Neither implies the other, and
+# Contributor on a storage account still cannot read a blob over Entra auth.
+#
+# Guarded on a non-empty object id so a group that does not exist yet can be
+# skipped by clearing its variable.
+
+# --- Key Vault ---
 resource "azurerm_role_assignment" "h2o_prod_group_kv_secrets_officer" {
   count                = var.h2oProdGroupObjectId != "" ? 1 : 0
   scope                = azurerm_key_vault.web.id
@@ -636,17 +664,62 @@ resource "azurerm_role_assignment" "h2o_qa_group_kv_secrets_officer" {
   principal_id         = var.h2oQaGroupObjectId
 }
 
-resource "azurerm_role_assignment" "h2o_qa_group_kv_secrets_user_on_prod" {
-  count                = var.h2oQaGroupObjectId != "" && local.is_prod ? 1 : 0
-  scope                = azurerm_key_vault.web.id
-  role_definition_name = "Key Vault Secrets User"
-  principal_id         = var.h2oQaGroupObjectId
-}
-
 resource "azurerm_role_assignment" "h2o_readers_group_kv_secrets_user" {
   count                = var.h2oReadersGroupObjectId != "" && !local.is_prod ? 1 : 0
   scope                = azurerm_key_vault.web.id
   role_definition_name = "Key Vault Secrets User"
+  principal_id         = var.h2oReadersGroupObjectId
+}
+
+# --- Resource group: makes the environment's resources visible at all ---
+# Reader here is management-plane only: it makes the resources visible and grants
+# no blob access at all. The Storage Blob Data roles below are the other half, and
+# neither implies the other -- Contributor on a storage account still cannot read
+# a blob over Entra auth.
+resource "azurerm_role_assignment" "h2o_prod_group_rg_reader" {
+  count                = var.h2oProdGroupObjectId != "" ? 1 : 0
+  scope                = azurerm_resource_group.web.id
+  role_definition_name = "Reader"
+  principal_id         = var.h2oProdGroupObjectId
+}
+
+resource "azurerm_role_assignment" "h2o_qa_group_rg_reader" {
+  count                = var.h2oQaGroupObjectId != "" && !local.is_prod ? 1 : 0
+  scope                = azurerm_resource_group.web.id
+  role_definition_name = "Reader"
+  principal_id         = var.h2oQaGroupObjectId
+}
+
+resource "azurerm_role_assignment" "h2o_readers_group_rg_reader" {
+  count                = var.h2oReadersGroupObjectId != "" && !local.is_prod ? 1 : 0
+  scope                = azurerm_resource_group.web.id
+  role_definition_name = "Reader"
+  principal_id         = var.h2oReadersGroupObjectId
+}
+
+# --- Storage blobs: the data plane ---
+# Scoped to the application storage account. The count-conditional "dev" account
+# some of these stacks declare is deliberately left alone: it is the throwaway
+# mirror restore-dev-blob.yml populates rather than application data, and it
+# exists only when storageAccountDevApplicationName is set.
+resource "azurerm_role_assignment" "h2o_prod_group_blob_contributor" {
+  count                = var.h2oProdGroupObjectId != "" ? 1 : 0
+  scope                = azurerm_storage_account.web.id
+  role_definition_name = "Storage Blob Data Contributor"
+  principal_id         = var.h2oProdGroupObjectId
+}
+
+resource "azurerm_role_assignment" "h2o_qa_group_blob_contributor" {
+  count                = var.h2oQaGroupObjectId != "" && !local.is_prod ? 1 : 0
+  scope                = azurerm_storage_account.web.id
+  role_definition_name = "Storage Blob Data Contributor"
+  principal_id         = var.h2oQaGroupObjectId
+}
+
+resource "azurerm_role_assignment" "h2o_readers_group_blob_reader" {
+  count                = var.h2oReadersGroupObjectId != "" && !local.is_prod ? 1 : 0
+  scope                = azurerm_storage_account.web.id
+  role_definition_name = "Storage Blob Data Reader"
   principal_id         = var.h2oReadersGroupObjectId
 }
 

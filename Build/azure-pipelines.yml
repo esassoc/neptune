@@ -557,12 +557,21 @@ stages:
                 # group display name -> comma-separated roles, per environment
                 $matrix = @{
                     qa = @{
-                        'H2O Prod Group' = 'db_datareader,db_datawriter,db_executor'
-                        'H2O QA Group'   = 'db_datareader,db_datawriter,db_executor'
+                        # H2O Prod Group is intentionally ABSENT here: each group is
+                        # granted only in its own environment. Prod-group members still
+                        # reach this database through the group nesting -- H2O Prod is a
+                        # member of H2O QA and SQL resolves nested Entra groups -- so the
+                        # H2O QA Group user below covers them.
+                        'H2O QA Group'      = 'db_datareader,db_datawriter,db_executor'
+                        'H2O Readers Group' = 'db_datareader'
                     }
                     prod = @{
+                        # H2O QA Group and H2O Readers Group are intentionally ABSENT:
+                        # the environment is the boundary and neither has prod access.
+                        # Mirrors the access matrix in the root Terraform, which grants
+                        # the same groups the same way on the vault, the resource group
+                        # and the storage account. Change both together.
                         'H2O Prod Group' = 'db_datareader,db_datawriter,db_executor'
-                        'H2O QA Group'   = 'db_datareader'
                     }
                 }
                 if (-not $matrix.ContainsKey('$(Environment)')) { throw "No H2O access matrix defined for Environment '$(Environment)'." }
