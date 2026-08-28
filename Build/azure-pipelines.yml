@@ -563,7 +563,23 @@ stages:
                         # member of H2O QA and SQL resolves nested Entra groups -- so the
                         # H2O QA Group user below covers them.
                         'H2O QA Group'      = 'db_datareader,db_datawriter,db_executor'
-                        'H2O Readers Group' = 'db_datareader'
+                        # H2O Readers Group is omitted DELIBERATELY: it has no members,
+                        # so a contained user for it would grant nobody anything.
+                        #
+                        # qanat's pipeline additionally records the grant step failing on
+                        # this group and attributes that to the group being empty. That
+                        # attribution is NOT re-verified here and may be wrong -- Azure SQL
+                        # resolves the group OBJECT and should not need members; the real
+                        # condition is more likely that the group must exist, be
+                        # security-enabled, and be resolvable by name by the principal
+                        # running the step. Treat it as observed, not explained.
+                        #
+                        # Either way the row buys nothing while the group is empty. Add it
+                        # back when the group has members, and find out then.
+                        #
+                        # The Terraform grants this group vault, resource-group and blob
+                        # read regardless: Azure RBAC assigns roles to the group object and
+                        # does not care about membership.
                     }
                     prod = @{
                         # H2O QA Group and H2O Readers Group are intentionally ABSENT:
