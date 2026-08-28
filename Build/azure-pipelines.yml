@@ -563,7 +563,13 @@ stages:
                         # member of H2O QA and SQL resolves nested Entra groups -- so the
                         # H2O QA Group user below covers them.
                         'H2O QA Group'      = 'db_datareader,db_datawriter,db_executor'
-                        'H2O Readers Group' = 'db_datareader'
+                        # H2O Readers Group is omitted DELIBERATELY, and this is a
+                        # platform limit rather than an oversight: the group has no
+                        # members, and CREATE USER FROM EXTERNAL PROVIDER cannot resolve
+                        # an empty Entra group -- adding it here fails the step. The
+                        # Terraform grants that group vault, resource-group and blob read
+                        # regardless, because Azure RBAC does not care about membership.
+                        # Add the row once the group has members.
                     }
                     prod = @{
                         # H2O QA Group and H2O Readers Group are intentionally ABSENT:

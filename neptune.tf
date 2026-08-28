@@ -622,23 +622,26 @@ resource "azurerm_role_assignment" "identity_kv_secrets_user" {
 # --- H2O group access matrix -------------------------------------------------
 # The environment is the boundary:
 #
-#   H2O Prod     works in QA and prod    -- read and write
-#   H2O QA       works in QA and dev     -- read and write, NO prod access
-#   H2O Readers  reads QA                -- no prod access
+#   H2O Prod     prod only              -- read and write
+#   H2O QA       QA and dev             -- read and write, no prod access
+#   H2O Readers  QA                     -- read, no prod access
+#
+# PREREQUISITE: H2O Prod is NESTED INSIDE H2O QA. Prod staff therefore reach QA and
+# dev through the H2O QA grants and Azure RBAC's transitive membership resolution,
+# not through grants of their own -- which is why H2O Prod is prod-only below. The
+# pipeline's database matrix relies on the same nesting.
+#
+# Un-nesting the groups removes prod staff's non-prod access, in Azure and in SQL,
+# with no code change to warn anybody. Re-add the non-prod grants at the same time.
+# The redundant grants were deliberately dropped rather than kept as insurance:
+# keeping them would hide an un-nesting instead of surviving it, and would leave this
+# file hedging against something the database matrix already assumes.
 #
 # The same matrix governs database access, granted as contained users by the
 # 'Grant DB access to H2O Entra groups' step in Build/azure-pipelines.yml. Change
 # both together or the boundary is fiction: an earlier pass removed the prod vault
 # grant and left the prod database grant behind, which is worse than either
 # consistent state.
-#
-# H2O Prod is nested inside H2O QA, and Azure RBAC resolves membership
-# transitively, so prod staff reach the non-prod grants through the nesting even
-# without a grant of their own. The H2O Prod grants below on the non-prod
-# environments are therefore redundant, and kept deliberately: if the groups are
-# ever un-nested, prod staff keep QA access instead of silently losing it. The
-# nesting does not weaken the boundary -- it runs prod-into-QA, so somebody in
-# H2O QA alone still gets nothing on prod.
 #
 # Each grant needs BOTH halves to be useful, which is the usual Azure trip-up:
 # Reader at resource-group scope makes the resources visible in the portal but
@@ -649,13 +652,6 @@ resource "azurerm_role_assignment" "identity_kv_secrets_user" {
 # Guarded on a non-empty object id so a group that does not exist yet can be
 # skipped by clearing its variable.
 #
-# PREREQUISITE: the prod group must be NESTED INSIDE the qa group. Its grants below
-# are prod-only, so prod staff reach QA and dev through the qa group's grants and
-# Azure RBAC's transitive membership resolution -- not through a grant of their own.
-# The pipeline's database matrix relies on the same nesting. Un-nesting the groups
-# therefore removes prod staff's non-prod access, in Azure and in SQL, with no code
-# change to warn anybody: re-add the non-prod grants at the same time.
-
 # --- Key Vault ---
 resource "azurerm_role_assignment" "h2o_prod_group_kv_secrets_officer" {
   count                = var.h2oProdGroupObjectId != "" && local.is_prod ? 1 : 0
