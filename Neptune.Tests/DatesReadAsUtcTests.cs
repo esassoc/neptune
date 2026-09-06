@@ -12,10 +12,15 @@ namespace Neptune.Tests
     ///
     /// WHAT WAS WRONG. Every date this app stores is UTC -- `DateTime.UtcNow` at the write site, into a
     /// SQL `datetime` column, which carries no offset. ADO.NET returns such a column as
-    /// `Kind=Unspecified`, and .NET reads Unspecified as LOCAL. DateTimeConverter then serialized with
+    /// `Kind=Unspecified`, and .NET reads Unspecified as LOCAL. DateTimeConverter serializes with
     /// `value.ToUniversalTime()`, which on an Unspecified value converts FROM the host's local time --
     /// so an already-UTC reading of 19:00 went out as "2026-09-05T02:00:00Z" on a UTC-7 host. A
     /// different instant, stamped Z, with nothing to signal it was wrong.
+    ///
+    /// PRESENT TENSE ON THAT CALL, because it is still there. This change does not touch
+    /// DateTimeConverter -- deleting it is a later phase of NPT-1127. What changed is what it is
+    /// handed: a Utc-kinded value, on which ToUniversalTime() is a no-op. Reading this as "the
+    /// converter was fixed" would be the wrong conclusion to draw from a green test.
     ///
     /// Production never showed it: the pods run UTC (no TZ in the charts, and the aspnet base image
     /// defaults to it), where that conversion is a no-op. Every developer machine showed it. That
