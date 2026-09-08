@@ -169,6 +169,25 @@ resource "azurerm_role_assignment" "identity_blob_contributor" {
   principal_id         = azurerm_user_assigned_identity.dev.principal_id
 }
 
+# The restore-dev-blob pipeline azcopies prod blobs into the dev account with Entra auth (no keys), so
+# the restore SP needs blob data access on the dev account (the copy destination). CRITICAL: that pipeline
+# runs under the PRODUCTION service connection, but THIS stack is applied by the Dev/Test connection - two
+# different service principals - so data.azurerm_client_config.current (the applying SP) is the WRONG
+# identity. Grant the restore SP explicitly by object id. Shared esassoc prod devops SP; object id is an
+# identifier, not a secret (same as the h2o groups) and must be the Enterprise-App/SP object id (not the
+# appId). Prod-source read is granted in the root neptune.tf.
+variable "restorePipelineSpObjectId" {
+  type    = string
+  default = "6428d718-576e-44ad-a703-673723d2a88d"
+}
+
+resource "azurerm_role_assignment" "pipeline_blob_contributor" {
+  count                = var.restorePipelineSpObjectId != "" ? 1 : 0
+  scope                = azurerm_storage_account.dev.id
+  role_definition_name = "Storage Blob Data Contributor"
+  principal_id         = var.restorePipelineSpObjectId
+}
+
 # The dev team (AAD group) reads secrets via `az login` DefaultAzureCredential.
 resource "azurerm_role_assignment" "dev_group_secrets_user" {
   count                = var.devReaderGroupObjectId != "" ? 1 : 0
