@@ -21,6 +21,5 @@ jobs:
         subscription: '$(azureSubscription)'
         containers: '$(containers)'
         fromStorageAccountName: '$(storageAccountProdApplicationName)'
-        fromStorageAccountKey: '$(storageAccountProdAccountKey)'
         toStorageAccountName: '$(storageAccountDevApplicationName)'
-        toStorageAccountKey: '$(storageAccountDevAccountKey)'
+        useEntraAuth: true

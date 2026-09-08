@@ -404,17 +404,14 @@ stages:
       displayName: Restore QA Blob Storage
       pool:
         vmImage: 'windows-latest'
-      variables: 
-        APPLICATION_STORAGE_ACCOUNT_KEY: $[ stageDependencies.DeployTerraform.Terraform.outputs['Terraform.Bash.APPLICATION_STORAGE_ACCOUNT_KEY'] ]
       steps:
-      - template: azure-pipelines/templates/blob-storage-restore/blob-storage-restore.yml@BuildTemplates 
+      - template: azure-pipelines/templates/blob-storage-restore/blob-storage-restore.yml@BuildTemplates
         parameters:
           subscription: '$(azureSubscription)'
           containers: '*'
           fromStorageAccountName: '$(storageAccountProdApplicationName)'
-          fromStorageAccountKey: '$(storageAccountProdAccountKey)'
           toStorageAccountName: '$(storageAccountName)'
-          toStorageAccountKey: '$(APPLICATION_STORAGE_ACCOUNT_KEY)'
+          useEntraAuth: true
             
 - stage: DeployDB
   displayName: Deploy Database 

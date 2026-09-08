@@ -147,6 +147,15 @@ variable "h2oReadersGroupObjectId" {
   default = "5136cec4-2c3d-41c5-b938-1a8053938118"
 }
 
+# Object id of the Dev/Test devops SP (esadatatechnology-Azure-Devops) that runs the QA blob restore
+# under the Dev/Test service connection. That SP can't reach the prod subscription, so it gets read-only
+# access to the prod SOURCE account here (azurerm_role_assignment.qa_restore_source_reader, prod env only).
+# Object id = identifier, not a secret (same as the h2o groups); shared esassoc org-wide.
+variable "qaRestoreSpObjectId" {
+  type    = string
+  default = "c85db245-efe7-45f4-a0b8-a6bcc397d307"
+}
+
 terraform {
 	required_version   = ">= 0.11"
 	backend "azurerm" {
@@ -566,6 +575,29 @@ resource "azurerm_role_assignment" "pipeline_kv_secrets_officer" {
   scope                = azurerm_key_vault.web.id
   role_definition_name = "Key Vault Secrets Officer"
   principal_id         = data.azurerm_client_config.current.object_id
+}
+
+# The blob-restore pipeline steps (restore-dev-blob + the deploy pipeline's env restore) run as this
+# service connection and azcopy blobs with Entra auth (no keys). The pipeline SP needs blob data access on
+# this env's web account, least-privilege by env: NON-prod is a copy DESTINATION (the env's refresh writes
+# here) -> Contributor; PROD is only a SOURCE the dev/qa restores read from (the pipeline SP never writes
+# prod blobs - app runtime writes go through the app managed identity) -> Reader. Same connection applies
+# this and runs the restore, so data.azurerm_client_config.current is the right principal here.
+resource "azurerm_role_assignment" "pipeline_blob_contributor" {
+  scope                = azurerm_storage_account.web.id
+  role_definition_name = local.is_prod ? "Storage Blob Data Reader" : "Storage Blob Data Contributor"
+  principal_id         = data.azurerm_client_config.current.object_id
+}
+
+# The QA blob restore runs under the Dev/Test connection (SP c85db245), which can't reach the prod
+# subscription - so grant it read-only on the prod SOURCE account. Prod env ONLY: here
+# azurerm_storage_account.web IS the prod account (the source every lower env reads from). The prod deploy
+# pipeline that applies this has role-assignment rights in the prod sub. Reader = read-only source.
+resource "azurerm_role_assignment" "qa_restore_source_reader" {
+  count                = var.qaRestoreSpObjectId != "" && local.is_prod ? 1 : 0
+  scope                = azurerm_storage_account.web.id
+  role_definition_name = "Storage Blob Data Reader"
+  principal_id         = var.qaRestoreSpObjectId
 }
 
 # RBAC role assignments take seconds-to-minutes to propagate; secret writes in
