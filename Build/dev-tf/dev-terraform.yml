@@ -8,7 +8,6 @@
 # BEFORE FIRST RUN — supply these (Azure DevOps variable group / library), they
 # are intentionally NOT in the repo:
 #   - azureSubscription ............ service-connection name (like the main pipeline)
-#   - devReaderGroupObjectId ....... AAD group object id for the dev team (or "")
 #   - secretSendGridApiKey ......... (secret) dev SendGrid key (optional)
 #   - secretAnthropicApiKey ........ (secret) dev Anthropic key (optional)
 #
@@ -22,6 +21,12 @@ trigger: none
 
 variables:
   team: 'h2o'
+  # The dev team's AAD group, granted Key Vault Secrets User on the dev vault, Reader on
+  # the dev resource group and Storage Blob Data Contributor on the dev storage account.
+  # An object id is an identifier, not a secret, and this group is the same across ESA's
+  # h2o apps -- so it lives here rather than as a pipeline variable someone has to
+  # remember to set. Matches ltinfo and projectfirma2.
+  devReaderGroupObjectId: 'c17266ef-57de-4cb9-b505-80a1eeccec60'   # H2O QA Group
   projectNumber: 'D020211956.00'
   environment: 'dev'
   # tfstate backend — VERIFY these against Neptune's tfstate convention. The
