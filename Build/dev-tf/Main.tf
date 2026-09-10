@@ -190,13 +190,57 @@ resource "azurerm_role_assignment" "pipeline_blob_contributor" {
 
 # The dev team (AAD group) reads secrets via `az login` DefaultAzureCredential.
 resource "azurerm_role_assignment" "dev_group_secrets_user" {
-  count                = var.devReaderGroupObjectId != "" ? 1 : 0
+  count                = var.devReaderGroupObjectId != "" && !can(regex("^[$][(]", var.devReaderGroupObjectId)) ? 1 : 0
   scope                = azurerm_key_vault.dev.id
   role_definition_name = "Key Vault Secrets User"
   principal_id         = var.devReaderGroupObjectId
 }
 
+# Dev's half of the access matrix in neptune.tf, which puts H2O QA in QA and dev.
+# What the group gets here is deliberately NOT uniform:
+#
+#   Key Vault       Secrets User          read only -- see below
+#   resource group  Reader                read only
+#   storage account Blob Data Contributor read and write
+#
+# The vault stays read-only on purpose. The pipeline SP holds Secrets Officer and
+# is what seeds these secrets; a developer only ever reads them at runtime through
+# `az login` + DefaultAzureCredential. Nothing here needs a person writing dev
+# secrets by hand, so do not "align" this to the Officer grant the QA vault gives
+# the same group.
+#
+# Without the RG Reader, opening a resource in this group in the portal fails
+# outright with 'does not have authorization to perform action .../read': the H2O
+# groups' only subscription-scope grant is Security Reader, whose 14 actions cover
+# Microsoft.Security/* and resourceGroups/read but nothing else. Diagnosed on
+# ltinfo; see esassoc/ltinfo#317.
+#
+# Both halves of the storage grant are needed and neither implies the other --
+# Reader makes the resources visible in the portal and grants no blob access, and
+# the Storage Blob Data role grants blob access without making the account visible.
+resource "azurerm_role_assignment" "dev_group_rg_reader" {
+  count                = var.devReaderGroupObjectId != "" && !can(regex("^[$][(]", var.devReaderGroupObjectId)) ? 1 : 0
+  scope                = azurerm_resource_group.dev.id
+  role_definition_name = "Reader"
+  principal_id         = var.devReaderGroupObjectId
+}
+
+resource "azurerm_role_assignment" "dev_group_blob_contributor" {
+  count                = var.devReaderGroupObjectId != "" && !can(regex("^[$][(]", var.devReaderGroupObjectId)) ? 1 : 0
+  scope                = azurerm_storage_account.dev.id
+  role_definition_name = "Storage Blob Data Contributor"
+  principal_id         = var.devReaderGroupObjectId
+}
+
 # --- Seeded secrets ----------------------------------------------------------
+# Azure DevOps substitutes an UNDEFINED $(name) macro as the LITERAL text "$(name)" rather
+# than as an empty string, and dev-terraform.yml passes these vars unconditionally. A bare
+# `!= ""` guard therefore passes for a variable never defined on the pipeline definition,
+# and Terraform seeds that literal into the vault as a junk secret. The guard below also
+# rejects anything still shaped like a macro, so an undefined variable is skipped exactly
+# as an empty one is. can(regex(...)) rather than substr(): substr throws when the string
+# is shorter than the slice, and Terraform's && does not reliably short-circuit.
+#
 # The blob connection string comes straight from the dev storage account, so it
 # is always seeded and stays correct if keys rotate (re-apply).
 resource "azurerm_key_vault_secret" "azureBlobStorageConnectionString" {
@@ -209,7 +253,7 @@ resource "azurerm_key_vault_secret" "azureBlobStorageConnectionString" {
 
 # Only seed the rest when a value was supplied (avoids writing empty secrets).
 resource "azurerm_key_vault_secret" "sendGridApiKey" {
-  count        = var.secretSendGridApiKey != "" ? 1 : 0
+  count        = var.secretSendGridApiKey != "" && !can(regex("^[$][(]", var.secretSendGridApiKey)) ? 1 : 0
   name         = "SendGridApiKey"
   value        = var.secretSendGridApiKey
   key_vault_id = azurerm_key_vault.dev.id
@@ -218,7 +262,7 @@ resource "azurerm_key_vault_secret" "sendGridApiKey" {
 }
 
 resource "azurerm_key_vault_secret" "anthropicApiKey" {
-  count        = var.secretAnthropicApiKey != "" ? 1 : 0
+  count        = var.secretAnthropicApiKey != "" && !can(regex("^[$][(]", var.secretAnthropicApiKey)) ? 1 : 0
   name         = "AnthropicApiKey"
   value        = var.secretAnthropicApiKey
   key_vault_id = azurerm_key_vault.dev.id
