@@ -238,8 +238,8 @@ resource "azurerm_role_assignment" "dev_group_blob_contributor" {
 # `!= ""` guard therefore passes for a variable never defined on the pipeline definition,
 # and Terraform seeds that literal into the vault as a junk secret. The guard below also
 # rejects anything still shaped like a macro, so an undefined variable is skipped exactly
-# as an empty one is. can(regex(...)) rather than substr(): substr throws when the string
-# is shorter than the slice, and Terraform's && does not reliably short-circuit.
+# as an empty one is. can(regex(...)) rather than a bare regex(): regex() raises an error
+# on a non-match, so it needs can() to yield a boolean instead of failing the plan.
 #
 # The blob connection string comes straight from the dev storage account, so it
 # is always seeded and stays correct if keys rotate (re-apply).
