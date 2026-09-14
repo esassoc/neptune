@@ -130,59 +130,52 @@ public static class TrashGeneratingUnitHelper
 
     public static double AlternateOVTAScoreDAcreage(this List<TrashGeneratingUnit> trashGeneratingUnits)
     {
-        return GetAlternativeOVTAScoreAcreageImpl(trashGeneratingUnits, OnlandVisualTrashAssessmentScore.D);
+        return GetOVTAScoreAcreageImpl(trashGeneratingUnits, OnlandVisualTrashAssessmentScore.D, isPLU: false);
     }
 
     public static double AlternateOVTAScoreBAcreage(this List<TrashGeneratingUnit> trashGeneratingUnits)
     {
-        return GetAlternativeOVTAScoreAcreageImpl(trashGeneratingUnits, OnlandVisualTrashAssessmentScore.B);
+        return GetOVTAScoreAcreageImpl(trashGeneratingUnits, OnlandVisualTrashAssessmentScore.B, isPLU: false);
     }
 
     public static double PriorityOVTAScoreDAcreage(this List<TrashGeneratingUnit> trashGeneratingUnits)
     {
-        return GetPriorityOVTAScoreAcreageImpl(trashGeneratingUnits, OnlandVisualTrashAssessmentScore.D);
+        return GetOVTAScoreAcreageImpl(trashGeneratingUnits, OnlandVisualTrashAssessmentScore.D, isPLU: true);
     }
 
     public static double PriorityOVTAScoreBAcreage(this List<TrashGeneratingUnit> trashGeneratingUnits)
     {
-        return GetPriorityOVTAScoreAcreageImpl(trashGeneratingUnits, OnlandVisualTrashAssessmentScore.B);
+        return GetOVTAScoreAcreageImpl(trashGeneratingUnits, OnlandVisualTrashAssessmentScore.B, isPLU: true);
     }
 
     public static double AlternateOVTAScoreCAcreage(this List<TrashGeneratingUnit> trashGeneratingUnits)
     {
-        return GetAlternativeOVTAScoreAcreageImpl(trashGeneratingUnits, OnlandVisualTrashAssessmentScore.C);
+        return GetOVTAScoreAcreageImpl(trashGeneratingUnits, OnlandVisualTrashAssessmentScore.C, isPLU: false);
     }
 
     public static double AlternateOVTAScoreAAcreage(this List<TrashGeneratingUnit> trashGeneratingUnits)
     {
-        return GetAlternativeOVTAScoreAcreageImpl(trashGeneratingUnits, OnlandVisualTrashAssessmentScore.A);
+        return GetOVTAScoreAcreageImpl(trashGeneratingUnits, OnlandVisualTrashAssessmentScore.A, isPLU: false);
     }
 
     public static double PriorityOVTAScoreCAcreage(this List<TrashGeneratingUnit> trashGeneratingUnits)
     {
-        return GetPriorityOVTAScoreAcreageImpl(trashGeneratingUnits, OnlandVisualTrashAssessmentScore.C);
+        return GetOVTAScoreAcreageImpl(trashGeneratingUnits, OnlandVisualTrashAssessmentScore.C, isPLU: true);
     }
 
     public static double PriorityOVTAScoreAAcreage(this List<TrashGeneratingUnit> trashGeneratingUnits)
     {
-        return GetPriorityOVTAScoreAcreageImpl(trashGeneratingUnits, OnlandVisualTrashAssessmentScore.A);
+        return GetOVTAScoreAcreageImpl(trashGeneratingUnits, OnlandVisualTrashAssessmentScore.A, isPLU: true);
     }
 
-    private static double GetAlternativeOVTAScoreAcreageImpl(List<TrashGeneratingUnit> trashGeneratingUnits,
-        OnlandVisualTrashAssessmentScore onlandVisualTrashAssessmentScore)
+    // NPT-1128: single implementation for both land use branches so the PLU/ALU predicates cannot drift apart.
+    // Keys off the OVTA area's baseline score (existing behavior).
+    private static double GetOVTAScoreAcreageImpl(List<TrashGeneratingUnit> trashGeneratingUnits,
+        OnlandVisualTrashAssessmentScore onlandVisualTrashAssessmentScore, bool isPLU)
     {
         return Math.Round(trashGeneratingUnits.Where(x =>
             x.OnlandVisualTrashAssessmentArea?.OnlandVisualTrashAssessmentBaselineScoreID ==
             onlandVisualTrashAssessmentScore.OnlandVisualTrashAssessmentScoreID &&
-            x.IsPLU()).GetArea(), 0);
-    }
-
-    private static double GetPriorityOVTAScoreAcreageImpl(List<TrashGeneratingUnit> trashGeneratingUnits,
-        OnlandVisualTrashAssessmentScore onlandVisualTrashAssessmentScore)
-    {
-        return Math.Round(trashGeneratingUnits.Where(x =>
-            x.OnlandVisualTrashAssessmentArea?.OnlandVisualTrashAssessmentBaselineScoreID ==
-            onlandVisualTrashAssessmentScore.OnlandVisualTrashAssessmentScoreID &&
-            x.IsPLU()).GetArea(), 0);
+            x.IsPLU() == isPLU).GetArea(), 0);
     }
 }
