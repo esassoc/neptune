@@ -12,7 +12,11 @@ variables:
   resourceGroupName: 'neptune-$(Environment)'
   keyVaultName: 'neptune-keyvault-$(Environment)'
   storageAccountName: 'neptuneapp$(Environment)'
-  storageAccountNameProd: 'neptuneappprod'
+  # The blob RESTORE source, always prod whatever environment is being deployed: the QA
+  # restore copies prod's blobs down into $(storageAccountName), which interpolates
+  # $(Environment) and so can never name prod from a QA run. The name must match the
+  # reference in the RestoreFiles stage below.
+  storageAccountProdApplicationName: 'neptuneappprod'
 
   databaseName: 'NeptuneDB'
   databaseEdition: 'Standard'
