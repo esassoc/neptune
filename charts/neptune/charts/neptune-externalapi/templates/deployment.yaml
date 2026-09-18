@@ -12,6 +12,13 @@ spec:
   {{- if not .Values.autoscaling.enabled }}
   replicas: {{ .Values.replicaCount }}
   {{- end }}
+  # AGC migration: behind Envoy a pod must never be the only one serving while it
+  # is draining, so surge before taking the old one down.
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxUnavailable: 0
+      maxSurge: 1
   selector:
     matchLabels:
       {{- include "externalapi.selectorLabels" . | nindent 6 }}
@@ -75,13 +82,15 @@ spec:
           lifecycle:
             preStop:
               exec:
-                command: ["sleep","120"]
+                # AGC migration: 120s was sized for App Gateway's slow backend-pool
+                # drain. Envoy removes an endpoint in about a second, so 5s is ample.
+                command: ["sleep","5"]
           resources:
             {{- toYaml .Values.resources | nindent 12 }}
           envFrom:
           - configMapRef:
               name: {{ include "externalapi.fullname" . }}-{{ .Values.global.env.name }}-configmap
-      terminationGracePeriodSeconds: 131
+      terminationGracePeriodSeconds: 45
       {{- with .Values.nodeSelector }}
       nodeSelector:
         {{- toYaml . | nindent 8 }}
