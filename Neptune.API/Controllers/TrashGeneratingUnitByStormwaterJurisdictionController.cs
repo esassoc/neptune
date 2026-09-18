@@ -88,40 +88,41 @@ public class TrashGeneratingUnitByStormwaterJurisdictionController(
     }
 
 
+    // NPT-1128 rework: the OVTA calculation only reads LandUseBlock.PriorityLandUseTypeID,
+    // OnlandVisualTrashAssessmentArea.OnlandVisualTrashAssessmentBaselineScoreID and the TGU geometry,
+    // so it uses a much lighter query than GetRelevantTrashGeneratingUnitsForCalculations. The shared
+    // loader also pulls every assessment, delineation, BMP and WQMP per TGU, which fans out badly for
+    // jurisdictions with many OVTA areas (City of Irvine never finished loading in production).
+    private Task<List<TrashGeneratingUnit>> GetTrashGeneratingUnitsForOVTACalculationsAsync(int stormwaterJurisdictionID)
+    {
+        return DbContext.TrashGeneratingUnits
+            .Include(x => x.LandUseBlock)
+            .Include(x => x.OnlandVisualTrashAssessmentArea)
+            .AsNoTracking()
+            .Where(x => x.StormwaterJurisdictionID == stormwaterJurisdictionID && x.LandUseBlock != null && x.LandUseBlock.PermitTypeID == (int)PermitTypeEnum.PhaseIMS4)
+            .ToListAsync();
+    }
+
     [HttpGet("ovta-based-results-calculations")]
     [AllowAnonymous]
     [EntityNotFound(typeof(StormwaterJurisdiction), "jurisdictionID")]
-    public ActionResult<OVTAResultsDto> GetOVTABasedResultsCalculations([FromRoute] int jurisdictionID)
+    public async Task<ActionResult<OVTAResultsDto>> GetOVTABasedResultsCalculations([FromRoute] int jurisdictionID)
     {
-        var trashGeneratingUnits = GetRelevantTrashGeneratingUnitsForCalculations(jurisdictionID);
-
-        var sumPLUAcresWhereOVTAIsA = trashGeneratingUnits.PriorityOVTAScoreAAcreage();
-
-        var sumPLUAcrexsWhereOVTAIsB = trashGeneratingUnits.PriorityOVTAScoreBAcreage();
-
-        var sumPLUAcrexsWhereOVTAIsC = trashGeneratingUnits.PriorityOVTAScoreCAcreage();
-
-        var sumPLUAcrexsWhereOVTAIsD = trashGeneratingUnits.PriorityOVTAScoreDAcreage();
-
-
-        var sumALUAcresWhereOVTAIsA = trashGeneratingUnits.AlternateOVTAScoreAAcreage();
-
-        var sumALUAcresWhereOVTAIsB = trashGeneratingUnits.AlternateOVTAScoreBAcreage();
-
-        var sumALUAcresWhereOVTAIsC = trashGeneratingUnits.AlternateOVTAScoreCAcreage();
-
-        var sumALUAcresWhereOVTAIsD = trashGeneratingUnits.AlternateOVTAScoreDAcreage();
+        var hasLandUseBlocks = await DbContext.LandUseBlocks.AsNoTracking().AnyAsync(x => x.StormwaterJurisdictionID == jurisdictionID);
+        var trashGeneratingUnits = await GetTrashGeneratingUnitsForOVTACalculationsAsync(jurisdictionID);
 
         var ovtaResultsDto = new OVTAResultsDto
         {
-            PLUSumAcresWhereOVTAIsA = sumPLUAcresWhereOVTAIsA,
-            PLUSumAcresWhereOVTAIsB = sumPLUAcrexsWhereOVTAIsB,
-            PLUSumAcresWhereOVTAIsC = sumPLUAcrexsWhereOVTAIsC,
-            PLUSumAcresWhereOVTAIsD = sumPLUAcrexsWhereOVTAIsD,
-            ALUSumAcresWhereOVTAIsA = sumALUAcresWhereOVTAIsA,
-            ALUSumAcresWhereOVTAIsB = sumALUAcresWhereOVTAIsB,
-            ALUSumAcresWhereOVTAIsC = sumALUAcresWhereOVTAIsC,
-            ALUSumAcresWhereOVTAIsD = sumALUAcresWhereOVTAIsD
+            PLUSumAcresWhereOVTAIsA = trashGeneratingUnits.PriorityOVTAScoreAAcreage(),
+            PLUSumAcresWhereOVTAIsB = trashGeneratingUnits.PriorityOVTAScoreBAcreage(),
+            PLUSumAcresWhereOVTAIsC = trashGeneratingUnits.PriorityOVTAScoreCAcreage(),
+            PLUSumAcresWhereOVTAIsD = trashGeneratingUnits.PriorityOVTAScoreDAcreage(),
+            ALUSumAcresWhereOVTAIsA = trashGeneratingUnits.AlternateOVTAScoreAAcreage(),
+            ALUSumAcresWhereOVTAIsB = trashGeneratingUnits.AlternateOVTAScoreBAcreage(),
+            ALUSumAcresWhereOVTAIsC = trashGeneratingUnits.AlternateOVTAScoreCAcreage(),
+            ALUSumAcresWhereOVTAIsD = trashGeneratingUnits.AlternateOVTAScoreDAcreage(),
+            HasLandUseBlocks = hasLandUseBlocks,
+            HasOVTAResults = trashGeneratingUnits.Any(x => x.OnlandVisualTrashAssessmentArea?.OnlandVisualTrashAssessmentBaselineScoreID != null),
         };
         return Ok(ovtaResultsDto);
     }

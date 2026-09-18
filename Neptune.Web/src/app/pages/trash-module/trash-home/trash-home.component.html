@@ -90,7 +90,7 @@
                                                                 <p class="greyLabel">acres Partial Capture</p>
                                                             </div>
                                                             <div class="g-col-4">
-                                                                <div id="untreatedPlu" class="font25 outlined-text" style="color:#ecabff">
+                                                                <div id="untreatedPlu" class="font25 outlined-text" style="color: #ecabff">
                                                                     {{ areaBasedAcreCalculationsDto.UntreatedAcreagePLU | number: "1.0-0" }}
                                                                 </div>
                                                                 <p class="greyLabel">acres Untreated</p>
@@ -100,7 +100,7 @@
                                                     <td class="TGUColumn">
                                                         <div class="grid-12">
                                                             <div class="g-col-4">
-                                                                <div id="fullTrashCaptureAlu" class="font25 outlined-text" style="color: #5991C0">
+                                                                <div id="fullTrashCaptureAlu" class="font25 outlined-text" style="color: #5991c0">
                                                                     {{ areaBasedAcreCalculationsDto.FullTrashCaptureAcreageALU | number: "1.0-0" }}
                                                                 </div>
                                                                 <p class="greyLabel">acres Full Capture</p>
@@ -141,7 +141,7 @@
                                         <table class="table loadBasedCalculationControlTable">
                                             <tbody>
                                                 <tr>
-                                                     <td class="loadBasedResultsColumn" style="border-right: 1px solid rgb(204, 204, 204)">
+                                                    <td class="loadBasedResultsColumn" style="border-right: 1px solid rgb(204, 204, 204)">
                                                         <div id="targetLoadReduction" class="font25 loadBased-green bold">
                                                             {{ loadResultsDto.TargetLoadReduction | number: "1.0-0" }}
                                                         </div>
@@ -186,61 +186,73 @@
                             }
                             @if (currentResultType == "OVTA-Based Results") {
                                 <div [loadingSpinner]="{ isLoading: (isLoadingOvtaResults$ | async) ?? false, loadingHeight: 100 }" id="OVTABasedResultsControlTemplate">
-                                    @if (ovtaResultsDto$ | async; as ovtaResultsDto) {
-                                        <table class="table areaBasedCalculationControlTable">
-                                            <thead>
-                                                <tr>
-                                                    <td class="font15" style="font-weight: bold; padding-left: 0.75rem">
-                                                        <div>
-                                                            Score
-                                                            <a (click)="showScoreDefinitions()">
-                                                                <i class="fas fa-question-circle small" style="cursor: help"></i>
-                                                            </a>
-                                                        </div>
-                                                    </td>
-                                                    <td class="ovtaResults font15" style="width: 10%">A</td>
-                                                    <td class="ovtaResults font15" style="width: 10%">B</td>
-                                                    <td class="ovtaResults font15" style="width: 10%">C</td>
-                                                    <td class="ovtaResults font15" style="width: 10%">D</td>
-                                                </tr>
-                                            </thead>
-                                            <tbody>
-                                                <tr>
-                                                    <td class="font15" style="border: none">
-                                                        <div>Priority Land Use Area (acres)</div>
-                                                    </td>
-                                                    <td class="ovtaResults font15">
-                                                        <div id="PLUIsA" style="color: rgb(74, 222, 0)">{{ ovtaResultsDto.PLUSumAcresWhereOVTAIsA | number: "1.0-0" }}</div>
-                                                    </td>
-                                                    <td class="ovtaResults font15">
-                                                        <div id="PLUIsB" style="color: rgb(255, 216, 0)">{{ ovtaResultsDto.PLUSumAcresWhereOVTAIsB | number: "1.0-0" }}</div>
-                                                    </td>
-                                                    <td class="ovtaResults font15">
-                                                        <div id="PLUIsC" style="color: rgb(255, 127, 127)">{{ ovtaResultsDto.PLUSumAcresWhereOVTAIsC | number: "1.0-0" }}</div>
-                                                    </td>
-                                                    <td class="ovtaResults font15">
-                                                        <div id="PLUIsD" style="color: rgb(197, 0, 255)">{{ ovtaResultsDto.PLUSumAcresWhereOVTAIsD | number: "1.0-0" }}</div>
-                                                    </td>
-                                                </tr>
-                                                <tr>
-                                                    <td class="font15" style="border: none">
-                                                        <div>Alternate Land Use Area (acres)</div>
-                                                    </td>
-                                                    <td class="ovtaResults font15">
-                                                        <div id="ALUIsA" style="color: rgb(74, 222, 0)">{{ ovtaResultsDto.ALUSumAcresWhereOVTAIsA | number: "1.0-0" }}</div>
-                                                    </td>
-                                                    <td class="ovtaResults font15">
-                                                        <div id="ALUIsB" style="color: rgb(255, 216, 0)">{{ ovtaResultsDto.ALUSumAcresWhereOVTAIsB | number: "1.0-0" }}</div>
-                                                    </td>
-                                                    <td class="ovtaResults font15">
-                                                        <div id="ALUIsC" style="color: rgb(255, 127, 127)">{{ ovtaResultsDto.ALUSumAcresWhereOVTAIsC | number: "1.0-0" }}</div>
-                                                    </td>
-                                                    <td class="ovtaResults font15">
-                                                        <div id="ALUIsD" style="color: rgb(197, 0, 255)">{{ ovtaResultsDto.ALUSumAcresWhereOVTAIsD | number: "1.0-0" }}</div>
-                                                    </td>
-                                                </tr>
-                                            </tbody>
-                                        </table>
+                                    @if (ovtaResults$ | async; as ovtaResults) {
+                                        @if (ovtaResults.failed || !ovtaResults.dto) {
+                                            <note noteType="danger">OVTA-Based Results could not be loaded for this jurisdiction. Please refresh the page or try again later.</note>
+                                        } @else if (!ovtaResults.dto.HasLandUseBlocks) {
+                                            <note noteType="info">This jurisdiction has no Land Use Blocks, so OVTA-Based Results cannot be calculated.</note>
+                                        } @else if (!ovtaResults.dto.HasOVTAResults) {
+                                            <note noteType="info"
+                                                >This jurisdiction has no OVTA Areas with 2 completed baseline assessments, so there are no OVTA-Based Results to display.</note
+                                            >
+                                        } @else {
+                                            @let ovtaResultsDto = ovtaResults.dto;
+                                            <table class="table areaBasedCalculationControlTable">
+                                                <thead>
+                                                    <tr>
+                                                        <td class="font15" style="font-weight: bold; padding-left: 0.75rem">
+                                                            <div>
+                                                                Score
+                                                                <a (click)="showScoreDefinitions()">
+                                                                    <i class="fas fa-question-circle small" style="cursor: help"></i>
+                                                                </a>
+                                                            </div>
+                                                        </td>
+                                                        <td class="ovtaResults font15" style="width: 10%">A</td>
+                                                        <td class="ovtaResults font15" style="width: 10%">B</td>
+                                                        <td class="ovtaResults font15" style="width: 10%">C</td>
+                                                        <td class="ovtaResults font15" style="width: 10%">D</td>
+                                                    </tr>
+                                                </thead>
+                                                <tbody>
+                                                    <tr>
+                                                        <td class="font15" style="border: none">
+                                                            <div>Priority Land Use Area (acres)</div>
+                                                        </td>
+                                                        <td class="ovtaResults font15">
+                                                            <div id="PLUIsA" style="color: rgb(74, 222, 0)">{{ ovtaResultsDto.PLUSumAcresWhereOVTAIsA | number: "1.0-0" }}</div>
+                                                        </td>
+                                                        <td class="ovtaResults font15">
+                                                            <div id="PLUIsB" style="color: rgb(255, 216, 0)">{{ ovtaResultsDto.PLUSumAcresWhereOVTAIsB | number: "1.0-0" }}</div>
+                                                        </td>
+                                                        <td class="ovtaResults font15">
+                                                            <div id="PLUIsC" style="color: rgb(255, 127, 127)">{{ ovtaResultsDto.PLUSumAcresWhereOVTAIsC | number: "1.0-0" }}</div>
+                                                        </td>
+                                                        <td class="ovtaResults font15">
+                                                            <div id="PLUIsD" style="color: rgb(197, 0, 255)">{{ ovtaResultsDto.PLUSumAcresWhereOVTAIsD | number: "1.0-0" }}</div>
+                                                        </td>
+                                                    </tr>
+                                                    <tr>
+                                                        <td class="font15" style="border: none">
+                                                            <div>Alternate Land Use Area (acres)</div>
+                                                        </td>
+                                                        <td class="ovtaResults font15">
+                                                            <div id="ALUIsA" style="color: rgb(74, 222, 0)">{{ ovtaResultsDto.ALUSumAcresWhereOVTAIsA | number: "1.0-0" }}</div>
+                                                        </td>
+                                                        <td class="ovtaResults font15">
+                                                            <div id="ALUIsB" style="color: rgb(255, 216, 0)">{{ ovtaResultsDto.ALUSumAcresWhereOVTAIsB | number: "1.0-0" }}</div>
+                                                        </td>
+                                                        <td class="ovtaResults font15">
+                                                            <div id="ALUIsC" style="color: rgb(255, 127, 127)">{{ ovtaResultsDto.ALUSumAcresWhereOVTAIsC | number: "1.0-0" }}</div>
+                                                        </td>
+                                                        <td class="ovtaResults font15">
+                                                            <div id="ALUIsD" style="color: rgb(197, 0, 255)">{{ ovtaResultsDto.ALUSumAcresWhereOVTAIsD | number: "1.0-0" }}</div>
+                                                        </td>
+                                                    </tr>
+                                                </tbody>
+                                            </table>
+                                            <div class="font-italic">Results above derived from OVTA Areas with 2 completed baseline assessments</div>
+                                        }
                                     }
                                 </div>
                             }
@@ -277,7 +289,7 @@
                                     <dt>Jurisdiction</dt>
                                     <dd>{{ selected.tgu?.StormwaterJurisdictionName ? selected.tgu?.StormwaterJurisdictionName : "-" }}</dd>
                                     <dt>Area</dt>
-                                    <dd>{{ selected.tgu?.Area != null ? (selected.tgu?.Area | number: '1.2-2') + ' acres' : '-' }}</dd>
+                                    <dd>{{ selected.tgu?.Area != null ? (selected.tgu?.Area | number: "1.2-2") + " acres" : "-" }}</dd>
                                 </div>
                                 <div class="tgu-grid-data-column">
                                     <dt>BMP</dt>
@@ -415,11 +427,7 @@
                                     <land-use-block-layer [displayOnLoad]="false" [map]="map" [layerControl]="layerControl" [sortOrder]="10"></land-use-block-layer>
                                 }
                                 @if (mapIsReady) {
-                                    <delineations-layer
-                                        [displayOnLoad]="false"
-                                        [map]="map"
-                                        [layerControl]="layerControl"
-                                        [sortOrder]="20"></delineations-layer>
+                                    <delineations-layer [displayOnLoad]="false" [map]="map" [layerControl]="layerControl" [sortOrder]="20"></delineations-layer>
                                 }
                                 @if (mapIsReady) {
                                     <wqmps-trash-capture-layer [displayOnLoad]="false" [map]="map" [layerControl]="layerControl" [sortOrder]="40"></wqmps-trash-capture-layer>

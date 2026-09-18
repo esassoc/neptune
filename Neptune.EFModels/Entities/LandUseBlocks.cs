@@ -82,6 +82,32 @@ public static class LandUseBlocks
                         && x.LandUseBlockGeometry.Intersects(geometryToIntersect));
     }
 
+    /// <summary>
+    /// NPT-1128 rework: Land Use Blocks that genuinely overlap each OVTA Area, for the OVTA Area grid and GDB
+    /// export. Reads dbo.vOnlandVisualTrashAssessmentAreaLandUseBlock, which does the spatial join (same
+    /// jurisdiction, STIntersects, overlap area > 10 m^2 so shared-edge neighbours are excluded) with the spatial
+    /// index hint the optimizer otherwise ignores. Deliberately not derived from TrashGeneratingUnit, which is
+    /// filtered to Phase I MS4 blocks and only refreshed by the overlay pipeline.
+    /// See docs/ovta-area-land-use-spatial-join.md.
+    /// </summary>
+    public static Dictionary<int, List<OnlandVisualTrashAssessmentAreaLandUseBlock>> ListByOnlandVisualTrashAssessmentAreaID(
+        NeptuneDbContext dbContext, IEnumerable<int> stormwaterJurisdictionIDs)
+    {
+        var jurisdictionIDs = stormwaterJurisdictionIDs.Distinct().ToList();
+        if (jurisdictionIDs.Count == 0)
+        {
+            return new Dictionary<int, List<OnlandVisualTrashAssessmentAreaLandUseBlock>>();
+        }
+
+        return dbContext.vOnlandVisualTrashAssessmentAreaLandUseBlocks.AsNoTracking()
+            .Where(x => jurisdictionIDs.Contains(x.StormwaterJurisdictionID))
+            .Select(x => new { x.OnlandVisualTrashAssessmentAreaID, x.LandUseBlockID, x.PriorityLandUseTypeID })
+            .ToList()
+            .GroupBy(x => x.OnlandVisualTrashAssessmentAreaID)
+            .ToDictionary(g => g.Key,
+                g => g.Select(x => new OnlandVisualTrashAssessmentAreaLandUseBlock(x.LandUseBlockID, x.PriorityLandUseTypeID)).ToList());
+    }
+
     public static async Task Update(NeptuneDbContext dbContext, LandUseBlock landUseBlock, LandUseBlockUpsertDto landUseBlockUpsertDto, int personID)
     {
         landUseBlock.PriorityLandUseTypeID = landUseBlockUpsertDto.PriorityLandUseTypeID;
@@ -96,3 +122,6 @@ public static class LandUseBlocks
         await dbContext.SaveChangesAsync();
     }
 }
+
+/// <summary>One Land Use Block overlapping an OVTA Area (see <see cref="LandUseBlocks.ListByOnlandVisualTrashAssessmentAreaID"/>).</summary>
+public record OnlandVisualTrashAssessmentAreaLandUseBlock(int LandUseBlockID, int? PriorityLandUseTypeID);

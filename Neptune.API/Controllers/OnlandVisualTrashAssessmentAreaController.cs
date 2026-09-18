@@ -36,8 +36,12 @@ public class OnlandVisualTrashAssessmentAreaController(
     public async Task<ActionResult<List<OnlandVisualTrashAssessmentAreaGridDto>>> List()
     {
         var stormwaterJurisdictionIDs = await StormwaterJurisdictionPeople.ListViewableStormwaterJurisdictionIDsByPersonIDForBMPsAsync(DbContext, CallingUser.PersonID);
+        // NPT-1128 rework: land use columns come from a live intersect against Land Use Blocks, one query for all rows.
+        var landUseBlocksByAreaID = LandUseBlocks.ListByOnlandVisualTrashAssessmentAreaID(DbContext, stormwaterJurisdictionIDs);
         var onlandVisualTrashAssessmentAreaGridDtos = OnlandVisualTrashAssessmentAreas
-            .ListByStormwaterJurisdictionIDList(DbContext, stormwaterJurisdictionIDs).Select(x => x.AsGridDto()).ToList();
+            .ListByStormwaterJurisdictionIDList(DbContext, stormwaterJurisdictionIDs)
+            .Select(x => x.AsGridDto(landUseBlocksByAreaID.GetValueOrDefault(x.OnlandVisualTrashAssessmentAreaID) ?? []))
+            .ToList();
         return Ok(onlandVisualTrashAssessmentAreaGridDtos);
     }
 
