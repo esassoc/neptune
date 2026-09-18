@@ -1,3 +1,4 @@
+using System.Globalization;
 using Microsoft.EntityFrameworkCore;
 using Neptune.Common.GeoSpatial;
 using Neptune.Common.Services.GDAL;
@@ -108,6 +109,70 @@ public static class OnlandVisualTrashAssessmentAreaGdbExport
         return stagings.Count;
     }
 
+    // NPT-1128 rework: the export carries every column shown on the OVTA Area grid, built from the same
+    // AsGridDto projection so the two cannot drift. "CreatedOn" was removed: it was the newest *assessment's*
+    // creation date, not the area's, and the area table has no creation date at all.
+    // GDB column names must be GDB-safe (letters/digits/underscores).
+    private static readonly string[] AttributeNames =
+    [
+        "OVTAAreaID", "OVTAAreaName", "Jurisdiction", "BaselineScore", "ProgressScore",
+        "AssessmentsInProgress", "CompletedBaselineAssessments", "CompletedProgressAssessments",
+        "Area_Acres", "LastAssessmentDate", "LandUseTypes", "LandUseBlockIDs", "Description",
+    ];
+
+    private static AttributesTable BuildAttributes(OnlandVisualTrashAssessmentAreaGridDto dto)
+    {
+        return new AttributesTable
+        {
+            { "OVTAAreaID", dto.OnlandVisualTrashAssessmentAreaID },
+            { "OVTAAreaName", dto.OnlandVisualTrashAssessmentAreaName },
+            { "Jurisdiction", dto.StormwaterJurisdictionName },
+            { "BaselineScore", dto.OnlandVisualTrashAssessmentBaselineScoreName },
+            { "ProgressScore", dto.OnlandVisualTrashAssessmentProgressScoreName },
+            { "AssessmentsInProgress", dto.NumberOfAssessmentsInProgress },
+            { "CompletedBaselineAssessments", dto.NumberOfBaselineAssessmentsCompleted },
+            { "CompletedProgressAssessments", dto.NumberOfProgressAssessmentsCompleted },
+            { "Area_Acres", dto.AreaAcres },
+            // Date-only string so OGR types it as a timezone-naive Date (see WaterQualityManagementPlan.GdbExport).
+            { "LastAssessmentDate", dto.LastAssessmentDate?.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture) },
+            { "LandUseTypes", dto.LandUseTypes },
+            { "LandUseBlockIDs", dto.LandUseBlockIDs },
+            { "Description", dto.AssessmentAreaDescription },
+        };
+    }
+
+    private static AttributesTable EmptyAttributes()
+    {
+        var attrs = new AttributesTable();
+        foreach (var key in AttributeNames)
+        {
+            attrs.Add(key, null);
+        }
+        return attrs;
+    }
+
+    /// <summary>
+    /// Projects OVTA Areas to the exported FeatureCollection. Separated from the GDAL step so it is unit-testable.
+    /// A jurisdiction with no areas yields a single null-geometry feature so the layer schema is still emitted.
+    /// </summary>
+    public static FeatureCollection ToFeatureCollection(
+        IEnumerable<OnlandVisualTrashAssessmentArea> areas,
+        IReadOnlyDictionary<int, List<OnlandVisualTrashAssessmentAreaLandUseBlock>> landUseBlocksByAreaID)
+    {
+        var featureCollection = new FeatureCollection();
+        foreach (var area in areas)
+        {
+            var dto = area.AsGridDto(landUseBlocksByAreaID.GetValueOrDefault(area.OnlandVisualTrashAssessmentAreaID) ?? []);
+            featureCollection.Add(new Feature(area.OnlandVisualTrashAssessmentAreaGeometry, BuildAttributes(dto)));
+        }
+
+        if (featureCollection.Count == 0)
+        {
+            featureCollection.Add(new Feature(null, EmptyAttributes()));
+        }
+        return featureCollection;
+    }
+
     public static async Task<(byte[] Bytes, string FileName)> BuildJurisdictionGdbExportAsync(
         NeptuneDbContext dbContext,
         GDALAPIService gdalApiService,
@@ -119,31 +184,13 @@ public static class OnlandVisualTrashAssessmentAreaGdbExport
         var jurisdictionName = stormwaterJurisdiction.GetOrganizationDisplayName().Replace(' ', '-');
 
         var areas = dbContext.OnlandVisualTrashAssessmentAreas.AsNoTracking()
+            .Include(x => x.StormwaterJurisdiction).ThenInclude(x => x.Organization)
             .Include(x => x.OnlandVisualTrashAssessments)
             .Where(x => x.StormwaterJurisdictionID == stormwaterJurisdictionID)
             .ToList();
+        var landUseBlocksByAreaID = LandUseBlocks.ListByOnlandVisualTrashAssessmentAreaID(dbContext, [stormwaterJurisdictionID]);
 
-        var featureCollection = new FeatureCollection();
-        foreach (var area in areas)
-        {
-            var attrs = new AttributesTable
-            {
-                { "OVTAAreaName", area.OnlandVisualTrashAssessmentAreaName },
-                { "Description", area.AssessmentAreaDescription },
-                { "CreatedOn", area.OnlandVisualTrashAssessments?.MaxBy(x => x.CreatedDate)?.CreatedDate },
-            };
-            featureCollection.Add(new Feature(area.OnlandVisualTrashAssessmentAreaGeometry, attrs));
-        }
-
-        if (featureCollection.Count == 0)
-        {
-            featureCollection.Add(new Feature(null, new AttributesTable
-            {
-                { "OVTAAreaName", null },
-                { "Description", null },
-                { "CreatedOn", null },
-            }));
-        }
+        var featureCollection = ToFeatureCollection(areas, landUseBlocksByAreaID);
 
         var gdbName = $"ovta-export-{jurisdictionName}";
         var gdbInput = new GdbInput

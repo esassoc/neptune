@@ -121,5 +121,37 @@ namespace Neptune.Tests
             Assert.AreEqual(0, tgus.PriorityOVTAScoreDAcreage());
             Assert.AreEqual(0, tgus.AlternateOVTAScoreDAcreage());
         }
+
+        [TestMethod]
+        public void OvtaAreaWithoutBaselineScore_CountsTowardNeither()
+        {
+            // An OVTA Area only gets a baseline score once it has >= 2 completed baseline assessments
+            // (OnlandVisualTrashAssessmentAreas.CalculateBaselineScoreFromBackingData). Areas below that
+            // threshold must contribute nothing to any score bucket.
+            var tgus = new List<TrashGeneratingUnit>
+            {
+                new()
+                {
+                    TrashGeneratingUnitGeometry = SquareOfAcres(5),
+                    LandUseBlock = new LandUseBlock { PriorityLandUseTypeID = PLU },
+                    OnlandVisualTrashAssessmentArea = new OnlandVisualTrashAssessmentArea { OnlandVisualTrashAssessmentBaselineScoreID = null },
+                },
+                new()
+                {
+                    TrashGeneratingUnitGeometry = SquareOfAcres(7),
+                    LandUseBlock = new LandUseBlock { PriorityLandUseTypeID = ALU },
+                    OnlandVisualTrashAssessmentArea = new OnlandVisualTrashAssessmentArea { OnlandVisualTrashAssessmentBaselineScoreID = null },
+                },
+            };
+
+            Assert.AreEqual(0, tgus.PriorityOVTAScoreAAcreage());
+            Assert.AreEqual(0, tgus.PriorityOVTAScoreBAcreage());
+            Assert.AreEqual(0, tgus.PriorityOVTAScoreCAcreage());
+            Assert.AreEqual(0, tgus.PriorityOVTAScoreDAcreage());
+            Assert.AreEqual(0, tgus.AlternateOVTAScoreAAcreage());
+            Assert.AreEqual(0, tgus.AlternateOVTAScoreBAcreage());
+            Assert.AreEqual(0, tgus.AlternateOVTAScoreCAcreage());
+            Assert.AreEqual(0, tgus.AlternateOVTAScoreDAcreage());
+        }
     }
 }

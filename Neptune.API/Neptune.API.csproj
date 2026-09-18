@@ -49,7 +49,10 @@
     
     <!--
       It is also used to create dev certs after build in debug mode for local development (https://learn.microsoft.com/en-us/dotnet/core/tools/dotnet-dev-certs)
+      IgnoreStandardErrorWarningFormat: SDK 10.0.103's dev-certs tool prints an internal EventSource bug as
+      "[0] ERROR: ..." even when it succeeds (exit code 0). Without this, MSBuild parses that line as a
+      canonical error and fails the build with "exited with code -1". The exit code is still checked.
     -->
-    <Exec Command="dotnet dev-certs https" />
+    <Exec Command="dotnet dev-certs https" IgnoreStandardErrorWarningFormat="true" />
   </Target>
 </Project>

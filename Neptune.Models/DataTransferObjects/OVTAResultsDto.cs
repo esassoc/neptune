@@ -10,5 +10,11 @@
         public double ALUSumAcresWhereOVTAIsB { get; set; }
         public double ALUSumAcresWhereOVTAIsC { get; set; }
         public double ALUSumAcresWhereOVTAIsD { get; set; }
+
+        // NPT-1128 rework: empty-state signals so the UI can explain an all-zero table instead of rendering it.
+        public bool HasLandUseBlocks { get; set; }
+        // True when at least one Phase I MS4 TGU sits in an OVTA Area that has a baseline score
+        // (i.e. the area has >= 2 completed baseline assessments).
+        public bool HasOVTAResults { get; set; }
     }
 }

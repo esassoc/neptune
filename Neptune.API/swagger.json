@@ -17646,6 +17646,12 @@
           "ALUSumAcresWhereOVTAIsD": {
             "type": "number",
             "format": "double"
+          },
+          "HasLandUseBlocks": {
+            "type": "boolean"
+          },
+          "HasOVTAResults": {
+            "type": "boolean"
           }
         },
         "additionalProperties": false
@@ -17881,9 +17887,29 @@
             "type": "integer",
             "format": "int32"
           },
+          "NumberOfBaselineAssessmentsCompleted": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "NumberOfProgressAssessmentsCompleted": {
+            "type": "integer",
+            "format": "int32"
+          },
           "LastAssessmentDate": {
             "type": "string",
             "format": "date",
+            "nullable": true
+          },
+          "AreaAcres": {
+            "type": "number",
+            "format": "double"
+          },
+          "LandUseTypes": {
+            "type": "string",
+            "nullable": true
+          },
+          "LandUseBlockIDs": {
+            "type": "string",
             "nullable": true
           }
         },
