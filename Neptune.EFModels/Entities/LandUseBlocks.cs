@@ -83,50 +83,29 @@ public static class LandUseBlocks
     }
 
     /// <summary>
-    /// NPT-1128 rework: live spatial join of OVTA Areas to the Land Use Blocks they overlap, for the OVTA Area
-    /// grid and GDB export. Deliberately does not go through TrashGeneratingUnit, which is filtered to
-    /// Phase I MS4 blocks and only refreshed by the overlay pipeline. Scoped to the same jurisdiction.
-    /// The overlap-area check drops shared-edge neighbours (OVTA Areas are usually unions of Land Use
-    /// Blocks, so every adjacent block "intersects" on its boundary). Both geometries are SRID 2771 (metres).
-    /// Raw SQL rather than LINQ: the optimizer will not pick the LandUseBlock spatial index for this join on
-    /// its own (14s vs 3s across all jurisdictions on a full dataset), and EF cannot emit an index hint.
+    /// NPT-1128 rework: Land Use Blocks that genuinely overlap each OVTA Area, for the OVTA Area grid and GDB
+    /// export. Reads dbo.vOnlandVisualTrashAssessmentAreaLandUseBlock, which does the spatial join (same
+    /// jurisdiction, STIntersects, overlap area > 10 m^2 so shared-edge neighbours are excluded) with the spatial
+    /// index hint the optimizer otherwise ignores. Deliberately not derived from TrashGeneratingUnit, which is
+    /// filtered to Phase I MS4 blocks and only refreshed by the overlay pipeline.
+    /// See docs/ovta-area-land-use-spatial-join.md.
     /// </summary>
     public static Dictionary<int, List<OnlandVisualTrashAssessmentAreaLandUseBlock>> ListByOnlandVisualTrashAssessmentAreaID(
         NeptuneDbContext dbContext, IEnumerable<int> stormwaterJurisdictionIDs)
     {
-        const double minimumOverlapInSquareMeters = 10;
         var jurisdictionIDs = stormwaterJurisdictionIDs.Distinct().ToList();
         if (jurisdictionIDs.Count == 0)
         {
             return new Dictionary<int, List<OnlandVisualTrashAssessmentAreaLandUseBlock>>();
         }
 
-        var placeholders = string.Join(", ", jurisdictionIDs.Select((_, i) => $"{{{i}}}"));
-        var parameters = jurisdictionIDs.Cast<object>().ToArray();
-        var sql = $"""
-            SELECT a.OnlandVisualTrashAssessmentAreaID, l.LandUseBlockID, l.PriorityLandUseTypeID
-            FROM dbo.OnlandVisualTrashAssessmentArea a
-            JOIN dbo.LandUseBlock l WITH (INDEX(SPATIAL_LandUseBlock_LandUseBlockGeometry))
-                ON l.StormwaterJurisdictionID = a.StormwaterJurisdictionID
-            WHERE a.StormwaterJurisdictionID IN ({placeholders})
-              AND l.LandUseBlockGeometry.STIntersects(a.OnlandVisualTrashAssessmentAreaGeometry) = 1
-              AND l.LandUseBlockGeometry.STIntersection(a.OnlandVisualTrashAssessmentAreaGeometry).STArea() > {minimumOverlapInSquareMeters}
-            """;
-
-        var rows = dbContext.Database.SqlQueryRaw<OnlandVisualTrashAssessmentAreaLandUseBlockRow>(sql, parameters).ToList();
-
-        return rows
+        return dbContext.vOnlandVisualTrashAssessmentAreaLandUseBlocks.AsNoTracking()
+            .Where(x => jurisdictionIDs.Contains(x.StormwaterJurisdictionID))
+            .Select(x => new { x.OnlandVisualTrashAssessmentAreaID, x.LandUseBlockID, x.PriorityLandUseTypeID })
+            .ToList()
             .GroupBy(x => x.OnlandVisualTrashAssessmentAreaID)
             .ToDictionary(g => g.Key,
                 g => g.Select(x => new OnlandVisualTrashAssessmentAreaLandUseBlock(x.LandUseBlockID, x.PriorityLandUseTypeID)).ToList());
-    }
-
-    /// <summary>Row shape for the raw SQL in <see cref="ListByOnlandVisualTrashAssessmentAreaID"/>.</summary>
-    private sealed class OnlandVisualTrashAssessmentAreaLandUseBlockRow
-    {
-        public int OnlandVisualTrashAssessmentAreaID { get; set; }
-        public int LandUseBlockID { get; set; }
-        public int? PriorityLandUseTypeID { get; set; }
     }
 
     public static async Task Update(NeptuneDbContext dbContext, LandUseBlock landUseBlock, LandUseBlockUpsertDto landUseBlockUpsertDto, int personID)
