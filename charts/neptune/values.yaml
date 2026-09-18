@@ -83,6 +83,14 @@ api:
       cert-manager.io/issue-temporary-certificate: "true"
       appgw.ingress.kubernetes.io/connection-draining: "true"
       appgw.ingress.kubernetes.io/connection-draining-timeout: "30"
+  # AGC migration: route served by the in-cluster Envoy (apps-gateway) instead of
+  # AGIC. Runs alongside the Ingress until deploy two flips ingress.enabled off.
+  httproute:
+    enabled: true
+    gateway:
+      name: apps-gateway
+      namespace: default
+    requestTimeout: 300s   # matches the Ingress's appgw request-timeout of 300
   autoscaling:
     enabled: false
     minReplicas: 1
@@ -128,6 +136,14 @@ externalapi:
       cert-manager.io/issue-temporary-certificate: "true"
       appgw.ingress.kubernetes.io/connection-draining: "true"
       appgw.ingress.kubernetes.io/connection-draining-timeout: "30"
+  # AGC migration: route served by the in-cluster Envoy (apps-gateway) instead of
+  # AGIC. Runs alongside the Ingress until deploy two flips ingress.enabled off.
+  httproute:
+    enabled: true
+    gateway:
+      name: apps-gateway
+      namespace: default
+    requestTimeout: 300s   # matches the Ingress's appgw request-timeout of 300
   autoscaling:
     enabled: false
     minReplicas: 1
@@ -183,6 +199,15 @@ web:
       cert-manager.io/issue-temporary-certificate: "true"
       appgw.ingress.kubernetes.io/connection-draining: "true"
       appgw.ingress.kubernetes.io/connection-draining-timeout: "30"
+  # AGC migration: route served by the in-cluster Envoy (apps-gateway) instead of
+  # AGIC. Runs alongside the Ingress until deploy two flips ingress.enabled off.
+  # On prod this route also carries www (see httproute.yaml), mirroring the Ingress.
+  httproute:
+    enabled: true
+    gateway:
+      name: apps-gateway
+      namespace: default
+    requestTimeout: 300s   # matches the Ingress's appgw request-timeout of 300
   autoscaling:
     enabled: false
     minReplicas: 1
@@ -240,6 +265,17 @@ geoserver:
       cert-manager.io/issue-temporary-certificate: "true"
       appgw.ingress.kubernetes.io/connection-draining: "true"
       appgw.ingress.kubernetes.io/connection-draining-timeout: "30"
+  # AGC migration: route served by the in-cluster Envoy (apps-gateway) instead of
+  # AGIC. Runs alongside the Ingress until deploy two flips ingress.enabled off.
+  httproute:
+    enabled: true
+    gateway:
+      name: apps-gateway
+      namespace: default
+    # The Ingress sets no appgw request-timeout for geoserver, so it runs on the
+    # AGIC default today. 60s here is the plan's value; if a slow WMS/WFS render
+    # needs longer, raise this (AGC ceiling is 1200s) and the grace period below.
+    requestTimeout: 60s
   autoscaling:
     enabled: false
     minReplicas: 1

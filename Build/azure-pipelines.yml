@@ -808,6 +808,29 @@ stages:
               command: 'dependency'
               arguments: 'update $(Pipeline.Workspace)/ChartArtifacts/chart'
 
+          # AGC migration, deploy two. `legacyIngressOff` is a per-definition
+          # variable and is deliberately NOT declared here: while it is absent the
+          # macro is not substituted, the comparison below fails, and the AGIC
+          # Ingresses stay enabled. Only the exact string "true" turns them off, so
+          # every other state (unset, empty, typo) fails safe towards the Ingress.
+          # Passed via env, not inlined as $(legacyIngressOff): an undefined macro is
+          # left as that literal text, which bash would read as command substitution
+          # and try to execute. Through env it stays an inert string.
+          - task: Bash@3
+            displayName: 'derive helmIngressEnabled from legacyIngressOff'
+            env:
+              LEGACY_INGRESS_OFF: $(legacyIngressOff)
+            inputs:
+              targetType: inline
+              script: |
+                if [ "$LEGACY_INGRESS_OFF" = "true" ]; then
+                  ingressEnabled="false"
+                else
+                  ingressEnabled="true"
+                fi
+                echo "legacyIngressOff='$LEGACY_INGRESS_OFF' -> ingress.enabled=$ingressEnabled"
+                echo "##vso[task.setvariable variable=helmIngressEnabled]$ingressEnabled"
+
           - task: HelmDeploy@0
             displayName: 'helm upgrade neptune'
             inputs:
@@ -846,6 +869,10 @@ stages:
                 web.image.tag="$(Build.BuildNumber)-$(environment)"
                 web.image.repository="$(kv-containerRegistry)/neptune/web"
                 geoserver.image.repository="$(kv-containerRegistry)/kartoza/geoserver"
+                web.ingress.enabled=$(helmIngressEnabled)
+                api.ingress.enabled=$(helmIngressEnabled)
+                externalapi.ingress.enabled=$(helmIngressEnabled)
+                geoserver.ingress.enabled=$(helmIngressEnabled)
                 gdalapi.image.tag="$(Build.BuildNumber)-$(environment)"
                 gdalapi.image.repository="$(kv-containerRegistry)/neptune/gdalapi"
                 overlayapi.image.tag="$(Build.BuildNumber)-$(environment)"
