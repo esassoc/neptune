@@ -76,9 +76,12 @@ spec:
           lifecycle:
             preStop:
               exec:
-                # AGC migration: 120s was sized for App Gateway's slow backend-pool
-                # drain. Envoy removes an endpoint in about a second, so 5s is ample.
-                command: ["sleep","5"]
+                # AGC migration: the drain wait tracks whoever is routing to us.
+                # While the Ingress exists, App Gateway is still sending traffic here
+                # and is slow to drop a backend, so keep the original 120s. Once the
+                # Ingress is gone (deploy two) only Envoy routes to us, and it removes
+                # an endpoint in about a second, so 5s is ample.
+                command: ["sleep","{{ if .Values.ingress.enabled }}120{{ else }}5{{ end }}"]
           envFrom:
           - configMapRef:
               name: {{ include "web.fullname" . }}-{{ .Values.global.env.name }}-configmap
@@ -88,7 +91,7 @@ spec:
           #   readOnly: true
           resources:
             {{- toYaml .Values.resources | nindent 12 }}
-      terminationGracePeriodSeconds: 45
+      terminationGracePeriodSeconds: {{ if .Values.ingress.enabled }}131{{ else }}45{{ end }}
       {{- with .Values.nodeSelector }}
       nodeSelector:
         {{- toYaml . | nindent 8 }}
