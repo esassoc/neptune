@@ -109,6 +109,11 @@ public class TrashGeneratingUnitByStormwaterJurisdictionController(
     public async Task<ActionResult<OVTAResultsDto>> GetOVTABasedResultsCalculations([FromRoute] int jurisdictionID)
     {
         var hasLandUseBlocks = await DbContext.LandUseBlocks.AsNoTracking().AnyAsync(x => x.StormwaterJurisdictionID == jurisdictionID);
+        // Keyed off scored OVTA Areas, not off the Phase I MS4 TGUs below, so the "no OVTA Areas with 2 completed
+        // baseline assessments" message is literally true. A jurisdiction whose scored areas fall only on
+        // non-Phase-I blocks gets an honest all-zero table instead of that message.
+        var hasOVTAResults = await DbContext.OnlandVisualTrashAssessmentAreas.AsNoTracking()
+            .AnyAsync(x => x.StormwaterJurisdictionID == jurisdictionID && x.OnlandVisualTrashAssessmentBaselineScoreID != null);
         var trashGeneratingUnits = await GetTrashGeneratingUnitsForOVTACalculationsAsync(jurisdictionID);
 
         var ovtaResultsDto = new OVTAResultsDto
@@ -122,7 +127,7 @@ public class TrashGeneratingUnitByStormwaterJurisdictionController(
             ALUSumAcresWhereOVTAIsC = trashGeneratingUnits.AlternateOVTAScoreCAcreage(),
             ALUSumAcresWhereOVTAIsD = trashGeneratingUnits.AlternateOVTAScoreDAcreage(),
             HasLandUseBlocks = hasLandUseBlocks,
-            HasOVTAResults = trashGeneratingUnits.Any(x => x.OnlandVisualTrashAssessmentArea?.OnlandVisualTrashAssessmentBaselineScoreID != null),
+            HasOVTAResults = hasOVTAResults,
         };
         return Ok(ovtaResultsDto);
     }

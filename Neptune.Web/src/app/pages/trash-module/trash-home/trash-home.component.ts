@@ -124,9 +124,9 @@ export class TrashHomeComponent implements OnInit {
         "No Metric, Map Overlay",
     ];
 
-    public areaBasedAcreCalculationsDto$: Observable<AreaBasedAcreCalculationsDto>;
-    public loadResultsDto$: Observable<LoadResultsDto>;
-    public ovtaResults$: Observable<OvtaResultsViewModel>;
+    public areaBasedResults$: Observable<ResultsViewModel<AreaBasedAcreCalculationsDto>>;
+    public loadResults$: Observable<ResultsViewModel<LoadResultsDto>>;
+    public ovtaResults$: Observable<ResultsViewModel<OVTAResultsDto>>;
     public boundingBox$: Observable<BoundingBoxDto>;
 
     public isLoadingAreaBased$: Observable<boolean>;
@@ -194,6 +194,15 @@ export class TrashHomeComponent implements OnInit {
         private modalService: ModalService
     ) {}
 
+    // Tracks the request on the page-wide counter and converts the outcome into a ResultsViewModel so a
+    // failed HTTP call emits { failed: true } instead of erroring the stream.
+    private toResultsViewModel$<T>(request$: Observable<T>): Observable<ResultsViewModel<T>> {
+        return this.trackRequest$(request$).pipe(
+            map((dto): ResultsViewModel<T> => ({ dto, failed: false })),
+            catchError(() => of<ResultsViewModel<T>>({ dto: null, failed: true }))
+        );
+    }
+
     private trackRequest$<T>(source$: Observable<T>): Observable<T> {
         return defer(() => {
             this.loadingDeltaSubject.next(1);
@@ -223,30 +232,31 @@ export class TrashHomeComponent implements OnInit {
 
         this.lastUpdateDate$ = this.trashGeneratingUnitService.getLastUpdateDateTrashGeneratingUnit();
 
-        this.areaBasedAcreCalculationsDto$ = this.currentStormwaterJurisdiction$.pipe(
+        // NPT-1128 rework: a failed request used to error the stream, which left the results section spinning
+        // forever with nothing rendered (the HTTP error interceptor is silent on 500s). Each results request is
+        // wrapped in a view model so the template can distinguish "loaded", "failed" and empty-data cases.
+        this.areaBasedResults$ = this.currentStormwaterJurisdiction$.pipe(
             switchMap((x) =>
-                this.trackRequest$(this.trashResultsByJurisdictionService.getAreaBasedResultsCalculationsTrashGeneratingUnitByStormwaterJurisdiction(x.StormwaterJurisdictionID))
+                this.toResultsViewModel$(
+                    this.trashResultsByJurisdictionService.getAreaBasedResultsCalculationsTrashGeneratingUnitByStormwaterJurisdiction(x.StormwaterJurisdictionID)
+                )
             ),
             shareReplay({ bufferSize: 1, refCount: true })
         );
 
-        this.loadResultsDto$ = this.currentStormwaterJurisdiction$.pipe(
+        this.loadResults$ = this.currentStormwaterJurisdiction$.pipe(
             switchMap((x) =>
-                this.trackRequest$(this.trashResultsByJurisdictionService.getLoadBasedResultsCalculationsTrashGeneratingUnitByStormwaterJurisdiction(x.StormwaterJurisdictionID))
+                this.toResultsViewModel$(
+                    this.trashResultsByJurisdictionService.getLoadBasedResultsCalculationsTrashGeneratingUnitByStormwaterJurisdiction(x.StormwaterJurisdictionID)
+                )
             ),
             shareReplay({ bufferSize: 1, refCount: true })
         );
 
-        // NPT-1128 rework: a failed request used to error the stream, which left the OVTA section spinning
-        // forever with nothing rendered (the HTTP error interceptor is silent on 500s). Wrap the response in a
-        // view model so the template can distinguish "loaded", "failed" and the two empty-data cases.
         this.ovtaResults$ = this.currentStormwaterJurisdiction$.pipe(
             switchMap((x) =>
-                this.trackRequest$(
+                this.toResultsViewModel$(
                     this.trashResultsByJurisdictionService.getOVTABasedResultsCalculationsTrashGeneratingUnitByStormwaterJurisdiction(x.StormwaterJurisdictionID)
-                ).pipe(
-                    map((dto): OvtaResultsViewModel => ({ dto, failed: false })),
-                    catchError(() => of<OvtaResultsViewModel>({ dto: null, failed: true }))
                 )
             ),
             shareReplay({ bufferSize: 1, refCount: true })
@@ -257,24 +267,17 @@ export class TrashHomeComponent implements OnInit {
             shareReplay({ bufferSize: 1, refCount: true })
         );
 
-        // Per-section loading: true until the corresponding data observable emits,
-        // OR when a jurisdiction-change HTTP request is in flight (tracked by isLoading$).
-        this.isLoadingAreaBased$ = combineLatest([
-            this.areaBasedAcreCalculationsDto$.pipe(
-                map(() => false),
-                startWith(true)
-            ),
-            this.isLoading$,
-        ]).pipe(map(([waiting, loading]) => waiting || loading));
-        this.isLoadingLoadResults$ = combineLatest([
-            this.loadResultsDto$.pipe(
-                map(() => false),
-                startWith(true)
-            ),
-            this.isLoading$,
-        ]).pipe(map(([waiting, loading]) => waiting || loading));
+        // Per-section loading: true until that section's own request settles (success or failure).
         // Deliberately not OR'd with the page-wide isLoading$: an unrelated slow request (BMPs, bounding box)
-        // must not pin this section's spinner after its own data has arrived.
+        // must not pin a section's spinner after its own data has arrived.
+        this.isLoadingAreaBased$ = this.areaBasedResults$.pipe(
+            map(() => false),
+            startWith(true)
+        );
+        this.isLoadingLoadResults$ = this.loadResults$.pipe(
+            map(() => false),
+            startWith(true)
+        );
         this.isLoadingOvtaResults$ = this.ovtaResults$.pipe(
             map(() => false),
             startWith(true)
@@ -511,7 +514,7 @@ export class TrashHomeComponent implements OnInit {
     }
 }
 
-export interface OvtaResultsViewModel {
-    dto: OVTAResultsDto | null;
+export interface ResultsViewModel<T> {
+    dto: T | null;
     failed: boolean;
 }

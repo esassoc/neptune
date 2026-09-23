@@ -13,8 +13,8 @@
 
         // NPT-1128 rework: empty-state signals so the UI can explain an all-zero table instead of rendering it.
         public bool HasLandUseBlocks { get; set; }
-        // True when at least one Phase I MS4 TGU sits in an OVTA Area that has a baseline score
-        // (i.e. the area has >= 2 completed baseline assessments).
+        // True when the jurisdiction has at least one OVTA Area with a baseline score
+        // (i.e. >= 2 completed baseline assessments), regardless of land use / permit type.
         public bool HasOVTAResults { get; set; }
     }
 }
