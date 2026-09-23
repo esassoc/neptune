@@ -17,6 +17,8 @@ import { WaterQualityManagementPlanVerifyService } from "src/app/shared/generate
 import { WaterQualityManagementPlanService } from "src/app/shared/generated/api/water-quality-management-plan.service";
 import { WaterQualityManagementPlanVerifyIndexGridDto } from "src/app/shared/generated/model/water-quality-management-plan-verify-index-grid-dto";
 import { NeptunePageTypeEnum } from "src/app/shared/generated/enum/neptune-page-type-enum";
+import { DialogService } from "@ngneat/dialog";
+import { StartOMVisitModalComponent, StartOMVisitModalResult } from "./start-om-visit-modal/start-om-visit-modal.component";
 
 @Component({
     selector: "wqmp-verifications",
@@ -38,8 +40,22 @@ export class WqmpVerificationsComponent {
         private authenticationService: AuthenticationService,
         private alertService: AlertService,
         private confirmService: ConfirmService,
-        private router: Router
+        private router: Router,
+        private dialogService: DialogService
     ) {}
+
+    // NPT-1122: pick a WQMP + date, then enter the wizard at Basics in create mode. The verification is still
+    // created lazily on first save in the wizard, so cancelling out there leaves no row here.
+    public openStartOMVisitModal(): void {
+        this.dialogService
+            .open(StartOMVisitModalComponent)
+            .afterClosed$.subscribe((result: StartOMVisitModalResult | null) => {
+                if (!result) return;
+                this.router.navigate(["/water-quality-management-plans", result.waterQualityManagementPlanID, "verifications", "new", "basics"], {
+                    queryParams: { verificationDate: result.verificationDate },
+                });
+            });
+    }
 
     public get currentPersonCanEdit(): boolean {
         return this.authenticationService.doesCurrentUserHaveJurisdictionEditPermission();

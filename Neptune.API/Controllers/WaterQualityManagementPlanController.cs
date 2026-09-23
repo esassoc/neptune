@@ -103,6 +103,17 @@ namespace Neptune.API.Controllers
             return Ok(plans);
         }
 
+        // NPT-1122: WQMP picker for the O&M Verifications "Start O&M Visit" modal, scoped to the caller's
+        // jurisdictions (Admin/SitkaAdmin: all). Uses the same jurisdiction helper as the verifications index.
+        [HttpGet("picker")]
+        [JurisdictionEditFeature]
+        public async Task<ActionResult<List<WaterQualityManagementPlanDisplayDto>>> ListForPicker()
+        {
+            var stormwaterJurisdictionIDs = await StormwaterJurisdictionPeople.ListViewableStormwaterJurisdictionIDsByPersonIDForBMPsAsync(DbContext, CallingUser.PersonID);
+            var plans = await WaterQualityManagementPlans.ListAsDisplayDtoForJurisdictionsAsync(DbContext, stormwaterJurisdictionIDs);
+            return Ok(plans);
+        }
+
         [HttpGet("{waterQualityManagementPlanID}")]
         [AllowAnonymous]
         [OptionalAuth]
