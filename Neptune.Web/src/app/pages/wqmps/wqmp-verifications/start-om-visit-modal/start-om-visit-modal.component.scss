@@ -1,0 +1,14 @@
+@use "/src/scss/abstracts" as *;
+
+.modal {
+    min-width: 28rem;
+    max-width: 100%;
+}
+
+// Keep long WQMP names on one line inside the picker.
+.picker-label {
+    display: block;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}

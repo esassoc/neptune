@@ -8353,6 +8353,45 @@
         }
       }
     },
+    "/treatment-bmps/picker": {
+      "get": {
+        "tags": [
+          "TreatmentBMP"
+        ],
+        "operationId": "ListForPicker_TreatmentBMP",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/TreatmentBMPMinimalDto"
+                  }
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/TreatmentBMPMinimalDto"
+                  }
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/TreatmentBMPMinimalDto"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/treatment-bmps/for-delineation-map": {
       "get": {
         "tags": [
@@ -12504,6 +12543,45 @@
           "WaterQualityManagementPlan"
         ],
         "operationId": "ListAsDisplayDtos_WaterQualityManagementPlan",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/WaterQualityManagementPlanDisplayDto"
+                  }
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/WaterQualityManagementPlanDisplayDto"
+                  }
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/WaterQualityManagementPlanDisplayDto"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/water-quality-management-plans/picker": {
+      "get": {
+        "tags": [
+          "WaterQualityManagementPlan"
+        ],
+        "operationId": "ListForPicker_WaterQualityManagementPlan",
         "responses": {
           "200": {
             "description": "OK",

@@ -2,7 +2,7 @@ import { Component } from "@angular/core";
 import { Router } from "@angular/router";
 import { AsyncPipe } from "@angular/common";
 import { ColDef } from "ag-grid-community";
-import { finalize, Observable } from "rxjs";
+import { finalize, map, Observable, shareReplay } from "rxjs";
 import { PageHeaderComponent } from "src/app/shared/components/page-header/page-header.component";
 import { AlertDisplayComponent } from "src/app/shared/components/alert-display/alert-display.component";
 import { NeptuneGridComponent } from "src/app/shared/components/neptune-grid/neptune-grid.component";
@@ -17,6 +17,8 @@ import { WaterQualityManagementPlanVerifyService } from "src/app/shared/generate
 import { WaterQualityManagementPlanService } from "src/app/shared/generated/api/water-quality-management-plan.service";
 import { WaterQualityManagementPlanVerifyIndexGridDto } from "src/app/shared/generated/model/water-quality-management-plan-verify-index-grid-dto";
 import { NeptunePageTypeEnum } from "src/app/shared/generated/enum/neptune-page-type-enum";
+import { DialogService } from "@ngneat/dialog";
+import { StartOMVisitModalComponent, StartOMVisitModalResult } from "./start-om-visit-modal/start-om-visit-modal.component";
 
 @Component({
     selector: "wqmp-verifications",
@@ -30,6 +32,7 @@ export class WqmpVerificationsComponent {
     public columnDefs: ColDef[];
     public isLoading = true;
     public customRichTextTypeID = NeptunePageTypeEnum.WaterQualityMaintenancePlanOandMVerifications;
+    public canStartOMVisit$: Observable<boolean>;
 
     constructor(
         private wqmpVerifyService: WaterQualityManagementPlanVerifyService,
@@ -38,8 +41,29 @@ export class WqmpVerificationsComponent {
         private authenticationService: AuthenticationService,
         private alertService: AlertService,
         private confirmService: ConfirmService,
-        private router: Router
-    ) {}
+        private router: Router,
+        private dialogService: DialogService
+    ) {
+        // NPT-1122: the Start O&M Visit button waits for the current user. A sync getter can read before
+        // /people/me resolves, and under zoneless CD nothing re-renders it afterwards (Copilot, PR #682).
+        this.canStartOMVisit$ = this.authenticationService.getCurrentUser().pipe(
+            map(() => this.authenticationService.doesCurrentUserHaveJurisdictionEditPermission()),
+            shareReplay(1)
+        );
+    }
+
+    // NPT-1122: pick a WQMP + date, then enter the wizard at Basics in create mode. The verification is still
+    // created lazily on first save in the wizard, so cancelling out there leaves no row here.
+    public openStartOMVisitModal(): void {
+        this.dialogService
+            .open(StartOMVisitModalComponent)
+            .afterClosed$.subscribe((result: StartOMVisitModalResult | null) => {
+                if (!result) return;
+                this.router.navigate(["/water-quality-management-plans", result.waterQualityManagementPlanID, "verifications", "new", "basics"], {
+                    queryParams: { verificationDate: result.verificationDate },
+                });
+            });
+    }
 
     public get currentPersonCanEdit(): boolean {
         return this.authenticationService.doesCurrentUserHaveJurisdictionEditPermission();
