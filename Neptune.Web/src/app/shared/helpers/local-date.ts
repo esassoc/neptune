@@ -1,7 +1,8 @@
 /**
  * Today's local wall-clock date as `yyyy-MM-dd`, for `<input type="date">` defaults.
  * `new Date().toISOString()` returns UTC, which can show tomorrow's date for users
- * east of UTC late in the day (the same UTC-shift bug the visit sidebar surfaces).
+ * west of UTC late in the day (e.g. Pacific after ~5pm) and yesterday's date for users
+ * east of UTC early in the day (the same UTC-shift bug the visit sidebar surfaces).
  */
 export function todayLocalDateString(): string {
     const d = new Date();

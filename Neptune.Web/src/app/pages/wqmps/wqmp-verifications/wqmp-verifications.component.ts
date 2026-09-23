@@ -2,7 +2,7 @@ import { Component } from "@angular/core";
 import { Router } from "@angular/router";
 import { AsyncPipe } from "@angular/common";
 import { ColDef } from "ag-grid-community";
-import { finalize, Observable } from "rxjs";
+import { finalize, map, Observable, shareReplay } from "rxjs";
 import { PageHeaderComponent } from "src/app/shared/components/page-header/page-header.component";
 import { AlertDisplayComponent } from "src/app/shared/components/alert-display/alert-display.component";
 import { NeptuneGridComponent } from "src/app/shared/components/neptune-grid/neptune-grid.component";
@@ -32,6 +32,7 @@ export class WqmpVerificationsComponent {
     public columnDefs: ColDef[];
     public isLoading = true;
     public customRichTextTypeID = NeptunePageTypeEnum.WaterQualityMaintenancePlanOandMVerifications;
+    public canStartOMVisit$: Observable<boolean>;
 
     constructor(
         private wqmpVerifyService: WaterQualityManagementPlanVerifyService,
@@ -42,7 +43,14 @@ export class WqmpVerificationsComponent {
         private confirmService: ConfirmService,
         private router: Router,
         private dialogService: DialogService
-    ) {}
+    ) {
+        // NPT-1122: the Start O&M Visit button waits for the current user. A sync getter can read before
+        // /people/me resolves, and under zoneless CD nothing re-renders it afterwards (Copilot, PR #682).
+        this.canStartOMVisit$ = this.authenticationService.getCurrentUser().pipe(
+            map(() => this.authenticationService.doesCurrentUserHaveJurisdictionEditPermission()),
+            shareReplay(1)
+        );
+    }
 
     // NPT-1122: pick a WQMP + date, then enter the wizard at Basics in create mode. The verification is still
     // created lazily on first save in the wizard, so cancelling out there leaves no row here.
