@@ -313,6 +313,11 @@
         margin-bottom: 0;
     }
 
+    // The 4rem gap only existed to clear the overlapping sign-in card
+    &--signed-in {
+        margin-bottom: 0;
+    }
+
     &__photo {
         z-index: 0;
         grid-column: 1;
@@ -378,6 +383,35 @@
         }
     }
 
+    // Signed-in post-login message over the photo (NPT-1123 canvas 1a)
+    &__caption {
+        grid-column: 1;
+        grid-row: 1;
+        z-index: 3;
+        align-self: end;
+        justify-self: start;
+        max-width: 34rem;
+        margin: $spacing-500 $spacing-600;
+        padding: $spacing-300 $spacing-400;
+        background: rgba(0, 0, 0, 0.5);
+
+        p {
+            margin: 0;
+            color: $white;
+            font-size: $type-size-200;
+            line-height: 1.5;
+        }
+
+        a {
+            color: $white;
+            text-decoration: underline;
+        }
+
+        @include tablet-max {
+            margin: $spacing-300;
+        }
+    }
+
     &__btns {
         display: flex;
         flex-direction: column;
@@ -391,6 +425,38 @@
                 width: 100%;
             }
         }
+    }
+}
+
+// NPT-1123: Common Tasks (narrow, desk) beside Field Actions (wide, field); Field Actions leads once stacked
+.action-panels {
+    background: $gray-50;
+    padding: $spacing-600;
+    margin-bottom: $spacing-700;
+
+    .page-title {
+        margin: 0 0 $spacing-500 0;
+    }
+
+    &__grid {
+        display: grid;
+        grid-template-columns: minmax(0, 4fr) minmax(0, 8fr);
+        gap: $spacing-500;
+        align-items: start;
+
+        @include desktop-small-max {
+            grid-template-columns: minmax(0, 1fr);
+        }
+    }
+
+    &__field {
+        @include desktop-small-max {
+            order: -1;
+        }
+    }
+
+    @include tablet-max {
+        padding: $spacing-400;
     }
 }
 

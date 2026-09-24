@@ -57,6 +57,8 @@ export class TrashInitiateOvtaComponent {
     public selectedOVTAArea: FormControl = new FormControl("");
     public selectedOVTAAreaID: number;
     public selectedOVTAAreaName: string = "";
+    // Set when arriving from the homepage Field Actions deep link; the area highlight owns the initial zoom
+    private preselectedAreaID: number | null = null;
 
     public layerIsOnByDefaultOptions: FormInputOption[] = [
         { Value: false, Label: "Reassess existing area", disabled: false },
@@ -100,9 +102,18 @@ export class TrashInitiateOvtaComponent {
 
     ngOnInit() {
         this.formGroup.controls.AssessingNewArea.patchValue(false);
+        // NPT-1123: homepage Field Actions deep-links here with the nearby assessment area pre-selected
+        const queryParams = this.route.snapshot.queryParamMap;
+        this.preselectedAreaID = Number(queryParams.get("ovtaAreaID")) || null;
+        const preselectedJurisdictionID = Number(queryParams.get("jurisdictionID")) || null;
         this.stormwaterJurisdictions$ = this.stormwaterJurisdictionService.listViewableStormwaterJurisdiction().pipe(
             tap((x) => {
-                const defaultJurisdiction = x[0];
+                const defaultJurisdiction = x.find((j) => j.StormwaterJurisdictionID === preselectedJurisdictionID) ?? x[0];
+                if (this.preselectedAreaID && defaultJurisdiction.StormwaterJurisdictionID === preselectedJurisdictionID) {
+                    this.formGroup.controls.OnlandVisualTrashAssessmentAreaID.patchValue(this.preselectedAreaID);
+                } else {
+                    this.preselectedAreaID = null;
+                }
                 this.formGroup.controls.StormwaterJurisdictionID.patchValue(defaultJurisdiction.StormwaterJurisdictionID);
                 this.stormwaterJurisdictionSubject.next(defaultJurisdiction);
                 this.getStormwaterJurisdictionBounds(defaultJurisdiction.StormwaterJurisdictionID);
@@ -167,6 +178,9 @@ export class TrashInitiateOvtaComponent {
                     },
                 });
                 this.layer.addTo(this.map);
+                if (this.formGroup.controls.OnlandVisualTrashAssessmentAreaID.value) {
+                    this.highlightSelectedOVTAArea();
+                }
             });
     }
 
@@ -174,11 +188,15 @@ export class TrashInitiateOvtaComponent {
         this.wfsService
             .getGeoserverWFSLayerWithCQLFilter("OCStormwater:Jurisdictions", `StormwaterJurisdictionID = ${jurisdictionID}`, "StormwaterJurisdictionID")
             .subscribe((response) => {
+                if (this.preselectedAreaID) {
+                    return;
+                }
                 this.map.fitBounds(L.geoJson(response as any).getBounds());
             });
     }
 
     public onJurisdictionSelected(event: StormwaterJurisdictionDisplayDto) {
+        this.preselectedAreaID = null;
         this.stormwaterJurisdictionSubject.next(event);
         this.getStormwaterJurisdictionBounds(event.StormwaterJurisdictionID);
     }

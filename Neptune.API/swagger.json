@@ -3272,6 +3272,54 @@
         }
       }
     },
+    "/nearby-assets": {
+      "get": {
+        "tags": [
+          "NearbyAsset"
+        ],
+        "operationId": "List_NearbyAsset",
+        "parameters": [
+          {
+            "name": "latitude",
+            "in": "query",
+            "schema": {
+              "type": "number",
+              "format": "double"
+            }
+          },
+          {
+            "name": "longitude",
+            "in": "query",
+            "schema": {
+              "type": "number",
+              "format": "double"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/NearbyAssetsResultDto"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/NearbyAssetsResultDto"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/NearbyAssetsResultDto"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/nereid/delta-solve": {
       "get": {
         "tags": [
@@ -17545,6 +17593,57 @@
         },
         "additionalProperties": false
       },
+      "NearbyAssetDto": {
+        "type": "object",
+        "properties": {
+          "AssetType": {
+            "type": "string",
+            "nullable": true
+          },
+          "AssetID": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "AssetName": {
+            "type": "string",
+            "nullable": true
+          },
+          "StormwaterJurisdictionID": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "Latitude": {
+            "type": "number",
+            "format": "double"
+          },
+          "Longitude": {
+            "type": "number",
+            "format": "double"
+          },
+          "DistanceMeters": {
+            "type": "number",
+            "format": "double"
+          }
+        },
+        "additionalProperties": false
+      },
+      "NearbyAssetsResultDto": {
+        "type": "object",
+        "properties": {
+          "RadiusMeters": {
+            "type": "number",
+            "format": "double"
+          },
+          "Assets": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/NearbyAssetDto"
+            },
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
       "NeptunePageDto": {
         "type": "object",
         "properties": {
@@ -24931,6 +25030,9 @@
     },
     {
       "name": "ModelBasin"
+    },
+    {
+      "name": "NearbyAsset"
     },
     {
       "name": "Nereid"
