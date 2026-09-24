@@ -153,8 +153,10 @@ export class WqmpVerificationWorkflowService {
 
     /** Load WQMP context + (optional) verification record. Returns a hot, replayed observable.
      *  Mode auto-resolves: "create" when no verifyID, "edit" for a draft, and "view" once the load
-     *  detects a finalized record below. */
-    public load(wqmpID: number, verifyID: number | null): Observable<boolean> {
+     *  detects a finalized record below.
+     *  `defaultVerificationDate` (yyyy-MM-dd) pre-fills Basics in create mode — NPT-1122's "Start O&M Visit"
+     *  modal passes it via the `?verificationDate=` query param. Nothing is persisted until the user saves. */
+    public load(wqmpID: number, verifyID: number | null, defaultVerificationDate: string | null = null): Observable<boolean> {
         // The service is providedIn: "root", so it survives wizard remounts. Reset state up-front
         // so values from a prior session can't bleed into a new wizard before forkJoin resolves.
         this.resetState();
@@ -232,6 +234,9 @@ export class WqmpVerificationWorkflowService {
                     });
                     this.supportingDocumentationFileResourceGUID.set(verify.FileResourceGUID ?? null);
                     this.supportingDocumentationFileName.set(verify.FileResourceFileName ?? null);
+                } else if (defaultVerificationDate && /^\d{4}-\d{2}-\d{2}$/.test(defaultVerificationDate)) {
+                    // Applied here (after resetState) rather than before load(), which would wipe it.
+                    this.basicsForm.patchValue({ VerificationDate: defaultVerificationDate });
                 }
 
                 if (this.mode() === "view") {

@@ -1247,4 +1247,21 @@ public static class TreatmentBMPs
             .OrderBy(x => x.TreatmentBMPName)
             .ToListAsync();
     }
+
+    // NPT-1122: lightweight picker list for the Field Records "Start Field Visit" modal.
+    public static async Task<List<TreatmentBMPMinimalDto>> ListAsMinimalDtoForJurisdictionsAsync(
+        NeptuneDbContext dbContext, List<int> stormwaterJurisdictionIDs)
+    {
+        return await dbContext.TreatmentBMPs
+            .AsNoTracking()
+            .Where(x => stormwaterJurisdictionIDs.Contains(x.StormwaterJurisdictionID))
+            .Select(x => new TreatmentBMPMinimalDto
+            {
+                TreatmentBMPID = x.TreatmentBMPID,
+                TreatmentBMPName = x.TreatmentBMPName,
+                TreatmentBMPTypeName = x.TreatmentBMPType.TreatmentBMPTypeName
+            })
+            .OrderBy(x => x.TreatmentBMPName)
+            .ToListAsync();
+    }
 }

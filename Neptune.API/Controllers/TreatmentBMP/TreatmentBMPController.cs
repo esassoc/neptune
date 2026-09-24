@@ -109,6 +109,17 @@ public class TreatmentBMPController(
         return Ok(treatmentBMPDisplayDtos);
     }
 
+    // NPT-1122: BMP picker for the Field Records "Start Field Visit" modal, scoped to the caller's
+    // jurisdictions (Admin/SitkaAdmin: all).
+    [HttpGet("picker")]
+    [JurisdictionEditFeature]
+    public async Task<ActionResult<List<TreatmentBMPMinimalDto>>> ListForPicker()
+    {
+        var stormwaterJurisdictionIDs = await StormwaterJurisdictionPeople.ListViewableStormwaterJurisdictionIDsByPersonIDForBMPsAsync(DbContext, CallingUser.PersonID);
+        var treatmentBMPs = await TreatmentBMPs.ListAsMinimalDtoForJurisdictionsAsync(DbContext, stormwaterJurisdictionIDs);
+        return Ok(treatmentBMPs);
+    }
+
     [HttpGet("for-delineation-map")]
     [UserViewFeature]
     public async Task<ActionResult<List<TreatmentBMPDelineationMapDto>>> ListForDelineationMap()

@@ -5,6 +5,14 @@
     max-width: 100%;
 }
 
+// NPT-1122: keep long "Name (Type)" selections on one line inside the BMP picker.
+.picker-label {
+    display: block;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
 // NPT-984: the Action radio renders "Continue the in-progress visit" alongside
 // "Start a new visit (the in-progress visit will be marked Unresolved)". With the
 // default flex-row layout from form-field, the second label wraps awkwardly and the

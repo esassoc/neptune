@@ -2,8 +2,9 @@ import { Component, inject, OnInit } from "@angular/core";
 import { AsyncPipe } from "@angular/common";
 import { ActivatedRoute, Router, RouterModule } from "@angular/router";
 import { ColDef } from "ag-grid-community";
+import { DialogService } from "@ngneat/dialog";
 import { BehaviorSubject, Observable } from "rxjs";
-import { switchMap } from "rxjs/operators";
+import { map, shareReplay, switchMap } from "rxjs/operators";
 
 import { PageHeaderComponent } from "src/app/shared/components/page-header/page-header.component";
 import { AlertDisplayComponent } from "src/app/shared/components/alert-display/alert-display.component";
@@ -29,6 +30,10 @@ import { AlertService } from "src/app/shared/services/alert.service";
 import { Alert } from "src/app/shared/models/alert";
 import { AlertContext } from "src/app/shared/models/enums/alert-context.enum";
 import { AuthenticationService } from "src/app/services/authentication.service";
+import {
+    BeginFieldVisitModalComponent,
+    BeginFieldVisitModalContext,
+} from "src/app/pages/treatment-bmps/treatment-bmp-detail/begin-field-visit-modal/begin-field-visit-modal.component";
 
 type ActiveTab = "field-visits" | "assessments" | "maintenance-records";
 
@@ -56,6 +61,7 @@ export class FieldRecordsComponent implements OnInit {
     private authenticationService = inject(AuthenticationService);
     private router = inject(Router);
     private route = inject(ActivatedRoute);
+    private dialogService = inject(DialogService);
 
     private reload$ = new BehaviorSubject<void>(undefined);
     public fieldVisits$: Observable<FieldVisitDto[]> = this.reload$.pipe(switchMap(() => this.fieldVisitService.listFieldVisit()));
@@ -67,6 +73,12 @@ export class FieldRecordsComponent implements OnInit {
     public maintenanceRecordColumnDefs: ColDef[];
 
     public canManage = false;
+    // NPT-1122: gates "Start Field Visit" (JE/JM/Admin/SitkaAdmin). An observable field initializer rather
+    // than an ngOnInit boolean, for the same zoneless first-CD reason as the grids above.
+    public canEdit$: Observable<boolean> = this.authenticationService.getCurrentUser().pipe(
+        map(() => this.authenticationService.doesCurrentUserHaveJurisdictionEditPermission()),
+        shareReplay(1)
+    );
     public customRichTextTypeID = NeptunePageTypeEnum.FieldRecords;
 
     /** Tabs are sync'd to a `?tab=` query param so refresh and back-button preserve the user's view. */
@@ -114,6 +126,20 @@ export class FieldRecordsComponent implements OnInit {
 
     private refresh(): void {
         this.reload$.next();
+    }
+
+    // NPT-1122: opens the Field Visit modal in BMP-picker mode (no treatmentBMPID in the context).
+    public openStartFieldVisitModal(): void {
+        this.dialogService
+            .open(BeginFieldVisitModalComponent, {
+                data: {} as BeginFieldVisitModalContext,
+            })
+            .afterClosed$.subscribe((result) => {
+                if (result) {
+                    this.refresh();
+                    this.router.navigate(["/field-visits", result.FieldVisitID]);
+                }
+            });
     }
 
     private buildFieldVisitColumnDefs(): ColDef[] {
