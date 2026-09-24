@@ -9,6 +9,14 @@ public static class NearbyAssets
 {
     public const double RadiusMeters = 100;
 
+    // NaN fails every range comparison, so reject non-finite values explicitly before they reach projection
+    public static bool AreValidCoordinates(double latitude, double longitude)
+    {
+        return double.IsFinite(latitude) && double.IsFinite(longitude)
+            && latitude is >= -90 and <= 90
+            && longitude is >= -180 and <= 180;
+    }
+
     // Proximity runs against the native SRID 2771 columns (units are metres, and they carry the spatial
     // indexes); the 4326 columns are only read to place markers on the map.
     public static async Task<NearbyAssetsResultDto> ListWithinRadiusAsync(NeptuneDbContext dbContext, Person person, double latitude, double longitude)

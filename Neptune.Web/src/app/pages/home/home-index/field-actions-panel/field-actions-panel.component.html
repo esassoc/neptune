@@ -72,6 +72,9 @@
                                     <span class="asset-row__label">
                                         <span class="type-chip">{{ asset.AssetType }}</span>
                                         <span class="asset-row__name">{{ asset.AssetName }}</span>
+                                        @if (isVisitCheckFailed(asset)) {
+                                            <span class="asset-row__note">Couldn't check for a visit in progress</span>
+                                        }
                                     </span>
                                     @if (isActionPending(asset)) {
                                         <button type="button" class="btn btn-primary btn-sm" disabled aria-label="Checking visit status">

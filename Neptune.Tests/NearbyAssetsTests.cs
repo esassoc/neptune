@@ -27,6 +27,33 @@ namespace Neptune.Tests
             return db.People.AsNoTracking().FirstOrDefault(p => p.RoleID == (int)RoleEnum.Admin && p.IsActive);
         }
 
+        // --- Coordinate validation (DB-independent) ---
+
+        [TestMethod]
+        public void AreValidCoordinates_AcceptsInRangeAndBoundaryValues()
+        {
+            Assert.IsTrue(NearbyAssets.AreValidCoordinates(33.4964780, -117.6705060));
+            Assert.IsTrue(NearbyAssets.AreValidCoordinates(90, 180));
+            Assert.IsTrue(NearbyAssets.AreValidCoordinates(-90, -180));
+        }
+
+        [TestMethod]
+        public void AreValidCoordinates_RejectsOutOfRange()
+        {
+            Assert.IsFalse(NearbyAssets.AreValidCoordinates(90.0001, 0));
+            Assert.IsFalse(NearbyAssets.AreValidCoordinates(0, -180.0001));
+        }
+
+        [TestMethod]
+        public void AreValidCoordinates_RejectsNonFinite()
+        {
+            // NaN slips past plain range comparisons (every comparison with NaN is false)
+            Assert.IsFalse(NearbyAssets.AreValidCoordinates(double.NaN, 0));
+            Assert.IsFalse(NearbyAssets.AreValidCoordinates(0, double.NaN));
+            Assert.IsFalse(NearbyAssets.AreValidCoordinates(double.PositiveInfinity, 0));
+            Assert.IsFalse(NearbyAssets.AreValidCoordinates(0, double.NegativeInfinity));
+        }
+
         [TestMethod]
         public async Task TreatmentBMP_AtItsOwnLocation_IsReturnedAtZeroDistance()
         {

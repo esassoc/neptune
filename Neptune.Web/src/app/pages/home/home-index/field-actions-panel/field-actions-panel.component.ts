@@ -1,4 +1,5 @@
 import { Component, DestroyRef, computed, effect, inject, signal } from "@angular/core";
+import { takeUntilDestroyed } from "@angular/core/rxjs-interop";
 import { Router } from "@angular/router";
 import { DialogService } from "@ngneat/dialog";
 import * as L from "leaflet";
@@ -19,6 +20,11 @@ import { GeolocationCoordinates, GeolocationFailure, GeolocationService } from "
 
 type PanelState = "locked" | "locating" | "loading" | "ready" | "error";
 type PanelError = GeolocationFailure | "api";
+// A BMP's in-progress visit, "none" once the endpoint confirms there isn't one, or where the check stands.
+// "failed" is kept distinct from "none": the begin-visit modal trusts what it is handed, and treating an unknown
+// answer as "none" can trip the one-in-progress-visit-per-BMP unique index as a raw 500.
+type CheckedVisitStatus = FieldVisitDto | "none" | "failed";
+type BmpVisitStatus = CheckedVisitStatus | "checking";
 
 const MAX_ROWS = 10;
 const METERS_PER_DEGREE_LATITUDE = 111320;
@@ -37,6 +43,7 @@ export class FieldActionsPanelComponent {
     private fieldVisitService = inject(FieldVisitService);
     private dialogService = inject(DialogService);
     private router = inject(Router);
+    private destroyRef = inject(DestroyRef);
 
     // Signals throughout: under zoneless change detection, Leaflet and geolocation callbacks won't re-render plain fields.
     public state = signal<PanelState>("locked");
@@ -44,8 +51,7 @@ export class FieldActionsPanelComponent {
     public result = signal<NearbyAssetsResultDto | null>(null);
     public userLocation = signal<GeolocationCoordinates | null>(null);
     public hoveredKey = signal<string | null>(null);
-    // undefined = still loading; the in-progress endpoint's answer (visit or null) per BMP once known
-    public inProgressVisitByBmpID = signal<Map<number, FieldVisitDto | null> | undefined>(undefined);
+    public visitStatusByBmpID = signal<Map<number, BmpVisitStatus>>(new Map());
 
     public totalCount = computed(() => this.result()?.Assets?.length ?? 0);
     public rows = computed(() => (this.result()?.Assets ?? []).slice(0, MAX_ROWS));
@@ -58,7 +64,7 @@ export class FieldActionsPanelComponent {
 
     constructor() {
         effect(() => this.applyMarkerHighlight(this.hoveredKey()));
-        inject(DestroyRef).onDestroy(() => this.unlockSubscription?.unsubscribe());
+        this.destroyRef.onDestroy(() => this.unlockSubscription?.unsubscribe());
     }
 
     public static assetKey(asset: NearbyAssetDto): string {
@@ -90,7 +96,7 @@ export class FieldActionsPanelComponent {
                 }),
                 switchMap(() => this.loadInProgressVisits())
             )
-            .subscribe((visitsByBmpID) => this.inProgressVisitByBmpID.set(visitsByBmpID));
+            .subscribe((statusByBmpID) => this.visitStatusByBmpID.set(statusByBmpID));
     }
 
     public reset(): void {
@@ -138,8 +144,11 @@ export class FieldActionsPanelComponent {
 
     public actionLabel(asset: NearbyAssetDto): string {
         switch (asset.AssetType) {
-            case "BMP":
-                return this.inProgressVisitFor(asset) ? "Continue Visit" : "Start Visit";
+            case "BMP": {
+                const status = this.visitStatusFor(asset);
+                if (status === "failed") return "Retry Visit Check";
+                return typeof status === "object" ? "Continue Visit" : "Start Visit";
+            }
             case "WQMP":
                 return "Start O&M Verification";
             case "OVTA":
@@ -151,17 +160,23 @@ export class FieldActionsPanelComponent {
 
     // BMP labels depend on the in-progress lookup; hold the button until it answers so we never offer "Start" on a BMP with a visit underway
     public isActionPending(asset: NearbyAssetDto): boolean {
-        return asset.AssetType === "BMP" && this.inProgressVisitByBmpID() === undefined;
+        return asset.AssetType === "BMP" && this.visitStatusFor(asset) === "checking";
+    }
+
+    public isVisitCheckFailed(asset: NearbyAssetDto): boolean {
+        return asset.AssetType === "BMP" && this.visitStatusFor(asset) === "failed";
     }
 
     public runAction(asset: NearbyAssetDto): void {
         switch (asset.AssetType) {
             case "BMP": {
-                const inProgress = this.inProgressVisitFor(asset);
-                if (inProgress) {
-                    this.router.navigate(["/field-visits", inProgress.FieldVisitID]);
+                const status = this.visitStatusFor(asset);
+                if (typeof status === "object") {
+                    this.router.navigate(["/field-visits", status.FieldVisitID]);
                 } else {
-                    this.openBeginFieldVisitModal(asset.AssetID);
+                    // "none" and "failed" both re-ask the endpoint right before acting, so a visit started
+                    // elsewhere since the panel loaded (or a check that failed) never reaches the modal as "none"
+                    this.recheckThenStartVisit(asset.AssetID, status === "none");
                 }
                 break;
             }
@@ -177,14 +192,40 @@ export class FieldActionsPanelComponent {
         }
     }
 
-    private inProgressVisitFor(asset: NearbyAssetDto): FieldVisitDto | null {
-        return this.inProgressVisitByBmpID()?.get(asset.AssetID) ?? null;
+    private visitStatusFor(asset: NearbyAssetDto): BmpVisitStatus {
+        return this.visitStatusByBmpID().get(asset.AssetID) ?? "checking";
     }
 
-    private openBeginFieldVisitModal(treatmentBMPID: number): void {
+    private setVisitStatus(treatmentBMPID: number, status: BmpVisitStatus): void {
+        this.visitStatusByBmpID.update((statuses) => new Map(statuses).set(treatmentBMPID, status));
+    }
+
+    // openModalWhenConfirmed: the user clicked Start, so open the modal once the fresh answer is in.
+    // From a failed check, just refresh the row so the user sees the real Start/Continue choice first.
+    private recheckThenStartVisit(treatmentBMPID: number, openModalWhenConfirmed: boolean): void {
+        this.setVisitStatus(treatmentBMPID, "checking");
+        this.checkInProgressVisit(treatmentBMPID)
+            .pipe(takeUntilDestroyed(this.destroyRef))
+            .subscribe((status) => {
+                this.setVisitStatus(treatmentBMPID, status);
+                if (openModalWhenConfirmed && status !== "failed") {
+                    this.openBeginFieldVisitModal(treatmentBMPID, status === "none" ? null : status);
+                }
+            });
+    }
+
+    private checkInProgressVisit(treatmentBMPID: number): Observable<CheckedVisitStatus> {
+        return this.fieldVisitService.getInProgressForTreatmentBMPFieldVisit(treatmentBMPID).pipe(
+            // No in-progress visit is a successful null/204; only a failed request lands in catchError
+            map((visit): CheckedVisitStatus => visit ?? "none"),
+            catchError(() => of<CheckedVisitStatus>("failed"))
+        );
+    }
+
+    private openBeginFieldVisitModal(treatmentBMPID: number, inProgressFieldVisit: FieldVisitDto | null): void {
         this.dialogService
             .open(BeginFieldVisitModalComponent, {
-                data: { treatmentBMPID, inProgressFieldVisit: null } as BeginFieldVisitModalContext,
+                data: { treatmentBMPID, inProgressFieldVisit } as BeginFieldVisitModalContext,
             })
             .afterClosed$.subscribe((result) => {
                 if (result) {
@@ -193,21 +234,14 @@ export class FieldActionsPanelComponent {
             });
     }
 
-    private loadInProgressVisits(): Observable<Map<number, FieldVisitDto | null>> {
+    private loadInProgressVisits(): Observable<Map<number, BmpVisitStatus>> {
         const bmpIDs = this.rows()
             .filter((x) => x.AssetType === "BMP")
             .map((x) => x.AssetID);
         if (bmpIDs.length === 0) {
             return of(new Map());
         }
-        return forkJoin(
-            bmpIDs.map((id) =>
-                this.fieldVisitService.getInProgressForTreatmentBMPFieldVisit(id).pipe(
-                    catchError(() => of(null)),
-                    map((visit) => [id, visit ?? null] as [number, FieldVisitDto | null])
-                )
-            )
-        ).pipe(map((pairs) => new Map(pairs)));
+        return forkJoin(bmpIDs.map((id) => this.checkInProgressVisit(id).pipe(map((status) => [id, status] as [number, BmpVisitStatus])))).pipe(map((pairs) => new Map(pairs)));
     }
 
     private fail(kind: PanelError): Observable<never> {
@@ -220,7 +254,7 @@ export class FieldActionsPanelComponent {
         this.result.set(null);
         this.userLocation.set(null);
         this.hoveredKey.set(null);
-        this.inProgressVisitByBmpID.set(undefined);
+        this.visitStatusByBmpID.set(new Map());
         // the map itself is torn down by the template's @if; just drop our references
         this.markersByKey.clear();
         this.map = null;

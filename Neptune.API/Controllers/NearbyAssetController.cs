@@ -20,9 +20,9 @@ public class NearbyAssetController(NeptuneDbContext dbContext, ILogger<NearbyAss
     [JurisdictionEditFeature]
     public async Task<ActionResult<NearbyAssetsResultDto>> List([FromQuery] double latitude, [FromQuery] double longitude)
     {
-        if (latitude is < -90 or > 90 || longitude is < -180 or > 180)
+        if (!NearbyAssets.AreValidCoordinates(latitude, longitude))
         {
-            return BadRequest("Latitude must be between -90 and 90 and longitude between -180 and 180.");
+            return BadRequest("Latitude must be a number between -90 and 90 and longitude a number between -180 and 180.");
         }
 
         var person = People.GetByID(DbContext, CallingUser.PersonID);

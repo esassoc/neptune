@@ -24,6 +24,11 @@
 .reset-button {
     padding: 0;
     font-size: $type-size-150;
+
+    @include desktop-small-max {
+        min-height: 44px;
+        padding: 0 $spacing-200;
+    }
 }
 
 .panel-label {
@@ -174,9 +179,16 @@
 
 .asset-row__label {
     display: flex;
+    flex-wrap: wrap;
     align-items: center;
     gap: $spacing-200;
     min-width: 0;
+}
+
+.asset-row__note {
+    flex-basis: 100%;
+    font-size: $type-size-150;
+    color: $gray-700;
 }
 
 .asset-row__name {
