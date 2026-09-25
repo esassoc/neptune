@@ -66,6 +66,8 @@ export * from './maintenance-record-observation-dto';
 export * from './maintenance-record-observation-upsert-dto';
 export * from './maintenance-record-observation-value-dto';
 export * from './maintenance-record-upsert-dto';
+export * from './nearby-asset-dto';
+export * from './nearby-assets-result-dto';
 export * from './neptune-page-dto';
 export * from './neptune-page-type-simple-dto';
 export * from './nts-geometry-services';

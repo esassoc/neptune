@@ -1,0 +1,78 @@
+@use "/src/scss/abstracts" as *;
+
+:host {
+    display: block;
+}
+
+.common-tasks {
+    background: $white;
+    height: 100%;
+}
+
+.panel-label {
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    font-size: $type-size-150;
+    font-weight: 700;
+    color: $secondary;
+}
+
+.task-list {
+    display: flex;
+    flex-direction: column;
+    gap: $spacing-200;
+    margin: 0;
+    padding: $spacing-400 0 0;
+    list-style: none;
+}
+
+.task-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: $spacing-400;
+    width: 100%;
+    padding: $spacing-300 $spacing-400;
+    border: 1px solid $gray-200;
+    border-radius: $border-radius-200;
+    background: $white;
+    color: $gray-900;
+    font: inherit;
+    font-size: $type-size-200;
+    font-weight: 600;
+    text-align: left;
+    text-decoration: none;
+    cursor: pointer;
+    transition: all 200ms ease;
+
+    i {
+        color: $gray-400;
+        transition: color 200ms ease;
+    }
+
+    &:hover,
+    &:focus-visible {
+        background: rgba($primary, 0.05);
+        border-color: $primary;
+        color: $primary;
+        text-decoration: none;
+
+        i {
+            color: $primary;
+        }
+    }
+
+    &:focus-visible {
+        outline: 2px solid $primary;
+        outline-offset: 2px;
+    }
+
+    @include desktop-small-max {
+        min-height: 44px;
+    }
+}
+
+.card-footer .system-text {
+    font-size: $type-size-150;
+    margin: 0;
+}

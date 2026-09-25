@@ -18,6 +18,7 @@ api/load-generating-unit.service.ts
 api/maintenance-record.service.ts
 api/manager-dashboard.service.ts
 api/model-basin.service.ts
+api/nearby-asset.service.ts
 api/nereid.service.ts
 api/octa-prioritization.service.ts
 api/onland-visual-trash-assessment-area.service.ts
@@ -123,6 +124,8 @@ model/maintenance-record-observation-upsert-dto.ts
 model/maintenance-record-observation-value-dto.ts
 model/maintenance-record-upsert-dto.ts
 model/models.ts
+model/nearby-asset-dto.ts
+model/nearby-assets-result-dto.ts
 model/neptune-page-dto.ts
 model/neptune-page-type-simple-dto.ts
 model/nts-geometry-services.ts
