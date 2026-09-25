@@ -61,6 +61,8 @@ export class FieldActionsPanelComponent {
     private map: L.Map;
     private markersByKey = new Map<string, L.Marker>();
     private unlockSubscription: Subscription;
+    // Bumped on every unlock/reset so a visit check still in flight from an earlier result set is ignored
+    private resultsGeneration = 0;
 
     constructor() {
         effect(() => this.applyMarkerHighlight(this.hoveredKey()));
@@ -203,10 +205,15 @@ export class FieldActionsPanelComponent {
     // openModalWhenConfirmed: the user clicked Start, so open the modal once the fresh answer is in.
     // From a failed check, just refresh the row so the user sees the real Start/Continue choice first.
     private recheckThenStartVisit(treatmentBMPID: number, openModalWhenConfirmed: boolean): void {
+        const generation = this.resultsGeneration;
         this.setVisitStatus(treatmentBMPID, "checking");
         this.checkInProgressVisit(treatmentBMPID)
             .pipe(takeUntilDestroyed(this.destroyRef))
             .subscribe((status) => {
+                // The user hit Reset (or unlocked again) while this was in flight; don't open a modal over the new state
+                if (generation !== this.resultsGeneration) {
+                    return;
+                }
                 this.setVisitStatus(treatmentBMPID, status);
                 if (openModalWhenConfirmed && status !== "failed") {
                     this.openBeginFieldVisitModal(treatmentBMPID, status === "none" ? null : status);
@@ -251,6 +258,7 @@ export class FieldActionsPanelComponent {
     }
 
     private clearResults(): void {
+        this.resultsGeneration++;
         this.result.set(null);
         this.userLocation.set(null);
         this.hoveredKey.set(null);
