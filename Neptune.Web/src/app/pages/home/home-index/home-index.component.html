@@ -1,5 +1,5 @@
 <main class="site">
-    <section class="hero" [class.hero--signed-in]="!!(currentUser$ | async)">
+    <section class="hero" [class.hero--signed-in]="!!(currentUser$ | async)" [class.hero--with-panels]="showActionPanels$ | async">
         <div class="hero__photo">
             <img src="/assets/main/home_image2.png" />
         </div>

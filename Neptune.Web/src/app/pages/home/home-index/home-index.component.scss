@@ -313,8 +313,14 @@
         margin-bottom: 0;
     }
 
-    // The 4rem gap only existed to clear the overlapping sign-in card
+    // Signed in, the sign-in card's 4rem overlap gap is gone. Unassigned users get no panel band, so keep a
+    // plain gap before Data and Tools at every width (the mobile rule above zeroes it for the anonymous card)
     &--signed-in {
+        margin-bottom: $spacing-700;
+    }
+
+    // The panel band sits flush under the photo and carries its own spacing
+    &--with-panels {
         margin-bottom: 0;
     }
 
