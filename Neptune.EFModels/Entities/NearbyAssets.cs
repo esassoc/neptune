@@ -87,15 +87,15 @@ public static class NearbyAssets
                 x.WaterQualityManagementPlanID,
                 x.WaterQualityManagementPlan.WaterQualityManagementPlanName,
                 x.WaterQualityManagementPlan.StormwaterJurisdictionID,
-                x.GeometryNative,
-                x.Geometry4326,
+                MarkerPoint4326 = x.Geometry4326 == null ? null : x.Geometry4326.InteriorPoint,
+                MarkerPointNative = x.GeometryNative!.InteriorPoint,
                 DistanceMeters = x.GeometryNative!.Distance(searchPoint)
             })
             .ToListAsync();
 
         return rows.Select(x =>
         {
-            var markerPoint = PolygonMarkerPoint(x.Geometry4326, x.GeometryNative!);
+            var markerPoint = PolygonMarkerPoint(x.MarkerPoint4326, x.MarkerPointNative);
             return new NearbyAssetDto
             {
                 AssetType = NearbyAssetDto.WaterQualityManagementPlanAssetType,
@@ -119,15 +119,15 @@ public static class NearbyAssets
                 x.OnlandVisualTrashAssessmentAreaID,
                 x.OnlandVisualTrashAssessmentAreaName,
                 x.StormwaterJurisdictionID,
-                x.OnlandVisualTrashAssessmentAreaGeometry,
-                x.OnlandVisualTrashAssessmentAreaGeometry4326,
+                MarkerPoint4326 = x.OnlandVisualTrashAssessmentAreaGeometry4326 == null ? null : x.OnlandVisualTrashAssessmentAreaGeometry4326.InteriorPoint,
+                MarkerPointNative = x.OnlandVisualTrashAssessmentAreaGeometry.InteriorPoint,
                 DistanceMeters = x.OnlandVisualTrashAssessmentAreaGeometry.Distance(searchPoint)
             })
             .ToListAsync();
 
         return rows.Select(x =>
         {
-            var markerPoint = PolygonMarkerPoint(x.OnlandVisualTrashAssessmentAreaGeometry4326, x.OnlandVisualTrashAssessmentAreaGeometry);
+            var markerPoint = PolygonMarkerPoint(x.MarkerPoint4326, x.MarkerPointNative);
             return new NearbyAssetDto
             {
                 AssetType = NearbyAssetDto.OnlandVisualTrashAssessmentAreaAssetType,
@@ -141,9 +141,10 @@ public static class NearbyAssets
         }).ToList();
     }
 
-    // InteriorPoint rather than Centroid so the pin always lands inside a concave polygon
-    private static Coordinate PolygonMarkerPoint(Geometry? geometry4326, Geometry geometryNative)
+    // InteriorPoint (STPointOnSurface) rather than Centroid so the pin always lands inside a concave polygon.
+    // It is taken in the query so only this one point crosses the wire, never the whole boundary polygon.
+    private static Coordinate PolygonMarkerPoint(Geometry? markerPoint4326, Geometry markerPointNative)
     {
-        return (geometry4326 ?? geometryNative.ProjectTo4326()).InteriorPoint.Coordinate;
+        return (markerPoint4326 ?? markerPointNative.ProjectTo4326()).Coordinate;
     }
 }
