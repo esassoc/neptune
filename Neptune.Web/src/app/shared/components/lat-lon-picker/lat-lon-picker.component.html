@@ -23,6 +23,9 @@
     </div>
 
     <div class="right-col">
-        <neptune-map [mapHeight]="mapHeight" (onMapLoad)="onMapLoad($event)"></neptune-map>
+        <neptune-map [mapHeight]="mapHeight" [boundingBox]="boundingBox" (onMapLoad)="onMapLoad($event)">
+            <!-- extra map layers projected by the caller (e.g. reference overlays) -->
+            <ng-content></ng-content>
+        </neptune-map>
     </div>
 </div>

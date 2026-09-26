@@ -292,9 +292,14 @@
                 <!-- Inventoried Structural BMPs -->
                 <h4 class="module-title mt-4 mb-2 flex-between">Inventoried Structural BMPs
                     @if (currentPersonCanEdit) {
-                        <button type="button" class="btn btn-primary btn-sm" (click)="openEditTreatmentBMPsModal(wqmp)">
-                            Edit
-                        </button>
+                        <span class="module-title-actions">
+                            <button type="button" class="btn btn-primary btn-sm" (click)="openEditTreatmentBMPsModal(wqmp)">
+                                Edit
+                            </button>
+                            <button type="button" class="btn btn-primary btn-sm" (click)="openCreateInventoriedBMPModal(wqmp)">
+                                Add New BMP
+                            </button>
+                        </span>
                     }
                 </h4>
                 @if (!isAnonymousOrUnassigned && wqmp.WaterQualityManagementPlanModelingApproachID === WaterQualityManagementPlanModelingApproachEnum.Simplified) {

@@ -52,6 +52,10 @@ import { DryWeatherFlowOverrides } from "src/app/shared/generated/enum/dry-weath
 import { WqmpModalComponent } from "src/app/pages/wqmps/wqmp-modal/wqmp-modal.component";
 import { EditModelingApproachModalComponent, EditModelingApproachModalContext } from "src/app/pages/wqmps/wqmp-detail/edit-modeling-approach-modal/edit-modeling-approach-modal.component";
 import { EditTreatmentBMPsModalComponent, EditTreatmentBMPsModalContext } from "src/app/pages/wqmps/wqmp-detail/edit-treatment-bmps-modal/edit-treatment-bmps-modal.component";
+import {
+    CreateInventoriedBMPModalComponent,
+    CreateInventoriedBMPModalContext,
+} from "src/app/pages/wqmps/wqmp-detail/create-inventoried-bmp-modal/create-inventoried-bmp-modal.component";
 import { WqmpDocumentModalComponent, WqmpDocumentModalContext } from "src/app/pages/wqmps/wqmp-detail/wqmp-document-modal/wqmp-document-modal.component";
 import { GroupByPipe } from "src/app/shared/pipes/group-by.pipe";
 import { SumPipe } from "src/app/shared/pipes/sum.pipe";
@@ -198,16 +202,9 @@ export class WqmpDetailComponent implements OnInit, OnChanges {
             this.wqmp$ = this.reload$.pipe(
                 switchMap(() => this.wqmpService.getWaterQualityManagementPlan(this.waterQualityManagementPlanID)),
                 tap((wqmp) => {
-                    if (wqmp?.WaterQualityManagementPlanBoundaryBBox) {
-                        const parts = wqmp.WaterQualityManagementPlanBoundaryBBox.split(",").map(Number);
-                        if (parts.length === 4) {
-                            this.boundingBox = new BoundingBoxDto({
-                                Left: parts[0],
-                                Bottom: parts[1],
-                                Right: parts[2],
-                                Top: parts[3],
-                            });
-                        }
+                    const boundingBox = this.parseBoundaryBoundingBox(wqmp);
+                    if (boundingBox) {
+                        this.boundingBox = boundingBox;
                     }
                     if (this.map) {
                         this.addTreatmentBMPsLayer(wqmp);
@@ -517,6 +514,41 @@ export class WqmpDetailComponent implements OnInit, OnChanges {
             if (result) {
                 this.alertService.clearAlerts();
                 this.alertService.pushAlert(new Alert("Treatment BMP associations updated successfully.", AlertContext.Success));
+                this.loadData();
+            }
+        });
+    }
+
+    // WaterQualityManagementPlanBoundaryBBox is "Left,Bottom,Right,Top"; undefined when the WQMP has no boundary.
+    private parseBoundaryBoundingBox(wqmp: WaterQualityManagementPlanDto): BoundingBoxDto | undefined {
+        if (!wqmp?.WaterQualityManagementPlanBoundaryBBox) return undefined;
+        const parts = wqmp.WaterQualityManagementPlanBoundaryBBox.split(",").map(Number);
+        if (parts.length !== 4) return undefined;
+        return new BoundingBoxDto({
+            Left: parts[0],
+            Bottom: parts[1],
+            Right: parts[2],
+            Top: parts[3],
+        });
+    }
+
+    openCreateInventoriedBMPModal(wqmp: WaterQualityManagementPlanDto): void {
+        const dialogRef = this.dialogService.open(CreateInventoriedBMPModalComponent, {
+            data: {
+                wqmpID: wqmp.WaterQualityManagementPlanID,
+                wqmpName: wqmp.WaterQualityManagementPlanName,
+                stormwaterJurisdictionID: wqmp.StormwaterJurisdictionID,
+                stormwaterJurisdictionName: wqmp.StormwaterJurisdictionOrganizationName,
+                // parsed from the wqmp passed in, not this.boundingBox, which loadData() clears while a reload is in flight
+                boundingBox: this.parseBoundaryBoundingBox(wqmp),
+                existingTreatmentBMPs: wqmp.TreatmentBMPs ?? [],
+            } as CreateInventoriedBMPModalContext,
+            width: "1080px",
+        });
+        dialogRef.afterClosed$.subscribe((result) => {
+            if (result) {
+                this.alertService.clearAlerts();
+                this.alertService.pushAlert(new Alert("Treatment BMP created successfully.", AlertContext.Success));
                 this.loadData();
             }
         });

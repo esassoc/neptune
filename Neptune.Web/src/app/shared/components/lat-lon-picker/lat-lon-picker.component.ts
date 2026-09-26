@@ -5,6 +5,8 @@ import { FormFieldComponent, FormFieldType } from "src/app/shared/components/for
 import { NeptuneMapComponent, NeptuneMapInitEvent } from "src/app/shared/components/leaflet/neptune-map/neptune-map.component";
 import { IconComponent } from "src/app/shared/components/icon/icon.component";
 import * as L from "leaflet";
+import { merge, Subscription } from "rxjs";
+import { BoundingBoxDto } from "src/app/shared/generated/model/bounding-box-dto";
 
 @Component({
     selector: "lat-lon-picker",
@@ -19,14 +21,19 @@ export class LatLonPickerComponent implements OnInit, OnDestroy {
     @Input() lonControl: FormControl;
     /** Optional template to render custom instructions or help UI. If not provided, projected content with attribute [lat-lon-instructions] will be rendered. */
     @Input() instructionsTemplate?: TemplateRef<any>;
+    /** Optional initial extent for the map. Read once when the map initializes. */
+    @Input() boundingBox?: BoundingBoxDto;
+    @Input() mapHeight: string = "400px";
 
     // emits when user selects a location (either from map or geolocation)
     @Output() locationSelected = new EventEmitter<{ lat: number; lon: number }>();
+    // emits once the underlying map is ready, so callers can add their own layers (projected as content)
+    @Output() mapLoad = new EventEmitter<NeptuneMapInitEvent>();
 
     private map: L.Map | null = null;
     private clickHandler: any;
     private marker: L.Marker | null = null;
-    public mapHeight: string = "400px";
+    private controlValueSubscription: Subscription | null = null;
 
     ngOnInit(): void {}
 
@@ -54,6 +61,25 @@ export class LatLonPickerComponent implements OnInit, OnDestroy {
                     this.map.setView([latVal, lonVal], 15);
                 } catch {}
             }
+
+            // keep the marker in sync when coordinates are typed directly
+            if (this.latControl && this.lonControl) {
+                this.controlValueSubscription = merge(this.latControl.valueChanges, this.lonControl.valueChanges).subscribe(() => this.syncMarkerToControls());
+            }
+        }
+
+        this.mapLoad.emit(event);
+    }
+
+    private syncMarkerToControls() {
+        const lat = this.latControl?.value;
+        const lon = this.lonControl?.value;
+        const isValidLat = lat != null && lat !== "" && Number.isFinite(+lat) && +lat >= -90 && +lat <= 90;
+        const isValidLon = lon != null && lon !== "" && Number.isFinite(+lon) && +lon >= -180 && +lon <= 180;
+        if (isValidLat && isValidLon) {
+            this.updateMarker(+lat, +lon);
+        } else {
+            this.removeMarker();
         }
     }
 
@@ -126,6 +152,10 @@ export class LatLonPickerComponent implements OnInit, OnDestroy {
         if (this.latControl) this.latControl.reset();
         if (this.lonControl) this.lonControl.reset();
 
+        this.removeMarker();
+    }
+
+    private removeMarker() {
         if (this.marker && this.map) {
             try {
                 this.map.removeLayer(this.marker);
@@ -135,15 +165,12 @@ export class LatLonPickerComponent implements OnInit, OnDestroy {
     }
 
     ngOnDestroy(): void {
+        this.controlValueSubscription?.unsubscribe();
+
         if (this.map && this.clickHandler) {
             this.map.off("click", this.clickHandler);
         }
 
-        if (this.marker && this.map) {
-            try {
-                this.map.removeLayer(this.marker);
-            } catch {}
-            this.marker = null;
-        }
+        this.removeMarker();
     }
 }
