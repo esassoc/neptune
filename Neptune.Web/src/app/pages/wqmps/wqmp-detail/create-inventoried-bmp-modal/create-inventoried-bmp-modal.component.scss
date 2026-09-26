@@ -1,0 +1,52 @@
+@use "/src/scss/abstracts" as *;
+
+.create-bmp-form {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1.25rem 1.5rem;
+
+    .full-width,
+    .trash-capture-effectiveness {
+        grid-column: 1 / -1;
+    }
+
+    .alert {
+        margin-bottom: 0;
+    }
+
+    .read-only-field {
+        input {
+            width: 100%;
+        }
+
+        .system-text {
+            margin-top: 0.25rem;
+            font-size: $type-size-200;
+        }
+    }
+
+    .location-section {
+        border-top: 1px solid $gray-200;
+        padding-top: 1.125rem;
+        --lat-lon-picker-left-col: 340px;
+
+        // lets the global .required asterisk (a block ::after) sit beside the heading text
+        .location-heading {
+            display: flex;
+        }
+    }
+
+    @media (max-width: 900px) {
+        grid-template-columns: 1fr;
+    }
+}
+
+.modal-footer {
+    align-items: center;
+
+    .footer-hint {
+        margin-right: auto;
+        color: $gray-700;
+        font-size: $type-size-200;
+    }
+}
