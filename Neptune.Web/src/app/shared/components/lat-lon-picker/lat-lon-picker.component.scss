@@ -2,7 +2,8 @@
 
 .lat-lon-picker {
     display: grid;
-    grid-template-columns: 1fr 1fr;
+    // callers can narrow the left column via --lat-lon-picker-left-col
+    grid-template-columns: var(--lat-lon-picker-left-col, 1fr) 1fr;
     gap: 1rem;
 
     .left-col {

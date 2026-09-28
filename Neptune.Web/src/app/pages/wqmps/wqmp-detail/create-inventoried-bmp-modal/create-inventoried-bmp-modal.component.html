@@ -1,0 +1,119 @@
+<div class="modal">
+    <div class="modal-header">
+        <h3 class="section-title">Create New Inventoried BMP</h3>
+    </div>
+
+    <div class="modal-body">
+        <app-alert-display></app-alert-display>
+
+        <form [formGroup]="formGroup" class="create-bmp-form">
+            <div class="alert alert-info full-width">
+                This BMP is added to the Inventory and associated with <strong>{{ ref.data.wqmpName }}</strong> on save. Jurisdiction is inherited from the WQMP. Everything else on
+                the full BMP record can be filled in later.
+            </div>
+
+            <form-field size="md" [formControl]="formGroup.controls.TreatmentBMPName" fieldLabel="BMP Name" [type]="FormFieldType.Text" placeholder="Name"></form-field>
+
+            <form-field
+                size="md"
+                [formControl]="formGroup.controls.TreatmentBMPTypeID"
+                fieldLabel="BMP Type"
+                [type]="FormFieldType.Select"
+                [formInputOptions]="treatmentBMPTypeSelectOptions$ | async"
+                placeholder="Select BMP Type">
+            </form-field>
+
+            <div class="read-only-field">
+                <div class="field-label">Stormwater Jurisdiction</div>
+                <input type="text" [value]="ref.data.stormwaterJurisdictionName" disabled />
+                <div class="system-text">Inherited from the WQMP.</div>
+            </div>
+
+            <div class="read-only-field">
+                <div class="field-label">Water Quality Management Plan</div>
+                <input type="text" [value]="ref.data.wqmpName" disabled />
+            </div>
+
+            <form-field
+                size="md"
+                [formControl]="formGroup.controls.SizingBasisTypeID"
+                fieldLabel="Sizing Basis"
+                [type]="FormFieldType.Select"
+                [formInputOptions]="sizingBasisTypeSelectOptions"
+                placeholder="Select Sizing Basis">
+            </form-field>
+
+            <form-field
+                size="md"
+                [formControl]="formGroup.controls.TrashCaptureStatusTypeID"
+                fieldLabel="Trash Capture Status"
+                [type]="FormFieldType.Select"
+                [formInputOptions]="trashCaptureStatusTypeSelectOptions"
+                placeholder="Select Trash Capture Status">
+            </form-field>
+
+            @if (showTrashCaptureEffectivenessField$ | async) {
+                <form-field
+                    class="trash-capture-effectiveness"
+                    size="md"
+                    [formControl]="formGroup.controls.TrashCaptureEffectiveness"
+                    fieldLabel="Trash Capture Effectiveness (%)"
+                    [type]="FormFieldType.Number"
+                    units="%"
+                    placeholder="Effectiveness (1-99)">
+                </form-field>
+            }
+
+            <p class="system-text full-width">
+                Year Built, System of Record ID, Owner Organization, Lifespan Type, required field visits and Notes are optional on the full BMP record and can be filled in later.
+            </p>
+
+            <div class="location-section full-width">
+                <h4 class="module-title location-heading required">Location</h4>
+                @if (boundingBox$ | async; as boundingBox) {
+                    <lat-lon-picker
+                        [latControl]="formGroup.controls.Latitude"
+                        [lonControl]="formGroup.controls.Longitude"
+                        [boundingBox]="boundingBox"
+                        mapHeight="330px"
+                        [instructionsTemplate]="latLonInstructions"
+                        (mapLoad)="handleMapLoad($event, boundingBox)">
+                        @if (mapIsReady) {
+                            @if (ref.data.boundingBox) {
+                                <wqmps-layer [mode]="OverlayMode.Single" [selectedID]="ref.data.wqmpID" [map]="map" [layerControl]="layerControl"></wqmps-layer>
+                            }
+                            @if (existingBMPsWithCoordinates.length) {
+                                <treatment-bmp-reference-layer
+                                    [treatmentBMPs]="existingBMPsWithCoordinates"
+                                    layerLabel="Existing BMPs on this WQMP"
+                                    [displayOnLoad]="true"
+                                    [map]="map"
+                                    [layerControl]="layerControl">
+                                </treatment-bmp-reference-layer>
+                            }
+                        }
+                    </lat-lon-picker>
+                } @else {
+                    <p>Loading map...</p>
+                }
+                <ng-template #latLonInstructions>
+                    <div class="lat-lon-instructions">
+                        To set the location of the Treatment BMP:
+                        <ul>
+                            <li>Place the BMP at your current location (using GPS if available) <strong>OR</strong></li>
+                            <li>Click on the location of the BMP on the map <strong>OR</strong></li>
+                            <li>Directly type in the latitude and longitude</li>
+                        </ul>
+                        <p class="system-text mt-1">A location is required. The map opens on this WQMP's boundary; the pin is not restricted to it.</p>
+                    </div>
+                </ng-template>
+            </div>
+        </form>
+    </div>
+
+    <div class="modal-footer">
+        <span class="footer-hint">Name, Type, Sizing Basis, Trash Capture Status and a location are required before this BMP can be saved.</span>
+        <button class="btn btn-primary-outline" type="button" (click)="cancel()">Cancel</button>
+        <button class="btn btn-primary" type="button" (click)="save()" [disabled]="isLoadingSubmit">Create BMP</button>
+    </div>
+</div>
