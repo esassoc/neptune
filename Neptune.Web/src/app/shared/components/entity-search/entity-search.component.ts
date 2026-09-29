@@ -153,7 +153,8 @@ export class EntitySearchComponent {
 
     protected readonly query = signal("");
     protected readonly activeScope = signal("");
-    protected readonly activeId = signal<string | null>(null);
+    /** The row the user chose with the arrow keys, or null. Read `activeId` for the row that is actually highlighted. */
+    private readonly chosenId = signal<string | null>(null);
 
     constructor() {
         // The dialog's open state follows the model, so show()/close() and a consumer's binding cannot disagree.
@@ -254,6 +255,18 @@ export class EntitySearchComponent {
     /** The flat keyboard order across groups. */
     protected readonly flatItems = computed<SearchEntity[]>(() => this.renderGroups().flatMap((g) => g.items));
 
+    /**
+     * The highlighted row: the arrow-key choice while it is still rendered, else the first row once there is a
+     * query. DERIVED, not stored, so it holds whichever way the rows change under it — the index arriving after
+     * the user has typed, a facet switch, a refetch — and type-then-Enter always has a row to open.
+     */
+    protected readonly activeId = computed<string | null>(() => {
+        const flat = this.flatItems();
+        const chosen = this.chosenId();
+        if (chosen !== null && flat.some((e) => e.id === chosen)) return chosen;
+        return this.hasQuery() && flat.length ? flat[0].id : null;
+    });
+
     /** An empty query under `requireQuery` with nothing pinned or recent is not a no-results state — nothing was asked yet. */
     protected readonly showEmpty = computed(() => !this.renderGroups().length && (this.hasQuery() || !this.requireQuery()));
 
@@ -316,7 +329,7 @@ export class EntitySearchComponent {
     show(): void {
         this.query.set("");
         this.activeScope.set("");
-        this.activeId.set(null);
+        this.chosenId.set(null);
         this.open.set(true);
     }
 
@@ -337,9 +350,8 @@ export class EntitySearchComponent {
 
     protected onQuery(event: Event): void {
         this.query.set((event.target as HTMLInputElement).value);
-        // Highlight the first row rather than clearing the highlight, so type-then-Enter opens it.
-        const first = this.flatItems()[0];
-        this.activeId.set(first ? first.id : null);
+        // Drop the arrow-key choice; activeId falls back to the first match, so type-then-Enter opens it.
+        this.chosenId.set(null);
     }
 
     protected onGlobalKeydown(event: KeyboardEvent): void {
@@ -378,7 +390,7 @@ export class EntitySearchComponent {
      */
     protected setScope(scopeId: string, via: "pointer" | "keyboard" = "keyboard", fromInput = this.activeInput()): void {
         this.activeScope.set(scopeId);
-        this.activeId.set(null);
+        this.chosenId.set(null);
         this.scopeChange.emit(scopeId);
         if (fromInput) return;
         if (via === "pointer") {
@@ -429,7 +441,7 @@ export class EntitySearchComponent {
             if (!this.activeInput()) this.focusInput();
             const current = flat.findIndex((e) => e.id === this.activeId());
             const next = event.key === "ArrowDown" ? (current < flat.length - 1 ? current + 1 : 0) : current > 0 ? current - 1 : flat.length - 1;
-            this.activeId.set(flat[next].id);
+            this.chosenId.set(flat[next].id);
             this.scrollActiveIntoView();
             return;
         }
