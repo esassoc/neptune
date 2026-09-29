@@ -32,6 +32,7 @@ api/project-document.service.ts
 api/project.service.ts
 api/regional-subbasin-revision-request.service.ts
 api/regional-subbasin.service.ts
+api/search.service.ts
 api/stormwater-jurisdiction.service.ts
 api/support-request.service.ts
 api/system-info.service.ts
@@ -196,6 +197,7 @@ model/regional-subbasin-revision-request-close-dto.ts
 model/regional-subbasin-revision-request-dto.ts
 model/regional-subbasin-revision-request-upsert-dto.ts
 model/reporting-year-simple-dto.ts
+model/search-record-dto.ts
 model/sizing-basis-type-dto.ts
 model/source-control-bmp-dto.ts
 model/source-control-bmp-upsert-dto.ts

@@ -138,6 +138,7 @@ export * from './regional-subbasin-revision-request-close-dto';
 export * from './regional-subbasin-revision-request-dto';
 export * from './regional-subbasin-revision-request-upsert-dto';
 export * from './reporting-year-simple-dto';
+export * from './search-record-dto';
 export * from './sizing-basis-type-dto';
 export * from './source-control-bmp-dto';
 export * from './source-control-bmp-upsert-dto';
