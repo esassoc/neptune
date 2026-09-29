@@ -62,6 +62,9 @@
                 </div>
             </li>
         </ul>
+        @if (currentUser$ | async; as searchUser) { @if (canSearch(searchUser)) {
+        <record-search [user]="searchUser"></record-search>
+        } }
         <ul class="admin-nav__links admin-nav__utilities">
             @if (!isAuthenticated()) {
             <li class="nav-item" routerLinkActive="active">

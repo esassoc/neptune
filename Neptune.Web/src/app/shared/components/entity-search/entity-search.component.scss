@@ -1,0 +1,301 @@
+@use "/src/scss/abstracts" as *;
+
+// Light teal tint for matches, the active facet and badges: teal-900 text on it is well past AA
+$entity-search-tint: #e3f3f5;
+
+:host {
+    display: contents;
+}
+
+// The native dialog. ::backdrop is the browser's own layer, so it can't end up beneath a higher stacking context.
+.entity-search__dialog {
+    width: min(600px, calc(100vw - 2rem));
+    max-height: min(78vh, calc(100dvh - 3rem));
+    padding: 0;
+    border: 1px solid $gray-light;
+    border-radius: $border-radius-400;
+    background: $white;
+    box-shadow: 0 24px 48px -12px rgb(0 0 0 / 18%);
+    color: $gray-darker;
+    font-family: $lato;
+
+    // Docked high rather than centred, so a result list growing as you type doesn't jump the panel around
+    margin-block-start: 12vh;
+
+    &::backdrop {
+        background: rgb(0 0 0 / 40%);
+    }
+}
+
+.entity-search__panel {
+    display: flex;
+    flex-direction: column;
+    max-height: inherit;
+    min-height: 0;
+}
+
+// ── field ──
+.entity-search__field {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.75rem;
+    border-block-end: 1px solid $gray-light;
+}
+
+.entity-search__field-icon {
+    flex: none;
+    color: $gray-dark;
+}
+
+.entity-search__input {
+    flex: 1;
+    min-width: 0;
+    border: 0;
+    background: transparent;
+    color: inherit;
+    font: inherit;
+    font-size: 1.125rem;
+
+    &:focus {
+        // The panel is the focus indicator here; every other control keeps its ring
+        outline: none;
+    }
+
+    &::placeholder {
+        color: $gray-dark;
+    }
+}
+
+.entity-search__close {
+    flex: none;
+    display: inline-flex;
+    padding: 0.25rem;
+    border: 0;
+    border-radius: $border-radius-200;
+    background: transparent;
+    color: $gray-dark;
+    cursor: pointer;
+
+    &:hover {
+        background: $gray-lighter;
+    }
+
+    &:focus-visible {
+        outline: 2px solid $teal-700;
+        outline-offset: 2px;
+    }
+}
+
+// ── facets ──
+.entity-search__scopes {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.25rem;
+    padding: 0.5rem 0.75rem;
+    border-block-end: 1px solid $gray-light;
+}
+
+.entity-search__scope {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.375rem;
+    padding: 0.25rem 0.625rem;
+    border: 1px solid transparent;
+    border-radius: 9999px;
+    background: transparent;
+    color: $gray-dark;
+    font: inherit;
+    font-size: 0.875rem;
+    cursor: pointer;
+
+    &:hover {
+        background: $gray-lighter;
+    }
+
+    &:focus-visible {
+        outline: 2px solid $teal-700;
+        outline-offset: 2px;
+    }
+}
+
+.entity-search__scope--active {
+    background: $entity-search-tint;
+    border-color: $teal-700;
+    color: $teal-900;
+    font-weight: 700;
+}
+
+.entity-search__scope-icon {
+    width: auto;
+    height: 1rem;
+}
+
+.entity-search__scope-count {
+    color: $gray-dark;
+    font-variant-numeric: tabular-nums;
+}
+
+// ── results ──
+.entity-search__results {
+    flex: 1;
+    min-height: 0;
+    overflow-y: auto;
+    padding: 0.5rem;
+}
+
+.entity-search__group + .entity-search__group {
+    margin-block-start: 0.75rem;
+}
+
+.entity-search__group-label {
+    display: flex;
+    justify-content: space-between;
+    padding: 0.25rem 0.5rem;
+    color: $gray-dark;
+    font-size: 0.75rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+}
+
+.entity-search__group-count {
+    font-variant-numeric: tabular-nums;
+    text-transform: none;
+    letter-spacing: 0;
+}
+
+.entity-search__row {
+    display: flex;
+    align-items: center;
+    gap: 0.625rem;
+    padding: 0.5rem;
+    border-radius: $border-radius-200;
+    cursor: pointer;
+
+    &:hover {
+        background: $gray-lighter;
+    }
+}
+
+// The keyboard highlight: the same fill as :hover so pointer and keyboard agree on "the one under consideration"
+.entity-search__row--active {
+    background: $gray-lighter;
+    outline: 2px solid $teal-700;
+    outline-offset: -2px;
+}
+
+// The map marker PNGs are 25x41; shown at map proportions, just smaller
+.entity-search__row-icon {
+    flex: none;
+    width: auto;
+    height: 1.5rem;
+}
+
+.entity-search__row-text {
+    flex: 1;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+}
+
+.entity-search__row-title-line {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    min-width: 0;
+}
+
+.entity-search__row-title {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+// A label, not a control: tinted fill, dark text, 4px corners
+.entity-search__row-badge {
+    flex: none;
+    padding: 0 0.375rem;
+    border-radius: $border-radius-200;
+    background: $entity-search-tint;
+    color: $teal-900;
+    font-size: 0.75rem;
+    font-weight: 700;
+    white-space: nowrap;
+}
+
+.entity-search__row-subtitle {
+    color: $gray-dark;
+    font-size: 0.875rem;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.entity-search__row-meta {
+    flex: none;
+    color: $gray-dark;
+    font-size: 0.8125rem;
+    font-variant-numeric: tabular-nums;
+}
+
+.entity-search__row-action {
+    flex: none;
+    display: inline-flex;
+    align-items: center;
+    padding: 0.25rem 0.5rem;
+    border: 1px solid $gray-light;
+    border-radius: $border-radius-200;
+    background: transparent;
+    color: $gray-dark;
+    font: inherit;
+    font-size: 0.75rem;
+    cursor: pointer;
+
+    &:hover {
+        background: $white;
+    }
+}
+
+// Recoloured, not replaced — it stays a <mark> so the match is still announced as one
+mark {
+    padding: 0;
+    background: $entity-search-tint;
+    color: inherit;
+    font-weight: 700;
+}
+
+.entity-search__empty {
+    margin: 0;
+    padding: 1.5rem;
+    text-align: center;
+    color: $gray-dark;
+}
+
+// ── footer ──
+.entity-search__footer {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.75rem;
+    padding: 0.5rem 0.75rem;
+    border-block-start: 1px solid $gray-light;
+    color: $gray-dark;
+    font-size: 0.75rem;
+
+    kbd {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        min-width: 18px;
+        height: 18px;
+        padding: 0 5px;
+        border: 1px solid $gray-light;
+        border-bottom-width: 2px;
+        border-radius: $border-radius-200;
+        background: $gray-lighter;
+        color: $gray-dark;
+        font-family: inherit;
+        font-size: inherit;
+        box-shadow: none;
+    }
+}
