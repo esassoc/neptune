@@ -7358,6 +7358,45 @@
         }
       }
     },
+    "/search/index": {
+      "get": {
+        "tags": [
+          "Search"
+        ],
+        "operationId": "ListIndex_Search",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/SearchRecordDto"
+                  }
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/SearchRecordDto"
+                  }
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/SearchRecordDto"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/jurisdictions": {
       "get": {
         "tags": [
@@ -20613,6 +20652,32 @@
         },
         "additionalProperties": false
       },
+      "SearchRecordDto": {
+        "type": "object",
+        "properties": {
+          "Scope": {
+            "type": "string",
+            "nullable": true
+          },
+          "ID": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "Title": {
+            "type": "string",
+            "nullable": true
+          },
+          "Subtitle": {
+            "type": "string",
+            "nullable": true
+          },
+          "Meta": {
+            "type": "string",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
       "SizingBasisTypeDto": {
         "type": "object",
         "properties": {
@@ -25150,6 +25215,9 @@
     },
     {
       "name": "RegionalSubbasinRevisionRequest"
+    },
+    {
+      "name": "Search"
     },
     {
       "name": "StormwaterJurisdiction"
