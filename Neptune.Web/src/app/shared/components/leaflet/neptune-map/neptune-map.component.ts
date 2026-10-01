@@ -58,7 +58,8 @@ export class NeptuneMapComponent implements OnInit, AfterViewInit, OnDestroy {
     public isSearching: boolean = false;
     private searchCleared: boolean = false;
 
-    public cursorStyle: string = "grab";
+    // bound inline on the map element, so it overrides stylesheet cursors; click-to-place callers pass "crosshair"
+    @Input() cursorStyle: string = "grab";
 
     // Spinner is driven only by our own API requests via MapLayerLoadingService.track$.
     // Leaflet tile/WMS layers progressive-render on their own; tracking their loading/load

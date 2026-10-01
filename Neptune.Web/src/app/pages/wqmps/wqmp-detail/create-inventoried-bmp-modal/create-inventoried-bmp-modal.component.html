@@ -7,9 +7,12 @@
         <app-alert-display></app-alert-display>
 
         <form [formGroup]="formGroup" class="create-bmp-form">
+            <!-- single child: the global .alert is a space-between flex row, which would split bare text and <strong> into columns -->
             <div class="alert alert-info full-width">
-                This BMP is added to the Inventory and associated with <strong>{{ ref.data.wqmpName }}</strong> on save. Jurisdiction is inherited from the WQMP. Everything else on
-                the full BMP record can be filled in later.
+                <span>
+                    This BMP is added to the Inventory and associated with <strong>{{ ref.data.wqmpName }}</strong> on save. Jurisdiction is inherited from the WQMP. Everything
+                    else on the full BMP record can be filled in later.
+                </span>
             </div>
 
             <form-field size="md" [formControl]="formGroup.controls.TreatmentBMPName" fieldLabel="BMP Name" [type]="FormFieldType.Text" placeholder="Name"></form-field>
