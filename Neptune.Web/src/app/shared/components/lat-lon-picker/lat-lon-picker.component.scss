@@ -42,6 +42,13 @@
         ::ng-deep .map-wrapper {
             margin-bottom: 0;
         }
+
+        // The map's own crosshair comes from neptune-map's cursorStyle input (an inline style);
+        // this extends it over vector overlays (e.g. a WQMP boundary). Marker icons keep their
+        // pointer so reference markers still read as clickable.
+        ::ng-deep .leaflet-container path.leaflet-interactive {
+            cursor: crosshair;
+        }
     }
 
     @media (max-width: 900px) {
