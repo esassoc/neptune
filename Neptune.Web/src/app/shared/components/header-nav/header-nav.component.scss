@@ -71,7 +71,7 @@
             gap: 0.25rem;
         }
 
-        // long names truncate (full name in the title tooltip) rather than pushing the row wider
+        // long names truncate rather than pushing the row wider; the full name heads the account menu
         .username__text {
             @include desktop-medium-max {
                 max-width: 12rem;
@@ -90,6 +90,14 @@
             width: 16rem;
             border-radius: 0.25rem;
             box-shadow: $shadow-100;
+        }
+
+        .username-full {
+            display: block;
+            padding: $spacing-300 $spacing-400 0;
+            color: $gray-700;
+            font-size: $type-size-200;
+            overflow-wrap: anywhere;
         }
     }
 
