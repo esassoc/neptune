@@ -31,7 +31,7 @@ public class TreatmentBMPController(
     [JurisdictionEditFeature]
     public async Task<ActionResult<TreatmentBMPDto>> Create([FromBody] TreatmentBMPCreateDto treatmentBMPCreateDto)
     {
-        var errors = await TreatmentBMPs.ValidateCreateAsync(DbContext, treatmentBMPCreateDto);
+        var errors = await TreatmentBMPs.ValidateCreateAsync(DbContext, treatmentBMPCreateDto, CallingUser.PersonID);
         errors.ForEach(e => ModelState.AddModelError(e.Type, e.Message));
 
         if (!ModelState.IsValid)

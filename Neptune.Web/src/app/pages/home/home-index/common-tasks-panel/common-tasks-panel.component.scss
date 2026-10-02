@@ -7,6 +7,10 @@
 .common-tasks {
     background: $white;
     height: 100%;
+
+    .card-header {
+        flex-wrap: wrap;
+    }
 }
 
 .panel-label {
@@ -45,7 +49,14 @@
     cursor: pointer;
     transition: all 200ms ease;
 
+    // long labels wrap instead of pushing the chevron off narrow screens
+    span {
+        min-width: 0;
+        overflow-wrap: anywhere;
+    }
+
     i {
+        flex: 0 0 auto;
         color: $gray-400;
         transition: color 200ms ease;
     }
@@ -70,9 +81,4 @@
     @include desktop-small-max {
         min-height: 44px;
     }
-}
-
-.card-footer .system-text {
-    font-size: $type-size-150;
-    margin: 0;
 }

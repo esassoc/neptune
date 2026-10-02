@@ -5,7 +5,7 @@
     </div>
     <div class="card-body">
         <ul class="task-list">
-            @for (task of tasks; track task.label) {
+            @for (task of tasks$ | async; track task.label) {
                 <li>
                     @if (task.route) {
                         <a class="task-row" [routerLink]="task.route">
@@ -21,8 +21,5 @@
                 </li>
             }
         </ul>
-    </div>
-    <div class="card-footer">
-        <p class="system-text">Data and Tools stays below — BMP List, WQMP List, Delineation Map, Data Hub.</p>
     </div>
 </div>

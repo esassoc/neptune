@@ -78,16 +78,18 @@ export class CreateTreatmentBmpComponent implements OnInit, IDeactivateComponent
             .listTreatmentBMPType()
             .pipe(map((types) => types.map((type) => ({ Label: type.TreatmentBMPTypeName, Value: type.TreatmentBMPTypeID, disabled: false }) as SelectDropdownOption)));
 
-        this.stormwaterJurisdictionSelectOptions$ = this.stormwaterJurisdictionService
-            .listStormwaterJurisdiction()
-            .pipe(
-                map((jurisdictions) =>
-                    jurisdictions.map(
-                        (jurisdiction) =>
-                            ({ Label: jurisdiction.StormwaterJurisdictionName, Value: jurisdiction.StormwaterJurisdictionID, disabled: false }) as SelectDropdownOption
-                    )
-                )
-            );
+        // only the caller's assigned jurisdictions (all for admins); the create endpoint enforces the same set
+        this.stormwaterJurisdictionSelectOptions$ = this.stormwaterJurisdictionService.listViewableStormwaterJurisdiction().pipe(
+            map((jurisdictions) => {
+                const options = jurisdictions.map(
+                    (jurisdiction) => ({ Label: jurisdiction.StormwaterJurisdictionName, Value: jurisdiction.StormwaterJurisdictionID, disabled: false }) as SelectDropdownOption
+                );
+                if (options.length === 1) {
+                    this.formGroup.controls.StormwaterJurisdictionID.setValue(options[0].Value);
+                }
+                return options;
+            })
+        );
 
         this.organizationSelectOptions$ = this.organizationService.listOrganization().pipe(
             map((organizations) => {

@@ -319,9 +319,24 @@
         margin-bottom: $spacing-700;
     }
 
-    // The panel band sits flush under the photo and carries its own spacing
+    // The panel band sits flush under the photo and carries its own spacing. The photo is shorter here so
+    // the first Common Tasks verb and the Field Actions button show above the fold on a laptop (NPT-1123 rework);
+    // the anonymous hero keeps its full height.
     &--with-panels {
         margin-bottom: 0;
+
+        .hero__photo {
+            aspect-ratio: 16 / 9;
+
+            @include tablet {
+                aspect-ratio: 21 / 9;
+            }
+
+            @include desktop-small {
+                aspect-ratio: unset;
+                max-height: clamp(12rem, 32vh, 20rem);
+            }
+        }
     }
 
     &__photo {
@@ -437,11 +452,11 @@
 // NPT-1123: Common Tasks (narrow, desk) beside Field Actions (wide, field); Field Actions leads once stacked
 .action-panels {
     background: $gray-50;
-    padding: $spacing-600;
+    padding: $spacing-500;
     margin-bottom: $spacing-700;
 
     .page-title {
-        margin: 0 0 $spacing-500 0;
+        margin: 0 0 $spacing-400 0;
     }
 
     &__grid {

@@ -7,12 +7,17 @@
 .field-actions {
     background: $white;
     height: 100%;
+
+    .card-header {
+        flex-wrap: wrap;
+    }
 }
 
 .card-header__meta {
     display: flex;
+    flex-wrap: wrap;
     align-items: center;
-    gap: $spacing-400;
+    gap: $spacing-200 $spacing-400;
 }
 
 .count-label {
@@ -22,12 +27,13 @@
 }
 
 .reset-button {
-    padding: 0;
-    font-size: $type-size-150;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: $spacing-100;
 
     @include desktop-small-max {
         min-height: 44px;
-        padding: 0 $spacing-200;
     }
 }
 
@@ -53,6 +59,13 @@
     }
 }
 
+.gate__actions {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: $spacing-300;
+}
+
 .status {
     padding: $spacing-400 0;
     margin: 0;
@@ -73,6 +86,17 @@
 
     @include desktop-small-max {
         grid-template-columns: minmax(0, 1fr);
+    }
+}
+
+.results__map-column {
+    display: flex;
+    flex-direction: column;
+    gap: $spacing-300;
+    min-width: 0;
+
+    .reset-button {
+        align-self: stretch;
     }
 }
 
@@ -114,8 +138,10 @@
     bottom: $spacing-200;
     z-index: 1000;
     display: flex;
+    flex-wrap: wrap;
     align-items: center;
-    gap: $spacing-300;
+    gap: $spacing-100 $spacing-300;
+    max-width: calc(100% - #{$spacing-200} * 2);
     padding: $spacing-100 $spacing-200;
     background: rgba($white, 0.92);
     border: 1px solid $gray-200;
@@ -173,6 +199,19 @@
 
         @include desktop-small-max {
             min-height: 44px;
+        }
+    }
+
+    // phones: the action button drops under the name at full width so it never pushes off screen
+    @include tablet-max {
+        flex-wrap: wrap;
+
+        .asset-row__label {
+            flex: 1 1 100%;
+        }
+
+        .btn {
+            flex: 1 1 100%;
         }
     }
 }
