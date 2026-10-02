@@ -1,20 +1,28 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Net;
+using System.Net.Http;
+using System.Net.Mail;
+using System.Threading;
 using System.Reflection;
 using System.Security.Claims;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Storage;
+using Microsoft.Extensions.Logging.Abstractions;
+using Microsoft.Extensions.Options;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using Neptune.API.Controllers;
 using Neptune.API.Services.Attributes;
 using Neptune.API.Services.Authorization;
+using Neptune.Common.Email;
 using Neptune.EFModels.Entities;
 using Neptune.Models.DataTransferObjects;
 using Neptune.Models.DataTransferObjects.Person;
 using Neptune.Models.Helpers;
+using SendGrid;
 
 namespace Neptune.Tests
 {
@@ -61,6 +69,49 @@ namespace Neptune.Tests
     }
 
     /// <summary>
+    /// NPT-734: SendGrid reports rejections in its response rather than throwing, so SitkaSmtpClientService.Send
+    /// must return false for them. Uses a real SendGridClient over a stub HTTP handler; nothing leaves the machine.
+    /// </summary>
+    [TestClass]
+    public class SitkaSmtpClientServiceSendResultTests
+    {
+        private sealed class StubHandler(HttpStatusCode statusCode) : HttpMessageHandler
+        {
+            protected override Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken)
+                => Task.FromResult(new HttpResponseMessage(statusCode) { Content = new StringContent("{\"errors\":[{\"message\":\"stub\"}]}") });
+        }
+
+        private static SitkaSmtpClientService ServiceReturning(HttpStatusCode statusCode)
+        {
+            var sendGridClient = new SendGridClient(new HttpClient(new StubHandler(statusCode)), "SG.test-key-not-real");
+            var configuration = Options.Create(new SendGridConfiguration { SendGridApiKey = "SG.test-key-not-real" });
+            return new SitkaSmtpClientService(sendGridClient, configuration, NullLogger<SitkaSmtpClientService>.Instance);
+        }
+
+        private static MailMessage Message()
+        {
+            var message = new MailMessage { Subject = "test", Body = "<p>test</p>", IsBodyHtml = true, From = new MailAddress("donotreply@example.com") };
+            message.To.Add("someone@example.com");
+            return message;
+        }
+
+        [TestMethod]
+        public async Task Accepted_ReturnsTrue()
+        {
+            Assert.IsTrue(await ServiceReturning(HttpStatusCode.Accepted).Send(Message()));
+        }
+
+        [TestMethod]
+        [DataRow(HttpStatusCode.Unauthorized)]
+        [DataRow(HttpStatusCode.TooManyRequests)]
+        [DataRow(HttpStatusCode.InternalServerError)]
+        public async Task Rejected_ReturnsFalse(HttpStatusCode statusCode)
+        {
+            Assert.IsFalse(await ServiceReturning(statusCode).Send(Message()));
+        }
+    }
+
+    /// <summary>
     /// NPT-734: Admins and Jurisdiction Managers can invite. JMs are scoped to their own jurisdiction in
     /// PersonInvites.ValidateInviteAsync, since [JurisdictionManageFeature] is role-only.
     /// </summary>
@@ -99,6 +150,63 @@ namespace Neptune.Tests
             CollectionAssert.Contains(PersonInvites.ListInvitableRoleIDs(new PersonDto { RoleID = (int)RoleEnum.SitkaAdmin }), (int)RoleEnum.SitkaAdmin);
             Assert.AreEqual(0, PersonInvites.ListInvitableRoleIDs(new PersonDto { RoleID = (int)RoleEnum.JurisdictionEditor }).Count);
             Assert.AreEqual(0, PersonInvites.ListInvitableRoleIDs(new PersonDto { RoleID = (int)RoleEnum.Unassigned }).Count);
+        }
+    }
+
+    /// <summary>
+    /// NPT-734: the serializable begin/commit path in PersonInvites.InviteAsync. Kept out of InviteUserTests on
+    /// purpose: that class's setup holds an uncommitted Person insert, which this test's serializable read would
+    /// block on. Commits for real, then deletes its row.
+    /// </summary>
+    [TestClass]
+    public class InviteUserTransactionTests
+    {
+        private static NeptuneDbContext GetDbContext()
+        {
+            var optionsBuilder = new DbContextOptionsBuilder<NeptuneDbContext>();
+            optionsBuilder.UseSqlServer(
+                "Data Source=localhost;Initial Catalog=NeptuneDB;Persist Security Info=True;Integrated Security=true;Encrypt=False;",
+                x =>
+                {
+                    x.CommandTimeout((int)TimeSpan.FromSeconds(30).TotalSeconds);
+                    x.UseNetTopologySuite();
+                });
+            return new NeptuneDbContext(optionsBuilder.Options);
+        }
+
+        [TestMethod]
+        public async Task InviteAsync_OwnsASerializableTransaction_WhenTheCallerHasNone()
+        {
+            await using var dbContext = GetDbContext();
+            var dto = new PersonInviteDto
+            {
+                FirstName = "Invited",
+                LastName = "Person",
+                Email = $"npt734-{Guid.NewGuid():N}@example.com",
+                RoleID = (int)RoleEnum.Unassigned,
+            };
+            int? personID = null;
+            try
+            {
+                var result = await PersonInvites.InviteAsync(dbContext, dto);
+                personID = result.Person?.PersonID;
+
+                Assert.IsNotNull(result.Person);
+                Assert.IsNull(dbContext.Database.CurrentTransaction, "InviteAsync should commit and dispose its own transaction.");
+                await using var verifyContext = GetDbContext();
+                Assert.IsTrue(await verifyContext.People.AnyAsync(x => x.PersonID == result.Person.PersonID), "The invite should be committed.");
+
+                var again = await PersonInvites.InviteAsync(dbContext, dto);
+                Assert.IsNull(again.Person, "A second invite for the same address must be refused.");
+            }
+            finally
+            {
+                if (personID.HasValue)
+                {
+                    await using var cleanupContext = GetDbContext();
+                    await cleanupContext.People.Where(x => x.PersonID == personID.Value).ExecuteDeleteAsync();
+                }
+            }
         }
     }
 
@@ -187,7 +295,7 @@ namespace Neptune.Tests
             var dto = Dto((int)RoleEnum.JurisdictionEditor, _managersJurisdictionID, _otherJurisdictionID);
             Assert.AreEqual(0, (await PersonInvites.ValidateInviteAsync(_dbContext, _admin, dto)).Count);
 
-            var invited = await PersonInvites.InviteAsync(_dbContext, dto);
+            var invited = (await PersonInvites.InviteAsync(_dbContext, dto)).Person;
 
             Assert.IsNotNull(invited);
             var person = _dbContext.People.AsNoTracking().Include(x => x.StormwaterJurisdictionPeople).Single(x => x.PersonID == invited.PersonID);
@@ -207,10 +315,44 @@ namespace Neptune.Tests
             dto.Email = $"Invited Person <{address.ToUpperInvariant()}>";
             Assert.AreEqual(0, (await PersonInvites.ValidateInviteAsync(_dbContext, _manager, dto)).Count);
 
-            var invited = await PersonInvites.InviteAsync(_dbContext, dto);
+            var invited = (await PersonInvites.InviteAsync(_dbContext, dto)).Person;
 
             Assert.IsNotNull(invited);
             Assert.AreEqual(address, invited.Email);
+        }
+
+        [TestMethod]
+        public async Task InviteAsync_RechecksDuplicates_WhenARaceSlipsPastValidation()
+        {
+            // Both requests validate before either inserts, as two simultaneous invites would.
+            var first = Dto((int)RoleEnum.JurisdictionEditor, _managersJurisdictionID);
+            var second = Dto((int)RoleEnum.JurisdictionEditor, _managersJurisdictionID);
+            second.Email = first.Email.ToUpperInvariant();
+            Assert.AreEqual(0, (await PersonInvites.ValidateInviteAsync(_dbContext, _admin, first)).Count);
+            Assert.AreEqual(0, (await PersonInvites.ValidateInviteAsync(_dbContext, _admin, second)).Count);
+
+            var firstResult = await PersonInvites.InviteAsync(_dbContext, first);
+            var secondResult = await PersonInvites.InviteAsync(_dbContext, second);
+
+            Assert.IsNotNull(firstResult.Person);
+            Assert.IsNull(secondResult.Person);
+            Assert.IsNotNull(secondResult.DuplicateEmailMessage);
+            Assert.AreEqual(1, _dbContext.People.AsNoTracking().Count(x => x.Email == first.Email), "No duplicate Person row.");
+        }
+
+        [TestMethod]
+        public async Task RepeatedJurisdictionID_IsListedOnceInTheEmail_AndAssignedOnce()
+        {
+            // Copilot (PR #689) asked whether [id, id] lists the jurisdiction twice in the email.
+            // The name lookup selects jurisdiction rows, so a repeated ID yields one name.
+            var names = await PersonInvites.ListJurisdictionNamesAsync(_dbContext, [_managersJurisdictionID, _managersJurisdictionID]);
+            Assert.AreEqual(1, names.Count);
+
+            var dto = Dto((int)RoleEnum.JurisdictionEditor, _managersJurisdictionID, _managersJurisdictionID);
+            Assert.AreEqual(0, (await PersonInvites.ValidateInviteAsync(_dbContext, _manager, dto)).Count);
+            var invited = (await PersonInvites.InviteAsync(_dbContext, dto)).Person;
+            Assert.IsNotNull(invited);
+            Assert.AreEqual(1, _dbContext.StormwaterJurisdictionPeople.AsNoTracking().Count(x => x.PersonID == invited.PersonID));
         }
 
         [TestMethod]
@@ -275,7 +417,7 @@ namespace Neptune.Tests
         [TestMethod]
         public async Task FirstLogin_LinksInvitedPersonByEmail_KeepingRoleAndJurisdiction()
         {
-            var invited = await PersonInvites.InviteAsync(_dbContext, Dto((int)RoleEnum.JurisdictionEditor, _managersJurisdictionID));
+            var invited = (await PersonInvites.InviteAsync(_dbContext, Dto((int)RoleEnum.JurisdictionEditor, _managersJurisdictionID))).Person;
             Assert.IsNotNull(invited);
             var sub = $"auth0|npt734-{Guid.NewGuid():N}";
 

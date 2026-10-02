@@ -12217,17 +12217,17 @@
             "content": {
               "text/plain": {
                 "schema": {
-                  "$ref": "#/components/schemas/PersonDto"
+                  "$ref": "#/components/schemas/PersonInviteResultDto"
                 }
               },
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/PersonDto"
+                  "$ref": "#/components/schemas/PersonInviteResultDto"
                 }
               },
               "text/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/PersonDto"
+                  "$ref": "#/components/schemas/PersonInviteResultDto"
                 }
               }
             }
@@ -19380,6 +19380,18 @@
               "format": "int32"
             },
             "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "PersonInviteResultDto": {
+        "type": "object",
+        "properties": {
+          "Person": {
+            "$ref": "#/components/schemas/PersonDto"
+          },
+          "InvitationEmailSent": {
+            "type": "boolean"
           }
         },
         "additionalProperties": false

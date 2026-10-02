@@ -164,8 +164,14 @@ namespace Neptune.API.Controllers
         // No Auth0 call: the invitee signs up with this email and People.UpdateClaims links them on first login.
         [HttpPost("invite")]
         [JurisdictionManageFeature]
-        public async Task<ActionResult<PersonDto>> Invite([FromBody] PersonInviteDto personInviteDto)
+        public async Task<ActionResult<PersonInviteResultDto>> Invite([FromBody] PersonInviteDto personInviteDto)
         {
+            // Implicit [Required] for non-nullable references is suppressed in Startup, so a JSON null body gets here.
+            if (personInviteDto == null)
+            {
+                return BadRequest();
+            }
+
             var inviter = CallingUser;
             var validationMessages = await PersonInvites.ValidateInviteAsync(DbContext, inviter, personInviteDto);
             validationMessages.ForEach(vm => { ModelState.AddModelError(vm.Type, vm.Message); });
@@ -174,22 +180,30 @@ namespace Neptune.API.Controllers
                 return BadRequest(ModelState);
             }
 
-            var invitedPerson = await PersonInvites.InviteAsync(DbContext, personInviteDto);
+            var inviteResult = await PersonInvites.InviteAsync(DbContext, personInviteDto);
+            if (inviteResult.DuplicateEmailMessage != null)
+            {
+                // Lost a race with another invite for the same address after validation passed.
+                ModelState.AddModelError(PersonInvites.EmailKey, inviteResult.DuplicateEmailMessage);
+                return BadRequest(ModelState);
+            }
+            var invitedPerson = inviteResult.Person!;
 
-            // The Person row is the invite; a mail failure is logged rather than failing the request,
-            // since the invitee can still sign up from the home page with the same address.
+            // The Person row is the invite, so a mail failure doesn't fail the request: the invitee can still sign
+            // up from the home page with the same address. The result tells the UI so it doesn't claim it was sent.
+            var invitationEmailSent = false;
             try
             {
                 var jurisdictionNames = await PersonInvites.ListJurisdictionNamesAsync(DbContext, personInviteDto.StormwaterJurisdictionIDs ?? []);
                 var mailMessage = GenerateInviteEmail(invitedPerson, inviter, jurisdictionNames);
-                await SendEmailMessage(mailMessage);
+                invitationEmailSent = await SendEmailMessage(mailMessage);
             }
             catch (Exception ex)
             {
                 Logger.LogError(ex, "NPT-734: invite email to PersonID {PersonID} failed to send.", invitedPerson.PersonID);
             }
 
-            return Ok(invitedPerson);
+            return Ok(new PersonInviteResultDto { Person = invitedPerson, InvitationEmailSent = invitationEmailSent });
         }
 
         [HttpPut("{personID}/jurisdictions")]
@@ -315,7 +329,7 @@ namespace Neptune.API.Controllers
             return mailMessage;
         }
 
-        private async Task SendEmailMessage(MailMessage mailMessage)
+        private async Task<bool> SendEmailMessage(MailMessage mailMessage)
         {
             mailMessage.IsBodyHtml = true;
             mailMessage.From = sitkaSmtpClientService.GetDefaultEmailFrom();
@@ -323,7 +337,7 @@ namespace Neptune.API.Controllers
             {
                 mailMessage.ReplyToList.Add(NeptuneConfiguration.DoNotReplyEmail);
             }
-            await sitkaSmtpClientService.Send(mailMessage);
+            return await sitkaSmtpClientService.Send(mailMessage);
         }
     }
 }

@@ -13,7 +13,9 @@ import { StormwaterJurisdictionService } from "src/app/shared/generated/api/stor
 import { UserService } from "src/app/shared/generated/api/user.service";
 import { NeptunePageTypeEnum } from "src/app/shared/generated/enum/neptune-page-type-enum";
 import { RoleEnum } from "src/app/shared/generated/enum/role-enum";
-import { PersonDto } from "src/app/shared/generated/model/person-dto";
+import { PersonInviteResultDto } from "src/app/shared/generated/model/person-invite-result-dto";
+import { Alert } from "src/app/shared/models/alert";
+import { AlertContext } from "src/app/shared/models/enums/alert-context.enum";
 import { StormwaterJurisdictionDisplayDto } from "src/app/shared/generated/model/stormwater-jurisdiction-display-dto";
 import { HANDLES_ERRORS_INLINE } from "src/app/shared/interceptors/httpErrorInterceptor";
 
@@ -34,7 +36,7 @@ export interface InviteUserModalContext {
     templateUrl: "./invite-user-modal.component.html",
 })
 export class InviteUserModalComponent implements OnInit {
-    public ref: DialogRef<InviteUserModalContext, PersonDto | null> = inject(DialogRef);
+    public ref: DialogRef<InviteUserModalContext, PersonInviteResultDto | null> = inject(DialogRef);
     private userService = inject(UserService);
     private organizationService = inject(OrganizationService);
     private jurisdictionService = inject(StormwaterJurisdictionService);
@@ -130,9 +132,9 @@ export class InviteUserModalComponent implements OnInit {
                 { context: new HttpContext().set(HANDLES_ERRORS_INLINE, true) }
             )
             .subscribe({
-                next: (person) => {
+                next: (result) => {
                     this.isSaving.set(false);
-                    this.ref.close(person);
+                    this.ref.close(result);
                 },
                 error: (err) => {
                     this.isSaving.set(false);
@@ -153,6 +155,18 @@ export class InviteUserModalComponent implements OnInit {
             if (messages.length) return messages;
         }
         return ["Could not send the invitation."];
+    }
+
+    // The alert a caller shows after the modal closes. The Person exists either way; if the email didn't go out,
+    // say so instead of claiming it was sent, and point at the sign-up link the inviter can pass on themselves.
+    public static resultAlert(result: PersonInviteResultDto): Alert {
+        const email = result.Person?.Email ?? "the new user";
+        return result.InvitationEmailSent
+            ? new Alert(`Invitation sent to ${email}.`, AlertContext.Success)
+            : new Alert(
+                  `${email} was added, but the invitation email could not be sent. Ask them to create an account at ${window.location.origin}/sign-up using that address.`,
+                  AlertContext.Warning
+              );
     }
 
     public cancel(): void {

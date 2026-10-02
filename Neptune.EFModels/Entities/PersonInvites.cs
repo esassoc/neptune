@@ -1,3 +1,4 @@
+using System.Data;
 using System.Diagnostics.CodeAnalysis;
 using System.Net.Mail;
 using Microsoft.EntityFrameworkCore;
@@ -71,16 +72,10 @@ public static class PersonInvites
         }
         else
         {
-            var existing = await dbContext.People.AsNoTracking()
-                .Where(x => x.Email != null && x.Email.Trim().ToLower() == email)
-                .Select(x => new { x.FirstName, x.LastName })
-                .FirstOrDefaultAsync();
-            if (existing != null)
+            var duplicateMessage = await GetDuplicateEmailMessageAsync(dbContext, email);
+            if (duplicateMessage != null)
             {
-                var name = $"{existing.FirstName} {existing.LastName}".Trim();
-                var who = string.IsNullOrEmpty(name) ? email : $"{name} ({email})";
-                errors.Add(new ErrorMessage(EmailKey,
-                    $"{who} already has an OC Stormwater Tools account. To give them access to a jurisdiction, edit that jurisdiction's assigned users instead."));
+                errors.Add(new ErrorMessage(EmailKey, duplicateMessage));
             }
         }
 
@@ -120,12 +115,48 @@ public static class PersonInvites
         return errors;
     }
 
-    // Call ValidateInviteAsync first; this assumes a valid, non-duplicate request.
-    public static async Task<PersonDto?> InviteAsync(NeptuneDbContext dbContext, PersonInviteDto dto)
+    // Null when the email has no account; otherwise the message to show the inviter.
+    // Email has no unique constraint in dbo.Person, so this lookup is the duplicate guard.
+    public static async Task<string?> GetDuplicateEmailMessageAsync(NeptuneDbContext dbContext, string normalizedEmail)
+    {
+        var existing = await dbContext.People.AsNoTracking()
+            .Where(x => x.Email != null && x.Email.Trim().ToLower() == normalizedEmail)
+            .Select(x => new { x.FirstName, x.LastName })
+            .FirstOrDefaultAsync();
+        if (existing == null)
+        {
+            return null;
+        }
+
+        var name = $"{existing.FirstName} {existing.LastName}".Trim();
+        var who = string.IsNullOrEmpty(name) ? normalizedEmail : $"{name} ({normalizedEmail})";
+        return $"{who} already has an OC Stormwater Tools account. To give them access to a jurisdiction, edit that jurisdiction's assigned users instead.";
+    }
+
+    public class InviteResult
+    {
+        public PersonDto? Person { get; init; }
+        public string? DuplicateEmailMessage { get; init; }
+    }
+
+    // Call ValidateInviteAsync first. The duplicate check is repeated here inside a serializable transaction,
+    // because two invites for the same address can both pass validation (there's no unique index on Email).
+    // The serializable read's range lock holds until commit, so a concurrent invite waits, then sees the first.
+    public static async Task<InviteResult> InviteAsync(NeptuneDbContext dbContext, PersonInviteDto dto)
     {
         if (!TryNormalizeEmail(dto.Email, out var email))
         {
             throw new ArgumentException("Invite email is not a valid address; validate before inviting.", nameof(dto));
+        }
+
+        // Reuse a caller's transaction (the integration tests wrap each test in one and roll it back).
+        var ownsTransaction = dbContext.Database.CurrentTransaction == null;
+        await using var transaction = ownsTransaction ? await dbContext.Database.BeginTransactionAsync(IsolationLevel.Serializable) : null;
+
+        var duplicateMessage = await GetDuplicateEmailMessageAsync(dbContext, email);
+        if (duplicateMessage != null)
+        {
+            return new InviteResult { DuplicateEmailMessage = duplicateMessage };
         }
 
         var person = new Person
@@ -150,8 +181,12 @@ public static class PersonInvites
 
         dbContext.People.Add(person);
         await dbContext.SaveChangesAsync();
+        if (transaction != null)
+        {
+            await transaction.CommitAsync();
+        }
 
-        return await People.GetByIDAsDtoAsync(dbContext, person.PersonID);
+        return new InviteResult { Person = await People.GetByIDAsDtoAsync(dbContext, person.PersonID) };
     }
 
     public static async Task<List<string>> ListJurisdictionNamesAsync(NeptuneDbContext dbContext, IEnumerable<int> stormwaterJurisdictionIDs)

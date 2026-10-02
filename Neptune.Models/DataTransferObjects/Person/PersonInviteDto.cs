@@ -15,7 +15,7 @@ namespace Neptune.Models.DataTransferObjects.Person
 
         // Not [EmailAddress]: that attribute only checks for a single '@', so it accepts
         // "Jane Doe <jane@example.com>" pasted from Outlook (the NPT-734 legacy crash input).
-        // People.ValidateInvite parses and normalizes the address instead.
+        // PersonInvites.TryNormalizeEmail parses and normalizes the address instead.
         [Required]
         [MaxLength(255)]
         public string Email { get; set; }

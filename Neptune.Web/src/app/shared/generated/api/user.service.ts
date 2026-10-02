@@ -25,6 +25,8 @@ import { PersonDto } from '../model/person-dto';
 // @ts-ignore
 import { PersonInviteDto } from '../model/person-invite-dto';
 // @ts-ignore
+import { PersonInviteResultDto } from '../model/person-invite-result-dto';
+// @ts-ignore
 import { PersonJurisdictionsUpdateDto } from '../model/person-jurisdictions-update-dto';
 // @ts-ignore
 import { PersonNotificationDto } from '../model/person-notification-dto';
@@ -392,9 +394,9 @@ export class UserService extends BaseService {
      * @param observe set whether or not to return the data Observable as the body, response or events. defaults to returning the body.
      * @param reportProgress flag to report request and response progress.
      */
-    public inviteUser(personInviteDto?: PersonInviteDto, observe?: 'body', reportProgress?: boolean, options?: {httpHeaderAccept?: 'text/plain' | 'application/json' | 'text/json', context?: HttpContext, transferCache?: boolean}): Observable<PersonDto>;
-    public inviteUser(personInviteDto?: PersonInviteDto, observe?: 'response', reportProgress?: boolean, options?: {httpHeaderAccept?: 'text/plain' | 'application/json' | 'text/json', context?: HttpContext, transferCache?: boolean}): Observable<HttpResponse<PersonDto>>;
-    public inviteUser(personInviteDto?: PersonInviteDto, observe?: 'events', reportProgress?: boolean, options?: {httpHeaderAccept?: 'text/plain' | 'application/json' | 'text/json', context?: HttpContext, transferCache?: boolean}): Observable<HttpEvent<PersonDto>>;
+    public inviteUser(personInviteDto?: PersonInviteDto, observe?: 'body', reportProgress?: boolean, options?: {httpHeaderAccept?: 'text/plain' | 'application/json' | 'text/json', context?: HttpContext, transferCache?: boolean}): Observable<PersonInviteResultDto>;
+    public inviteUser(personInviteDto?: PersonInviteDto, observe?: 'response', reportProgress?: boolean, options?: {httpHeaderAccept?: 'text/plain' | 'application/json' | 'text/json', context?: HttpContext, transferCache?: boolean}): Observable<HttpResponse<PersonInviteResultDto>>;
+    public inviteUser(personInviteDto?: PersonInviteDto, observe?: 'events', reportProgress?: boolean, options?: {httpHeaderAccept?: 'text/plain' | 'application/json' | 'text/json', context?: HttpContext, transferCache?: boolean}): Observable<HttpEvent<PersonInviteResultDto>>;
     public inviteUser(personInviteDto?: PersonInviteDto, observe: any = 'body', reportProgress: boolean = false, options?: {httpHeaderAccept?: 'text/plain' | 'application/json' | 'text/json', context?: HttpContext, transferCache?: boolean}): Observable<any> {
 
         let localVarHeaders = this.defaultHeaders;
@@ -437,7 +439,7 @@ export class UserService extends BaseService {
 
         let localVarPath = `/users/invite`;
         const { basePath, withCredentials } = this.configuration;
-        return this.httpClient.request<PersonDto>('post', `${basePath}${localVarPath}`,
+        return this.httpClient.request<PersonInviteResultDto>('post', `${basePath}${localVarPath}`,
             {
                 context: localVarHttpContext,
                 body: personInviteDto,

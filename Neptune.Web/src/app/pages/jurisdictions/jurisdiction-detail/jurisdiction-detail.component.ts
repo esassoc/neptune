@@ -17,7 +17,7 @@ import { StormwaterJurisdictionService } from "src/app/shared/generated/api/stor
 import { JurisdictionBasicsModalComponent, JurisdictionBasicsModalContext } from "./jurisdiction-basics-modal/jurisdiction-basics-modal.component";
 import { JurisdictionUsersModalComponent, JurisdictionUsersModalContext } from "./jurisdiction-users-modal/jurisdiction-users-modal.component";
 import { InviteUserModalComponent, InviteUserModalContext } from "src/app/shared/components/invite-user-modal/invite-user-modal.component";
-import { PersonDto } from "src/app/shared/generated/model/person-dto";
+import { PersonInviteResultDto } from "src/app/shared/generated/model/person-invite-result-dto";
 
 @Component({
     selector: "jurisdiction-detail",
@@ -170,10 +170,10 @@ export class JurisdictionDetailComponent implements OnInit, OnChanges {
                 presetJurisdictionName: this.currentJurisdiction.StormwaterJurisdictionName,
             } as InviteUserModalContext,
         });
-        ref.afterClosed$.subscribe((person: PersonDto | null) => {
-            if (person) {
+        ref.afterClosed$.subscribe((result: PersonInviteResultDto | null) => {
+            if (result?.Person) {
                 this.reload$.next();
-                this.alertService.pushAlert(new Alert(`Invitation sent to ${person.Email}.`, AlertContext.Success));
+                this.alertService.pushAlert(InviteUserModalComponent.resultAlert(result));
             }
         });
     }

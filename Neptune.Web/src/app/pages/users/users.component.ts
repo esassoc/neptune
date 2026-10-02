@@ -19,7 +19,7 @@ import { escapeHtml } from "src/app/shared/helpers/html-escape";
 import { Router } from "@angular/router";
 import { DialogService } from "@ngneat/dialog";
 import { InviteUserModalComponent, InviteUserModalContext } from "src/app/shared/components/invite-user-modal/invite-user-modal.component";
-import { PersonDto } from "src/app/shared/generated/model/person-dto";
+import { PersonInviteResultDto } from "src/app/shared/generated/model/person-invite-result-dto";
 
 @Component({
     selector: "users",
@@ -93,10 +93,10 @@ export class UsersComponent implements OnInit {
     // NPT-734: after inviting, land on the new user's detail page (LT Info / legacy MVC behaviour).
     public openInviteModal(): void {
         const ref = this.dialogService.open(InviteUserModalComponent, { data: {} as InviteUserModalContext });
-        ref.afterClosed$.subscribe((person: PersonDto | null) => {
-            if (person) {
-                this.router.navigate(["/users", person.PersonID]).then(() => {
-                    this.alertService.pushAlert(new Alert(`Invitation sent to ${person.Email}.`, AlertContext.Success));
+        ref.afterClosed$.subscribe((result: PersonInviteResultDto | null) => {
+            if (result?.Person) {
+                this.router.navigate(["/users", result.Person.PersonID]).then(() => {
+                    this.alertService.pushAlert(InviteUserModalComponent.resultAlert(result));
                 });
             }
         });
