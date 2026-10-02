@@ -42,7 +42,9 @@ export class AppComponent {
             const code = (authErr.error ?? "").toString().toLowerCase();
             const desc = (authErr.error_description ?? authErr.message ?? "").toString().toLowerCase();
 
-            if (code === "access_denied" && desc.includes("verify your email")) {
+            // NPT-734: match any verification wording. The post-login Action now says "We sent a verification
+            // link to ...", which never contained the old "verify your email" phrase, so this notice stopped showing.
+            if (code === "access_denied" && desc.includes("verif")) {
                 this.alertService.pushAlert(
                     new Alert(
                         "Please verify your email address before signing in. Check your inbox for a verification link (and spam/junk).",

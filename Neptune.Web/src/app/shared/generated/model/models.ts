@@ -112,6 +112,7 @@ export * from './person-create-dto';
 export * from './person-detail-dto';
 export * from './person-display-dto';
 export * from './person-dto';
+export * from './person-invite-dto';
 export * from './person-jurisdictions-update-dto';
 export * from './person-notification-dto';
 export * from './person-role-update-dto';

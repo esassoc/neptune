@@ -16,6 +16,8 @@ import { PersonDisplayDto, StormwaterJurisdictionGridDto, TreatmentBMPGridDto } 
 import { StormwaterJurisdictionService } from "src/app/shared/generated/api/stormwater-jurisdiction.service";
 import { JurisdictionBasicsModalComponent, JurisdictionBasicsModalContext } from "./jurisdiction-basics-modal/jurisdiction-basics-modal.component";
 import { JurisdictionUsersModalComponent, JurisdictionUsersModalContext } from "./jurisdiction-users-modal/jurisdiction-users-modal.component";
+import { InviteUserModalComponent, InviteUserModalContext } from "src/app/shared/components/invite-user-modal/invite-user-modal.component";
+import { PersonDto } from "src/app/shared/generated/model/person-dto";
 
 @Component({
     selector: "jurisdiction-detail",
@@ -154,6 +156,24 @@ export class JurisdictionDetailComponent implements OnInit, OnChanges {
             if (result) {
                 this.reload$.next();
                 this.alertService.pushAlert(new Alert("Assigned users updated.", AlertContext.Success));
+            }
+        });
+    }
+
+    // NPT-734: the invitee is created already assigned to this jurisdiction, so the user list reloads.
+    // Stays on the page because Jurisdiction Managers can't open user detail.
+    public openInviteModal(): void {
+        if (!this.currentJurisdiction) return;
+        const ref = this.dialogService.open(InviteUserModalComponent, {
+            data: {
+                presetJurisdictionID: this.jurisdictionID,
+                presetJurisdictionName: this.currentJurisdiction.StormwaterJurisdictionName,
+            } as InviteUserModalContext,
+        });
+        ref.afterClosed$.subscribe((person: PersonDto | null) => {
+            if (person) {
+                this.reload$.next();
+                this.alertService.pushAlert(new Alert(`Invitation sent to ${person.Email}.`, AlertContext.Success));
             }
         });
     }

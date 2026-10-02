@@ -76,6 +76,13 @@ namespace Neptune.Common.Email
                 sendGridMessage.AddTos(mailMessage.To.Select(x => new EmailAddress(x.Address, x.DisplayName)).ToList());
             }
 
+            // NPT-734: ReplyTo was previously dropped here, so every email's Reply-To silently fell back to From.
+            if (mailMessage.ReplyToList != null && mailMessage.ReplyToList.Any())
+            {
+                var replyTo = mailMessage.ReplyToList.First();
+                sendGridMessage.SetReplyTo(new EmailAddress(replyTo.Address, replyTo.DisplayName));
+            }
+
             if (mailMessage.CC != null && mailMessage.CC.Any())
             {
                 sendGridMessage.AddCcs(mailMessage.CC.Select(x => new EmailAddress(x.Address, x.DisplayName)).ToList());
@@ -168,4 +175,4 @@ You have received this email because you are assigned to receive support notific
             }
         }
     }
-}
+}

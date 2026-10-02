@@ -11,6 +11,7 @@ using Neptune.Models.DataTransferObjects.Person;
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Net;
 using System.Net.Mail;
 using System.Threading.Tasks;
 
@@ -158,6 +159,39 @@ namespace Neptune.API.Controllers
             return Ok(updated);
         }
 
+        // NPT-734: Admins invite anyone; Jurisdiction Managers invite Editors/Managers into their own
+        // jurisdiction (the role and jurisdiction scoping lives in PersonInvites.ValidateInviteAsync).
+        // No Auth0 call: the invitee signs up with this email and People.UpdateClaims links them on first login.
+        [HttpPost("invite")]
+        [JurisdictionManageFeature]
+        public async Task<ActionResult<PersonDto>> Invite([FromBody] PersonInviteDto personInviteDto)
+        {
+            var inviter = CallingUser;
+            var validationMessages = await PersonInvites.ValidateInviteAsync(DbContext, inviter, personInviteDto);
+            validationMessages.ForEach(vm => { ModelState.AddModelError(vm.Type, vm.Message); });
+            if (!ModelState.IsValid)
+            {
+                return BadRequest(ModelState);
+            }
+
+            var invitedPerson = await PersonInvites.InviteAsync(DbContext, personInviteDto);
+
+            // The Person row is the invite; a mail failure is logged rather than failing the request,
+            // since the invitee can still sign up from the home page with the same address.
+            try
+            {
+                var jurisdictionNames = await PersonInvites.ListJurisdictionNamesAsync(DbContext, personInviteDto.StormwaterJurisdictionIDs ?? []);
+                var mailMessage = GenerateInviteEmail(invitedPerson, inviter, jurisdictionNames);
+                await SendEmailMessage(mailMessage);
+            }
+            catch (Exception ex)
+            {
+                Logger.LogError(ex, "NPT-734: invite email to PersonID {PersonID} failed to send.", invitedPerson.PersonID);
+            }
+
+            return Ok(invitedPerson);
+        }
+
         [HttpPut("{personID}/jurisdictions")]
         [AdminFeature]
         [EntityNotFoundAttribute(typeof(Person), "personID")]
@@ -230,11 +264,65 @@ namespace Neptune.API.Controllers
             return mailMessage;
         }
 
+        private MailMessage GenerateInviteEmail(PersonDto invitedPerson, PersonDto inviter, List<string> jurisdictionNames)
+        {
+            var encode = (Func<string, string>)WebUtility.HtmlEncode;
+            var baseUrl = NeptuneConfiguration.OcStormwaterToolsBaseUrl;
+            var inviterName = encode($"{inviter.FirstName} {inviter.LastName}".Trim());
+            var roleName = Role.AllLookupDictionary.TryGetValue(invitedPerson.RoleID, out var role) ? role.RoleDisplayName : invitedPerson.RoleName;
+            // "an Administrator", "a Jurisdiction Editor"; Unassigned isn't a role worth announcing.
+            var rolePhrase = invitedPerson.RoleID == (int)RoleEnum.Unassigned
+                ? ""
+                : $" as {("AEIOU".Contains(char.ToUpperInvariant(roleName.FirstOrDefault())) ? "an" : "a")} <strong>{encode(roleName)}</strong>";
+            var jurisdictionPhrase = jurisdictionNames.Any() ? $" for {encode(string.Join(", ", jurisdictionNames))}" : "";
+            var accessLine = rolePhrase + jurisdictionPhrase;
+            var email = encode(invitedPerson.Email);
+
+            // County staff are routed to their Microsoft Entra login by email domain (docs/ocpw-county-sso.md),
+            // so they have no Neptune password to create and no Auth0 verification email to wait for.
+            var isCountyStaff = invitedPerson.Email.EndsWith("@pw.oc.gov", StringComparison.OrdinalIgnoreCase);
+            var steps = isCountyStaff
+                ? $@"
+    <p>Your address is an Orange County Public Works account, so there is no separate password to create.
+    <a href=""{baseUrl}"">Open OC Stormwater Tools</a>, choose <strong>Sign In</strong>, and enter <strong>{email}</strong>.
+    You will be sent to your usual County sign-in.</p>"
+                : $@"
+    <ol>
+        <li><a href=""{baseUrl}/sign-up"">Create your account</a> using <strong>{email}</strong>. Use this exact address; it is how your account connects to the access set up for you.</li>
+        <li>Check your inbox for a verification email and click the link in it. Until you do, signing in will ask you to verify.</li>
+        <li><a href=""{baseUrl}"">Sign in to OC Stormwater Tools</a>.</li>
+    </ol>
+    <p>Already have an OC Stormwater Tools account under a different address? Reply to this email so your access can be moved to it.</p>";
+
+            var messageBody = $@"
+<div style='font-size: 14px; font-family: Arial'>
+    <p>{inviterName} has invited you to OC Stormwater Tools{accessLine}.</p>
+    {steps}
+    {sitkaSmtpClientService.GetSupportNotificationEmailSignature()}
+</div>
+";
+
+            var mailMessage = new MailMessage
+            {
+                Subject = "Invitation to OC Stormwater Tools",
+                Body = $"Hello {encode(invitedPerson.FirstName)},<br /><br />{messageBody}",
+            };
+            mailMessage.To.Add(new MailAddress(invitedPerson.Email, $"{invitedPerson.FirstName} {invitedPerson.LastName}".Trim()));
+            if (!string.IsNullOrWhiteSpace(inviter.Email) && MailAddress.TryCreate(inviter.Email, out var inviterAddress))
+            {
+                mailMessage.ReplyToList.Add(inviterAddress);
+            }
+            return mailMessage;
+        }
+
         private async Task SendEmailMessage(MailMessage mailMessage)
         {
             mailMessage.IsBodyHtml = true;
             mailMessage.From = sitkaSmtpClientService.GetDefaultEmailFrom();
-            mailMessage.ReplyToList.Add(NeptuneConfiguration.DoNotReplyEmail);
+            if (!mailMessage.ReplyToList.Any())
+            {
+                mailMessage.ReplyToList.Add(NeptuneConfiguration.DoNotReplyEmail);
+            }
             await sitkaSmtpClientService.Send(mailMessage);
         }
     }
