@@ -35,7 +35,8 @@ import { WaterQualityManagementPlanDto } from "src/app/shared/generated/model/wa
     styleUrls: ["./wqmp-modal.component.scss"],
 })
 export class WqmpModalComponent implements OnInit {
-    public ref: DialogRef<{ mode: "add" | "edit"; wqmp?: WaterQualityManagementPlanDto }, boolean> = inject(DialogRef);
+    // add mode closes with the created WQMP (so callers can navigate to it); edit mode closes with true
+    public ref: DialogRef<{ mode: "add" | "edit"; wqmp?: WaterQualityManagementPlanDto }, boolean | WaterQualityManagementPlanDto> = inject(DialogRef);
     public FormFieldType = FormFieldType;
     public US_STATES = US_STATES;
     public mode: "add" | "edit";
@@ -173,8 +174,8 @@ export class WqmpModalComponent implements OnInit {
             });
         } else {
             this.wqmpService.createWaterQualityManagementPlan(dto).subscribe({
-                next: () => {
-                    this.ref.close(true);
+                next: (createdWqmp) => {
+                    this.ref.close(createdWqmp);
                 },
                 error: () => {},
             });

@@ -1,4 +1,5 @@
 import { Component, DestroyRef, computed, effect, inject, signal } from "@angular/core";
+import { NgTemplateOutlet } from "@angular/common";
 import { takeUntilDestroyed } from "@angular/core/rxjs-interop";
 import { Router } from "@angular/router";
 import { DialogService } from "@ngneat/dialog";
@@ -35,7 +36,7 @@ const METERS_PER_DEGREE_LATITUDE = 111320;
     selector: "field-actions-panel",
     templateUrl: "./field-actions-panel.component.html",
     styleUrls: ["./field-actions-panel.component.scss"],
-    imports: [NeptuneMapComponent],
+    imports: [NeptuneMapComponent, NgTemplateOutlet],
 })
 export class FieldActionsPanelComponent {
     private geolocationService = inject(GeolocationService);
