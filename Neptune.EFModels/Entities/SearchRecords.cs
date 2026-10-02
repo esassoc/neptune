@@ -12,7 +12,7 @@ public static class SearchRecords
         var records = new List<SearchRecordDto>();
         records.AddRange(await ListTreatmentBMPsAsync(dbContext, stormwaterJurisdictionIDs));
         records.AddRange(await ListWaterQualityManagementPlansAsync(dbContext, stormwaterJurisdictionIDs));
-        records.AddRange(await ListOnlandVisualTrashAssessmentsAsync(dbContext, stormwaterJurisdictionIDs));
+        records.AddRange(await ListOnlandVisualTrashAssessmentAreasAsync(dbContext, stormwaterJurisdictionIDs));
         records.AddRange(await ListProjectsAsync(dbContext, stormwaterJurisdictionIDs));
         return records;
     }
@@ -72,36 +72,47 @@ public static class SearchRecords
         }).ToList();
     }
 
-    // An OVTA has no name of its own: it reads as its Area's name, or the draft name before an Area exists
-    // (same fallback as OnlandVisualTrashAssessmentExtensionMethods.AsReviewAndFinalizeDto). Several OVTAs
-    // share an Area, so the date is the datum that tells them apart.
-    private static async Task<List<SearchRecordDto>> ListOnlandVisualTrashAssessmentsAsync(NeptuneDbContext dbContext, List<int> stormwaterJurisdictionIDs)
+    // The OVTA scope lists Assessment Areas, not individual assessments (NPT-1125 rework): one row per area,
+    // opening the area detail page, which lists that area's assessments. Draft assessments with no area yet
+    // aren't searchable; they stay reachable from the OVTA list.
+    private static async Task<List<SearchRecordDto>> ListOnlandVisualTrashAssessmentAreasAsync(NeptuneDbContext dbContext, List<int> stormwaterJurisdictionIDs)
     {
-        var rows = await dbContext.OnlandVisualTrashAssessments.AsNoTracking()
-            .Where(x => stormwaterJurisdictionIDs.Contains(x.StormwaterJurisdictionID))
+        var rows = await dbContext.OnlandVisualTrashAssessmentAreas.AsNoTracking()
+            .Where(x => stormwaterJurisdictionIDs.Contains(x.StormwaterJurisdictionID)
+                        && x.OnlandVisualTrashAssessmentAreaName != null && x.OnlandVisualTrashAssessmentAreaName.Trim() != "")
+            .OrderBy(x => x.OnlandVisualTrashAssessmentAreaName)
             .Select(x => new
             {
-                x.OnlandVisualTrashAssessmentID,
-                AreaName = x.OnlandVisualTrashAssessmentArea != null ? x.OnlandVisualTrashAssessmentArea.OnlandVisualTrashAssessmentAreaName : x.DraftAreaName,
-                x.OnlandVisualTrashAssessmentStatusID,
-                x.CompletedDate,
-                x.CreatedDate
+                x.OnlandVisualTrashAssessmentAreaID,
+                x.OnlandVisualTrashAssessmentAreaName,
+                x.OnlandVisualTrashAssessmentBaselineScoreID,
+                x.OnlandVisualTrashAssessmentProgressScoreID,
+                JurisdictionName = x.StormwaterJurisdiction.Organization.OrganizationShortName ?? x.StormwaterJurisdiction.Organization.OrganizationName
             })
             .ToListAsync();
 
-        return rows
-            .Where(x => !string.IsNullOrWhiteSpace(x.AreaName))
-            .OrderBy(x => x.AreaName).ThenByDescending(x => x.CompletedDate ?? DateOnly.FromDateTime(x.CreatedDate))
-            .Select(x => new SearchRecordDto
-            {
-                Scope = SearchRecordDto.OnlandVisualTrashAssessmentScope,
-                ID = x.OnlandVisualTrashAssessmentID,
-                Title = x.AreaName!,
-                Subtitle = OnlandVisualTrashAssessmentStatus.AllLookupDictionary.TryGetValue(x.OnlandVisualTrashAssessmentStatusID, out var status)
-                    ? status.OnlandVisualTrashAssessmentStatusDisplayName
-                    : null,
-                Meta = (x.CompletedDate ?? DateOnly.FromDateTime(x.CreatedDate)).ToString("MMM d, yyyy")
-            }).ToList();
+        return rows.Select(x => new SearchRecordDto
+        {
+            Scope = SearchRecordDto.OnlandVisualTrashAssessmentScope,
+            ID = x.OnlandVisualTrashAssessmentAreaID,
+            Title = x.OnlandVisualTrashAssessmentAreaName!,
+            Subtitle = DescribeAreaScores(x.OnlandVisualTrashAssessmentBaselineScoreID, x.OnlandVisualTrashAssessmentProgressScoreID),
+            Meta = x.JurisdictionName
+        }).ToList();
+    }
+
+    private static string DescribeAreaScores(int? baselineScoreID, int? progressScoreID)
+    {
+        var parts = new List<string>();
+        if (baselineScoreID.HasValue && OnlandVisualTrashAssessmentScore.AllLookupDictionary.TryGetValue(baselineScoreID.Value, out var baseline))
+        {
+            parts.Add($"Baseline {baseline.OnlandVisualTrashAssessmentScoreDisplayName}");
+        }
+        if (progressScoreID.HasValue && OnlandVisualTrashAssessmentScore.AllLookupDictionary.TryGetValue(progressScoreID.Value, out var progress))
+        {
+            parts.Add($"Progress {progress.OnlandVisualTrashAssessmentScoreDisplayName}");
+        }
+        return parts.Count > 0 ? string.Join(" · ", parts) : "Not assessed";
     }
 
     private static async Task<List<SearchRecordDto>> ListProjectsAsync(NeptuneDbContext dbContext, List<int> stormwaterJurisdictionIDs)

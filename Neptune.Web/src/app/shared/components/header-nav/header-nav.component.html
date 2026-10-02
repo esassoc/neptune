@@ -30,7 +30,7 @@
                     data-toggle="dropdown"
                     aria-haspopup="true"
                     aria-expanded="false">
-                    <img src="assets/main/logos/hippocamp_logo.png" class="navbarLogo" alt="Orange County Stormwater Tools" style="height: 100px" />
+                    <img src="assets/main/logos/hippocamp_logo.png" class="navbarLogo" alt="Orange County Stormwater Tools" />
                     <div class="site-explorer-area-link">
                         {{ moduleTitle }}
                     </div>
@@ -80,8 +80,8 @@
                     data-toggle="dropdown"
                     aria-haspopup="true"
                     aria-expanded="false">
-                    <span class="username nav-link__label">
-                        Welcome {{ currentUser.FirstName }} {{ currentUser.LastName }}
+                    <span class="username nav-link__label" [attr.title]="'Welcome ' + currentUser.FirstName + ' ' + currentUser.LastName">
+                        <span class="username__text">Welcome {{ currentUser.FirstName }} {{ currentUser.LastName }}</span>
                         <icon icon="AngleDown"></icon>
                     </span>
                 </a>

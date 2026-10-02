@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
@@ -25,9 +26,11 @@ namespace Neptune.Tests
 
         private static NeptuneDbContext GetDbContext()
         {
+            // NEPTUNE_TEST_CONNECTION_STRING lets these run against a non-localhost DB (e.g. a devcontainer)
+            var connectionString = Environment.GetEnvironmentVariable("NEPTUNE_TEST_CONNECTION_STRING")
+                ?? "Data Source=localhost;Initial Catalog=NeptuneDB;Persist Security Info=True;Integrated Security=true;Encrypt=False;";
             var ob = new DbContextOptionsBuilder<NeptuneDbContext>();
-            ob.UseSqlServer("Data Source=localhost;Initial Catalog=NeptuneDB;Persist Security Info=True;Integrated Security=true;Encrypt=False;",
-                x => { x.CommandTimeout(180); x.UseNetTopologySuite(); });
+            ob.UseSqlServer(connectionString, x => { x.CommandTimeout(180); x.UseNetTopologySuite(); });
             return new NeptuneDbContext(ob.Options);
         }
 
@@ -84,6 +87,26 @@ namespace Neptune.Tests
             var outsideWqmps = await db.WaterQualityManagementPlans.AsNoTracking()
                 .CountAsync(x => wqmpIDs.Contains(x.WaterQualityManagementPlanID) && !assigned.Contains(x.StormwaterJurisdictionID));
             Assert.AreEqual(0, outsideWqmps, "A JurisdictionManager's index must not contain WQMPs from unassigned jurisdictions.");
+        }
+
+        [TestMethod]
+        public async Task OvtaRows_AreAreas_ScopedByAreaJurisdiction()
+        {
+            using var db = GetDbContext();
+            var jm = db.People.AsNoTracking().Include(p => p.StormwaterJurisdictionPeople)
+                .FirstOrDefault(p => (p.RoleID == (int)RoleEnum.JurisdictionManager || p.RoleID == (int)RoleEnum.JurisdictionEditor) && p.IsActive
+                    && p.StormwaterJurisdictionPeople.Any(sjp => sjp.StormwaterJurisdiction.OnlandVisualTrashAssessmentAreas.Any()));
+            if (jm == null) Assert.Inconclusive("No active JM/JE whose jurisdictions hold OVTA areas in the local DB.");
+
+            var assigned = jm.StormwaterJurisdictionPeople.Select(x => x.StormwaterJurisdictionID).ToHashSet();
+            var ovtaIDs = (await ListForPersonAsync(db, jm)).Where(x => x.Scope == SearchRecordDto.OnlandVisualTrashAssessmentScope).Select(x => x.ID).ToList();
+
+            var expectedAreaIDs = await db.OnlandVisualTrashAssessmentAreas.AsNoTracking()
+                .Where(x => assigned.Contains(x.StormwaterJurisdictionID) && x.OnlandVisualTrashAssessmentAreaName != null && x.OnlandVisualTrashAssessmentAreaName.Trim() != "")
+                .Select(x => x.OnlandVisualTrashAssessmentAreaID).ToListAsync();
+
+            CollectionAssert.AllItemsAreUnique(ovtaIDs, "Each OVTA area must appear once, not once per assessment.");
+            CollectionAssert.AreEquivalent(expectedAreaIDs, ovtaIDs, "OVTA rows must be exactly the named areas in the user's jurisdictions (IDs are area IDs).");
         }
 
         [TestMethod]

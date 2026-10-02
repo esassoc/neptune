@@ -162,6 +162,7 @@ export const routes: Routes = [
                     {
                         path: `:${routeParams.projectID}`,
                         loadComponent: () => import("./pages/planning-module/projects/project-detail/project-detail.component").then((m) => m.ProjectDetailComponent),
+                        data: { remountOnParamChange: true },
                     },
                 ],
             },
@@ -204,6 +205,7 @@ export const routes: Routes = [
                         path: `:${routeParams.onlandVisualTrashAssessmentID}`,
                         loadComponent: () => import("./pages/trash-module/ovtas/trash-ovta-detail/trash-ovta-detail.component").then((m) => m.TrashOvtaDetailComponent),
                         canActivate: [authGuardFn],
+                        data: { remountOnParamChange: true },
                     },
                 ],
             },
@@ -304,6 +306,7 @@ export const routes: Routes = [
                         loadComponent: () =>
                             import("./pages/trash-module/ovtas/trash-ovta-area-detail/trash-ovta-area-detail.component").then((m) => m.TrashOvtaAreaDetailComponent),
                         canActivate: [authGuardFn],
+                        data: { remountOnParamChange: true },
                     },
                     {
                         path: `:${routeParams.onlandVisualTrashAssessmentAreaID}/edit-location`,

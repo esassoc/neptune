@@ -7,14 +7,18 @@
     align-items: center;
     justify-content: space-between;
 
+    // Base declarations first: Sass emits in source order, so a breakpoint written above them was compiled
+    // before them and always lost — the header never actually stacked below 992px (found in NPT-1125 rework)
     &__wrapper {
-        @include desktop-small-max {
-            flex-direction: column;
-        }
         flex-direction: row;
         padding: 0.5rem;
         flex: 1;
         display: flex;
+
+        @include desktop-small-max {
+            flex-direction: column;
+            gap: 0.25rem;
+        }
     }
 
     &__close {
@@ -31,15 +35,26 @@
 
     &__links {
         display: flex;
+        // the logo block and account links keep their size; the search trigger absorbs the squeeze
+        // (and goes compact at 992–1279px) instead of being painted over (NPT-1125 rework)
+        flex-shrink: 0;
     }
 
     &__utilities {
-        @include tablet-max {
-            margin: inherit;
-        }
         margin-left: auto;
         margin-top: 0;
         border-top: none;
+
+        // stacked: About / Help wrap onto a second line rather than running off the right edge
+        @include desktop-small-max {
+            flex-wrap: wrap;
+            flex-shrink: 1;
+            min-width: 0;
+        }
+
+        @include tablet-max {
+            margin-left: 0;
+        }
 
         .nav-link {
             color: $primary;
@@ -47,6 +62,22 @@
             font-weight: 550;
             &__label {
                 color: $primary;
+            }
+        }
+
+        .username {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.25rem;
+        }
+
+        // long names truncate (full name in the title tooltip) rather than pushing the row wider
+        .username__text {
+            @include desktop-medium-max {
+                max-width: 12rem;
+                overflow: hidden;
+                text-overflow: ellipsis;
+                white-space: nowrap;
             }
         }
 
@@ -123,6 +154,17 @@
         @include desktop-medium {
             display: none;
         }
+    }
+}
+
+// was an inline height: 100px; smaller below 1280px so the header row has room for the search
+.navbarLogo {
+    height: 100px;
+    width: auto;
+    max-width: none;
+
+    @include desktop-medium-max {
+        height: 64px;
     }
 }
 
