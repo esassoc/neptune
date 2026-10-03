@@ -28,7 +28,10 @@
         <div class="card-header">
             <span class="card-title">Users Assigned to {{ jurisdiction.StormwaterJurisdictionName }}</span>
             @if (canManage) {
-                <button type="button" class="btn btn-primary btn-sm" (click)="openUsersModal()">Edit</button>
+                <span class="card-actions">
+                    <button type="button" class="btn btn-primary-outline btn-sm" (click)="openInviteModal()"><i class="fa fa-user-plus"></i> Invite User</button>
+                    <button type="button" class="btn btn-primary btn-sm" (click)="openUsersModal()">Edit</button>
+                </span>
             }
         </div>
         <div class="card-body">

@@ -16,6 +16,10 @@ import { PersonSimpleDto } from "src/app/shared/generated/model/person-simple-dt
 import { AuthenticationService } from "src/app/services/authentication.service";
 import { RoleEnum } from "src/app/shared/generated/enum/role-enum";
 import { escapeHtml } from "src/app/shared/helpers/html-escape";
+import { Router } from "@angular/router";
+import { DialogService } from "@ngneat/dialog";
+import { InviteUserModalComponent, InviteUserModalContext } from "src/app/shared/components/invite-user-modal/invite-user-modal.component";
+import { PersonInviteResultDto } from "src/app/shared/generated/model/person-invite-result-dto";
 
 @Component({
     selector: "users",
@@ -33,6 +37,8 @@ export class UsersComponent implements OnInit {
     private confirmService = inject(ConfirmService);
     private userService = inject(UserService);
     private authenticationService = inject(AuthenticationService);
+    private dialogService = inject(DialogService);
+    private router = inject(Router);
 
     private currentUser = toSignal(this.authenticationService.currentUserSetObservable.pipe(map((u) => u ?? null)), { initialValue: null });
     public isAdmin: Signal<boolean> = computed(() => {
@@ -82,6 +88,18 @@ export class UsersComponent implements OnInit {
             this.utilityFunctions.createDateColumnDef("Last Activity", "LastActivityDate", "short"),
         ]);
         this.users$ = this.userService.listUser();
+    }
+
+    // NPT-734: after inviting, land on the new user's detail page (LT Info / legacy MVC behaviour).
+    public openInviteModal(): void {
+        const ref = this.dialogService.open(InviteUserModalComponent, { data: {} as InviteUserModalContext });
+        ref.afterClosed$.subscribe((result: PersonInviteResultDto | null) => {
+            if (result?.Person) {
+                this.router.navigate(["/users", result.Person.PersonID]).then(() => {
+                    this.alertService.pushAlert(InviteUserModalComponent.resultAlert(result));
+                });
+            }
+        });
     }
 
     deleteUser(user: PersonSimpleDto) {

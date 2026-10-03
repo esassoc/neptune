@@ -1,5 +1,6 @@
 using System.Net.Mail;
 using System.Net.Mime;
+using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using SendGrid;
 using SendGrid.Helpers.Mail;
@@ -10,22 +11,25 @@ namespace Neptune.Common.Email
     {
         private readonly ISendGridClient _sendGridClient;
         private readonly SendGridConfiguration _configuration;
+        private readonly ILogger<SitkaSmtpClientService> _logger;
 
-        public SitkaSmtpClientService(ISendGridClient sendGridClient, IOptions<SendGridConfiguration> configuration)
+        public SitkaSmtpClientService(ISendGridClient sendGridClient, IOptions<SendGridConfiguration> configuration, ILogger<SitkaSmtpClientService> logger)
         {
             _sendGridClient = sendGridClient ?? throw new ArgumentNullException(nameof(sendGridClient));
             _configuration = configuration.Value;
+            _logger = logger;
         }
 
         /// <summary>
         /// Sends an email including mock mode and address redirection  <see cref="ISendGridConfiguration.SitkaEmailRedirect"/>, then calls onward to <see cref="SendDirectly"/>
         /// </summary>
         /// <param name="message"></param>
-        public async Task Send(MailMessage message)
+        /// <returns>True when SendGrid accepted the message; false when it rejected it (already logged).</returns>
+        public async Task<bool> Send(MailMessage message)
         {
             var messageWithAnyAlterations = AlterMessageIfInRedirectMode(message);
             var messageAfterAlterationsAndCreatingAlternateViews = CreateAlternateViewsIfNeeded(messageWithAnyAlterations);
-            await SendDirectly(messageAfterAlterationsAndCreatingAlternateViews);
+            return await SendDirectly(messageAfterAlterationsAndCreatingAlternateViews);
         }
 
         private static MailMessage CreateAlternateViewsIfNeeded(MailMessage message)
@@ -59,7 +63,7 @@ namespace Neptune.Common.Email
         /// Sends an email message at a lower level than <see cref="Send"/>, skipping mock mode and address redirection  <see cref="ISendGridConfiguration.SitkaEmailRedirect"/>
         /// </summary>
         /// <param name="mailMessage"></param>
-        public async Task SendDirectly(MailMessage mailMessage)
+        public async Task<bool> SendDirectly(MailMessage mailMessage)
         {
             var defaultEmailFrom = GetDefaultEmailFrom();
 
@@ -76,6 +80,13 @@ namespace Neptune.Common.Email
                 sendGridMessage.AddTos(mailMessage.To.Select(x => new EmailAddress(x.Address, x.DisplayName)).ToList());
             }
 
+            // NPT-734: ReplyTo was previously dropped here, so every email's Reply-To silently fell back to From.
+            if (mailMessage.ReplyToList != null && mailMessage.ReplyToList.Any())
+            {
+                var replyTo = mailMessage.ReplyToList.First();
+                sendGridMessage.SetReplyTo(new EmailAddress(replyTo.Address, replyTo.DisplayName));
+            }
+
             if (mailMessage.CC != null && mailMessage.CC.Any())
             {
                 sendGridMessage.AddCcs(mailMessage.CC.Select(x => new EmailAddress(x.Address, x.DisplayName)).ToList());
@@ -87,7 +98,17 @@ namespace Neptune.Common.Email
             }
 
             var response = await _sendGridClient.SendEmailAsync(sendGridMessage).ConfigureAwait(false);
-            // Optionally, handle non-success status or logging
+
+            // SendGrid reports rejections (401 bad key, 403, 429 rate limit, 5xx) in the response rather than
+            // throwing, so a failed send used to look like success to every caller.
+            if (response.IsSuccessStatusCode)
+            {
+                return true;
+            }
+
+            var responseBody = response.Body == null ? "" : await response.Body.ReadAsStringAsync().ConfigureAwait(false);
+            _logger.LogError("SendGrid rejected email \"{Subject}\" with {StatusCode}: {ResponseBody}", mailMessage.Subject, (int)response.StatusCode, responseBody);
+            return false;
         }
 
         /// <summary>
@@ -168,4 +189,4 @@ You have received this email because you are assigned to receive support notific
             }
         }
     }
-}
+}

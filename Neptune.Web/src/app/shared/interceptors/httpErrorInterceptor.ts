@@ -1,5 +1,5 @@
 import { Injectable } from "@angular/core";
-import { HttpInterceptor, HttpRequest, HttpErrorResponse, HttpHandler, HttpEvent, HttpResponse } from "@angular/common/http";
+import { HttpInterceptor, HttpRequest, HttpErrorResponse, HttpHandler, HttpEvent, HttpResponse, HttpContextToken } from "@angular/common/http";
 
 import { Observable, EMPTY, throwError, of } from "rxjs";
 import { catchError } from "rxjs/operators";
@@ -7,6 +7,11 @@ import { Router } from "@angular/router";
 import { AlertService } from "../services/alert.service";
 import { AlertContext } from "../models/enums/alert-context.enum";
 import { Alert } from "../models/alert";
+
+// NPT-734: set on a request whose caller shows 400 / mutation-403 messages itself (e.g. inside a modal),
+// so the interceptor doesn't also push them as page alerts behind the modal, where they linger after it closes.
+// Usage: service.call(dto, "body", false, { context: new HttpContext().set(HANDLES_ERRORS_INLINE, true) })
+export const HANDLES_ERRORS_INLINE = new HttpContextToken<boolean>(() => false);
 
 @Injectable()
 export class HttpErrorInterceptor implements HttpInterceptor {
@@ -39,7 +44,8 @@ export class HttpErrorInterceptor implements HttpInterceptor {
                     } catch (e) {}
 
                     if (error instanceof HttpErrorResponse) {
-                        if (error.status == 400) {
+                        const handlesErrorsInline = request.context.get(HANDLES_ERRORS_INLINE);
+                        if (error.status == 400 && !handlesErrorsInline) {
                             if (!error.error) {
                                 return throwError(() => error);
                             }
@@ -72,6 +78,9 @@ export class HttpErrorInterceptor implements HttpInterceptor {
                             // the page they are on — surface it inline like a validation failure instead.
                             // Page-level data denials (GETs) keep the hard redirect.
                             if (request.method !== "GET") {
+                                if (handlesErrorsInline) {
+                                    return throwError(() => error);
+                                }
                                 const message = typeof error.error === "string" && error.error ? error.error : "You are not authorized to perform this action.";
                                 this.alertService.pushAlert(new Alert(message, AlertContext.Danger));
                             } else {
