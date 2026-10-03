@@ -146,6 +146,12 @@ export class InviteUserModalComponent implements OnInit {
     // Handles both BadRequest(ModelState) ({ Email: ["..."] }) and ValidationProblemDetails ({ errors: {...} }).
     private readErrors(err: any): string[] {
         const body = err?.error;
+        // HANDLES_ERRORS_INLINE stops the interceptor from alerting on a mutation 403, so say it's a permission
+        // denial here (same wording as the interceptor). Its body is usually empty, which would otherwise fall
+        // through to the generic message below and read like an email problem.
+        if (err?.status === 403) {
+            return [typeof body === "string" && body ? body : "You are not authorized to perform this action."];
+        }
         if (typeof body === "string" && body) return [body];
         const dict = body?.errors ?? body;
         if (dict && typeof dict === "object") {
@@ -154,7 +160,8 @@ export class InviteUserModalComponent implements OnInit {
                 .filter((v): v is string => typeof v === "string");
             if (messages.length) return messages;
         }
-        return ["Could not send the invitation."];
+        // The request failed before anyone was created, so don't imply an email problem.
+        return ["Could not create the invitation."];
     }
 
     // The alert a caller shows after the modal closes. The Person exists either way; if the email didn't go out,
