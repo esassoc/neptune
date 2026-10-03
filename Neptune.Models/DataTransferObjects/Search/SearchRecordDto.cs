@@ -6,6 +6,7 @@ public class SearchRecordDto
 {
     public const string TreatmentBMPScope = "bmp";
     public const string WaterQualityManagementPlanScope = "wqmp";
+    // ID is an OnlandVisualTrashAssessmentAreaID: the OVTA scope lists Assessment Areas
     public const string OnlandVisualTrashAssessmentScope = "ovta";
     public const string ProjectScope = "project";
 
@@ -13,8 +14,8 @@ public class SearchRecordDto
     public string Scope { get; set; } = string.Empty;
     public int ID { get; set; }
     public string Title { get; set; } = string.Empty;
-    // The one distinguishing attribute (type or status); matched by the search, so keep it short
+    // The one distinguishing attribute (type, status, or OVTA area scores); matched by the search, so keep it short
     public string? Subtitle { get; set; }
-    // Trailing datum that pins which record this is (jurisdiction, or date for OVTAs); not matched
+    // Trailing datum that pins which record this is (jurisdiction); not matched
     public string? Meta { get; set; }
 }

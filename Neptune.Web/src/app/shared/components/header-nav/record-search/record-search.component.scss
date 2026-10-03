@@ -5,6 +5,9 @@
     align-items: center;
     flex: 1 1 22rem;
     max-width: 28rem;
+    // without this the nowrap placeholder's full width becomes the flex minimum, so the search can't shrink
+    // and the header row overflows near 1280px (About/Help pushed off-screen)
+    min-width: 0;
     margin: 0 1.5rem;
 
     @include desktop-small-max {
@@ -18,6 +21,7 @@
     align-items: center;
     gap: 0.5rem;
     width: 100%;
+    min-width: 0;
     min-height: 2.5rem;
     padding: 0.375rem 0.5rem 0.375rem 0.75rem;
     border: 1px solid $gray-light;
@@ -63,7 +67,27 @@
     line-height: 1.2;
 }
 
-// Collapse to an icon button where the header stacks; the aria-label still names it
+// 992–1279px: the header is still one row but the logo and account links fill it, so the trigger goes compact
+// (magnifier + shortcut badge) instead of being squeezed to nothing; the aria-label still names it
+@include desktop-small {
+    @include desktop-medium-max {
+        :host {
+            flex: 0 0 auto;
+            margin: 0 0.75rem;
+        }
+
+        .record-search__trigger {
+            width: auto;
+            cursor: pointer;
+        }
+
+        .record-search__placeholder {
+            display: none;
+        }
+    }
+}
+
+// Collapse to an icon button on phones; the aria-label still names it
 @include tablet-max {
     :host {
         flex: 0 0 auto;
