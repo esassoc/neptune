@@ -13,6 +13,7 @@
         flex-direction: row;
         padding: 0.5rem;
         flex: 1;
+        min-width: 0;
         display: flex;
 
         @include desktop-small-max {
