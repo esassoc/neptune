@@ -13,7 +13,8 @@ export const PROJECT_SCOPE = "project";
 const DETAIL_ROUTES: Record<string, string> = {
     [BMP_SCOPE]: "/treatment-bmps",
     [WQMP_SCOPE]: "/water-quality-management-plans",
-    [OVTA_SCOPE]: "/trash/onland-visual-trash-assessments",
+    // OVTA rows are Assessment Areas (their page lists the area's assessments)
+    [OVTA_SCOPE]: "/trash/onland-visual-trash-assessment-areas",
     [PROJECT_SCOPE]: "/planning/projects",
 };
 

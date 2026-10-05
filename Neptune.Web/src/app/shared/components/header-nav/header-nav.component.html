@@ -30,7 +30,7 @@
                     data-toggle="dropdown"
                     aria-haspopup="true"
                     aria-expanded="false">
-                    <img src="assets/main/logos/hippocamp_logo.png" class="navbarLogo" alt="Orange County Stormwater Tools" style="height: 100px" />
+                    <img src="assets/main/logos/hippocamp_logo.png" class="navbarLogo" alt="Orange County Stormwater Tools" />
                     <div class="site-explorer-area-link">
                         {{ moduleTitle }}
                     </div>
@@ -81,11 +81,14 @@
                     aria-haspopup="true"
                     aria-expanded="false">
                     <span class="username nav-link__label">
-                        Welcome {{ currentUser.FirstName }} {{ currentUser.LastName }}
+                        <span class="username__text">Welcome {{ currentUser.FirstName }} {{ currentUser.LastName }}</span>
                         <icon icon="AngleDown"></icon>
                     </span>
                 </a>
                 <div #userToggle class="dropdown-menu dropdown-menu-right" aria-labelledby="navbarDropdown">
+                    <!-- the toggle's name truncates at tablet widths; opening the menu (tap, click or Enter) shows it in full -->
+                    <span class="dropdown-header username-full">Signed in as {{ currentUser.FirstName }} {{ currentUser.LastName }}</span>
+                    <div class="dropdown-divider"></div>
                     <a [routerLink]="['/users', currentUser.PersonID]" class="dropdown-item">Account</a>
                     <a href="javascript:void(0);" (click)="logout()" class="dropdown-item"> Sign Out </a>
                 </div>

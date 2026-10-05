@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
@@ -25,9 +26,11 @@ namespace Neptune.Tests
 
         private static NeptuneDbContext GetDbContext()
         {
+            // NEPTUNE_TEST_CONNECTION_STRING lets these run against a non-localhost DB (e.g. a devcontainer)
+            var connectionString = Environment.GetEnvironmentVariable("NEPTUNE_TEST_CONNECTION_STRING")
+                ?? "Data Source=localhost;Initial Catalog=NeptuneDB;Persist Security Info=True;Integrated Security=true;Encrypt=False;";
             var ob = new DbContextOptionsBuilder<NeptuneDbContext>();
-            ob.UseSqlServer("Data Source=localhost;Initial Catalog=NeptuneDB;Persist Security Info=True;Integrated Security=true;Encrypt=False;",
-                x => { x.CommandTimeout(180); x.UseNetTopologySuite(); });
+            ob.UseSqlServer(connectionString, x => { x.CommandTimeout(180); x.UseNetTopologySuite(); });
             return new NeptuneDbContext(ob.Options);
         }
 
@@ -84,6 +87,58 @@ namespace Neptune.Tests
             var outsideWqmps = await db.WaterQualityManagementPlans.AsNoTracking()
                 .CountAsync(x => wqmpIDs.Contains(x.WaterQualityManagementPlanID) && !assigned.Contains(x.StormwaterJurisdictionID));
             Assert.AreEqual(0, outsideWqmps, "A JurisdictionManager's index must not contain WQMPs from unassigned jurisdictions.");
+        }
+
+        [TestMethod]
+        public async Task OvtaRows_AreAreas_ScopedByAreaJurisdiction()
+        {
+            using var db = GetDbContext();
+            // a user whose jurisdictions hold at least one *named* area, so the row-shape checks below actually run
+            var jm = db.People.AsNoTracking().Include(p => p.StormwaterJurisdictionPeople)
+                .FirstOrDefault(p => (p.RoleID == (int)RoleEnum.JurisdictionManager || p.RoleID == (int)RoleEnum.JurisdictionEditor) && p.IsActive
+                    && p.StormwaterJurisdictionPeople.Any(sjp => sjp.StormwaterJurisdiction.OnlandVisualTrashAssessmentAreas
+                        .Any(a => a.OnlandVisualTrashAssessmentAreaName != null && a.OnlandVisualTrashAssessmentAreaName.Trim() != "")));
+            if (jm == null) Assert.Inconclusive("No active JM/JE whose jurisdictions hold a named OVTA area in the local DB.");
+
+            var assigned = jm.StormwaterJurisdictionPeople.Select(x => x.StormwaterJurisdictionID).ToHashSet();
+            var ovtaRows = (await ListForPersonAsync(db, jm)).Where(x => x.Scope == SearchRecordDto.OnlandVisualTrashAssessmentScope).ToList();
+
+            var expectedAreas = (await db.OnlandVisualTrashAssessmentAreas.AsNoTracking()
+                .Where(x => assigned.Contains(x.StormwaterJurisdictionID) && x.OnlandVisualTrashAssessmentAreaName != null && x.OnlandVisualTrashAssessmentAreaName.Trim() != "")
+                .Select(x => new
+                {
+                    x.OnlandVisualTrashAssessmentAreaID,
+                    x.OnlandVisualTrashAssessmentAreaName,
+                    x.OnlandVisualTrashAssessmentBaselineScoreID,
+                    x.OnlandVisualTrashAssessmentProgressScoreID,
+                    JurisdictionName = x.StormwaterJurisdiction.Organization.OrganizationShortName ?? x.StormwaterJurisdiction.Organization.OrganizationName
+                }).ToListAsync())
+                .ToDictionary(x => x.OnlandVisualTrashAssessmentAreaID);
+            Assert.IsTrue(expectedAreas.Count > 0, "Selected user must have at least one named OVTA area.");
+
+            var ovtaIDs = ovtaRows.Select(x => x.ID).ToList();
+            CollectionAssert.AllItemsAreUnique(ovtaIDs, "Each OVTA area must appear once, not once per assessment.");
+            CollectionAssert.AreEquivalent(expectedAreas.Keys.ToList(), ovtaIDs, "OVTA rows must be exactly the named areas in the user's jurisdictions (IDs are area IDs).");
+
+            foreach (var row in ovtaRows)
+            {
+                var area = expectedAreas[row.ID];
+                Assert.AreEqual(area.OnlandVisualTrashAssessmentAreaName, row.Title, $"Area {row.ID}: title must be the area name.");
+                Assert.AreEqual(ExpectedScoreSubtitle(area.OnlandVisualTrashAssessmentBaselineScoreID, area.OnlandVisualTrashAssessmentProgressScoreID), row.Subtitle,
+                    $"Area {row.ID}: subtitle must describe its baseline/progress scores.");
+                Assert.AreEqual(area.JurisdictionName, row.Meta, $"Area {row.ID}: meta must be its jurisdiction.");
+            }
+        }
+
+        private static string ExpectedScoreSubtitle(int? baselineScoreID, int? progressScoreID)
+        {
+            string ScoreName(int? id) => id.HasValue && OnlandVisualTrashAssessmentScore.AllLookupDictionary.TryGetValue(id.Value, out var score)
+                ? score.OnlandVisualTrashAssessmentScoreDisplayName
+                : null;
+            var baseline = ScoreName(baselineScoreID);
+            var progress = ScoreName(progressScoreID);
+            if (baseline == null && progress == null) return "Not assessed";
+            return string.Join(" · ", new[] { baseline == null ? null : $"Baseline {baseline}", progress == null ? null : $"Progress {progress}" }.Where(x => x != null));
         }
 
         [TestMethod]
