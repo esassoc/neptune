@@ -18,6 +18,7 @@ import { Alert } from "src/app/shared/models/alert";
 import { AlertContext } from "src/app/shared/models/enums/alert-context.enum";
 import { StormwaterJurisdictionDisplayDto } from "src/app/shared/generated/model/stormwater-jurisdiction-display-dto";
 import { HANDLES_ERRORS_INLINE } from "src/app/shared/interceptors/httpErrorInterceptor";
+import { escapeHtml } from "src/app/shared/helpers/html-escape";
 
 export interface InviteUserModalContext {
     // Set when opened from a jurisdiction detail page; that jurisdiction is preselected.
@@ -167,7 +168,9 @@ export class InviteUserModalComponent implements OnInit {
     // The alert a caller shows after the modal closes. The Person exists either way; if the email didn't go out,
     // say so instead of claiming it was sent, and point at the sign-up link the inviter can pass on themselves.
     public static resultAlert(result: PersonInviteResultDto): Alert {
-        const email = result.Person?.Email ?? "the new user";
+        // AlertDisplayComponent renders messages with [innerHTML], and a valid address can carry HTML characters
+        // in a quoted local part, so escape it like other interpolated values in HTML alerts.
+        const email = escapeHtml(result.Person?.Email ?? "the new user");
         return result.InvitationEmailSent
             ? new Alert(`Invitation sent to ${email}.`, AlertContext.Success)
             : new Alert(
