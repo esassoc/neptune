@@ -1097,6 +1097,8 @@ export const routes: Routes = [
     { path: "subscription-insufficient", loadComponent: () => import("./shared/pages/").then((m) => m.SubscriptionInsufficientComponent) },
     { path: "unauthenticated", loadComponent: () => import("./shared/pages").then((m) => m.UnauthenticatedComponent) },
     { path: "callback", component: AuthCallbackComponent },
+    // NPT-734: link target in the invite email; opens Auth0 on its sign-up screen.
+    { path: "sign-up", title: "Create Account", loadComponent: () => import("./pages/sign-up/sign-up.component").then((m) => m.SignUpComponent) },
     // NPT-1068: Neptune.WebMvc retired. Redirect the high-traffic legacy MVC URLs (bookmarks, external links
     // hitting the old ocstormwatertools.org host now pointed at this SPA) to their SPA equivalents. Paths match
     // the legacy PascalCase casing (Angular routing is case-sensitive). Unmatched legacy paths fall through to **.

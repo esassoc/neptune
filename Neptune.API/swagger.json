@@ -12186,6 +12186,55 @@
         }
       }
     },
+    "/users/invite": {
+      "post": {
+        "tags": [
+          "User"
+        ],
+        "operationId": "Invite_User",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PersonInviteDto"
+              }
+            },
+            "text/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PersonInviteDto"
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "$ref": "#/components/schemas/PersonInviteDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/PersonInviteResultDto"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PersonInviteResultDto"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PersonInviteResultDto"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/users/{personID}/jurisdictions": {
       "put": {
         "tags": [
@@ -19287,6 +19336,62 @@
             "type": "integer",
             "format": "int32",
             "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "PersonInviteDto": {
+        "required": [
+          "Email",
+          "FirstName",
+          "LastName",
+          "RoleID"
+        ],
+        "type": "object",
+        "properties": {
+          "FirstName": {
+            "maxLength": 100,
+            "minLength": 1,
+            "type": "string"
+          },
+          "LastName": {
+            "maxLength": 100,
+            "minLength": 1,
+            "type": "string"
+          },
+          "Email": {
+            "maxLength": 255,
+            "minLength": 1,
+            "type": "string"
+          },
+          "RoleID": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "OrganizationID": {
+            "type": "integer",
+            "format": "int32",
+            "nullable": true
+          },
+          "StormwaterJurisdictionIDs": {
+            "type": "array",
+            "items": {
+              "type": "integer",
+              "format": "int32"
+            },
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "PersonInviteResultDto": {
+        "type": "object",
+        "properties": {
+          "Person": {
+            "$ref": "#/components/schemas/PersonDto"
+          },
+          "InvitationEmailSent": {
+            "type": "boolean"
           }
         },
         "additionalProperties": false
