@@ -106,7 +106,13 @@ namespace Neptune.Common.Email
                 return true;
             }
 
+            // SendGrid error bodies are short JSON error lists, but cap what reaches the log in case that changes.
+            const int maxLoggedBodyLength = 500;
             var responseBody = response.Body == null ? "" : await response.Body.ReadAsStringAsync().ConfigureAwait(false);
+            if (responseBody.Length > maxLoggedBodyLength)
+            {
+                responseBody = responseBody[..maxLoggedBodyLength] + "...(truncated)";
+            }
             _logger.LogError("SendGrid rejected email \"{Subject}\" with {StatusCode}: {ResponseBody}", mailMessage.Subject, (int)response.StatusCode, responseBody);
             return false;
         }
