@@ -79,6 +79,9 @@
                             "namedChunks": false,
                             "extractLicenses": true,
                             "fileReplacements": [{ "replace": "src/environments/environment.ts", "with": "src/environments/environment.prod.ts" }]
+                        },
+                        "devcontainer": {
+                            "fileReplacements": [{ "replace": "src/environments/environment.ts", "with": "src/environments/environment.devcontainer.ts" }]
                         }
                     },
                     "defaultConfiguration": ""
@@ -93,6 +96,9 @@
                     "configurations": {
                         "production": {
                             "buildTarget": "Neptune.Web:build:production"
+                        },
+                        "devcontainer": {
+                            "buildTarget": "Neptune.Web:build:devcontainer"
                         }
                     }
                 },
