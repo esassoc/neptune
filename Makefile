@@ -3,7 +3,7 @@
 WORKSPACE := /workspace
 BUILD_DIR := $(WORKSPACE)/Build
 API_PORT ?= 8250
-WEB_PORT ?= 8213
+WEB_PORT ?= 8252
 
 help: ## Show available targets
 	@grep -E '^[a-zA-Z_-]+:.*?## ' $(MAKEFILE_LIST) | awk 'BEGIN {FS = ":.*?## "}; {printf "  \033[36m%-20s\033[0m %s\n", $$1, $$2}'
@@ -34,8 +34,9 @@ api-test: ## Run .NET tests
 # --- Web ---
 
 # HTTPS with the tracked *.localhost.sitkatech.com certificate (Neptune.Web/server.crt), the one
-# Windows `npm start` uses, on neptune.localhost.sitkatech.com:8213 — the only local origin Auth0 has
-# registered. The devcontainer configuration points the SPA at this container's API (API_PORT).
+# Windows `npm start` uses. Browse https://neptune.localhost.sitkatech.com:$(WEB_PORT) — Auth0 returns
+# to that origin, which must be registered in the Auth0 app (8252 is). The devcontainer configuration
+# points the SPA at this container's API (API_PORT).
 # --allowed-hosts because the browser sends the neptune.localhost.sitkatech.com Host header.
 web: ## Start Angular dev server on https://neptune.localhost.sitkatech.com:$(WEB_PORT)
 	cd $(WORKSPACE)/Neptune.Web && npx --yes ng serve --configuration devcontainer --host 0.0.0.0 --port $(WEB_PORT) \
