@@ -870,12 +870,25 @@ namespace Neptune.API.Controllers
                 // pre-checks) to 400; everything else (timeouts, upstream 5xx, network/SSL,
                 // JSON parse) is a server-side problem and returns 500 so monitoring/clients
                 // don't conflate transient infra issues with validation errors.
-                Logger.LogError(ex, "WQMP extraction failed for WQMP={WaterQualityManagementPlanID}", waterQualityManagementPlanID);
-
                 // Store the readable form of the error rather than the raw exception message
                 // (Anthropic SDK exceptions embed full JSON dumps in .Message). The toast and
                 // the persistent "Last extraction failed: ..." alert both render this directly.
                 var readableMessage = ExtractReadableErrorMessage(ex.Message);
+
+                // The readable message rides in the rendered log text so Datadog log monitors can
+                // match on it (the neptune.tf "credit balance" monitor does).
+                Logger.LogError(ex, "WQMP extraction failed for WQMP={WaterQualityManagementPlanID}: {ErrorMessage}",
+                    waterQualityManagementPlanID, readableMessage);
+
+                // Account-level failures (credits exhausted, key revoked) aren't the user's to
+                // fix: show a generic message instead of Anthropic's billing text. 500 so the
+                // wizard renders it as a server-side problem.
+                var isAccountIssue = AnthropicAccountIssue.IsAccountIssue(ex);
+                if (isAccountIssue)
+                {
+                    readableMessage = AnthropicAccountIssue.UserFacingMessage;
+                }
+
                 var failureRow = new WaterQualityManagementPlanExtractionResult
                 {
                     WaterQualityManagementPlanID = waterQualityManagementPlanID,
@@ -888,7 +901,7 @@ namespace Neptune.API.Controllers
                 DbContext.WaterQualityManagementPlanExtractionResults.Add(failureRow);
                 await DbContext.SaveChangesAsync();
 
-                var isUserActionable = ex is InvalidOperationException or Anthropic4xxException;
+                var isUserActionable = !isAccountIssue && (ex is InvalidOperationException or Anthropic4xxException);
                 return isUserActionable
                     ? BadRequest(new { message = readableMessage })
                     : StatusCode(StatusCodes.Status500InternalServerError, new { message = readableMessage });
