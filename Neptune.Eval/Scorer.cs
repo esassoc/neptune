@@ -58,7 +58,9 @@ public static class Scorer
     {
         var lookups = await Lookups.LoadAsync(db);
         var scores = new List<DocumentScore>();
-        foreach (var result in run.Documents)
+        // Account failures (credits, usage limit, key) say nothing about extraction; the report
+        // lists them separately instead of scoring them as misses.
+        foreach (var result in run.Documents.Where(r => !r.AccountIssue))
         {
             var truth = await GroundTruth.LoadAsync(db, result.Document.WaterQualityManagementPlanID);
             scores.Add(Score(result, truth, lookups, run.Model));

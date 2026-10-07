@@ -22,6 +22,14 @@ public class NeptuneConfiguration : NeptuneJobConfiguration
     public string AnthropicApiKey { get; set; }
     public string ClaudeModelId { get; set; } = "claude-sonnet-4-6";
 
+    /// <summary>
+    /// NPT-1132: optional effort level for WQMP extraction (low / medium / high / xhigh / max;
+    /// which levels a model accepts varies). Unset = the model's default (high on most models,
+    /// medium on Opus 5.5). Effort changes how much the model reasons and how many tokens it
+    /// spends; compare settings with Neptune.Eval before changing it in an environment.
+    /// </summary>
+    public string ClaudeEffort { get; set; }
+
     // NPT-998: Azure Blob paths for the bulk-upload .xlsx/.csv templates the user downloads
     // from the Data Hub upload pages. Same values as Neptune.WebMvc.Common.WebConfiguration so
     // both surfaces can serve the same template files during the MVC retirement transition.

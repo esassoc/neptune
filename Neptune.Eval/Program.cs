@@ -67,9 +67,13 @@ public static class Program
         }
 
         using var host = BuildHost(options, repoRoot);
-        var model = host.Services.GetRequiredService<Microsoft.Extensions.Options.IOptions<NeptuneConfiguration>>().Value.ClaudeModelId;
+        var neptuneConfiguration = host.Services.GetRequiredService<Microsoft.Extensions.Options.IOptions<NeptuneConfiguration>>().Value;
+        var model = neptuneConfiguration.ClaudeModelId;
+        var effort = string.IsNullOrWhiteSpace(neptuneConfiguration.ClaudeEffort) ? "default" : neptuneConfiguration.ClaudeEffort;
+        WqmpExtractionService.BuildOutputConfig(neptuneConfiguration.ClaudeEffort); // fail fast on a bad --effort
         Console.WriteLine($"Selected {documents.Count} document(s) ({string.Join(", ", documents.GroupBy(d => d.PdfType).Select(g => $"{g.Count()} {g.Key}"))}), " +
-                          $"{documents.Sum(d => d.Pages)} pages total, model {model}.");
+                          $"{documents.Sum(d => d.Pages)} pages total, model {model}, effort {effort}" +
+                          (options.MaxCost.HasValue ? $", spending cap ${options.MaxCost:0.00}." : ", no spending cap."));
         if (!options.Yes)
         {
             Console.WriteLine("This calls the Anthropic API and spends credits on the shared key. Re-run with --yes to proceed.");
@@ -77,7 +81,7 @@ public static class Program
         }
 
         var runDirectory = Path.Combine(evalDir, "runs", $"{DateTime.Now:yyyyMMdd-HHmm}-{options.Label}");
-        var runner = new EvalRunner(host.Services, runDirectory, model, options);
+        var runner = new EvalRunner(host.Services, runDirectory, model, effort, options);
         var result = await runner.RunAsync(documents);
 
         await using (var scope = host.Services.CreateAsyncScope())
@@ -113,6 +117,10 @@ public static class Program
                 if (!string.IsNullOrWhiteSpace(options.Model))
                 {
                     config.AddInMemoryCollection(new Dictionary<string, string?> { ["ClaudeModelId"] = options.Model });
+                }
+                if (!string.IsNullOrWhiteSpace(options.Effort))
+                {
+                    config.AddInMemoryCollection(new Dictionary<string, string?> { ["ClaudeEffort"] = options.Effort });
                 }
             })
             .ConfigureLogging(logging =>
@@ -172,13 +180,15 @@ public sealed class EvalOptions
     public const string Usage = """
         Usage:
           dotnet run --project Neptune.Eval -- run [--split dev|test|all] [--ids 123,456] [--limit N]
-                                                   [--label name] [--model claude-...] [--concurrency N]
-                                                   [--person-id N] [--verbose] --yes
+                                                   [--label name] [--model claude-...] [--effort low|medium|high|xhigh|max]
+                                                   [--max-cost 25] [--concurrency N] [--person-id N] [--verbose] --yes
           dotnet run --project Neptune.Eval -- score <run directory>
           dotnet run --project Neptune.Eval -- select [--seed N]
 
         run     Extract each selected document with the production WqmpExtractionService, save the
                 raw output under Neptune.Eval/runs/, then score it. Spends Anthropic credits: --yes required.
+                --max-cost stops starting documents once the run has spent that many dollars; an
+                Anthropic account problem (credits, usage limit, key) stops the run immediately.
         score   Re-score a saved run against the current ground truth (no API calls).
         select  Rebuild eval-set.json: classify candidate PDFs (downloads them from blob storage;
                 no API calls). Overwrites the checked-in set, so only run it to change the set.
@@ -190,6 +200,8 @@ public sealed class EvalOptions
     public int? Limit { get; private set; }
     public string Label { get; private set; } = "run";
     public string? Model { get; private set; }
+    public string? Effort { get; private set; }
+    public decimal? MaxCost { get; private set; }
     public int Concurrency { get; private set; } = 2;
     public int PersonID { get; private set; } = 1;
     public bool Yes { get; private set; }
@@ -225,6 +237,8 @@ public sealed class EvalOptions
                 case "--limit": o.Limit = int.Parse(Next()); break;
                 case "--label": o.Label = Next(); break;
                 case "--model": o.Model = Next(); break;
+                case "--effort": o.Effort = Next(); break;
+                case "--max-cost": o.MaxCost = decimal.Parse(Next(), System.Globalization.CultureInfo.InvariantCulture); break;
                 case "--concurrency": o.Concurrency = Math.Max(1, int.Parse(Next())); break;
                 case "--person-id": o.PersonID = int.Parse(Next()); break;
                 case "--yes": o.Yes = true; break;

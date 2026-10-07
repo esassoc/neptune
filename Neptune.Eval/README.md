@@ -28,11 +28,18 @@ dotnet run --project Neptune.Eval --artifacts-path /tmp/neptune-eval-artifacts -
 | `--split dev\|test\|all` | Which part of the eval set to run. Defaults to `dev`. |
 | `--ids` | Run specific WQMPs instead of a split. |
 | `--limit N` | Run only the first N documents. |
-| `--model claude-…` | Override `ClaudeModelId`. Sonnet 5.5 and Opus 5.5 reject the forced tool choice the service uses today, so they need the Phase 2 rework first. |
+| `--model claude-…` | Override `ClaudeModelId`. Works with Sonnet 5.5 / Opus 5.5: the service uses `tool_choice: auto`, which they require. |
+| `--effort low\|medium\|high\|xhigh\|max` | Override `ClaudeEffort` (unset = the model's default). Levels accepted vary by model. |
+| `--max-cost 25` | Stop starting new documents once the run has spent this many dollars (documents in flight finish). |
 | `--concurrency N` | Documents in flight at once. Defaults to 2. |
 | `--label name` | Name used in the run folder and scorecard title. |
 
-**Cost.** Every `run` spends credits on the Anthropic key that Dev, QA and Prod share. Agree a budget before running the full set. The scorecard reports cost per document.
+**Cost.** Every `run` spends credits on the Anthropic key that Dev, QA and Prod share, and counts against the organization's monthly spend limit. On 2026-10-07 eval runs exhausted that limit and took AI extraction down in **every environment**. Before a run:
+- Check the remaining headroom in the Anthropic Console.
+- Use the smallest document set that answers the question (`--ids`, `--limit`).
+- Always pass `--max-cost`.
+
+An Anthropic account failure (credits, usage limit, key) stops the run, and those documents are reported as not scored rather than as misses. Batch mode isn't offered: the four category calls share one cached copy of the PDF, and cache hits inside a batch are only best-effort, so batching can cost more, not less.
 
 ## Eval set (`eval-set.json`)
 
@@ -84,10 +91,10 @@ Revisit these once the convention is settled.
 | Source control BMPs | Attributes marked present (the wizard matches attribute names exactly, case-insensitive) |
 
 **Hiccups** come from the extraction service:
-- empty or invalid output
+- empty or invalid output, or the wrong tool called
 - `max_tokens` stops
-- malformed `items` fallbacks
-- retries
+- a list category without an `items` array
+- WQMP fields that fail the output check (missing, malformed, bad bounding box); the WQMP tool is the one non-strict tool, so `ValidateWqmpOutput` checks it in code
 - stale `file_id` re-uploads
 
 **Cost** uses `Pricing.cs` list prices, including cache writes.

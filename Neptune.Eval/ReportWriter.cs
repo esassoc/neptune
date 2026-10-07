@@ -13,7 +13,15 @@ public static class ReportWriter
         var md = new StringBuilder();
         md.AppendLine($"# Extraction eval: {run.Label}");
         md.AppendLine();
-        md.AppendLine($"Model `{run.Model}` · started {run.StartedAt:yyyy-MM-dd HH:mm} UTC · {scores.Count} documents · scored {DateTime.Now:yyyy-MM-dd HH:mm}");
+        md.AppendLine($"Model `{run.Model}` · effort `{run.Effort ?? "default"}` · started {run.StartedAt:yyyy-MM-dd HH:mm} UTC · {scores.Count} documents scored · scored {DateTime.Now:yyyy-MM-dd HH:mm}");
+        var accountFailures = run.Documents.Where(r => r.AccountIssue).Select(r => r.Document.WaterQualityManagementPlanID).ToList();
+        if (accountFailures.Count > 0 || run.Skipped.Count > 0)
+        {
+            md.AppendLine();
+            md.AppendLine($"> **Incomplete run.** Not scored: {accountFailures.Count} document(s) failed for an Anthropic account reason " +
+                          $"({string.Join(", ", accountFailures)}){(run.Skipped.Count > 0 ? $"; {run.Skipped.Count} not run ({string.Join(", ", run.Skipped)})" : "")}. " +
+                          $"{run.StopReason ?? ""} Compare only the documents that ran.");
+        }
         if (!Pricing.IsKnown(run.Model))
         {
             md.AppendLine();
