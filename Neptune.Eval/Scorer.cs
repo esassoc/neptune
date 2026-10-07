@@ -265,7 +265,7 @@ public static class EvalFields
         Date("DateOfConstruction", t => t.Wqmp.DateOfConstruction),
         Lookup("HydromodificationAppliesType", (t, _) => t.Wqmp.HydromodificationAppliesTypeID, l => l.HydromodificationIDByName),
         Text("RecordNumber", t => t.Wqmp.RecordNumber),
-        Lookup("TrashCaptureStatusType", (t, _) => t.Wqmp.TrashCaptureStatusTypeID, l => l.TrashCaptureStatusIDByName),
+        TrashCaptureStatus(),
         Text("MaintenanceContactName", t => t.Wqmp.MaintenanceContactName),
         Text("MaintenanceContactOrganization", t => t.Wqmp.MaintenanceContactOrganization),
         new FieldDefinition
@@ -297,6 +297,27 @@ public static class EvalFields
         Expected = (t, l) => truthID(t, l)?.ToString(),
         Map = (s, l) => options(l).TryGetValue(s.Trim(), out var id) ? (id.ToString(), false) : (null, true),
     };
+
+    /// <summary>
+    /// "No Trash Capture" and "Not Provided" score as the same answer (no trash capture device in
+    /// the plan): the records use them interchangeably. Plans with only LID/bioretention are
+    /// recorded either way (3132 vs 1752), so penalizing the model's choice would measure the
+    /// data entry, not the extraction. Decided 2026-10-07.
+    /// </summary>
+    private static FieldDefinition TrashCaptureStatus()
+    {
+        var noDevice = new HashSet<string> { ((int)TrashCaptureStatusTypeEnum.None).ToString(), ((int)TrashCaptureStatusTypeEnum.NotProvided).ToString() };
+        var field = Lookup("TrashCaptureStatusType", (t, _) => t.Wqmp.TrashCaptureStatusTypeID, l => l.TrashCaptureStatusIDByName);
+        return new FieldDefinition
+        {
+            Key = field.Key,
+            Expected = field.Expected,
+            Map = field.Map,
+            Compare = (expected, extracted) => expected == extracted || (noDevice.Contains(expected) && noDevice.Contains(extracted))
+                ? FieldOutcome.Correct
+                : FieldOutcome.Wrong,
+        };
+    }
 
     private static FieldDefinition Date(string key, Func<GroundTruth, DateTime?> truth) => new()
     {

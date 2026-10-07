@@ -757,7 +757,7 @@ public class WqmpExtractionService
             ["HydrologicSubarea"] = ExtractedValueProp("Hydrologic subarea."),
             ["RecordNumber"] = ExtractedValueProp("Agency record number."),
             ["RecordedWQMPAreaInAcres"] = ExtractedValueProp("Area in acres."),
-            ["TrashCaptureStatusType"] = ExtractedValueProp("Trash capture status under the State Trash Provisions, as one of the TrashCaptureStatusType names in DomainContext. Trash enclosures and media filters are not trash capture devices."),
+            ["TrashCaptureStatusType"] = ExtractedValueProp("Trash capture status under the State Trash Provisions, as one of the TrashCaptureStatusType names in DomainContext. Catch basin / curb inlet / trench drain inserts are Partial unless the plan describes them as full capture; trash enclosures and standalone treatment BMPs are not trash capture."),
             ["HydromodificationAppliesType"] = ExtractedValueProp("Whether hydromodification (hydrologic conditions of concern) controls apply, as one of the HydromodificationAppliesType names in DomainContext.")
         };
         var schema = new

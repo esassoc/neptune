@@ -55,6 +55,7 @@ The scorer applies extracted values the way the review wizard does (`wqmp-review
 
 - **Dropdowns:** count only when the extracted label matches an option label (case-insensitive). Otherwise the wizard leaves the field blank, so it's scored **Missed (unmapped)**.
 - **Dates:** parsed. **Acres:** rounded to 2 decimals (±0.01). **Phone:** last 10 digits. **ZIP:** first 5 digits. **State:** 2-letter code or full name.
+- **Trash capture status:** "No Trash Capture" and "Not Provided" count as the same answer (no trash capture device in the plan). The records use them interchangeably.
 - **Text** (contact, address, record number): compared ignoring case and punctuation. **Close** means one contains the other or they share most words; a reviewer would tweak it rather than retype it.
 
 **18 fields are scored:** the wizard's location and basics fields, minus Jurisdiction and WQMP Name (entered at upload), Modeling Approach and Trash Capture Effectiveness (not extracted).

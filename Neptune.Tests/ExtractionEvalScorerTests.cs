@@ -40,6 +40,23 @@ namespace Neptune.Tests
         }
 
         [TestMethod]
+        public void TrashCapture_NoTrashCaptureAndNotProvidedAreEquivalent()
+        {
+            var lookups = new Lookups
+            {
+                TrashCaptureStatusIDByName = new Dictionary<string, int>(System.StringComparer.OrdinalIgnoreCase)
+                    { ["Full"] = 1, ["Partial (>5mm but less than full sizing)"] = 2, ["No Trash Capture"] = 3, ["Not Provided"] = 4 },
+            };
+            FieldScore TrashScore(int recorded, string extracted) =>
+                EvalFields.All.Single(f => f.Key == "TrashCaptureStatusType")
+                    .Score(new GroundTruth { Wqmp = new WaterQualityManagementPlan { TrashCaptureStatusTypeID = recorded } }, extracted, lookups);
+
+            Assert.AreEqual(FieldOutcome.Correct, TrashScore(4, "No Trash Capture").Outcome);
+            Assert.AreEqual(FieldOutcome.Correct, TrashScore(3, "Not Provided").Outcome);
+            Assert.AreEqual(FieldOutcome.Wrong, TrashScore(2, "No Trash Capture").Outcome);
+        }
+
+        [TestMethod]
         public void Date_ParsesWrittenOutDates()
         {
             var score = Score("ApprovalDate", new WaterQualityManagementPlan { ApprovalDate = new System.DateTime(2019, 6, 5) }, "June 5, 2019");
