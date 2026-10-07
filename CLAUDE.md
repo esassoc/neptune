@@ -154,7 +154,7 @@ Secrets loaded from a JSON file path specified by `SECRET_PATH` environment vari
 
 #### Renewing the Anthropic API key
 
-The Anthropic API key **expires every 12 months** — current key expires **2027-03-01** (there's a team calendar reminder). An expired key fails every AI extraction with a 401; users see the generic "AI extraction is temporarily unavailable" message and the `Neptune Anthropic API account issue` Datadog monitor alerts (NPT-1131).
+Dev, QA and Prod share **one** Anthropic API key. It **expires every 12 months** — current key expires **2027-03-01** (there's a team calendar reminder) — and when it lapses, all three environments break at once. An expired key fails every AI extraction with a 401; users see the generic "AI extraction is temporarily unavailable" message and the `Neptune Anthropic API account issue` Datadog monitor alerts (NPT-1131).
 
 How the key reaches the app — it's a secret variable on three Azure DevOps pipelines (set on the pipeline, not in the YAML):
 
@@ -168,10 +168,10 @@ Neptune.API reads the secret at **startup** via the Key Vault configuration prov
 
 To renew (before expiry):
 1. Create a new key in the Anthropic Console (same organization/workspace as the current one — it must have credits and Files API access) and note its expiration date.
-2. Update the variable on all three pipelines (Dev TF, QA, Prod).
+2. Update the variable on all three pipelines (Dev TF, QA, Prod) — same new value in each.
 3. Run Dev TF, then QA, then Prod. Terraform writes the new value to each Key Vault secret. For QA/Prod the helm deploy rolls the API pods (image tag is `$(Build.BuildNumber)-$(environment)`), so they pick up the new key on startup; if you update a Key Vault secret any other way, restart the API pods yourself (`kubectl rollout restart`) — running pods keep the old key. Locally, restart `make api`.
 4. Verify: run an AI extraction on a WQMP with an uploaded PDF and confirm it completes.
-5. Revoke the old key in the Anthropic Console, and update the expiration date above and the calendar reminder.
+5. Only after all three environments are on the new key, revoke the old key in the Anthropic Console (revoking it earlier breaks whichever environment still uses it). Then update the expiration date above and the calendar reminder.
 
 ## Key Domain Entities
 
