@@ -952,17 +952,20 @@ resource "datadog_synthetics_test" "geoserver_test" {
   status = "live"
 }
 
-# Anthropic account out of credits / over its spend limit. The org-wide Error Tracking monitor
-# only fires on NEW or regressed issues, and every Anthropic 400 (bad PDF, billing, ...) groups
-# into one long-open AnthropicBadRequestException issue — so a drained account never alerts there.
-# Matches the Anthropic message text the WQMP extraction endpoint includes in its error log.
+# Anthropic account problems: out of credits / over the spend limit, or the API key rejected
+# (401/403, or 404 from the Files API upload). The org-wide Error Tracking monitor only fires on
+# NEW or regressed issues, and every Anthropic 400 (bad PDF, billing, ...) groups into one
+# long-open AnthropicBadRequestException issue — so a drained account never alerts there.
+# Matches the WQMP extraction endpoint's error log: AnthropicAccountIssue.LogMarker for every
+# classified account issue, plus Anthropic's billing text as a fallback.
+# (Resource name kept from the credit-balance-only version so apply updates it in place.)
 resource "datadog_monitor" "anthropic_credit_balance" {
-  name    = "${var.environment} - Neptune Anthropic API credit balance / usage limit"
+  name    = "Neptune Anthropic API account issue"
   type    = "log alert"
-  query   = "logs(\"service:neptune-api env:${var.environment} (\\\"credit balance\\\" OR \\\"usage limits\\\")\").index(\"*\").rollup(\"count\").last(\"5m\") > 0"
+  query   = "logs(\"service:neptune-api env:${var.environment} (\\\"Anthropic account issue\\\" OR \\\"credit balance\\\" OR \\\"usage limits\\\")\").index(\"*\").rollup(\"count\").last(\"5m\") > 0"
   message = <<-EOT
-    {{#is_alert}}Anthropic API calls from Neptune (${var.environment}) are failing for an account reason: credit balance too low or usage limit reached. AI extraction is down for every user until this is fixed. Add credits or raise the limit under Plans & Billing in the Anthropic Console.{{/is_alert}}
-    {{#is_recovery}}Anthropic billing errors from Neptune (${var.environment}) have stopped.{{/is_recovery}}
+    {{#is_alert}}Anthropic API calls from Neptune (${var.environment}) are failing for an account reason: credit balance too low, usage limit reached, or the API key rejected / lacking Files API access. AI extraction is down for every user until this is fixed. Check the key's organization, credits and limits in the Anthropic Console (Plans & Billing, API keys). The triggering log line has Anthropic's exact error.{{/is_alert}}
+    {{#is_recovery}}Anthropic account errors from Neptune (${var.environment}) have stopped.{{/is_recovery}}
     Notify @rlee@esassoc.com @sgordon@esassoc.com @team-${var.team}${var.environment == "qa" ? "-qa" : ""}
   EOT
 

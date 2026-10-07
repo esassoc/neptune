@@ -875,18 +875,23 @@ namespace Neptune.API.Controllers
                 // the persistent "Last extraction failed: ..." alert both render this directly.
                 var readableMessage = ExtractReadableErrorMessage(ex.Message);
 
-                // The readable message rides in the rendered log text so Datadog log monitors can
-                // match on it (the neptune.tf "credit balance" monitor does).
-                Logger.LogError(ex, "WQMP extraction failed for WQMP={WaterQualityManagementPlanID}: {ErrorMessage}",
-                    waterQualityManagementPlanID, readableMessage);
-
-                // Account-level failures (credits exhausted, key revoked) aren't the user's to
-                // fix: show a generic message instead of Anthropic's billing text. 500 so the
-                // wizard renders it as a server-side problem.
+                // Account-level failures (credits exhausted, key revoked, no Files API access)
+                // aren't the user's to fix: show a generic message instead of Anthropic's text.
+                // 500 so the wizard renders it as a server-side problem.
                 var isAccountIssue = AnthropicAccountIssue.IsAccountIssue(ex);
+
+                // The readable message (and, for account issues, the LogMarker) ride in the
+                // rendered log text so the neptune.tf Datadog log monitor can match on them.
                 if (isAccountIssue)
                 {
+                    Logger.LogError(ex, "WQMP extraction failed for WQMP={WaterQualityManagementPlanID} (" + AnthropicAccountIssue.LogMarker + "): {ErrorMessage}",
+                        waterQualityManagementPlanID, readableMessage);
                     readableMessage = AnthropicAccountIssue.UserFacingMessage;
+                }
+                else
+                {
+                    Logger.LogError(ex, "WQMP extraction failed for WQMP={WaterQualityManagementPlanID}: {ErrorMessage}",
+                        waterQualityManagementPlanID, readableMessage);
                 }
 
                 var failureRow = new WaterQualityManagementPlanExtractionResult
