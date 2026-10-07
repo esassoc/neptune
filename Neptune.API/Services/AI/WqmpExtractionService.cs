@@ -97,12 +97,19 @@ public class WqmpExtractionService
 
         var allTools = categoryConfigs.Select(kvp => BuildToolForCategory(kvp.Key, kvp.Value.schema)).ToList();
 
-        _logger.LogInformation("Domain context ready (elapsed {ElapsedMs}ms); invoking 4 parallel category extractions via Claude...",
+        _logger.LogInformation("Domain context ready (elapsed {ElapsedMs}ms); invoking 4 category extractions via Claude (first warms the cache)...",
             totalSw.ElapsedMilliseconds);
 
-        // Per-category extraction — forces the category-specific tool via ToolChoice.
-        // A 4-minute per-category timeout prevents a single stalled call from hanging the whole extraction.
-        async Task<(string output, long inputTokens, long outputTokens, long cachedTokens)> ExtractCategoryAsync(string key, PromptTemplate template, string schema, bool expectArray)
+        // NPT-1132: failures this method recovers from silently (empty fallbacks, retries),
+        // surfaced on the result so the extraction eval can count them.
+        var hiccups = new System.Collections.Concurrent.ConcurrentQueue<string>();
+
+        // Per-category extraction. The prompt names the category's tool; ToolChoice is the same
+        // `auto` on every call (see below). A 4-minute per-category timeout prevents a single
+        // stalled call from hanging the whole extraction. `streamStarted` is signalled when the
+        // response begins streaming, i.e. once this call's cache write is readable.
+        async Task<(string output, WqmpExtractionCallUsageDto usage)> ExtractCategoryAsync(string key, PromptTemplate template, string schema, bool expectArray,
+            TaskCompletionSource streamStarted = null)
         {
             var catSw = Stopwatch.StartNew();
             _logger.LogInformation("Starting extraction category: {Category}", key);
@@ -126,7 +133,7 @@ public class WqmpExtractionService
             // Single attempt: build params bound to a specific file_id and stream the response.
             // Factored out so the outer retry can rebuild the message with a refreshed id
             // when Anthropic 404s on a stale cached file_id.
-            async Task<(string output, long inputTokens, long outputTokens, long cachedTokens)> AttemptAsync(string attemptFileID)
+            async Task<(string output, WqmpExtractionCallUsageDto usage)> AttemptAsync(string attemptFileID)
             {
                 using var categoryCts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
                 categoryCts.CancelAfter(TimeSpan.FromMinutes(4));
@@ -136,7 +143,7 @@ public class WqmpExtractionService
                 {
                     new BetaRequestDocumentBlock { Source = new BetaFileDocumentSource { FileID = attemptFileID } },
                     new BetaTextBlockParam { Text = $"DomainContext:\n{domainContext}", CacheControl = new BetaCacheControlEphemeral() },
-                    new BetaTextBlockParam { Text = prompt },
+                    new BetaTextBlockParam { Text = $"{prompt}\n\nReturn your extraction by calling the `{toolName}` tool exactly once. Do not call any other tool and do not reply with text." },
                 };
 
                 var parameters = new MessageCreateParams
@@ -157,22 +164,43 @@ public class WqmpExtractionService
                     System = systemBlocks,
                     Messages = [new() { Role = BetaRole.User, Content = messageContent }],
                     Tools = allTools.Select(t => (BetaToolUnion)t).ToList(),
-                    ToolChoice = new BetaToolChoiceTool { Name = toolName },
+                    // NPT-1132: the same ToolChoice on every category call. A tool_choice change
+                    // between requests invalidates the messages cache, which is where the PDF
+                    // sits, so forcing a different tool per category (the previous design) made
+                    // all four calls re-cache the whole PDF at 1.25x. The prompt's last line names
+                    // the tool instead; the stream handler below checks which tool was called.
+                    // `auto` is also what Sonnet 5.5 / Opus 5.5 require (they reject forced tools).
+                    ToolChoice = new BetaToolChoiceAuto { DisableParallelToolUse = true },
                 };
 
                 // Stream the response — keeps the HTTP connection alive via SSE so there's no
                 // HttpClient.Timeout to worry about, even for large PDFs on a cold cache.
                 var toolInputJson = new System.Text.StringBuilder();
                 long cachedTokens = 0;
+                long cacheCreationTokens = 0;
                 long inputTokens = 0;
                 long outputTokens = 0;
+                string stopReason = null;
+                var inExpectedTool = false;
+                string otherToolCalled = null;
 
                 await foreach (var evt in _anthropic.Beta.Messages.CreateStreaming(parameters, categoryCts.Token))
                 {
-                    if (evt.TryPickContentBlockDelta(out var delta))
+                    if (evt.TryPickContentBlockStart(out var blockStart))
+                    {
+                        // With ToolChoice=auto the model picks the tool; only keep the input of
+                        // the one this category asked for.
+                        inExpectedTool = false;
+                        if (blockStart.ContentBlock.TryPickBetaToolUse(out var toolUse))
+                        {
+                            inExpectedTool = toolUse.Name == toolName;
+                            if (!inExpectedTool) otherToolCalled = toolUse.Name;
+                        }
+                    }
+                    else if (evt.TryPickContentBlockDelta(out var delta))
                     {
                         // Tool-use input arrives as input_json_delta chunks
-                        if (delta.Delta.TryPickInputJson(out var jsonDelta))
+                        if (inExpectedTool && delta.Delta.TryPickInputJson(out var jsonDelta))
                         {
                             toolInputJson.Append(jsonDelta.PartialJson);
                         }
@@ -184,6 +212,7 @@ public class WqmpExtractionService
                         {
                             outputTokens = msgDelta.Usage.OutputTokens;
                         }
+                        stopReason = msgDelta.Delta?.StopReason?.ToString() ?? stopReason;
                     }
                     else if (evt.TryPickStart(out var msgStart))
                     {
@@ -191,8 +220,21 @@ public class WqmpExtractionService
                         {
                             inputTokens = msgStart.Message.Usage.InputTokens;
                             cachedTokens = msgStart.Message.Usage.CacheReadInputTokens ?? 0;
+                            cacheCreationTokens = msgStart.Message.Usage.CacheCreationInputTokens ?? 0;
                         }
+                        streamStarted?.TrySetResult();
                     }
+                }
+
+                if (toolInputJson.Length == 0)
+                {
+                    hiccups.Enqueue(otherToolCalled != null
+                        ? $"{key}: called {otherToolCalled} instead of {toolName}"
+                        : $"{key}: no tool output (stop_reason={stopReason})");
+                }
+                else if (stopReason != null && stopReason.Contains("max_tokens", StringComparison.OrdinalIgnoreCase))
+                {
+                    hiccups.Enqueue($"{key}: hit max_tokens");
                 }
 
                 var output = toolInputJson.Length > 0 ? toolInputJson.ToString() : (expectArray ? "[]" : "{}");
@@ -201,6 +243,7 @@ public class WqmpExtractionService
                 {
                     _logger.LogError("Streamed tool output returned invalid JSON for {Category} after {ElapsedMs}ms. Using empty fallback.",
                         key, catSw.ElapsedMilliseconds);
+                    hiccups.Enqueue($"{key}: invalid JSON, empty fallback used");
                     output = expectArray ? "[]" : "{}";
                 }
                 else
@@ -215,7 +258,16 @@ public class WqmpExtractionService
                         key, catSw.ElapsedMilliseconds, output.Length, cachedTokens);
                 }
 
-                return (output, inputTokens, outputTokens, cachedTokens);
+                return (output, new WqmpExtractionCallUsageDto
+                {
+                    Category = key,
+                    InputTokens = inputTokens,
+                    CacheCreationInputTokens = cacheCreationTokens,
+                    CacheReadInputTokens = cachedTokens,
+                    OutputTokens = outputTokens,
+                    StopReason = stopReason,
+                    ElapsedMs = catSw.ElapsedMilliseconds,
+                });
             }
 
             // Retry once on a stale-file_id 404 — invalidate the cached id and re-upload
@@ -228,22 +280,35 @@ public class WqmpExtractionService
             {
                 _logger.LogWarning(ex, "Anthropic 404 on {Category} for documentID={DocumentID} (likely stale file_id); refreshing and retrying once.",
                     key, waterQualityManagementPlanDocumentID);
+                hiccups.Enqueue($"{key}: stale file_id 404, re-uploaded and retried");
                 var refreshedFileID = await _anthropicFileService.RefreshFileIDAsync(
                     waterQualityManagementPlanDocumentID, fileID, cancellationToken);
                 return await AttemptAsync(refreshedFileID);
             }
         }
 
-        var tasks = categoryConfigs.Select(kvp =>
-            ExtractCategoryAsync(kvp.Key, kvp.Value.template, kvp.Value.schema, kvp.Value.expectArray)).ToList();
+        // NPT-1132: a cache entry is readable only once the response that wrote it begins
+        // streaming, so four simultaneous calls each paid to cache the whole PDF. Start the first
+        // category, wait until its stream begins (or it fails), then start the rest so they read
+        // the PDF from the cache (0.1x) instead of writing it again (1.25x).
+        var firstKey = categoryConfigs.Keys.First();
+        var firstStreamStarted = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        var firstConfig = categoryConfigs[firstKey];
+        var firstTask = ExtractCategoryAsync(firstKey, firstConfig.template, firstConfig.schema, firstConfig.expectArray, firstStreamStarted);
+        await Task.WhenAny(firstStreamStarted.Task, firstTask);
+        var tasks = new List<Task<(string output, WqmpExtractionCallUsageDto usage)>> { firstTask };
+        tasks.AddRange(categoryConfigs.Where(kvp => kvp.Key != firstKey).Select(kvp =>
+            ExtractCategoryAsync(kvp.Key, kvp.Value.template, kvp.Value.schema, kvp.Value.expectArray)));
         var results = await Task.WhenAll(tasks);
         var keys = categoryConfigs.Keys.ToList();
         var map = new Dictionary<string, string>();
+        var callUsage = new List<WqmpExtractionCallUsageDto>();
         for (var i = 0; i < keys.Count; i++)
         {
             map[keys[i]] = results[i].output;
-            await LogTokenUsage(personID, results[i].inputTokens, results[i].outputTokens,
-                results[i].cachedTokens, $"WQMP Extraction - {keys[i]}");
+            callUsage.Add(results[i].usage);
+            await LogTokenUsage(personID, results[i].usage.InputTokens, results[i].usage.OutputTokens,
+                results[i].usage.CacheReadInputTokens, $"WQMP Extraction - {keys[i]}");
         }
 
         // Array categories return { "items": [...] } — unwrap to just the array.
@@ -364,14 +429,19 @@ public class WqmpExtractionService
         var parcelsUnwrap = UnwrapItems(map["Parcels"]);
         var quickBmpsUnwrap = UnwrapItems(map["QuickBMPs"]);
         var scUnwrap = UnwrapItems(map["SourceControlBMPs"]);
+        if (parcelsUnwrap.FailedFallback) hiccups.Enqueue("Parcels: malformed items, empty fallback used");
+        if (quickBmpsUnwrap.FailedFallback) hiccups.Enqueue("QuickBMPs: malformed items, empty fallback used");
         if (scUnwrap.FailedFallback)
         {
             _logger.LogWarning("SourceControlBMPs unwrap failed — retrying extraction once before giving up.");
+            hiccups.Enqueue("SourceControlBMPs: malformed items, retried");
             try
             {
                 var scConfig = categoryConfigs["SourceControlBMPs"];
                 var scRetry = await ExtractCategoryAsync("SourceControlBMPs", scConfig.template, scConfig.schema, scConfig.expectArray);
-                await LogTokenUsage(personID, scRetry.inputTokens, scRetry.outputTokens, scRetry.cachedTokens,
+                scRetry.usage.Category = "SourceControlBMPs (retry)";
+                callUsage.Add(scRetry.usage);
+                await LogTokenUsage(personID, scRetry.usage.InputTokens, scRetry.usage.OutputTokens, scRetry.usage.CacheReadInputTokens,
                     "WQMP Extraction - SourceControlBMPs (retry)");
                 map["SourceControlBMPs"] = scRetry.output;
                 var scRetryUnwrap = UnwrapItems(scRetry.output);
@@ -383,11 +453,13 @@ public class WqmpExtractionService
                 else
                 {
                     _logger.LogWarning("SourceControlBMPs retry also produced a malformed payload; staying with empty fallback.");
+                    hiccups.Enqueue("SourceControlBMPs: retry also malformed, empty fallback used");
                 }
             }
             catch (Exception retryEx)
             {
                 _logger.LogError(retryEx, "SourceControlBMPs retry threw before completing; staying with empty fallback.");
+                hiccups.Enqueue($"SourceControlBMPs: retry threw {retryEx.GetType().Name}, empty fallback used");
             }
         }
 
@@ -405,7 +477,9 @@ public class WqmpExtractionService
         {
             FinalOutput = finalOutput,
             RawResults = string.Join("\n", map.Select(kvp => $"{kvp.Key}: {kvp.Value}")),
-            ExtractedAt = DateTime.UtcNow
+            ExtractedAt = DateTime.UtcNow,
+            CallUsage = callUsage,
+            Hiccups = hiccups.ToList(),
         };
     }
 

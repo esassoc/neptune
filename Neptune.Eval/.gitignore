@@ -1,0 +1,2 @@
+# Run outputs hold extracted WQMP contents (names, addresses, phone numbers). Never commit them.
+runs/

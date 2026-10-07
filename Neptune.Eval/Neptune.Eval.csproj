@@ -1,0 +1,18 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net10.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <IsPackable>false</IsPackable>
+  </PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\Neptune.API\Neptune.API.csproj" />
+    <ProjectReference Include="..\Neptune.Common\Neptune.Common.csproj" />
+    <ProjectReference Include="..\Neptune.EFModels\Neptune.EFModels.csproj" />
+    <ProjectReference Include="..\Neptune.Models\Neptune.Models.csproj" />
+  </ItemGroup>
+  <ItemGroup>
+    <PackageReference Include="PdfPig" Version="0.1.16" />
+  </ItemGroup>
+</Project>
