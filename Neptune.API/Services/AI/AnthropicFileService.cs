@@ -93,6 +93,23 @@ public class AnthropicFileService
     }
 
     /// <summary>
+    /// Thrown when the Files API rejects an upload. The upload goes through a raw HttpClient
+    /// (not the SDK), so this carries the HTTP status that the SDK's typed exceptions would —
+    /// <see cref="AnthropicAccountIssue"/> uses it to tell account-level failures (bad key,
+    /// no access, billing) from per-document ones. The message keeps the response body so
+    /// the controller can pull out Anthropic's readable <c>error.message</c>.
+    /// </summary>
+    public sealed class AnthropicFileUploadException : InvalidOperationException
+    {
+        public int StatusCode { get; }
+        public AnthropicFileUploadException(int statusCode, string body)
+            : base($"Anthropic Files API upload returned {statusCode}: {body}")
+        {
+            StatusCode = statusCode;
+        }
+    }
+
+    /// <summary>
     /// Returns the cached Anthropic <c>file_id</c> for a document, uploading the PDF
     /// once if not already cached. Idempotent — repeated calls for the same document
     /// return the same id without re-uploading. Concurrent callers for the same doc
@@ -299,8 +316,7 @@ public class AnthropicFileService
         if (!response.IsSuccessStatusCode)
         {
             _logger.LogError("Anthropic Files API upload failed (status={Status}): {Body}", (int)response.StatusCode, body);
-            throw new InvalidOperationException(
-                $"Anthropic Files API upload returned {(int)response.StatusCode}: {body}");
+            throw new AnthropicFileUploadException((int)response.StatusCode, body);
         }
 
         var parsed = JsonSerializer.Deserialize<FileUploadResponse>(body)
