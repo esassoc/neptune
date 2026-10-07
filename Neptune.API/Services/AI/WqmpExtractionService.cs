@@ -547,6 +547,9 @@ public class WqmpExtractionService
             WaterQualityManagementPlanDevelopmentType = WaterQualityManagementPlanDevelopmentType.All.Select(x => x.WaterQualityManagementPlanDevelopmentTypeDisplayName),
             WaterQualityManagementPlanPermitTerm = WaterQualityManagementPlanPermitTerm.All.Select(x => x.WaterQualityManagementPlanPermitTermDisplayName),
             TrashCaptureStatusType = TrashCaptureStatusType.All.Select(x => x.TrashCaptureStatusTypeDisplayName),
+            // NPT-1132: was missing, so the model answered "Yes"/"No", which the review wizard
+            // can't map to Applicable/Exempt; the field was always left blank (0% in the eval).
+            HydromodificationAppliesType = HydromodificationAppliesType.All.Select(x => x.HydromodificationAppliesTypeDisplayName),
             // NPT-1054: send SC attribute names grouped by their category so Claude has the
             // three-bucket taxonomy when matching extracted attribute wording. The v3 prompt
             // explicitly enumerates the three categories with examples — the categorized
@@ -702,7 +705,7 @@ public class WqmpExtractionService
             ["WaterQualityManagementPlanPriority"] = ExtractedValueProp("Priority category."),
             ["WaterQualityManagementPlanStatus"] = ExtractedValueProp("Current status."),
             ["WaterQualityManagementPlanDevelopmentType"] = ExtractedValueProp("Development type."),
-            ["ApprovalDate"] = ExtractedValueProp("Approval date."),
+            ["ApprovalDate"] = ExtractedValueProp("Date the reviewing agency approved the WQMP (approval stamp, signature block or an 'Approval Date' field). Not a prepared, revised, updated, submitted, received or review-completed date."),
             ["MaintenanceContactName"] = ExtractedValueProp("Maintenance contact or owner name."),
             ["MaintenanceContactOrganization"] = ExtractedValueProp("Maintenance contact or owner organization."),
             ["MaintenanceContactPhone"] = ExtractedValueProp("Maintenance contact phone."),
@@ -716,8 +719,8 @@ public class WqmpExtractionService
             ["HydrologicSubarea"] = ExtractedValueProp("Hydrologic subarea."),
             ["RecordNumber"] = ExtractedValueProp("Agency record number."),
             ["RecordedWQMPAreaInAcres"] = ExtractedValueProp("Area in acres."),
-            ["TrashCaptureStatusType"] = ExtractedValueProp("Trash capture status."),
-            ["HydromodificationAppliesType"] = ExtractedValueProp("Hydromodification applies status.")
+            ["TrashCaptureStatusType"] = ExtractedValueProp("Trash capture status under the State Trash Provisions, as one of the TrashCaptureStatusType names in DomainContext. Trash enclosures and media filters are not trash capture devices."),
+            ["HydromodificationAppliesType"] = ExtractedValueProp("Whether hydromodification (hydrologic conditions of concern) controls apply, as one of the HydromodificationAppliesType names in DomainContext.")
         };
         var schema = new
         {

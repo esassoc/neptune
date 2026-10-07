@@ -233,11 +233,13 @@ public static class EvalFields
     /// Reported but excluded from accuracy: the hand-entered data doesn't follow one convention
     /// (Record Number holds the WQMP number, a grading permit number or a project name; the
     /// maintenance address is sometimes the site, sometimes the contact's mailing address), so a
-    /// disagreement often isn't an extraction error. Revisit once the conventions are settled.
+    /// disagreement often isn't an extraction error. Priority: Neptune's High / Low may not be the
+    /// document's "Priority / Non-Priority Project" designation (WQMP 3239's cover says
+    /// Non-Priority, its record says High). Revisit once the conventions are settled.
     /// </summary>
     public static readonly HashSet<string> InfoOnly =
     [
-        "RecordNumber", "MaintenanceContactAddress1", "MaintenanceContactAddress2", "MaintenanceContactCity",
+        "RecordNumber", "WaterQualityManagementPlanPriority", "MaintenanceContactAddress1", "MaintenanceContactAddress2", "MaintenanceContactCity",
         "MaintenanceContactState", "MaintenanceContactZip",
     ];
 

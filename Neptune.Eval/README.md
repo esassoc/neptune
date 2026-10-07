@@ -70,6 +70,7 @@ The scorer applies extracted values the way the review wizard does (`wqmp-review
 **Info-only fields** (`EvalFields.InfoOnly`) are reported in the per-field table but excluded from accuracy. The hand-entered data doesn't follow one convention for them, so a disagreement often isn't an extraction error:
 - **Record Number** holds the WQMP number, a grading permit number, or a project name.
 - **The maintenance contact address** (Address 1/2, City, State, ZIP) is sometimes the site and sometimes the contact's mailing address.
+- **Priority:** Neptune's High / Low may not be the document's "Priority / Non-Priority Project" designation. WQMP 3239's cover says Non-Priority, but its record says High.
 
 Revisit these once the convention is settled.
 

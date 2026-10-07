@@ -32,7 +32,9 @@ public sealed class PromptTemplateService : IPromptTemplateService
         // request, and the nullable-everywhere schemas carried 132. WqmpExtractionService
         // normalizes the sentinels back to nulls before storage, so the persisted
         // ExtractionResultJson contract is unchanged.
-        [PromptTemplate.ExtractWqmpFields] = "v3",
+        // NPT-1132: v4 adds field guidance for ApprovalDate, TrashCaptureStatusType and
+        // HydromodificationAppliesType (the three weakest fields in the extraction eval baseline).
+        [PromptTemplate.ExtractWqmpFields] = "v4",
         [PromptTemplate.ExtractParcels] = "v3",
         [PromptTemplate.ExtractQuickBMPs] = "v4",
         [PromptTemplate.ExtractSourceControlBMPs] = "v4",
