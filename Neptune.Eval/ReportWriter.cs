@@ -27,7 +27,7 @@ public static class ReportWriter
                       "Lenient also counts near-miss text (Close). Parcels, BMP types and source control BMPs are precision / recall against the hand-entered records, " +
                       $"scored only where the WQMP has records (parcels: 1-{Scorer.MaxScorableParcels}).");
         md.AppendLine();
-        md.AppendLine("| Slice | Docs | Failed | Field accuracy | Lenient | Missed | Parcels P / R | QuickBMP types P / R | SC present P / R | Hiccups | Avg cost | Avg time |");
+        md.AppendLine("| Slice | Docs | Failed | Field accuracy | Lenient | Missed | Parcels P (R, info) | QuickBMP types P / R | SC present P / R | Hiccups | Avg cost | Avg time |");
         md.AppendLine("|---|---|---|---|---|---|---|---|---|---|---|---|");
         md.AppendLine(Headline("All", scores));
         foreach (var type in PdfTypes)
@@ -72,12 +72,12 @@ public static class ReportWriter
 
         md.AppendLine("## Per document");
         md.AppendLine();
-        md.AppendLine("| WQMP | Type | Pages | Field accuracy | Parcels P / R | BMP types P / R | BMPs (exp/got) | SC P / R | Hiccups | Cost | Time | Stop reasons |");
+        md.AppendLine("| WQMP | Type | Pages | Field accuracy | Parcels P (R, info) | BMP types P / R | BMPs (exp/got) | SC P / R | Hiccups | Cost | Time | Stop reasons |");
         md.AppendLine("|---|---|---|---|---|---|---|---|---|---|---|---|");
         foreach (var s in scores)
         {
             var d = s.Result.Document;
-            md.AppendLine($"| {d.WaterQualityManagementPlanID} | {d.PdfType} | {d.Pages} | {Pct(FieldAccuracy(s.Fields.Where(EvalFields.IsScored).ToList(), false))} | {Pr(s.Parcels)} | {Pr(s.QuickBmpTypes)} | " +
+            md.AppendLine($"| {d.WaterQualityManagementPlanID} | {d.PdfType} | {d.Pages} | {Pct(FieldAccuracy(s.Fields.Where(EvalFields.IsScored).ToList(), false))} | {PrInfoRecall(s.Parcels)} | {Pr(s.QuickBmpTypes)} | " +
                           $"{s.QuickBmpCountExpected}/{s.QuickBmpCountExtracted} | {Pr(s.SourceControlPresent)} | {s.Result.Hiccups.Count + (s.Result.Succeeded ? 0 : 1)} | " +
                           $"{Usd(s.CostUsd)} | {s.Result.ElapsedMs / 1000}s | {string.Join(", ", s.Result.CallUsage.Select(c => $"{c.Category}:{c.StopReason?.Trim('"')}"))} |");
         }
@@ -94,7 +94,7 @@ public static class ReportWriter
         var scorable = fields.Count(f => f.Outcome is FieldOutcome.Correct or FieldOutcome.Close or FieldOutcome.Wrong or FieldOutcome.Missed);
         var missed = scorable == 0 ? (double?)null : (double)Count(fields, FieldOutcome.Missed) / scorable;
         return $"| {label} | {slice.Count} | {slice.Count(s => !s.Result.Succeeded)} | {Pct(FieldAccuracy(fields, false))} | {Pct(FieldAccuracy(fields, true))} | {Pct(missed)} | " +
-               $"{Pr(Sum(slice.Select(s => s.Parcels)))} | {Pr(Sum(slice.Select(s => s.QuickBmpTypes)))} | {Pr(Sum(slice.Select(s => s.SourceControlPresent)))} | " +
+               $"{PrInfoRecall(Sum(slice.Select(s => s.Parcels)))} | {Pr(Sum(slice.Select(s => s.QuickBmpTypes)))} | {Pr(Sum(slice.Select(s => s.SourceControlPresent)))} | " +
                $"{slice.Sum(s => s.Result.Hiccups.Count)} | {Usd(slice.Count == 0 ? 0 : slice.Average(s => s.CostUsd))} | {Avg(slice.Select(s => s.Result.ElapsedMs / 1000.0)):0}s |";
     }
 
@@ -119,6 +119,8 @@ public static class ReportWriter
     private static string Pct(double? v) => v.HasValue ? v.Value.ToString("P0", CultureInfo.InvariantCulture) : "–";
     // Explicit "$": the :C format renders "¤" under the invariant culture Linux containers default to.
     private static string Usd(decimal v) => "$" + v.ToString("0.00", CultureInfo.InvariantCulture);
+    // Parcels: recall is info-only, since records often list APNs the plan never mentions.
+    private static string PrInfoRecall(SetScore s) => $"{Pct(s.Precision)} ({Pct(s.Recall)})";
     private static string Pr(SetScore s) => $"{Pct(s.Precision)} / {Pct(s.Recall)}";
     private static double Avg(IEnumerable<double> values) { var l = values.ToList(); return l.Count == 0 ? 0 : l.Average(); }
 

@@ -90,14 +90,19 @@ public static class Scorer
 
         var fields = EvalFields.All.Select(f => f.Score(truth, ExtractedValue(wqmp, f.Key), lookups)).ToList();
 
+        // Exact (trimmed) string match, like the wizard's Parcels.LookupByParcelNumbers: an APN
+        // in a format the lookup can't resolve is a miss for the reviewer too.
         var extractedApns = Items(root, "Parcels")
-            .Select(p => Digits(ExtractedValue(p, "ParcelNumber")))
+            .Select(p => ExtractedValue(p, "ParcelNumber")?.Trim())
             .Where(a => !string.IsNullOrEmpty(a))
+            .Select(a => a!)
             .Distinct()
             .ToList();
         // WQMPs with many parcels usually got them from post-construction parcel splits the plan
         // predates (1830: 55 APNs on the record, none in its 12-page PDF), so only score parcels
-        // where the record has a list a plan could plausibly contain.
+        // where the record has a list a plan could plausibly contain. Even then, recall is
+        // info-only (see ReportWriter): records often list APNs the plan never mentions (WQMP
+        // 2760's three APNs appear nowhere in its text), so only precision drives decisions.
         var parcels = truth.Apns.Count is > 0 and <= MaxScorableParcels ? SetMatch(truth.Apns, extractedApns) : SetScore.NotScored;
 
         var extractedBmpTypeIDs = new List<int>();
@@ -363,7 +368,7 @@ public sealed class GroundTruth
         return new GroundTruth
         {
             Wqmp = wqmp,
-            Apns = apns.Select(Scorer.Digits).Where(a => a.Length > 0).Distinct().ToList(),
+            Apns = apns.Where(a => !string.IsNullOrWhiteSpace(a)).Select(a => a!.Trim()).Distinct().ToList(),
             QuickBmpTypeIDs = await db.QuickBMPs.AsNoTracking().Where(x => x.WaterQualityManagementPlanID == wqmpID).Select(x => x.TreatmentBMPTypeID).ToListAsync(),
             SourceControlPresentIDs = await db.SourceControlBMPs.AsNoTracking()
                 .Where(x => x.WaterQualityManagementPlanID == wqmpID && x.IsPresent == true)

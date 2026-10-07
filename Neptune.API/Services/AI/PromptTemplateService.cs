@@ -35,7 +35,8 @@ public sealed class PromptTemplateService : IPromptTemplateService
         // NPT-1132: v4 adds field guidance for ApprovalDate, TrashCaptureStatusType and
         // HydromodificationAppliesType (the three weakest fields in the extraction eval baseline).
         [PromptTemplate.ExtractWqmpFields] = "v4",
-        [PromptTemplate.ExtractParcels] = "v3",
+        // NPT-1132: v4 states the 8-digit APN formats and rules out tract/lot/permit numbers.
+        [PromptTemplate.ExtractParcels] = "v4",
         [PromptTemplate.ExtractQuickBMPs] = "v4",
         [PromptTemplate.ExtractSourceControlBMPs] = "v4",
     };

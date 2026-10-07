@@ -463,7 +463,9 @@ public class WqmpExtractionService
             }
         }
 
-        var finalOutput = $"{{ \"SchemaVersion\": \"{SchemaVersion}\", \"WQMP\": {map["WQMP"]}, \"Parcels\": {parcelsUnwrap.Output}, \"QuickBMPs\": {quickBmpsUnwrap.Output}, \"SourceControlBMPs\": {scUnwrap.Output} }}";
+        var parcelsOutput = await NormalizeParcelNumbersAsync(parcelsUnwrap.Output);
+
+        var finalOutput = $"{{ \"SchemaVersion\": \"{SchemaVersion}\", \"WQMP\": {map["WQMP"]}, \"Parcels\": {parcelsOutput}, \"QuickBMPs\": {quickBmpsUnwrap.Output}, \"SourceControlBMPs\": {scUnwrap.Output} }}";
 
         if (!IsValidJson(finalOutput))
         {
@@ -481,6 +483,42 @@ public class WqmpExtractionService
             CallUsage = callUsage,
             Hiccups = hiccups.ToList(),
         };
+    }
+
+    /// <summary>
+    /// NPT-1132: rewrites each extracted APN to the Parcel table's stored form. The review wizard
+    /// saves parcels through an exact-string lookup, so an APN copied as "691-101-001" or
+    /// "69110101" never matched "691-101-01" (WQMP 1419 lost all 7 parcels that way). Values with
+    /// no match are left as extracted. Any parse problem returns the input unchanged.
+    /// </summary>
+    private async Task<string> NormalizeParcelNumbersAsync(string parcelsJson)
+    {
+        try
+        {
+            if (JsonNode.Parse(parcelsJson) is not JsonArray items) return parcelsJson;
+            var valueNodes = items
+                .Select(item => item?["ParcelNumber"] as JsonObject)
+                .Where(x => x?["Value"] is JsonValue)
+                .ToList();
+            var raw = valueNodes.Select(x => x!["Value"]!.GetValue<string>()).ToList();
+            if (raw.Count == 0) return parcelsJson;
+
+            var canonical = await Parcels.CanonicalizeParcelNumbersAsync(_dbContext, raw);
+            foreach (var node in valueNodes)
+            {
+                var value = node!["Value"]!.GetValue<string>();
+                if (canonical.TryGetValue(value, out var stored) && stored != value)
+                {
+                    node["Value"] = stored;
+                }
+            }
+            return items.ToJsonString();
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex, "Parcel number normalization failed; keeping APNs as extracted.");
+            return parcelsJson;
+        }
     }
 
     private async Task LogTokenUsage(int personID, long inputTokens, long outputTokens, long cachedTokens, string context)

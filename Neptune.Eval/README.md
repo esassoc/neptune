@@ -74,11 +74,11 @@ The scorer applies extracted values the way the review wizard does (`wqmp-review
 
 Revisit these once the convention is settled.
 
-**List categories** are scored as precision / recall against the WQMP's records. A category is **not scored** (shown as `–`) when the WQMP has no records for it, since data entry may just never have covered it. Parcels are only scored when the WQMP has 1–10: larger lists usually come from parcel splits after the plan was written.
+**List categories** are scored as precision / recall against the WQMP's records. A category is **not scored** (shown as `–`) when the WQMP has no records for it, since data entry may just never have covered it. Parcels are only scored when the WQMP has 1–10: larger lists usually come from parcel splits after the plan was written. For parcels, only **precision** counts. Recall is shown in parentheses for information: records often list APNs the plan never mentions (WQMP 2760's three APNs appear nowhere in its text), so a "missed" parcel usually isn't an extraction error.
 
 | Category | Matched on |
 |---|---|
-| Parcels | APN digits |
+| Parcels | APN, exact string after trimming (the wizard's lookup is an exact match) |
 | QuickBMPs | Treatment BMP type, as a multiset (names are too inconsistent between PDF and data entry to match on) |
 | Source control BMPs | Attributes marked present (the wizard matches attribute names exactly, case-insensitive) |
 
