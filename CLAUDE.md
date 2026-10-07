@@ -152,6 +152,27 @@ Configured with SQL Server storage, 1 worker, 0 auto-retries. Dashboard at `/han
 
 Secrets loaded from a JSON file path specified by `SECRET_PATH` environment variable, overriding `appsettings.json`. For test config, see `Neptune.Tests/environment.json`.
 
+#### Renewing the Anthropic API key
+
+The Anthropic API key **expires every 12 months** — current key expires **2027-03-01** (there's a team calendar reminder). An expired key fails every AI extraction with a 401; users see the generic "AI extraction is temporarily unavailable" message and the `Neptune Anthropic API account issue` Datadog monitor alerts (NPT-1131).
+
+How the key reaches the app — it's a secret variable on three Azure DevOps pipelines (set on the pipeline, not in the YAML):
+
+| Pipeline | Variable | Terraform | Key Vault secret |
+|---|---|---|---|
+| QA | `anthropicApiKey` | `Build/azure-pipelines.yml` → `neptune.tf` (`azurerm_key_vault_secret.appAnthropicApiKey`) | `AnthropicApiKey` in the QA app vault |
+| Prod | `anthropicApiKey` | same | `AnthropicApiKey` in the prod app vault |
+| Dev TF | `secretAnthropicApiKey` | `Build/dev-tf/dev-terraform.yml` → `Build/dev-tf/Main.tf` | `AnthropicApiKey` in `neptune-keyvault-dev` (local dev / devcontainer) |
+
+Neptune.API reads the secret at **startup** via the Key Vault configuration provider (no reload interval).
+
+To renew (before expiry):
+1. Create a new key in the Anthropic Console (same organization/workspace as the current one — it must have credits and Files API access) and note its expiration date.
+2. Update the variable on all three pipelines (Dev TF, QA, Prod).
+3. Run Dev TF, then QA, then Prod. Terraform writes the new value to each Key Vault secret. For QA/Prod the helm deploy rolls the API pods (image tag is `$(Build.BuildNumber)-$(environment)`), so they pick up the new key on startup; if you update a Key Vault secret any other way, restart the API pods yourself (`kubectl rollout restart`) — running pods keep the old key. Locally, restart `make api`.
+4. Verify: run an AI extraction on a WQMP with an uploaded PDF and confirm it completes.
+5. Revoke the old key in the Anthropic Console, and update the expiration date above and the calendar reminder.
+
 ## Key Domain Entities
 
 - **Project** — stormwater improvement initiative containing TreatmentBMPs; has a multi-step submission workflow (Draft → WIP → Submitted → Approved)
