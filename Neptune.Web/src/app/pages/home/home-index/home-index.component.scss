@@ -513,6 +513,9 @@
 
     &-cards {
         display: flex;
+        // Without this the four cards are locked to one line, and because flex items can't shrink below
+        // their min-content the row has a hard 877px floor - wider than a tablet viewport (NPT-1123 rework).
+        flex-wrap: wrap;
         gap: $spacing-500;
         justify-content: center;
 
