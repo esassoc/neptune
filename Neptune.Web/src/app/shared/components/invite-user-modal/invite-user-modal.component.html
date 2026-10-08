@@ -38,6 +38,7 @@
                 @if (jurisdictions$ | async; as jurisdictions) {
                     <ng-select
                         labelForId="invite-jurisdictions"
+                        appendTo="body"
                         [items]="jurisdictions"
                         bindLabel="StormwaterJurisdictionName"
                         bindValue="StormwaterJurisdictionID"
