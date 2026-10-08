@@ -47,6 +47,24 @@ const POLYGON_ASSET_LAYERS = {
 } as const;
 type PolygonAssetType = keyof typeof POLYGON_ASSET_LAYERS;
 
+// vGeoServerOnlandVisualTrashAssessmentArea returns the five most recent assessments for an area, so the
+// OVTA layer hands back one row per assessment -- the same geometry each time, with that assessment's Score.
+// Take only the newest: anything else stacks identical polygons (compounding their fill opacity) and can
+// colour the area from a years-old score, since WFS makes no ordering guarantee.
+function newestFeature(features: any[]): any | null {
+    if (!features?.length) {
+        return null;
+    }
+    return features.reduce((newest, candidate) => (completedDateOf(candidate) > completedDateOf(newest) ? candidate : newest));
+}
+
+// Areas that have never been assessed come back with a null CompletedDate, which must sort oldest
+function completedDateOf(feature: any): number {
+    const completedDate = feature?.properties?.CompletedDate;
+    const parsed = completedDate ? Date.parse(completedDate) : NaN;
+    return isNaN(parsed) ? -Infinity : parsed;
+}
+
 // NPT-1123: finds the BMPs, WQMPs and OVTA areas the user is standing next to and puts each one's next action on its row.
 // Nothing touches geolocation or the API until the user asks — the panel starts locked.
 @Component({
@@ -197,7 +215,8 @@ export class FieldActionsPanelComponent {
                 }
                 matching.forEach((asset) => {
                     const assetFeatures = (features ?? []).filter((feature) => feature?.properties?.[identifier] === asset.AssetID);
-                    if (assetFeatures.length === 0 || !this.addAssetPolygon(asset, assetType, assetFeatures)) {
+                    const feature = newestFeature(assetFeatures);
+                    if (!feature || !this.addAssetPolygon(asset, assetType, feature)) {
                         this.addAssetMarker(asset);
                     }
                 });
@@ -207,10 +226,10 @@ export class FieldActionsPanelComponent {
             });
     }
 
-    private addAssetPolygon(asset: NearbyAssetDto, assetType: PolygonAssetType, features: any[]): boolean {
+    private addAssetPolygon(asset: NearbyAssetDto, assetType: PolygonAssetType, feature: any): boolean {
         const key = this.keyFor(asset);
-        const style = assetType === "WQMP" ? WQMP_BOUNDARY_STYLE : ovtaAreaStyleForScore(features[0]?.properties?.Score);
-        const polygon = L.geoJSON(features, { style });
+        const style = assetType === "WQMP" ? WQMP_BOUNDARY_STYLE : ovtaAreaStyleForScore(feature?.properties?.Score);
+        const polygon = L.geoJSON(feature, { style });
         if (!polygon.getLayers().length) {
             return false;
         }

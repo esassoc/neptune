@@ -45,7 +45,7 @@ export class NeptuneMapComponent implements OnInit, AfterViewInit, OnDestroy {
     @Input() selectedTileLayer: string = "Terrain";
     @Input() showLegend: boolean = true;
     @Input() legendPosition: ControlPosition = "topleft";
-    // NPT-1123: the homepage Field Actions map is a 288px glanceable frame with no room for the
+    // NPT-1123: the homepage Field Actions map is a ~320px glanceable frame with no room for the
     // drainage-area trace, and the trace pushes its own legend items in even when showLegend is false.
     @Input() showDrainageAreaTrace: boolean = true;
     @Output() onMapLoad: EventEmitter<NeptuneMapInitEvent> = new EventEmitter();

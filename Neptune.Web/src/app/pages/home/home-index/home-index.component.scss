@@ -453,7 +453,9 @@
 // the Data and Tools cards need 877px, the track becomes 877px, and every sibling - including the action
 // panels - is stretched to 877px no matter how narrow the viewport is. Between roughly 768px and 877px that
 // pushed the Field Actions row buttons off screen (NPT-1123 rework). Pinning the track to the container lets
-// each section size itself; Data and Tools then scrolls within its own box instead of dragging the page.
+// each section size itself. Data and Tools still overflows below ~877px -- its cards are a flex row that
+// never wraps -- but it now does so on its own instead of stretching every sibling to match. Out of scope
+// for this card; raised with the PO separately.
 .site {
     grid-template-columns: minmax(0, 1fr);
 }
