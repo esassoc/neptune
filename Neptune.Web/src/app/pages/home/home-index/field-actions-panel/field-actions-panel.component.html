@@ -55,10 +55,21 @@
                     <!-- the map renders even with no results, so a wrong location (e.g. a mistyped coordinate) is visible -->
                     <div class="results__map-column">
                         <div class="results__map">
-                            <neptune-map [boundingBox]="boundingBox()" mapHeight="288px" [showLegend]="false" (onMapLoad)="handleMapReady($event)"></neptune-map>
+                            <neptune-map
+                                [boundingBox]="boundingBox()"
+                                mapHeight="320px"
+                                [showLegend]="false"
+                                [showDrainageAreaTrace]="false"
+                                (onMapLoad)="handleMapReady($event)"></neptune-map>
                             <div class="map-legend" aria-hidden="true">
-                                @if (totalCount() > 0) {
-                                    <span><img src="/assets/main/map-icons/marker-icon-orange.png" alt="" /> Nearby record</span>
+                                @if (hasBMPRows()) {
+                                    <span><img src="/assets/main/map-icons/marker-icon-orange.png" alt="" /> BMP</span>
+                                }
+                                @if (hasWQMPRows()) {
+                                    <span><i class="legend-swatch legend-swatch--wqmp"></i> WQMP</span>
+                                }
+                                @if (hasOVTARows()) {
+                                    <span><i class="legend-swatch legend-swatch--ovta"></i> OVTA area</span>
                                 }
                                 <span><img src="/assets/main/map-icons/marker-icon-blue.png" alt="" /> Your location</span>
                             </div>
