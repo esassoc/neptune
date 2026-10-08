@@ -107,7 +107,7 @@
     overflow: hidden;
 
     // A glanceable panel map: keep neptune-map's tiles, zoom and fullscreen, but drop the
-    // location search, the always-expanded layer control and the footer that crowd a 288px frame.
+    // location search, the always-expanded layer control and the footer that crowd a 320px frame.
     neptune-map ::ng-deep {
         .map-wrapper {
             margin-bottom: 0;

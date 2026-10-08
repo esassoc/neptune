@@ -94,7 +94,7 @@ export class FieldActionsPanelComponent {
     public rows = computed(() => (this.result()?.Assets ?? []).slice(0, MAX_ROWS));
     public radiusLabel = computed(() => `${this.result()?.RadiusMeters ?? 100} m`);
     public boundingBox = computed(() => this.buildBoundingBox());
-    // The legend only names the types actually on the map, so it stays honest in a 288px frame
+    // The legend only names the types actually on the map, so it stays honest in a 320px frame
     public hasBMPRows = computed(() => this.rows().some((x) => x.AssetType === "BMP"));
     public hasWQMPRows = computed(() => this.rows().some((x) => x.AssetType === "WQMP"));
     public hasOVTARows = computed(() => this.rows().some((x) => x.AssetType === "OVTA"));
