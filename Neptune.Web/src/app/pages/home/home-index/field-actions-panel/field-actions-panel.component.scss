@@ -79,7 +79,7 @@
 
 .results {
     display: grid;
-    grid-template-columns: minmax(0, 0.8fr) minmax(0, 1.2fr);
+    grid-template-columns: minmax(0, 1.35fr) minmax(0, 1fr);
     gap: $spacing-400;
     align-items: start;
     padding-top: $spacing-400;
@@ -160,6 +160,27 @@
         height: 14px;
         width: auto;
     }
+
+    // Polygon types get a swatch rather than a pin. OVTA areas are score-colored on the map, so the
+    // legend carries one neutral entry instead of five; the A-D key lives on the full OVTA maps.
+    .legend-swatch {
+        display: inline-block;
+        width: 12px;
+        height: 12px;
+        border-width: 2px;
+        border-style: solid;
+        border-radius: 2px;
+
+        &--wqmp {
+            border-color: #de54b2;
+            background: rgba(222, 84, 178, 0.15);
+        }
+
+        &--ovta {
+            border-color: #808080;
+            background: rgba(128, 128, 128, 0.15);
+        }
+    }
 }
 
 .results__list {
@@ -173,6 +194,10 @@
 
 .asset-row {
     display: flex;
+    // Wrap at every width, not just on phones: the map column is now the wider of the two (NPT-1123
+    // rework), so between 992px and roughly 1200px the list column is narrow enough that a long action
+    // label like "Start O&M Verification" no longer fits beside the record name.
+    flex-wrap: wrap;
     align-items: center;
     justify-content: space-between;
     gap: $spacing-300;
@@ -190,7 +215,9 @@
     }
 
     .btn {
-        flex: 0 0 auto;
+        // may wrap onto its own line when cramped, but never breaks its own label across lines
+        flex: 0 1 auto;
+        white-space: nowrap;
 
         &:focus-visible {
             outline: 2px solid $primary;
@@ -204,8 +231,6 @@
 
     // phones: the action button drops under the name at full width so it never pushes off screen
     @include tablet-max {
-        flex-wrap: wrap;
-
         .asset-row__label {
             flex: 1 1 100%;
         }

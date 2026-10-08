@@ -17,7 +17,14 @@ import { FieldVisitDto } from "src/app/shared/generated/model/field-visit-dto";
 import { NearbyAssetDto } from "src/app/shared/generated/model/nearby-asset-dto";
 import { NearbyAssetsResultDto } from "src/app/shared/generated/model/nearby-assets-result-dto";
 import { MarkerHelper } from "src/app/shared/helpers/marker-helper";
+import {
+    POLYGON_DEFAULT_FILL_OPACITY,
+    POLYGON_HIGHLIGHT_FILL_OPACITY,
+    WQMP_BOUNDARY_STYLE,
+    ovtaAreaStyleForScore,
+} from "src/app/shared/constants/map-styles";
 import { GeolocationCoordinates, GeolocationFailure, GeolocationService } from "src/app/shared/services/geolocation.service";
+import { WfsService } from "src/app/shared/services/wfs.service";
 
 type PanelState = "locked" | "locating" | "loading" | "ready" | "error";
 type PanelError = GeolocationFailure | "api";
@@ -29,6 +36,16 @@ type BmpVisitStatus = CheckedVisitStatus | "checking";
 
 const MAX_ROWS = 10;
 const METERS_PER_DEGREE_LATITUDE = 111320;
+
+// NPT-1123 rework: WQMPs and OVTA areas are areas, not points, so they draw as real polygons in the
+// colors GeoServer renders them elsewhere rather than as pins indistinguishable from a BMP. The shapes
+// come from the same WFS layers the rest of the app uses; /nearby-assets still supplies the point, which
+// is what BMPs use and what every polygon falls back to if GeoServer can't answer.
+const POLYGON_ASSET_LAYERS = {
+    WQMP: { featureType: "OCStormwater:WaterQualityManagementPlans", identifier: "WaterQualityManagementPlanID" },
+    OVTA: { featureType: "OCStormwater:OnlandVisualTrashAssessmentAreas", identifier: "OnlandVisualTrashAssessmentAreaID" },
+} as const;
+type PolygonAssetType = keyof typeof POLYGON_ASSET_LAYERS;
 
 // NPT-1123: finds the BMPs, WQMPs and OVTA areas the user is standing next to and puts each one's next action on its row.
 // Nothing touches geolocation or the API until the user asks — the panel starts locked.
@@ -43,6 +60,7 @@ export class FieldActionsPanelComponent {
     private nearbyAssetService = inject(NearbyAssetService);
     private fieldVisitService = inject(FieldVisitService);
     private dialogService = inject(DialogService);
+    private wfsService = inject(WfsService);
     private router = inject(Router);
     private destroyRef = inject(DestroyRef);
 
@@ -58,9 +76,14 @@ export class FieldActionsPanelComponent {
     public rows = computed(() => (this.result()?.Assets ?? []).slice(0, MAX_ROWS));
     public radiusLabel = computed(() => `${this.result()?.RadiusMeters ?? 100} m`);
     public boundingBox = computed(() => this.buildBoundingBox());
+    // The legend only names the types actually on the map, so it stays honest in a 288px frame
+    public hasBMPRows = computed(() => this.rows().some((x) => x.AssetType === "BMP"));
+    public hasWQMPRows = computed(() => this.rows().some((x) => x.AssetType === "WQMP"));
+    public hasOVTARows = computed(() => this.rows().some((x) => x.AssetType === "OVTA"));
 
     private map: L.Map;
     private markersByKey = new Map<string, L.Marker>();
+    private polygonsByKey = new Map<string, L.GeoJSON>();
     private unlockSubscription: Subscription;
     // Bumped on every unlock/reset so a visit check still in flight from an earlier result set is ignored
     private resultsGeneration = 0;
@@ -125,16 +148,80 @@ export class FieldActionsPanelComponent {
             interactive: false,
         }).addTo(this.map);
 
-        this.rows().forEach((asset) => {
-            const key = this.keyFor(asset);
-            const marker = L.marker([asset.Latitude, asset.Longitude], { icon: MarkerHelper.nearbyAssetMarker, title: asset.AssetName, keyboard: false })
-                .on("mouseover", () => this.hoveredKey.set(key))
-                .on("mouseout", () => this.hoveredKey.set(null))
-                .addTo(this.map);
-            this.markersByKey.set(key, marker);
-        });
+        const assets = this.rows();
+        // BMPs are genuinely points, so they keep their pin; the area types are drawn as polygons below.
+        assets.filter((x) => !this.isPolygonAsset(x)).forEach((asset) => this.addAssetMarker(asset));
+        (Object.keys(POLYGON_ASSET_LAYERS) as PolygonAssetType[]).forEach((assetType) => this.addAssetPolygons(assetType, assets));
 
         this.map.fitBounds(radiusCircle.getBounds(), { padding: [12, 12] });
+    }
+
+    private isPolygonAsset(asset: NearbyAssetDto): asset is NearbyAssetDto & { AssetType: PolygonAssetType } {
+        return asset.AssetType in POLYGON_ASSET_LAYERS;
+    }
+
+    // The point from /nearby-assets. Used for BMPs, and as the fallback whenever a polygon can't be drawn.
+    private addAssetMarker(asset: NearbyAssetDto): void {
+        const key = this.keyFor(asset);
+        if (this.markersByKey.has(key) || !this.map) {
+            return;
+        }
+        const marker = L.marker([asset.Latitude, asset.Longitude], { icon: MarkerHelper.nearbyAssetMarker, title: asset.AssetName, keyboard: false })
+            .on("mouseover", () => this.hoveredKey.set(key))
+            .on("mouseout", () => this.hoveredKey.set(null))
+            .addTo(this.map);
+        this.markersByKey.set(key, marker);
+    }
+
+    // One WFS call per asset type for the handful of IDs on screen, rather than one call per row.
+    private addAssetPolygons(assetType: PolygonAssetType, assets: NearbyAssetDto[]): void {
+        const matching = assets.filter((x) => x.AssetType === assetType);
+        if (matching.length === 0) {
+            return;
+        }
+        const generation = this.resultsGeneration;
+        const { featureType, identifier } = POLYGON_ASSET_LAYERS[assetType];
+        const cqlFilter = `${identifier} IN (${matching.map((x) => x.AssetID).join(",")})`;
+
+        this.wfsService
+            .getGeoserverWFSLayerWithCQLFilter(featureType, cqlFilter, identifier)
+            .pipe(
+                // A GeoServer hiccup must not leave these rows with nothing on the map
+                catchError(() => of([])),
+                takeUntilDestroyed(this.destroyRef)
+            )
+            .subscribe((features: any[]) => {
+                // Reset or a second unlock since the request went out — these shapes belong to a stale result set
+                if (generation !== this.resultsGeneration || !this.map) {
+                    return;
+                }
+                matching.forEach((asset) => {
+                    const assetFeatures = (features ?? []).filter((feature) => feature?.properties?.[identifier] === asset.AssetID);
+                    if (assetFeatures.length === 0 || !this.addAssetPolygon(asset, assetType, assetFeatures)) {
+                        this.addAssetMarker(asset);
+                    }
+                });
+                // These shapes arrive after the hover effect last ran, so a row hovered during the
+                // fetch would otherwise show no highlight until the pointer moved again.
+                this.applyMarkerHighlight(this.hoveredKey());
+            });
+    }
+
+    private addAssetPolygon(asset: NearbyAssetDto, assetType: PolygonAssetType, features: any[]): boolean {
+        const key = this.keyFor(asset);
+        const style = assetType === "WQMP" ? WQMP_BOUNDARY_STYLE : ovtaAreaStyleForScore(features[0]?.properties?.Score);
+        const polygon = L.geoJSON(features, { style });
+        if (!polygon.getLayers().length) {
+            return false;
+        }
+        // Same two-way hover linkage the pins have (AC 37-39)
+        polygon
+            .on("mouseover", () => this.hoveredKey.set(key))
+            .on("mouseout", () => this.hoveredKey.set(null))
+            .addTo(this.map);
+        polygon.bindTooltip(asset.AssetName, { sticky: true });
+        this.polygonsByKey.set(key, polygon);
+        return true;
     }
 
     public onRowEnter(asset: NearbyAssetDto): void {
@@ -266,6 +353,7 @@ export class FieldActionsPanelComponent {
         this.visitStatusByBmpID.set(new Map());
         // the map itself is torn down by the template's @if; just drop our references
         this.markersByKey.clear();
+        this.polygonsByKey.clear();
         this.map = null;
     }
 
@@ -274,6 +362,13 @@ export class FieldActionsPanelComponent {
             const isHovered = key === hoveredKey;
             marker.setIcon(isHovered ? MarkerHelper.nearbyAssetSelectedMarker : MarkerHelper.nearbyAssetMarker);
             marker.setZIndexOffset(isHovered ? 10000 : 0);
+        });
+        // A polygon keeps its entity color and deepens its fill instead, the convention the other layers use
+        this.polygonsByKey.forEach((polygon, key) => {
+            polygon.setStyle({ fillOpacity: key === hoveredKey ? POLYGON_HIGHLIGHT_FILL_OPACITY : POLYGON_DEFAULT_FILL_OPACITY });
+            if (key === hoveredKey) {
+                polygon.bringToFront();
+            }
         });
     }
 
