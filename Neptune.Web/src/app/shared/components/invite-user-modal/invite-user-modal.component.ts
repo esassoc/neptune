@@ -68,7 +68,9 @@ export class InviteUserModalComponent implements OnInit {
         this.roleOptions = this.buildRoleOptions();
         this.formGroup.controls.RoleID.setValue(RoleEnum.JurisdictionEditor);
 
-        const presetID = this.ref.data?.presetJurisdictionID;
+        // Number(): a route-param string ("12") never matches ng-select's numeric bindValue, which renders
+        // a blank, unlabelled selection (NPT-734 QA rework). Falsy/NaN presets nothing.
+        const presetID = Number(this.ref.data?.presetJurisdictionID);
         if (presetID) {
             this.formGroup.controls.StormwaterJurisdictionIDs.setValue([presetID]);
         }
