@@ -1,4 +1,4 @@
-import { Component, OnInit, OnChanges, SimpleChanges, ViewChild, TemplateRef, Input, inject } from "@angular/core";
+import { Component, OnInit, OnChanges, SimpleChanges, ViewChild, TemplateRef, Input, inject, numberAttribute } from "@angular/core";
 import { Router, RouterLink } from "@angular/router";
 import { AsyncPipe, CommonModule } from "@angular/common";
 import { BehaviorSubject, catchError, EMPTY, Observable, shareReplay, switchMap, tap } from "rxjs";
@@ -53,7 +53,8 @@ export class JurisdictionDetailComponent implements OnInit, OnChanges {
     }
 
     @ViewChild("templateAbove", { static: true }) templateAbove!: TemplateRef<any>;
-    @Input() jurisdictionID!: number;
+    // Route params arrive as strings; coerce so ID comparisons (e.g. ng-select bindValue in the invite modal) match.
+    @Input({ transform: numberAttribute }) jurisdictionID!: number;
 
     // Observables for async pipe
     jurisdiction$!: Observable<StormwaterJurisdictionGridDto>;
