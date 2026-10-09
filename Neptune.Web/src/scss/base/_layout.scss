@@ -6,6 +6,10 @@ html {
 
 body {
     background: $white;
+    // ng-select with appendTo="body" opening upward sets the panel's `bottom` from body's rect.
+    // Without this, `bottom` resolves against the viewport, so on pages taller than the window
+    // the panel floats far above its field.
+    position: relative;
 }
 
 app-root {
