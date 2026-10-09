@@ -33,8 +33,14 @@ api-test: ## Run .NET tests
 
 # --- Web ---
 
-web: ## Start Angular dev server on port $(WEB_PORT)
-	cd $(WORKSPACE)/Neptune.Web && npx --yes ng serve --host 0.0.0.0 --port $(WEB_PORT) --poll 2000
+# HTTPS with the tracked *.localhost.sitkatech.com certificate (Neptune.Web/server.crt), the one
+# Windows `npm start` uses. Browse https://neptune.localhost.sitkatech.com:$(WEB_PORT) — Auth0 returns
+# to that origin, which must be registered in the Auth0 app (8252 is). The devcontainer configuration
+# points the SPA at this container's API (API_PORT).
+# --allowed-hosts because the browser sends the neptune.localhost.sitkatech.com Host header.
+web: ## Start Angular dev server on https://neptune.localhost.sitkatech.com:$(WEB_PORT)
+	cd $(WORKSPACE)/Neptune.Web && npx --yes ng serve --configuration devcontainer --host 0.0.0.0 --port $(WEB_PORT) \
+		--ssl --ssl-cert server.crt --ssl-key server.key --allowed-hosts --poll 2000
 
 web-test: ## Run Angular unit tests
 	cd $(WORKSPACE)/Neptune.Web && npm test

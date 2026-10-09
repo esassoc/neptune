@@ -31,7 +31,7 @@ public class TreatmentBMPController(
     [JurisdictionEditFeature]
     public async Task<ActionResult<TreatmentBMPDto>> Create([FromBody] TreatmentBMPCreateDto treatmentBMPCreateDto)
     {
-        var errors = await TreatmentBMPs.ValidateCreateAsync(DbContext, treatmentBMPCreateDto);
+        var errors = await TreatmentBMPs.ValidateCreateAsync(DbContext, treatmentBMPCreateDto, CallingUser.PersonID);
         errors.ForEach(e => ModelState.AddModelError(e.Type, e.Message));
 
         if (!ModelState.IsValid)
@@ -107,6 +107,17 @@ public class TreatmentBMPController(
     {
         var treatmentBMPDisplayDtos = await TreatmentBMPs.ListWithProjectByPersonAsDisplayDtoAsync(DbContext, CallingUser);
         return Ok(treatmentBMPDisplayDtos);
+    }
+
+    // NPT-1122: BMP picker for the Field Records "Start Field Visit" modal, scoped to the caller's
+    // jurisdictions (Admin/SitkaAdmin: all).
+    [HttpGet("picker")]
+    [JurisdictionEditFeature]
+    public async Task<ActionResult<List<TreatmentBMPMinimalDto>>> ListForPicker()
+    {
+        var stormwaterJurisdictionIDs = await StormwaterJurisdictionPeople.ListViewableStormwaterJurisdictionIDsByPersonIDForBMPsAsync(DbContext, CallingUser.PersonID);
+        var treatmentBMPs = await TreatmentBMPs.ListAsMinimalDtoForJurisdictionsAsync(DbContext, stormwaterJurisdictionIDs);
+        return Ok(treatmentBMPs);
     }
 
     [HttpGet("for-delineation-map")]

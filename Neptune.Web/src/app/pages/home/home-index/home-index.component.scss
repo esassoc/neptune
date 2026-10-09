@@ -313,6 +313,32 @@
         margin-bottom: 0;
     }
 
+    // Signed in, the sign-in card's 4rem overlap gap is gone. Unassigned users get no panel band, so keep a
+    // plain gap before Data and Tools at every width (the mobile rule above zeroes it for the anonymous card)
+    &--signed-in {
+        margin-bottom: $spacing-700;
+    }
+
+    // The panel band sits flush under the photo and carries its own spacing. The photo is shorter here so
+    // the first Common Tasks verb and the Field Actions button show above the fold on a laptop (NPT-1123 rework);
+    // the anonymous hero keeps its full height.
+    &--with-panels {
+        margin-bottom: 0;
+
+        .hero__photo {
+            aspect-ratio: 16 / 9;
+
+            @include tablet {
+                aspect-ratio: 21 / 9;
+            }
+
+            @include desktop-small {
+                aspect-ratio: unset;
+                max-height: clamp(12rem, 32vh, 20rem);
+            }
+        }
+    }
+
     &__photo {
         z-index: 0;
         grid-column: 1;
@@ -378,6 +404,35 @@
         }
     }
 
+    // Signed-in post-login message over the photo (NPT-1123 canvas 1a)
+    &__caption {
+        grid-column: 1;
+        grid-row: 1;
+        z-index: 3;
+        align-self: end;
+        justify-self: start;
+        max-width: 34rem;
+        margin: $spacing-500 $spacing-600;
+        padding: $spacing-300 $spacing-400;
+        background: rgba(0, 0, 0, 0.5);
+
+        p {
+            margin: 0;
+            color: $white;
+            font-size: $type-size-200;
+            line-height: 1.5;
+        }
+
+        a {
+            color: $white;
+            text-decoration: underline;
+        }
+
+        @include tablet-max {
+            margin: $spacing-300;
+        }
+    }
+
     &__btns {
         display: flex;
         flex-direction: column;
@@ -391,6 +446,49 @@
                 width: 100%;
             }
         }
+    }
+}
+
+// The global .site is `display: grid` with no explicit columns, so its single track is max-content sized:
+// the Data and Tools cards need 877px, the track becomes 877px, and every sibling - including the action
+// panels - is stretched to 877px no matter how narrow the viewport is. Between roughly 768px and 877px that
+// pushed the Field Actions row buttons off screen (NPT-1123 rework). Pinning the track to the container lets
+// each section size itself. Data and Tools still overflows below ~877px -- its cards are a flex row that
+// never wraps -- but it now does so on its own instead of stretching every sibling to match. Out of scope
+// for this card; raised with the PO separately.
+.site {
+    grid-template-columns: minmax(0, 1fr);
+}
+
+// NPT-1123: Common Tasks (narrow, desk) beside Field Actions (wide, field); Field Actions leads once stacked
+.action-panels {
+    background: $gray-50;
+    padding: $spacing-500;
+    margin-bottom: $spacing-700;
+
+    .page-title {
+        margin: 0 0 $spacing-400 0;
+    }
+
+    &__grid {
+        display: grid;
+        grid-template-columns: minmax(0, 4fr) minmax(0, 8fr);
+        gap: $spacing-500;
+        align-items: start;
+
+        @include desktop-small-max {
+            grid-template-columns: minmax(0, 1fr);
+        }
+    }
+
+    &__field {
+        @include desktop-small-max {
+            order: -1;
+        }
+    }
+
+    @include tablet-max {
+        padding: $spacing-400;
     }
 }
 

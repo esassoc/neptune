@@ -62,84 +62,108 @@ public class LandUseBlockController(
             return Ok(result);
         }
 
-        var featureClasses = await gdalApiService.OgrInfoGdbToFeatureClassInfo(form.File);
-        if (featureClasses.Count == 0)
-        {
-            result.Errors.Add("The file geodatabase contained no feature class. Please upload a file geodatabase containing exactly one feature class.");
-            return Ok(result);
-        }
-        if (featureClasses.Count > 1)
-        {
-            result.Errors.Add("The file geodatabase contained more than one feature class. Please upload a file geodatabase containing exactly one feature class.");
-            return Ok(result);
-        }
-
         var currentPerson = People.GetByID(DbContext, CallingUser.PersonID);
-        var blobName = Guid.NewGuid().ToString();
-        await azureBlobStorageService.UploadToBlobStorage(await FileStreamHelpers.StreamToBytes(form.File), blobName, ".gdb");
 
+        // Stage the upload in blob storage first so both the feature-class validation below and the
+        // GDB-to-GeoJSON conversion further down can work from it without re-reading the request.
+        var blobName = Guid.NewGuid().ToString();
+        await azureBlobStorageService.UploadToBlobStorage(form.File.OpenReadStream(), blobName, ".gdb");
+
+        // The staged GDB is only needed for the feature-class check and the GeoJSON conversion below.
+        // blobName is never persisted or returned, so nothing can reference the blob once this request
+        // completes — drop it however we exit, or uploads accumulate in blob storage.
         try
         {
-            var columns = new List<string>
+            var featureClasses = await gdalApiService.OgrInfoGdbToFeatureClassInfo(AzureBlobStorageService.BlobContainerName, blobName);
+            if (featureClasses.Count != 1)
             {
-                $"{currentPerson.PersonID} as UploadedByPersonID",
-                "prioritylandusetype as PriorityLandUseType",
-                "landusedescription as LandUseDescription",
-                "trashgenerationrate as TrashGenerationRate",
-                "landusefortgr as LandUseForTGR",
-                "medianhouseholdincomeresidential as MedianHouseholdIncomeResidential",
-                "medianhouseholdincomeretail as MedianHouseholdIncomeRetail",
-                $"{form.StormwaterJurisdictionID} as StormwaterJurisdictionID",
-                "permittype as PermitType",
-            };
-            var apiRequest = new GdbToGeoJsonRequestDto
-            {
-                BlobContainer = AzureBlobStorageService.BlobContainerName,
-                CanonicalName = blobName,
-                GdbLayerOutputs = new List<GdbLayerOutput>
-                {
-                    new()
-                    {
-                        Columns = columns,
-                        FeatureLayerName = featureClasses.Single().LayerName,
-                        NumberOfSignificantDigits = 4,
-                        Filter = "",
-                        CoordinateSystemID = Proj4NetHelper.NAD_83_HARN_CA_ZONE_VI_SRID,
-                    },
-                },
-            };
-
-            var geoJson = await gdalApiService.Ogr2OgrGdbToGeoJson(apiRequest);
-            var stagings = await GeoJsonSerializer.DeserializeFromFeatureCollectionWithCCWCheck<LandUseBlockStaging>(
-                geoJson, GeoJsonSerializer.DefaultSerializerOptions, Proj4NetHelper.NAD_83_HARN_CA_ZONE_VI_SRID);
-            var validStagings = stagings.Where(x => x.Geometry is { IsValid: true, Area: > 0 }).ToList();
-            if (validStagings.Count == 0)
-            {
-                result.Errors.Add("No valid Land Use Block features were found in the upload.");
+                result.Errors.Add(featureClasses.Count == 0
+                    ? "The file geodatabase contained no feature class. Please upload a file geodatabase containing exactly one feature class."
+                    : "The file geodatabase contained more than one feature class. Please upload a file geodatabase containing exactly one feature class.");
                 return Ok(result);
             }
 
-            await DbContext.Database.ExecuteSqlAsync($"dbo.pLandUseBlockStagingDeleteByPersonID @PersonID = {currentPerson.PersonID}");
-            DbContext.LandUseBlockStagings.AddRange(validStagings);
-            await DbContext.SaveChangesAsync();
-            result.StagedRowCount = validStagings.Count;
-        }
-        catch (Exception ex) when (ex.Message.Contains("Unrecognized field name", StringComparison.InvariantCultureIgnoreCase))
-        {
-            result.Errors.Add("The columns in the uploaded file did not match the LandUseBlock schema. Ensure every required field is present (PriorityLandUseType, LandUseDescription, TrashGenerationRate, LandUseForTGR, MedianHouseholdIncomeResidential, MedianHouseholdIncomeRetail, PermitType) and does not rely on an alias.");
+            try
+            {
+                var columns = new List<string>
+                {
+                    $"{currentPerson.PersonID} as UploadedByPersonID",
+                    "prioritylandusetype as PriorityLandUseType",
+                    "landusedescription as LandUseDescription",
+                    "trashgenerationrate as TrashGenerationRate",
+                    "landusefortgr as LandUseForTGR",
+                    "medianhouseholdincomeresidential as MedianHouseholdIncomeResidential",
+                    "medianhouseholdincomeretail as MedianHouseholdIncomeRetail",
+                    $"{form.StormwaterJurisdictionID} as StormwaterJurisdictionID",
+                    "permittype as PermitType",
+                };
+                var apiRequest = new GdbToGeoJsonRequestDto
+                {
+                    BlobContainer = AzureBlobStorageService.BlobContainerName,
+                    CanonicalName = blobName,
+                    GdbLayerOutputs = new List<GdbLayerOutput>
+                    {
+                        new()
+                        {
+                            Columns = columns,
+                            FeatureLayerName = featureClasses.Single().LayerName,
+                            NumberOfSignificantDigits = 4,
+                            Filter = "",
+                            CoordinateSystemID = Proj4NetHelper.NAD_83_HARN_CA_ZONE_VI_SRID,
+                        },
+                    },
+                };
+
+                var geoJson = await gdalApiService.Ogr2OgrGdbToGeoJson(apiRequest);
+                var stagings = await GeoJsonSerializer.DeserializeFromFeatureCollectionWithCCWCheck<LandUseBlockStaging>(
+                    geoJson, GeoJsonSerializer.DefaultSerializerOptions, Proj4NetHelper.NAD_83_HARN_CA_ZONE_VI_SRID);
+                var validStagings = stagings.Where(x => x.Geometry is { IsValid: true, Area: > 0 }).ToList();
+                if (validStagings.Count == 0)
+                {
+                    result.Errors.Add("No valid Land Use Block features were found in the upload.");
+                    return Ok(result);
+                }
+
+                await DbContext.Database.ExecuteSqlAsync($"dbo.pLandUseBlockStagingDeleteByPersonID @PersonID = {currentPerson.PersonID}");
+                DbContext.LandUseBlockStagings.AddRange(validStagings);
+                await DbContext.SaveChangesAsync();
+                result.StagedRowCount = validStagings.Count;
+            }
+            catch (Exception ex) when (ex.Message.Contains("Unrecognized field name", StringComparison.InvariantCultureIgnoreCase))
+            {
+                result.Errors.Add("The columns in the uploaded file did not match the LandUseBlock schema. Ensure every required field is present (PriorityLandUseType, LandUseDescription, TrashGenerationRate, LandUseForTGR, MedianHouseholdIncomeResidential, MedianHouseholdIncomeRetail, PermitType) and does not rely on an alias.");
+                return Ok(result);
+            }
+            catch (Exception ex)
+            {
+                Logger.LogError(ex, "Failed to process Land Use Block GDB upload");
+                result.Errors.Add($"There was a problem processing the Feature Class \"{featureClasses[0].LayerName}\". The file may be corrupted or invalid.");
+                return Ok(result);
+            }
+
+            // NPT-1077: the job is no longer enqueued here. The SPA redirects to the approve page,
+            // which calls GET /land-use-blocks/staging-report to fetch the validation report, then
+            // POST /land-use-blocks/staging/approve to enqueue the job if the report is error-free.
             return Ok(result);
+        }
+        finally
+        {
+            await DeleteStagedGdbBlobAsync(blobName);
+        }
+    }
+
+    // Cleanup must never mask the response (or an in-flight exception) — a leftover temp blob is the
+    // lesser problem, so failures here are logged and swallowed.
+    private async Task DeleteStagedGdbBlobAsync(string blobName)
+    {
+        try
+        {
+            await azureBlobStorageService.DeleteFromBlobStorage(blobName);
         }
         catch (Exception ex)
         {
-            Logger.LogError(ex, "Failed to process Land Use Block GDB upload");
-            result.Errors.Add($"There was a problem processing the Feature Class \"{featureClasses[0].LayerName}\". The file may be corrupted or invalid.");
-            return Ok(result);
+            Logger.LogWarning(ex, "Failed to clean up staged GDB blob {BlobName}", blobName);
         }
-
-        // NPT-1077: the job is no longer enqueued here. The SPA redirects to the approve page,
-        // which calls GET /land-use-blocks/staging-report to fetch the validation report, then
-        // POST /land-use-blocks/staging/approve to enqueue the job if the report is error-free.
-        return Ok(result);
     }
 
     [HttpGet("staging-report")]

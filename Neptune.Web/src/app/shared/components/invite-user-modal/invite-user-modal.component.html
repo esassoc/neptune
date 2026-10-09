@@ -1,0 +1,74 @@
+<div class="modal">
+    <div class="modal-header">
+        <h3>
+            Invite User
+            @if (ref.data?.presetJurisdictionName) {
+                to {{ ref.data.presetJurisdictionName }}
+            }
+        </h3>
+    </div>
+    <div class="modal-body">
+        <custom-rich-text [customRichTextTypeID]="NeptunePageTypeEnum.InviteUser"></custom-rich-text>
+        @for (msg of errorMessages(); track msg) {
+            <div class="alert alert-danger">{{ msg }}</div>
+        }
+        <form [formGroup]="formGroup" class="grid-12">
+            <form-field class="g-col-6" fieldLabel="First Name" [type]="FormFieldType.Text" [formControl]="formGroup.controls.FirstName" [required]="true"></form-field>
+            <form-field class="g-col-6" fieldLabel="Last Name" [type]="FormFieldType.Text" [formControl]="formGroup.controls.LastName" [required]="true"></form-field>
+            <form-field
+                class="g-col-12"
+                fieldLabel="Email"
+                [type]="FormFieldType.Text"
+                [formControl]="formGroup.controls.Email"
+                placeholder="jane.doe@example.com"
+                [required]="true"></form-field>
+            <p class="g-col-12 text-muted mb-0">They must sign up with this exact address. That's how their account connects to the access you set here.</p>
+
+            <form-field
+                class="g-col-12"
+                fieldLabel="Role"
+                [type]="FormFieldType.Select"
+                [formControl]="formGroup.controls.RoleID"
+                [formInputOptions]="roleOptions"
+                placeholder="Select a role"
+                [required]="true"></form-field>
+
+            <div class="g-col-12">
+                <label class="field-label" [class.required]="!isAdmin" for="invite-jurisdictions">{{ isAdmin ? "Jurisdictions" : "Jurisdiction" }}</label>
+                @if (jurisdictions$ | async; as jurisdictions) {
+                    <ng-select
+                        labelForId="invite-jurisdictions"
+                        appendTo="body"
+                        [items]="jurisdictions"
+                        bindLabel="StormwaterJurisdictionName"
+                        bindValue="StormwaterJurisdictionID"
+                        [multiple]="isAdmin"
+                        [clearable]="isAdmin"
+                        [readonly]="isJurisdictionLocked"
+                        [ngModel]="isAdmin ? formGroup.controls.StormwaterJurisdictionIDs.value : formGroup.controls.StormwaterJurisdictionIDs.value[0]"
+                        (ngModelChange)="formGroup.controls.StormwaterJurisdictionIDs.setValue(isAdmin ? ($event ?? []) : $event != null ? [$event] : [])"
+                        [ngModelOptions]="{ standalone: true }"
+                        placeholder="Select a jurisdiction"></ng-select>
+                }
+            </div>
+
+            <form-field
+                class="g-col-12"
+                fieldLabel="Organization"
+                [type]="FormFieldType.Select"
+                [formControl]="formGroup.controls.OrganizationID"
+                [formInputOptions]="(organizationOptions$ | async) ?? []"
+                placeholder="Unassigned"></form-field>
+        </form>
+    </div>
+    <div class="modal-footer">
+        <button type="button" class="btn btn-primary" [disabled]="formGroup.invalid || isSaving()" (click)="save()">
+            @if (isSaving()) {
+                <i class="fa fa-spinner fa-spin"></i> Sending...
+            } @else {
+                Send Invitation
+            }
+        </button>
+        <button type="button" class="btn btn-primary-outline" [disabled]="isSaving()" (click)="cancel()">Cancel</button>
+    </div>
+</div>

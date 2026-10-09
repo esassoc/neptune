@@ -8,7 +8,7 @@
         <ng-template #templateRight>
             @if (currentPersonCanEdit) {
                 <a class="btn btn-orange" [routerLink]="['/water-quality-management-plans', waterQualityManagementPlanID, 'verifications', 'new']">
-                    Begin O&amp;M Verification
+                    Start O&amp;M Verification
                 </a>
             }
         </ng-template>
@@ -292,9 +292,14 @@
                 <!-- Inventoried Structural BMPs -->
                 <h4 class="module-title mt-4 mb-2 flex-between">Inventoried Structural BMPs
                     @if (currentPersonCanEdit) {
-                        <button type="button" class="btn btn-primary btn-sm" (click)="openEditTreatmentBMPsModal(wqmp)">
-                            Edit
-                        </button>
+                        <span class="module-title-actions">
+                            <button type="button" class="btn btn-primary btn-sm" (click)="openEditTreatmentBMPsModal(wqmp)">
+                                Edit
+                            </button>
+                            <button type="button" class="btn btn-primary btn-sm" (click)="openCreateInventoriedBMPModal(wqmp)">
+                                Add New BMP
+                            </button>
+                        </span>
                     }
                 </h4>
                 @if (!isAnonymousOrUnassigned && wqmp.WaterQualityManagementPlanModelingApproachID === WaterQualityManagementPlanModelingApproachEnum.Simplified) {
@@ -464,7 +469,7 @@
                 @if (currentPersonCanEdit) {
                     <a class="btn btn-primary btn-sm"
                        [routerLink]="['/water-quality-management-plans', waterQualityManagementPlanID, 'verifications', 'new']">
-                        <i class="fa fa-plus"></i> Begin O&amp;M Verification
+                        <i class="fa fa-plus"></i> Start O&amp;M Verification
                     </a>
                 }
             </div>

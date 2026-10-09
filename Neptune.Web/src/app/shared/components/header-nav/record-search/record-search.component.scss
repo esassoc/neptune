@@ -1,0 +1,105 @@
+@use "/src/scss/abstracts" as *;
+
+:host {
+    display: flex;
+    align-items: center;
+    flex: 1 1 22rem;
+    max-width: 28rem;
+    // without this the nowrap placeholder's full width becomes the flex minimum, so the search can't shrink
+    // and the header row overflows near 1280px (About/Help pushed off-screen)
+    min-width: 0;
+    margin: 0 1.5rem;
+
+    @include desktop-small-max {
+        flex: 0 0 auto;
+        margin: 0.5rem 0;
+    }
+}
+
+.record-search__trigger {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    width: 100%;
+    min-width: 0;
+    min-height: 2.5rem;
+    padding: 0.375rem 0.5rem 0.375rem 0.75rem;
+    border: 1px solid $gray-light;
+    border-radius: $border-radius-300;
+    background: $white;
+    color: $gray-dark;
+    font: inherit;
+    text-align: left;
+    cursor: text;
+
+    &:hover {
+        border-color: $gray-default;
+    }
+
+    &:focus-visible {
+        outline: 2px solid $primary;
+        outline-offset: 2px;
+    }
+}
+
+.record-search__icon {
+    flex-shrink: 0;
+}
+
+.record-search__placeholder {
+    flex: 1;
+    min-width: 0;
+    overflow: hidden;
+    white-space: nowrap;
+    text-overflow: ellipsis;
+}
+
+.record-search__kbd {
+    flex-shrink: 0;
+    padding: 0.125rem 0.375rem;
+    border: 1px solid $gray-light;
+    border-bottom-width: 2px;
+    border-radius: $border-radius-200;
+    background: $gray-lighter;
+    color: $gray-dark;
+    font-family: inherit;
+    font-size: 0.8125rem;
+    line-height: 1.2;
+}
+
+// 992–1279px: the header is still one row but the logo and account links fill it, so the trigger goes compact
+// (magnifier + shortcut badge) instead of being squeezed to nothing; the aria-label still names it
+@include desktop-small {
+    @include desktop-medium-max {
+        :host {
+            flex: 0 0 auto;
+            margin: 0 0.75rem;
+        }
+
+        .record-search__trigger {
+            width: auto;
+            cursor: pointer;
+        }
+
+        .record-search__placeholder {
+            display: none;
+        }
+    }
+}
+
+// Collapse to an icon button on phones; the aria-label still names it
+@include tablet-max {
+    :host {
+        flex: 0 0 auto;
+    }
+
+    .record-search__trigger {
+        width: auto;
+        cursor: pointer;
+    }
+
+    .record-search__placeholder,
+    .record-search__kbd {
+        display: none;
+    }
+}

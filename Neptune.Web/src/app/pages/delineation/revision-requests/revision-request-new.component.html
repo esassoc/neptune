@@ -57,7 +57,7 @@
         <p class="tool-hint">Use the map toolbar's trash tool to delete the polygon, then the polygon tool to re-draw it.</p>
       </div>
 
-      <div class="actions">
+      <div class="actions actions--end">
         <button type="button" class="btn btn-primary" [disabled]="saving$ | async" (click)="submit()">Submit</button>
         <button type="button" class="btn btn-primary-outline" (click)="cancel()">Cancel</button>
       </div>

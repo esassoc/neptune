@@ -1,0 +1,170 @@
+<!-- A NATIVE <dialog>, opened with showModal(): the focus trap, the inert page and the focus return are the browser's. -->
+<dialog #dialog class="entity-search__dialog" (close)="onNativeClose()" (keydown)="onKeydown($event)" aria-label="Search">
+    <div class="entity-search__panel">
+        <!-- The combobox. aria-activedescendant points at the highlighted row, which is why Up/Down return focus
+             here: the attribute only announces from the element that has focus. -->
+        <div class="entity-search__field">
+            <svg
+                class="entity-search__field-icon"
+                width="18"
+                height="18"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                aria-hidden="true">
+                <circle cx="11" cy="11" r="8" />
+                <path d="m21 21-4.3-4.3" />
+            </svg>
+            <input
+                #input
+                class="entity-search__input"
+                type="text"
+                role="combobox"
+                aria-expanded="true"
+                [attr.aria-controls]="resultsId"
+                [attr.aria-label]="label() || placeholder()"
+                autocomplete="off"
+                [attr.aria-activedescendant]="activeDomId()"
+                [placeholder]="placeholder()"
+                [value]="query()"
+                (input)="onQuery($event)" />
+            <button type="button" class="entity-search__close" (click)="close()" aria-label="Close search">
+                <svg
+                    width="16"
+                    height="16"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-width="2"
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    aria-hidden="true">
+                    <path d="M18 6 6 18" />
+                    <path d="m6 6 12 12" />
+                </svg>
+            </button>
+        </div>
+
+        <!-- Facets. A radiogroup, so Left/Right move between them and the checked one is the single tab stop.
+             Counts ignore the active scope, so they still say what is behind each facet once one is chosen. -->
+        @if (facetScopes().length) {
+            <div class="entity-search__scopes" role="radiogroup" aria-label="Filter by type">
+                <button
+                    type="button"
+                    class="entity-search__scope"
+                    role="radio"
+                    [attr.aria-checked]="activeScope() === ''"
+                    [class.entity-search__scope--active]="activeScope() === ''"
+                    [attr.tabindex]="activeScope() === '' ? 0 : -1"
+                    (click)="setScope('', 'pointer')">
+                    {{ allLabel() }}
+                    @if (showCounts()) {
+                        <span class="entity-search__scope-count">{{ allCount() }}</span>
+                    }
+                </button>
+                @for (scope of facetScopes(); track scope.id) {
+                    <button
+                        type="button"
+                        class="entity-search__scope"
+                        role="radio"
+                        [attr.aria-checked]="activeScope() === scope.id"
+                        [class.entity-search__scope--active]="activeScope() === scope.id"
+                        [attr.tabindex]="activeScope() === scope.id ? 0 : -1"
+                        (click)="setScope(scope.id, 'pointer')">
+                        @if (scope.icon) {
+                            <img class="entity-search__scope-icon" [src]="scope.icon" alt="" />
+                        }
+                        {{ scope.label }}
+                        @if (showCounts()) {
+                            <span class="entity-search__scope-count">{{ scopeCounts()[scope.id] ?? 0 }}</span>
+                        }
+                    </button>
+                }
+            </div>
+        }
+
+        <div class="entity-search__results" [id]="resultsId" role="listbox" aria-label="Results">
+            @for (group of renderRows(); track group.key) {
+                <!-- role="group" is required: an option must be owned by the listbox directly or through a group. -->
+                <div class="entity-search__group" role="group" [attr.aria-label]="group.ariaLabel">
+                    <div class="entity-search__group-label" aria-hidden="true">
+                        <span>{{ group.label }}</span>
+                        @if (group.countLabel) {
+                            <span class="entity-search__group-count">{{ group.countLabel }}</span>
+                        }
+                    </div>
+                    @for (row of group.rows; track row.entity.id) {
+                        <div
+                            class="entity-search__row"
+                            role="option"
+                            [id]="row.domId"
+                            [attr.data-entity-id]="row.entity.id"
+                            [attr.aria-selected]="activeId() === row.entity.id"
+                            [class.entity-search__row--active]="activeId() === row.entity.id"
+                            (click)="selectEntity(row.entity)">
+                            @if (row.icon) {
+                                <img class="entity-search__row-icon" [src]="row.icon" alt="" />
+                            }
+                            <span class="entity-search__row-text">
+                                <span class="entity-search__row-title-line">
+                                    <span class="entity-search__row-title">
+                                        @for (segment of row.titleSegments; track $index) {
+                                            @if (segment.match) {
+                                                <mark>{{ segment.text }}</mark>
+                                            } @else {
+                                                {{ segment.text }}
+                                            }
+                                        }
+                                    </span>
+                                    @if (row.entity.badge) {
+                                        <span class="entity-search__row-badge">{{ row.entity.badge }}</span>
+                                    }
+                                </span>
+                                @if (row.subtitleSegments) {
+                                    <span class="entity-search__row-subtitle">
+                                        @for (segment of row.subtitleSegments; track $index) {
+                                            @if (segment.match) {
+                                                <mark>{{ segment.text }}</mark>
+                                            } @else {
+                                                {{ segment.text }}
+                                            }
+                                        }
+                                    </span>
+                                }
+                            </span>
+                            @if (row.entity.meta) {
+                                <span class="entity-search__row-meta">{{ row.entity.meta }}</span>
+                            }
+                            @for (action of row.actions; track action.id) {
+                                <button
+                                    type="button"
+                                    class="entity-search__row-action"
+                                    [attr.aria-label]="action.label"
+                                    [title]="action.label"
+                                    (click)="onRowAction($event, action, row.entity)">
+                                    {{ action.label }}
+                                </button>
+                            }
+                        </div>
+                    }
+                </div>
+            }
+            @if (showEmpty()) {
+                <p class="entity-search__empty">No results for “{{ query() }}”.</p>
+            }
+        </div>
+
+        <div class="entity-search__footer">
+            <span><kbd>↑</kbd> <kbd>↓</kbd> Navigate</span>
+            @if (facetScopes().length) {
+                <!-- Left/Right only drive the facets once focus is on them (keyboard rule 2), so the hint says so -->
+                <span><kbd>Tab</kbd> then <kbd>←</kbd> <kbd>→</kbd> Filter</span>
+            }
+            <span><kbd>Enter</kbd> Open</span>
+            <span><kbd>Esc</kbd> Close</span>
+        </div>
+    </div>
+</dialog>

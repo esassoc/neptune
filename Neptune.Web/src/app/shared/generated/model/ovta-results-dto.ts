@@ -19,6 +19,8 @@ export class OVTAResultsDto {
     ALUSumAcresWhereOVTAIsB?: number;
     ALUSumAcresWhereOVTAIsC?: number;
     ALUSumAcresWhereOVTAIsD?: number;
+    HasLandUseBlocks?: boolean;
+    HasOVTAResults?: boolean;
     constructor(obj?: any) {
         Object.assign(this, obj);
     }
@@ -33,6 +35,8 @@ export interface OVTAResultsDtoForm {
     ALUSumAcresWhereOVTAIsB?: FormControl<number>;
     ALUSumAcresWhereOVTAIsC?: FormControl<number>;
     ALUSumAcresWhereOVTAIsD?: FormControl<number>;
+    HasLandUseBlocks?: FormControl<boolean>;
+    HasOVTAResults?: FormControl<boolean>;
 }
 
 export class OVTAResultsDtoFormControls { 
@@ -107,6 +111,26 @@ export class OVTAResultsDtoFormControls {
         }
     );
     public static ALUSumAcresWhereOVTAIsD = (value: FormControlState<number> | number = undefined, formControlOptions?: FormControlOptions | null) => new FormControl<number>(
+        value,
+        formControlOptions ?? 
+        {
+            nonNullable: false,
+            validators: 
+            [
+            ],
+        }
+    );
+    public static HasLandUseBlocks = (value: FormControlState<boolean> | boolean = undefined, formControlOptions?: FormControlOptions | null) => new FormControl<boolean>(
+        value,
+        formControlOptions ?? 
+        {
+            nonNullable: false,
+            validators: 
+            [
+            ],
+        }
+    );
+    public static HasOVTAResults = (value: FormControlState<boolean> | boolean = undefined, formControlOptions?: FormControlOptions | null) => new FormControl<boolean>(
         value,
         formControlOptions ?? 
         {

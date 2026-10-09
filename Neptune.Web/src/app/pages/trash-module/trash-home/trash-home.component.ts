@@ -6,18 +6,21 @@ import { RoleEnum } from "src/app/shared/generated/enum/role-enum";
 import { NeptunePageTypeEnum } from "src/app/shared/generated/enum/neptune-page-type-enum";
 import { CustomRichTextComponent } from "src/app/shared/components/custom-rich-text/custom-rich-text.component";
 import { AlertDisplayComponent } from "src/app/shared/components/alert-display/alert-display.component";
+import { NoteComponent } from "src/app/shared/components/note/note.component";
 import { AsyncPipe, DatePipe, DecimalPipe } from "@angular/common";
 import { takeUntilDestroyed } from "@angular/core/rxjs-interop";
 import {
     BehaviorSubject,
     Observable,
     Subject,
+    catchError,
     combineLatest,
     defer,
     distinctUntilChanged,
     filter,
     finalize,
     map,
+    of,
     scan,
     shareReplay,
     startWith,
@@ -84,6 +87,7 @@ import { OnlandVisualTrashAssessmentAreaService } from "src/app/shared/generated
         DecimalPipe,
         DatePipe,
         LoadingDirective,
+        NoteComponent,
     ],
 })
 export class TrashHomeComponent implements OnInit {
@@ -120,9 +124,9 @@ export class TrashHomeComponent implements OnInit {
         "No Metric, Map Overlay",
     ];
 
-    public areaBasedAcreCalculationsDto$: Observable<AreaBasedAcreCalculationsDto>;
-    public loadResultsDto$: Observable<LoadResultsDto>;
-    public ovtaResultsDto$: Observable<OVTAResultsDto>;
+    public areaBasedResults$: Observable<ResultsViewModel<AreaBasedAcreCalculationsDto>>;
+    public loadResults$: Observable<ResultsViewModel<LoadResultsDto>>;
+    public ovtaResults$: Observable<ResultsViewModel<OVTAResultsDto>>;
     public boundingBox$: Observable<BoundingBoxDto>;
 
     public isLoadingAreaBased$: Observable<boolean>;
@@ -190,6 +194,15 @@ export class TrashHomeComponent implements OnInit {
         private modalService: ModalService
     ) {}
 
+    // Tracks the request on the page-wide counter and converts the outcome into a ResultsViewModel so a
+    // failed HTTP call emits { failed: true } instead of erroring the stream.
+    private toResultsViewModel$<T>(request$: Observable<T>): Observable<ResultsViewModel<T>> {
+        return this.trackRequest$(request$).pipe(
+            map((dto): ResultsViewModel<T> => ({ dto, failed: false })),
+            catchError(() => of<ResultsViewModel<T>>({ dto: null, failed: true }))
+        );
+    }
+
     private trackRequest$<T>(source$: Observable<T>): Observable<T> {
         return defer(() => {
             this.loadingDeltaSubject.next(1);
@@ -219,23 +232,32 @@ export class TrashHomeComponent implements OnInit {
 
         this.lastUpdateDate$ = this.trashGeneratingUnitService.getLastUpdateDateTrashGeneratingUnit();
 
-        this.areaBasedAcreCalculationsDto$ = this.currentStormwaterJurisdiction$.pipe(
+        // NPT-1128 rework: a failed request used to error the stream, which left the results section spinning
+        // forever with nothing rendered (the HTTP error interceptor is silent on 500s). Each results request is
+        // wrapped in a view model so the template can distinguish "loaded", "failed" and empty-data cases.
+        this.areaBasedResults$ = this.currentStormwaterJurisdiction$.pipe(
             switchMap((x) =>
-                this.trackRequest$(this.trashResultsByJurisdictionService.getAreaBasedResultsCalculationsTrashGeneratingUnitByStormwaterJurisdiction(x.StormwaterJurisdictionID))
+                this.toResultsViewModel$(
+                    this.trashResultsByJurisdictionService.getAreaBasedResultsCalculationsTrashGeneratingUnitByStormwaterJurisdiction(x.StormwaterJurisdictionID)
+                )
             ),
             shareReplay({ bufferSize: 1, refCount: true })
         );
 
-        this.loadResultsDto$ = this.currentStormwaterJurisdiction$.pipe(
+        this.loadResults$ = this.currentStormwaterJurisdiction$.pipe(
             switchMap((x) =>
-                this.trackRequest$(this.trashResultsByJurisdictionService.getLoadBasedResultsCalculationsTrashGeneratingUnitByStormwaterJurisdiction(x.StormwaterJurisdictionID))
+                this.toResultsViewModel$(
+                    this.trashResultsByJurisdictionService.getLoadBasedResultsCalculationsTrashGeneratingUnitByStormwaterJurisdiction(x.StormwaterJurisdictionID)
+                )
             ),
             shareReplay({ bufferSize: 1, refCount: true })
         );
 
-        this.ovtaResultsDto$ = this.currentStormwaterJurisdiction$.pipe(
+        this.ovtaResults$ = this.currentStormwaterJurisdiction$.pipe(
             switchMap((x) =>
-                this.trackRequest$(this.trashResultsByJurisdictionService.getOVTABasedResultsCalculationsTrashGeneratingUnitByStormwaterJurisdiction(x.StormwaterJurisdictionID))
+                this.toResultsViewModel$(
+                    this.trashResultsByJurisdictionService.getOVTABasedResultsCalculationsTrashGeneratingUnitByStormwaterJurisdiction(x.StormwaterJurisdictionID)
+                )
             ),
             shareReplay({ bufferSize: 1, refCount: true })
         );
@@ -245,20 +267,21 @@ export class TrashHomeComponent implements OnInit {
             shareReplay({ bufferSize: 1, refCount: true })
         );
 
-        // Per-section loading: true until the corresponding data observable emits,
-        // OR when a jurisdiction-change HTTP request is in flight (tracked by isLoading$).
-        this.isLoadingAreaBased$ = combineLatest([
-            this.areaBasedAcreCalculationsDto$.pipe(map(() => false), startWith(true)),
-            this.isLoading$,
-        ]).pipe(map(([waiting, loading]) => waiting || loading));
-        this.isLoadingLoadResults$ = combineLatest([
-            this.loadResultsDto$.pipe(map(() => false), startWith(true)),
-            this.isLoading$,
-        ]).pipe(map(([waiting, loading]) => waiting || loading));
-        this.isLoadingOvtaResults$ = combineLatest([
-            this.ovtaResultsDto$.pipe(map(() => false), startWith(true)),
-            this.isLoading$,
-        ]).pipe(map(([waiting, loading]) => waiting || loading));
+        // Per-section loading: true until that section's own request settles (success or failure).
+        // Deliberately not OR'd with the page-wide isLoading$: an unrelated slow request (BMPs, bounding box)
+        // must not pin a section's spinner after its own data has arrived.
+        this.isLoadingAreaBased$ = this.areaBasedResults$.pipe(
+            map(() => false),
+            startWith(true)
+        );
+        this.isLoadingLoadResults$ = this.loadResults$.pipe(
+            map(() => false),
+            startWith(true)
+        );
+        this.isLoadingOvtaResults$ = this.ovtaResults$.pipe(
+            map(() => false),
+            startWith(true)
+        );
 
         this.treatmentBMPs$ = this.currentStormwaterJurisdiction$.pipe(
             switchMap((x) =>
@@ -329,9 +352,8 @@ export class TrashHomeComponent implements OnInit {
                 // SPA detail route. Leaflet popups are raw HTML so we can't use [routerLink];
                 // root-relative path + target="_blank" still opens the SPA in a fresh tab.
                 layer.bindPopup(
-                    `<b>Name:</b> <a target="_blank" href="/treatment-bmps/${feature.properties.TreatmentBMPID}">${
-                        feature.properties.TreatmentBMPName
-                    }</a><br>` + `<b>Type:</b> ${feature.properties.TreatmentBMPTypeName}`
+                    `<b>Name:</b> <a target="_blank" href="/treatment-bmps/${feature.properties.TreatmentBMPID}">${feature.properties.TreatmentBMPName}</a><br>` +
+                        `<b>Type:</b> ${feature.properties.TreatmentBMPTypeName}`
                 );
             },
         });
@@ -490,4 +512,9 @@ export class TrashHomeComponent implements OnInit {
     showScoreDefinitions() {
         this.modalService.open(ScoreDescriptionsComponent, null, { CloseOnClickOut: false, TopLayer: false, ModalSize: ModalSizeEnum.Large, ModalTheme: ModalThemeEnum.Light });
     }
+}
+
+export interface ResultsViewModel<T> {
+    dto: T | null;
+    failed: boolean;
 }

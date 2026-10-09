@@ -79,10 +79,13 @@ export class TrashOvtaAreaIndexComponent {
                     {
                         ActionName: "Delete",
                         ActionIcon: "fas fa-trash text-danger",
-                        ActionHandler: () =>
-                            this.deleteOVTAArea(params.data.OnlandVisualTrashAssessmentAreaID, params.data.OnlandVisualTrashAssessmentAreaName, totalAssessments),
+                        ActionHandler: () => this.deleteOVTAArea(params.data.OnlandVisualTrashAssessmentAreaID, params.data.OnlandVisualTrashAssessmentAreaName, totalAssessments),
                     },
                 ];
+            }),
+            // NPT-1128 rework: ID column on the far left, matching the other index grids (e.g. "LGU ID", "RSB ID").
+            this.utilityFunctionsService.createLinkColumnDef("OVTA Area ID", "OnlandVisualTrashAssessmentAreaID", "OnlandVisualTrashAssessmentAreaID", {
+                InRouterLink: "../onland-visual-trash-assessment-areas/",
             }),
             this.utilityFunctionsService.createLinkColumnDef("Assessment Area Name", "OnlandVisualTrashAssessmentAreaName", "OnlandVisualTrashAssessmentAreaID", {
                 InRouterLink: "../onland-visual-trash-assessment-areas/",
@@ -94,11 +97,18 @@ export class TrashOvtaAreaIndexComponent {
                 CustomDropdownFilterField: "OnlandVisualTrashAssessmentProgressScoreName",
             }),
             this.utilityFunctionsService.createDecimalColumnDef("# of Assessments in Progress", "NumberOfAssessmentsInProgress", { DecimalPlacesToDisplay: 0 }),
-            this.utilityFunctionsService.createDecimalColumnDef("# of Completed Assessments", "NumberOfAssessmentsCompleted", { DecimalPlacesToDisplay: 0 }),
+            // NPT-1128 rework: completed count split into baseline vs progress.
+            this.utilityFunctionsService.createDecimalColumnDef("# of Completed Baseline Assessments", "NumberOfBaselineAssessmentsCompleted", { DecimalPlacesToDisplay: 0 }),
+            this.utilityFunctionsService.createDecimalColumnDef("# of Completed Progress Assessments", "NumberOfProgressAssessmentsCompleted", { DecimalPlacesToDisplay: 0 }),
+            // NPT-1128 rework: acreage of the native-projection geometry.
+            this.utilityFunctionsService.createDecimalColumnDef("Area (Ac)", "AreaAcres", { DecimalPlacesToDisplay: 2 }),
             this.utilityFunctionsService.createDateColumnDef("Last Assessment Date", "LastAssessmentDate", "shortDate"),
             this.utilityFunctionsService.createBasicColumnDef("Jurisdiction", "StormwaterJurisdictionName", {
                 CustomDropdownFilterField: "StormwaterJurisdictionName",
             }),
+            // NPT-1128 rework: live Land Use Block intersect (comma-separated when an area spans several blocks).
+            this.utilityFunctionsService.createBasicColumnDef("Land Use Type", "LandUseTypes"),
+            this.utilityFunctionsService.createBasicColumnDef("Land Use Block ID", "LandUseBlockIDs"),
             this.utilityFunctionsService.createBasicColumnDef("Description", "AssessmentAreaDescription"),
         ];
         this.onlandVisualTrashAssessmentAreas$ = this.refreshGridTrigger$.pipe(
@@ -162,17 +172,15 @@ export class TrashOvtaAreaIndexComponent {
                 ? `<br/><p>This Area has <strong>${assessmentCount} associated assessment${assessmentCount === 1 ? "" : "s"}</strong> which will also be deleted.</p>`
                 : "";
         const message = `<p>Are you sure you want to delete the OVTA Area <strong>${safeAreaName}</strong>? This cannot be undone.</p>${cascadeWarning}`;
-        this.confirmService
-            .confirm({ buttonClassYes: "btn-danger", buttonTextYes: "Delete", buttonTextNo: "Cancel", title: "Delete OVTA Area", message })
-            .then((confirmed) => {
-                if (confirmed) {
-                    this.onlandVisualTrashAssessmentAreaService.deleteOnlandVisualTrashAssessmentArea(onlandVisualTrashAssessmentAreaID).subscribe(() => {
-                        this.alertService.clearAlerts();
-                        this.alertService.pushAlert(new Alert("OVTA Area was successfully deleted.", AlertContext.Success));
-                        this.refreshGridTrigger$.next();
-                    });
-                }
-            });
+        this.confirmService.confirm({ buttonClassYes: "btn-danger", buttonTextYes: "Delete", buttonTextNo: "Cancel", title: "Delete OVTA Area", message }).then((confirmed) => {
+            if (confirmed) {
+                this.onlandVisualTrashAssessmentAreaService.deleteOnlandVisualTrashAssessmentArea(onlandVisualTrashAssessmentAreaID).subscribe(() => {
+                    this.alertService.clearAlerts();
+                    this.alertService.pushAlert(new Alert("OVTA Area was successfully deleted.", AlertContext.Success));
+                    this.refreshGridTrigger$.next();
+                });
+            }
+        });
     }
 
     public currentUserHasJurisdictionManagePermission(): boolean {

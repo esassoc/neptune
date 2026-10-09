@@ -1,18 +1,45 @@
 <div class="modal">
     <div class="modal-header">
-        <h3>{{ hasInProgressVisit ? "Continue or Restart Field Visit?" : "Begin a New Field Visit" }}</h3>
+        <h3>{{ hasInProgressVisit() ? "Continue or Restart Field Visit?" : "Start a New Field Visit" }}</h3>
     </div>
     <div class="modal-body">
         <app-alert-display></app-alert-display>
 
-        @if (hasInProgressVisit) {
+        @if (hasInProgressVisit()) {
             <p class="alert alert-warning">
                 A Field Visit is already in progress for this Treatment BMP. You can continue it, or start a new one — the existing visit will be marked Unresolved.
             </p>
         }
 
         <form [formGroup]="formGroup" class="grid-12">
-            @if (hasInProgressVisit) {
+            @if (showBMPPicker) {
+                <!-- NPT-1122: picker mode (Field Records "Start Field Visit"). bindLabel + searchFn are
+                     load-bearing — see NPT-1109 in edit-treatment-bmps-modal. -->
+                <div class="g-col-12 field field--md">
+                    <label class="field-label required" for="start-field-visit-bmp-picker">Treatment BMP</label>
+                    @if (treatmentBMPs$ | async; as treatmentBMPs) {
+                        <ng-select
+                            labelForId="start-field-visit-bmp-picker"
+                            [items]="treatmentBMPs"
+                            bindLabel="TreatmentBMPName"
+                            bindValue="TreatmentBMPID"
+                            [formControl]="treatmentBMPControl"
+                            [searchable]="true"
+                            [searchFn]="searchTreatmentBMPs"
+                            [clearable]="true"
+                            appendTo="body"
+                            placeholder="Search for a BMP...">
+                            <ng-template ng-option-tmp let-item="item"> {{ item.TreatmentBMPName }} ({{ item.TreatmentBMPTypeName }}) </ng-template>
+                            <ng-template ng-label-tmp let-item="item">
+                                <span class="picker-label">{{ item.TreatmentBMPName }} ({{ item.TreatmentBMPTypeName }})</span>
+                            </ng-template>
+                        </ng-select>
+                    } @else {
+                        <p class="system-text">Loading BMPs...</p>
+                    }
+                </div>
+            }
+            @if (hasInProgressVisit()) {
                 <form-field
                     class="g-col-12 action-radio"
                     size="md"
@@ -41,11 +68,11 @@
         </form>
     </div>
     <div class="modal-footer">
-        <button type="button" class="btn btn-primary" [disabled]="isSaving" (click)="save()">
-            @if (isSaving) {
+        <button type="button" class="btn btn-primary" [disabled]="!canStart" (click)="save()">
+            @if (isSaving || isCheckingInProgress()) {
                 <i class="fa fa-spinner fa-spin"></i>
             }
-            {{ hasInProgressVisit && formGroup.controls.ContinueExistingInProgress.value === true ? "Continue Visit" : "Begin Visit" }}
+            {{ hasInProgressVisit() && formGroup.controls.ContinueExistingInProgress.value === true ? "Continue Visit" : "Start Visit" }}
         </button>
         <button type="button" class="btn btn-primary-outline" [disabled]="isSaving" (click)="cancel()">Cancel</button>
     </div>

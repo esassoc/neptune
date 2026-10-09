@@ -1,7 +1,5 @@
-extern alias AzureIdentity;
 using System.IO.Compression;
-using System.Text.Json;
-using System.Text.Json.Serialization;
+using Azure.Identity;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.HttpOverrides;
 using Microsoft.AspNetCore.ResponseCompression;
@@ -39,9 +37,7 @@ var keyVaultName = builder.Configuration["KeyVaultName"];
 if (!string.IsNullOrWhiteSpace(keyVaultName))
 {
     var kvUri = new Uri($"https://{keyVaultName}.vault.azure.net/");
-    // Alias-qualified: DefaultAzureCredential is type-forwarded between Azure.Core
-    // and Azure.Identity, so an unaliased name is ambiguous.
-    builder.Configuration.AddAzureKeyVault(kvUri, new AzureIdentity::Azure.Identity.DefaultAzureCredential(),
+    builder.Configuration.AddAzureKeyVault(kvUri, new DefaultAzureCredential(),
         new NeptuneKeyVaultSecretManager());
     // Re-add env vars after the vault so local overrides still win.
     builder.Configuration.AddEnvironmentVariables();

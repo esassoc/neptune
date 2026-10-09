@@ -241,6 +241,8 @@ public partial class NeptuneDbContext : DbContext
 
     public virtual DbSet<vNereidTreatmentBMPRegionalSubbasin> vNereidTreatmentBMPRegionalSubbasins { get; set; }
 
+    public virtual DbSet<vOnlandVisualTrashAssessmentAreaLandUseBlock> vOnlandVisualTrashAssessmentAreaLandUseBlocks { get; set; }
+
     public virtual DbSet<vOnlandVisualTrashAssessmentAreaProgress> vOnlandVisualTrashAssessmentAreaProgresses { get; set; }
 
     public virtual DbSet<vPowerBICentralizedBMPLoadGeneratingUnit> vPowerBICentralizedBMPLoadGeneratingUnits { get; set; }
@@ -1226,6 +1228,11 @@ public partial class NeptuneDbContext : DbContext
         modelBuilder.Entity<vNereidTreatmentBMPRegionalSubbasin>(entity =>
         {
             entity.ToView("vNereidTreatmentBMPRegionalSubbasin");
+        });
+
+        modelBuilder.Entity<vOnlandVisualTrashAssessmentAreaLandUseBlock>(entity =>
+        {
+            entity.ToView("vOnlandVisualTrashAssessmentAreaLandUseBlock");
         });
 
         modelBuilder.Entity<vOnlandVisualTrashAssessmentAreaProgress>(entity =>

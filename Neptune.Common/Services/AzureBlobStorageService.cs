@@ -4,6 +4,7 @@ using Azure.Storage.Blobs.Models;
 using Azure.Storage.Sas;
 using System.Collections.Generic;
 using System.IO;
+using System.Threading;
 using System.Threading.Tasks;
 
 namespace Neptune.Common.Services;
@@ -712,12 +713,22 @@ public class AzureBlobStorageService
     public async Task<bool> UploadToBlobStorage(byte[] fileBytes, string blobName, string extension)
     {
         using var ms = new MemoryStream(fileBytes);
+        return await UploadToBlobStorage(ms, blobName, extension);
+    }
+
+    /// <summary>
+    /// Stream overload — lets callers hand off an upload (e.g. IFormFile.OpenReadStream()) without
+    /// first materializing the whole file as a byte[], which matters for the large File Geodatabase
+    /// uploads.
+    /// </summary>
+    public async Task<bool> UploadToBlobStorage(Stream fileStream, string blobName, string extension)
+    {
         var blobClient = _fileResourceContainerClient.GetBlobClient(blobName);
         var exists = await blobClient.ExistsAsync();
 
         if (!exists.Value)
         {
-            await blobClient.UploadAsync(ms, new BlobHttpHeaders { ContentType = GetContentTypeFromExtension(extension) });
+            await blobClient.UploadAsync(fileStream, new BlobHttpHeaders { ContentType = GetContentTypeFromExtension(extension) });
         }
 
         return await blobClient.ExistsAsync();
@@ -756,10 +767,26 @@ public class AzureBlobStorageService
         return downloadResult.Value;
     }
 
-    public async Task<BlobDownloadStreamingResult> DownloadBlobFromBlobStorageAsStream(string canonicalName)
+    public async Task<BlobDownloadStreamingResult> DownloadBlobFromBlobStorageAsStream(
+        string canonicalName, CancellationToken cancellationToken = default)
     {
         var blobClient = _fileResourceContainerClient.GetBlobClient(canonicalName);
-        var downloadResult = await blobClient.DownloadStreamingAsync();
+        var downloadResult = await blobClient.DownloadStreamingAsync(cancellationToken: cancellationToken);
+        return downloadResult.Value;
+    }
+
+    /// <summary>
+    /// Streams a byte range of a blob. The stream returned by the download is not seekable,
+    /// so callers that need to inspect a file's leading bytes and then send it from an offset
+    /// have to ask for the range up front rather than peeking and rewinding.
+    /// Pass a null <paramref name="length"/> to read from <paramref name="offset"/> to the end.
+    /// </summary>
+    public async Task<BlobDownloadStreamingResult> DownloadBlobRangeFromBlobStorageAsStream(
+        string canonicalName, long offset, long? length = null, CancellationToken cancellationToken = default)
+    {
+        var blobClient = _fileResourceContainerClient.GetBlobClient(canonicalName);
+        var downloadResult = await blobClient.DownloadStreamingAsync(
+            new BlobDownloadOptions { Range = new Azure.HttpRange(offset, length) }, cancellationToken);
         return downloadResult.Value;
     }
 

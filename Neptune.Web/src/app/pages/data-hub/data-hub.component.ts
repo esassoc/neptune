@@ -1,6 +1,7 @@
 import { Component, DestroyRef, inject, OnInit, signal } from "@angular/core";
 import { ActivatedRoute, Router } from "@angular/router";
 import { takeUntilDestroyed } from "@angular/core/rxjs-interop";
+import { AlertDisplayComponent } from "src/app/shared/components/alert-display/alert-display.component";
 import { PageHeaderComponent } from "src/app/shared/components/page-header/page-header.component";
 import { BtnGroupRadioInputComponent, IBtnGroupRadioInputOption } from "src/app/shared/components/inputs/btn-group-radio-input/btn-group-radio-input.component";
 import { BmpsAndDelineationsTabComponent } from "./tabs/bmps-and-delineations-tab/bmps-and-delineations-tab.component";
@@ -14,6 +15,7 @@ import { DataHubTabKey } from "./components/data-hub-quick-links/data-hub-quick-
     selector: "data-hub",
     standalone: true,
     imports: [
+        AlertDisplayComponent,
         PageHeaderComponent,
         BtnGroupRadioInputComponent,
         BmpsAndDelineationsTabComponent,

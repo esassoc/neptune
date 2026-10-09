@@ -147,6 +147,15 @@ variable "h2oReadersGroupObjectId" {
   default = "5136cec4-2c3d-41c5-b938-1a8053938118"
 }
 
+# Object id of the Dev/Test devops SP (esadatatechnology-Azure-Devops) that runs the QA blob restore
+# under the Dev/Test service connection. That SP can't reach the prod subscription, so it gets read-only
+# access to the prod SOURCE account here (azurerm_role_assignment.qa_restore_source_reader, prod env only).
+# Object id = identifier, not a secret (same as the h2o groups); shared esassoc org-wide.
+variable "qaRestoreSpObjectId" {
+  type    = string
+  default = "c85db245-efe7-45f4-a0b8-a6bcc397d307"
+}
+
 terraform {
 	required_version   = ">= 0.11"
 	backend "azurerm" {
@@ -568,6 +577,29 @@ resource "azurerm_role_assignment" "pipeline_kv_secrets_officer" {
   principal_id         = data.azurerm_client_config.current.object_id
 }
 
+# The blob-restore pipeline steps (restore-dev-blob + the deploy pipeline's env restore) run as this
+# service connection and azcopy blobs with Entra auth (no keys). The pipeline SP needs blob data access on
+# this env's web account, least-privilege by env: NON-prod is a copy DESTINATION (the env's refresh writes
+# here) -> Contributor; PROD is only a SOURCE the dev/qa restores read from (the pipeline SP never writes
+# prod blobs - app runtime writes go through the app managed identity) -> Reader. Same connection applies
+# this and runs the restore, so data.azurerm_client_config.current is the right principal here.
+resource "azurerm_role_assignment" "pipeline_blob_contributor" {
+  scope                = azurerm_storage_account.web.id
+  role_definition_name = local.is_prod ? "Storage Blob Data Reader" : "Storage Blob Data Contributor"
+  principal_id         = data.azurerm_client_config.current.object_id
+}
+
+# The QA blob restore runs under the Dev/Test connection (SP c85db245), which can't reach the prod
+# subscription - so grant it read-only on the prod SOURCE account. Prod env ONLY: here
+# azurerm_storage_account.web IS the prod account (the source every lower env reads from). The prod deploy
+# pipeline that applies this has role-assignment rights in the prod sub. Reader = read-only source.
+resource "azurerm_role_assignment" "qa_restore_source_reader" {
+  count                = var.qaRestoreSpObjectId != "" && local.is_prod ? 1 : 0
+  scope                = azurerm_storage_account.web.id
+  role_definition_name = "Storage Blob Data Reader"
+  principal_id         = var.qaRestoreSpObjectId
+}
+
 # RBAC role assignments take seconds-to-minutes to propagate; secret writes in
 # the same apply 403 without this buffer. Worst case the apply is re-runnable.
 resource "time_sleep" "kv_rbac_propagation" {
@@ -619,11 +651,42 @@ resource "azurerm_role_assignment" "identity_kv_secrets_user" {
   principal_id         = azurerm_user_assigned_identity.neptune.principal_id
 }
 
-# --- H2O group vault access --------------------------------------------------
-# Prod group: Officer everywhere. QA group: Officer on QA, read-only on prod.
-# Readers: read-only on QA. Guarded so an empty object id skips the grant.
+# --- H2O group access matrix -------------------------------------------------
+# The environment is the boundary:
+#
+#   H2O Prod     prod only              -- read and write
+#   H2O QA       QA and dev             -- read and write, no prod access
+#   H2O Readers  QA                     -- read, no prod access
+#
+# PREREQUISITE: H2O Prod is NESTED INSIDE H2O QA. Prod staff therefore reach QA and
+# dev through the H2O QA grants and Azure RBAC's transitive membership resolution,
+# not through grants of their own -- which is why H2O Prod is prod-only below. The
+# pipeline's database matrix relies on the same nesting.
+#
+# Un-nesting the groups removes prod staff's non-prod access, in Azure and in SQL,
+# with no code change to warn anybody. Re-add the non-prod grants at the same time.
+# The redundant grants were deliberately dropped rather than kept as insurance:
+# keeping them would hide an un-nesting instead of surviving it, and would leave this
+# file hedging against something the database matrix already assumes.
+#
+# The same matrix governs database access, granted as contained users by the
+# 'Grant DB access to H2O Entra groups' step in Build/azure-pipelines.yml. Change
+# both together or the boundary is fiction: an earlier pass removed the prod vault
+# grant and left the prod database grant behind, which is worse than either
+# consistent state.
+#
+# Each grant needs BOTH halves to be useful, which is the usual Azure trip-up:
+# Reader at resource-group scope makes the resources visible in the portal but
+# grants no blob access whatsoever, and the Storage Blob Data roles grant blob
+# access but do not make the account visible. Neither implies the other, and
+# Contributor on a storage account still cannot read a blob over Entra auth.
+#
+# Guarded on a non-empty object id so a group that does not exist yet can be
+# skipped by clearing its variable.
+#
+# --- Key Vault ---
 resource "azurerm_role_assignment" "h2o_prod_group_kv_secrets_officer" {
-  count                = var.h2oProdGroupObjectId != "" ? 1 : 0
+  count                = var.h2oProdGroupObjectId != "" && local.is_prod ? 1 : 0
   scope                = azurerm_key_vault.web.id
   role_definition_name = "Key Vault Secrets Officer"
   principal_id         = var.h2oProdGroupObjectId
@@ -636,17 +699,62 @@ resource "azurerm_role_assignment" "h2o_qa_group_kv_secrets_officer" {
   principal_id         = var.h2oQaGroupObjectId
 }
 
-resource "azurerm_role_assignment" "h2o_qa_group_kv_secrets_user_on_prod" {
-  count                = var.h2oQaGroupObjectId != "" && local.is_prod ? 1 : 0
-  scope                = azurerm_key_vault.web.id
-  role_definition_name = "Key Vault Secrets User"
-  principal_id         = var.h2oQaGroupObjectId
-}
-
 resource "azurerm_role_assignment" "h2o_readers_group_kv_secrets_user" {
   count                = var.h2oReadersGroupObjectId != "" && !local.is_prod ? 1 : 0
   scope                = azurerm_key_vault.web.id
   role_definition_name = "Key Vault Secrets User"
+  principal_id         = var.h2oReadersGroupObjectId
+}
+
+# --- Resource group: makes the environment's resources visible at all ---
+# Reader here is management-plane only: it makes the resources visible and grants
+# no blob access at all. The Storage Blob Data roles below are the other half, and
+# neither implies the other -- Contributor on a storage account still cannot read
+# a blob over Entra auth.
+resource "azurerm_role_assignment" "h2o_prod_group_rg_reader" {
+  count                = var.h2oProdGroupObjectId != "" && local.is_prod ? 1 : 0
+  scope                = azurerm_resource_group.web.id
+  role_definition_name = "Reader"
+  principal_id         = var.h2oProdGroupObjectId
+}
+
+resource "azurerm_role_assignment" "h2o_qa_group_rg_reader" {
+  count                = var.h2oQaGroupObjectId != "" && !local.is_prod ? 1 : 0
+  scope                = azurerm_resource_group.web.id
+  role_definition_name = "Reader"
+  principal_id         = var.h2oQaGroupObjectId
+}
+
+resource "azurerm_role_assignment" "h2o_readers_group_rg_reader" {
+  count                = var.h2oReadersGroupObjectId != "" && !local.is_prod ? 1 : 0
+  scope                = azurerm_resource_group.web.id
+  role_definition_name = "Reader"
+  principal_id         = var.h2oReadersGroupObjectId
+}
+
+# --- Storage blobs: the data plane ---
+# Scoped to the application storage account. The count-conditional "dev" account
+# some of these stacks declare is deliberately left alone: it is the throwaway
+# mirror restore-dev-blob.yml populates rather than application data, and it
+# exists only when storageAccountDevApplicationName is set.
+resource "azurerm_role_assignment" "h2o_prod_group_blob_contributor" {
+  count                = var.h2oProdGroupObjectId != "" && local.is_prod ? 1 : 0
+  scope                = azurerm_storage_account.web.id
+  role_definition_name = "Storage Blob Data Contributor"
+  principal_id         = var.h2oProdGroupObjectId
+}
+
+resource "azurerm_role_assignment" "h2o_qa_group_blob_contributor" {
+  count                = var.h2oQaGroupObjectId != "" && !local.is_prod ? 1 : 0
+  scope                = azurerm_storage_account.web.id
+  role_definition_name = "Storage Blob Data Contributor"
+  principal_id         = var.h2oQaGroupObjectId
+}
+
+resource "azurerm_role_assignment" "h2o_readers_group_blob_reader" {
+  count                = var.h2oReadersGroupObjectId != "" && !local.is_prod ? 1 : 0
+  scope                = azurerm_storage_account.web.id
+  role_definition_name = "Storage Blob Data Reader"
   principal_id         = var.h2oReadersGroupObjectId
 }
 
@@ -842,5 +950,31 @@ resource "datadog_synthetics_test" "geoserver_test" {
   message = "Notify @rlee@esassoc.com @sgordon@esassoc.com  @team-${var.team}${var.environment == "qa" ? "-qa" : ""}"
   tags    = ["env:${var.environment}", "managed:terraformed", "team:${var.team}"]
   status = "live"
+}
+
+# Anthropic account problems: out of credits / over the spend limit, or the API key rejected
+# (401/403, or 404 from the Files API upload). The org-wide Error Tracking monitor only fires on
+# NEW or regressed issues, and every Anthropic 400 (bad PDF, billing, ...) groups into one
+# long-open AnthropicBadRequestException issue — so a drained account never alerts there.
+# Matches the WQMP extraction endpoint's error log: AnthropicAccountIssue.LogMarker for every
+# classified account issue, plus Anthropic's billing text as a fallback.
+# (Resource name kept from the credit-balance-only version so apply updates it in place.)
+resource "datadog_monitor" "anthropic_credit_balance" {
+  name    = "Neptune Anthropic API account issue"
+  type    = "log alert"
+  query   = "logs(\"service:neptune-api env:${var.environment} (\\\"Anthropic account issue\\\" OR \\\"credit balance\\\" OR \\\"usage limits\\\")\").index(\"*\").rollup(\"count\").last(\"5m\") > 0"
+  message = <<-EOT
+    {{#is_alert}}Anthropic API calls from Neptune (${var.environment}) are failing for an account reason: credit balance too low, usage limit reached, or the API key rejected / lacking Files API access. AI extraction is down for every user until this is fixed. Check the key's organization, credits and limits in the Anthropic Console (Plans & Billing, API keys). The triggering log line has Anthropic's exact error.{{/is_alert}}
+    {{#is_recovery}}Anthropic account errors from Neptune (${var.environment}) have stopped.{{/is_recovery}}
+    Notify @rlee@esassoc.com @sgordon@esassoc.com @team-${var.team}${var.environment == "qa" ? "-qa" : ""}
+  EOT
+
+  monitor_thresholds {
+    critical = 0
+  }
+
+  notify_no_data    = false
+  renotify_interval = 120
+  tags              = ["env:${var.environment}", "managed:terraformed", "team:${var.team}"]
 }
 

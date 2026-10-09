@@ -1,0 +1,45 @@
+<div class="modal">
+    <div class="modal-header">
+        <h3>Start O&amp;M Visit</h3>
+    </div>
+    <div class="modal-body">
+        <app-alert-display></app-alert-display>
+
+        <form [formGroup]="formGroup" class="grid-12">
+            <!-- bindLabel + searchFn are load-bearing — see NPT-1109 in edit-treatment-bmps-modal. -->
+            <div class="g-col-12 field field--md">
+                <label class="field-label required" for="start-om-visit-wqmp-picker">WQMP</label>
+                @if (wqmps$ | async; as wqmps) {
+                    <ng-select
+                        labelForId="start-om-visit-wqmp-picker"
+                        [items]="wqmps"
+                        bindLabel="WaterQualityManagementPlanName"
+                        bindValue="WaterQualityManagementPlanID"
+                        [formControl]="formGroup.controls.WaterQualityManagementPlanID"
+                        [searchable]="true"
+                        [searchFn]="searchWQMPs"
+                        [clearable]="true"
+                        appendTo="body"
+                        placeholder="Search for a WQMP...">
+                        <ng-template ng-label-tmp let-item="item">
+                            <span class="picker-label">{{ item.WaterQualityManagementPlanName }}</span>
+                        </ng-template>
+                    </ng-select>
+                } @else {
+                    <p class="system-text">Loading WQMPs...</p>
+                }
+            </div>
+            <form-field
+                class="g-col-12"
+                size="md"
+                [formControl]="formGroup.controls.VerificationDate"
+                fieldLabel="Verification Date"
+                [type]="FormFieldType.Date"
+                [required]="true"></form-field>
+        </form>
+    </div>
+    <div class="modal-footer">
+        <button type="button" class="btn btn-primary" [disabled]="!canStart" (click)="start()">Start Visit</button>
+        <button type="button" class="btn btn-primary-outline" (click)="cancel()">Cancel</button>
+    </div>
+</div>

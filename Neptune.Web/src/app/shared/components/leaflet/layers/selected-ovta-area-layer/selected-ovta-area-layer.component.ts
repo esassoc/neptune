@@ -4,6 +4,7 @@ import { MapLayerBase } from "../map-layer-base.component";
 
 import { WfsService } from "src/app/shared/services/wfs.service";
 import { GroupByPipe } from "src/app/shared/pipes/group-by.pipe";
+import { OVTA_AREA_STYLE_BY_SCORE, SELECTED_FEATURE_STYLE } from "src/app/shared/constants/map-styles";
 
 @Component({
     selector: "selected-ovta-area-layer",
@@ -19,52 +20,9 @@ export class SelectedOvtaAreaLayerComponent extends MapLayerBase implements OnCh
 
     public layer: L.FeatureGroup;
 
-    private styleDictionary = {
-        "A": {
-            color: "#00FF00",
-            weight: 2,
-            opacity: 0.65,
-            fillOpacity: 0.1,
-            graphicFill: "Slash",
-        },
-        "B": {
-            color: "#ebc400",
-            weight: 2,
-            opacity: 0.65,
-            fillOpacity: 0.1,
-        },
-        "C": {
-            color: "#FF7F7F",
-            weight: 2,
-            opacity: 0.65,
-            fillOpacity: 0.1,
-        },
-        "D": {
-            color: "#c500ff",
-            weight: 2,
-            opacity: 0.65,
-            fillOpacity: 0.1,
-        },
-        "Not Assessed": {
-            color: "#808080",
-            weight: 2,
-            opacity: 0.65,
-            fillOpacity: 0.1,
-        },
-        "null": {
-            color: "#808080",
-            weight: 2,
-            opacity: 0.65,
-            fillOpacity: 0.1,
-        },
-    };
+    private styleDictionary = OVTA_AREA_STYLE_BY_SCORE;
 
-    private highlightStyle = {
-        color: "#fcfc12",
-        weight: 2,
-        opacity: 0.65,
-        fillOpacity: 0.1,
-    };
+    private highlightStyle = SELECTED_FEATURE_STYLE;
 
     constructor(
         private wfsService: WfsService,

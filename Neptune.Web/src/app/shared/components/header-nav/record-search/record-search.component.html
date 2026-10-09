@@ -1,0 +1,38 @@
+<button
+    #trigger
+    type="button"
+    class="record-search__trigger"
+    aria-haspopup="dialog"
+    aria-keyshortcuts="Control+K Meta+K"
+    aria-label="Search BMPs, WQMPs, OVTAs, projects"
+    (pointerenter)="prefetch()"
+    (focus)="prefetch()"
+    (click)="open()">
+    <svg
+        class="record-search__icon"
+        width="18"
+        height="18"
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke="currentColor"
+        stroke-width="2"
+        stroke-linecap="round"
+        stroke-linejoin="round"
+        aria-hidden="true">
+        <circle cx="11" cy="11" r="8" />
+        <path d="m21 21-4.3-4.3" />
+    </svg>
+    <span class="record-search__placeholder" aria-hidden="true">Search BMPs, WQMPs, OVTAs, projects…</span>
+    <kbd class="record-search__kbd" aria-hidden="true">{{ shortcutLabel }}</kbd>
+</button>
+
+<entity-search
+    #search
+    [entities]="entities()"
+    [scopes]="scopes"
+    requireQuery
+    [groupLimit]="5"
+    [scopedLimit]="50"
+    placeholder="Search BMPs, WQMPs, OVTAs, projects…"
+    label="Search BMPs, WQMPs, OVTAs, projects"
+    (entitySelect)="onSelect($event)" />

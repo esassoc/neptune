@@ -94,6 +94,22 @@ public static partial class WaterQualityManagementPlans
         return displayDtos;
     }
 
+    // NPT-1122: jurisdiction-scoped picker list for the O&M Verifications "Start O&M Visit" modal.
+    public static async Task<List<WaterQualityManagementPlanDisplayDto>> ListAsDisplayDtoForJurisdictionsAsync(
+        NeptuneDbContext dbContext, List<int> stormwaterJurisdictionIDs)
+    {
+        return await dbContext.WaterQualityManagementPlans
+            .AsNoTracking()
+            .Where(x => stormwaterJurisdictionIDs.Contains(x.StormwaterJurisdictionID))
+            .OrderBy(x => x.WaterQualityManagementPlanName)
+            .Select(x => new WaterQualityManagementPlanDisplayDto
+            {
+                WaterQualityManagementPlanID = x.WaterQualityManagementPlanID,
+                WaterQualityManagementPlanName = x.WaterQualityManagementPlanName
+            })
+            .ToListAsync();
+    }
+
     public static async Task<WaterQualityManagementPlanDto?> GetByIDAsDtoAsync(NeptuneDbContext dbContext, int waterQualityManagementPlanID)
     {
         var dto = await dbContext.WaterQualityManagementPlans

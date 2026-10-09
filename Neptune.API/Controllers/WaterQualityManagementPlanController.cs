@@ -41,7 +41,8 @@ namespace Neptune.API.Controllers
         AzureBlobStorageService azureBlobStorageService,
         WqmpExtractionService wqmpExtractionService,
         SitkaSmtpClientService sitkaSmtpClientService,
-        GDALAPIService gdalApiService)
+        GDALAPIService gdalApiService,
+        AnthropicFileService anthropicFileService)
         : SitkaController<WaterQualityManagementPlanController>(dbContext, logger,
             neptuneConfiguration)
     {
@@ -99,6 +100,17 @@ namespace Neptune.API.Controllers
         public async Task<ActionResult<List<WaterQualityManagementPlanDisplayDto>>> ListAsDisplayDtos()
         {
             var plans = await WaterQualityManagementPlans.ListAsDisplayDtoAsync(DbContext);
+            return Ok(plans);
+        }
+
+        // NPT-1122: WQMP picker for the O&M Verifications "Start O&M Visit" modal, scoped to the caller's
+        // jurisdictions (Admin/SitkaAdmin: all). Uses the same jurisdiction helper as the verifications index.
+        [HttpGet("picker")]
+        [JurisdictionEditFeature]
+        public async Task<ActionResult<List<WaterQualityManagementPlanDisplayDto>>> ListForPicker()
+        {
+            var stormwaterJurisdictionIDs = await StormwaterJurisdictionPeople.ListViewableStormwaterJurisdictionIDsByPersonIDForBMPsAsync(DbContext, CallingUser.PersonID);
+            var plans = await WaterQualityManagementPlans.ListAsDisplayDtoForJurisdictionsAsync(DbContext, stormwaterJurisdictionIDs);
             return Ok(plans);
         }
 
@@ -226,6 +238,7 @@ namespace Neptune.API.Controllers
 
             int? newFileResourceID = null;
             int? oldFileResourceID = null;
+            string oldAnthropicFileID = null;
             if (dto.File != null)
             {
                 var errors = FileResources.ValidateFileUpload(dto.File);
@@ -236,6 +249,9 @@ namespace Neptune.API.Controllers
                 }
 
                 oldFileResourceID = existing.FileResourceID;
+                // UpdateMetadataAsync clears the cached id because it belongs to the file
+                // we're replacing; hold onto it so we can delete the upload upstream too.
+                oldAnthropicFileID = existing.AnthropicFileID;
                 var fileResource = await HttpUtilities.MakeFileResourceFromFormFileAsync(DbContext, HttpContext, azureBlobStorageService, dto.File);
                 newFileResourceID = fileResource.FileResourceID;
             }
@@ -255,6 +271,12 @@ namespace Neptune.API.Controllers
                 }
             }
 
+            // Same for the Anthropic upload made from the replaced file — nothing references
+            // it now, and nothing else ever reclaims it. Best-effort; never fails the request.
+            // Deliberately not the request token: the row is already updated, so a client
+            // disconnect here would strand the very file we are trying to reclaim.
+            await anthropicFileService.DeleteRemoteFileAsync(oldAnthropicFileID, CancellationToken.None);
+
             return Ok(updated);
         }
 
@@ -271,11 +293,15 @@ namespace Neptune.API.Controllers
             if (existing.WaterQualityManagementPlanID != waterQualityManagementPlanID) return NotFound();
 
             var fileResource = FileResources.GetByID(DbContext, existing.FileResourceID);
+            // Capture before the row goes away — it is the only record of the upload (NPT-1121).
+            var anthropicFileID = existing.AnthropicFileID;
             await WaterQualityManagementPlanDocuments.DeleteAsync(DbContext, waterQualityManagementPlanDocumentID);
             if (fileResource != null)
             {
                 await azureBlobStorageService.DeleteFileResourceBlob(fileResource.FileResourceGUID);
             }
+            // Best-effort, and deliberately not the request token — see UpdateDocument.
+            await anthropicFileService.DeleteRemoteFileAsync(anthropicFileID, CancellationToken.None);
             return NoContent();
         }
 
@@ -844,12 +870,30 @@ namespace Neptune.API.Controllers
                 // pre-checks) to 400; everything else (timeouts, upstream 5xx, network/SSL,
                 // JSON parse) is a server-side problem and returns 500 so monitoring/clients
                 // don't conflate transient infra issues with validation errors.
-                Logger.LogError(ex, "WQMP extraction failed for WQMP={WaterQualityManagementPlanID}", waterQualityManagementPlanID);
-
                 // Store the readable form of the error rather than the raw exception message
                 // (Anthropic SDK exceptions embed full JSON dumps in .Message). The toast and
                 // the persistent "Last extraction failed: ..." alert both render this directly.
                 var readableMessage = ExtractReadableErrorMessage(ex.Message);
+
+                // Account-level failures (credits exhausted, key revoked, no Files API access)
+                // aren't the user's to fix: show a generic message instead of Anthropic's text.
+                // 500 so the wizard renders it as a server-side problem.
+                var isAccountIssue = AnthropicAccountIssue.IsAccountIssue(ex);
+
+                // The readable message (and, for account issues, the LogMarker) ride in the
+                // rendered log text so the neptune.tf Datadog log monitor can match on them.
+                if (isAccountIssue)
+                {
+                    Logger.LogError(ex, "WQMP extraction failed for WQMP={WaterQualityManagementPlanID} (" + AnthropicAccountIssue.LogMarker + "): {ErrorMessage}",
+                        waterQualityManagementPlanID, readableMessage);
+                    readableMessage = AnthropicAccountIssue.UserFacingMessage;
+                }
+                else
+                {
+                    Logger.LogError(ex, "WQMP extraction failed for WQMP={WaterQualityManagementPlanID}: {ErrorMessage}",
+                        waterQualityManagementPlanID, readableMessage);
+                }
+
                 var failureRow = new WaterQualityManagementPlanExtractionResult
                 {
                     WaterQualityManagementPlanID = waterQualityManagementPlanID,
@@ -862,7 +906,7 @@ namespace Neptune.API.Controllers
                 DbContext.WaterQualityManagementPlanExtractionResults.Add(failureRow);
                 await DbContext.SaveChangesAsync();
 
-                var isUserActionable = ex is InvalidOperationException or Anthropic4xxException;
+                var isUserActionable = !isAccountIssue && (ex is InvalidOperationException or Anthropic4xxException);
                 return isUserActionable
                     ? BadRequest(new { message = readableMessage })
                     : StatusCode(StatusCodes.Status500InternalServerError, new { message = readableMessage });

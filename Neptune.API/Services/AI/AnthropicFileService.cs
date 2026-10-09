@@ -2,6 +2,7 @@ using System;
 using System.Collections.Concurrent;
 using System.IO;
 using System.Linq;
+using System.Net;
 using System.Net.Http;
 using System.Net.Http.Headers;
 using System.Net.Http.Json;
@@ -30,6 +31,13 @@ namespace Neptune.API.Services.AI;
 public class AnthropicFileService
 {
     private const string AnthropicFilesUrl = "https://api.anthropic.com/v1/files";
+
+    /// <summary>
+    /// Ceiling on the best-effort cleanup DELETE in <see cref="DeleteRemoteFileAsync"/>.
+    /// Short on purpose: it runs inline on user-facing delete and file-swap requests, and
+    /// abandoning an orphaned file is much cheaper than making someone wait on it.
+    /// </summary>
+    private static readonly TimeSpan DeleteTimeout = TimeSpan.FromSeconds(10);
 
     // Serializes upload attempts per documentID so concurrent callers (extract+chat
     // hitting the same doc, or two users on the same doc) don't both upload the same
@@ -81,6 +89,23 @@ public class AnthropicFileService
         {
             ContentLengthBytes = contentLengthBytes;
             MaxBytes = maxBytes;
+        }
+    }
+
+    /// <summary>
+    /// Thrown when the Files API rejects an upload. The upload goes through a raw HttpClient
+    /// (not the SDK), so this carries the HTTP status that the SDK's typed exceptions would —
+    /// <see cref="AnthropicAccountIssue"/> uses it to tell account-level failures (bad key,
+    /// no access, billing) from per-document ones. The message keeps the response body so
+    /// the controller can pull out Anthropic's readable <c>error.message</c>.
+    /// </summary>
+    public sealed class AnthropicFileUploadException : InvalidOperationException
+    {
+        public int StatusCode { get; }
+        public AnthropicFileUploadException(int statusCode, string body)
+            : base($"Anthropic Files API upload returned {statusCode}: {body}")
+        {
+            StatusCode = statusCode;
         }
     }
 
@@ -165,7 +190,16 @@ public class AnthropicFileService
         // so the multipart envelope is well-formed without a server-side buffer.
         // Cuts peak memory from O(file size) to a small read window per upload.
         var canonicalName = document.FileResource.GetFileResourceGUIDAsString().ToLower();
-        using var blobDownload = await _blobService.DownloadBlobFromBlobStorageAsStream(canonicalName);
+
+        // Skip any junk ahead of the %PDF signature — see FindPdfHeaderOffsetAsync.
+        var headerOffset = await FindPdfHeaderOffsetAsync(
+            canonicalName, document.WaterQualityManagementPlanDocumentID, cancellationToken);
+
+        using var blobDownload = headerOffset == 0
+            ? await _blobService.DownloadBlobFromBlobStorageAsStream(canonicalName, cancellationToken)
+            : await _blobService.DownloadBlobRangeFromBlobStorageAsStream(
+                canonicalName, headerOffset, cancellationToken: cancellationToken);
+
         var filename = document.FileResource.GetOriginalCompleteFileName();
         if (string.IsNullOrWhiteSpace(filename))
         {
@@ -173,7 +207,7 @@ public class AnthropicFileService
         }
 
         var fileID = await UploadViaHttpClientAsync(
-            blobDownload.Content, document.FileResource.ContentLength, filename, cancellationToken);
+            blobDownload.Content, document.FileResource.ContentLength - headerOffset, filename, cancellationToken);
 
         document.AnthropicFileID = fileID;
         document.AnthropicFileUploadedDate = DateTime.UtcNow;
@@ -183,6 +217,78 @@ public class AnthropicFileService
             document.WaterQualityManagementPlanDocumentID, fileID);
 
         return fileID;
+    }
+
+    /// <summary>
+    /// Number of leading bytes scanned for the %PDF signature. Matches the tolerance window
+    /// used by mainstream readers, which is where these files pick up their reputation for
+    /// being fine.
+    /// </summary>
+    private const int PdfHeaderScanBytes = 1024;
+
+    private static readonly byte[] PdfSignature = "%PDF"u8.ToArray();
+
+    /// <summary>
+    /// Returns the offset of the %PDF signature within the first <see cref="PdfHeaderScanBytes"/>
+    /// bytes of the blob, or 0 if it is already at byte 0 (or cannot be found).
+    ///
+    /// A valid PDF starts with %PDF at byte 0, but real-world files sometimes carry junk ahead
+    /// of it — one WQMP arrived with a single stray 0x01 byte. Acrobat and browsers scan the
+    /// leading kilobyte for the signature and open such files without complaint, so they look
+    /// healthy to the uploader. Anthropic's parser requires the signature at byte 0; without it
+    /// the document is sniffed as application/octet-stream and the extraction call fails with
+    /// "Unsupported document file format", which names the wrong problem entirely and sends you
+    /// hunting for a MIME-type bug. Trimming the leading bytes makes those documents extractable.
+    /// </summary>
+    private async Task<int> FindPdfHeaderOffsetAsync(
+        string canonicalName, int documentID, CancellationToken cancellationToken)
+    {
+        using var head = await _blobService.DownloadBlobRangeFromBlobStorageAsStream(
+            canonicalName, 0, PdfHeaderScanBytes, cancellationToken);
+        using var buffer = new MemoryStream();
+        await head.Content.CopyToAsync(buffer, cancellationToken);
+        var bytes = buffer.ToArray();
+
+        var offset = IndexOfSignature(bytes);
+        if (offset < 0)
+        {
+            // Not a PDF as far as we can tell. Upload unchanged rather than inventing a new
+            // failure mode — Anthropic will reject it, and that rejection is the honest answer.
+            _logger.LogWarning(
+                "No %PDF signature in the first {ScanBytes} bytes for documentID={DocumentID}; uploading unchanged. Extraction will likely fail — the file may not be a PDF.",
+                PdfHeaderScanBytes, documentID);
+            return 0;
+        }
+
+        if (offset > 0)
+        {
+            _logger.LogWarning(
+                "PDF for documentID={DocumentID} has {Offset} junk byte(s) before the %PDF signature; skipping them so Anthropic can parse the document.",
+                documentID, offset);
+        }
+
+        return offset;
+    }
+
+    private static int IndexOfSignature(byte[] bytes)
+    {
+        for (var i = 0; i + PdfSignature.Length <= bytes.Length; i++)
+        {
+            var matched = true;
+            for (var j = 0; j < PdfSignature.Length; j++)
+            {
+                if (bytes[i + j] != PdfSignature[j])
+                {
+                    matched = false;
+                    break;
+                }
+            }
+            if (matched)
+            {
+                return i;
+            }
+        }
+        return -1;
     }
 
     private async Task<string> UploadViaHttpClientAsync(
@@ -210,8 +316,7 @@ public class AnthropicFileService
         if (!response.IsSuccessStatusCode)
         {
             _logger.LogError("Anthropic Files API upload failed (status={Status}): {Body}", (int)response.StatusCode, body);
-            throw new InvalidOperationException(
-                $"Anthropic Files API upload returned {(int)response.StatusCode}: {body}");
+            throw new AnthropicFileUploadException((int)response.StatusCode, body);
         }
 
         var parsed = JsonSerializer.Deserialize<FileUploadResponse>(body)
@@ -271,21 +376,69 @@ public class AnthropicFileService
     }
 
     /// <summary>
-    /// Clear the cached file_id for a document, e.g., after Anthropic returned a 404
-    /// for a stale id. The next <see cref="EnsureUploadedFileIDAsync"/> call will
-    /// re-upload.
+    /// Best-effort delete of a remote Anthropic upload. Call this whenever a cached
+    /// <c>file_id</c> stops being referenced — the document row is deleted, or its
+    /// PDF is replaced — otherwise the upload is orphaned on the account permanently
+    /// and nothing ever reclaims it (NPT-1121).
+    ///
+    /// Never throws. A leftover remote file is not worth failing (or masking) the
+    /// caller's operation over — same posture as
+    /// <c>GDALAPIService.DeleteStagedBlobs</c>. Callers should invoke this *after*
+    /// the database change commits, so a cleanup failure can't leave the row
+    /// pointing at a file we already deleted.
+    ///
+    /// Do not call this on the stale-id 404 path in <see cref="RefreshFileIDAsync"/>:
+    /// upstream has already reported the file missing, so there is nothing to delete
+    /// and the extra round trip only adds latency to an error path.
     /// </summary>
-    public async Task InvalidateFileIDAsync(
-        int waterQualityManagementPlanDocumentID, CancellationToken cancellationToken)
+    public async Task DeleteRemoteFileAsync(string fileID, CancellationToken cancellationToken)
     {
-        var document = await _dbContext.WaterQualityManagementPlanDocuments
-            .SingleAsync(x => x.WaterQualityManagementPlanDocumentID == waterQualityManagementPlanDocumentID, cancellationToken);
+        if (string.IsNullOrWhiteSpace(fileID))
+        {
+            return;
+        }
 
-        document.AnthropicFileID = null;
-        document.AnthropicFileUploadedDate = null;
-        await _dbContext.SaveChangesAsync(cancellationToken);
+        try
+        {
+            // Raw HttpClient rather than the SDK, matching the upload path — see the
+            // NPT-1044 note in UploadAndCacheAsync.
+            using var client = _httpClientFactory.CreateClient();
+            // Callers pass CancellationToken.None so a client disconnect can't strand the
+            // file, which means nothing else bounds this wait. Without an explicit timeout
+            // an unreachable Anthropic would hang every document delete and file swap for
+            // HttpClient's 100s default. Cleanup is best-effort, so give up quickly and
+            // leave the orphan behind rather than making the user wait on it.
+            client.Timeout = DeleteTimeout;
+            // fileID is Anthropic-generated and read back from the database; escape it
+            // rather than trusting that round trip to keep it URL-safe.
+            using var request = new HttpRequestMessage(
+                HttpMethod.Delete, $"{AnthropicFilesUrl}/{Uri.EscapeDataString(fileID)}");
+            request.Headers.Add("x-api-key", _configuration.AnthropicApiKey);
+            request.Headers.Add("anthropic-version", "2023-06-01");
+            request.Headers.Add("anthropic-beta", "files-api-2025-04-14");
 
-        _logger.LogWarning("Invalidated Anthropic file cache for documentID={DocumentID}",
-            waterQualityManagementPlanDocumentID);
+            using var response = await client.SendAsync(request, cancellationToken);
+
+            // Already gone upstream is the outcome we wanted, not a failure.
+            if (response.StatusCode == HttpStatusCode.NotFound)
+            {
+                _logger.LogInformation("Anthropic file {FileID} was already absent upstream; nothing to delete.", fileID);
+                return;
+            }
+
+            if (!response.IsSuccessStatusCode)
+            {
+                var body = await response.Content.ReadAsStringAsync(cancellationToken);
+                _logger.LogWarning("Failed to delete Anthropic file {FileID} (status={Status}): {Body}",
+                    fileID, (int)response.StatusCode, body);
+                return;
+            }
+
+            _logger.LogInformation("Deleted Anthropic file {FileID}.", fileID);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex, "Failed to delete Anthropic file {FileID}", fileID);
+        }
     }
 }

@@ -3272,6 +3272,54 @@
         }
       }
     },
+    "/nearby-assets": {
+      "get": {
+        "tags": [
+          "NearbyAsset"
+        ],
+        "operationId": "List_NearbyAsset",
+        "parameters": [
+          {
+            "name": "latitude",
+            "in": "query",
+            "schema": {
+              "type": "number",
+              "format": "double"
+            }
+          },
+          {
+            "name": "longitude",
+            "in": "query",
+            "schema": {
+              "type": "number",
+              "format": "double"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/NearbyAssetsResultDto"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/NearbyAssetsResultDto"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/NearbyAssetsResultDto"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/nereid/delta-solve": {
       "get": {
         "tags": [
@@ -7310,6 +7358,45 @@
         }
       }
     },
+    "/search/index": {
+      "get": {
+        "tags": [
+          "Search"
+        ],
+        "operationId": "ListIndex_Search",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/SearchRecordDto"
+                  }
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/SearchRecordDto"
+                  }
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/SearchRecordDto"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/jurisdictions": {
       "get": {
         "tags": [
@@ -8345,6 +8432,45 @@
                   "type": "array",
                   "items": {
                     "$ref": "#/components/schemas/TreatmentBMPDisplayDto"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/treatment-bmps/picker": {
+      "get": {
+        "tags": [
+          "TreatmentBMP"
+        ],
+        "operationId": "ListForPicker_TreatmentBMP",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/TreatmentBMPMinimalDto"
+                  }
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/TreatmentBMPMinimalDto"
+                  }
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/TreatmentBMPMinimalDto"
                   }
                 }
               }
@@ -12060,6 +12186,55 @@
         }
       }
     },
+    "/users/invite": {
+      "post": {
+        "tags": [
+          "User"
+        ],
+        "operationId": "Invite_User",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PersonInviteDto"
+              }
+            },
+            "text/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PersonInviteDto"
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "$ref": "#/components/schemas/PersonInviteDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/PersonInviteResultDto"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PersonInviteResultDto"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PersonInviteResultDto"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/users/{personID}/jurisdictions": {
       "put": {
         "tags": [
@@ -12504,6 +12679,45 @@
           "WaterQualityManagementPlan"
         ],
         "operationId": "ListAsDisplayDtos_WaterQualityManagementPlan",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/WaterQualityManagementPlanDisplayDto"
+                  }
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/WaterQualityManagementPlanDisplayDto"
+                  }
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/WaterQualityManagementPlanDisplayDto"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/water-quality-management-plans/picker": {
+      "get": {
+        "tags": [
+          "WaterQualityManagementPlan"
+        ],
+        "operationId": "ListForPicker_WaterQualityManagementPlan",
         "responses": {
           "200": {
             "description": "OK",
@@ -17545,6 +17759,57 @@
         },
         "additionalProperties": false
       },
+      "NearbyAssetDto": {
+        "type": "object",
+        "properties": {
+          "AssetType": {
+            "type": "string",
+            "nullable": true
+          },
+          "AssetID": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "AssetName": {
+            "type": "string",
+            "nullable": true
+          },
+          "StormwaterJurisdictionID": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "Latitude": {
+            "type": "number",
+            "format": "double"
+          },
+          "Longitude": {
+            "type": "number",
+            "format": "double"
+          },
+          "DistanceMeters": {
+            "type": "number",
+            "format": "double"
+          }
+        },
+        "additionalProperties": false
+      },
+      "NearbyAssetsResultDto": {
+        "type": "object",
+        "properties": {
+          "RadiusMeters": {
+            "type": "number",
+            "format": "double"
+          },
+          "Assets": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/NearbyAssetDto"
+            },
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
       "NeptunePageDto": {
         "type": "object",
         "properties": {
@@ -17646,6 +17911,12 @@
           "ALUSumAcresWhereOVTAIsD": {
             "type": "number",
             "format": "double"
+          },
+          "HasLandUseBlocks": {
+            "type": "boolean"
+          },
+          "HasOVTAResults": {
+            "type": "boolean"
           }
         },
         "additionalProperties": false
@@ -17881,9 +18152,29 @@
             "type": "integer",
             "format": "int32"
           },
+          "NumberOfBaselineAssessmentsCompleted": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "NumberOfProgressAssessmentsCompleted": {
+            "type": "integer",
+            "format": "int32"
+          },
           "LastAssessmentDate": {
             "type": "string",
             "format": "date",
+            "nullable": true
+          },
+          "AreaAcres": {
+            "type": "number",
+            "format": "double"
+          },
+          "LandUseTypes": {
+            "type": "string",
+            "nullable": true
+          },
+          "LandUseBlockIDs": {
+            "type": "string",
             "nullable": true
           }
         },
@@ -19045,6 +19336,62 @@
             "type": "integer",
             "format": "int32",
             "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "PersonInviteDto": {
+        "required": [
+          "Email",
+          "FirstName",
+          "LastName",
+          "RoleID"
+        ],
+        "type": "object",
+        "properties": {
+          "FirstName": {
+            "maxLength": 100,
+            "minLength": 1,
+            "type": "string"
+          },
+          "LastName": {
+            "maxLength": 100,
+            "minLength": 1,
+            "type": "string"
+          },
+          "Email": {
+            "maxLength": 255,
+            "minLength": 1,
+            "type": "string"
+          },
+          "RoleID": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "OrganizationID": {
+            "type": "integer",
+            "format": "int32",
+            "nullable": true
+          },
+          "StormwaterJurisdictionIDs": {
+            "type": "array",
+            "items": {
+              "type": "integer",
+              "format": "int32"
+            },
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "PersonInviteResultDto": {
+        "type": "object",
+        "properties": {
+          "Person": {
+            "$ref": "#/components/schemas/PersonDto"
+          },
+          "InvitationEmailSent": {
+            "type": "boolean"
           }
         },
         "additionalProperties": false
@@ -20404,6 +20751,32 @@
             "format": "int32"
           },
           "ReportingYearDisplay": {
+            "type": "string",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "SearchRecordDto": {
+        "type": "object",
+        "properties": {
+          "Scope": {
+            "type": "string",
+            "nullable": true
+          },
+          "ID": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "Title": {
+            "type": "string",
+            "nullable": true
+          },
+          "Subtitle": {
+            "type": "string",
+            "nullable": true
+          },
+          "Meta": {
             "type": "string",
             "nullable": true
           }
@@ -24907,6 +25280,9 @@
       "name": "ModelBasin"
     },
     {
+      "name": "NearbyAsset"
+    },
+    {
       "name": "Nereid"
     },
     {
@@ -24944,6 +25320,9 @@
     },
     {
       "name": "RegionalSubbasinRevisionRequest"
+    },
+    {
+      "name": "Search"
     },
     {
       "name": "StormwaterJurisdiction"

@@ -28,9 +28,7 @@ namespace Neptune.GDALAPI.Controllers
         }
         
         [HttpPost("ogr2ogr/upsert-gdb")]
-        [RequestSizeLimit(100_000_000_000)]
-        [RequestFormLimits(MultipartBodyLengthLimit = 100_000_000_000)]
-        public async Task<IActionResult> UpsertGdb([FromForm] GdbInputToGdbRequestDto requestDto)
+        public async Task<IActionResult> UpsertGdb([FromBody] GdbInputToGdbRequestDto requestDto)
         {
             using var disposableTempGdbZipFile = DisposableTempFile.MakeDisposableTempFileEndingIn(".gdb.zip");
             using var disposableTempGdbFile = DisposableTempDirectory.MakeDisposableTempDirectoryEndingIn(".gdb");
@@ -57,9 +55,7 @@ namespace Neptune.GDALAPI.Controllers
         }
 
         [HttpPost("ogr2ogr/upsert-gdb-as-zip")]
-        [RequestSizeLimit(100_000_000_000)]
-        [RequestFormLimits(MultipartBodyLengthLimit = 100_000_000_000)]
-        public async Task<FileStreamResult> UpsertGdbAndReturnAsZip([FromForm] GdbInputsToGdbRequestDto requestDto)
+        public async Task<FileStreamResult> UpsertGdbAndReturnAsZip([FromBody] GdbInputsToGdbRequestDto requestDto)
         {
             using var disposableTempGdbFile = DisposableTempDirectory.MakeDisposableTempDirectoryEndingIn(".gdb");
             var gdbFileFolder = disposableTempGdbFile.DirectoryInfo;
@@ -85,25 +81,16 @@ namespace Neptune.GDALAPI.Controllers
 
         private async Task GdbInputToGdb(string gdbOutputPath, GdbInput gdbInput, bool update)
         {
-            if (gdbInput.File == null && string.IsNullOrWhiteSpace(gdbInput.CanonicalName))
+            if (string.IsNullOrWhiteSpace(gdbInput.CanonicalName))
             {
-                _logger.LogWarning($"Received an input that doesn't have a file or canonical name.");
+                _logger.LogWarning($"Received an input that doesn't have a canonical name.");
                 return;
             }
 
             using var disposableJsonTempFile = DisposableTempFile.MakeDisposableTempFileEndingIn(".json");
-            if (gdbInput.File != null) // if there is a file uploaded, use that file
-            {
-                _logger.LogInformation($"Beginning processing of uploaded file {gdbInput.LayerName}");
-                await using var fileStream = new FileStream(disposableJsonTempFile.FileInfo.FullName, FileMode.Create);
-                await gdbInput.File.CopyToAsync(fileStream);
-            }
-            else // otherwise download from the blobcontainer the file with the canonical name
-            {
-                _logger.LogInformation($"Beginning processing of {gdbInput.CanonicalName}");
-                await _azureStorage.DownloadToAsync(gdbInput.BlobContainer, gdbInput.CanonicalName,
-                    disposableJsonTempFile.FileInfo.FullName);
-            }
+            _logger.LogInformation($"Beginning processing of {gdbInput.CanonicalName}");
+            await _azureStorage.DownloadToAsync(gdbInput.BlobContainer, gdbInput.CanonicalName,
+                disposableJsonTempFile.FileInfo.FullName);
 
             var args = BuildCommandLineArgumentsForGeoJsonToFileGdb(disposableJsonTempFile.FileInfo.FullName,
                 gdbInput.CoordinateSystemID, gdbOutputPath, gdbInput.LayerName, update,

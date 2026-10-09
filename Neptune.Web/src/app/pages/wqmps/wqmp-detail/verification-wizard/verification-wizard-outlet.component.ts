@@ -23,6 +23,8 @@ import { WqmpVerificationWorkflowService } from "src/app/shared/services/wqmp-ve
 export class VerificationWizardOutletComponent implements OnInit {
     @Input() waterQualityManagementPlanID!: number;
     @Input() waterQualityManagementPlanVerifyID?: number;
+    // NPT-1122: `?verificationDate=yyyy-MM-dd` from the O&M Verifications "Start O&M Visit" modal (create mode only).
+    @Input() verificationDate?: string;
 
     public service = inject(WqmpVerificationWorkflowService);
 
@@ -32,6 +34,7 @@ export class VerificationWizardOutletComponent implements OnInit {
         this.loaded$ = this.service.load(
             this.waterQualityManagementPlanID,
             this.waterQualityManagementPlanVerifyID ?? null,
+            this.verificationDate ?? null,
         );
     }
 }

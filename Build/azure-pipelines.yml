@@ -12,7 +12,11 @@ variables:
   resourceGroupName: 'neptune-$(Environment)'
   keyVaultName: 'neptune-keyvault-$(Environment)'
   storageAccountName: 'neptuneapp$(Environment)'
-  storageAccountNameProd: 'neptuneappprod'
+  # The blob RESTORE source, always prod whatever environment is being deployed: the QA
+  # restore copies prod's blobs down into $(storageAccountName), which interpolates
+  # $(Environment) and so can never name prod from a QA run. The name must match the
+  # reference in the RestoreFiles stage below.
+  storageAccountProdApplicationName: 'neptuneappprod'
 
   databaseName: 'NeptuneDB'
   databaseEdition: 'Standard'
@@ -288,34 +292,37 @@ stages:
         TfStateStorageAccountResourceGroup: "$(azureApplicationTfStateResourceGroup)"
         WorkingDirectory: './'
         TerraformCommand: plan
-        TerraformCommandOptions: |
-          -var "keyVaultName=$(keyVaultName)" 
-          -var "storageAccountName=$(storageAccountName)" 
-          -var "resourceGroupName=$(resourceGroupName)" 
-          -var "dbServerName=$(kv-dbServerName)" 
-          -var "datadogApiKey=$(kv-datadogApiKey)" 
-          -var "datadogAppKey=$(kv-datadogAppKey)" 
-          -var "domainApi=$(domainApi)" 
-          -var "domainExternalApi=$(domainExternalApi)" 
-          -var "domainWeb=$(domainWeb)" 
-          -var "environment=$(Environment)" 
-          -var "domainGeoserver=$(domainGeoserver)" 
-          -var "databaseName=$(databaseName)" 
-          -var "databaseEdition=$(databaseEdition)" 
-          -var "databaseTier=$(databaseTier)" 
-          -var "sqlPassword=$(kv-sqlAdministratorPassword)" 
-          -var "sqlUsername=$(kv-sqlAdministratorUsername)" 
-          -var "azureClusterResourceGroup=$(kv-azureClusterResourceGroup)" 
-          -var "databaseResourceGroup=$(kv-databaseResourceGroup)" 
-          -var "sqlApiUsername=$(sqlApiUsername)" 
-          -var "sqlGeoserverUsername=$(sqlGeoserverUsername)" 
-          -var "team=$(team)" 
-          -var "projectNumber=$(projectNumber)" 
-          -var "elasticPoolName=$(kv-elasticPoolName)" 
-          -var "clusterOidcIssuerUrl=$(kv-clusterOidcIssuerUrl)" 
-          -var "aksNamespace=$(team)" 
-          -var "sendGridApiKey=$(kv-sendGridApiKey)" 
-          -var "anthropicApiKey=$(anthropicApiKey)" 
+        # Folded scalar (>-) joins these lines with spaces. The TerraformCLI
+        # task strips newlines WITHOUT adding a space, so a literal block (|)
+        # only works with invisible trailing spaces on every line.
+        TerraformCommandOptions: >-
+          -var "keyVaultName=$(keyVaultName)"
+          -var "storageAccountName=$(storageAccountName)"
+          -var "resourceGroupName=$(resourceGroupName)"
+          -var "dbServerName=$(kv-dbServerName)"
+          -var "datadogApiKey=$(kv-datadogApiKey)"
+          -var "datadogAppKey=$(kv-datadogAppKey)"
+          -var "domainApi=$(domainApi)"
+          -var "domainExternalApi=$(domainExternalApi)"
+          -var "domainWeb=$(domainWeb)"
+          -var "environment=$(Environment)"
+          -var "domainGeoserver=$(domainGeoserver)"
+          -var "databaseName=$(databaseName)"
+          -var "databaseEdition=$(databaseEdition)"
+          -var "databaseTier=$(databaseTier)"
+          -var "sqlPassword=$(kv-sqlAdministratorPassword)"
+          -var "sqlUsername=$(kv-sqlAdministratorUsername)"
+          -var "azureClusterResourceGroup=$(kv-azureClusterResourceGroup)"
+          -var "databaseResourceGroup=$(kv-databaseResourceGroup)"
+          -var "sqlApiUsername=$(sqlApiUsername)"
+          -var "sqlGeoserverUsername=$(sqlGeoserverUsername)"
+          -var "team=$(team)"
+          -var "projectNumber=$(projectNumber)"
+          -var "elasticPoolName=$(kv-elasticPoolName)"
+          -var "clusterOidcIssuerUrl=$(kv-clusterOidcIssuerUrl)"
+          -var "aksNamespace=$(team)"
+          -var "sendGridApiKey=$(kv-sendGridApiKey)"
+          -var "anthropicApiKey=$(anthropicApiKey)"
 
     - task: CopyFiles@2
       inputs:
@@ -404,17 +411,14 @@ stages:
       displayName: Restore QA Blob Storage
       pool:
         vmImage: 'windows-latest'
-      variables: 
-        APPLICATION_STORAGE_ACCOUNT_KEY: $[ stageDependencies.DeployTerraform.Terraform.outputs['Terraform.Bash.APPLICATION_STORAGE_ACCOUNT_KEY'] ]
       steps:
-      - template: azure-pipelines/templates/blob-storage-restore/blob-storage-restore.yml@BuildTemplates 
+      - template: azure-pipelines/templates/blob-storage-restore/blob-storage-restore.yml@BuildTemplates
         parameters:
           subscription: '$(azureSubscription)'
           containers: '*'
           fromStorageAccountName: '$(storageAccountProdApplicationName)'
-          fromStorageAccountKey: '$(storageAccountProdAccountKey)'
           toStorageAccountName: '$(storageAccountName)'
-          toStorageAccountKey: '$(APPLICATION_STORAGE_ACCOUNT_KEY)'
+          useEntraAuth: true
             
 - stage: DeployDB
   displayName: Deploy Database 
@@ -557,12 +561,37 @@ stages:
                 # group display name -> comma-separated roles, per environment
                 $matrix = @{
                     qa = @{
-                        'H2O Prod Group' = 'db_datareader,db_datawriter,db_executor'
-                        'H2O QA Group'   = 'db_datareader,db_datawriter,db_executor'
+                        # H2O Prod Group is intentionally ABSENT here: each group is
+                        # granted only in its own environment. Prod-group members still
+                        # reach this database through the group nesting -- H2O Prod is a
+                        # member of H2O QA and SQL resolves nested Entra groups -- so the
+                        # H2O QA Group user below covers them.
+                        'H2O QA Group'      = 'db_datareader,db_datawriter,db_executor'
+                        # H2O Readers Group is omitted DELIBERATELY: it has no members,
+                        # so a contained user for it would grant nobody anything.
+                        #
+                        # qanat's pipeline additionally records the grant step failing on
+                        # this group and attributes that to the group being empty. That
+                        # attribution is NOT re-verified here and may be wrong -- Azure SQL
+                        # resolves the group OBJECT and should not need members; the real
+                        # condition is more likely that the group must exist, be
+                        # security-enabled, and be resolvable by name by the principal
+                        # running the step. Treat it as observed, not explained.
+                        #
+                        # Either way the row buys nothing while the group is empty. Add it
+                        # back when the group has members, and find out then.
+                        #
+                        # The Terraform grants this group vault, resource-group and blob
+                        # read regardless: Azure RBAC assigns roles to the group object and
+                        # does not care about membership.
                     }
                     prod = @{
+                        # H2O QA Group and H2O Readers Group are intentionally ABSENT:
+                        # the environment is the boundary and neither has prod access.
+                        # Mirrors the access matrix in the root Terraform, which grants
+                        # the same groups the same way on the vault, the resource group
+                        # and the storage account. Change both together.
                         'H2O Prod Group' = 'db_datareader,db_datawriter,db_executor'
-                        'H2O QA Group'   = 'db_datareader'
                     }
                 }
                 if (-not $matrix.ContainsKey('$(Environment)')) { throw "No H2O access matrix defined for Environment '$(Environment)'." }
@@ -579,7 +608,20 @@ stages:
                 "@
                     foreach ($role in $roles.Split(',')) {
                         $r = $role.Trim()
-                        if ($r) { $sql += "`nIF IS_ROLEMEMBER('$r', N'$principal') = 0 ALTER ROLE [$r] ADD MEMBER [$principal];" }
+                        if (-not $r) { continue }
+                        # Assert the ROLE exists BEFORE testing membership. IS_ROLEMEMBER returns
+                        # NULL for an unknown role, and `NULL = 0` evaluates to UNKNOWN rather than
+                        # TRUE, so a bare `= 0` check skips the grant SILENTLY and still reports
+                        # success. db_executor is created by this repo's own Database project, so a
+                        # DacPac deploy that has not landed yet would leave every db_executor grant
+                        # quietly undone behind a green pipeline.
+                        #
+                        # Checks sys.database_principals with type = 'R' rather than
+                        # DATABASE_PRINCIPAL_ID, which resolves ANY principal (users, application
+                        # roles). A same-named non-role would satisfy that weaker test and then fail
+                        # in ALTER ROLE with a murkier message.
+                        $sql += "`nIF NOT EXISTS (SELECT 1 FROM sys.database_principals WHERE name = N'$r' AND type = 'R') THROW 50000, 'Database role [$r] does not exist -- deploy the DacPac before granting.', 1;"
+                        $sql += "`nIF IS_ROLEMEMBER('$r', N'$principal') = 0 ALTER ROLE [$r] ADD MEMBER [$principal];"
                     }
                     Write-Host "Granting [$principal]: $roles on $db"
                     Invoke-Sqlcmd -ServerInstance $server -Database $db -AccessToken $token -Query $sql -ConnectionTimeout 60 -ErrorAction Stop
@@ -766,6 +808,29 @@ stages:
               command: 'dependency'
               arguments: 'update $(Pipeline.Workspace)/ChartArtifacts/chart'
 
+          # AGC migration, deploy two. `legacyIngressOff` is a per-definition
+          # variable and is deliberately NOT declared here: while it is absent the
+          # macro is not substituted, the comparison below fails, and the AGIC
+          # Ingresses stay enabled. Only the exact string "true" turns them off, so
+          # every other state (unset, empty, typo) fails safe towards the Ingress.
+          # Passed via env, not inlined as $(legacyIngressOff): an undefined macro is
+          # left as that literal text, which bash would read as command substitution
+          # and try to execute. Through env it stays an inert string.
+          - task: Bash@3
+            displayName: 'derive helmIngressEnabled from legacyIngressOff'
+            env:
+              LEGACY_INGRESS_OFF: $(legacyIngressOff)
+            inputs:
+              targetType: inline
+              script: |
+                if [ "$LEGACY_INGRESS_OFF" = "true" ]; then
+                  ingressEnabled="false"
+                else
+                  ingressEnabled="true"
+                fi
+                echo "legacyIngressOff='$LEGACY_INGRESS_OFF' -> ingress.enabled=$ingressEnabled"
+                echo "##vso[task.setvariable variable=helmIngressEnabled]$ingressEnabled"
+
           - task: HelmDeploy@0
             displayName: 'helm upgrade neptune'
             inputs:
@@ -804,6 +869,10 @@ stages:
                 web.image.tag="$(Build.BuildNumber)-$(environment)"
                 web.image.repository="$(kv-containerRegistry)/neptune/web"
                 geoserver.image.repository="$(kv-containerRegistry)/kartoza/geoserver"
+                web.ingress.enabled=$(helmIngressEnabled)
+                api.ingress.enabled=$(helmIngressEnabled)
+                externalapi.ingress.enabled=$(helmIngressEnabled)
+                geoserver.ingress.enabled=$(helmIngressEnabled)
                 gdalapi.image.tag="$(Build.BuildNumber)-$(environment)"
                 gdalapi.image.repository="$(kv-containerRegistry)/neptune/gdalapi"
                 overlayapi.image.tag="$(Build.BuildNumber)-$(environment)"

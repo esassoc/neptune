@@ -5,6 +5,9 @@
 <div class="page-body">
     <div class="record-tabs">
         <btn-group-radio-input [options]="tabOptions" [default]="activeTabLabel" (change)="onTabChange($event)"></btn-group-radio-input>
+        @if (activeTab === "field-visits" && (canEdit$ | async)) {
+            <button type="button" class="btn btn-primary" (click)="openStartFieldVisitModal()"><i class="fa fa-plus"></i> Start Field Visit</button>
+        }
     </div>
 
     @switch (activeTab) {

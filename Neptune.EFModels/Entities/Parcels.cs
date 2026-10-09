@@ -89,6 +89,58 @@ namespace Neptune.EFModels.Entities
                 .ToList();
         }
 
+        /// <summary>
+        /// NPT-1132: the stored forms an APN as written in a document could take. Orange County APNs
+        /// are 8 digits, stored as <c>XXX-XXX-XX</c> or (condominium parcels) <c>XXX-XX-XXX</c>; plans
+        /// also print them without dashes or with a zero-padded last group (<c>691-101-001</c>).
+        /// <see cref="LookupByParcelNumbers"/> matches the stored string exactly, so an APN copied
+        /// in another format never resolves. The original (trimmed) value comes first.
+        /// </summary>
+        public static List<string> CandidateParcelNumbers(string rawParcelNumber)
+        {
+            var candidates = new List<string>();
+            if (string.IsNullOrWhiteSpace(rawParcelNumber)) return candidates;
+            var trimmed = rawParcelNumber.Trim();
+            candidates.Add(trimmed);
+
+            var digits = new string(trimmed.Where(char.IsDigit).ToArray());
+            // 9 digits with a zero at the start of a 3-digit last group: the zero is padding.
+            if (digits.Length == 9 && digits[6] == '0')
+            {
+                digits = digits[..6] + digits[7..];
+            }
+            if (digits.Length == 8)
+            {
+                candidates.Add($"{digits[..3]}-{digits[3..6]}-{digits[6..]}");
+                candidates.Add($"{digits[..3]}-{digits[3..5]}-{digits[5..]}");
+            }
+            return candidates.Distinct().ToList();
+        }
+
+        /// <summary>
+        /// Maps each APN to the Parcel table's stored ParcelNumber when one of its
+        /// <see cref="CandidateParcelNumbers"/> exists (an indexed IN lookup, no column functions).
+        /// APNs with no match map to their trimmed original, so the review wizard still shows them
+        /// and warns that they weren't found.
+        /// </summary>
+        public static async Task<Dictionary<string, string>> CanonicalizeParcelNumbersAsync(NeptuneDbContext dbContext, IEnumerable<string> rawParcelNumbers)
+        {
+            var candidatesByRaw = rawParcelNumbers
+                .Where(x => !string.IsNullOrWhiteSpace(x))
+                .Distinct()
+                .ToDictionary(x => x, CandidateParcelNumbers);
+            var allCandidates = candidatesByRaw.Values.SelectMany(x => x).Distinct().ToList();
+            var existing = (await dbContext.Parcels.AsNoTracking()
+                    .Where(x => allCandidates.Contains(x.ParcelNumber))
+                    .Select(x => x.ParcelNumber)
+                    .ToListAsync())
+                .ToHashSet();
+
+            return candidatesByRaw.ToDictionary(
+                kvp => kvp.Key,
+                kvp => kvp.Value.FirstOrDefault(existing.Contains) ?? kvp.Value[0]);
+        }
+
         public static async Task<DateTime?> GetLatestUpdateAsync(NeptuneDbContext dbContext)
         {
             return await dbContext.Parcels.AsNoTracking().MaxAsync(x => (DateTime?)x.LastUpdate);

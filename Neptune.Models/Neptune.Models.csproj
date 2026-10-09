@@ -10,7 +10,13 @@
     <None Remove="DataTransferObjects\Generated\**" />
   </ItemGroup>
   <ItemGroup>
-    <PackageReference Include="Microsoft.AspNetCore.Http.Features" Version="5.0.17" />
+    <!-- The *UploadFormDto types are multipart model-binding targets, so they need IFormFile.
+         It ships in the ASP.NET Core shared framework (already present in the aspnet runtime
+         image); the old Microsoft.AspNetCore.Http.Features package that used to supply it is
+         deprecated, and a FrameworkReference is the supported replacement. -->
+    <FrameworkReference Include="Microsoft.AspNetCore.App" />
+  </ItemGroup>
+  <ItemGroup>
     <PackageReference Include="NetTopologySuite" Version="2.6.0" />
   </ItemGroup>
 </Project>

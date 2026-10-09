@@ -1,0 +1,276 @@
+@use "/src/scss/abstracts" as *;
+
+:host {
+    display: block;
+}
+
+.field-actions {
+    background: $white;
+    height: 100%;
+
+    .card-header {
+        flex-wrap: wrap;
+    }
+}
+
+.card-header__meta {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: $spacing-200 $spacing-400;
+}
+
+.count-label {
+    font-size: $type-size-150;
+    font-weight: 400;
+    color: $gray-600;
+}
+
+.reset-button {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: $spacing-100;
+
+    @include desktop-small-max {
+        min-height: 44px;
+    }
+}
+
+.panel-label {
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    font-size: $type-size-150;
+    font-weight: 700;
+    color: $secondary;
+}
+
+.gate {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: $spacing-400;
+    padding: $spacing-400 0;
+
+    .system-text {
+        font-size: $type-size-200;
+        margin: 0;
+        max-width: 34rem;
+    }
+}
+
+.gate__actions {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: $spacing-300;
+}
+
+.status {
+    padding: $spacing-400 0;
+    margin: 0;
+    font-size: $type-size-200;
+    color: $gray-700;
+
+    i {
+        margin-right: $spacing-100;
+    }
+}
+
+.results {
+    display: grid;
+    grid-template-columns: minmax(0, 1.35fr) minmax(0, 1fr);
+    gap: $spacing-400;
+    align-items: start;
+    padding-top: $spacing-400;
+
+    @include desktop-small-max {
+        grid-template-columns: minmax(0, 1fr);
+    }
+}
+
+.results__map-column {
+    display: flex;
+    flex-direction: column;
+    gap: $spacing-300;
+    min-width: 0;
+
+    .reset-button {
+        align-self: stretch;
+    }
+}
+
+.results__map {
+    position: relative;
+    border: 1px solid $gray-200;
+    border-radius: $border-radius-100;
+    overflow: hidden;
+
+    // A glanceable panel map: keep neptune-map's tiles, zoom and fullscreen, but drop the
+    // location search, the always-expanded layer control and the footer that crowd a 320px frame.
+    neptune-map ::ng-deep {
+        .map-wrapper {
+            margin-bottom: 0;
+        }
+
+        .map-wrapper > .form-group,
+        .map-footer,
+        .leaflet-top.leaflet-right {
+            display: none;
+        }
+
+        // mapHeight is an inline style, so the stacked height has to win over it
+        @include desktop-small-max {
+            .map-container {
+                height: 200px !important;
+            }
+        }
+
+        .nearby-asset-marker--selected {
+            filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.35));
+        }
+    }
+}
+
+.map-legend {
+    position: absolute;
+    left: $spacing-200;
+    bottom: $spacing-200;
+    z-index: 1000;
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: $spacing-100 $spacing-300;
+    max-width: calc(100% - #{$spacing-200} * 2);
+    padding: $spacing-100 $spacing-200;
+    background: rgba($white, 0.92);
+    border: 1px solid $gray-200;
+    border-radius: $border-radius-100;
+    font-size: 0.6875rem;
+    color: $gray-700;
+    pointer-events: none;
+
+    span {
+        display: flex;
+        align-items: center;
+        gap: $spacing-100;
+    }
+
+    img {
+        height: 14px;
+        width: auto;
+    }
+
+    // Polygon types get a swatch rather than a pin. OVTA areas are score-colored on the map, so the
+    // legend carries one neutral entry instead of five; the A-D key lives on the full OVTA maps.
+    .legend-swatch {
+        display: inline-block;
+        width: 12px;
+        height: 12px;
+        border-width: 2px;
+        border-style: solid;
+        border-radius: 2px;
+
+        &--wqmp {
+            border-color: #de54b2;
+            background: rgba(222, 84, 178, 0.15);
+        }
+
+        &--ovta {
+            border-color: #808080;
+            background: rgba(128, 128, 128, 0.15);
+        }
+    }
+}
+
+.results__list {
+    display: flex;
+    flex-direction: column;
+    gap: $spacing-200;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+}
+
+.asset-row {
+    display: flex;
+    // Wrap at every width, not just on phones: the map column is now the wider of the two (NPT-1123
+    // rework), so between 992px and roughly 1200px the list column is narrow enough that a long action
+    // label like "Start O&M Verification" no longer fits beside the record name.
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: $spacing-300;
+    padding: 0.625rem $spacing-300;
+    border: 1px solid $gray-200;
+    border-radius: $border-radius-200;
+    background: $white;
+    transition: all 200ms ease;
+
+    &:hover,
+    &.is-hovered,
+    &:focus-within {
+        background: rgba($primary, 0.05);
+        border-color: $primary;
+    }
+
+    .btn {
+        // may wrap onto its own line when cramped, but never breaks its own label across lines
+        flex: 0 1 auto;
+        white-space: nowrap;
+
+        &:focus-visible {
+            outline: 2px solid $primary;
+            outline-offset: 2px;
+        }
+
+        @include desktop-small-max {
+            min-height: 44px;
+        }
+    }
+
+    // phones: the action button drops under the name at full width so it never pushes off screen
+    @include tablet-max {
+        .asset-row__label {
+            flex: 1 1 100%;
+        }
+
+        .btn {
+            flex: 1 1 100%;
+        }
+    }
+}
+
+.asset-row__label {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: $spacing-200;
+    min-width: 0;
+}
+
+.asset-row__note {
+    flex-basis: 100%;
+    font-size: $type-size-150;
+    color: $gray-700;
+}
+
+.asset-row__name {
+    font-size: $type-size-200;
+    font-weight: 600;
+    color: $gray-900;
+    overflow-wrap: anywhere;
+}
+
+.type-chip {
+    flex: 0 0 auto;
+    font-size: 0.625rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: $gray-600;
+    background: $gray-50;
+    border: 1px solid $gray-200;
+    border-radius: $border-radius-100;
+    padding: 0.125rem 0.375rem;
+}

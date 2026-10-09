@@ -34,7 +34,7 @@ public static class TreatmentBMPs
 
     #region Create
 
-    public static async Task<List<ErrorMessage>> ValidateCreateAsync(NeptuneDbContext dbContext, TreatmentBMPCreateDto createDto)
+    public static async Task<List<ErrorMessage>> ValidateCreateAsync(NeptuneDbContext dbContext, TreatmentBMPCreateDto createDto, int callingPersonID)
     {
         var errors = new List<ErrorMessage>();
 
@@ -53,6 +53,15 @@ public static class TreatmentBMPs
         if (!hasValidJurisdiction)
         {
             errors.Add(new ErrorMessage("StormwaterJurisdictionID", "Valid Stormwater Jurisdiction is required."));
+        }
+        else
+        {
+            // Admins get every jurisdiction back; JMs/JEs only their assigned ones (NPT-1123 rework)
+            var assignableJurisdictionIDs = await StormwaterJurisdictionPeople.ListViewableStormwaterJurisdictionIDsByPersonIDForBMPsAsync(dbContext, callingPersonID);
+            if (!assignableJurisdictionIDs.Contains(createDto.StormwaterJurisdictionID))
+            {
+                errors.Add(new ErrorMessage("StormwaterJurisdictionID", "You can only create BMPs in jurisdictions you are assigned to."));
+            }
         }
 
         return errors;
@@ -1238,6 +1247,23 @@ public static class TreatmentBMPs
             .AsNoTracking()
             .Where(x => x.StormwaterJurisdictionID == stormwaterJurisdictionID &&
                         (x.WaterQualityManagementPlanID == null || x.WaterQualityManagementPlanID == waterQualityManagementPlanID))
+            .Select(x => new TreatmentBMPMinimalDto
+            {
+                TreatmentBMPID = x.TreatmentBMPID,
+                TreatmentBMPName = x.TreatmentBMPName,
+                TreatmentBMPTypeName = x.TreatmentBMPType.TreatmentBMPTypeName
+            })
+            .OrderBy(x => x.TreatmentBMPName)
+            .ToListAsync();
+    }
+
+    // NPT-1122: lightweight picker list for the Field Records "Start Field Visit" modal.
+    public static async Task<List<TreatmentBMPMinimalDto>> ListAsMinimalDtoForJurisdictionsAsync(
+        NeptuneDbContext dbContext, List<int> stormwaterJurisdictionIDs)
+    {
+        return await dbContext.TreatmentBMPs
+            .AsNoTracking()
+            .Where(x => stormwaterJurisdictionIDs.Contains(x.StormwaterJurisdictionID))
             .Select(x => new TreatmentBMPMinimalDto
             {
                 TreatmentBMPID = x.TreatmentBMPID,

@@ -1,6 +1,8 @@
 <page-header pageTitle="Data Hub"></page-header>
 
 <div class="page-body">
+    <app-alert-display></app-alert-display>
+
     <div class="data-hub-tabs">
         <btn-group-radio-input [options]="tabOptions" [default]="activeTabLabel" (change)="selectTab($event)"></btn-group-radio-input>
     </div>

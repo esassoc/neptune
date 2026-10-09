@@ -12,6 +12,13 @@ spec:
   {{- if not .Values.autoscaling.enabled }}
   replicas: {{ .Values.replicaCount }}
   {{- end }}
+  # AGC migration: behind Envoy a pod must never be the only one serving while it
+  # is draining, so surge before taking the old one down.
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxUnavailable: 0
+      maxSurge: 1
   selector:
     matchLabels:
       {{- include "web.selectorLabels" . | nindent 6 }}
@@ -69,7 +76,12 @@ spec:
           lifecycle:
             preStop:
               exec:
-                command: ["sleep","120"]
+                # AGC migration: the drain wait tracks whoever is routing to us.
+                # While the Ingress exists, App Gateway is still sending traffic here
+                # and is slow to drop a backend, so keep the original 120s. Once the
+                # Ingress is gone (deploy two) only Envoy routes to us, and it removes
+                # an endpoint in about a second, so 5s is ample.
+                command: ["sleep","{{ if .Values.ingress.enabled }}120{{ else }}5{{ end }}"]
           envFrom:
           - configMapRef:
               name: {{ include "web.fullname" . }}-{{ .Values.global.env.name }}-configmap
@@ -79,7 +91,7 @@ spec:
           #   readOnly: true
           resources:
             {{- toYaml .Values.resources | nindent 12 }}
-      terminationGracePeriodSeconds: 131
+      terminationGracePeriodSeconds: {{ if .Values.ingress.enabled }}131{{ else }}45{{ end }}
       {{- with .Values.nodeSelector }}
       nodeSelector:
         {{- toYaml . | nindent 8 }}

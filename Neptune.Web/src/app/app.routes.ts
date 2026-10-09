@@ -162,6 +162,7 @@ export const routes: Routes = [
                     {
                         path: `:${routeParams.projectID}`,
                         loadComponent: () => import("./pages/planning-module/projects/project-detail/project-detail.component").then((m) => m.ProjectDetailComponent),
+                        data: { remountOnParamChange: true },
                     },
                 ],
             },
@@ -204,6 +205,7 @@ export const routes: Routes = [
                         path: `:${routeParams.onlandVisualTrashAssessmentID}`,
                         loadComponent: () => import("./pages/trash-module/ovtas/trash-ovta-detail/trash-ovta-detail.component").then((m) => m.TrashOvtaDetailComponent),
                         canActivate: [authGuardFn],
+                        data: { remountOnParamChange: true },
                     },
                 ],
             },
@@ -304,6 +306,7 @@ export const routes: Routes = [
                         loadComponent: () =>
                             import("./pages/trash-module/ovtas/trash-ovta-area-detail/trash-ovta-area-detail.component").then((m) => m.TrashOvtaAreaDetailComponent),
                         canActivate: [authGuardFn],
+                        data: { remountOnParamChange: true },
                     },
                     {
                         path: `:${routeParams.onlandVisualTrashAssessmentAreaID}/edit-location`,
@@ -966,7 +969,7 @@ export const routes: Routes = [
             },
             {
                 path: "data-hub/ovta-area-approve",
-                title: "Approve OVTA Areas",
+                title: "Approve Uploaded OVTA Assessment Areas",
                 loadComponent: () => import("./pages/data-hub/ovta-area-approve/ovta-area-approve.component").then((m) => m.OvtaAreaApproveComponent),
                 canActivate: [JurisdictionManagerOrEditorOnlyGuard],
             },
@@ -1094,6 +1097,8 @@ export const routes: Routes = [
     { path: "subscription-insufficient", loadComponent: () => import("./shared/pages/").then((m) => m.SubscriptionInsufficientComponent) },
     { path: "unauthenticated", loadComponent: () => import("./shared/pages").then((m) => m.UnauthenticatedComponent) },
     { path: "callback", component: AuthCallbackComponent },
+    // NPT-734: link target in the invite email; opens Auth0 on its sign-up screen.
+    { path: "sign-up", title: "Create Account", loadComponent: () => import("./pages/sign-up/sign-up.component").then((m) => m.SignUpComponent) },
     // NPT-1068: Neptune.WebMvc retired. Redirect the high-traffic legacy MVC URLs (bookmarks, external links
     // hitting the old ocstormwatertools.org host now pointed at this SPA) to their SPA equivalents. Paths match
     // the legacy PascalCase casing (Angular routing is case-sensitive). Unmatched legacy paths fall through to **.

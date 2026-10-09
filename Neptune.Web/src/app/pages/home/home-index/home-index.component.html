@@ -1,28 +1,21 @@
 <main class="site">
-    <section class="hero">
+    <section class="hero" [class.hero--signed-in]="!!(currentUser$ | async)" [class.hero--with-panels]="showActionPanels$ | async">
         <div class="hero__photo">
             <img src="/assets/main/home_image2.png" />
         </div>
-        <div class="hero__actions card">
-            @if (currentUser$ | async; as currentUser) {
-                <div class="card-body">
-                    <h3 class="card-title">Quick Actions</h3>
-                    <div class="hero__btns">
-                        <div class="hero__btns-wrapper">
-                            <a class="btn btn-primary" [routerLink]="['/planning']">Planning Module</a>
-                        </div>
-                        <div class="hero__btns-wrapper">
-                            <a class="btn btn-primary" [routerLink]="['/trash']">Trash Module</a>
-                        </div>
-                        <div class="hero__btns-wrapper">
-                            <a class="btn btn-primary" [routerLink]="['/']">OCST Home</a>
-                        </div>
-                        <div class="hero__btns-wrapper">
-                            <a class="btn btn-primary" [routerLink]="['/support']">Request Support</a>
-                        </div>
-                    </div>
-                </div>
-            } @else {
+        @if (currentUser$ | async; as currentUser) {
+            <div class="hero__caption">
+                @if (isUserUnassigned(currentUser)) {
+                    <p>
+                        You have successfully logged in, but your account is not yet configured. You will receive an email from the Administrators when your account is ready to
+                        use. <a [routerLink]="['/support']">Request Support</a>
+                    </p>
+                } @else {
+                    <p>You have successfully logged in. {{ jurisdictionMessage$ | async }}</p>
+                }
+            </div>
+        } @else {
+            <div class="hero__actions card">
                 <div class="card-body">
                     <h3 class="card-title">Welcome</h3>
                     <p class="card-subtitle">Sign in to access the OC Stormwater Tools.<br />Create an account if you don't have one yet.</p>
@@ -39,10 +32,20 @@
                     <p>Need help logging in?</p>
                     <a [routerLink]="['/support']">Request Support</a>
                 </div>
-            }
-        </div>
+            </div>
+        }
     </section>
     <app-alert-display></app-alert-display>
+
+    @if (showActionPanels$ | async) {
+        <section class="action-panels">
+            <h1 class="page-title">Welcome to Orange County Stormwater Tools</h1>
+            <div class="action-panels__grid">
+                <common-tasks-panel class="action-panels__desk"></common-tasks-panel>
+                <field-actions-panel class="action-panels__field"></field-actions-panel>
+            </div>
+        </section>
+    }
 
     <div class="data-section">
         <div class="data-section__header">

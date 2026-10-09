@@ -36,7 +36,7 @@
       @if (jurisdictionOptions$ | async; as opts) {
         <form-field fieldLabel="Stormwater Jurisdiction" [type]="FormFieldType.Select" [formControl]="jurisdictionControl" [formInputOptions]="opts" placeholder="Select a jurisdiction"></form-field>
       }
-      <div class="actions">
+      <div class="actions actions--end">
         <button type="button" class="btn btn-primary" [disabled]="isWorking() || jurisdictionControl.invalid || delineationTypeControl.invalid" (click)="download()">
           @if (isWorking()) { <i class="fa fa-spinner fa-spin"></i> Building... } @else { <i class="fa fa-download"></i> Download GDB }
         </button>

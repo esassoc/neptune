@@ -1,5 +1,5 @@
 import { ApplicationConfig, ErrorHandler, importProvidersFrom } from "@angular/core";
-import { RouterModule, TitleStrategy, provideRouter, withComponentInputBinding } from "@angular/router";
+import { RouteReuseStrategy, RouterModule, TitleStrategy, provideRouter, withComponentInputBinding } from "@angular/router";
 
 import { routes } from "./app.routes";
 import { DecimalPipe, CurrencyPipe, DatePipe } from "@angular/common";
@@ -11,6 +11,7 @@ import { provideAnimations } from "@angular/platform-browser/animations";
 import { ApiModule } from "./shared/generated/api.module";
 import { Configuration } from "./shared/generated/configuration";
 import { PageTitleStrategy } from "./strategies/page-title-strategy";
+import { RemountOnParamChangeReuseStrategy } from "./shared/services/remount-on-param-change-reuse-strategy";
 import { PhonePipe } from "./shared/pipes/phone.pipe";
 import { GroupByPipe } from "./shared/pipes/group-by.pipe";
 import { provideDialogConfig } from "@ngneat/dialog";
@@ -52,6 +53,7 @@ export const appConfig: ApplicationConfig = {
         ),
         provideAnimations(),
         { provide: TitleStrategy, useClass: PageTitleStrategy },
+        { provide: RouteReuseStrategy, useClass: RemountOnParamChangeReuseStrategy },
         {
             provide: HTTP_INTERCEPTORS,
             useClass: HttpErrorInterceptor,

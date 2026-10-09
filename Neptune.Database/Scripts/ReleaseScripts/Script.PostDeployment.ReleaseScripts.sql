@@ -88,4 +88,6 @@ GO
 GO
 :r ".\040 - NPT-943 Normalize WQMP MaintenanceContactState.sql"
 GO
+:r ".\041 - NPT-1120 Clear cached Anthropic file ids so PDFs re-upload.sql"
+GO
 

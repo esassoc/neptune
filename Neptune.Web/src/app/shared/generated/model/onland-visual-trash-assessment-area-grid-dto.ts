@@ -20,7 +20,12 @@ export class OnlandVisualTrashAssessmentAreaGridDto {
     OnlandVisualTrashAssessmentProgressScoreName?: string | null;
     NumberOfAssessmentsInProgress?: number;
     NumberOfAssessmentsCompleted?: number;
+    NumberOfBaselineAssessmentsCompleted?: number;
+    NumberOfProgressAssessmentsCompleted?: number;
     LastAssessmentDate?: string | null;
+    AreaAcres?: number;
+    LandUseTypes?: string | null;
+    LandUseBlockIDs?: string | null;
     constructor(obj?: any) {
         Object.assign(this, obj);
     }
@@ -36,7 +41,12 @@ export interface OnlandVisualTrashAssessmentAreaGridDtoForm {
     OnlandVisualTrashAssessmentProgressScoreName?: FormControl<string>;
     NumberOfAssessmentsInProgress?: FormControl<number>;
     NumberOfAssessmentsCompleted?: FormControl<number>;
+    NumberOfBaselineAssessmentsCompleted?: FormControl<number>;
+    NumberOfProgressAssessmentsCompleted?: FormControl<number>;
     LastAssessmentDate?: FormControl<string>;
+    AreaAcres?: FormControl<number>;
+    LandUseTypes?: FormControl<string>;
+    LandUseBlockIDs?: FormControl<string>;
 }
 
 export class OnlandVisualTrashAssessmentAreaGridDtoFormControls { 
@@ -130,7 +140,57 @@ export class OnlandVisualTrashAssessmentAreaGridDtoFormControls {
             ],
         }
     );
+    public static NumberOfBaselineAssessmentsCompleted = (value: FormControlState<number> | number = undefined, formControlOptions?: FormControlOptions | null) => new FormControl<number>(
+        value,
+        formControlOptions ?? 
+        {
+            nonNullable: false,
+            validators: 
+            [
+            ],
+        }
+    );
+    public static NumberOfProgressAssessmentsCompleted = (value: FormControlState<number> | number = undefined, formControlOptions?: FormControlOptions | null) => new FormControl<number>(
+        value,
+        formControlOptions ?? 
+        {
+            nonNullable: false,
+            validators: 
+            [
+            ],
+        }
+    );
     public static LastAssessmentDate = (value: FormControlState<string> | string = undefined, formControlOptions?: FormControlOptions | null) => new FormControl<string>(
+        value,
+        formControlOptions ?? 
+        {
+            nonNullable: false,
+            validators: 
+            [
+            ],
+        }
+    );
+    public static AreaAcres = (value: FormControlState<number> | number = undefined, formControlOptions?: FormControlOptions | null) => new FormControl<number>(
+        value,
+        formControlOptions ?? 
+        {
+            nonNullable: false,
+            validators: 
+            [
+            ],
+        }
+    );
+    public static LandUseTypes = (value: FormControlState<string> | string = undefined, formControlOptions?: FormControlOptions | null) => new FormControl<string>(
+        value,
+        formControlOptions ?? 
+        {
+            nonNullable: false,
+            validators: 
+            [
+            ],
+        }
+    );
+    public static LandUseBlockIDs = (value: FormControlState<string> | string = undefined, formControlOptions?: FormControlOptions | null) => new FormControl<string>(
         value,
         formControlOptions ?? 
         {

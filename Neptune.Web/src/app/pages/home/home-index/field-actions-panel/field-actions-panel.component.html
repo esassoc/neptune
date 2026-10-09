@@ -1,0 +1,126 @@
+<div class="card field-actions">
+    <div class="card-header">
+        <h3 class="card-title">Field Actions</h3>
+        <div class="card-header__meta">
+            @if (state() === "ready") {
+                <span class="count-label">{{ totalCount() }} within {{ radiusLabel() }}</span>
+            }
+            <span class="panel-label">Field</span>
+        </div>
+    </div>
+    <div class="card-body">
+        @switch (state()) {
+            @case ("locked") {
+                <div class="gate">
+                    <p class="system-text">
+                        Field Actions uses your location to find the assets you are standing next to — BMPs, WQMPs and OVTA areas. Nothing loads until you ask for it.
+                    </p>
+                    <button type="button" class="btn btn-primary" (click)="unlock()">Show assets near me</button>
+                </div>
+            }
+            @case ("locating") {
+                <p class="status" role="status"><i class="fa fa-spinner spin-animation" aria-hidden="true"></i> Finding your location…</p>
+                <ng-container *ngTemplateOutlet="resetButton"></ng-container>
+            }
+            @case ("loading") {
+                <p class="status" role="status"><i class="fa fa-spinner spin-animation" aria-hidden="true"></i> Looking for assets near you…</p>
+                <ng-container *ngTemplateOutlet="resetButton"></ng-container>
+            }
+            @case ("error") {
+                <div class="gate">
+                    <p class="system-text" role="alert">
+                        @switch (errorKind()) {
+                            @case ("denied") {
+                                Field Actions needs your location. Allow location access for this site in your browser, then retry.
+                            }
+                            @case ("unsupported") {
+                                This browser can't share your location, so Field Actions can't find assets near you.
+                            }
+                            @case ("api") {
+                                We couldn't load nearby assets. Please retry.
+                            }
+                            @default {
+                                We couldn't get your location. Check that location services are on, then retry.
+                            }
+                        }
+                    </p>
+                    <div class="gate__actions">
+                        <button type="button" class="btn btn-primary" (click)="unlock()">Retry</button>
+                        <ng-container *ngTemplateOutlet="resetButton"></ng-container>
+                    </div>
+                </div>
+            }
+            @case ("ready") {
+                <div class="results">
+                    <!-- the map renders even with no results, so a wrong location (e.g. a mistyped coordinate) is visible -->
+                    <div class="results__map-column">
+                        <div class="results__map">
+                            <neptune-map
+                                [boundingBox]="boundingBox()"
+                                mapHeight="320px"
+                                [showLegend]="false"
+                                [showDrainageAreaTrace]="false"
+                                (onMapLoad)="handleMapReady($event)"></neptune-map>
+                            <div class="map-legend" aria-hidden="true">
+                                @if (hasBMPRows()) {
+                                    <span><img src="/assets/main/map-icons/marker-icon-orange.png" alt="" /> BMP</span>
+                                }
+                                @if (hasWQMPRows()) {
+                                    <span><i class="legend-swatch legend-swatch--wqmp"></i> WQMP</span>
+                                }
+                                @if (hasOVTARows()) {
+                                    <span><i class="legend-swatch legend-swatch--ovta"></i> OVTA area</span>
+                                }
+                                <span><img src="/assets/main/map-icons/marker-icon-blue.png" alt="" /> Your location</span>
+                            </div>
+                        </div>
+                        <ng-container *ngTemplateOutlet="resetButton"></ng-container>
+                    </div>
+                    @if (totalCount() === 0) {
+                        <p class="status" role="status">No BMPs, WQMPs or OVTA areas were found within {{ radiusLabel() }} of your location.</p>
+                    } @else {
+                        <ul class="results__list">
+                            @for (asset of rows(); track keyFor(asset)) {
+                                <li
+                                    class="asset-row"
+                                    [class.is-hovered]="hoveredKey() === keyFor(asset)"
+                                    (mouseenter)="onRowEnter(asset)"
+                                    (mouseleave)="onRowLeave()"
+                                    (focusin)="onRowEnter(asset)"
+                                    (focusout)="onRowLeave()">
+                                    <span class="asset-row__label">
+                                        <span class="type-chip">{{ asset.AssetType }}</span>
+                                        <span class="asset-row__name">{{ asset.AssetName }}</span>
+                                        @if (isVisitCheckFailed(asset)) {
+                                            <span class="asset-row__note">Couldn't check for a visit in progress</span>
+                                        }
+                                    </span>
+                                    @if (isActionPending(asset)) {
+                                        <button type="button" class="btn btn-primary btn-sm" disabled aria-label="Checking visit status">
+                                            <i class="fa fa-spinner spin-animation" aria-hidden="true"></i>
+                                        </button>
+                                    } @else {
+                                        <button
+                                            type="button"
+                                            class="btn btn-primary btn-sm"
+                                            [attr.aria-label]="actionLabel(asset) + ': ' + asset.AssetName"
+                                            (click)="runAction(asset)">
+                                            {{ actionLabel(asset) }}
+                                        </button>
+                                    }
+                                </li>
+                            }
+                        </ul>
+                    }
+                </div>
+            }
+        }
+    </div>
+</div>
+
+<ng-template #resetButton>
+    <button type="button" class="btn btn-primary-outline btn-sm reset-button" (click)="reset()">
+        <i class="fa fa-refresh" aria-hidden="true"></i>
+        Reset location
+    </button>
+</ng-template>

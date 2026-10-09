@@ -7,12 +7,13 @@ import { RouterLink, RouterLinkActive } from "@angular/router";
 import { DropdownToggleDirective } from "src/app/shared/directives/dropdown-toggle.directive";
 import { IconComponent } from "src/app/shared/components/icon/icon.component";
 import { Observable } from "rxjs";
+import { RecordSearchComponent } from "src/app/shared/components/header-nav/record-search/record-search.component";
 
 @Component({
     selector: "header-nav",
     templateUrl: "./header-nav.component.html",
     styleUrls: ["./header-nav.component.scss"],
-    imports: [RouterLink, RouterLinkActive, AsyncPipe, DropdownToggleDirective, IconComponent],
+    imports: [RouterLink, RouterLinkActive, AsyncPipe, DropdownToggleDirective, IconComponent, RecordSearchComponent],
 })
 export class HeaderNavComponent implements OnInit {
     @Input() moduleTitle: string;
@@ -31,6 +32,11 @@ export class HeaderNavComponent implements OnInit {
 
     public isAuthenticated(): boolean {
         return this.authenticationService.isAuthenticated();
+    }
+
+    // NPT-1125: record search is for every signed-in role except Unassigned (the API gate is JurisdictionEditFeature)
+    public canSearch(user: PersonDto): boolean {
+        return !this.authenticationService.isUserUnassigned(user);
     }
 
     public isBeingImpersonated(user: PersonDto): boolean {

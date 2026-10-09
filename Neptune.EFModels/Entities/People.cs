@@ -299,14 +299,18 @@ public static class People
     public static async Task<PersonDto?> UpdateClaims(NeptuneDbContext dbContext, ClaimsPrincipal claimsPrincipal)
     {
         int? personID = null;
-        var globalID = claimsPrincipal?.Claims.SingleOrDefault(c => c.Type == ClaimsConstants.Sub)?.Value;
-        if (!string.IsNullOrEmpty(globalID))
+        // FirstOrDefault, not SingleOrDefault: SingleOrDefault THROWS on a duplicate claim type,
+        // which an Auth0 Action can produce by setting a custom claim that ASP.NET's inbound mapping
+        // also emits. Trimmed too, so "" and "   " behave identically below -- an Auth0 Form's
+        // `required: true` accepts spaces, and untrimmed whitespace would overwrite a stored name.
+        var globalID = claimsPrincipal?.Claims.FirstOrDefault(c => c.Type == ClaimsConstants.Sub)?.Value?.Trim();
+        if (!string.IsNullOrWhiteSpace(globalID))
         {
             personID = await dbContext.People.AsNoTracking().Where(x => x.GlobalID == globalID).Select(x => x.PersonID).SingleOrDefaultAsync();
         }
 
         Person person;
-        var email = claimsPrincipal?.Claims.SingleOrDefault(c => c.Type == ClaimsConstants.Emails)?.Value;
+        var email = claimsPrincipal?.Claims.FirstOrDefault(c => c.Type == ClaimsConstants.Emails)?.Value?.Trim();
         if (personID is > 0)
         {
             person = await dbContext.People.FirstOrDefaultAsync(x => x.PersonID == personID);
@@ -334,22 +338,22 @@ public static class People
         var firstName = claimsPrincipal?.Claims.SingleOrDefault(c => c.Type == ClaimsConstants.GivenName)?.Value;
         var lastName = claimsPrincipal?.Claims.SingleOrDefault(c => c.Type == ClaimsConstants.FamilyName)?.Value;
 
-        if (!string.IsNullOrEmpty(globalID))
+        if (!string.IsNullOrWhiteSpace(globalID))
         {
             person.GlobalID = globalID;
         }
 
-        if (!string.IsNullOrEmpty(firstName))
+        if (!string.IsNullOrWhiteSpace(firstName))
         {
             person.FirstName = firstName;
         }
 
-        if (!string.IsNullOrEmpty(lastName))
+        if (!string.IsNullOrWhiteSpace(lastName))
         {
             person.LastName = lastName;
         }
 
-        if (!string.IsNullOrEmpty(email))
+        if (!string.IsNullOrWhiteSpace(email))
         {
             person.Email = email;
         }
