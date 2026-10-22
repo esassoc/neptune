@@ -1,0 +1,959 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+</head>
+<body>
+<title>Task Launcher Study — OC Stormwater Tools</title>
+
+<style>
+  :root {
+    --ground: #ffffff;
+    --surface: #f4f7f8;
+    --surface-2: #e9eff1;
+    --line: #d5e0e4;
+    --line-soft: #e4ecee;
+    --ink: #17272e;
+    --ink-soft: #566a72;
+    --ink-faint: #7f9199;
+    --accent: #0099ab;
+    --accent-deep: #0a7285;
+    --accent-wash: #e6f6f8;
+    --on-accent: #ffffff;
+    --action: #e49937;
+    --action-deep: #c47b17;
+    --action-wash: #fdf2e3;
+    --on-action: #26170a;
+    --good: #209b1e;
+    --bad: #a94442;
+    --shadow: 0 1px 2px rgba(23, 39, 46, .06), 0 8px 24px -12px rgba(23, 39, 46, .18);
+
+    --ui: "Segoe UI", system-ui, -apple-system, "Helvetica Neue", Arial, sans-serif;
+    --mono: ui-monospace, "Cascadia Code", "SF Mono", Consolas, monospace;
+
+    --step--1: clamp(.78rem, .76rem + .1vw, .84rem);
+    --step-0: clamp(.94rem, .91rem + .15vw, 1rem);
+    --step-1: clamp(1.1rem, 1.04rem + .3vw, 1.28rem);
+    --step-2: clamp(1.35rem, 1.22rem + .6vw, 1.75rem);
+    --step-3: clamp(1.7rem, 1.44rem + 1.2vw, 2.6rem);
+  }
+
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --ground: #101f27;
+      --surface: #162a33;
+      --surface-2: #1d3541;
+      --line: #2a4653;
+      --line-soft: #223d49;
+      --ink: #e6eef1;
+      --ink-soft: #a3b8c0;
+      --ink-faint: #7d949d;
+      --accent: #2ab8c9;
+      --accent-deep: #4fd3e2;
+      --accent-wash: #14323c;
+      --action: #f0a94a;
+      --action-deep: #e49937;
+      --action-wash: #2e2418;
+      --good: #4cc44a;
+      --bad: #d97b79;
+      --shadow: 0 1px 2px rgba(0, 0, 0, .3), 0 8px 24px -12px rgba(0, 0, 0, .6);
+    }
+  }
+
+  :root[data-theme="dark"] {
+    --ground: #101f27;
+    --surface: #162a33;
+    --surface-2: #1d3541;
+    --line: #2a4653;
+    --line-soft: #223d49;
+    --ink: #e6eef1;
+    --ink-soft: #a3b8c0;
+    --ink-faint: #7d949d;
+    --accent: #2ab8c9;
+    --accent-deep: #4fd3e2;
+    --accent-wash: #14323c;
+    --action: #f0a94a;
+    --action-deep: #e49937;
+    --action-wash: #2e2418;
+    --good: #4cc44a;
+    --bad: #d97b79;
+    --shadow: 0 1px 2px rgba(0, 0, 0, .3), 0 8px 24px -12px rgba(0, 0, 0, .6);
+  }
+
+  :root[data-theme="light"] {
+    --ground: #ffffff;
+    --surface: #f4f7f8;
+    --surface-2: #e9eff1;
+    --line: #d5e0e4;
+    --line-soft: #e4ecee;
+    --ink: #17272e;
+    --ink-soft: #566a72;
+    --ink-faint: #7f9199;
+    --accent: #0099ab;
+    --accent-deep: #0a7285;
+    --accent-wash: #e6f6f8;
+    --action: #e49937;
+    --action-deep: #c47b17;
+    --action-wash: #fdf2e3;
+    --good: #209b1e;
+    --bad: #a94442;
+    --shadow: 0 1px 2px rgba(23, 39, 46, .06), 0 8px 24px -12px rgba(23, 39, 46, .18);
+  }
+
+  * { box-sizing: border-box; }
+
+  body {
+    margin: 0;
+    background: var(--ground);
+    color: var(--ink);
+    font-family: var(--ui);
+    font-size: var(--step-0);
+    line-height: 1.6;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  .wrap {
+    max-width: 60rem;
+    margin: 0 auto;
+    padding: clamp(1.5rem, 4vw, 3.5rem) clamp(1rem, 4vw, 2rem) 5rem;
+    display: flex;
+    flex-direction: column;
+    gap: clamp(2rem, 5vw, 3.25rem);
+  }
+
+  .eyebrow {
+    font-size: var(--step--1);
+    text-transform: uppercase;
+    letter-spacing: .1em;
+    font-weight: 600;
+    color: var(--accent);
+    margin: 0;
+  }
+
+  h1 {
+    font-size: var(--step-3);
+    line-height: 1.1;
+    letter-spacing: -.02em;
+    text-wrap: balance;
+    margin: .4rem 0 0;
+    font-weight: 700;
+  }
+
+  h2 {
+    font-size: var(--step-2);
+    line-height: 1.2;
+    letter-spacing: -.015em;
+    text-wrap: balance;
+    margin: 0;
+    font-weight: 700;
+  }
+
+  h3 {
+    font-size: var(--step-1);
+    line-height: 1.3;
+    margin: 0;
+    font-weight: 650;
+    text-wrap: balance;
+  }
+
+  p { margin: 0; max-width: 68ch; }
+  .lede { font-size: var(--step-1); color: var(--ink-soft); margin-top: .9rem; }
+
+  header .meta {
+    margin-top: 1.4rem;
+    padding-top: 1.1rem;
+    border-top: 1px solid var(--line);
+    font-size: var(--step--1);
+    color: var(--ink-faint);
+    display: flex;
+    flex-wrap: wrap;
+    gap: .4rem 1.5rem;
+  }
+  header .meta code { font-family: var(--mono); color: var(--ink-soft); }
+
+  section { display: flex; flex-direction: column; gap: 1.15rem; }
+  .section-head { display: flex; flex-direction: column; gap: .55rem; }
+
+  /* ---- baseline table ---- */
+  .scroller { overflow-x: auto; border: 1px solid var(--line); border-radius: 10px; background: var(--surface); }
+  table { border-collapse: collapse; width: 100%; min-width: 40rem; font-size: var(--step--1); }
+  th, td { text-align: left; padding: .7rem .9rem; border-bottom: 1px solid var(--line-soft); vertical-align: top; }
+  thead th {
+    text-transform: uppercase; letter-spacing: .07em; font-size: .72rem;
+    color: var(--ink-faint); font-weight: 650; background: var(--surface-2);
+    border-bottom: 1px solid var(--line); white-space: nowrap;
+  }
+  tbody tr:last-child td { border-bottom: 0; }
+  td.num { font-variant-numeric: tabular-nums; white-space: nowrap; font-weight: 650; }
+
+  .chip {
+    display: inline-block; padding: .12rem .5rem; border-radius: 999px;
+    font-size: .7rem; font-weight: 650; letter-spacing: .03em; white-space: nowrap;
+    border: 1px solid currentColor;
+  }
+  .chip--bad { color: var(--bad); }
+  .chip--warn { color: var(--action-deep); }
+  .chip--good { color: var(--good); }
+
+  /* ---- variant switcher ---- */
+  .tabs { display: flex; flex-wrap: wrap; gap: .5rem; }
+  .tab {
+    font: inherit; font-size: var(--step--1); font-weight: 650;
+    padding: .5rem 1rem; border-radius: 999px; cursor: pointer;
+    background: var(--surface); color: var(--ink-soft);
+    border: 1px solid var(--line); transition: background .15s, color .15s, border-color .15s;
+  }
+  .tab:hover { border-color: var(--accent); color: var(--ink); }
+  .tab[aria-selected="true"] { background: var(--accent); border-color: var(--accent); color: #fff; }
+  :root[data-theme="dark"] .tab[aria-selected="true"],
+  .tab[aria-selected="true"] { color: #fff; }
+  @media (prefers-color-scheme: dark) { .tab[aria-selected="true"] { color: #06222a; } }
+  :root[data-theme="dark"] .tab[aria-selected="true"] { color: #06222a; }
+  :root[data-theme="light"] .tab[aria-selected="true"] { color: #fff; }
+
+  .panel[hidden] { display: none; }
+  .panel { display: grid; gap: 1.5rem; grid-template-columns: 1fr; }
+  @media (min-width: 56rem) { .panel { grid-template-columns: minmax(0, 1.15fr) minmax(0, 1fr); align-items: start; } }
+
+  /* ---- tablet frame ---- */
+  .tablet {
+    border: 1px solid var(--line);
+    border-radius: 16px;
+    background: var(--surface);
+    box-shadow: var(--shadow);
+    overflow: hidden;
+  }
+  .tablet__bar {
+    display: flex; align-items: center; gap: .5rem;
+    padding: .5rem .75rem; background: var(--surface-2);
+    border-bottom: 1px solid var(--line);
+    font-size: .7rem; color: var(--ink-faint);
+    font-family: var(--mono);
+  }
+  .dot { width: .5rem; height: .5rem; border-radius: 50%; background: var(--line); flex: none; }
+  .tablet__body { padding: 1.1rem; background: var(--ground); display: flex; flex-direction: column; gap: .9rem; }
+
+  .mock-brand {
+    display: flex; align-items: baseline; justify-content: space-between; gap: 1rem;
+    padding-bottom: .7rem; border-bottom: 1px solid var(--line-soft);
+  }
+  .mock-brand strong { font-size: var(--step-0); letter-spacing: -.01em; }
+  .mock-brand span { font-size: .72rem; color: var(--ink-faint); }
+
+  .zone-label {
+    font-size: .68rem; text-transform: uppercase; letter-spacing: .1em;
+    font-weight: 700; color: var(--ink-faint); margin: 0;
+  }
+
+  .tasks { display: flex; flex-direction: column; gap: .5rem; margin: 0; padding: 0; list-style: none; }
+  .tasks--grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(9rem, 1fr)); gap: .5rem; }
+
+  .task {
+    width: 100%; text-align: left; font: inherit; cursor: pointer;
+    display: flex; align-items: center; justify-content: space-between; gap: .75rem;
+    padding: .8rem .9rem; border-radius: 10px;
+    background: var(--surface); color: var(--ink);
+    border: 1px solid var(--line);
+    transition: border-color .15s, background .15s, transform .1s;
+  }
+  .task:hover { border-color: var(--accent); background: var(--accent-wash); }
+  .task:active { transform: translateY(1px); }
+  .task__label { font-weight: 650; letter-spacing: -.005em; }
+  .task__meta { font-size: .7rem; color: var(--ink-faint); font-variant-numeric: tabular-nums; white-space: nowrap; }
+
+  .task--primary {
+    background: var(--action-wash); border-color: var(--action);
+    padding: 1rem .9rem;
+  }
+  .task--primary:hover { background: var(--action-wash); border-color: var(--action-deep); }
+  .task--primary .task__label { font-size: var(--step-1); }
+
+  .task--tall { flex-direction: column; align-items: flex-start; gap: .3rem; min-height: 5.2rem; justify-content: center; }
+  .task--tall .task__label { font-size: var(--step-1); }
+
+  .task--desk { padding: .6rem .9rem; background: transparent; }
+  .task--desk .task__label { font-weight: 600; font-size: var(--step--1); }
+
+  /* ---- D: map plate + nearby list ---- */
+  .plate {
+    position: relative; height: 11rem; border-radius: 10px;
+    border: 1px solid var(--line); overflow: hidden;
+    background:
+      linear-gradient(var(--line-soft) 1px, transparent 1px) 0 0 / 100% 2.2rem,
+      linear-gradient(90deg, var(--line-soft) 1px, transparent 1px) 0 0 / 2.2rem 100%,
+      var(--surface);
+  }
+  .plate__scale {
+    position: absolute; right: .6rem; bottom: .45rem;
+    font-family: var(--mono); font-size: .62rem; color: var(--ink-faint);
+    border-bottom: 2px solid var(--ink-faint); padding-bottom: 1px;
+  }
+  .here {
+    position: absolute; left: 47%; top: 62%; width: .8rem; height: .8rem;
+    margin: -.4rem 0 0 -.4rem; border-radius: 50%;
+    background: var(--accent); border: 2px solid var(--ground); z-index: 2;
+  }
+  .here__pulse {
+    position: absolute; inset: -1.4rem; border-radius: 50%;
+    border: 1px solid var(--accent); opacity: .45;
+  }
+  .poly {
+    position: absolute; left: 8%; top: 12%; right: 12%; bottom: 14%;
+    border: 1.5px dashed var(--action); border-radius: 12px;
+    background: color-mix(in srgb, var(--action) 8%, transparent);
+  }
+  .pin {
+    position: absolute; width: 1.5rem; height: 1.5rem; margin: -.75rem 0 0 -.75rem;
+    border-radius: 50% 50% 50% 2px; transform: rotate(-45deg);
+    background: var(--accent-deep); border: 2px solid var(--ground);
+    cursor: pointer; padding: 0; z-index: 3;
+    transition: background .15s, transform .1s;
+  }
+  .pin:hover { background: var(--action); }
+  .pin.is-sel { background: var(--action); transform: rotate(-45deg) scale(1.25); }
+
+  .nearby { gap: .4rem; }
+  .near {
+    display: flex; align-items: center; justify-content: space-between; gap: .6rem;
+    padding: .6rem .75rem; border-radius: 10px;
+    background: var(--surface); border: 1px solid var(--line);
+    transition: border-color .15s, background .15s;
+  }
+  .near.is-sel { border-color: var(--action); background: var(--action-wash); }
+  .near__body { display: flex; flex-direction: column; gap: .1rem; min-width: 0; }
+  .near__name { font-weight: 650; font-size: var(--step-0); letter-spacing: -.005em; }
+  .near__sub { font-size: .7rem; color: var(--ink-faint); font-variant-numeric: tabular-nums; }
+  .near__act {
+    font: inherit; font-size: .74rem; font-weight: 700; cursor: pointer; white-space: nowrap;
+    padding: .45rem .8rem; border-radius: 8px; flex: none;
+    background: var(--surface-2); color: var(--ink); border: 1px solid var(--line);
+    transition: background .15s, border-color .15s;
+  }
+  .near__act:hover { border-color: var(--accent); }
+  .near__act--go { background: var(--action); border-color: var(--action); color: #26170a; }
+  .near__act--resume { background: var(--accent); border-color: var(--accent); color: #fff; }
+  @media (prefers-color-scheme: dark) { .near__act--resume { color: #06222a; } }
+  :root[data-theme="dark"] .near__act--resume { color: #06222a; }
+  :root[data-theme="light"] .near__act--resume { color: #fff; }
+
+  /* ---- E: composed home ---- */
+  .panel.panel--wide { grid-template-columns: 1fr; }
+  .frames { display: grid; gap: 1.25rem; grid-template-columns: 1fr; align-items: start; }
+  @media (min-width: 50rem) { .frames { grid-template-columns: minmax(0, 1.55fr) minmax(0, 1fr); } }
+  .frame-fig { margin: 0; display: flex; flex-direction: column; gap: .5rem; }
+  .frame-fig figcaption {
+    font-size: .68rem; text-transform: uppercase; letter-spacing: .1em;
+    font-weight: 700; color: var(--ink-faint);
+  }
+  .home-cols { display: grid; gap: .8rem; grid-template-columns: 1fr; }
+  @media (min-width: 34rem) { .tablet--wide .home-cols { grid-template-columns: 1fr 1fr; } }
+  .pbox {
+    border: 1px solid var(--line); border-radius: 10px; padding: .75rem;
+    display: flex; flex-direction: column; gap: .5rem; background: var(--surface);
+  }
+  .pbox--field { border-color: var(--action); }
+  .pbox__head { display: flex; align-items: baseline; justify-content: space-between; gap: .5rem; }
+  .pbox__head strong { font-size: var(--step-0); letter-spacing: -.01em; }
+  .pbox__head span { font-size: .66rem; color: var(--ink-faint); text-transform: uppercase; letter-spacing: .08em; font-weight: 700; }
+  .locked {
+    border: 1px dashed var(--line); border-radius: 8px; padding: 1rem .8rem;
+    display: flex; flex-direction: column; align-items: flex-start; gap: .55rem;
+    background: var(--ground);
+  }
+  .locked p { font-size: .72rem; color: var(--ink-faint); margin: 0; }
+  .locked button {
+    font: inherit; font-size: .74rem; font-weight: 700; cursor: pointer;
+    padding: .45rem .8rem; border-radius: 8px;
+    background: var(--action); border: 1px solid var(--action); color: #26170a;
+  }
+  .plate--mini { height: 5.5rem; }
+  .tier {
+    border: 1px solid var(--line-soft); border-radius: 8px; padding: .5rem .7rem;
+    font-size: .68rem; color: var(--ink-faint); background: var(--ground);
+    display: flex; justify-content: space-between; gap: .5rem; align-items: center;
+  }
+  .side--row { display: grid; gap: 1.15rem; grid-template-columns: 1fr; }
+  @media (min-width: 50rem) { .side--row { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
+
+  .resume {
+    border: 1px solid var(--accent); border-radius: 10px;
+    background: var(--accent-wash); padding: .85rem .9rem;
+    display: flex; flex-direction: column; gap: .55rem;
+  }
+  .resume__row { display: flex; align-items: center; justify-content: space-between; gap: .75rem; font-size: var(--step--1); }
+  .resume__row strong { font-weight: 650; }
+  .resume__go {
+    font: inherit; font-size: .72rem; font-weight: 700; cursor: pointer;
+    padding: .28rem .7rem; border-radius: 999px;
+    background: var(--accent); color: #fff; border: 1px solid var(--accent);
+  }
+  @media (prefers-color-scheme: dark) { .resume__go { color: #06222a; } }
+  :root[data-theme="dark"] .resume__go { color: #06222a; }
+  :root[data-theme="light"] .resume__go { color: #fff; }
+
+  /* ---- rationale side ---- */
+  .side { display: flex; flex-direction: column; gap: 1.15rem; }
+  .card {
+    border: 1px solid var(--line); border-radius: 10px;
+    background: var(--surface); padding: 1rem 1.1rem;
+    display: flex; flex-direction: column; gap: .6rem;
+  }
+  .card p, .card li { font-size: var(--step--1); color: var(--ink-soft); }
+  .card ul { margin: 0; padding-left: 1.1rem; display: flex; flex-direction: column; gap: .35rem; }
+
+  .flow {
+    font-family: var(--mono); font-size: .74rem; line-height: 1.7;
+    color: var(--ink-soft); background: var(--ground);
+    border: 1px dashed var(--line); border-radius: 8px;
+    padding: .7rem .8rem; margin: 0; white-space: pre-wrap;
+    min-height: 4.5rem;
+  }
+  .flow em { color: var(--ink-faint); font-style: italic; }
+  .flow b { color: var(--accent); font-weight: 700; }
+
+  .delta { display: flex; flex-direction: column; gap: .4rem; }
+  .delta__row {
+    display: grid; grid-template-columns: 1fr auto auto auto; gap: .6rem;
+    align-items: center; font-size: var(--step--1);
+    padding-bottom: .4rem; border-bottom: 1px solid var(--line-soft);
+  }
+  .delta__row:last-child { border-bottom: 0; padding-bottom: 0; }
+  .delta__row span:first-child { color: var(--ink-soft); }
+  .delta__n { font-variant-numeric: tabular-nums; font-weight: 650; }
+  .delta__was { color: var(--ink-faint); text-decoration: line-through; }
+  .delta__arrow { color: var(--ink-faint); }
+
+  .callout {
+    border-left: 3px solid var(--action); border-radius: 0 8px 8px 0;
+    background: var(--action-wash); padding: .9rem 1.1rem;
+    display: flex; flex-direction: column; gap: .5rem;
+  }
+  .callout p { font-size: var(--step--1); color: var(--ink); }
+  .callout strong { color: var(--ink); }
+
+  footer { border-top: 1px solid var(--line); padding-top: 1.5rem; display: flex; flex-direction: column; gap: .8rem; }
+  footer p { font-size: var(--step--1); color: var(--ink-faint); }
+
+  :is(button, a, [tabindex]):focus-visible {
+    outline: 2px solid var(--accent); outline-offset: 2px; border-radius: 6px;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    * { transition: none !important; animation: none !important; }
+  }
+</style>
+
+<div class="wrap">
+
+  <header>
+    <p class="eyebrow">Navigation study</p>
+    <h1>Four ways into the work</h1>
+    <p class="lede">
+      Users can't find how to start a field visit or an O&amp;M verification. The cause isn't menu depth —
+      it's that both navigations are built entirely from nouns while users arrive with verbs.
+      Four structures, judged against the five journeys that matter.
+    </p>
+    <div class="meta">
+      <span>Baseline traced from <code>origin/develop</code> @ <code>6b19e0e6a</code></span>
+      <span>Palette and orange action colour from <code>_colors.scss</code></span>
+    </div>
+  </header>
+
+  <section>
+    <div class="section-head">
+      <h2>The baseline</h2>
+      <p>Clicks to the first screen where a user can enter data. Grid and map searches are counted separately because they're variable, and usually the real cost.</p>
+    </div>
+    <div class="scroller">
+      <table>
+        <thead>
+          <tr>
+            <th scope="col">Journey</th>
+            <th scope="col">Clicks</th>
+            <th scope="col">Find step</th>
+            <th scope="col">Entry point today</th>
+            <th scope="col">Verdict</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>Start a field visit</td>
+            <td class="num">5–6</td>
+            <td>Grid</td>
+            <td>Row action, or a button seven cards down the BMP page</td>
+            <td><span class="chip chip--bad">Reported pain</span></td>
+          </tr>
+          <tr>
+            <td>O&amp;M verification</td>
+            <td class="num">4</td>
+            <td>Grid</td>
+            <td>Page-header button on one WQMP</td>
+            <td><span class="chip chip--bad">Dead end in nav</span></td>
+          </tr>
+          <tr>
+            <td>Start an OVTA</td>
+            <td class="num">6</td>
+            <td>None</td>
+            <td>Prominent orange button on the list</td>
+            <td><span class="chip chip--warn">Module switch</span></td>
+          </tr>
+          <tr>
+            <td>Add WQMP + attached BMPs</td>
+            <td class="num">3–4, then 5 <em>per BMP</em></td>
+            <td>Grid, repeatedly</td>
+            <td>No path at all from the WQMP you're viewing</td>
+            <td><span class="chip chip--bad">Worst</span></td>
+          </tr>
+          <tr>
+            <td>Add delineations</td>
+            <td class="num">5 + draw</td>
+            <td>Map</td>
+            <td>A link inside a warning banner</td>
+            <td><span class="chip chip--good">Best loop</span></td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <section>
+    <div class="section-head">
+      <h2>The structures</h2>
+      <p>The recommendation is first; the four single-structure options behind it are the exploration that led there. Tap anything to see the path it produces. A, B and C are launchers — lists of verbs. D is different in kind: it uses where you're standing to answer which record.</p>
+    </div>
+
+    <div class="tabs" role="tablist" aria-label="Launcher structures">
+      <button class="tab" role="tab" id="tab-e" aria-controls="panel-e" aria-selected="true">Recommended — both panels</button>
+      <button class="tab" role="tab" id="tab-a" aria-controls="panel-a" aria-selected="false">A — Verb list</button>
+      <button class="tab" role="tab" id="tab-b" aria-controls="panel-b" aria-selected="false">B — Field / desk split</button>
+      <button class="tab" role="tab" id="tab-c" aria-controls="panel-c" aria-selected="false">C — Resume first</button>
+      <button class="tab" role="tab" id="tab-d" aria-controls="panel-d" aria-selected="false">D — Near me</button>
+    </div>
+
+    <!-- ============ E — composed home ============ -->
+    <div class="panel panel--wide" id="panel-e" role="tabpanel" aria-labelledby="tab-e">
+      <div class="frames">
+        <figure class="frame-fig">
+          <figcaption>Desktop — desk panel leads</figcaption>
+          <div class="tablet tablet--wide">
+            <div class="tablet__bar"><span class="dot"></span> ocstormwatertools.org</div>
+            <div class="tablet__body">
+              <div class="home-cols">
+                <div class="pbox">
+                  <div class="pbox__head"><strong>Start something</strong><span>Desk</span></div>
+                  <ul class="tasks">
+                    <li><button class="task task--desk" data-flow="e-wqmp"><span class="task__label">Add a WQMP</span><span class="task__meta">→</span></button></li>
+                    <li><button class="task task--desk" data-flow="e-bmp"><span class="task__label">Add a BMP</span><span class="task__meta">→</span></button></li>
+                    <li><button class="task task--desk" data-flow="e-delin"><span class="task__label">Add delineations</span><span class="task__meta">→</span></button></li>
+                    <li><button class="task task--desk" data-flow="e-verify"><span class="task__label">Begin an O&amp;M verification</span><span class="task__meta">→</span></button></li>
+                    <li><button class="task task--desk" data-flow="e-review"><span class="task__label">Review provisional records</span><span class="task__meta">14</span></button></li>
+                  </ul>
+                </div>
+                <div class="pbox pbox--field">
+                  <div class="pbox__head"><strong>Work near me</strong><span>Field</span></div>
+                  <div class="locked">
+                    <p>Uses your location to find BMPs and assessment areas you're standing next to.</p>
+                    <button data-flow="e-grant">Show work near me</button>
+                  </div>
+                </div>
+              </div>
+              <div class="tier"><span>Data and Tools — BMP List, WQMP List, Delineation Map, Data Hub</span><span>unchanged</span></div>
+            </div>
+          </div>
+        </figure>
+
+        <figure class="frame-fig">
+          <figcaption>Tablet — field panel leads</figcaption>
+          <div class="tablet">
+            <div class="tablet__bar"><span class="dot"></span> location on</div>
+            <div class="tablet__body">
+              <div class="pbox pbox--field">
+                <div class="pbox__head"><strong>Work near me</strong><span>4 within 100 m</span></div>
+                <div class="plate plate--mini" aria-hidden="true">
+                  <span class="here"><span class="here__pulse"></span></span>
+                  <button class="pin" style="left: 32%; top: 38%" data-pair="e1" data-flow="e-near1"></button>
+                  <button class="pin" style="left: 62%; top: 30%" data-pair="e2" data-flow="e-near2"></button>
+                </div>
+                <ul class="tasks nearby">
+                  <li class="near" data-pair="e1">
+                    <span class="near__body">
+                      <span class="near__name">Salt Creek Bioswale</span>
+                      <span class="near__sub">12 m · no visit today</span>
+                    </span>
+                    <button class="near__act near__act--go" data-flow="e-near1">Start visit</button>
+                  </li>
+                  <li class="near" data-pair="e2">
+                    <span class="near__body">
+                      <span class="near__name">Salt Creek Inlet 4</span>
+                      <span class="near__sub">19 m · visit in progress</span>
+                    </span>
+                    <button class="near__act near__act--resume" data-flow="e-near2">Continue</button>
+                  </li>
+                </ul>
+              </div>
+              <div class="pbox">
+                <div class="pbox__head"><strong>Start something</strong><span>Desk</span></div>
+                <ul class="tasks">
+                  <li><button class="task task--desk" data-flow="e-wqmp"><span class="task__label">Add a WQMP</span><span class="task__meta">→</span></button></li>
+                  <li><button class="task task--desk" data-flow="e-verify"><span class="task__label">Begin an O&amp;M verification</span><span class="task__meta">→</span></button></li>
+                </ul>
+              </div>
+              <div class="tier"><span>Data and Tools</span><span>below</span></div>
+            </div>
+          </div>
+        </figure>
+      </div>
+
+      <div class="side side--row">
+        <div class="card">
+          <h3>The idea</h3>
+          <p>Both panels, always. The hero tier currently holds a card called Quick Actions containing four navigation links and no actions — that's the space this takes.</p>
+          <p>Neither panel is hidden by role, so a one-person city keeps every tool. Priority is expressed by <em>order</em>, and order follows the viewport: touch and narrow puts field first, wide puts desk first.</p>
+          <pre class="flow" id="flow-e">Tap anything to trace its path.</pre>
+        </div>
+        <div class="card">
+          <h3>Why the field panel starts locked</h3>
+          <p>A map panel isn't free the way a verb list is — it wants location permission and map tiles on every home page load. Rendering it eagerly means every desk user gets a prompt they'll deny once and then be stuck with.</p>
+          <p>So it opens as a placeholder and asks on tap. That also gives an honest empty state for someone twenty miles from the nearest BMP, where the answer is a search box, not an apology.</p>
+        </div>
+        <div class="card">
+          <h3>Open questions</h3>
+          <ul>
+            <li>Viewport is a proxy for context, and it will be wrong sometimes — a crew on a laptop in a truck, a manager on an iPad at a desk. Worth a remembered preference if the proxy annoys people.</li>
+            <li>O&amp;M verification and delineations are genuinely both field and desk work, so they appear in both panels. Same destination, different context.</li>
+            <li>Provisional review shows a count. Counts that can be zero need a designed empty state, not a stray "0".</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+
+    <!-- ============ A ============ -->
+    <div class="panel" id="panel-a" role="tabpanel" aria-labelledby="tab-a" hidden>
+      <div class="tablet">
+        <div class="tablet__bar"><span class="dot"></span> ocstormwatertools.org</div>
+        <div class="tablet__body">
+          <div class="mock-brand"><strong>What do you need to do?</strong><span>Dana Point · Editor</span></div>
+          <ul class="tasks">
+            <li><button class="task task--primary" data-flow="a-visit"><span class="task__label">Start a field visit</span><span class="task__meta">3 taps</span></button></li>
+            <li><button class="task" data-flow="a-ovta"><span class="task__label">Start an OVTA</span><span class="task__meta">2 taps</span></button></li>
+            <li><button class="task" data-flow="a-verify"><span class="task__label">Begin an O&amp;M verification</span><span class="task__meta">3 taps</span></button></li>
+            <li><button class="task" data-flow="a-delin"><span class="task__label">Add a delineation</span><span class="task__meta">2 taps</span></button></li>
+            <li><button class="task" data-flow="a-wqmp"><span class="task__label">Add a WQMP</span><span class="task__meta">2 taps</span></button></li>
+            <li><button class="task task--desk" data-flow="a-browse"><span class="task__label">Browse BMPs, WQMPs and records</span><span class="task__meta">→</span></button></li>
+          </ul>
+        </div>
+      </div>
+      <div class="side">
+        <div class="card">
+          <h3>The idea</h3>
+          <p>One flat list of verbs, ordered field-first, every item a full-width touch target. Browsing is demoted to a single link at the bottom — the nouns are still reachable, just no longer the front door.</p>
+          <pre class="flow" id="flow-a">Tap a task to trace its path.</pre>
+        </div>
+        <div class="card">
+          <h3>Projected clicks to data entry</h3>
+          <div class="delta">
+            <div class="delta__row"><span>Field visit</span><span class="delta__was">5</span><span class="delta__arrow">→</span><span class="delta__n">3</span></div>
+            <div class="delta__row"><span>O&amp;M verification</span><span class="delta__was">4</span><span class="delta__arrow">→</span><span class="delta__n">3</span></div>
+            <div class="delta__row"><span>OVTA</span><span class="delta__was">6</span><span class="delta__arrow">→</span><span class="delta__n">2</span></div>
+            <div class="delta__row"><span>Delineation</span><span class="delta__was">5</span><span class="delta__arrow">→</span><span class="delta__n">2</span></div>
+          </div>
+        </div>
+        <div class="card">
+          <h3>Trade-off</h3>
+          <ul>
+            <li>Strongest for the one-person city — every task visible, nothing hidden behind a role.</li>
+            <li>Weakest signal about <em>where</em> you are; loses the module identity the current nav carries.</li>
+            <li>The list grows unbounded as tasks are added.</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+
+    <!-- ============ B ============ -->
+    <div class="panel" id="panel-b" role="tabpanel" aria-labelledby="tab-b" hidden>
+      <div class="tablet">
+        <div class="tablet__bar"><span class="dot"></span> ocstormwatertools.org</div>
+        <div class="tablet__body">
+          <div class="mock-brand"><strong>Stormwater Tools</strong><span>Dana Point · Editor</span></div>
+          <p class="zone-label">In the field</p>
+          <ul class="tasks tasks--grid">
+            <li><button class="task task--tall" data-flow="b-visit"><span class="task__label">Field visit</span><span class="task__meta">Inspect or maintain a BMP</span></button></li>
+            <li><button class="task task--tall" data-flow="b-ovta"><span class="task__label">OVTA</span><span class="task__meta">Assess an area for trash</span></button></li>
+            <li><button class="task task--tall" data-flow="b-verify"><span class="task__label">O&amp;M verification</span><span class="task__meta">Verify a WQMP on site</span></button></li>
+          </ul>
+          <p class="zone-label">At the desk</p>
+          <ul class="tasks">
+            <li><button class="task task--desk" data-flow="b-wqmp"><span class="task__label">Add a WQMP</span><span class="task__meta">→</span></button></li>
+            <li><button class="task task--desk" data-flow="b-delin"><span class="task__label">Add delineations</span><span class="task__meta">→</span></button></li>
+            <li><button class="task task--desk" data-flow="b-browse"><span class="task__label">Browse BMPs, WQMPs and records</span><span class="task__meta">→</span></button></li>
+          </ul>
+        </div>
+      </div>
+      <div class="side">
+        <div class="card">
+          <h3>The idea</h3>
+          <p>Two labelled zones. Field work gets large tiles with a line of plain-language explanation; desk work sits below as compact rows. Everyone sees both, so a one-person jurisdiction loses nothing — the priority is expressed by weight, not by hiding.</p>
+          <pre class="flow" id="flow-b">Tap a task to trace its path.</pre>
+        </div>
+        <div class="card">
+          <h3>Projected clicks to data entry</h3>
+          <div class="delta">
+            <div class="delta__row"><span>Field visit</span><span class="delta__was">5</span><span class="delta__arrow">→</span><span class="delta__n">3</span></div>
+            <div class="delta__row"><span>O&amp;M verification</span><span class="delta__was">4</span><span class="delta__arrow">→</span><span class="delta__n">3</span></div>
+            <div class="delta__row"><span>OVTA</span><span class="delta__was">6</span><span class="delta__arrow">→</span><span class="delta__n">2</span></div>
+            <div class="delta__row"><span>Delineation</span><span class="delta__was">5</span><span class="delta__arrow">→</span><span class="delta__n">3</span></div>
+          </div>
+        </div>
+        <div class="card">
+          <h3>Trade-off</h3>
+          <ul>
+            <li>The zone labels teach the split without needing role configuration.</li>
+            <li>Desk users — your highest-volume group — are visibly second-class on this screen.</li>
+            <li>"In the field" is a guess about where someone is, and it will sometimes be wrong.</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+
+    <!-- ============ C ============ -->
+    <div class="panel" id="panel-c" role="tabpanel" aria-labelledby="tab-c" hidden>
+      <div class="tablet">
+        <div class="tablet__bar"><span class="dot"></span> ocstormwatertools.org</div>
+        <div class="tablet__body">
+          <div class="mock-brand"><strong>Pick up where you left off</strong><span>Dana Point · Editor</span></div>
+          <div class="resume">
+            <div class="resume__row">
+              <span><strong>Field visit</strong> — Salt Creek Bioswale, started 8:42am</span>
+              <button class="resume__go" data-flow="c-resume">Continue</button>
+            </div>
+            <div class="resume__row">
+              <span><strong>OVTA</strong> — Doheny Transect 3, observations pending</span>
+              <button class="resume__go" data-flow="c-resume-ovta">Continue</button>
+            </div>
+          </div>
+          <p class="zone-label">Start something new</p>
+          <ul class="tasks">
+            <li><button class="task task--primary" data-flow="c-visit"><span class="task__label">Field visit</span><span class="task__meta">3 taps</span></button></li>
+            <li><button class="task" data-flow="c-ovta"><span class="task__label">OVTA</span><span class="task__meta">2 taps</span></button></li>
+            <li><button class="task" data-flow="c-verify"><span class="task__label">O&amp;M verification</span><span class="task__meta">3 taps</span></button></li>
+            <li><button class="task task--desk" data-flow="c-desk"><span class="task__label">Desk work — WQMPs, delineations, browsing</span><span class="task__meta">→</span></button></li>
+          </ul>
+        </div>
+      </div>
+      <div class="side">
+        <div class="card">
+          <h3>The idea</h3>
+          <p>Resuming is treated as the primary case, not starting. This isn't invented — the app already tracks in-progress field visits, and the Begin Field Visit dialog already asks whether to continue an existing one. That state is simply never surfaced until you've already found the BMP.</p>
+          <pre class="flow" id="flow-c">Tap a task to trace its path.</pre>
+        </div>
+        <div class="card">
+          <h3>Projected clicks to data entry</h3>
+          <div class="delta">
+            <div class="delta__row"><span>Resume a visit</span><span class="delta__was">5</span><span class="delta__arrow">→</span><span class="delta__n">1</span></div>
+            <div class="delta__row"><span>New field visit</span><span class="delta__was">5</span><span class="delta__arrow">→</span><span class="delta__n">3</span></div>
+            <div class="delta__row"><span>O&amp;M verification</span><span class="delta__was">4</span><span class="delta__arrow">→</span><span class="delta__n">3</span></div>
+            <div class="delta__row"><span>OVTA</span><span class="delta__was">6</span><span class="delta__arrow">→</span><span class="delta__n">2</span></div>
+          </div>
+        </div>
+        <div class="card">
+          <h3>Trade-off</h3>
+          <ul>
+            <li>The only structure that gets any journey to a single tap, and it does it for the most frequent real case — a crew resuming this morning's work.</li>
+            <li>Empty most of the time for desk-only users, who will see a blank panel above their actual tools.</li>
+            <li>Needs a per-user in-progress query that doesn't exist yet for OVTAs.</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+
+    <!-- ============ D ============ -->
+    <div class="panel" id="panel-d" role="tabpanel" aria-labelledby="tab-d" hidden>
+      <div class="tablet">
+        <div class="tablet__bar"><span class="dot"></span> ocstormwatertools.org &nbsp;·&nbsp; location on</div>
+        <div class="tablet__body">
+          <div class="mock-brand"><strong>Work near me</strong><span>±8 m accuracy</span></div>
+
+          <div class="plate" aria-hidden="true">
+            <span class="here"><span class="here__pulse"></span></span>
+            <button class="pin" style="left: 30%; top: 34%" data-pair="p1" data-flow="d-bmp1" title="Salt Creek Bioswale"></button>
+            <button class="pin" style="left: 47%; top: 52%" data-pair="p2" data-flow="d-bmp2" title="Salt Creek Inlet 4"></button>
+            <button class="pin" style="left: 63%; top: 30%" data-pair="p3" data-flow="d-bmp3" title="Crown Valley Screen"></button>
+            <span class="poly" data-pair="p4"></span>
+            <span class="plate__scale">50 m</span>
+          </div>
+
+          <p class="zone-label">4 records within 100 m — nearest first</p>
+          <ul class="tasks nearby">
+            <li class="near" data-pair="p1">
+              <span class="near__body">
+                <span class="near__name">Salt Creek Bioswale</span>
+                <span class="near__sub">Bioretention · 12 m · provisional</span>
+              </span>
+              <button class="near__act near__act--go" data-flow="d-bmp1">Start visit</button>
+            </li>
+            <li class="near" data-pair="p2">
+              <span class="near__body">
+                <span class="near__name">Salt Creek Inlet 4</span>
+                <span class="near__sub">Inlet screen · 19 m · visit in progress</span>
+              </span>
+              <button class="near__act near__act--resume" data-flow="d-resume">Continue</button>
+            </li>
+            <li class="near" data-pair="p3">
+              <span class="near__body">
+                <span class="near__name">Crown Valley Screen</span>
+                <span class="near__sub">Trash screen · 64 m · no delineation</span>
+              </span>
+              <button class="near__act" data-flow="d-delin">Delineate</button>
+            </li>
+            <li class="near" data-pair="p4">
+              <span class="near__body">
+                <span class="near__name">Doheny OVTA Area 3</span>
+                <span class="near__sub">You are inside this area · assessment due</span>
+              </span>
+              <button class="near__act near__act--go" data-flow="d-ovta">Start OVTA</button>
+            </li>
+          </ul>
+        </div>
+      </div>
+      <div class="side">
+        <div class="card">
+          <h3>The idea</h3>
+          <p>GPS answers <em>which of these few</em>, not <em>which one</em>. So the ranked list is the thing you act on — full-width rows, one primary action each, chosen from what that record actually needs. The map sits above for orientation and to confirm you're looking at the right thing.</p>
+          <p>Every row's action is the verb for that record's current state: a BMP with no visit offers Start visit, one mid-visit offers Continue, one with no delineation offers Delineate.</p>
+          <pre class="flow" id="flow-d">Tap a pin or a row to trace its path.</pre>
+        </div>
+        <div class="card">
+          <h3>Projected clicks to data entry</h3>
+          <div class="delta">
+            <div class="delta__row"><span>Field visit</span><span class="delta__was">5</span><span class="delta__arrow">→</span><span class="delta__n">2</span></div>
+            <div class="delta__row"><span>Resume a visit</span><span class="delta__was">5</span><span class="delta__arrow">→</span><span class="delta__n">2</span></div>
+            <div class="delta__row"><span>OVTA</span><span class="delta__was">6</span><span class="delta__arrow">→</span><span class="delta__n">2</span></div>
+            <div class="delta__row"><span>Delineation</span><span class="delta__was">5</span><span class="delta__arrow">→</span><span class="delta__n">2</span></div>
+          </div>
+          <p>No typing, no grid search, no picker. The find step is gone rather than relocated.</p>
+        </div>
+        <div class="card">
+          <h3>Already built</h3>
+          <ul>
+            <li><code>zoom-to-my-location-control</code> — reusable Leaflet control, already on the BMP list map.</li>
+            <li><code>hybrid-map-grid</code> — reusable map + grid with two-way selection sync.</li>
+            <li>The delineation map already does map-selection-to-action-panel. This generalises that.</li>
+          </ul>
+          <p>The missing piece is an actions slot on <code>hybrid-map-grid</code>; it has one for layers only.</p>
+        </div>
+        <div class="card">
+          <h3>Risks worth testing</h3>
+          <ul>
+            <li>GPS is 5–10 m at best, worse under canopy. Never auto-select — always offer candidates.</li>
+            <li>Needs HTTPS and a permission prompt, and fails indoors. Manual search stays as fallback.</li>
+            <li>Map tiles over cellular are heavier than a list. The list should render before the map does.</li>
+            <li>Dense marker clusters are hard to hit with a finger — the reason the list, not the map, is the action surface.</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <div class="section-head">
+      <h2>Why D is different in kind</h2>
+    </div>
+    <div class="callout">
+      <p><strong>Three of the five tasks are scoped to a record, and a launcher can only relocate the question of which one.</strong> A field visit needs a BMP; a verification needs a WQMP; a delineation needs a BMP. A, B and C all replace <em>menu, then grid, then row action</em> with a search-as-you-type picker — better, but the user still has to identify and name the record. That's why those variants land at two or three taps and not one.</p>
+      <p><strong>D removes the question instead of moving it.</strong> Standing next to the thing is a stronger identifier than typing its name, and it's the one piece of context a tablet in the field has that a desk browser doesn't. This is the only variant where the find step disappears rather than shrinks.</p>
+      <p>It is also the least speculative. The geolocation control, the map-and-grid component with two-way selection, and the row actions all exist today; the delineation map already turns map selection into an action panel. What's missing is an actions slot on the shared component.</p>
+      <p><strong>The worst journey still isn't on this screen.</strong> Adding BMPs to a WQMP costs five clicks per BMP because you cannot create a child record from the parent you're viewing, and no amount of geolocation helps someone at a desk with a PDF. That's fixed on the WQMP page. Desk pain is in-context; field pain is wayfinding.</p>
+    </div>
+  </section>
+
+  <footer>
+    <h3>Recommendation</h3>
+    <p><strong>Both panels — a desk verb list and a location-aware field panel — in the hero tier, ordered by viewport.</strong> The two user groups fail for different reasons, so no single structure was ever going to serve both. The desk group's problem is that verbs don't exist anywhere in the navigation; the field group's problem is being asked to name a record they're standing next to. One panel each.</p>
+    <p>Within the field panel, D subsumes C: a record you have work open on is just a nearby record whose verb is Continue rather than Start. And the worst journey of the five stays off this screen entirely — adding BMPs to a WQMP is fixed on the WQMP page with an in-context action, because no amount of geolocation helps someone at a desk with a PDF.</p>
+    <p><strong>Sequence.</strong> The two dead-end fixes first — a launcher on the O&amp;M Verifications list and on Field Records — because they're days of work, they address two of the three reported pain points, and they're independent of everything else here. Then the desk verb panel, which is plain routing and needs no new components. Then the actions slot on <code>hybrid-map-grid</code>, which is the whole engineering cost of the field panel. Then the WQMP in-context fix.</p>
+    <p>Click counts for the variants are projections from the traced routes, not measurements. The baseline column is traced from the actual code; the variant columns are estimates and should be treated as such. The field panel's estimates additionally assume location permission is already granted — first run costs an extra tap, and indoors it degrades to search.</p>
+  </footer>
+
+</div>
+
+<script>
+  (function () {
+    var flows = {
+      "a-visit":   "Tap  <b>Start a field visit</b>\nPicker  <em>search BMPs, recent and nearby first</em>\nTap  <b>Salt Creek Bioswale</b>\n→  /field-visits/1204/inventory",
+      "a-ovta":    "Tap  <b>Start an OVTA</b>\nTap  <b>Begin</b>  <em>instructions shown once, then skippable</em>\n→  /trash/…/new/initiate-ovta",
+      "a-verify":  "Tap  <b>Begin an O&M verification</b>\nPicker  <em>search WQMPs in your jurisdiction</em>\nTap  <b>Monarch Beach Resort</b>\n→  /water-quality-management-plans/88/verifications/new/basics",
+      "a-delin":   "Tap  <b>Add a delineation</b>\n→  /delineation/delineation-map  <em>opens with undelineated BMPs highlighted</em>",
+      "a-wqmp":    "Tap  <b>Add a WQMP</b>\nChoose  <b>From PDF</b>  or  <b>Enter manually</b>\n→  modal, then WQMP detail",
+      "a-browse":  "Tap  <b>Browse</b>\n→  today's nav, unchanged  <em>nouns still reachable</em>",
+
+      "b-visit":   "Tap  <b>Field visit</b>\nPicker  <em>search BMPs</em>\nTap  <b>Salt Creek Bioswale</b>\n→  /field-visits/1204/inventory",
+      "b-ovta":    "Tap  <b>OVTA</b>\nTap  <b>Begin</b>\n→  /trash/…/new/initiate-ovta  <em>no module switch</em>",
+      "b-verify":  "Tap  <b>O&M verification</b>\nPicker  <em>search WQMPs</em>\nTap  <b>Monarch Beach Resort</b>\n→  /…/verifications/new/basics",
+      "b-wqmp":    "Tap  <b>Add a WQMP</b>\n→  WQMP list with the create modal open",
+      "b-delin":   "Tap  <b>Add delineations</b>\n→  /delineation/delineation-map",
+      "b-browse":  "Tap  <b>Browse</b>\n→  today's nav, unchanged",
+
+      "c-resume":     "Tap  <b>Continue</b>\n→  /field-visits/1204/inventory  <em>exact step you left at 8:42am</em>\n\nOne tap. No picker, no grid, no search.",
+      "c-resume-ovta":"Tap  <b>Continue</b>\n→  /trash/…/edit/77/record-observations  <em>resumes mid-workflow</em>",
+      "c-visit":      "Tap  <b>Field visit</b>\nPicker  <em>search BMPs</em>\nTap  <b>Salt Creek Bioswale</b>\n→  /field-visits/1205/inventory",
+      "c-ovta":       "Tap  <b>OVTA</b>\nTap  <b>Begin</b>\n→  /trash/…/new/initiate-ovta",
+      "c-verify":     "Tap  <b>O&M verification</b>\nPicker  <em>search WQMPs</em>\nTap  <b>Monarch Beach Resort</b>\n→  /…/verifications/new/basics",
+      "c-desk":       "Tap  <b>Desk work</b>\n→  the noun-based nav, for long sessions at a keyboard",
+
+      "d-bmp1":   "Open  <b>Work near me</b>  <em>location already granted</em>\nTap  <b>Start visit</b>  on Salt Creek Bioswale, 12 m\n→  /field-visits/1206/inventory\n\nTwo taps. No typing, no grid, no picker.",
+      "d-resume": "Tap  <b>Continue</b>  on Salt Creek Inlet 4\n→  /field-visits/1204/observations  <em>resumes at the step you left</em>",
+      "d-bmp2":   "Selected  <b>Salt Creek Inlet 4</b>, 19 m\n<em>A visit is already open here — the row offers Continue, not Start.</em>",
+      "d-bmp3":   "Tap  <b>Delineate</b>  on Crown Valley Screen, 64 m\n→  /delineation/delineation-map?treatmentBMPID=903\n<em>the deep link that exists today, reached without the warning banner</em>",
+      "d-delin":  "Tap  <b>Delineate</b>\n→  /delineation/delineation-map?treatmentBMPID=903\n<em>BMP preselected, flow-type chooser open</em>",
+      "d-ovta":   "Tap  <b>Start OVTA</b>  on Doheny OVTA Area 3\n<em>you are inside this polygon, so no picker is needed</em>\n→  /trash/…/new/initiate-ovta?areaID=3",
+
+      "e-grant":  "Tap  <b>Show work near me</b>\n<em>browser asks for location — once, on intent, not on page load</em>\nPanel fills with nearby records, nearest first",
+      "e-near1":  "Tap  <b>Start visit</b>  on Salt Creek Bioswale, 12 m\n→  /field-visits/1206/inventory",
+      "e-near2":  "Tap  <b>Continue</b>  on Salt Creek Inlet 4\n→  /field-visits/1204/observations",
+      "e-wqmp":   "Tap  <b>Add a WQMP</b>\nChoose  <b>From PDF</b>  or  <b>Enter manually</b>\n→  create modal\n<em>then Create BMP for this WQMP, in context, from the WQMP page</em>",
+      "e-bmp":    "Tap  <b>Add a BMP</b>\n→  /treatment-bmps/new",
+      "e-delin":  "Tap  <b>Add delineations</b>\n→  /delineation/delineation-map  <em>undelineated BMPs highlighted</em>",
+      "e-verify": "Tap  <b>Begin an O&M verification</b>\nPicker  <em>search WQMPs in your jurisdiction</em>\n→  /…/verifications/new/basics\n<em>appears in both panels — this work happens on site and at a desk</em>",
+      "e-review": "Tap  <b>Review provisional records</b>\n→  /dashboard  <em>14 awaiting verification across BMPs, delineations and visits</em>"
+    };
+
+    document.addEventListener("click", function (e) {
+      var btn = e.target.closest("[data-flow]");
+      if (!btn) return;
+      var panel = btn.closest(".panel");
+      if (!panel) return;
+      var out = panel.querySelector(".flow");
+      if (out) out.innerHTML = flows[btn.getAttribute("data-flow")] || "—";
+
+      // D: keep pin and list row selection in sync, the way hybrid-map-grid already
+      // syncs map and grid — this is the behaviour the actions slot would extend.
+      var host = btn.closest("[data-pair]");
+      var pair = host ? host.getAttribute("data-pair") : null;
+      if (pair) {
+        panel.querySelectorAll(".pin, .near").forEach(function (el) {
+          el.classList.toggle("is-sel", el.getAttribute("data-pair") === pair);
+        });
+      }
+    });
+
+    var tabs = Array.prototype.slice.call(document.querySelectorAll(".tab"));
+    function select(tab) {
+      tabs.forEach(function (t) {
+        var on = t === tab;
+        t.setAttribute("aria-selected", on ? "true" : "false");
+        document.getElementById(t.getAttribute("aria-controls")).hidden = !on;
+      });
+    }
+    tabs.forEach(function (t) {
+      t.addEventListener("click", function () { select(t); });
+      t.addEventListener("keydown", function (e) {
+        var i = tabs.indexOf(t);
+        if (e.key === "ArrowRight") { e.preventDefault(); tabs[(i + 1) % tabs.length].focus(); tabs[(i + 1) % tabs.length].click(); }
+        if (e.key === "ArrowLeft") { e.preventDefault(); tabs[(i - 1 + tabs.length) % tabs.length].focus(); tabs[(i - 1 + tabs.length) % tabs.length].click(); }
+      });
+    });
+  })();
+</script>
+</body>
+</html>
