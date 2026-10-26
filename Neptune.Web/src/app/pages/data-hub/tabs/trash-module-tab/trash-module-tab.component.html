@@ -37,6 +37,16 @@
             [disabled]="!isAdminOrEditor()"
             [disabledTooltip]="managerEditorTooltip"
         ></data-hub-action-button>
+
+        <h3>Trash Analysis Areas</h3>
+        <p>Download a jurisdiction's Trash Analysis Areas as a File Geodatabase, with every attribute shown in the Trash Analysis Areas grid.</p>
+        <data-hub-action-button
+            label="Download"
+            icon="download"
+            [routerLink]="['/data-hub', 'trash-analysis-area-download']"
+            [disabled]="!isAdminOrEditor()"
+            [disabledTooltip]="managerEditorTooltip"
+        ></data-hub-action-button>
     </div>
     <data-hub-quick-links tab="trash"></data-hub-quick-links>
 </div>

@@ -214,6 +214,7 @@ model/system-info-dto.ts
 model/training-video-dto.ts
 model/trash-capture-status-type-dto.ts
 model/trash-generating-unit-dto.ts
+model/trash-generating-unit-gdb-download-request-dto.ts
 model/trash-generating-unit-grid-dto.ts
 model/trash-screen-field-visit-upload-result-dto.ts
 model/treatment-bmp-assessment-detail-dto.ts

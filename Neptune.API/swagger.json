@@ -8107,6 +8107,38 @@
         "x-anonymous": true
       }
     },
+    "/trash-generating-units/download-gdb": {
+      "post": {
+        "tags": [
+          "TrashGeneratingUnit"
+        ],
+        "operationId": "DownloadGdb_TrashGeneratingUnit",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/TrashGeneratingUnitGdbDownloadRequestDto"
+              }
+            },
+            "text/json": {
+              "schema": {
+                "$ref": "#/components/schemas/TrashGeneratingUnitGdbDownloadRequestDto"
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "$ref": "#/components/schemas/TrashGeneratingUnitGdbDownloadRequestDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
     "/trash-results-by-jurisdiction/{jurisdictionID}/area-based-results-calculations": {
       "get": {
         "tags": [
@@ -21354,6 +21386,16 @@
             "type": "integer",
             "format": "int32",
             "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "TrashGeneratingUnitGdbDownloadRequestDto": {
+        "type": "object",
+        "properties": {
+          "StormwaterJurisdictionID": {
+            "type": "integer",
+            "format": "int32"
           }
         },
         "additionalProperties": false

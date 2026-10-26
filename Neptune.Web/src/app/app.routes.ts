@@ -980,6 +980,13 @@ export const routes: Routes = [
                 canActivate: [JurisdictionManagerOrEditorOnlyGuard],
             },
             {
+                path: "data-hub/trash-analysis-area-download",
+                title: "Download Trash Analysis Areas",
+                loadComponent: () =>
+                    import("./pages/data-hub/trash-analysis-area-download/trash-analysis-area-download.component").then((m) => m.TrashAnalysisAreaDownloadComponent),
+                canActivate: [JurisdictionManagerOrEditorOnlyGuard],
+            },
+            {
                 path: "data-hub/ovta-upload",
                 title: "Upload OVTAs",
                 loadComponent: () => import("./pages/data-hub/ovta-upload/ovta-upload.component").then((m) => m.OvtaUploadComponent),
