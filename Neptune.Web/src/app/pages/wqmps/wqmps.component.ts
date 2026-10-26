@@ -334,6 +334,7 @@ export class WqmpsComponent {
                 UseCustomDropdownFilter: true,
             }),
             this.utilityFunctionsService.createDecimalColumnDef("% of Site Treated", "PercentOfSiteTreated", {
+                DecimalPlacesToDisplay: 1,
                 FieldDefinitionType: "PercentOfSiteTreated",
             }),
             this.utilityFunctionsService.createDecimalColumnDef("Calculated Boundary Acreage", "CalculatedBoundaryAcreage", {
@@ -343,10 +344,12 @@ export class WqmpsComponent {
                 FieldDefinitionType: "DrainageAreaTreated",
             }),
             this.utilityFunctionsService.createDecimalColumnDef("% Captured", "PercentCaptured", {
+                DecimalPlacesToDisplay: 1,
                 FieldDefinitionType: "PercentCaptured",
                 FieldDefinitionLabelOverride: "% Captured",
             }),
             this.utilityFunctionsService.createDecimalColumnDef("% Retained", "PercentRetained", {
+                DecimalPlacesToDisplay: 1,
                 FieldDefinitionType: "PercentRetained",
                 FieldDefinitionLabelOverride: "% Retained",
             }),
