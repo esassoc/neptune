@@ -189,6 +189,38 @@ namespace Neptune.Tests
         }
 
         [TestMethod]
+        public void LastUpdateDate_IsThePacificDate_NotTheUtcDate()
+        {
+            // Stored UTC; the grid shows the browser's local (Pacific) date. 02:00 UTC on Mar 10 is Mar 9 in Orange County.
+            var dto = FullyLinkedDto();
+            dto.LastUpdateDate = new DateTime(2026, 3, 10, 2, 0, 0, DateTimeKind.Utc);
+
+            var a = TrashGeneratingUnitGdbExport.ToFeatureCollection(new[] { (dto, (Geometry)Square()) })[1].Attributes;
+
+            Assert.AreEqual("2026-03-09", a["LastUpdateDate"]);
+        }
+
+        [TestMethod]
+        public async Task ExportRowsQuery_IsOneStatement_AndMatchesTheGridRows()
+        {
+            using var db = GetDbContext();
+            var jurisdictionID = db.vTrashGeneratingUnitLoadStatistics.AsNoTracking()
+                .GroupBy(x => x.StormwaterJurisdictionID).OrderBy(g => g.Count()).Select(g => (int?)g.Key).FirstOrDefault();
+            if (jurisdictionID == null) { Assert.Inconclusive("No Trash Analysis Areas in the local DB."); return; }
+
+            var query = TrashGeneratingUnitGdbExport.ExportRowsQuery(db, jurisdictionID.Value);
+            var sql = query.ToQueryString();
+            StringAssert.Contains(sql, "INNER JOIN [TrashGeneratingUnit]", $"Attributes and polygons must come from one statement (NPT-1134 Copilot review). SQL:\n{sql}");
+            Assert.AreEqual(1, sql.Split("SELECT ").Length - 1, $"Expected a single SELECT. SQL:\n{sql}");
+
+            var rows = await query.ToListAsync();
+            var gridIDs = db.vTrashGeneratingUnitLoadStatistics.AsNoTracking()
+                .Where(x => x.StormwaterJurisdictionID == jurisdictionID.Value).Select(x => x.TrashGeneratingUnitID).ToList();
+            CollectionAssert.AreEquivalent(gridIDs, rows.Select(x => x.Dto.TrashGeneratingUnitID).ToList());
+            Assert.IsTrue(rows.All(x => x.Geometry != null && x.Geometry.SRID == 2771), "Every row should carry its native (2771) polygon.");
+        }
+
+        [TestMethod]
         public void DownloadGdb_RequiresJurisdictionEditFeature()
         {
             var method = typeof(TrashGeneratingUnitController).GetMethod(nameof(TrashGeneratingUnitController.DownloadGdb), BindingFlags.Public | BindingFlags.Instance);
