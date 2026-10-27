@@ -296,7 +296,9 @@ namespace Neptune.API
                 policy.AllowAnyOrigin();
                 policy.AllowAnyHeader();
                 policy.AllowAnyMethod();
-                policy.WithExposedHeaders("WWW-Authenticate");
+                // Content-Disposition lets the SPA (a different origin on QA/prod) read the server's
+                // filename on file downloads; without it saveBlobResponse falls back to a generic name.
+                policy.WithExposedHeaders("WWW-Authenticate", "Content-Disposition");
             });
 
             app.UseAuthentication();

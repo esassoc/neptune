@@ -1,4 +1,12 @@
-<page-header pageTitle="Trash Analysis Areas"></page-header> <app-alert-display></app-alert-display>
+<page-header pageTitle="Trash Analysis Areas" [templateRight]="templateRight"></page-header>
+
+<ng-template #templateRight>
+  @if (currentUserHasJurisdictionEditPermission()) {
+    <a class="float-right btn btn-primary-outline" [routerLink]="['/data-hub/trash-analysis-area-download']"> <icon [icon]="'Download'"></icon> Download GDB </a>
+  }
+</ng-template>
+
+<app-alert-display></app-alert-display>
 
 <div class="page-body" [loadingSpinner]="{ isLoading, loadingHeight: 100 }">
   @if (trashGeneratingUnits$ | async; as trashGeneratingUnits) {
