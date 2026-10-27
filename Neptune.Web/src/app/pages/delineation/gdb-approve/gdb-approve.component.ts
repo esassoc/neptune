@@ -9,6 +9,7 @@ import { Alert } from "src/app/shared/models/alert";
 import { AlertContext } from "src/app/shared/models/enums/alert-context.enum";
 import { PageHeaderComponent } from "src/app/shared/components/page-header/page-header.component";
 import { AlertDisplayComponent } from "src/app/shared/components/alert-display/alert-display.component";
+import { jurisdictionErrorMessage, STAGED_JURISDICTION_FORBIDDEN_MESSAGE } from "src/app/shared/helpers/jurisdiction-forbidden";
 
 @Component({
     selector: "gdb-approve",
@@ -54,9 +55,10 @@ export class GdbApproveComponent implements OnInit {
                     this.alertService.pushAlert(new Alert(message, AlertContext.Success, true));
                 });
             },
-            error: () => {
+            error: (err) => {
                 this.isWorking.set(false);
-                this.alertService.pushAlert(new Alert("Failed to commit staged delineations.", AlertContext.Danger, true));
+                const message = jurisdictionErrorMessage(err, "Failed to commit staged delineations.", STAGED_JURISDICTION_FORBIDDEN_MESSAGE);
+                this.alertService.pushAlert(new Alert(message, AlertContext.Danger, true));
             },
         });
     }

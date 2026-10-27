@@ -15,6 +15,7 @@ import { Alert } from "src/app/shared/models/alert";
 import { AlertContext } from "src/app/shared/models/enums/alert-context.enum";
 import { AlertService } from "src/app/shared/services/alert.service";
 import { downloadDataHubTemplate } from "src/app/shared/helpers/data-hub-template-download";
+import { jurisdictionErrorMessage } from "src/app/shared/helpers/jurisdiction-forbidden";
 
 @Component({
     selector: "wqmp-upload",
@@ -44,7 +45,7 @@ export class WqmpUploadComponent implements OnInit {
 
     ngOnInit(): void {
         this.jurisdictionOptions$ = this.stormwaterJurisdictionService
-            .listStormwaterJurisdiction()
+            .listViewableStormwaterJurisdiction()
             .pipe(map((js) => js.map((j) => ({ Label: j.StormwaterJurisdictionName, Value: j.StormwaterJurisdictionID, disabled: false }) as FormInputOption)));
     }
 
@@ -80,9 +81,9 @@ export class WqmpUploadComponent implements OnInit {
                 this.successMessage.set(`Upload successful: ${result.AddedCount} WQMPs added, ${result.UpdatedCount} WQMPs updated.`);
                 this.fileControl.reset();
             },
-            error: () => {
+            error: (err) => {
                 this.isUploading.set(false);
-                this.alertService.pushAlert(new Alert("Upload failed. Check the file format and try again.", AlertContext.Danger, true));
+                this.alertService.pushAlert(new Alert(jurisdictionErrorMessage(err, "Upload failed. Check the file format and try again."), AlertContext.Danger, true));
             },
         });
     }

@@ -221,4 +221,13 @@ public static class DelineationStagings
             .Where(x => x.UploadedByPersonID == currentPerson.PersonID)
             .ExecuteDeleteAsync();
     }
+
+    public static Task<List<int>> ListStagedStormwaterJurisdictionIDsAsync(NeptuneDbContext dbContext, int personID)
+    {
+        return dbContext.DelineationStagings.AsNoTracking()
+            .Where(x => x.UploadedByPersonID == personID)
+            .Select(x => x.StormwaterJurisdictionID)
+            .Distinct()
+            .ToListAsync();
+    }
 }

@@ -72,6 +72,38 @@ public static class StormwaterJurisdictionPeople
         return GetImpl(dbContext).AsNoTracking().Where(x => x.PersonID == person.PersonID).Select(x => x.StormwaterJurisdictionID).ToList();
     }
 
+    /// <summary>
+    /// NPT-1135: Admin/SitkaAdmin pass for any existing jurisdiction; everyone else must be assigned to it.
+    /// Stricter than <see cref="ListViewableStormwaterJurisdictionIDsByPersonDtoForBMPsAsync"/>, which also
+    /// returns the public jurisdictions for Unassigned users — use this one to gate uploads and downloads.
+    /// </summary>
+    public static async Task<bool> IsPersonAssignedToJurisdictionAsync(NeptuneDbContext dbContext, PersonDto person, int stormwaterJurisdictionID)
+    {
+        if (person.RoleID is (int)RoleEnum.Admin or (int)RoleEnum.SitkaAdmin)
+        {
+            return await dbContext.StormwaterJurisdictions.AnyAsync(x => x.StormwaterJurisdictionID == stormwaterJurisdictionID);
+        }
+
+        return await dbContext.StormwaterJurisdictionPeople
+            .AnyAsync(x => x.PersonID == person.PersonID && x.StormwaterJurisdictionID == stormwaterJurisdictionID);
+    }
+
+    /// <summary>
+    /// True when <see cref="IsPersonAssignedToJurisdictionAsync"/> passes for every ID (and for an empty set).
+    /// </summary>
+    public static async Task<bool> IsPersonAssignedToJurisdictionsAsync(NeptuneDbContext dbContext, PersonDto person, IEnumerable<int> stormwaterJurisdictionIDs)
+    {
+        foreach (var stormwaterJurisdictionID in stormwaterJurisdictionIDs.Distinct())
+        {
+            if (!await IsPersonAssignedToJurisdictionAsync(dbContext, person, stormwaterJurisdictionID))
+            {
+                return false;
+            }
+        }
+
+        return true;
+    }
+
     public static Dictionary<int, int> ListCountByStormwaterJurisdiction(NeptuneDbContext dbContext)
     {
         return dbContext.StormwaterJurisdictionPeople.AsNoTracking().GroupBy(x => x.StormwaterJurisdictionID).Select(x => new { x.Key, Count = x.Count() })

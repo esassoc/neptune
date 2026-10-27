@@ -13,6 +13,7 @@ import { AlertContext } from "src/app/shared/models/enums/alert-context.enum";
 import { PageHeaderComponent } from "src/app/shared/components/page-header/page-header.component";
 import { AlertDisplayComponent } from "src/app/shared/components/alert-display/alert-display.component";
 import { FormFieldComponent, FormFieldType, FormInputOption } from "src/app/shared/components/forms/form-field/form-field.component";
+import { jurisdictionErrorMessage } from "src/app/shared/helpers/jurisdiction-forbidden";
 
 @Component({
     selector: "gdb-download",
@@ -37,7 +38,7 @@ export class GdbDownloadComponent implements OnInit {
 
     ngOnInit(): void {
         this.jurisdictionOptions$ = this.stormwaterJurisdictionService
-            .listStormwaterJurisdiction()
+            .listViewableStormwaterJurisdiction()
             .pipe(map((js) => js.map((j) => ({ Label: j.StormwaterJurisdictionName, Value: j.StormwaterJurisdictionID, disabled: false }) as FormInputOption)));
     }
 
@@ -66,9 +67,9 @@ export class GdbDownloadComponent implements OnInit {
                     a.click();
                     window.URL.revokeObjectURL(url);
                 },
-                error: () => {
+                error: (err) => {
                     this.isWorking.set(false);
-                    this.alertService.pushAlert(new Alert("Failed to build delineation export.", AlertContext.Danger, true));
+                    this.alertService.pushAlert(new Alert(jurisdictionErrorMessage(err, "Failed to build delineation export."), AlertContext.Danger, true));
                 },
             });
     }
