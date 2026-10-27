@@ -1151,6 +1151,12 @@ namespace Neptune.API.Controllers
                 return Ok(result);
             }
 
+            // NPT-1135: route-less upload, so the in-body jurisdiction must be one the caller is assigned to.
+            if (!await CallerIsAssignedToJurisdictionAsync(form.StormwaterJurisdictionID))
+            {
+                return Forbid();
+            }
+
             await using var stream = form.File.OpenReadStream();
             System.Data.DataTable dataTable;
             try
@@ -1194,6 +1200,12 @@ namespace Neptune.API.Controllers
                 return Ok(result);
             }
 
+            // NPT-1135: route-less upload, so the in-body jurisdiction must be one the caller is assigned to.
+            if (!await CallerIsAssignedToJurisdictionAsync(form.StormwaterJurisdictionID))
+            {
+                return Forbid();
+            }
+
             await using var stream = form.File.OpenReadStream();
             System.Data.DataTable dataTable;
             try
@@ -1235,6 +1247,12 @@ namespace Neptune.API.Controllers
             {
                 result.Errors.Add("Please select a CSV file to upload.");
                 return Ok(result);
+            }
+
+            // NPT-1135: route-less upload, so the in-body jurisdiction must be one the caller is assigned to.
+            if (!await CallerIsAssignedToJurisdictionAsync(form.StormwaterJurisdictionID))
+            {
+                return Forbid();
             }
 
             await using var stream = form.File.OpenReadStream();

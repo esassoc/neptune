@@ -63,6 +63,15 @@ public static class OnlandVisualTrashAssessmentAreaGdbExport
             .ExecuteDeleteAsync();
     }
 
+    public static Task<List<int>> ListStagedStormwaterJurisdictionIDsAsync(NeptuneDbContext dbContext, int personID)
+    {
+        return dbContext.OnlandVisualTrashAssessmentAreaStagings.AsNoTracking()
+            .Where(x => x.UploadedByPersonID == personID)
+            .Select(x => x.StormwaterJurisdictionID)
+            .Distinct()
+            .ToListAsync();
+    }
+
     public static async Task<int> ApproveStagingForUserAsync(NeptuneDbContext dbContext, Person person)
     {
         var stagings = dbContext.OnlandVisualTrashAssessmentAreaStagings

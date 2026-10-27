@@ -1,4 +1,6 @@
-﻿using Microsoft.AspNetCore.Mvc;
+﻿using System.Collections.Generic;
+using System.Threading.Tasks;
+using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using Neptune.API.Services;
@@ -18,6 +20,18 @@ namespace Neptune.API.Controllers
         protected readonly NeptuneConfiguration NeptuneConfiguration = neptuneConfiguration.Value;
 
         protected PersonDto CallingUser => UserContext.GetUserAsDtoFromHttpContext(DbContext, HttpContext);
+
+        // NPT-1135: for endpoints that take the jurisdiction in the body or form, where a route-keyed
+        // JurisdictionScopedFeature can't see it. Admin/SitkaAdmin pass; everyone else must be assigned.
+        protected Task<bool> CallerIsAssignedToJurisdictionAsync(int stormwaterJurisdictionID)
+        {
+            return StormwaterJurisdictionPeople.IsPersonAssignedToJurisdictionAsync(DbContext, CallingUser, stormwaterJurisdictionID);
+        }
+
+        protected Task<bool> CallerIsAssignedToJurisdictionsAsync(IEnumerable<int> stormwaterJurisdictionIDs)
+        {
+            return StormwaterJurisdictionPeople.IsPersonAssignedToJurisdictionsAsync(DbContext, CallingUser, stormwaterJurisdictionIDs);
+        }
 
         protected ActionResult RequireNotNullThrowNotFound(object theObject, string objectType, object objectID)
         {
