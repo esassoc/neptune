@@ -161,10 +161,27 @@ namespace Neptune.Tests
         }
 
         [TestMethod]
-        public void SchemaRowFilter_DropsOnlyTheSchemaRow()
+        public void SchemaRowFilter_AppliedToTheExport_DropsOnlyTheSchemaRow()
         {
-            Assert.AreEqual("TrashAnalysisAreaID <> -1", TrashGeneratingUnitGdbExport.SchemaRowFilter);
-            Assert.IsTrue(TrashGeneratingUnitGdbExport.SchemaRowID < 1, "The schema row ID must never collide with a real TrashGeneratingUnitID.");
+            // The GDAL API passes SchemaRowFilter to ogr2ogr -where. Apply it here the way OGR reads it
+            // ("<field> <> <integer>") to the export's own features, so a renamed field or a changed sentinel
+            // can't silently stop removing the schema row (or start removing real rows).
+            var match = System.Text.RegularExpressions.Regex.Match(TrashGeneratingUnitGdbExport.SchemaRowFilter, @"^(\w+) <> (-?\d+)$");
+            Assert.IsTrue(match.Success, $"Unexpected filter syntax: {TrashGeneratingUnitGdbExport.SchemaRowFilter}");
+            var field = match.Groups[1].Value;
+            var excludedValue = int.Parse(match.Groups[2].Value);
+
+            var first = FullyLinkedDto();
+            var second = FullyLinkedDto();
+            second.TrashGeneratingUnitID = 12;
+            var fc = TrashGeneratingUnitGdbExport.ToFeatureCollection(new[] { (first, (Geometry)Square()), (second, (Geometry)Square()) });
+
+            Assert.IsTrue(fc.All(f => f.Attributes.Exists(field)), $"Every feature must carry the filter field {field}.");
+            var kept = fc.Where(f => (int)f.Attributes[field] != excludedValue).ToList();
+
+            Assert.AreEqual(fc.Count - 1, kept.Count, "The filter should remove exactly one feature.");
+            Assert.IsTrue(kept.All(f => f.Geometry != null), "Only the null-geometry schema row should be removed.");
+            CollectionAssert.AreEquivalent(new[] { 11, 12 }, kept.Select(f => (int)f.Attributes["TrashAnalysisAreaID"]).ToList());
         }
 
         [TestMethod]

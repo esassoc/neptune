@@ -16,12 +16,19 @@
         </div>
         <div class="g-col-6">
             @if (jurisdictionOptions$ | async; as opts) {
-                <form-field
-                    fieldLabel="Stormwater Jurisdiction"
-                    [type]="FormFieldType.Select"
-                    [formControl]="jurisdictionControl"
-                    [formInputOptions]="opts"
-                    placeholder="Select a jurisdiction"></form-field>
+                @if (opts.length > 0) {
+                    <form-field
+                        fieldLabel="Stormwater Jurisdiction"
+                        [type]="FormFieldType.Select"
+                        [formControl]="jurisdictionControl"
+                        [formInputOptions]="opts"
+                        placeholder="Select a jurisdiction"></form-field>
+                } @else {
+                    <div class="alert alert-warning">
+                        You aren't assigned to any Stormwater Jurisdictions, so there are no Trash Analysis Areas to download. Ask an administrator to assign you to your
+                        jurisdiction.
+                    </div>
+                }
             }
             <div class="actions">
                 <button type="button" class="btn btn-primary" [disabled]="isWorking() || jurisdictionControl.invalid" (click)="download()">

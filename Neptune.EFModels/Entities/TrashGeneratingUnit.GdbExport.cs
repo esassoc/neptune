@@ -153,9 +153,9 @@ public static class TrashGeneratingUnitGdbExport
         GDALAPIService gdalApiService,
         int stormwaterJurisdictionID)
     {
-        var stormwaterJurisdiction = dbContext.StormwaterJurisdictions.AsNoTracking()
+        var stormwaterJurisdiction = await dbContext.StormwaterJurisdictions.AsNoTracking()
             .Include(x => x.Organization)
-            .Single(x => x.StormwaterJurisdictionID == stormwaterJurisdictionID);
+            .SingleAsync(x => x.StormwaterJurisdictionID == stormwaterJurisdictionID);
         var jurisdictionName = stormwaterJurisdiction.GetOrganizationDisplayName().Replace(' ', '-');
 
         var rows = await ExportRowsQuery(dbContext, stormwaterJurisdictionID).ToListAsync();
