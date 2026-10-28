@@ -99,8 +99,10 @@ export class OvtaResultsTableComponent {
     public readonly view = signal<ResultsView>("percent");
     public readonly expanded = signal<Record<Category, boolean>>({ plu: true, alu: true });
 
-    public readonly defaultTrackLabel = this.trackOptions[0].label;
-    public readonly defaultViewLabel = this.viewOptions[0].label;
+    // The switches are re-created when a jurisdiction without Land Use Blocks is shown and then left, so highlight
+    // the current selection, not the first option.
+    public readonly trackLabel = computed(() => this.trackOptions.find((x) => x.value === this.track())?.label);
+    public readonly viewLabel = computed(() => this.viewOptions.find((x) => x.value === this.view())?.label);
 
     public readonly isScoreView = computed(() => this.view() !== "assessments");
     public readonly showProgress = computed(() => this.track() === 2);

@@ -32,13 +32,13 @@
 @if (hasLandUseBlocks()) {
     <div class="ovta-results-controls">
         <div class="ovta-results-controls__row">
-            <btn-group-radio-input [options]="trackOptions" [default]="defaultTrackLabel" (change)="onTrackChange($any($event))"></btn-group-radio-input>
+            <btn-group-radio-input [options]="trackOptions" [default]="trackLabel()" (change)="onTrackChange($any($event))"></btn-group-radio-input>
             <div class="ovta-results-controls__expand">
                 <button type="button" class="btn btn-sm btn-primary-outline" (click)="setAllExpanded(true)">Expand all</button>
                 <button type="button" class="btn btn-sm btn-primary-outline" (click)="setAllExpanded(false)">Collapse all</button>
             </div>
         </div>
-        <btn-group-radio-input [options]="viewOptions" [default]="defaultViewLabel" (change)="onViewChange($any($event))"></btn-group-radio-input>
+        <btn-group-radio-input [options]="viewOptions" [default]="viewLabel()" (change)="onViewChange($any($event))"></btn-group-radio-input>
     </div>
 
     <div class="ovta-results-table-scroll">
