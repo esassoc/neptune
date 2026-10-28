@@ -255,10 +255,17 @@ table.areaBasedCalculationControlTable td + td {
     border-left: 1px solid rgb(204, 204, 204);
 }
 
-.ovtaResults {
-    font-weight: bold;
-    border: none !important;
-    text-align: center;
+.ovta-map-score-toggle {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.5rem;
+    margin: 1rem 0 0.5rem;
+
+    // match the teal rule under the OVTA results table's switches
+    ::ng-deep .button-group {
+        border-bottom: 2px solid $primary;
+    }
 }
 
 .inline-display a:hover {

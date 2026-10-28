@@ -1,0 +1,120 @@
+@use "/src/scss/abstracts" as *;
+
+.ovta-results-controls {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+    margin-bottom: 1rem;
+
+    &__row {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        gap: 0.5rem 1rem;
+    }
+
+    &__expand {
+        display: flex;
+        gap: 0.5rem;
+    }
+
+    // mockup 6a: a teal rule under each switch, in place of the shared gray one
+    ::ng-deep .button-group {
+        border-bottom: 2px solid $primary;
+    }
+}
+
+.data-issue-list {
+    max-height: 12rem;
+    overflow-y: auto;
+    margin: 0.5rem 0 0;
+}
+
+.ovta-results-table-scroll {
+    // only scroll (with the header pinned) when the table is taller than the window
+    max-height: 85vh;
+    overflow: auto;
+}
+
+.ovta-results-table {
+    width: 100%;
+    // separate (not collapse) so cell borders stay with the sticky header while the body scrolls
+    border-collapse: separate;
+    border-spacing: 0;
+
+    thead {
+        position: sticky;
+        top: 0;
+        z-index: 1;
+    }
+
+    th {
+        background-color: $gray-0;
+        font-weight: bold;
+        text-align: center;
+        vertical-align: bottom;
+        padding: 0.375rem 0.5rem;
+        border-bottom: 1px solid $gray-200;
+    }
+
+    td {
+        padding: 0.375rem 0.5rem;
+        border-bottom: 1px solid $gray-100;
+    }
+
+    .land-use-column {
+        text-align: left;
+        min-width: 14rem;
+    }
+
+    .value-column {
+        text-align: center;
+        white-space: nowrap;
+    }
+
+    .sub-header {
+        white-space: normal;
+        font-size: 0.875rem;
+        min-width: 7.5rem;
+    }
+
+    .group-start {
+        border-left: 1px solid rgba(0, 0, 0, 0.1);
+    }
+
+    .muted {
+        color: $gray-default;
+    }
+
+    .score-swatch {
+        display: inline-block;
+        width: 0.75rem;
+        height: 0.75rem;
+        margin-right: 0.25rem;
+        border: 1px solid rgba(0, 0, 0, 0.2);
+        vertical-align: middle;
+    }
+
+    .category-row {
+        cursor: pointer;
+        font-weight: bold;
+        background-color: $gray-50;
+    }
+
+    .category-toggle {
+        background: none;
+        border: none;
+        padding: 0;
+        font: inherit;
+        color: inherit;
+        cursor: pointer;
+
+        i {
+            width: 0.75rem;
+        }
+    }
+
+    .land-use-type {
+        padding-left: 2rem;
+    }
+}

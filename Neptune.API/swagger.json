@@ -17963,46 +17963,111 @@
         },
         "additionalProperties": false
       },
+      "OVTAResultsAreaDataIssueDto": {
+        "type": "object",
+        "properties": {
+          "OnlandVisualTrashAssessmentAreaID": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "OnlandVisualTrashAssessmentAreaName": {
+            "type": "string",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
       "OVTAResultsDto": {
         "type": "object",
         "properties": {
-          "PLUSumAcresWhereOVTAIsA": {
-            "type": "number",
-            "format": "double"
+          "Rows": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/OVTAResultsLandUseRowDto"
+            },
+            "nullable": true
           },
-          "PLUSumAcresWhereOVTAIsB": {
-            "type": "number",
-            "format": "double"
-          },
-          "PLUSumAcresWhereOVTAIsC": {
-            "type": "number",
-            "format": "double"
-          },
-          "PLUSumAcresWhereOVTAIsD": {
-            "type": "number",
-            "format": "double"
-          },
-          "ALUSumAcresWhereOVTAIsA": {
-            "type": "number",
-            "format": "double"
-          },
-          "ALUSumAcresWhereOVTAIsB": {
-            "type": "number",
-            "format": "double"
-          },
-          "ALUSumAcresWhereOVTAIsC": {
-            "type": "number",
-            "format": "double"
-          },
-          "ALUSumAcresWhereOVTAIsD": {
-            "type": "number",
-            "format": "double"
+          "AreasWithProgressButNoBaseline": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/OVTAResultsAreaDataIssueDto"
+            },
+            "nullable": true
           },
           "HasLandUseBlocks": {
             "type": "boolean"
           },
           "HasOVTAResults": {
             "type": "boolean"
+          }
+        },
+        "additionalProperties": false
+      },
+      "OVTAResultsLandUseRowDto": {
+        "type": "object",
+        "properties": {
+          "IsPriorityLandUse": {
+            "type": "boolean"
+          },
+          "LandUseTypeName": {
+            "type": "string",
+            "nullable": true
+          },
+          "SortOrder": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "TotalMappedAcres": {
+            "type": "number",
+            "format": "double"
+          },
+          "BaselineAcresA": {
+            "type": "number",
+            "format": "double"
+          },
+          "BaselineAcresB": {
+            "type": "number",
+            "format": "double"
+          },
+          "BaselineAcresC": {
+            "type": "number",
+            "format": "double"
+          },
+          "BaselineAcresD": {
+            "type": "number",
+            "format": "double"
+          },
+          "ProgressAcresA": {
+            "type": "number",
+            "format": "double"
+          },
+          "ProgressAcresB": {
+            "type": "number",
+            "format": "double"
+          },
+          "ProgressAcresC": {
+            "type": "number",
+            "format": "double"
+          },
+          "ProgressAcresD": {
+            "type": "number",
+            "format": "double"
+          },
+          "NotYetAssessedAcres": {
+            "type": "number",
+            "format": "double"
+          },
+          "AssessedOnceAcres": {
+            "type": "number",
+            "format": "double"
+          },
+          "AssessedTwiceAcres": {
+            "type": "number",
+            "format": "double"
+          },
+          "AssessedThreeOrMoreAcres": {
+            "type": "number",
+            "format": "double"
           }
         },
         "additionalProperties": false

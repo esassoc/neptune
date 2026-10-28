@@ -161,7 +161,9 @@ model/overlapping-delineation-link-dto.ts
 model/ovta-area-gdb-download-request-dto.ts
 model/ovta-area-gdb-staging-report-dto.ts
 model/ovta-bulk-upload-result-dto.ts
+model/ovta-results-area-data-issue-dto.ts
 model/ovta-results-dto.ts
+model/ovta-results-land-use-row-dto.ts
 model/parcel-display-dto.ts
 model/parcel-geometry-simple-dto.ts
 model/parcel-grid-dto.ts
