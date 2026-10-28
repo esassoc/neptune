@@ -48,7 +48,7 @@
         z-index: 1;
     }
 
-    th {
+    thead th {
         background-color: $gray-0;
         font-weight: bold;
         text-align: center;
@@ -57,7 +57,10 @@
         border-bottom: 1px solid $gray-200;
     }
 
+    // the Land Use cells are row headers (th scope="row") for screen readers, but look like the other body cells
+    tbody th,
     td {
+        font-weight: inherit;
         padding: 0.375rem 0.5rem;
         border-bottom: 1px solid $gray-100;
     }

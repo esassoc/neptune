@@ -90,12 +90,12 @@
                 @for (row of tableRows(); track row.category + row.name + row.isCategory) {
                     @if (row.isCategory) {
                         <tr class="category-row" (click)="toggleCategory(row.category)" title="Click to expand or collapse">
-                            <td class="land-use-column">
+                            <th scope="row" class="land-use-column">
                                 <button type="button" class="category-toggle" [attr.aria-expanded]="expanded()[row.category]">
                                     <i class="fas" [class.fa-caret-down]="expanded()[row.category]" [class.fa-caret-right]="!expanded()[row.category]"></i>
                                     {{ row.name }}
                                 </button>
-                            </td>
+                            </th>
                             <td class="value-column">{{ formatAcres(row.acres.TotalMappedAcres) }}</td>
                             @for (column of valueColumns(); track column.field) {
                                 <td class="value-column" [class.group-start]="column.groupStart" [class.muted]="column.muted">{{ formatValue(row, column.field) }}</td>
@@ -103,7 +103,7 @@
                         </tr>
                     } @else {
                         <tr>
-                            <td class="land-use-column land-use-type">{{ row.name }}</td>
+                            <th scope="row" class="land-use-column land-use-type">{{ row.name }}</th>
                             <td class="value-column">{{ formatAcres(row.acres.TotalMappedAcres) }}</td>
                             @for (column of valueColumns(); track column.field) {
                                 <td class="value-column" [class.group-start]="column.groupStart" [class.muted]="column.muted">{{ formatValue(row, column.field) }}</td>
