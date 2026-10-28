@@ -73,6 +73,7 @@ export function formatPercent(acres: number | null | undefined, totalAcres: numb
 export class OvtaResultsTableComponent {
     readonly rows = input<OVTAResultsLandUseRowDto[]>([]);
     readonly areasWithProgressButNoBaseline = input<OVTAResultsAreaDataIssueDto[]>([]);
+    readonly hasLandUseBlocks = input(true);
     readonly hasBaselineScores = input(true);
     readonly scoreDefinitionsClicked = output<void>();
 

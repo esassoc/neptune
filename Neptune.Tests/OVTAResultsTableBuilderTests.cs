@@ -149,6 +149,20 @@ namespace Neptune.Tests
         }
 
         [TestMethod]
+        public void AlternateLandUseForTGR_DifferingOnlyInCase_SharesOneRow()
+        {
+            // The totals are grouped by a case-insensitive SQL collation, so the TGU spellings must merge into the same row.
+            var rows = Build(
+                new[] { new LandUseAcres(ALU, "Residential", 100) },
+                new[] { Tgu(ALU, "RESIDENTIAL", 30, baseline: A, completedAssessments: 2), Tgu(ALU, "residential ", 10, completedAssessments: 1) });
+
+            var residential = rows.Alternate("Residential");
+            Assert.AreEqual(1, rows.All.Count);
+            Assert.AreEqual(30, residential.BaselineAcresA, 1e-9);
+            Assert.AreEqual(60, residential.NotYetAssessedAcres, 1e-9);
+        }
+
+        [TestMethod]
         public void Rows_ArePriorityFirst_ThenLargestTotalFirst()
         {
             var rows = BuildRows(

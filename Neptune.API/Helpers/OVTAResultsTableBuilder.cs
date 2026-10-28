@@ -21,7 +21,9 @@ public static class OVTAResultsTableBuilder
 
     public static List<OVTAResultsLandUseRowDto> BuildRows(IEnumerable<LandUseAcres> landUseAcres, IEnumerable<TrashGeneratingUnitAcres> trashGeneratingUnitAcres)
     {
-        var rowsByKey = new Dictionary<(bool IsPriorityLandUse, string LandUseTypeName), OVTAResultsLandUseRowDto>();
+        // Case-insensitive like the database collation: the land use totals are grouped in SQL, which merges
+        // "Residential" and "RESIDENTIAL", so the TGU rows must land in the same row. The first spelling seen is displayed.
+        var rowsByKey = new Dictionary<(bool IsPriorityLandUse, string LandUseTypeName), OVTAResultsLandUseRowDto>(RowKeyComparer.Instance);
 
         OVTAResultsLandUseRowDto GetOrAddRow(int? priorityLandUseTypeID, string landUseForTGR)
         {
@@ -87,6 +89,17 @@ public static class OVTAResultsTableBuilder
 
     // PLU rows are keyed by Priority Land Use Type; ALU rows by the block's Land Use for TGR. A block with no
     // Priority Land Use Type counts as PLU, matching TrashGeneratingUnitHelper.IsPLU.
+    private sealed class RowKeyComparer : IEqualityComparer<(bool IsPriorityLandUse, string LandUseTypeName)>
+    {
+        public static readonly RowKeyComparer Instance = new();
+
+        public bool Equals((bool IsPriorityLandUse, string LandUseTypeName) x, (bool IsPriorityLandUse, string LandUseTypeName) y) =>
+            x.IsPriorityLandUse == y.IsPriorityLandUse && StringComparer.OrdinalIgnoreCase.Equals(x.LandUseTypeName, y.LandUseTypeName);
+
+        public int GetHashCode((bool IsPriorityLandUse, string LandUseTypeName) key) =>
+            HashCode.Combine(key.IsPriorityLandUse, StringComparer.OrdinalIgnoreCase.GetHashCode(key.LandUseTypeName));
+    }
+
     private static (bool IsPriorityLandUse, string LandUseTypeName) GetRowKey(int? priorityLandUseTypeID, string landUseForTGR)
     {
         if (priorityLandUseTypeID == (int)PriorityLandUseTypeEnum.ALU)

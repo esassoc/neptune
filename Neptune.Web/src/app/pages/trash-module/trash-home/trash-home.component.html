@@ -203,14 +203,14 @@
                                 @if (ovtaResults$ | async; as ovtaResults) {
                                     @if (ovtaResults.failed || !ovtaResults.dto) {
                                         <note noteType="danger">OVTA-Based Results could not be loaded for this jurisdiction. Please refresh the page or try again later.</note>
-                                    } @else if (!ovtaResults.dto.HasLandUseBlocks) {
-                                        <note noteType="info">This jurisdiction has no Land Use Blocks, so OVTA-Based Results cannot be calculated.</note>
                                     } @else {
-                                        <!-- NPT-1126: still render the table without baseline results, so assessment counts and
-                                             Progress-without-Baseline data issues stay visible. The table shows the "no Baseline Scores" note. -->
+                                        <!-- NPT-1126: still render without Land Use Blocks or baseline results, so the Progress-without-Baseline
+                                             data issues stay visible. The component shows the "no Land Use Blocks" / "no Baseline Scores" notes
+                                             and hides the table when there are no Land Use Blocks. -->
                                         <ovta-results-table
                                             [rows]="ovtaResults.dto.Rows"
                                             [areasWithProgressButNoBaseline]="ovtaResults.dto.AreasWithProgressButNoBaseline"
+                                            [hasLandUseBlocks]="ovtaResults.dto.HasLandUseBlocks"
                                             [hasBaselineScores]="ovtaResults.dto.HasOVTAResults"
                                             (scoreDefinitionsClicked)="showScoreDefinitions()"></ovta-results-table>
                                     }

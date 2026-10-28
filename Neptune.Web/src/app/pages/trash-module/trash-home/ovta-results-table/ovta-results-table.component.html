@@ -1,8 +1,12 @@
 @let progressOnlyCount = areasWithProgressButNoBaseline().length;
 @if (progressOnlyCount > 0) {
-    <!-- one note covers both "no Baseline Scores" and the Progress-without-Baseline data issue, rather than two stacked notes -->
+    <!-- one note covers "no Land Use Blocks" or "no Baseline Scores" and the Progress-without-Baseline data issue, rather than two stacked notes.
+         It shows even without Land Use Blocks, so those jurisdictions can still find the areas to fix. -->
     <note noteType="warning" class="mb-3">
-        @if (!hasBaselineScores()) {
+        @if (!hasLandUseBlocks()) {
+            This jurisdiction has no Land Use Blocks, so OVTA-Based Results cannot be calculated, but {{ progressOnlyCount }} OVTA
+            {{ progressOnlyCount === 1 ? "Area has" : "Areas have" }} a Progress Score with no Baseline Score.
+        } @else if (!hasBaselineScores()) {
             This jurisdiction has no Baseline Scores yet, but {{ progressOnlyCount }} OVTA {{ progressOnlyCount === 1 ? "Area has" : "Areas have" }} a Progress Score.
         } @else {
             {{ progressOnlyCount }} OVTA {{ progressOnlyCount === 1 ? "Area has" : "Areas have" }} a Progress Score but no Baseline Score.
@@ -19,86 +23,95 @@
             </ul>
         </details>
     </note>
+} @else if (!hasLandUseBlocks()) {
+    <note noteType="info" class="mb-3">This jurisdiction has no Land Use Blocks, so OVTA-Based Results cannot be calculated.</note>
 } @else if (!hasBaselineScores()) {
     <note noteType="info" class="mb-3">This jurisdiction has no OVTA Areas with 2 completed baseline assessments, so there are no Baseline Scores to display.</note>
 }
 
-<div class="ovta-results-controls">
-    <div class="ovta-results-controls__row">
-        <btn-group-radio-input [options]="trackOptions" [default]="defaultTrackLabel" (change)="onTrackChange($any($event))"></btn-group-radio-input>
-        <div class="ovta-results-controls__expand">
-            <button type="button" class="btn btn-sm btn-primary-outline" (click)="setAllExpanded(true)">Expand all</button>
-            <button type="button" class="btn btn-sm btn-primary-outline" (click)="setAllExpanded(false)">Collapse all</button>
+@if (hasLandUseBlocks()) {
+    <div class="ovta-results-controls">
+        <div class="ovta-results-controls__row">
+            <btn-group-radio-input [options]="trackOptions" [default]="defaultTrackLabel" (change)="onTrackChange($any($event))"></btn-group-radio-input>
+            <div class="ovta-results-controls__expand">
+                <button type="button" class="btn btn-sm btn-primary-outline" (click)="setAllExpanded(true)">Expand all</button>
+                <button type="button" class="btn btn-sm btn-primary-outline" (click)="setAllExpanded(false)">Collapse all</button>
+            </div>
         </div>
+        <btn-group-radio-input [options]="viewOptions" [default]="defaultViewLabel" (change)="onViewChange($any($event))"></btn-group-radio-input>
     </div>
-    <btn-group-radio-input [options]="viewOptions" [default]="defaultViewLabel" (change)="onViewChange($any($event))"></btn-group-radio-input>
-</div>
 
-<div class="ovta-results-table-scroll">
-    <table class="ovta-results-table">
-        <thead>
-            @if (isScoreView()) {
-                <tr>
-                    <th rowspan="3" class="land-use-column">Land Use</th>
-                    <th rowspan="3" class="value-column">Total Mapped Land Use (ac)</th>
-                    <th [attr.colspan]="valueColumns().length" class="group-start super-header">
-                        {{ scoreSuperHeader() }}
-                        <button type="button" class="score-definitions-button" (click)="scoreDefinitionsClicked.emit()" title="Score definitions" aria-label="Score definitions">
-                            <i class="fas fa-question-circle small" aria-hidden="true"></i>
-                        </button>
-                    </th>
-                </tr>
-                <tr>
-                    @for (score of scores; track score) {
-                        <th [attr.colspan]="scoreGroupColspan()" class="group-start score-header">
-                            <span class="score-swatch" [style.background-color]="scoreColors[score]"></span>
-                            Score {{ score }}
-                        </th>
-                    }
-                </tr>
-                <tr>
-                    @for (column of valueColumns(); track column.field) {
-                        <th class="value-column sub-header" [class.group-start]="column.groupStart">{{ column.label }}</th>
-                    }
-                </tr>
-            } @else {
-                <tr>
-                    <th rowspan="2" class="land-use-column">Land Use</th>
-                    <th rowspan="2" class="value-column">Total Mapped Land Use (ac)</th>
-                    <th [attr.colspan]="valueColumns().length" class="group-start super-header">Area by Number of OVTA Assessments (acres)</th>
-                </tr>
-                <tr>
-                    @for (column of valueColumns(); track column.field) {
-                        <th class="value-column sub-header" [class.group-start]="column.groupStart">{{ column.label }}</th>
-                    }
-                </tr>
-            }
-        </thead>
-        <tbody>
-            @for (row of tableRows(); track row.category + row.name + row.isCategory) {
-                @if (row.isCategory) {
-                    <tr class="category-row" (click)="toggleCategory(row.category)" title="Click to expand or collapse">
-                        <td class="land-use-column">
-                            <button type="button" class="category-toggle" [attr.aria-expanded]="expanded()[row.category]">
-                                <i class="fas" [class.fa-caret-down]="expanded()[row.category]" [class.fa-caret-right]="!expanded()[row.category]"></i>
-                                {{ row.name }}
+    <div class="ovta-results-table-scroll">
+        <table class="ovta-results-table">
+            <thead>
+                @if (isScoreView()) {
+                    <tr>
+                        <th rowspan="3" class="land-use-column">Land Use</th>
+                        <th rowspan="3" class="value-column">Total Mapped Land Use (ac)</th>
+                        <th [attr.colspan]="valueColumns().length" class="group-start super-header">
+                            {{ scoreSuperHeader() }}
+                            <button
+                                type="button"
+                                class="score-definitions-button"
+                                (click)="scoreDefinitionsClicked.emit()"
+                                title="Score definitions"
+                                aria-label="Score definitions">
+                                <i class="fas fa-question-circle small" aria-hidden="true"></i>
                             </button>
-                        </td>
-                        <td class="value-column">{{ formatAcres(row.acres.TotalMappedAcres) }}</td>
+                        </th>
+                    </tr>
+                    <tr>
+                        @for (score of scores; track score) {
+                            <th [attr.colspan]="scoreGroupColspan()" class="group-start score-header">
+                                <span class="score-swatch" [style.background-color]="scoreColors[score]"></span>
+                                Score {{ score }}
+                            </th>
+                        }
+                    </tr>
+                    <tr>
                         @for (column of valueColumns(); track column.field) {
-                            <td class="value-column" [class.group-start]="column.groupStart" [class.muted]="column.muted">{{ formatValue(row, column.field) }}</td>
+                            <th class="value-column sub-header" [class.group-start]="column.groupStart">{{ column.label }}</th>
                         }
                     </tr>
                 } @else {
                     <tr>
-                        <td class="land-use-column land-use-type">{{ row.name }}</td>
-                        <td class="value-column">{{ formatAcres(row.acres.TotalMappedAcres) }}</td>
+                        <th rowspan="2" class="land-use-column">Land Use</th>
+                        <th rowspan="2" class="value-column">Total Mapped Land Use (ac)</th>
+                        <th [attr.colspan]="valueColumns().length" class="group-start super-header">Area by Number of OVTA Assessments (acres)</th>
+                    </tr>
+                    <tr>
                         @for (column of valueColumns(); track column.field) {
-                            <td class="value-column" [class.group-start]="column.groupStart" [class.muted]="column.muted">{{ formatValue(row, column.field) }}</td>
+                            <th class="value-column sub-header" [class.group-start]="column.groupStart">{{ column.label }}</th>
                         }
                     </tr>
                 }
-            }
-        </tbody>
-    </table>
-</div>
+            </thead>
+            <tbody>
+                @for (row of tableRows(); track row.category + row.name + row.isCategory) {
+                    @if (row.isCategory) {
+                        <tr class="category-row" (click)="toggleCategory(row.category)" title="Click to expand or collapse">
+                            <td class="land-use-column">
+                                <button type="button" class="category-toggle" [attr.aria-expanded]="expanded()[row.category]">
+                                    <i class="fas" [class.fa-caret-down]="expanded()[row.category]" [class.fa-caret-right]="!expanded()[row.category]"></i>
+                                    {{ row.name }}
+                                </button>
+                            </td>
+                            <td class="value-column">{{ formatAcres(row.acres.TotalMappedAcres) }}</td>
+                            @for (column of valueColumns(); track column.field) {
+                                <td class="value-column" [class.group-start]="column.groupStart" [class.muted]="column.muted">{{ formatValue(row, column.field) }}</td>
+                            }
+                        </tr>
+                    } @else {
+                        <tr>
+                            <td class="land-use-column land-use-type">{{ row.name }}</td>
+                            <td class="value-column">{{ formatAcres(row.acres.TotalMappedAcres) }}</td>
+                            @for (column of valueColumns(); track column.field) {
+                                <td class="value-column" [class.group-start]="column.groupStart" [class.muted]="column.muted">{{ formatValue(row, column.field) }}</td>
+                            }
+                        </tr>
+                    }
+                }
+            </tbody>
+        </table>
+    </div>
+}
