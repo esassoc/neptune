@@ -104,8 +104,10 @@ public class TrashGeneratingUnitByStormwaterJurisdictionController(
     // which fans out badly for jurisdictions with many OVTA areas (City of Irvine never finished loading in production).
     private async Task<List<OVTAResultsTableBuilder.TrashGeneratingUnitAcres>> GetTrashGeneratingUnitAcresForOVTACalculationsAsync(int stormwaterJurisdictionID)
     {
+        // Untyped blocks are left out here too, matching GetPhaseIMS4LandUseAcresByTypeAsync, so no row has assessed acres over a 0 total.
         var trashGeneratingUnits = await DbContext.TrashGeneratingUnits.AsNoTracking()
-            .Where(x => x.StormwaterJurisdictionID == stormwaterJurisdictionID && x.LandUseBlock != null && x.LandUseBlock.PermitTypeID == (int)PermitTypeEnum.PhaseIMS4)
+            .Where(x => x.StormwaterJurisdictionID == stormwaterJurisdictionID && x.LandUseBlock != null && x.LandUseBlock.PriorityLandUseTypeID != null
+                        && x.LandUseBlock.PermitTypeID == (int)PermitTypeEnum.PhaseIMS4)
             .Select(x => new
             {
                 x.LandUseBlock.PriorityLandUseTypeID,

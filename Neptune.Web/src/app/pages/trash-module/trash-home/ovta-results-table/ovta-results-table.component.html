@@ -43,9 +43,9 @@
                     <th rowspan="3" class="value-column">Total Mapped Land Use (ac)</th>
                     <th [attr.colspan]="valueColumns().length" class="group-start super-header">
                         {{ scoreSuperHeader() }}
-                        <a (click)="scoreDefinitionsClicked.emit()" title="Score definitions">
-                            <i class="fas fa-question-circle small" style="cursor: help"></i>
-                        </a>
+                        <button type="button" class="score-definitions-button" (click)="scoreDefinitionsClicked.emit()" title="Score definitions" aria-label="Score definitions">
+                            <i class="fas fa-question-circle small" aria-hidden="true"></i>
+                        </button>
                     </th>
                 </tr>
                 <tr>

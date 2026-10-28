@@ -101,6 +101,13 @@
         background-color: $gray-50;
     }
 
+    .score-definitions-button {
+        background: none;
+        border: none;
+        padding: 0;
+        cursor: help;
+    }
+
     .category-toggle {
         background: none;
         border: none;
