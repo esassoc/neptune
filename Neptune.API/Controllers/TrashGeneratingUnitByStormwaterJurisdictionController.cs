@@ -28,18 +28,17 @@ public class TrashGeneratingUnitByStormwaterJurisdictionController(
     [HttpGet("area-based-results-calculations")]
     [AllowAnonymous]
     [EntityNotFound(typeof(StormwaterJurisdiction), "jurisdictionID")]
-    public ActionResult<AreaBasedAcreCalculationsDto> GetAreaBasedResultsCalculations([FromRoute] int jurisdictionID)
+    public async Task<ActionResult<AreaBasedAcreCalculationsDto>> GetAreaBasedResultsCalculations([FromRoute] int jurisdictionID)
     {
         var trashGeneratingUnits = GetRelevantTrashGeneratingUnitsForCalculations(jurisdictionID);
+        var landUseAcres = await GetPhaseIMS4LandUseAcresByTypeAsync(jurisdictionID);
 
         var fullTrashCapturePLU = trashGeneratingUnits.FullTrashCaptureAcreage(true);
         var partialTrashCapturePLU = trashGeneratingUnits.PartialTrashCaptureAcreage(true);
 
         var totalAcresCapturedPLU = fullTrashCapturePLU + partialTrashCapturePLU;
 
-        var totalPLUAcres = DbContext.LandUseBlocks.AsNoTracking()
-            .Where(x => x.StormwaterJurisdictionID == jurisdictionID && x.PriorityLandUseTypeID != (int)PriorityLandUseTypeEnum.ALU && x.PermitTypeID == (int)PermitTypeEnum.PhaseIMS4).Sum(x =>
-                x.LandUseBlockGeometry.Area * Constants.SquareMetersToAcres);
+        var totalPLUAcres = landUseAcres.Where(x => x.PriorityLandUseTypeID != (int)PriorityLandUseTypeEnum.ALU).Sum(x => x.Acres);
 
         var untreatedPLU = totalPLUAcres != 0 ?  totalPLUAcres - totalAcresCapturedPLU : 0;
         // Round after used in calculation
@@ -53,9 +52,7 @@ public class TrashGeneratingUnitByStormwaterJurisdictionController(
 
         var totalAcresCapturedALU = fullTrashCaptureALU + partialTrashCaptureALU;
 
-        var totalALUAcres = DbContext.LandUseBlocks.AsNoTracking()
-            .Where(x => x.StormwaterJurisdictionID == jurisdictionID && x.PriorityLandUseTypeID == (int)PriorityLandUseTypeEnum.ALU && x.PermitTypeID == (int)PermitTypeEnum.PhaseIMS4).Sum(x =>
-                x.LandUseBlockGeometry.Area * Constants.SquareMetersToAcres);
+        var totalALUAcres = landUseAcres.Where(x => x.PriorityLandUseTypeID == (int)PriorityLandUseTypeEnum.ALU).Sum(x => x.Acres);
         var untreatedALU = totalALUAcres != 0 ? totalALUAcres - totalAcresCapturedALU : 0;
         // Round after used in calculation
         fullTrashCaptureALU = Math.Round(fullTrashCaptureALU, 0);
@@ -88,19 +85,43 @@ public class TrashGeneratingUnitByStormwaterJurisdictionController(
     }
 
 
-    // NPT-1128 rework: the OVTA calculation only reads LandUseBlock.PriorityLandUseTypeID,
-    // OnlandVisualTrashAssessmentArea.OnlandVisualTrashAssessmentBaselineScoreID and the TGU geometry,
-    // so it uses a much lighter query than GetRelevantTrashGeneratingUnitsForCalculations. The shared
-    // loader also pulls every assessment, delineation, BMP and WQMP per TGU, which fans out badly for
-    // jurisdictions with many OVTA areas (City of Irvine never finished loading in production).
-    private Task<List<TrashGeneratingUnit>> GetTrashGeneratingUnitsForOVTACalculationsAsync(int stormwaterJurisdictionID)
+    // NPT-1126: Phase I MS4 Land Use Block acres by land use type, summed in SQL. Shared by the Area-Based and
+    // OVTA-Based results so their PLU/ALU totals reconcile. Blocks with no Priority Land Use Type are left out,
+    // as the original "PriorityLandUseTypeID != ALU" SQL filter always did.
+    private async Task<List<OVTAResultsTableBuilder.LandUseAcres>> GetPhaseIMS4LandUseAcresByTypeAsync(int stormwaterJurisdictionID)
     {
-        return DbContext.TrashGeneratingUnits
-            .Include(x => x.LandUseBlock)
-            .Include(x => x.OnlandVisualTrashAssessmentArea)
-            .AsNoTracking()
-            .Where(x => x.StormwaterJurisdictionID == stormwaterJurisdictionID && x.LandUseBlock != null && x.LandUseBlock.PermitTypeID == (int)PermitTypeEnum.PhaseIMS4)
+        var landUseAcres = await DbContext.LandUseBlocks.AsNoTracking()
+            .Where(x => x.StormwaterJurisdictionID == stormwaterJurisdictionID && x.PriorityLandUseTypeID != null && x.PermitTypeID == (int)PermitTypeEnum.PhaseIMS4)
+            .GroupBy(x => new { x.PriorityLandUseTypeID, x.LandUseForTGR })
+            .Select(g => new { g.Key.PriorityLandUseTypeID, g.Key.LandUseForTGR, Area = g.Sum(x => x.LandUseBlockGeometry.Area) })
             .ToListAsync();
+        return landUseAcres.Select(x => new OVTAResultsTableBuilder.LandUseAcres(x.PriorityLandUseTypeID, x.LandUseForTGR, x.Area * Constants.SquareMetersToAcres)).ToList();
+    }
+
+    // NPT-1128 rework / NPT-1126: the OVTA calculation only needs each TGU's land use, its OVTA Area's scores and
+    // completed assessment count, and its area, so it projects those scalars in SQL instead of loading entities.
+    // GetRelevantTrashGeneratingUnitsForCalculations pulls every assessment, delineation, BMP and WQMP per TGU,
+    // which fans out badly for jurisdictions with many OVTA areas (City of Irvine never finished loading in production).
+    private async Task<List<OVTAResultsTableBuilder.TrashGeneratingUnitAcres>> GetTrashGeneratingUnitAcresForOVTACalculationsAsync(int stormwaterJurisdictionID)
+    {
+        // Untyped blocks are left out here too, matching GetPhaseIMS4LandUseAcresByTypeAsync, so no row has assessed acres over a 0 total.
+        var trashGeneratingUnits = await DbContext.TrashGeneratingUnits.AsNoTracking()
+            .Where(x => x.StormwaterJurisdictionID == stormwaterJurisdictionID && x.LandUseBlock != null && x.LandUseBlock.PriorityLandUseTypeID != null
+                        && x.LandUseBlock.PermitTypeID == (int)PermitTypeEnum.PhaseIMS4)
+            .Select(x => new
+            {
+                x.LandUseBlock.PriorityLandUseTypeID,
+                x.LandUseBlock.LandUseForTGR,
+                BaselineScoreID = x.OnlandVisualTrashAssessmentArea == null ? null : x.OnlandVisualTrashAssessmentArea.OnlandVisualTrashAssessmentBaselineScoreID,
+                ProgressScoreID = x.OnlandVisualTrashAssessmentArea == null ? null : x.OnlandVisualTrashAssessmentArea.OnlandVisualTrashAssessmentProgressScoreID,
+                CompletedAssessmentCount = x.OnlandVisualTrashAssessmentArea == null
+                    ? 0
+                    : x.OnlandVisualTrashAssessmentArea.OnlandVisualTrashAssessments.Count(o => o.OnlandVisualTrashAssessmentStatusID == (int)OnlandVisualTrashAssessmentStatusEnum.Complete),
+                Area = x.TrashGeneratingUnitGeometry.Area
+            })
+            .ToListAsync();
+        return trashGeneratingUnits.Select(x => new OVTAResultsTableBuilder.TrashGeneratingUnitAcres(x.PriorityLandUseTypeID, x.LandUseForTGR, x.BaselineScoreID,
+            x.ProgressScoreID, x.CompletedAssessmentCount, x.Area * Constants.SquareMetersToAcres)).ToList();
     }
 
     [HttpGet("ovta-based-results-calculations")]
@@ -114,18 +135,32 @@ public class TrashGeneratingUnitByStormwaterJurisdictionController(
         // non-Phase-I blocks gets an honest all-zero table instead of that message.
         var hasOVTAResults = await DbContext.OnlandVisualTrashAssessmentAreas.AsNoTracking()
             .AnyAsync(x => x.StormwaterJurisdictionID == jurisdictionID && x.OnlandVisualTrashAssessmentBaselineScoreID != null);
-        var trashGeneratingUnits = await GetTrashGeneratingUnitsForOVTACalculationsAsync(jurisdictionID);
+        var landUseAcres = await GetPhaseIMS4LandUseAcresByTypeAsync(jurisdictionID);
+        var trashGeneratingUnitAcres = await GetTrashGeneratingUnitAcresForOVTACalculationsAsync(jurisdictionID);
+        var rows = OVTAResultsTableBuilder.BuildRows(landUseAcres, trashGeneratingUnitAcres);
+
+        // TGUs are cut from Land Use Blocks, so assessed TGU area should never exceed the mapped block area.
+        // If it does, Area Not Yet Assessed was clamped to 0; log it so the offset can be investigated.
+        foreach (var row in rows.Where(x => OVTAResultsTableBuilder.AssessedAcres(x) - x.TotalMappedAcres > 0.01))
+        {
+            Logger.LogWarning("OVTA-Based Results: assessed area {AssessedAcres} ac exceeds Total Mapped Land Use {TotalMappedAcres} ac for {LandUseTypeName} in jurisdiction {StormwaterJurisdictionID}",
+                OVTAResultsTableBuilder.AssessedAcres(row), row.TotalMappedAcres, row.LandUseTypeName, jurisdictionID);
+        }
+
+        var areasWithProgressButNoBaseline = await DbContext.OnlandVisualTrashAssessmentAreas.AsNoTracking()
+            .Where(x => x.StormwaterJurisdictionID == jurisdictionID && x.OnlandVisualTrashAssessmentProgressScoreID != null && x.OnlandVisualTrashAssessmentBaselineScoreID == null)
+            .OrderBy(x => x.OnlandVisualTrashAssessmentAreaName)
+            .Select(x => new OVTAResultsAreaDataIssueDto
+            {
+                OnlandVisualTrashAssessmentAreaID = x.OnlandVisualTrashAssessmentAreaID,
+                OnlandVisualTrashAssessmentAreaName = x.OnlandVisualTrashAssessmentAreaName
+            })
+            .ToListAsync();
 
         var ovtaResultsDto = new OVTAResultsDto
         {
-            PLUSumAcresWhereOVTAIsA = trashGeneratingUnits.PriorityOVTAScoreAAcreage(),
-            PLUSumAcresWhereOVTAIsB = trashGeneratingUnits.PriorityOVTAScoreBAcreage(),
-            PLUSumAcresWhereOVTAIsC = trashGeneratingUnits.PriorityOVTAScoreCAcreage(),
-            PLUSumAcresWhereOVTAIsD = trashGeneratingUnits.PriorityOVTAScoreDAcreage(),
-            ALUSumAcresWhereOVTAIsA = trashGeneratingUnits.AlternateOVTAScoreAAcreage(),
-            ALUSumAcresWhereOVTAIsB = trashGeneratingUnits.AlternateOVTAScoreBAcreage(),
-            ALUSumAcresWhereOVTAIsC = trashGeneratingUnits.AlternateOVTAScoreCAcreage(),
-            ALUSumAcresWhereOVTAIsD = trashGeneratingUnits.AlternateOVTAScoreDAcreage(),
+            Rows = rows,
+            AreasWithProgressButNoBaseline = areasWithProgressButNoBaseline,
             HasLandUseBlocks = hasLandUseBlocks,
             HasOVTAResults = hasOVTAResults,
         };
