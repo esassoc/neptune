@@ -51,6 +51,13 @@ namespace Neptune.Tests
             "ProjectController.ListProjectNetworkSolveHistoriesForProject",
             "ProjectController.ListTreatmentBMPHRUCharacteristicsForProject",
             "ProjectController.ListTreatmentBMPsAsUpsertDtosByProjectID",
+
+            // Reference data the public pages link to (not jurisdiction-scoped): the owner organization on a
+            // BMP page and its funding sources (contact as PersonDisplayDto, no email or phone), and the
+            // drainage-area trace on public maps.
+            "OrganizationController.Get",
+            "OrganizationController.ListFundingSources",
+            "RegionalSubbasinController.GetRegionalSubbasinGraphTraceAsFeatureCollectionFromPoint",
         };
 
         [TestMethod]

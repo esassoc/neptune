@@ -18970,7 +18970,7 @@
             "nullable": true
           },
           "PrimaryContactPerson": {
-            "$ref": "#/components/schemas/PersonSimpleDto"
+            "$ref": "#/components/schemas/PersonDisplayDto"
           },
           "IsActive": {
             "type": "boolean"
