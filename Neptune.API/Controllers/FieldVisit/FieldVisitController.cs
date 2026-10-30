@@ -28,7 +28,7 @@ public class FieldVisitController(NeptuneDbContext dbContext, ILogger<FieldVisit
     }
 
     [HttpGet("{fieldVisitID}")]
-    [FieldVisitViewFeature]
+    [UserViewFeature]
     [EntityNotFound(typeof(FieldVisit), "fieldVisitID")]
     public ActionResult<FieldVisitWorkflowDto> GetByID([FromRoute] int fieldVisitID)
     {
@@ -36,7 +36,7 @@ public class FieldVisitController(NeptuneDbContext dbContext, ILogger<FieldVisit
     }
 
     [HttpGet("/treatment-bmps/{treatmentBMPID}/field-visits/in-progress")]
-    [TreatmentBMPEditFeature]
+    [UserViewFeature]
     [EntityNotFound(typeof(TreatmentBMP), "treatmentBMPID")]
     public ActionResult<FieldVisitDto?> GetInProgressForTreatmentBMP([FromRoute] int treatmentBMPID)
     {

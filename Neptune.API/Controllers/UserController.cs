@@ -108,12 +108,12 @@ namespace Neptune.API.Controllers
         }
 
         [HttpGet("{personID}/detail")]
-        [UserViewFeature]
+        [LoggedInUnclassifiedFeature]
         [EntityNotFoundAttribute(typeof(Person), "personID")]
         public async Task<ActionResult<PersonDetailDto>> GetDetail([FromRoute] int personID)
         {
-            // Caller must be the user themselves OR an Administrator. UserViewFeature lets Unassigned
-            // through (they need their own profile), so this check is what keeps other profiles private.
+            // Any signed-in user reaches this (Unassigned users need their own profile), so this check
+            // is what keeps other profiles private.
             if (!CallingUserIsSelfOrAdmin(personID))
             {
                 return Forbid();
@@ -246,7 +246,7 @@ namespace Neptune.API.Controllers
         }
 
         [HttpGet("{personID}/notifications")]
-        [UserViewFeature]
+        [LoggedInUnclassifiedFeature]
         [EntityNotFoundAttribute(typeof(Person), "personID")]
         public async Task<ActionResult<List<PersonNotificationDto>>> GetNotifications([FromRoute] int personID)
         {

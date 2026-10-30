@@ -27,7 +27,7 @@ public class MaintenanceRecordController(NeptuneDbContext dbContext, ILogger<Mai
     }
 
     [HttpGet("{maintenanceRecordID}")]
-    [MaintenanceRecordViewFeature]
+    [UserViewFeature]
     [EntityNotFound(typeof(MaintenanceRecord), "maintenanceRecordID")]
     public async Task<ActionResult<MaintenanceRecordDetailDto?>> GetByID([FromRoute] int maintenanceRecordID)
     {
@@ -36,7 +36,7 @@ public class MaintenanceRecordController(NeptuneDbContext dbContext, ILogger<Mai
     }
 
     [HttpGet("/field-visits/{fieldVisitID}/maintenance-record")]
-    [FieldVisitViewFeature]
+    [UserViewFeature]
     [EntityNotFound(typeof(FieldVisit), "fieldVisitID")]
     public async Task<ActionResult<MaintenanceRecordDetailDto?>> GetByFieldVisit([FromRoute] int fieldVisitID)
     {

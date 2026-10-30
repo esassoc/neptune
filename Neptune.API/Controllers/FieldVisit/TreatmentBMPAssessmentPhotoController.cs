@@ -25,7 +25,7 @@ public class TreatmentBMPAssessmentPhotoController(
     : SitkaController<TreatmentBMPAssessmentPhotoController>(dbContext, logger, neptuneConfiguration)
 {
     [HttpGet]
-    [TreatmentBMPAssessmentViewFeature]
+    [UserViewFeature]
     [EntityNotFound(typeof(TreatmentBMPAssessment), "treatmentBMPAssessmentID")]
     public async Task<ActionResult<List<TreatmentBMPAssessmentPhotoDto>>> List([FromRoute] int treatmentBMPAssessmentID)
     {

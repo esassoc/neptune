@@ -16,56 +16,41 @@ namespace Neptune.Tests
 {
     /// <summary>
     /// Anyone can sign up, and a sign-up lands on Unassigned. On 29 Oct 2026 an audit found UserViewFeature
-    /// (which grants Unassigned) on endpoints that returned every user's email, phone and web-service token,
-    /// changed any BMP's type, and read any field visit, maintenance record, assessment or project by ID.
+    /// granted Unassigned, so a sign-up could get every user's email, phone and web-service token, change any
+    /// BMP's type, and read BMP, field-visit and project data by ID. UserViewFeature is now staff-only.
     /// These tests pin the fixes, and snapshot every action a fresh sign-up gets past at the attribute level
     /// so a new one needs a deliberate decision rather than slipping in.
     /// </summary>
     [TestClass]
     public class UnassignedSignupAuthorizationTests
     {
-        // Controller.Action pairs an Unassigned caller passes at the attribute level. Each one either serves
-        // the caller's own data, applies its own in-method check (self-or-admin, OCTA grant reviewer, viewable
-        // jurisdictions), or is reference data. Add to this list only after checking the new action does too.
+        // Controller.Action pairs an Unassigned caller passes at the attribute level, grouped by what then
+        // stops them reading someone else's data. Add to this list only after the new action fits a group.
         private static readonly string[] ExpectedUnassignedReachableActions =
         {
-            "FundingSourceController.Get",
-            "FundingSourceController.ListTreatmentBMPFunding",
-            "FieldVisitController.List",
-            "MaintenanceRecordController.List",
-            "OnlandVisualTrashAssessmentAreaController.DownloadGdb",
-            "OrganizationController.Get",
-            "OrganizationController.ListFundingSources",
-            "ProjectController.Get",
-            "ProjectController.GetBoundingBoxByProjectID",
-            "ProjectController.ListAttachmentsByProjectID",
-            "ProjectController.ListDelineations",
-            "ProjectController.ListDelineationsByProjectID",
-            "ProjectController.ListLoadReducingResultsForProject",
-            "ProjectController.ListProjectNetworkSolveHistoriesForProject",
-            "ProjectController.ListProjectsSharedWithOCTAM2Tier2GrantProgram",
-            "ProjectController.ListTreatmentBMPHRUCharacteristicsForProject",
-            "ProjectController.ListTreatmentBMPsAsUpsertDtosByProjectID",
-            "ProjectController.DownloadProjectsSharedWithOCTAM2Tier2GrantProgram",
-            "ProjectController.DownloadTreatmentBMPsForProjectsSharedWithOCTAM2Tier2GrantProgram",
-            "RegionalSubbasinController.GetRegionalSubbasinGraphTraceAsFeatureCollectionFromPoint",
-            "TreatmentBMPAssessmentController.List",
-            "TreatmentBMPAssessmentController.ListLatestByBMP",
-            "TreatmentBMPController.DownloadGdb",
-            "TreatmentBMPController.GetDelineationErrors",
-            "TreatmentBMPController.GetParameterizationErrors",
-            "TreatmentBMPController.GetUpstreamestErrors",
-            "TreatmentBMPController.GetUpstreamRSBCatchmentGeoJSONForTreatmentBMP",
-            "TreatmentBMPController.ListForDelineationMap",
-            "TreatmentBMPController.ListOtherTreatmentBMPsInRegionalSubbasin",
-            "TreatmentBMPTypeController.ListBMPsByType",
+            // Sign-up and the caller's own record: self-or-admin check in the action, or the caller's own claims.
             "UserClaimsController.GetByGlobalID",
             "UserClaimsController.PostUserClaims",
             "UserController.Create",
             "UserController.Get",
             "UserController.GetDetail",
             "UserController.GetNotifications",
-            "WaterQualityManagementPlanController.ListHydrologicSubareas",
+
+            // OCTA grant review (the reviewer flag is independent of role): IsOCTAGrantReviewer check in the action.
+            "ProjectController.ListProjectsSharedWithOCTAM2Tier2GrantProgram",
+            "ProjectController.ListDelineations",
+            "ProjectController.DownloadProjectsSharedWithOCTAM2Tier2GrantProgram",
+            "ProjectController.DownloadTreatmentBMPsForProjectsSharedWithOCTAM2Tier2GrantProgram",
+
+            // Project-routed reads: ProjectViewFeature lets Unassigned through only as an OCTA reviewer on a shared project.
+            "ProjectController.Get",
+            "ProjectController.GetBoundingBoxByProjectID",
+            "ProjectController.ListAttachmentsByProjectID",
+            "ProjectController.ListDelineationsByProjectID",
+            "ProjectController.ListLoadReducingResultsForProject",
+            "ProjectController.ListProjectNetworkSolveHistoriesForProject",
+            "ProjectController.ListTreatmentBMPHRUCharacteristicsForProject",
+            "ProjectController.ListTreatmentBMPsAsUpsertDtosByProjectID",
         };
 
         [TestMethod]
@@ -114,39 +99,10 @@ namespace Neptune.Tests
         }
 
         [TestMethod]
-        public void RecordViewFeatures_RefuseUnassigned()
+        public void UserViewFeature_DoesNotGrantUnassigned()
         {
-            foreach (var feature in new BaseAuthorizationAttribute[] { new FieldVisitViewFeature(), new MaintenanceRecordViewFeature(), new TreatmentBMPAssessmentViewFeature() })
-            {
-                CollectionAssert.DoesNotContain(AuthorizationAttributeHelpers.GetGrantedRoles(feature), RoleEnum.Unassigned, feature.GetType().Name);
-            }
-        }
-
-        [TestMethod]
-        public void ProjectView_UnassignedNonReviewer_IsForbidden()
-        {
-            var unassigned = new Person { RoleID = (int)RoleEnum.Unassigned };
-            Assert.IsFalse(ProjectViewFeature.CanView(unassigned, 7, sharedWithOCTAM2Tier2: true));
-        }
-
-        [TestMethod]
-        public void ProjectView_OCTAReviewer_SeesOnlySharedProjects()
-        {
-            var reviewer = new Person { RoleID = (int)RoleEnum.Unassigned, IsOCTAGrantReviewer = true };
-            Assert.IsTrue(ProjectViewFeature.CanView(reviewer, 7, sharedWithOCTAM2Tier2: true));
-            Assert.IsFalse(ProjectViewFeature.CanView(reviewer, 7, sharedWithOCTAM2Tier2: false));
-        }
-
-        [TestMethod]
-        public void ProjectView_Editor_SeesOnlyOwnJurisdiction()
-        {
-            var editor = new Person
-            {
-                RoleID = (int)RoleEnum.JurisdictionEditor,
-                StormwaterJurisdictionPeople = { new StormwaterJurisdictionPerson { StormwaterJurisdictionID = 7 } },
-            };
-            Assert.IsTrue(ProjectViewFeature.CanView(editor, 7, sharedWithOCTAM2Tier2: false));
-            Assert.IsFalse(ProjectViewFeature.CanView(editor, 99, sharedWithOCTAM2Tier2: false));
+            // UserViewFeature gates ~30 staff endpoints; letting Unassigned back in reopens every one to a sign-up.
+            CollectionAssert.DoesNotContain(AuthorizationAttributeHelpers.GetGrantedRoles(new UserViewFeature()), RoleEnum.Unassigned);
         }
 
         [TestMethod]

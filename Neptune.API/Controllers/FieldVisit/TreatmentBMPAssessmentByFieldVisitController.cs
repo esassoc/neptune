@@ -18,7 +18,7 @@ public class TreatmentBMPAssessmentByFieldVisitController(NeptuneDbContext dbCon
     : SitkaController<TreatmentBMPAssessmentByFieldVisitController>(dbContext, logger, neptuneConfiguration)
 {
     [HttpGet("{treatmentBMPAssessmentTypeID}")]
-    [FieldVisitViewFeature]
+    [UserViewFeature]
     [EntityNotFound(typeof(FieldVisit), "fieldVisitID")]
     public async Task<ActionResult<TreatmentBMPAssessmentDetailDto?>> GetByType([FromRoute] int fieldVisitID, [FromRoute] int treatmentBMPAssessmentTypeID)
     {

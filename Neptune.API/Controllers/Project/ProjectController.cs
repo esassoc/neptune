@@ -65,17 +65,9 @@ namespace Neptune.API.Controllers
         [ProjectViewFeature]
         public async Task<ActionResult<ProjectDto>> Get([FromRoute] int projectID)
         {
+            // ProjectViewFeature has already checked the jurisdiction or the OCTA share.
             var projectDto = await Projects.GetByIDAsDtoAsync(DbContext, projectID);
-
-            if (CallingUser.IsOCTAGrantReviewer && projectDto.ShareOCTAM2Tier2Scores)
-            {
-                return Ok(projectDto);
-            }
-            if (await CallingUser.CanEditJurisdiction(projectDto.StormwaterJurisdictionID, DbContext))
-            {
-                return Ok(projectDto);
-            }
-            return Forbid();
+            return Ok(projectDto);
         }
 
         [HttpGet("{projectID}/bounding-box")]
@@ -550,7 +542,7 @@ namespace Neptune.API.Controllers
         }
 
         [HttpGet("OCTAM2Tier2GrantProgram")]
-        [UserViewFeature]
+        [LoggedInUnclassifiedFeature]
         public async Task<ActionResult<List<ProjectDto>>> ListProjectsSharedWithOCTAM2Tier2GrantProgram()
         {
             if (!CallingUser.IsOCTAGrantReviewer)
@@ -563,7 +555,7 @@ namespace Neptune.API.Controllers
         }
 
         [HttpGet("OCTAM2Tier2GrantProgram/download")]
-        [UserViewFeature]
+        [LoggedInUnclassifiedFeature]
         [Produces(@"text/csv")]
         [ProducesResponseType(StatusCodes.Status200OK, Type = typeof(FileStreamResult))]
         public async Task<IActionResult> DownloadProjectsSharedWithOCTAM2Tier2GrantProgram()
@@ -589,7 +581,7 @@ namespace Neptune.API.Controllers
         }
 
         [HttpGet("OCTAM2Tier2GrantProgram/treatmentBMPs/download")]
-        [UserViewFeature]
+        [LoggedInUnclassifiedFeature]
         [Produces(@"text/csv")]
         [ProducesResponseType(StatusCodes.Status200OK, Type = typeof(FileStreamResult))]
         public async Task<IActionResult> DownloadTreatmentBMPsForProjectsSharedWithOCTAM2Tier2GrantProgram()
@@ -615,7 +607,7 @@ namespace Neptune.API.Controllers
         }
 
         [HttpGet("delineations")]
-        [UserViewFeature]
+        [LoggedInUnclassifiedFeature]
         public ActionResult<List<DelineationDto>> ListDelineations()
         {
             if (!CallingUser.IsOCTAGrantReviewer)
@@ -626,11 +618,9 @@ namespace Neptune.API.Controllers
             return Ok(dtos);
         }
 
-        // Same projects the Project List page shows the caller: every project for admins, their own jurisdictions' otherwise.
-        private async Task<List<int>> ListProjectIDsForCallingUserAsync()
+        private Task<List<int>> ListProjectIDsForCallingUserAsync()
         {
-            var projects = await Projects.ListByPersonIDAsDtoAsync(DbContext, CallingUser.PersonID);
-            return projects.Select(x => x.ProjectID).ToList();
+            return Projects.ListProjectIDsInAssignedJurisdictionsAsync(DbContext, CallingUser);
         }
 
     }
