@@ -2,7 +2,7 @@ import { Component, inject, Input, numberAttribute, OnInit } from "@angular/core
 import { AsyncPipe } from "@angular/common";
 import { Router, RouterLink } from "@angular/router";
 import { ColDef, ValueGetterParams } from "ag-grid-community";
-import { BehaviorSubject, catchError, combineLatest, EMPTY, map, Observable, shareReplay, switchMap, tap } from "rxjs";
+import { BehaviorSubject, catchError, combineLatest, EMPTY, filter, map, Observable, shareReplay, switchMap, tap } from "rxjs";
 import { escapeHtml } from "src/app/shared/helpers/html-escape";
 import { PageHeaderComponent } from "src/app/shared/components/page-header/page-header.component";
 import { LoadingDirective } from "src/app/shared/directives/loading.directive";
@@ -87,8 +87,10 @@ export class TreatmentBmpTypeDetailComponent implements OnInit {
         // Chain off bmpType$ so the column-defs/header build first, then we fetch rows + push
         // them into the BehaviorSubject. Subsequent local mutations (delete handler) push
         // updated arrays without re-hitting the API.
+        // The grid is hidden from anonymous and Unassigned users and its endpoint is staff-only, so don't call it.
         this.bmpType$
             .pipe(
+                filter(() => !this.isAnonymousOrUnassigned),
                 switchMap(() => this.bmpTypeService.listBMPsByTypeTreatmentBMPType(this.treatmentBMPTypeID)),
                 catchError(() => {
                     this.alertService.pushAlert(new Alert("Failed to load Treatment BMPs of this type.", AlertContext.Danger));

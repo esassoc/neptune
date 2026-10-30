@@ -13,7 +13,7 @@ public static class OrganizationExtensionMethods
             OrganizationGuid = organization.OrganizationGuid,
             OrganizationName = organization.OrganizationName,
             OrganizationShortName = organization.OrganizationShortName,
-            PrimaryContactPerson = organization.PrimaryContactPerson?.AsSimpleDto(),
+            PrimaryContactPerson = organization.PrimaryContactPerson?.AsDisplayDto(),
             IsActive = organization.IsActive,
             OrganizationUrl = organization.OrganizationUrl,
             LogoFileResource = organization.LogoFileResource?.AsSimpleDto(),

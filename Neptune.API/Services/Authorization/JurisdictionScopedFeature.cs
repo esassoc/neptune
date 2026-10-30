@@ -52,6 +52,11 @@ namespace Neptune.API.Services.Authorization
                 return new NotFoundResult();
             }
 
+            if (user != null && IsAllowedOutsideJurisdiction(dbContext, user, id))
+            {
+                return null;
+            }
+
             if (user == null || user.IsAnonymousOrUnassigned())
             {
                 return new ForbidResult();
@@ -59,5 +64,11 @@ namespace Neptune.API.Services.Authorization
 
             return user.IsAssignedToStormwaterJurisdiction(stormwaterJurisdictionID.Value) ? null : new ForbidResult();
         }
+
+        /// <summary>
+        /// Lets a derived gate admit a caller who isn't assigned to the record's jurisdiction (e.g. an OCTA
+        /// grant reviewer on a shared project). Checked after the 404 and before the role/jurisdiction match.
+        /// </summary>
+        protected virtual bool IsAllowedOutsideJurisdiction(NeptuneDbContext dbContext, Person user, int id) => false;
     }
 }

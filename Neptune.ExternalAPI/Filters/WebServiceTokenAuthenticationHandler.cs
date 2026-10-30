@@ -48,7 +48,7 @@ public class WebServiceTokenAuthenticationHandler(
             return AuthenticateResult.Fail("API key is not valid");
         }
 
-        var person = await People.GetByWebServiceAccessTokenAsync(dbContext, parsedApiKey);
+        var person = await People.GetWebServiceUserByTokenAsync(dbContext, parsedApiKey);
         if (person == null)
         {
             return AuthenticateResult.Fail("API key is not valid");

@@ -30,7 +30,7 @@ public class OrganizationController(NeptuneDbContext dbContext, ILogger<Organiza
     // NPT-999: loosened from AdminFeature to UserViewFeature so the SPA org-detail page
     // is reachable by any authenticated user, matching the legacy MVC's [OrganizationViewFeature].
     // The List endpoint above stays AdminFeature — broad enumeration is still admin-only.
-    [UserViewFeature]
+    [LoggedInUnclassifiedFeature]
     [EntityNotFound(typeof(Organization), "organizationID")]
     public async Task<ActionResult<OrganizationDto>> Get([FromRoute] int organizationID)
     {
@@ -40,7 +40,7 @@ public class OrganizationController(NeptuneDbContext dbContext, ILogger<Organiza
     }
 
     [HttpGet("{organizationID}/funding-sources")]
-    [UserViewFeature]
+    [LoggedInUnclassifiedFeature]
     [EntityNotFound(typeof(Organization), "organizationID")]
     public async Task<ActionResult<List<FundingSourceSimpleDto>>> ListFundingSources([FromRoute] int organizationID)
     {
@@ -49,7 +49,7 @@ public class OrganizationController(NeptuneDbContext dbContext, ILogger<Organiza
     }
 
     [HttpGet("{organizationID}/users")]
-    [UserViewFeature]
+    [JurisdictionEditFeature]
     [EntityNotFound(typeof(Organization), "organizationID")]
     public async Task<ActionResult<List<PersonSimpleDto>>> ListUsers([FromRoute] int organizationID)
     {

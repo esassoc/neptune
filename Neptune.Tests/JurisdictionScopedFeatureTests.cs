@@ -172,6 +172,33 @@ namespace Neptune.Tests
         }
 
         [TestMethod]
+        public void ProjectViewFeature_IsJurisdictionScoped_WithOCTAReviewerException()
+        {
+            var project = _dbContext.Projects.FirstOrDefault();
+            if (project == null)
+            {
+                Assert.Inconclusive("No Projects in local DB.");
+                return;
+            }
+
+            project.ShareOCTAM2Tier2Scores = false;
+            _dbContext.SaveChanges();
+            var feature = new ProjectViewFeature();
+            AssertScoped(feature, RoleEnum.JurisdictionEditor, project.ProjectID, project.StormwaterJurisdictionID);
+
+            var unassignedReviewer = new Person { RoleID = (int)RoleEnum.Unassigned, IsOCTAGrantReviewer = true };
+            Assert.IsInstanceOfType(feature.Evaluate(_dbContext, unassignedReviewer, project.ProjectID), typeof(ForbidResult),
+                "An OCTA grant reviewer must get 403 on a project that isn't shared with the program.");
+
+            project.ShareOCTAM2Tier2Scores = true;
+            _dbContext.SaveChanges();
+            Assert.IsNull(feature.Evaluate(_dbContext, unassignedReviewer, project.ProjectID),
+                "An Unassigned OCTA grant reviewer must be allowed on a shared project.");
+            Assert.IsInstanceOfType(feature.Evaluate(_dbContext, new Person { RoleID = (int)RoleEnum.Unassigned }, project.ProjectID), typeof(ForbidResult),
+                "An Unassigned non-reviewer must get 403 even on a shared project.");
+        }
+
+        [TestMethod]
         public void TrashScreenImporter_ViewableJurisdictions_EqualAssignedForEditor()
         {
             // PO decision on NPT-1129: the Trash Screen bulk upload checks rows against the caller's

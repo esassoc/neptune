@@ -18970,7 +18970,7 @@
             "nullable": true
           },
           "PrimaryContactPerson": {
-            "$ref": "#/components/schemas/PersonSimpleDto"
+            "$ref": "#/components/schemas/PersonDisplayDto"
           },
           "IsActive": {
             "type": "boolean"
@@ -19671,11 +19671,6 @@
           },
           "ReceiveRSBRevisionRequestEmails": {
             "type": "boolean"
-          },
-          "WebServiceAccessToken": {
-            "type": "string",
-            "format": "uuid",
-            "nullable": true
           },
           "IsOCTAGrantReviewer": {
             "type": "boolean"

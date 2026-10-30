@@ -31,6 +31,13 @@ public class UserClaimsController(
             return NotFound(notFoundMessage);
         }
 
+        // PersonDto carries the web-service token, so only the person themselves or an admin.
+        var callingUser = CallingUser;
+        if (callingUser.PersonID != userDto.PersonID && callingUser.RoleID != (int)RoleEnum.Admin && callingUser.RoleID != (int)RoleEnum.SitkaAdmin)
+        {
+            return Forbid();
+        }
+
         return Ok(userDto);
     }
 

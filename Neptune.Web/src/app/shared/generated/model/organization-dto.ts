@@ -7,8 +7,8 @@
  * https://openapi-generator.tech
  * Do not edit the class manually.
  */
+import { PersonDisplayDto } from './person-display-dto';
 import { OrganizationTypeSimpleDto } from './organization-type-simple-dto';
-import { PersonSimpleDto } from './person-simple-dto';
 import { FileResourceSimpleDto } from './file-resource-simple-dto';
 
 
@@ -18,7 +18,7 @@ export class OrganizationDto {
     OrganizationGuid?: string | null;
     OrganizationName?: string | null;
     OrganizationShortName?: string | null;
-    PrimaryContactPerson?: PersonSimpleDto;
+    PrimaryContactPerson?: PersonDisplayDto;
     IsActive?: boolean;
     OrganizationUrl?: string | null;
     LogoFileResource?: FileResourceSimpleDto;
@@ -34,7 +34,7 @@ export interface OrganizationDtoForm {
     OrganizationGuid?: FormControl<string>;
     OrganizationName?: FormControl<string>;
     OrganizationShortName?: FormControl<string>;
-    PrimaryContactPerson?: FormControl<PersonSimpleDto>;
+    PrimaryContactPerson?: FormControl<PersonDisplayDto>;
     IsActive?: FormControl<boolean>;
     OrganizationUrl?: FormControl<string>;
     LogoFileResource?: FormControl<FileResourceSimpleDto>;
@@ -83,7 +83,7 @@ export class OrganizationDtoFormControls {
             ],
         }
     );
-    public static PrimaryContactPerson = (value: FormControlState<PersonSimpleDto> | PersonSimpleDto = undefined, formControlOptions?: FormControlOptions | null) => new FormControl<PersonSimpleDto>(
+    public static PrimaryContactPerson = (value: FormControlState<PersonDisplayDto> | PersonDisplayDto = undefined, formControlOptions?: FormControlOptions | null) => new FormControl<PersonDisplayDto>(
         value,
         formControlOptions ?? 
         {

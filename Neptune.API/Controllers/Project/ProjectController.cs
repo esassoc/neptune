@@ -62,24 +62,16 @@ namespace Neptune.API.Controllers
 
         [HttpGet("{projectID}")]
         [EntityNotFound(typeof(Project), "projectID")]
-        [UserViewFeature]
+        [ProjectViewFeature]
         public async Task<ActionResult<ProjectDto>> Get([FromRoute] int projectID)
         {
+            // ProjectViewFeature has already checked the jurisdiction or the OCTA share.
             var projectDto = await Projects.GetByIDAsDtoAsync(DbContext, projectID);
-
-            if (CallingUser.IsOCTAGrantReviewer && projectDto.ShareOCTAM2Tier2Scores)
-            {
-                return Ok(projectDto);
-            }
-            if (await CallingUser.CanEditJurisdiction(projectDto.StormwaterJurisdictionID, DbContext))
-            {
-                return Ok(projectDto);
-            }
-            return Forbid();
+            return Ok(projectDto);
         }
 
         [HttpGet("{projectID}/bounding-box")]
-        [UserViewFeature]
+        [ProjectViewFeature]
         public async Task<ActionResult<BoundingBoxDto>> GetBoundingBoxByProjectID([FromRoute] int projectID)
         {
             var projectDto = await Projects.GetByIDAsDtoAsync(DbContext, projectID);
@@ -114,7 +106,7 @@ namespace Neptune.API.Controllers
 
         [HttpGet("{projectID}/attachments")]
         [EntityNotFound(typeof(Project), "projectID")]
-        [UserViewFeature]
+        [ProjectViewFeature]
         public ActionResult<List<ProjectDocumentDto>> ListAttachmentsByProjectID([FromRoute] int projectID)
         {
             var projectDocuments = ProjectDocuments.ListByProjectIDAsDto(DbContext, projectID);
@@ -172,7 +164,7 @@ namespace Neptune.API.Controllers
         }
 
         [HttpGet("{projectID}/treatment-bmps/as-upsert-dtos")]
-        [UserViewFeature]
+        [ProjectViewFeature]
         public ActionResult<List<TreatmentBMPUpsertDto>> ListTreatmentBMPsAsUpsertDtosByProjectID([FromRoute] int projectID)
         {
             var treatmentBMPUpsertDtos = TreatmentBMPs.ListByProjectIDAsUpsertDto(DbContext, projectID);
@@ -402,7 +394,7 @@ namespace Neptune.API.Controllers
 
         [HttpGet("{projectID}/project-network-solve-histories")]
         [EntityNotFound(typeof(Project), "projectID")]
-        [UserViewFeature]
+        [ProjectViewFeature]
         public async Task<ActionResult<List<ProjectNetworkSolveHistorySimpleDto>>> ListProjectNetworkSolveHistoriesForProject([FromRoute] int projectID)
         {
             var project = Projects.GetByID(DbContext, projectID);
@@ -417,7 +409,7 @@ namespace Neptune.API.Controllers
 
         [HttpGet("{projectID}/treatment-bmp-hru-characteristics")]
         [EntityNotFound(typeof(Project), "projectID")]
-        [UserViewFeature]
+        [ProjectViewFeature]
         public async Task<ActionResult<List<TreatmentBMPHRUCharacteristicsSummarySimpleDto>>> ListTreatmentBMPHRUCharacteristicsForProject([FromRoute] int projectID)
         {
             var project = Projects.GetByID(DbContext, projectID);
@@ -433,7 +425,7 @@ namespace Neptune.API.Controllers
 
         [HttpGet("{projectID}/load-reducing-results")]
         [EntityNotFound(typeof(Project), "projectID")]
-        [UserViewFeature]
+        [ProjectViewFeature]
         public async Task<ActionResult<List<ProjectLoadReducingResultDto>>> ListLoadReducingResultsForProject([FromRoute] int projectID)
         {
             var project = Projects.GetByID(DbContext, projectID);
@@ -474,7 +466,7 @@ namespace Neptune.API.Controllers
 
         [HttpGet("{projectID}/delineations")]
         [EntityNotFound(typeof(Project), "projectID")]
-        [UserViewFeature]
+        [ProjectViewFeature]
         public ActionResult<List<DelineationUpsertDto>> ListDelineationsByProjectID([FromRoute] int projectID)
         {
             var delineationUpsertDtos = Delineations.ListByProjectIDAsUpsertDto(DbContext, projectID);
@@ -508,12 +500,12 @@ namespace Neptune.API.Controllers
         }
 
         [HttpGet("download")]
-        [UserViewFeature]
+        [JurisdictionEditFeature]
         [Produces(@"text/csv")]
         [ProducesResponseType(StatusCodes.Status200OK, Type = typeof(FileStreamResult))]
         public async Task<FileContentResult> DownloadProjectsWithModels()
         {
-            var projectIDs = Projects.ListProjectIDs(DbContext);
+            var projectIDs = await ListProjectIDsForCallingUserAsync();
             var records = Projects.ListByIDsAsModeledResultSummaryDtos(DbContext, projectIDs);
 
             await using var stream = new MemoryStream();
@@ -529,12 +521,12 @@ namespace Neptune.API.Controllers
         }
 
         [HttpGet("treatmentBMPs/download")]
-        [UserViewFeature]
+        [JurisdictionEditFeature]
         [Produces(@"text/csv")]
         [ProducesResponseType(StatusCodes.Status200OK, Type = typeof(FileStreamResult))]
         public async Task<FileContentResult> DownloadTreatmentBMPsForProjects()
         {
-            var projectIDs = Projects.ListProjectIDs(DbContext);
+            var projectIDs = await ListProjectIDsForCallingUserAsync();
             var records = ProjectLoadReducingResults.ListByProjectIDs(DbContext, projectIDs);
 
             await using var stream = new MemoryStream();
@@ -550,7 +542,7 @@ namespace Neptune.API.Controllers
         }
 
         [HttpGet("OCTAM2Tier2GrantProgram")]
-        [UserViewFeature]
+        [LoggedInUnclassifiedFeature]
         public async Task<ActionResult<List<ProjectDto>>> ListProjectsSharedWithOCTAM2Tier2GrantProgram()
         {
             if (!CallingUser.IsOCTAGrantReviewer)
@@ -563,11 +555,16 @@ namespace Neptune.API.Controllers
         }
 
         [HttpGet("OCTAM2Tier2GrantProgram/download")]
-        [UserViewFeature]
+        [LoggedInUnclassifiedFeature]
         [Produces(@"text/csv")]
         [ProducesResponseType(StatusCodes.Status200OK, Type = typeof(FileStreamResult))]
-        public async Task<FileContentResult> DownloadProjectsSharedWithOCTAM2Tier2GrantProgram()
+        public async Task<IActionResult> DownloadProjectsSharedWithOCTAM2Tier2GrantProgram()
         {
+            if (!CallingUser.IsOCTAGrantReviewer)
+            {
+                return Forbid();
+            }
+
             var projectIDs = Projects.ListOCTAM2Tier2ProjectIDs(DbContext);
             var records = Projects.ListByIDsAsModeledResultSummaryDtos(DbContext, projectIDs);
 
@@ -584,11 +581,16 @@ namespace Neptune.API.Controllers
         }
 
         [HttpGet("OCTAM2Tier2GrantProgram/treatmentBMPs/download")]
-        [UserViewFeature]
+        [LoggedInUnclassifiedFeature]
         [Produces(@"text/csv")]
         [ProducesResponseType(StatusCodes.Status200OK, Type = typeof(FileStreamResult))]
-        public async Task<FileContentResult> DownloadTreatmentBMPsForProjectsSharedWithOCTAM2Tier2GrantProgram()
+        public async Task<IActionResult> DownloadTreatmentBMPsForProjectsSharedWithOCTAM2Tier2GrantProgram()
         {
+            if (!CallingUser.IsOCTAGrantReviewer)
+            {
+                return Forbid();
+            }
+
             var projectIDs = Projects.ListOCTAM2Tier2ProjectIDs(DbContext);
             var records = ProjectLoadReducingResults.ListByProjectIDs(DbContext, projectIDs);
 
@@ -605,7 +607,7 @@ namespace Neptune.API.Controllers
         }
 
         [HttpGet("delineations")]
-        [UserViewFeature]
+        [LoggedInUnclassifiedFeature]
         public ActionResult<List<DelineationDto>> ListDelineations()
         {
             if (!CallingUser.IsOCTAGrantReviewer)
@@ -614,6 +616,11 @@ namespace Neptune.API.Controllers
             }
             var dtos = Delineations.ListProjectDelineationsAsDto(DbContext);
             return Ok(dtos);
+        }
+
+        private Task<List<int>> ListProjectIDsForCallingUserAsync()
+        {
+            return Projects.ListProjectIDsInAssignedJurisdictionsAsync(DbContext, CallingUser);
         }
 
     }

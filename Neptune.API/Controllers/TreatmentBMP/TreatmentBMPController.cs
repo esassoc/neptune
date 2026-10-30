@@ -138,7 +138,7 @@ public class TreatmentBMPController(
     }
 
     [HttpPut("{treatmentBMPID}/treatment-bmp-types/{treatmentBMPTypeID}")]
-    [UserViewFeature]
+    [TreatmentBMPEditFeature]
     [EntityNotFound(typeof(TreatmentBMP), "treatmentBMPID")]
     public ActionResult<int> ChangeTreatmentBMPType([FromRoute] int treatmentBMPID, int treatmentBMPTypeID)
     {
@@ -541,7 +541,7 @@ public class TreatmentBMPController(
     }
 
     [HttpPut("{treatmentBMPID}/queue-refresh-land-use")]
-    [UserViewFeature]
+    [TreatmentBMPEditFeature]
     [EntityNotFound(typeof(TreatmentBMP), "treatmentBMPID")]
     public async Task<ActionResult<List<TreatmentBMPDisplayDto>>> QueueRefreshLandUse([FromRoute] int treatmentBMPID)
     {
