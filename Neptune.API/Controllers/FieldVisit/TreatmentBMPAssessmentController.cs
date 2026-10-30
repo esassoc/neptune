@@ -42,7 +42,7 @@ public class TreatmentBMPAssessmentController(NeptuneDbContext dbContext, ILogge
     }
 
     [HttpGet("{treatmentBMPAssessmentID}")]
-    [UserViewFeature]
+    [TreatmentBMPAssessmentViewFeature]
     [EntityNotFound(typeof(TreatmentBMPAssessment), "treatmentBMPAssessmentID")]
     public async Task<ActionResult<TreatmentBMPAssessmentDetailDto?>> GetByID([FromRoute] int treatmentBMPAssessmentID)
     {
@@ -57,7 +57,7 @@ public class TreatmentBMPAssessmentController(NeptuneDbContext dbContext, ILogge
     /// cost only when the user is actually on a page that renders the breakdown.
     /// </summary>
     [HttpGet("{treatmentBMPAssessmentID}/score-detail")]
-    [UserViewFeature]
+    [TreatmentBMPAssessmentViewFeature]
     [EntityNotFound(typeof(TreatmentBMPAssessment), "treatmentBMPAssessmentID")]
     public async Task<ActionResult<TreatmentBMPAssessmentScoreDetailDto?>> GetScoreDetail([FromRoute] int treatmentBMPAssessmentID)
     {

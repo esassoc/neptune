@@ -19672,11 +19672,6 @@
           "ReceiveRSBRevisionRequestEmails": {
             "type": "boolean"
           },
-          "WebServiceAccessToken": {
-            "type": "string",
-            "format": "uuid",
-            "nullable": true
-          },
           "IsOCTAGrantReviewer": {
             "type": "boolean"
           },

@@ -49,7 +49,8 @@ public class WebServiceTokenAuthenticationHandler(
         }
 
         var person = await People.GetByWebServiceAccessTokenAsync(dbContext, parsedApiKey);
-        if (person == null)
+        // A token outlives a role change or deactivation, so check the owner on every request.
+        if (person == null || !person.CanUseWebServices())
         {
             return AuthenticateResult.Fail("API key is not valid");
         }

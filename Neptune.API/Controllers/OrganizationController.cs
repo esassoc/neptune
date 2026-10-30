@@ -49,7 +49,7 @@ public class OrganizationController(NeptuneDbContext dbContext, ILogger<Organiza
     }
 
     [HttpGet("{organizationID}/users")]
-    [UserViewFeature]
+    [JurisdictionEditFeature]
     [EntityNotFound(typeof(Organization), "organizationID")]
     public async Task<ActionResult<List<PersonSimpleDto>>> ListUsers([FromRoute] int organizationID)
     {

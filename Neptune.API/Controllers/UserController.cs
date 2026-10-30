@@ -53,8 +53,10 @@ namespace Neptune.API.Controllers
             return Ok(user);
         }
 
+        // Jurisdiction staff pick people from this list (jurisdiction users, project contacts), so it is
+        // staff-wide rather than admin-only. Unassigned is a self sign-up and must not see it.
         [HttpGet]
-        [UserViewFeature]
+        [JurisdictionEditFeature]
         public async Task<ActionResult<List<PersonSimpleDto>>> List()
         {
             var people = await People.ListAsSimpleDtoAsync(DbContext);
@@ -62,10 +64,16 @@ namespace Neptune.API.Controllers
         }
 
         [HttpGet("{personID}")]
-        [UserViewDetailFeature]
+        [LoggedInUnclassifiedFeature]
         [EntityNotFoundAttribute(typeof(Person), "personID")]
         public async Task<ActionResult<PersonDto>> Get([FromRoute] int personID)
         {
+            // PersonDto carries the web-service token, so only the person themselves or an admin.
+            if (!CallingUserIsSelfOrAdmin(personID))
+            {
+                return Forbid();
+            }
+
             var person = await People.GetByIDAsDtoAsync(DbContext, personID);
             if (person == null) return NotFound();
             return Ok(person);
@@ -104,10 +112,9 @@ namespace Neptune.API.Controllers
         [EntityNotFoundAttribute(typeof(Person), "personID")]
         public async Task<ActionResult<PersonDetailDto>> GetDetail([FromRoute] int personID)
         {
-            // Caller must be the user themselves OR an Administrator. UserViewFeature already gates
-            // anonymous/unassigned users; this just narrows further so an authenticated non-admin
-            // cannot view someone else's profile.
-            if (CallingUser.PersonID != personID && CallingUser.RoleID != (int)RoleEnum.Admin && CallingUser.RoleID != (int)RoleEnum.SitkaAdmin)
+            // Caller must be the user themselves OR an Administrator. UserViewFeature lets Unassigned
+            // through (they need their own profile), so this check is what keeps other profiles private.
+            if (!CallingUserIsSelfOrAdmin(personID))
             {
                 return Forbid();
             }
@@ -118,13 +125,13 @@ namespace Neptune.API.Controllers
         }
 
         [HttpPost("{personID}/generate-web-service-token")]
-        [UserViewFeature]
+        [JurisdictionEditFeature]
         [EntityNotFoundAttribute(typeof(Person), "personID")]
         public async Task<ActionResult<Guid>> GenerateWebServiceToken([FromRoute] int personID)
         {
-            // Users may rotate their own token; Admins may rotate anyone's. Same gating shape as
-            // GetDetail above — UserViewFeature handles the anonymous/unassigned cutoff.
-            if (CallingUser.PersonID != personID && CallingUser.RoleID != (int)RoleEnum.Admin && CallingUser.RoleID != (int)RoleEnum.SitkaAdmin)
+            // Staff may rotate their own token; Admins may rotate anyone's. Unassigned gets none: the
+            // ExternalAPI only accepts staff tokens (Person.CanUseWebServices).
+            if (!CallingUserIsSelfOrAdmin(personID))
             {
                 return Forbid();
             }
@@ -243,12 +250,18 @@ namespace Neptune.API.Controllers
         [EntityNotFoundAttribute(typeof(Person), "personID")]
         public async Task<ActionResult<List<PersonNotificationDto>>> GetNotifications([FromRoute] int personID)
         {
-            if (CallingUser.PersonID != personID && CallingUser.RoleID != (int)RoleEnum.Admin && CallingUser.RoleID != (int)RoleEnum.SitkaAdmin)
+            if (!CallingUserIsSelfOrAdmin(personID))
             {
                 return Forbid();
             }
             var notifications = await People.ListNotificationsByPersonIDAsync(DbContext, personID);
             return Ok(notifications);
+        }
+
+        private bool CallingUserIsSelfOrAdmin(int personID)
+        {
+            var callingUser = CallingUser;
+            return callingUser.PersonID == personID || callingUser.RoleID == (int)RoleEnum.Admin || callingUser.RoleID == (int)RoleEnum.SitkaAdmin;
         }
 
         private MailMessage GenerateUserCreatedEmail(PersonDto person)

@@ -35,7 +35,6 @@ public static class PersonExtensionMethods
             OrganizationName = person.Organization.OrganizationName,
             ReceiveSupportEmails = person.ReceiveSupportEmails,
             ReceiveRSBRevisionRequestEmails = person.ReceiveRSBRevisionRequestEmails,
-            WebServiceAccessToken = person.WebServiceAccessToken,
             IsOCTAGrantReviewer = person.IsOCTAGrantReviewer,
             HasAssignedStormwaterJurisdiction = person.StormwaterJurisdictionPeople.Any()
         };

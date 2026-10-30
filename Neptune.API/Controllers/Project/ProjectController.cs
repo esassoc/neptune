@@ -62,7 +62,7 @@ namespace Neptune.API.Controllers
 
         [HttpGet("{projectID}")]
         [EntityNotFound(typeof(Project), "projectID")]
-        [UserViewFeature]
+        [ProjectViewFeature]
         public async Task<ActionResult<ProjectDto>> Get([FromRoute] int projectID)
         {
             var projectDto = await Projects.GetByIDAsDtoAsync(DbContext, projectID);
@@ -79,7 +79,7 @@ namespace Neptune.API.Controllers
         }
 
         [HttpGet("{projectID}/bounding-box")]
-        [UserViewFeature]
+        [ProjectViewFeature]
         public async Task<ActionResult<BoundingBoxDto>> GetBoundingBoxByProjectID([FromRoute] int projectID)
         {
             var projectDto = await Projects.GetByIDAsDtoAsync(DbContext, projectID);
@@ -114,7 +114,7 @@ namespace Neptune.API.Controllers
 
         [HttpGet("{projectID}/attachments")]
         [EntityNotFound(typeof(Project), "projectID")]
-        [UserViewFeature]
+        [ProjectViewFeature]
         public ActionResult<List<ProjectDocumentDto>> ListAttachmentsByProjectID([FromRoute] int projectID)
         {
             var projectDocuments = ProjectDocuments.ListByProjectIDAsDto(DbContext, projectID);
@@ -172,7 +172,7 @@ namespace Neptune.API.Controllers
         }
 
         [HttpGet("{projectID}/treatment-bmps/as-upsert-dtos")]
-        [UserViewFeature]
+        [ProjectViewFeature]
         public ActionResult<List<TreatmentBMPUpsertDto>> ListTreatmentBMPsAsUpsertDtosByProjectID([FromRoute] int projectID)
         {
             var treatmentBMPUpsertDtos = TreatmentBMPs.ListByProjectIDAsUpsertDto(DbContext, projectID);
@@ -402,7 +402,7 @@ namespace Neptune.API.Controllers
 
         [HttpGet("{projectID}/project-network-solve-histories")]
         [EntityNotFound(typeof(Project), "projectID")]
-        [UserViewFeature]
+        [ProjectViewFeature]
         public async Task<ActionResult<List<ProjectNetworkSolveHistorySimpleDto>>> ListProjectNetworkSolveHistoriesForProject([FromRoute] int projectID)
         {
             var project = Projects.GetByID(DbContext, projectID);
@@ -417,7 +417,7 @@ namespace Neptune.API.Controllers
 
         [HttpGet("{projectID}/treatment-bmp-hru-characteristics")]
         [EntityNotFound(typeof(Project), "projectID")]
-        [UserViewFeature]
+        [ProjectViewFeature]
         public async Task<ActionResult<List<TreatmentBMPHRUCharacteristicsSummarySimpleDto>>> ListTreatmentBMPHRUCharacteristicsForProject([FromRoute] int projectID)
         {
             var project = Projects.GetByID(DbContext, projectID);
@@ -433,7 +433,7 @@ namespace Neptune.API.Controllers
 
         [HttpGet("{projectID}/load-reducing-results")]
         [EntityNotFound(typeof(Project), "projectID")]
-        [UserViewFeature]
+        [ProjectViewFeature]
         public async Task<ActionResult<List<ProjectLoadReducingResultDto>>> ListLoadReducingResultsForProject([FromRoute] int projectID)
         {
             var project = Projects.GetByID(DbContext, projectID);
@@ -474,7 +474,7 @@ namespace Neptune.API.Controllers
 
         [HttpGet("{projectID}/delineations")]
         [EntityNotFound(typeof(Project), "projectID")]
-        [UserViewFeature]
+        [ProjectViewFeature]
         public ActionResult<List<DelineationUpsertDto>> ListDelineationsByProjectID([FromRoute] int projectID)
         {
             var delineationUpsertDtos = Delineations.ListByProjectIDAsUpsertDto(DbContext, projectID);
@@ -508,12 +508,12 @@ namespace Neptune.API.Controllers
         }
 
         [HttpGet("download")]
-        [UserViewFeature]
+        [JurisdictionEditFeature]
         [Produces(@"text/csv")]
         [ProducesResponseType(StatusCodes.Status200OK, Type = typeof(FileStreamResult))]
         public async Task<FileContentResult> DownloadProjectsWithModels()
         {
-            var projectIDs = Projects.ListProjectIDs(DbContext);
+            var projectIDs = await ListProjectIDsForCallingUserAsync();
             var records = Projects.ListByIDsAsModeledResultSummaryDtos(DbContext, projectIDs);
 
             await using var stream = new MemoryStream();
@@ -529,12 +529,12 @@ namespace Neptune.API.Controllers
         }
 
         [HttpGet("treatmentBMPs/download")]
-        [UserViewFeature]
+        [JurisdictionEditFeature]
         [Produces(@"text/csv")]
         [ProducesResponseType(StatusCodes.Status200OK, Type = typeof(FileStreamResult))]
         public async Task<FileContentResult> DownloadTreatmentBMPsForProjects()
         {
-            var projectIDs = Projects.ListProjectIDs(DbContext);
+            var projectIDs = await ListProjectIDsForCallingUserAsync();
             var records = ProjectLoadReducingResults.ListByProjectIDs(DbContext, projectIDs);
 
             await using var stream = new MemoryStream();
@@ -566,8 +566,13 @@ namespace Neptune.API.Controllers
         [UserViewFeature]
         [Produces(@"text/csv")]
         [ProducesResponseType(StatusCodes.Status200OK, Type = typeof(FileStreamResult))]
-        public async Task<FileContentResult> DownloadProjectsSharedWithOCTAM2Tier2GrantProgram()
+        public async Task<IActionResult> DownloadProjectsSharedWithOCTAM2Tier2GrantProgram()
         {
+            if (!CallingUser.IsOCTAGrantReviewer)
+            {
+                return Forbid();
+            }
+
             var projectIDs = Projects.ListOCTAM2Tier2ProjectIDs(DbContext);
             var records = Projects.ListByIDsAsModeledResultSummaryDtos(DbContext, projectIDs);
 
@@ -587,8 +592,13 @@ namespace Neptune.API.Controllers
         [UserViewFeature]
         [Produces(@"text/csv")]
         [ProducesResponseType(StatusCodes.Status200OK, Type = typeof(FileStreamResult))]
-        public async Task<FileContentResult> DownloadTreatmentBMPsForProjectsSharedWithOCTAM2Tier2GrantProgram()
+        public async Task<IActionResult> DownloadTreatmentBMPsForProjectsSharedWithOCTAM2Tier2GrantProgram()
         {
+            if (!CallingUser.IsOCTAGrantReviewer)
+            {
+                return Forbid();
+            }
+
             var projectIDs = Projects.ListOCTAM2Tier2ProjectIDs(DbContext);
             var records = ProjectLoadReducingResults.ListByProjectIDs(DbContext, projectIDs);
 
@@ -614,6 +624,13 @@ namespace Neptune.API.Controllers
             }
             var dtos = Delineations.ListProjectDelineationsAsDto(DbContext);
             return Ok(dtos);
+        }
+
+        // Same projects the Project List page shows the caller: every project for admins, their own jurisdictions' otherwise.
+        private async Task<List<int>> ListProjectIDsForCallingUserAsync()
+        {
+            var projects = await Projects.ListByPersonIDAsDtoAsync(DbContext, CallingUser.PersonID);
+            return projects.Select(x => x.ProjectID).ToList();
         }
 
     }
