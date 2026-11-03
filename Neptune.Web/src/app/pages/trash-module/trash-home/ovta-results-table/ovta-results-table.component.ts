@@ -74,6 +74,7 @@ export class OvtaResultsTableComponent {
     readonly rows = input<OVTAResultsLandUseRowDto[]>([]);
     readonly areasWithProgressButNoBaseline = input<OVTAResultsAreaDataIssueDto[]>([]);
     readonly hasLandUseBlocks = input(true);
+    readonly hasOVTAAreas = input(true);
     readonly hasBaselineScores = input(true);
     readonly scoreDefinitionsClicked = output<void>();
 
@@ -97,7 +98,8 @@ export class OvtaResultsTableComponent {
 
     public readonly track = signal<Track>(1);
     public readonly view = signal<ResultsView>("percent");
-    public readonly expanded = signal<Record<Category, boolean>>({ plu: true, alu: true });
+    // NPT-1126 rework: starts collapsed so the category totals come first (KE 11/2/26).
+    public readonly expanded = signal<Record<Category, boolean>>({ plu: false, alu: false });
 
     // The switches are re-created when a jurisdiction without Land Use Blocks is shown and then left, so highlight
     // the current selection, not the first option.

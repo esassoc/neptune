@@ -321,6 +321,7 @@
     <Build Include="dbo\Views\dbo.vNereidRegionalSubbasinCentralizedBMP.sql" />
     <Build Include="dbo\Views\dbo.vNereidTreatmentBMPRegionalSubbasin.sql" />
     <Build Include="dbo\Views\dbo.vOnlandVisualTrashAssessmentAreaLandUseBlock.sql" />
+    <Build Include="dbo\Views\dbo.vLandUseBlockOVTAAssessmentCoverage.sql" />
     <Build Include="dbo\Views\dbo.vOnlandVisualTrashAssessmentAreaProgress.sql" />
     <Build Include="dbo\Views\dbo.vPowerBICentralizedBMPLoadGeneratingUnit.sql" />
     <Build Include="dbo\Views\dbo.vPowerBILandUseStatistic.sql" />

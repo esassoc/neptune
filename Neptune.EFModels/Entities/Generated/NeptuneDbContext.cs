@@ -213,6 +213,8 @@ public partial class NeptuneDbContext : DbContext
 
     public virtual DbSet<vHRUCharacteristic> vHRUCharacteristics { get; set; }
 
+    public virtual DbSet<vLandUseBlockOVTAAssessmentCoverage> vLandUseBlockOVTAAssessmentCoverages { get; set; }
+
     public virtual DbSet<vLoadGeneratingResult> vLoadGeneratingResults { get; set; }
 
     public virtual DbSet<vLoadGeneratingUnit> vLoadGeneratingUnits { get; set; }
@@ -1158,6 +1160,11 @@ public partial class NeptuneDbContext : DbContext
         modelBuilder.Entity<vHRUCharacteristic>(entity =>
         {
             entity.ToView("vHRUCharacteristic");
+        });
+
+        modelBuilder.Entity<vLandUseBlockOVTAAssessmentCoverage>(entity =>
+        {
+            entity.ToView("vLandUseBlockOVTAAssessmentCoverage");
         });
 
         modelBuilder.Entity<vLoadGeneratingResult>(entity =>
