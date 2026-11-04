@@ -77,7 +77,13 @@
                                 </note>
                             }
                             @if (currentResultType == "Area-Based Results") {
-                                <div [loadingSpinner]="{ isLoading: (isLoadingAreaBased$ | async) ?? false, loadingHeight: 100 }" id="areaBasedCalculationControlTemplate">
+                                <!-- inert while loading: the spinner covers the previous jurisdiction's results but doesn't block clicks, keyboard or screen readers -->
+                                @let isLoadingAreaBased = (isLoadingAreaBased$ | async) ?? false;
+                                <div
+                                    [loadingSpinner]="{ isLoading: isLoadingAreaBased, loadingHeight: 100 }"
+                                    [inert]="isLoadingAreaBased"
+                                    [attr.aria-busy]="isLoadingAreaBased"
+                                    id="areaBasedCalculationControlTemplate">
                                     @if (areaBasedResults$ | async; as areaBasedResults) {
                                         @if (areaBasedResults.failed || !areaBasedResults.dto) {
                                             <note noteType="danger">Area-Based Results could not be loaded for this jurisdiction. Please refresh the page or try again later.</note>
@@ -148,7 +154,12 @@
                                 </div>
                             }
                             @if (currentResultType == "Current Net Loading Rate With Controls" || currentResultType == "Net Change In Trash Loading Rate With Controls") {
-                                <div [loadingSpinner]="{ isLoading: (isLoadingLoadResults$ | async) ?? false, loadingHeight: 100 }" id="LoadBasedResultsControlTemplate">
+                                @let isLoadingLoadResults = (isLoadingLoadResults$ | async) ?? false;
+                                <div
+                                    [loadingSpinner]="{ isLoading: isLoadingLoadResults, loadingHeight: 100 }"
+                                    [inert]="isLoadingLoadResults"
+                                    [attr.aria-busy]="isLoadingLoadResults"
+                                    id="LoadBasedResultsControlTemplate">
                                     @if (loadResults$ | async; as loadResults) {
                                         @if (loadResults.failed || !loadResults.dto) {
                                             <note noteType="danger">Load-Based Results could not be loaded for this jurisdiction. Please refresh the page or try again later.</note>
@@ -203,9 +214,12 @@
                             }
                         </div>
                         @if (currentResultType == "OVTA-Based Results") {
+                            @let isLoadingOvtaResults = (isLoadingOvtaResults$ | async) ?? false;
                             <div
                                 class="g-col-12 mt-3"
-                                [loadingSpinner]="{ isLoading: (isLoadingOvtaResults$ | async) ?? false, loadingHeight: 100 }"
+                                [loadingSpinner]="{ isLoading: isLoadingOvtaResults, loadingHeight: 100 }"
+                                [inert]="isLoadingOvtaResults"
+                                [attr.aria-busy]="isLoadingOvtaResults"
                                 id="OVTABasedResultsControlTemplate">
                                 @if (ovtaResults$ | async; as ovtaResults) {
                                     @if (ovtaResults.failed || !ovtaResults.dto) {
