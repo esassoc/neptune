@@ -34,9 +34,6 @@ export class FieldDefinitionGridHeaderComponent implements IHeaderAngularComp {
 
     agInit(params: MyParams): void {
         this.params = params;
-        //because of the way the popover sits and how it's triggered, it's best to just prevent the column from covering it
-        //TODO make the css here more act more like the default ag-grid css
-        this.params.column.minWidth = this.params.column.actualWidth;
         this.params.column.addEventListener("sortChanged", this.onSortChanged.bind(this));
         this.params.column.addEventListener("filterChanged", this.onFilterChanged.bind(this));
         this.onSortChanged();

@@ -6,7 +6,8 @@ public static partial class QuickBMPExtensionMethods
 {
     public static QuickBMPGridDto AsGridDto(this QuickBMP quickBMP, string? treatmentBMPTypeName, vWaterQualityManagementPlanDetailed waterQualityManagementPlan)
     {
-        var calculatedBoundaryAcreage = GetCalculatedBoundaryAcreage(waterQualityManagementPlan.RecordedWQMPAreaInAcres, waterQualityManagementPlan.CalculatedWQMPAcreage);
+        var calculatedBoundaryAcreage = GetCalculatedBoundaryAcreage(waterQualityManagementPlan.CalculatedWQMPAcreage);
+        var drainageAreaBasisAcreage = GetDrainageAreaBasisAcreage(calculatedBoundaryAcreage, waterQualityManagementPlan.RecordedWQMPAreaInAcres);
         return new QuickBMPGridDto
         {
             QuickBMPID = quickBMP.QuickBMPID,
@@ -21,8 +22,9 @@ public static partial class QuickBMPExtensionMethods
             WaterQualityManagementPlanStatusDisplayName = waterQualityManagementPlan.WaterQualityManagementPlanStatusDisplayName,
             HydrologicSubareaName = waterQualityManagementPlan.HydrologicSubareaName,
             PercentOfSiteTreated = quickBMP.PercentOfSiteTreated,
+            RecordedWQMPAreaInAcres = waterQualityManagementPlan.RecordedWQMPAreaInAcres,
             CalculatedBoundaryAcreage = calculatedBoundaryAcreage,
-            DrainageAreaTreatedAcres = GetDrainageAreaTreatedAcres(quickBMP.PercentOfSiteTreated, calculatedBoundaryAcreage),
+            DrainageAreaTreatedAcres = GetDrainageAreaTreatedAcres(quickBMP.PercentOfSiteTreated, drainageAreaBasisAcreage),
             PercentCaptured = quickBMP.PercentCaptured,
             PercentRetained = quickBMP.PercentRetained,
             DryWeatherFlowOverrideID = quickBMP.DryWeatherFlowOverrideID,
@@ -34,26 +36,30 @@ public static partial class QuickBMPExtensionMethods
     }
 
     /// <summary>
-    /// The recorded WQMP area, falling back to the boundary's area. The view reports a missing
-    /// boundary as 0 acres, so 0 is treated as blank rather than a real area.
+    /// The area of the WQMP's mapped boundary (GIS only, never the user-entered recorded area). The view
+    /// reports a missing boundary as 0 acres, so 0 is treated as blank rather than a real area.
     /// </summary>
-    public static decimal? GetCalculatedBoundaryAcreage(decimal? recordedWQMPAreaInAcres, double? calculatedWQMPAcreage)
+    public static decimal? GetCalculatedBoundaryAcreage(double? calculatedWQMPAcreage)
     {
-        if (recordedWQMPAreaInAcres.HasValue)
-        {
-            return recordedWQMPAreaInAcres;
-        }
-
         return calculatedWQMPAcreage is > 0 ? (decimal)calculatedWQMPAcreage.Value : null;
     }
 
-    public static decimal? GetDrainageAreaTreatedAcres(decimal? percentOfSiteTreated, decimal? calculatedBoundaryAcreage)
+    /// <summary>
+    /// The area Drainage Area Treated is based on: the boundary area, falling back to the recorded
+    /// (user-entered) WQMP area when the WQMP has no boundary (NPT-1137 rework, AP decision 11/4).
+    /// </summary>
+    public static decimal? GetDrainageAreaBasisAcreage(decimal? calculatedBoundaryAcreage, decimal? recordedWQMPAreaInAcres)
     {
-        if (!percentOfSiteTreated.HasValue || !calculatedBoundaryAcreage.HasValue)
+        return calculatedBoundaryAcreage ?? recordedWQMPAreaInAcres;
+    }
+
+    public static decimal? GetDrainageAreaTreatedAcres(decimal? percentOfSiteTreated, decimal? wqmpAcreage)
+    {
+        if (!percentOfSiteTreated.HasValue || !wqmpAcreage.HasValue)
         {
             return null;
         }
 
-        return Math.Round(percentOfSiteTreated.Value / 100m * calculatedBoundaryAcreage.Value, 2, MidpointRounding.AwayFromZero);
+        return Math.Round(percentOfSiteTreated.Value / 100m * wqmpAcreage.Value, 2, MidpointRounding.AwayFromZero);
     }
 }
