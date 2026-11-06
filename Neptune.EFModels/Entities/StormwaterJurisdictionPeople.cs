@@ -72,6 +72,24 @@ public static class StormwaterJurisdictionPeople
         return GetImpl(dbContext).AsNoTracking().Where(x => x.PersonID == person.PersonID).Select(x => x.StormwaterJurisdictionID).ToList();
     }
 
+    public static bool IsAdministrator(PersonDto person)
+    {
+        return person.RoleID is (int)RoleEnum.Admin or (int)RoleEnum.SitkaAdmin;
+    }
+
+    /// <summary>
+    /// The jurisdictions the person is assigned to, by <see cref="StormwaterJurisdictionPerson"/> rows only — no role
+    /// fallbacks, so an Unassigned or anonymous person gets none. Check <see cref="IsAdministrator"/> first when Admins
+    /// should see everything.
+    /// </summary>
+    public static Task<List<int>> ListAssignedStormwaterJurisdictionIDsAsync(NeptuneDbContext dbContext, PersonDto person)
+    {
+        return dbContext.StormwaterJurisdictionPeople.AsNoTracking()
+            .Where(x => x.PersonID == person.PersonID)
+            .Select(x => x.StormwaterJurisdictionID)
+            .ToListAsync();
+    }
+
     /// <summary>
     /// NPT-1135: Admin/SitkaAdmin pass for any existing jurisdiction; everyone else must be assigned to it.
     /// Stricter than <see cref="ListViewableStormwaterJurisdictionIDsByPersonDtoForBMPsAsync"/>, which also
@@ -79,7 +97,7 @@ public static class StormwaterJurisdictionPeople
     /// </summary>
     public static async Task<bool> IsPersonAssignedToJurisdictionAsync(NeptuneDbContext dbContext, PersonDto person, int stormwaterJurisdictionID)
     {
-        if (person.RoleID is (int)RoleEnum.Admin or (int)RoleEnum.SitkaAdmin)
+        if (IsAdministrator(person))
         {
             return await dbContext.StormwaterJurisdictions.AnyAsync(x => x.StormwaterJurisdictionID == stormwaterJurisdictionID);
         }

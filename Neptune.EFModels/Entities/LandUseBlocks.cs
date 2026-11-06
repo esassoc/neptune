@@ -1,4 +1,5 @@
 ﻿using Microsoft.EntityFrameworkCore;
+using Neptune.Common;
 using Neptune.Common.DesignByContract;
 using Neptune.Common.GeoSpatial;
 using Neptune.Models.DataTransferObjects;
@@ -46,14 +47,56 @@ public static class LandUseBlocks
         Check.RequireNotNull(landUseBlock, $"Land Use Block with ID {landUseBlockID} not found!");
         return landUseBlock;
     }
-    public static List<LandUseBlockGridDto> List(NeptuneDbContext dbContext)
+    /// <summary>
+    /// NPT-1135 rework: the Land Use Blocks grid shows Admin/SitkaAdmin every block and everyone else only the blocks in
+    /// jurisdictions they're assigned to (an Unassigned or anonymous caller gets none). Areas are computed in SQL so no
+    /// block or Trash Generating Unit geometry is loaded — the old Include of every TGU geometry, county-wide, on each
+    /// page load was a large memory hit on the API.
+    /// </summary>
+    public static async Task<List<LandUseBlockGridDto>> ListForPersonAsync(NeptuneDbContext dbContext, PersonDto person)
     {
-        var landUseBlocks = dbContext.LandUseBlocks.AsNoTracking()
-            .Include(x => x.StormwaterJurisdiction)
-                .ThenInclude(x => x.Organization)
-            .Include(x => x.TrashGeneratingUnits)
-            .Select(x => x.AsGridDto()).ToList();
-        return landUseBlocks;
+        var query = dbContext.LandUseBlocks.AsNoTracking();
+        if (!StormwaterJurisdictionPeople.IsAdministrator(person))
+        {
+            var assignedJurisdictionIDs = await StormwaterJurisdictionPeople.ListAssignedStormwaterJurisdictionIDsAsync(dbContext, person);
+            query = query.Where(x => assignedJurisdictionIDs.Contains(x.StormwaterJurisdictionID));
+        }
+
+        var rows = await query.Select(x => new
+        {
+            x.LandUseBlockID,
+            x.PriorityLandUseTypeID,
+            x.LandUseDescription,
+            x.TrashGenerationRate,
+            x.LandUseForTGR,
+            x.MedianHouseholdIncomeResidential,
+            x.MedianHouseholdIncomeRetail,
+            x.StormwaterJurisdictionID,
+            x.PermitTypeID,
+            Area = x.LandUseBlockGeometry.Area,
+            TrashGeneratingArea = x.TrashGeneratingUnits.Sum(y => y.TrashGeneratingUnitGeometry.Area),
+        }).ToListAsync();
+
+        var jurisdictionNames = await StormwaterJurisdictions.GetDisplayNamesByIDAsync(dbContext);
+        return rows.Select(x => new LandUseBlockGridDto
+        {
+            LandUseBlockID = x.LandUseBlockID,
+            PriorityLandUseTypeID = x.PriorityLandUseTypeID,
+            PriorityLandUseTypeName = x.PriorityLandUseTypeID.HasValue && PriorityLandUseType.AllLookupDictionary.TryGetValue(x.PriorityLandUseTypeID.Value, out var priorityLandUseType)
+                ? priorityLandUseType.PriorityLandUseTypeDisplayName
+                : null,
+            LandUseDescription = x.LandUseDescription,
+            TrashGenerationRate = x.TrashGenerationRate,
+            LandUseForTGR = x.LandUseForTGR,
+            MedianHouseholdIncomeResidential = x.MedianHouseholdIncomeResidential,
+            MedianHouseholdIncomeRetail = x.MedianHouseholdIncomeRetail,
+            StormwaterJurisdictionID = x.StormwaterJurisdictionID,
+            StormwaterJurisdictionName = jurisdictionNames[x.StormwaterJurisdictionID],
+            PermitTypeID = x.PermitTypeID,
+            PermitTypeName = PermitType.AllLookupDictionary[x.PermitTypeID].PermitTypeDisplayName,
+            Area = x.Area * Constants.SquareMetersToAcres,
+            TrashGeneratingArea = x.TrashGeneratingArea * Constants.SquareMetersToAcres,
+        }).ToList();
     }
 
     public static bool JurisdictionHasLandUseBlocks(NeptuneDbContext dbContext, int stormwaterJurisdictionID)
