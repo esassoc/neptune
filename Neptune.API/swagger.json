@@ -17997,6 +17997,9 @@
           "HasLandUseBlocks": {
             "type": "boolean"
           },
+          "HasOVTAAreas": {
+            "type": "boolean"
+          },
           "HasOVTAResults": {
             "type": "boolean"
           }

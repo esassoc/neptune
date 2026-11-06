@@ -1,44 +1,55 @@
 @let progressOnlyCount = areasWithProgressButNoBaseline().length;
-@if (progressOnlyCount > 0) {
-    <!-- one note covers "no Land Use Blocks" or "no Baseline Scores" and the Progress-without-Baseline data issue, rather than two stacked notes.
-         It shows even without Land Use Blocks, so those jurisdictions can still find the areas to fix. -->
-    <note noteType="warning" class="mb-3">
-        @if (!hasLandUseBlocks()) {
-            This jurisdiction has no Land Use Blocks, so OVTA-Based Results cannot be calculated, but {{ progressOnlyCount }} OVTA
-            {{ progressOnlyCount === 1 ? "Area has" : "Areas have" }} a Progress Score with no Baseline Score.
-        } @else if (!hasBaselineScores()) {
-            This jurisdiction has no Baseline Scores yet, but {{ progressOnlyCount }} OVTA {{ progressOnlyCount === 1 ? "Area has" : "Areas have" }} a Progress Score.
-        } @else {
-            {{ progressOnlyCount }} OVTA {{ progressOnlyCount === 1 ? "Area has" : "Areas have" }} a Progress Score but no Baseline Score.
-        }
-        A Progress Score should only be recorded after an area has a Baseline Score, so {{ progressOnlyCount === 1 ? "this area's" : "these areas'" }} assessments need review.
-        <details class="mt-2">
-            <summary>Show OVTA Areas</summary>
-            <ul class="data-issue-list">
-                @for (area of areasWithProgressButNoBaseline(); track area.OnlandVisualTrashAssessmentAreaID) {
-                    <li>
-                        <a [routerLink]="['/trash/onland-visual-trash-assessment-areas', area.OnlandVisualTrashAssessmentAreaID]">{{ area.OnlandVisualTrashAssessmentAreaName }}</a>
-                    </li>
-                }
-            </ul>
-        </details>
-    </note>
-} @else if (!hasLandUseBlocks()) {
-    <note noteType="info" class="mb-3">This jurisdiction has no Land Use Blocks, so OVTA-Based Results cannot be calculated.</note>
-} @else if (!hasBaselineScores()) {
-    <note noteType="info" class="mb-3">This jurisdiction has no OVTA Areas with 2 completed baseline assessments, so there are no Baseline Scores to display.</note>
-}
+@let canCalculate = hasLandUseBlocks() && hasOVTAAreas();
+@let showNote = !canCalculate || !hasBaselineScores() || progressOnlyCount > 0;
 
-@if (hasLandUseBlocks()) {
-    <div class="ovta-results-controls">
-        <div class="ovta-results-controls__row">
+<!-- Jira 54953: the Track switch on the left, the note that applies on the right, in the same columns as the
+     Jurisdiction / Viewing row above it in trash-home. -->
+<div class="ovta-results-layout">
+    <div class="ovta-results-layout__track">
+        @if (canCalculate) {
             <btn-group-radio-input [options]="trackOptions" [default]="trackLabel()" (change)="onTrackChange($any($event))"></btn-group-radio-input>
-            <div class="ovta-results-controls__expand">
-                <button type="button" class="btn btn-sm btn-primary-outline" (click)="setAllExpanded(true)">Expand all</button>
-                <button type="button" class="btn btn-sm btn-primary-outline" (click)="setAllExpanded(false)">Collapse all</button>
-            </div>
-        </div>
+        }
+    </div>
+    <div>
+        @if (showNote) {
+            <!-- one note for the empty state and the Progress-without-Baseline list, rather than two stacked notes. The list shows even
+                 without Land Use Blocks, so those jurisdictions can still find the areas. -->
+            <note noteType="info">
+                @if (!hasLandUseBlocks()) {
+                    This jurisdiction has no Land Use Blocks, so OVTA-Based Results cannot be calculated.
+                } @else if (!hasOVTAAreas()) {
+                    This jurisdiction has no OVTA Areas, so OVTA-Based Results cannot be calculated.
+                } @else if (!hasBaselineScores()) {
+                    No OVTA Areas in this jurisdiction have a Baseline Score yet.
+                }
+                @if (progressOnlyCount > 0) {
+                    {{ progressOnlyCount }} OVTA {{ progressOnlyCount === 1 ? "Area has" : "Areas have" }} a Progress Score but no Baseline Score.
+                    <details class="mt-2">
+                        <summary>Show OVTA Areas</summary>
+                        <ul class="data-issue-list">
+                            @for (area of areasWithProgressButNoBaseline(); track area.OnlandVisualTrashAssessmentAreaID) {
+                                <li>
+                                    <a [routerLink]="['/trash/onland-visual-trash-assessment-areas', area.OnlandVisualTrashAssessmentAreaID]">{{
+                                        area.OnlandVisualTrashAssessmentAreaName
+                                    }}</a>
+                                </li>
+                            }
+                        </ul>
+                    </details>
+                }
+            </note>
+        }
+    </div>
+</div>
+
+@if (canCalculate) {
+    <!-- Expand all / Collapse all only affect the table, so they sit on the View switch row and wrap under it, still right-aligned. -->
+    <div class="ovta-results-view-row">
         <btn-group-radio-input [options]="viewOptions" [default]="viewLabel()" (change)="onViewChange($any($event))"></btn-group-radio-input>
+        <div class="ovta-results-view-row__expand">
+            <button type="button" class="btn btn-sm btn-primary-outline" (click)="setAllExpanded(true)">Expand all</button>
+            <button type="button" class="btn btn-sm btn-primary-outline" (click)="setAllExpanded(false)">Collapse all</button>
+        </div>
     </div>
 
     <div class="ovta-results-table-scroll">

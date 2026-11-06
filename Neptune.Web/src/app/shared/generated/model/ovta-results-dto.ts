@@ -16,6 +16,7 @@ export class OVTAResultsDto {
     Rows?: Array<OVTAResultsLandUseRowDto> | null;
     AreasWithProgressButNoBaseline?: Array<OVTAResultsAreaDataIssueDto> | null;
     HasLandUseBlocks?: boolean;
+    HasOVTAAreas?: boolean;
     HasOVTAResults?: boolean;
     constructor(obj?: any) {
         Object.assign(this, obj);
@@ -26,6 +27,7 @@ export interface OVTAResultsDtoForm {
     Rows?: FormControl<Array<OVTAResultsLandUseRowDto>>;
     AreasWithProgressButNoBaseline?: FormControl<Array<OVTAResultsAreaDataIssueDto>>;
     HasLandUseBlocks?: FormControl<boolean>;
+    HasOVTAAreas?: FormControl<boolean>;
     HasOVTAResults?: FormControl<boolean>;
 }
 
@@ -51,6 +53,16 @@ export class OVTAResultsDtoFormControls {
         }
     );
     public static HasLandUseBlocks = (value: FormControlState<boolean> | boolean = undefined, formControlOptions?: FormControlOptions | null) => new FormControl<boolean>(
+        value,
+        formControlOptions ?? 
+        {
+            nonNullable: false,
+            validators: 
+            [
+            ],
+        }
+    );
+    public static HasOVTAAreas = (value: FormControlState<boolean> | boolean = undefined, formControlOptions?: FormControlOptions | null) => new FormControl<boolean>(
         value,
         formControlOptions ?? 
         {

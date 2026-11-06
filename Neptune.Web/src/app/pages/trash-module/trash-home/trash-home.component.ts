@@ -20,6 +20,7 @@ import {
     filter,
     finalize,
     map,
+    merge,
     of,
     scan,
     shareReplay,
@@ -220,6 +221,13 @@ export class TrashHomeComponent implements OnInit {
         );
     }
 
+    // NPT-1126 rework: also true again from each jurisdiction change until the new results arrive. The spinner covers the
+    // section, so the last jurisdiction's notes (e.g. the Progress-without-Baseline list) don't linger while loading.
+    // The section stays rendered underneath, so the OVTA table keeps its Track and View choices.
+    private isLoadingSection$<T>(results$: Observable<ResultsViewModel<T>>): Observable<boolean> {
+        return merge(this.currentStormwaterJurisdiction$.pipe(map(() => true)), results$.pipe(map(() => false))).pipe(startWith(true), distinctUntilChanged());
+    }
+
     private trackRequest$<T>(source$: Observable<T>): Observable<T> {
         return defer(() => {
             this.loadingDeltaSubject.next(1);
@@ -287,18 +295,9 @@ export class TrashHomeComponent implements OnInit {
         // Per-section loading: true until that section's own request settles (success or failure).
         // Deliberately not OR'd with the page-wide isLoading$: an unrelated slow request (BMPs, bounding box)
         // must not pin a section's spinner after its own data has arrived.
-        this.isLoadingAreaBased$ = this.areaBasedResults$.pipe(
-            map(() => false),
-            startWith(true)
-        );
-        this.isLoadingLoadResults$ = this.loadResults$.pipe(
-            map(() => false),
-            startWith(true)
-        );
-        this.isLoadingOvtaResults$ = this.ovtaResults$.pipe(
-            map(() => false),
-            startWith(true)
-        );
+        this.isLoadingAreaBased$ = this.isLoadingSection$(this.areaBasedResults$);
+        this.isLoadingLoadResults$ = this.isLoadingSection$(this.loadResults$);
+        this.isLoadingOvtaResults$ = this.isLoadingSection$(this.ovtaResults$);
 
         this.treatmentBMPs$ = this.currentStormwaterJurisdiction$.pipe(
             switchMap((x) =>

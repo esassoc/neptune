@@ -1,24 +1,35 @@
 @use "/src/scss/abstracts" as *;
+@use "../ovta-results-layout" as layout;
 
-.ovta-results-controls {
+.ovta-results-layout {
+    @include layout.ovta-results-layout;
+    margin-bottom: 0.5rem;
+
+    // bottom-aligned, so the switch sits on the line where the table controls start
+    &__track {
+        display: flex;
+        align-items: flex-end;
+    }
+}
+
+.ovta-results-view-row {
     display: flex;
-    flex-direction: column;
-    gap: 0.5rem;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.5rem 1rem;
     margin-bottom: 1rem;
 
-    &__row {
-        display: flex;
-        flex-wrap: wrap;
-        align-items: center;
-        gap: 0.5rem 1rem;
-    }
-
+    // margin-left: auto keeps the buttons right-aligned when they wrap under the switch
     &__expand {
         display: flex;
         gap: 0.5rem;
+        margin-left: auto;
     }
+}
 
-    // mockup 6a: a teal rule under each switch, in place of the shared gray one
+// mockup 6a: a teal rule under each switch, in place of the shared gray one
+.ovta-results-layout,
+.ovta-results-view-row {
     ::ng-deep .button-group {
         border-bottom: 2px solid $primary;
     }

@@ -8,12 +8,14 @@ namespace Neptune.Models.DataTransferObjects
         // Category subtotals are computed client-side.
         public List<OVTAResultsLandUseRowDto> Rows { get; set; } = new();
 
-        // NPT-1126: OVTA Areas with a Progress Score but no Baseline Score. Shown to users so the jurisdiction
-        // can find and fix the data, since a Progress Score should only exist for re-assessed baseline area.
+        // NPT-1126: OVTA Areas with a Progress Score but no Baseline Score, listed for the jurisdiction's information.
+        // Some jurisdictions may record only progress assessments on purpose, so this isn't treated as an error.
         public List<OVTAResultsAreaDataIssueDto> AreasWithProgressButNoBaseline { get; set; } = new();
 
         // NPT-1128 rework: empty-state signals so the UI can explain an all-zero table instead of rendering it.
         public bool HasLandUseBlocks { get; set; }
+        // NPT-1126 rework: false hides the table, since there's nothing to report without OVTA Areas.
+        public bool HasOVTAAreas { get; set; }
         // True when the jurisdiction has at least one OVTA Area with a baseline score
         // (i.e. >= 2 completed baseline assessments), regardless of land use / permit type.
         public bool HasOVTAResults { get; set; }
@@ -38,7 +40,8 @@ namespace Neptune.Models.DataTransferObjects
         public double ProgressAcresC { get; set; }
         public double ProgressAcresD { get; set; }
 
-        // Area by number of completed OVTAs on record (baseline and progress). The four columns sum to TotalMappedAcres.
+        // Land Use Block area by number of completed OVTAs on record (baseline and progress) for the OVTA Areas covering
+        // it; overlapping areas count once, at the highest count. The four columns sum to TotalMappedAcres.
         public double NotYetAssessedAcres { get; set; }
         public double AssessedOnceAcres { get; set; }
         public double AssessedTwiceAcres { get; set; }
