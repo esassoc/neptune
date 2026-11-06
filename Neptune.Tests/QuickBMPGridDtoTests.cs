@@ -60,29 +60,42 @@ namespace Neptune.Tests
         }
 
         [TestMethod]
-        public void RecordedArea_TakesPriorityOverCalculatedArea()
+        public void BothAreas_ShownSeparately_DrainageAreaUsesCalculatedArea()
         {
             var dto = BuildQuickBMP().AsGridDto("Bioretention", BuildWqmp(recordedAcres: 2m, calculatedAcres: 5.5));
 
-            Assert.AreEqual(2m, dto.CalculatedBoundaryAcreage);
-            Assert.AreEqual(1m, dto.DrainageAreaTreatedAcres);
-        }
-
-        [TestMethod]
-        public void CalculatedArea_UsedWhenNoRecordedArea()
-        {
-            var dto = BuildQuickBMP().AsGridDto("Bioretention", BuildWqmp(recordedAcres: null, calculatedAcres: 5.5));
-
+            Assert.AreEqual(2m, dto.RecordedWQMPAreaInAcres);
             Assert.AreEqual(5.5m, dto.CalculatedBoundaryAcreage);
             Assert.AreEqual(2.75m, dto.DrainageAreaTreatedAcres);
         }
 
         [TestMethod]
-        public void NoRecordedAreaAndNoBoundary_AreaAndDrainageAreaAreBlank()
+        public void CalculatedAreaOnly_DrainageAreaUsesCalculatedArea()
+        {
+            var dto = BuildQuickBMP().AsGridDto("Bioretention", BuildWqmp(recordedAcres: null, calculatedAcres: 5.5));
+
+            Assert.IsNull(dto.RecordedWQMPAreaInAcres);
+            Assert.AreEqual(5.5m, dto.CalculatedBoundaryAcreage);
+            Assert.AreEqual(2.75m, dto.DrainageAreaTreatedAcres);
+        }
+
+        [TestMethod]
+        public void NoBoundary_CalculatedAreaBlank_DrainageAreaFallsBackToRecordedArea()
         {
             // The view reports a WQMP with no boundary as 0 calculated acres.
+            var dto = BuildQuickBMP().AsGridDto("Bioretention", BuildWqmp(recordedAcres: 2m, calculatedAcres: 0));
+
+            Assert.AreEqual(2m, dto.RecordedWQMPAreaInAcres);
+            Assert.IsNull(dto.CalculatedBoundaryAcreage);
+            Assert.AreEqual(1m, dto.DrainageAreaTreatedAcres);
+        }
+
+        [TestMethod]
+        public void NoRecordedAreaAndNoBoundary_AreasAndDrainageAreaAreBlank()
+        {
             var dto = BuildQuickBMP().AsGridDto("Bioretention", BuildWqmp(recordedAcres: null, calculatedAcres: 0));
 
+            Assert.IsNull(dto.RecordedWQMPAreaInAcres);
             Assert.IsNull(dto.CalculatedBoundaryAcreage);
             Assert.IsNull(dto.DrainageAreaTreatedAcres);
         }
@@ -90,9 +103,9 @@ namespace Neptune.Tests
         [TestMethod]
         public void NullPercentOfSiteTreated_DrainageAreaIsBlank()
         {
-            var dto = BuildQuickBMP(percentOfSiteTreated: null).AsGridDto("Bioretention", BuildWqmp(recordedAcres: 2m));
+            var dto = BuildQuickBMP(percentOfSiteTreated: null).AsGridDto("Bioretention", BuildWqmp(recordedAcres: 2m, calculatedAcres: 5.5));
 
-            Assert.AreEqual(2m, dto.CalculatedBoundaryAcreage);
+            Assert.AreEqual(5.5m, dto.CalculatedBoundaryAcreage);
             Assert.IsNull(dto.DrainageAreaTreatedAcres);
         }
 

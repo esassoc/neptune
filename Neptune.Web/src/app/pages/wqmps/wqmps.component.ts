@@ -288,6 +288,7 @@ export class WqmpsComponent {
             this.utilityFunctionsService.createDecimalColumnDef("Recorded Parcel Acreage", "RecordedWQMPAreaInAcres", { DecimalPlacesToDisplay: 2 }),
             this.utilityFunctionsService.createDecimalColumnDef("Calculated Boundary Acreage", "CalculatedWQMPAcreage", {
                 DecimalPlacesToDisplay: 1,
+                FieldDefinitionType: "CalculatedBoundaryAcreage",
             }),
             this.utilityFunctionsService.createBasicColumnDef("Associated APNs", "AssociatedAPNs"),
             this.utilityFunctionsService.createDateColumnDef("Latest O&M Verification", "VerificationDate", "MM/dd/yyyy"),
@@ -304,8 +305,9 @@ export class WqmpsComponent {
     }
 
     // NPT-1137: one row per simple BMP across the WQMPs the user can view, in the story's column order.
+    // Headers wrap so long labels don't set the column width (NPT-1137 rework: columns were too wide).
     private buildQuickBMPColumnDefs(): ColDef[] {
-        return [
+        const defs: ColDef[] = [
             this.utilityFunctionsService.createBasicColumnDef("Simple BMP Name", "QuickBMPName"),
             this.utilityFunctionsService.createBasicColumnDef("BMP Type", "TreatmentBMPTypeName", {
                 UseCustomDropdownFilter: true,
@@ -321,6 +323,7 @@ export class WqmpsComponent {
                 InRouterLink: "/water-quality-management-plans/",
                 FieldDefinitionType: "WaterQualityManagementPlan",
                 FieldDefinitionLabelOverride: "WQMP Name",
+                MaxWidth: 300,
             }),
             this.utilityFunctionsService.createLinkColumnDef("Jurisdiction", "StormwaterJurisdictionName", "StormwaterJurisdictionID", {
                 InRouterLink: "/jurisdictions/",
@@ -337,6 +340,7 @@ export class WqmpsComponent {
                 DecimalPlacesToDisplay: 1,
                 FieldDefinitionType: "PercentOfSiteTreated",
             }),
+            this.utilityFunctionsService.createDecimalColumnDef("Recorded WQMP Area (ac)", "RecordedWQMPAreaInAcres"),
             this.utilityFunctionsService.createDecimalColumnDef("Calculated Boundary Acreage", "CalculatedBoundaryAcreage", {
                 FieldDefinitionType: "CalculatedBoundaryAcreage",
             }),
@@ -360,6 +364,7 @@ export class WqmpsComponent {
             }),
             this.utilityFunctionsService.createBasicColumnDef("Notes", "QuickBMPNote", { Width: 200 }),
         ];
+        return defs.map((def) => ({ ...def, wrapHeaderText: true, autoHeaderHeight: true }));
     }
 
     public handleMapReady(event: NeptuneMapInitEvent, boundingBox?: BoundingBoxDto) {

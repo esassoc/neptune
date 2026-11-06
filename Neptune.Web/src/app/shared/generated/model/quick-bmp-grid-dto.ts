@@ -23,6 +23,7 @@ export class QuickBMPGridDto {
     WaterQualityManagementPlanStatusDisplayName?: string | null;
     HydrologicSubareaName?: string | null;
     PercentOfSiteTreated?: number | null;
+    RecordedWQMPAreaInAcres?: number | null;
     CalculatedBoundaryAcreage?: number | null;
     DrainageAreaTreatedAcres?: number | null;
     PercentCaptured?: number | null;
@@ -48,6 +49,7 @@ export interface QuickBMPGridDtoForm {
     WaterQualityManagementPlanStatusDisplayName?: FormControl<string>;
     HydrologicSubareaName?: FormControl<string>;
     PercentOfSiteTreated?: FormControl<number>;
+    RecordedWQMPAreaInAcres?: FormControl<number>;
     CalculatedBoundaryAcreage?: FormControl<number>;
     DrainageAreaTreatedAcres?: FormControl<number>;
     PercentCaptured?: FormControl<number>;
@@ -169,6 +171,16 @@ export class QuickBMPGridDtoFormControls {
         }
     );
     public static PercentOfSiteTreated = (value: FormControlState<number> | number = undefined, formControlOptions?: FormControlOptions | null) => new FormControl<number>(
+        value,
+        formControlOptions ?? 
+        {
+            nonNullable: false,
+            validators: 
+            [
+            ],
+        }
+    );
+    public static RecordedWQMPAreaInAcres = (value: FormControlState<number> | number = undefined, formControlOptions?: FormControlOptions | null) => new FormControl<number>(
         value,
         formControlOptions ?? 
         {

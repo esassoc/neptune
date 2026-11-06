@@ -95,3 +95,5 @@ GO
 :r ".\043 - NPT-1137 Add Field Definitions for Simple BMP grid.sql"
 GO
 
+:r ".\044 - NPT-1137 Update Simple BMP area field definitions.sql"
+GO

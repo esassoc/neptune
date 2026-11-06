@@ -20747,6 +20747,11 @@
             "format": "double",
             "nullable": true
           },
+          "RecordedWQMPAreaInAcres": {
+            "type": "number",
+            "format": "double",
+            "nullable": true
+          },
           "CalculatedBoundaryAcreage": {
             "type": "number",
             "format": "double",

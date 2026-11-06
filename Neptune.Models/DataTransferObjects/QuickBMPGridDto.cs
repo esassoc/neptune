@@ -14,6 +14,7 @@ public class QuickBMPGridDto
     public string? WaterQualityManagementPlanStatusDisplayName { get; set; }
     public string? HydrologicSubareaName { get; set; }
     public decimal? PercentOfSiteTreated { get; set; }
+    public decimal? RecordedWQMPAreaInAcres { get; set; }
     public decimal? CalculatedBoundaryAcreage { get; set; }
     public decimal? DrainageAreaTreatedAcres { get; set; }
     public decimal? PercentCaptured { get; set; }
