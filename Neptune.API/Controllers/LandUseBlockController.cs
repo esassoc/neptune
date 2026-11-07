@@ -33,10 +33,11 @@ public class LandUseBlockController(
 {
     [HttpGet]
     [AllowAnonymous]
-    public ActionResult<List<LandUseBlockGridDto>> List()
+    public async Task<ActionResult<List<LandUseBlockGridDto>>> List()
     {
-        var landUseBlockGridDtos = LandUseBlocks.List(dbContext);
-        return landUseBlockGridDtos;
+        // NPT-1135 rework: Admin/SitkaAdmin see every block; everyone else only their assigned jurisdictions'.
+        var landUseBlockGridDtos = await LandUseBlocks.ListForPersonAsync(DbContext, CallingUser);
+        return Ok(landUseBlockGridDtos);
     }
 
     [HttpPut]

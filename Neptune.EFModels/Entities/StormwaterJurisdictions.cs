@@ -11,6 +11,12 @@ public static class StormwaterJurisdictions
         return GetImpl(dbContext).AsNoTracking().OrderBy(ht => ht.Organization.OrganizationName).ToList();
     }
 
+    public static async Task<Dictionary<int, string>> GetDisplayNamesByIDAsync(NeptuneDbContext dbContext)
+    {
+        var stormwaterJurisdictions = await dbContext.StormwaterJurisdictions.AsNoTracking().Include(x => x.Organization).ToListAsync();
+        return stormwaterJurisdictions.ToDictionary(x => x.StormwaterJurisdictionID, x => x.GetOrganizationDisplayName());
+    }
+
     public static async Task<List<StormwaterJurisdictionDisplayDto>> ListByIDsAsDisplayDtoAsync(NeptuneDbContext dbContext, List<int> stormwaterJurisdictionIDs)
     {
         var entities = await dbContext.StormwaterJurisdictions
