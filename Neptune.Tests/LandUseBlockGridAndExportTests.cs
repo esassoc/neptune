@@ -98,6 +98,27 @@ namespace Neptune.Tests
         }
 
         [TestMethod]
+        public async Task Grid_DowngradedToUnassigned_SeesNothingDespiteRetainedAssignments()
+        {
+            // People.UpdateRoleAsync changes the role but keeps the StormwaterJurisdictionPerson rows. Simulate a JE/JM
+            // downgraded to Unassigned by reusing their PersonID (their rows stay) with the Unassigned role.
+            using var db = GetDbContext();
+            var personID = db.People.AsNoTracking()
+                .Where(p => (p.RoleID == (int)RoleEnum.JurisdictionEditor || p.RoleID == (int)RoleEnum.JurisdictionManager)
+                            && p.StormwaterJurisdictionPeople.Any(sjp => db.LandUseBlocks.Any(l => l.StormwaterJurisdictionID == sjp.StormwaterJurisdictionID)))
+                .Select(p => (int?)p.PersonID).FirstOrDefault();
+            if (personID == null) { Assert.Inconclusive("No JE/JM assigned to a jurisdiction with Land Use Blocks in the local DB."); return; }
+            var downgraded = await People.GetByIDAsDtoAsync(db, personID.Value);
+            downgraded.RoleID = (int)RoleEnum.Unassigned;
+            var retainedJurisdictionID = db.StormwaterJurisdictionPeople.AsNoTracking().Where(x => x.PersonID == personID).Select(x => x.StormwaterJurisdictionID).First();
+
+            Assert.AreEqual(0, (await LandUseBlocks.ListForPersonAsync(db, downgraded)).Count, "An Unassigned user must get an empty grid even with leftover assignments.");
+            Assert.AreEqual(0, (await StormwaterJurisdictionPeople.ListAssignedStormwaterJurisdictionIDsAsync(db, downgraded)).Count);
+            Assert.IsFalse(await StormwaterJurisdictionPeople.IsPersonAssignedToJurisdictionAsync(db, downgraded, retainedJurisdictionID),
+                "An Unassigned user must not pass the upload/download jurisdiction check through a leftover assignment.");
+        }
+
+        [TestMethod]
         public async Task Grid_ValuesMatchTheInMemoryCalculation()
         {
             // The grid now computes areas with SQL STArea; it must agree with the old NTS calculation well past the

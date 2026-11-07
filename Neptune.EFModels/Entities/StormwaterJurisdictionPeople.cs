@@ -77,14 +77,26 @@ public static class StormwaterJurisdictionPeople
         return person.RoleID is (int)RoleEnum.Admin or (int)RoleEnum.SitkaAdmin;
     }
 
+    // A role change (People.UpdateRoleAsync) keeps the person's StormwaterJurisdictionPerson rows, so a JE/JM downgraded
+    // to Unassigned can still have them. Unassigned (and anonymous) never count as assigned, whatever rows are left over.
+    private static bool CanHoldJurisdictionAssignments(PersonDto person)
+    {
+        return person.RoleID != (int)RoleEnum.Unassigned;
+    }
+
     /// <summary>
     /// The jurisdictions the person is assigned to, by <see cref="StormwaterJurisdictionPerson"/> rows only — no role
-    /// fallbacks, so an Unassigned or anonymous person gets none. Check <see cref="IsAdministrator"/> first when Admins
-    /// should see everything.
+    /// fallbacks, so an Unassigned or anonymous person gets none, even with leftover rows. Check
+    /// <see cref="IsAdministrator"/> first when Admins should see everything.
     /// </summary>
-    public static Task<List<int>> ListAssignedStormwaterJurisdictionIDsAsync(NeptuneDbContext dbContext, PersonDto person)
+    public static async Task<List<int>> ListAssignedStormwaterJurisdictionIDsAsync(NeptuneDbContext dbContext, PersonDto person)
     {
-        return dbContext.StormwaterJurisdictionPeople.AsNoTracking()
+        if (!CanHoldJurisdictionAssignments(person))
+        {
+            return new List<int>();
+        }
+
+        return await dbContext.StormwaterJurisdictionPeople.AsNoTracking()
             .Where(x => x.PersonID == person.PersonID)
             .Select(x => x.StormwaterJurisdictionID)
             .ToListAsync();
@@ -100,6 +112,11 @@ public static class StormwaterJurisdictionPeople
         if (IsAdministrator(person))
         {
             return await dbContext.StormwaterJurisdictions.AnyAsync(x => x.StormwaterJurisdictionID == stormwaterJurisdictionID);
+        }
+
+        if (!CanHoldJurisdictionAssignments(person))
+        {
+            return false;
         }
 
         return await dbContext.StormwaterJurisdictionPeople
