@@ -40,11 +40,13 @@ public class LandUseBlockController(
         return Ok(landUseBlockGridDtos);
     }
 
-    [HttpPut]
-    [AdminFeature]
-    public async Task<IActionResult> Update(int landUseBlockID, LandUseBlockUpsertDto landUseBlockUpsertDto)
+    // NPT-1145: the id must be a route value — LandUseBlockEditFeature reads it from RouteData, and
+    // skips the jurisdiction check if it isn't there.
+    [HttpPut("{landUseBlockID}")]
+    [LandUseBlockEditFeature]
+    public async Task<IActionResult> Update([FromRoute] int landUseBlockID, [FromBody] LandUseBlockUpsertDto landUseBlockUpsertDto)
     {
-        var landUseBlock = LandUseBlocks.GetByIDWithChangeTracking(dbContext, landUseBlockID);
+        var landUseBlock = LandUseBlocks.GetByIDWithChangeTracking(DbContext, landUseBlockID);
         await LandUseBlocks.Update(DbContext, landUseBlock, landUseBlockUpsertDto, CallingUser.PersonID);
         return Ok();
     }

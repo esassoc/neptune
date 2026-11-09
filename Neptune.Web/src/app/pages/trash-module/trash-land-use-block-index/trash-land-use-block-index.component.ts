@@ -1,7 +1,7 @@
 import { Component } from "@angular/core";
 import { PageHeaderComponent } from "../../../shared/components/page-header/page-header.component";
 import { AlertDisplayComponent } from "../../../shared/components/alert-display/alert-display.component";
-import { Observable, tap } from "rxjs";
+import { forkJoin, map, Observable, tap } from "rxjs";
 import { LandUseBlockService } from "../../../shared/generated/api/land-use-block.service";
 import { UtilityFunctionsService } from "../../../services/utility-functions.service";
 import { ColDef, RowNode } from "ag-grid-community";
@@ -79,12 +79,36 @@ export class TrashLandUseBlockIndexComponent {
     ) {}
 
     ngOnInit() {
-        this.landUseBlockColumnDefs = [
-            this.utilityFunctionsService.createActionsColumnDef((params: any) => {
-                return [
-                    { ActionName: "Update Attributes", ActionIcon: "fas fa-info-circle", ActionHandler: () => this.updateAttributesModal(params.data.LandUseBlockID, params.node) },
-                ];
+        // NPT-1145: the column defs depend on the user's role, so build them once the user has loaded (on a hard
+        // refresh, currentUser can still be null here).
+        this.landUseBlocks$ = forkJoin([this.authenticationService.getCurrentUser(), this.landUseBlockService.listLandUseBlock()]).pipe(
+            tap(() => {
+                this.landUseBlockColumnDefs = this.buildColumnDefs(this.authenticationService.doesCurrentUserHaveJurisdictionEditPermission());
+                this.isLoading = false;
             }),
+            map(([, landUseBlocks]) => landUseBlocks)
+        );
+        this.boundingBox$ = this.stormwaterJurisdictionService.getBoundingBoxStormwaterJurisdiction();
+    }
+
+    // NPT-1145: only roles that can edit get the actions column. The grid is already scoped to the user's
+    // jurisdictions, and the API rejects saves outside them, so no per-row check is needed.
+    private buildColumnDefs(canEdit: boolean): ColDef[] {
+        const actionsColumnDefs: ColDef[] = canEdit
+            ? [
+                  this.utilityFunctionsService.createActionsColumnDef((params: any) => {
+                      return [
+                          {
+                              ActionName: "Update Attributes",
+                              ActionIcon: "fas fa-info-circle",
+                              ActionHandler: () => this.updateAttributesModal(params.data.LandUseBlockID, params.node),
+                          },
+                      ];
+                  }),
+              ]
+            : [];
+        return [
+            ...actionsColumnDefs,
             this.utilityFunctionsService.createBasicColumnDef("Block ID", "LandUseBlockID"),
             this.utilityFunctionsService.createBasicColumnDef("Land Use Type", "PriorityLandUseTypeName", {
                 CustomDropdownFilterField: "PriorityLandUseTypeName",
@@ -105,8 +129,6 @@ export class TrashLandUseBlockIndexComponent {
             this.utilityFunctionsService.createBasicColumnDef("Permit Type", "PermitTypeName"),
             this.utilityFunctionsService.createBasicColumnDef("Land Use for TGR", "LandUseForTGR"),
         ];
-        this.landUseBlocks$ = this.landUseBlockService.listLandUseBlock().pipe(tap((x) => (this.isLoading = false)));
-        this.boundingBox$ = this.stormwaterJurisdictionService.getBoundingBoxStormwaterJurisdiction();
     }
 
     public currentUserHasJurisdictionEditPermission(): boolean {

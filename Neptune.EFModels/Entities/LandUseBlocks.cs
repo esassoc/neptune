@@ -40,6 +40,17 @@ public static class LandUseBlocks
         };
     }
 
+    // NPT-1145: projection-only lookup for LandUseBlockEditFeature. Returns the block's
+    // StormwaterJurisdictionID, or null when the block doesn't exist.
+    public static int? GetStormwaterJurisdictionIDForFeatureContextCheck(NeptuneDbContext dbContext, int landUseBlockID)
+    {
+        return dbContext.LandUseBlocks
+            .AsNoTracking()
+            .Where(x => x.LandUseBlockID == landUseBlockID)
+            .Select(x => (int?)x.StormwaterJurisdictionID)
+            .SingleOrDefault();
+    }
+
     public static LandUseBlock GetByIDWithChangeTracking(NeptuneDbContext dbContext, int landUseBlockID)
     {
         var landUseBlock = dbContext.LandUseBlocks
