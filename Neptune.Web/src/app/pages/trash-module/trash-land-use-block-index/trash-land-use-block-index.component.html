@@ -24,12 +24,15 @@
         @if (mapIsReady) {
         <div mapLayers>
             @if (mapIsReady) {
+            <land-use-block-layer [displayOnLoad]="true" [map]="map" [layerControl]="layerControl" [sortOrder]="5"></land-use-block-layer>
+            } @if (mapIsReady) {
             <selected-land-use-block-layer
                 [displayOnLoad]="true"
                 [map]="map"
                 [layerControl]="layerControl"
                 [sortOrder]="10"
                 [selectedLandUseBlockIDs]="selectedLandUseBlockIDs"
+                [selectedOnly]="true"
                 [zoomToSelectionOnChange]="true"
                 (layerBoundsCalculated)="handleLayerBoundsCalculated($event)"
                 (landUseBlockClicked)="onSelectedLandUseBlockChanged($event)"></selected-land-use-block-layer>
