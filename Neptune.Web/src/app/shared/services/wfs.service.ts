@@ -99,6 +99,23 @@ export class WfsService {
         });
     }
 
+    /** NPT-1145: IDs only (no geometry) — the LUB index page selects the clicked block from this. */
+    public getLandUseBlockIDsByCoordinate(longitude: number, latitude: number): Observable<FeatureCollection> {
+        const url: string = `${environment.geoserverMapServiceUrl}/wms`;
+        return this.http.get<FeatureCollection>(url, {
+            params: {
+                service: "WFS",
+                version: "2.0",
+                request: "GetFeature",
+                outputFormat: "application/json",
+                SrsName: "EPSG:4326",
+                typeName: "LandUseBlocks",
+                propertyName: "LandUseBlockID",
+                cql_filter: `intersects(LandUseBlockGeometry, POINT(${latitude} ${longitude}))`,
+            },
+        });
+    }
+
     public getOVTAAreaByCoordinate(longitude: number, latitude: number): Observable<FeatureCollection> {
         const url: string = `${environment.geoserverMapServiceUrl}/wms`;
         return this.http.get<FeatureCollection>(url, {
