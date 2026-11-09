@@ -1,7 +1,7 @@
 import { Component } from "@angular/core";
 import { PageHeaderComponent } from "../../../shared/components/page-header/page-header.component";
 import { AlertDisplayComponent } from "../../../shared/components/alert-display/alert-display.component";
-import { forkJoin, map, Observable, tap } from "rxjs";
+import { first, forkJoin, map, Observable, tap } from "rxjs";
 import { LandUseBlockService } from "../../../shared/generated/api/land-use-block.service";
 import { UtilityFunctionsService } from "../../../services/utility-functions.service";
 import { ColDef, RowNode } from "ag-grid-community";
@@ -82,8 +82,10 @@ export class TrashLandUseBlockIndexComponent {
 
     ngOnInit() {
         // NPT-1145: the column defs depend on the user's role, so build them once the user has loaded (on a hard
-        // refresh, currentUser can still be null here).
-        this.landUseBlocks$ = forkJoin([this.authenticationService.getCurrentUser(), this.landUseBlockService.listLandUseBlock()]).pipe(
+        // refresh, currentUser can still be null here). Skip the null the subject can replay before the
+        // user-claims call returns; the route's auth guard means a real user always follows.
+        const currentUser$ = this.authenticationService.currentUserSetObservable.pipe(first((user) => !!user));
+        this.landUseBlocks$ = forkJoin([currentUser$, this.landUseBlockService.listLandUseBlock()]).pipe(
             tap(() => {
                 this.landUseBlockColumnDefs = this.buildColumnDefs(this.authenticationService.doesCurrentUserHaveJurisdictionEditPermission());
                 this.isLoading = false;

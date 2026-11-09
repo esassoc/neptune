@@ -50,6 +50,9 @@ export class SelectedLandUseBlockLayerComponent extends MapLayerBase implements 
 
     /** Bumped per fetch so a slow response for an earlier selection can't overwrite a newer one. */
     private fetchSequence: number = 0;
+    /** Same for map-click point queries: only the latest click counts, and a selection made elsewhere (the grid)
+     * cancels any click still in flight. */
+    private clickSequence: number = 0;
 
     private styleDictionary = {
         [PriorityLandUseTypeEnum.Commercial]: {
@@ -123,6 +126,9 @@ export class SelectedLandUseBlockLayerComponent extends MapLayerBase implements 
             // Only the selection is on the map, so a new selection means a new fetch. Don't zoom when the
             // user picked the block on the map — they're already looking at it.
             const zoomAfterLoad = this.zoomToSelectionOnChange && !this.clickedWithinLayer;
+            if (!this.clickedWithinLayer) {
+                this.clickSequence++;
+            }
             this.clickedWithinLayer = false;
             this.updateLayer(zoomAfterLoad);
             return;
@@ -170,7 +176,9 @@ export class SelectedLandUseBlockLayerComponent extends MapLayerBase implements 
     /** NPT-1145 (selectedOnly): the unselected blocks are WMS tiles, so find the clicked block with a point query. */
     private onMapClick = (event: L.LeafletMouseEvent) => {
         if (!this.map.hasLayer(this.layer)) return;
+        const clickSequence = ++this.clickSequence;
         this.wfsService.getLandUseBlockIDsByCoordinate(event.latlng.lng, event.latlng.lat).subscribe((response) => {
+            if (clickSequence !== this.clickSequence) return;
             const landUseBlockID = response.features[0]?.properties?.LandUseBlockID;
             if (landUseBlockID) {
                 this.onLandUseBlockClicked(landUseBlockID);
@@ -203,6 +211,8 @@ export class SelectedLandUseBlockLayerComponent extends MapLayerBase implements 
         // jurisdictions (Tustin ~3k, Irvine ~61k) don't lock up the browser drawing every polygon.
         // selectedOnly fetches just the selected block(s), and nothing when there's no selection.
         let cql_filter = this.stormwaterJurisdictionID ? `StormwaterJurisdictionID = ${this.stormwaterJurisdictionID}` : ``;
+        // Taken before the no-selection return so clearing the selection also invalidates a pending fetch.
+        const fetchSequence = ++this.fetchSequence;
         if (this.selectedOnly) {
             if (!this.selectedLandUseBlockIDs.length) {
                 this.featureGroups = {};
@@ -213,7 +223,6 @@ export class SelectedLandUseBlockLayerComponent extends MapLayerBase implements 
 
         const request$ = this.wfsService.getGeoserverWFSLayerWithCQLFilter("OCStormwater:LandUseBlocks", cql_filter, "LandUseBlockID");
         const tracked$ = this.trackLayerRequest$(request$);
-        const fetchSequence = ++this.fetchSequence;
 
         this.isLoading = true;
         tracked$.pipe(finalize(() => (this.isLoading = false))).subscribe((response) => {
