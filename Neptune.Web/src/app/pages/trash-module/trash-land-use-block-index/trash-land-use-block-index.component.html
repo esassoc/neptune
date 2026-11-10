@@ -11,13 +11,14 @@
 <app-alert-display></app-alert-display>
 
 <div class="page-body" [loadingSpinner]="{ isLoading, loadingHeight: 100 }">
-    @if (landUseBlocks$ | async; as landUseBlocks) { @if (boundingBox$ | async; as boundingBox) {
+    @if (landUseBlocks$ | async; as landUseBlocks) { @if (mapScope$ | async; as mapScope) {
     <hybrid-map-grid
         [rowData]="landUseBlocks"
         [columnDefs]="landUseBlockColumnDefs"
         downloadFileName="land-use-blocks"
         entityIDField="LandUseBlockID"
-        (onMapLoad)="handleMapReady($event)"
+        [boundingBox]="mapScope.boundingBox"
+        (onMapLoad)="handleMapReady($event, mapScope.boundingBox)"
         [selectedValue]="landUseBlockID"
         [selectionFromMap]="selectionFromMap"
         (selectedValueChange)="onSelectedLandUseBlockChangedFromGrid($event)">
@@ -30,11 +31,12 @@
                 [layerControl]="layerControl"
                 [sortOrder]="10"
                 [selectedLandUseBlockIDs]="selectedLandUseBlockIDs"
+                [stormwaterJurisdictionIDs]="mapScope.jurisdictionIDs"
                 [zoomToSelectionOnChange]="true"
                 (layerBoundsCalculated)="handleLayerBoundsCalculated($event)"
                 (landUseBlockClicked)="onSelectedLandUseBlockChanged($event)"></selected-land-use-block-layer>
             } @if (mapIsReady) {
-            <jurisdictions-layer [mode]="OverlayMode.ReferenceWithInteractivity" [map]="map" [layerControl]="layerControl" [sortOrder]="10"></jurisdictions-layer>
+            <jurisdictions-layer [mode]="OverlayMode.ReferenceWithInteractivity" [filterToIDs]="mapScope.jurisdictionIDs" [map]="map" [layerControl]="layerControl" [sortOrder]="10"></jurisdictions-layer>
             } @if (mapIsReady) {
             <wqmps-layer [displayOnLoad]="false" [map]="map" [layerControl]="layerControl" [sortOrder]="20"></wqmps-layer>
             } @if (mapIsReady) {

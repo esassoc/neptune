@@ -18,6 +18,9 @@ export class SelectedLandUseBlockLayerComponent extends MapLayerBase implements 
     @Input() selectedLandUseBlockIDs: number[] = [];
     /** When set, restricts the WFS fetch to a single jurisdiction. Omit to render all blocks. */
     @Input() stormwaterJurisdictionID?: number;
+    /** NPT-1135: restricts the WFS fetch to several jurisdictions (e.g. a non-admin's assigned ones on the
+     * LUB index page). An empty array renders nothing; omit (undefined) to fall back to stormwaterJurisdictionID. */
+    @Input() stormwaterJurisdictionIDs?: number[];
     /** Single-select callers (e.g. the LUB index page) want the map to fit-bounds on each
      * external selection change. Multi-select callers (Select Assessment Area) opt out. */
     @Input() zoomToSelectionOnChange: boolean = false;
@@ -103,8 +106,11 @@ export class SelectedLandUseBlockLayerComponent extends MapLayerBase implements 
     }
 
     ngOnChanges(changes: any): void {
-        if (changes.stormwaterJurisdictionID && !changes.stormwaterJurisdictionID.firstChange) {
-            // Jurisdiction changed mid-flight — re-fetch the feature set.
+        if (
+            (changes.stormwaterJurisdictionID && !changes.stormwaterJurisdictionID.firstChange) ||
+            (changes.stormwaterJurisdictionIDs && !changes.stormwaterJurisdictionIDs.firstChange)
+        ) {
+            // Jurisdiction(s) changed mid-flight — re-fetch the feature set.
             this.updateLayer();
             return;
         }
@@ -165,7 +171,19 @@ export class SelectedLandUseBlockLayerComponent extends MapLayerBase implements 
         // returned nothing here, and rendering, not fetching, was the bottleneck). When
         // restrictToViewport is set we cache everything and only render what's in view, so dense
         // jurisdictions (Tustin ~3k, Irvine ~61k) don't lock up the browser drawing every polygon.
-        const cql_filter = this.stormwaterJurisdictionID ? `StormwaterJurisdictionID = ${this.stormwaterJurisdictionID}` : ``;
+        if (this.stormwaterJurisdictionIDs && this.stormwaterJurisdictionIDs.length === 0) {
+            // Scoped to no jurisdictions: nothing to draw, so skip the request.
+            this.featureGroups = {};
+            this.featureGroupBounds = {};
+            return;
+        }
+
+        let cql_filter = ``;
+        if (this.stormwaterJurisdictionIDs?.length) {
+            cql_filter = `StormwaterJurisdictionID IN (${this.stormwaterJurisdictionIDs.join(",")})`;
+        } else if (this.stormwaterJurisdictionID) {
+            cql_filter = `StormwaterJurisdictionID = ${this.stormwaterJurisdictionID}`;
+        }
 
         const request$ = this.wfsService.getGeoserverWFSLayerWithCQLFilter("OCStormwater:LandUseBlocks", cql_filter, "LandUseBlockID");
         const tracked$ = this.trackLayerRequest$(request$);

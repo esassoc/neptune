@@ -1,7 +1,7 @@
 import { Component } from "@angular/core";
 import { PageHeaderComponent } from "../../../shared/components/page-header/page-header.component";
 import { AlertDisplayComponent } from "../../../shared/components/alert-display/alert-display.component";
-import { Observable, tap } from "rxjs";
+import { Observable, map, of, shareReplay, switchMap, tap } from "rxjs";
 import { LandUseBlockService } from "../../../shared/generated/api/land-use-block.service";
 import { UtilityFunctionsService } from "../../../services/utility-functions.service";
 import { ColDef, RowNode } from "ag-grid-community";
@@ -65,7 +65,10 @@ export class TrashLandUseBlockIndexComponent {
     public layerControl: Control.Layers;
     public bounds: any;
     public mapIsReady: boolean = false;
-    public boundingBox$: Observable<BoundingBoxDto>;
+    /** NPT-1135: what the map shows, matching the grid's server-side scope. jurisdictionIDs is undefined for
+     * Admin/SitkaAdmin (no filter), [] for Unassigned (nothing), else the caller's jurisdictions. boundingBox is
+     * what the map opens on; null falls back to the default county view. */
+    public mapScope$: Observable<{ jurisdictionIDs: number[] | undefined; boundingBox: BoundingBoxDto | null }>;
 
     public priorityLandUseTypes = PriorityLandUseTypeEnum;
     public permitTypes = PermitTypeEnum;
@@ -106,17 +109,46 @@ export class TrashLandUseBlockIndexComponent {
             this.utilityFunctionsService.createBasicColumnDef("Land Use for TGR", "LandUseForTGR"),
         ];
         this.landUseBlocks$ = this.landUseBlockService.listLandUseBlock().pipe(tap((x) => (this.isLoading = false)));
-        this.boundingBox$ = this.stormwaterJurisdictionService.getBoundingBoxStormwaterJurisdiction();
+        this.mapScope$ = this.authenticationService.getCurrentUser().pipe(
+            switchMap((user) => {
+                if (!user || this.authenticationService.isUserUnassigned(user)) {
+                    return of({ jurisdictionIDs: [] as number[], boundingBox: null });
+                }
+                const boundingBox$ = this.stormwaterJurisdictionService.getBoundingBoxStormwaterJurisdiction();
+                if (this.authenticationService.isUserAnAdministrator(user)) {
+                    return boundingBox$.pipe(map((boundingBox) => ({ jurisdictionIDs: undefined, boundingBox })));
+                }
+                // Same list the bounding-box endpoint uses, so the filter and the zoom agree. Not derived from the
+                // grid rows: an assigned jurisdiction with no blocks would drop out of those.
+                return this.stormwaterJurisdictionService.listViewableStormwaterJurisdiction().pipe(
+                    switchMap((jurisdictions) =>
+                        boundingBox$.pipe(
+                            map((boundingBox) => ({
+                                jurisdictionIDs: jurisdictions.map((x) => x.StormwaterJurisdictionID),
+                                boundingBox,
+                            }))
+                        )
+                    )
+                );
+            }),
+            shareReplay(1)
+        );
     }
 
     public currentUserHasJurisdictionEditPermission(): boolean {
         return this.authenticationService.doesCurrentUserHaveJurisdictionEditPermission();
     }
 
-    public handleMapReady(event: NeptuneMapInitEvent) {
+    public handleMapReady(event: NeptuneMapInitEvent, boundingBox: BoundingBoxDto | null) {
         this.map = event.map;
         this.layerControl = event.layerControl;
         this.mapIsReady = true;
+        if (boundingBox && this.map) {
+            this.map.fitBounds([
+                [boundingBox.Bottom, boundingBox.Left],
+                [boundingBox.Top, boundingBox.Right],
+            ]);
+        }
     }
 
     public onSelectedLandUseBlockChangedFromGrid(selectedLandUseBlockID) {
