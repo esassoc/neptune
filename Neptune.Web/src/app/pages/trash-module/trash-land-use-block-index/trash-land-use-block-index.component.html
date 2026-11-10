@@ -28,6 +28,7 @@
                  filter as "show all", so skip them rather than pass []. undefined (Admin) means no filter. -->
             @if (mapIsReady && mapScope.jurisdictionIDs?.length !== 0) {
             <land-use-block-layer
+                #landUseBlockLayer
                 [displayOnLoad]="true"
                 [map]="map"
                 [layerControl]="layerControl"
@@ -41,6 +42,7 @@
                 [selectedLandUseBlockIDs]="selectedLandUseBlockIDs"
                 [selectedOnly]="true"
                 [clickableJurisdictionIDs]="mapScope.jurisdictionIDs"
+                [visibleWithLayer]="landUseBlockLayer"
                 [zoomToSelectionOnChange]="true"
                 (layerBoundsCalculated)="handleLayerBoundsCalculated($event)"
                 (landUseBlockClicked)="onSelectedLandUseBlockChanged($event)"></selected-land-use-block-layer>
