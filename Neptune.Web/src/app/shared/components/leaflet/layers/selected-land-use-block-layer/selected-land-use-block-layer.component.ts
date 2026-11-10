@@ -34,6 +34,11 @@ export class SelectedLandUseBlockLayerComponent extends MapLayerBase implements 
     /** NPT-1135 (selectedOnly): limits map-click selection to these jurisdictions, so a click outside the
      * caller's scope doesn't select a block their grid doesn't have. Omit for no limit. */
     @Input() clickableJurisdictionIDs?: number[];
+    /** NPT-1135: keep this layer out of the layer control and show/hide it with this layer's checkbox instead.
+     * For selectedOnly pages that pair it with <land-use-block-layer>, where a second "Land Use Blocks" toggle
+     * would control only the highlight. Takes the component, not its L.Layer, so its layer is read when needed
+     * rather than bound before it exists. */
+    @Input() visibleWithLayer?: MapLayerBase;
 
     @Output() layerBoundsCalculated = new EventEmitter();
     @Output() landUseBlockClicked = new EventEmitter<number>();
@@ -164,6 +169,9 @@ export class SelectedLandUseBlockLayerComponent extends MapLayerBase implements 
         if (this.selectedOnly) {
             this.map.on("click", this.onMapClick);
         }
+        if (this.visibleWithLayer) {
+            this.map.on("overlayadd overlayremove", this.onOverlayToggle);
+        }
     }
 
     override ngOnDestroy(): void {
@@ -173,7 +181,26 @@ export class SelectedLandUseBlockLayerComponent extends MapLayerBase implements 
         if (this.selectedOnly && this.map) {
             this.map.off("click", this.onMapClick);
         }
+        if (this.visibleWithLayer && this.map) {
+            this.map.off("overlayadd overlayremove", this.onOverlayToggle);
+        }
         super.ngOnDestroy();
+    }
+
+    /** NPT-1135 (visibleWithLayer): follow the linked layer's checkbox. Off also stops map-click selection, since
+     * onMapClick only runs while this layer is on the map. */
+    private onOverlayToggle = (event: L.LayersControlEvent) => {
+        if (event.layer !== this.visibleWithLayer?.layer) return;
+        if (event.type === "overlayadd") {
+            this.layer.addTo(this.map);
+        } else {
+            this.clickSequence++;
+            this.map.removeLayer(this.layer);
+        }
+    };
+
+    private shouldBeOnMap(): boolean {
+        return !this.visibleWithLayer || this.map.hasLayer(this.visibleWithLayer.layer);
     }
 
     /** NPT-1145 (selectedOnly): the unselected blocks are WMS tiles, so find the clicked block with a point query. */
@@ -204,7 +231,9 @@ export class SelectedLandUseBlockLayerComponent extends MapLayerBase implements 
         this.featureGroups = null;
         this.featureGroupBounds = {};
         this.addLandUseBlocksToLayer(zoomAfterLoad);
-        this.layer.addTo(this.map);
+        if (this.shouldBeOnMap()) {
+            this.layer.addTo(this.map);
+        }
     }
 
     private addLandUseBlocksToLayer(zoomAfterLoad: boolean) {
@@ -359,6 +388,13 @@ export class SelectedLandUseBlockLayerComponent extends MapLayerBase implements 
 
     private setupLayer() {
         this.layer = L.geoJSON();
+        if (this.visibleWithLayer) {
+            // Not in the layer control: the linked layer's checkbox shows and hides this one.
+            if (this.sortOrder) {
+                (this.layer as any).sortOrder = this.sortOrder;
+            }
+            return;
+        }
         this.initLayer();
     }
 }
