@@ -1,7 +1,7 @@
 import { Component } from "@angular/core";
 import { PageHeaderComponent } from "../../../shared/components/page-header/page-header.component";
 import { AlertDisplayComponent } from "../../../shared/components/alert-display/alert-display.component";
-import { first, forkJoin, map, Observable, tap } from "rxjs";
+import { first, forkJoin, map, Observable, of, shareReplay, switchMap, tap } from "rxjs";
 import { LandUseBlockService } from "../../../shared/generated/api/land-use-block.service";
 import { UtilityFunctionsService } from "../../../services/utility-functions.service";
 import { ColDef, RowNode } from "ag-grid-community";
@@ -67,7 +67,10 @@ export class TrashLandUseBlockIndexComponent {
     public layerControl: Control.Layers;
     public bounds: any;
     public mapIsReady: boolean = false;
-    public boundingBox$: Observable<BoundingBoxDto>;
+    /** NPT-1135: what the map shows, matching the grid's server-side scope. jurisdictionIDs is undefined for
+     * Admin/SitkaAdmin (no filter), [] for Unassigned (nothing), else the caller's jurisdictions. boundingBox is
+     * what the map opens on; null falls back to the default county view. */
+    public mapScope$: Observable<{ jurisdictionIDs: number[] | undefined; boundingBox: BoundingBoxDto | null }>;
 
     public priorityLandUseTypes = PriorityLandUseTypeEnum;
     public permitTypes = PermitTypeEnum;
@@ -92,7 +95,27 @@ export class TrashLandUseBlockIndexComponent {
             }),
             map(([, landUseBlocks]) => landUseBlocks)
         );
-        this.boundingBox$ = this.stormwaterJurisdictionService.getBoundingBoxStormwaterJurisdiction();
+        // NPT-1135: built from the same non-null user, so a replayed null can't lock in an empty scope.
+        this.mapScope$ = currentUser$.pipe(
+            switchMap((user) => {
+                if (this.authenticationService.isUserUnassigned(user)) {
+                    return of({ jurisdictionIDs: [] as number[], boundingBox: null });
+                }
+                const boundingBox$ = this.stormwaterJurisdictionService.getBoundingBoxStormwaterJurisdiction();
+                if (this.authenticationService.isUserAnAdministrator(user)) {
+                    return boundingBox$.pipe(map((boundingBox) => ({ jurisdictionIDs: undefined, boundingBox })));
+                }
+                // Same list the bounding-box endpoint uses, so the filter and the zoom agree. Not derived from the
+                // grid rows: an assigned jurisdiction with no blocks would drop out of those.
+                return forkJoin([this.stormwaterJurisdictionService.listViewableStormwaterJurisdiction(), boundingBox$]).pipe(
+                    map(([jurisdictions, boundingBox]) => ({
+                        jurisdictionIDs: jurisdictions.map((x) => x.StormwaterJurisdictionID),
+                        boundingBox,
+                    }))
+                );
+            }),
+            shareReplay(1)
+        );
     }
 
     // NPT-1145: only roles that can edit get the actions column. The grid is already scoped to the user's
@@ -129,7 +152,7 @@ export class TrashLandUseBlockIndexComponent {
             }),
             this.utilityFunctionsService.createDecimalColumnDef("Median Household Income Residential", "MedianHouseholdIncomeResidential"),
             this.utilityFunctionsService.createDecimalColumnDef("Median Household Income Retail", "MedianHouseholdIncomeRetail"),
-            this.utilityFunctionsService.createDecimalColumnDef("Trash Results Area", "MedianHouseholdIncomeRetail"),
+            this.utilityFunctionsService.createDecimalColumnDef("Trash Results Area", "TrashGeneratingArea"),
             this.utilityFunctionsService.createBasicColumnDef("Permit Type", "PermitTypeName"),
             this.utilityFunctionsService.createBasicColumnDef("Land Use for TGR", "LandUseForTGR"),
         ];
@@ -139,10 +162,16 @@ export class TrashLandUseBlockIndexComponent {
         return this.authenticationService.doesCurrentUserHaveJurisdictionEditPermission();
     }
 
-    public handleMapReady(event: NeptuneMapInitEvent) {
+    public handleMapReady(event: NeptuneMapInitEvent, boundingBox: BoundingBoxDto | null) {
         this.map = event.map;
         this.layerControl = event.layerControl;
         this.mapIsReady = true;
+        if (boundingBox && this.map) {
+            this.map.fitBounds([
+                [boundingBox.Bottom, boundingBox.Left],
+                [boundingBox.Top, boundingBox.Right],
+            ]);
+        }
     }
 
     public onSelectedLandUseBlockChangedFromGrid(selectedLandUseBlockID) {

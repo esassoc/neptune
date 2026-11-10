@@ -31,6 +31,9 @@ export class SelectedLandUseBlockLayerComponent extends MapLayerBase implements 
      * index), where the unfiltered fetch is ~130 MB of GeoJSON and runs the browser out of memory.
      * Pair it with the WMS <land-use-block-layer> to show the unselected blocks. */
     @Input() selectedOnly: boolean = false;
+    /** NPT-1135 (selectedOnly): limits map-click selection to these jurisdictions, so a click outside the
+     * caller's scope doesn't select a block their grid doesn't have. Omit for no limit. */
+    @Input() clickableJurisdictionIDs?: number[];
 
     @Output() layerBoundsCalculated = new EventEmitter();
     @Output() landUseBlockClicked = new EventEmitter<number>();
@@ -177,7 +180,7 @@ export class SelectedLandUseBlockLayerComponent extends MapLayerBase implements 
     private onMapClick = (event: L.LeafletMouseEvent) => {
         if (!this.map.hasLayer(this.layer)) return;
         const clickSequence = ++this.clickSequence;
-        this.wfsService.getLandUseBlockIDsByCoordinate(event.latlng.lng, event.latlng.lat).subscribe((response) => {
+        this.wfsService.getLandUseBlockIDsByCoordinate(event.latlng.lng, event.latlng.lat, this.clickableJurisdictionIDs).subscribe((response) => {
             if (clickSequence !== this.clickSequence) return;
             const landUseBlockID = response.features[0]?.properties?.LandUseBlockID;
             if (landUseBlockID) {

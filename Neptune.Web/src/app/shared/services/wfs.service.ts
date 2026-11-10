@@ -100,8 +100,13 @@ export class WfsService {
     }
 
     /** NPT-1145: IDs only (no geometry) — the LUB index page selects the clicked block from this. */
-    public getLandUseBlockIDsByCoordinate(longitude: number, latitude: number): Observable<FeatureCollection> {
+    /** NPT-1135: stormwaterJurisdictionIDs limits the match to those jurisdictions; omit for no limit. */
+    public getLandUseBlockIDsByCoordinate(longitude: number, latitude: number, stormwaterJurisdictionIDs?: number[]): Observable<FeatureCollection> {
         const url: string = `${environment.geoserverMapServiceUrl}/wms`;
+        let cql_filter = `intersects(LandUseBlockGeometry, POINT(${latitude} ${longitude}))`;
+        if (stormwaterJurisdictionIDs?.length) {
+            cql_filter += ` AND StormwaterJurisdictionID IN (${stormwaterJurisdictionIDs.join(",")})`;
+        }
         return this.http.get<FeatureCollection>(url, {
             params: {
                 service: "WFS",
@@ -111,7 +116,7 @@ export class WfsService {
                 SrsName: "EPSG:4326",
                 typeName: "LandUseBlocks",
                 propertyName: "LandUseBlockID",
-                cql_filter: `intersects(LandUseBlockGeometry, POINT(${latitude} ${longitude}))`,
+                cql_filter,
             },
         });
     }
