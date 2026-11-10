@@ -31,6 +31,10 @@ spec:
       {{- end }}
       labels:
         {{- include "geoserver.selectorLabels" . | nindent 8 }}
+        # Datadog unified service tagging. The agent reads these from the POD, not the Deployment's own
+        # labels above; without them prod logs can lack env:prod and alerts route to the QA channel.
+        tags.datadoghq.com/env: {{ .Values.global.env.name | quote }}
+        tags.datadoghq.com/service: {{ include "geoserver.fullname" . }}
     spec:
       volumes:
       - name: geoserver-data
