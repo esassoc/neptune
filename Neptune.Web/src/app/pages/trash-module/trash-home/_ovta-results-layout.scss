@@ -1,0 +1,13 @@
+@use "/src/scss/abstracts" as *;
+
+// NPT-1126 rework (Jira 54953): the OVTA-Based Results rows in trash-home and ovta-results-table share these
+// columns, so the dropdowns, notes and Track switch line up across the two components. One column on narrower screens.
+@mixin ovta-results-layout {
+    display: grid;
+    grid-template-columns: minmax(0, 45fr) minmax(0, 55fr);
+    gap: 1rem;
+
+    @include desktop-medium-max {
+        grid-template-columns: minmax(0, 1fr);
+    }
+}

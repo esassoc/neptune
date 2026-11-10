@@ -2418,7 +2418,9 @@
           }
         },
         "x-anonymous": true
-      },
+      }
+    },
+    "/land-use-blocks/{landUseBlockID}": {
       "put": {
         "tags": [
           "LandUseBlock"
@@ -2427,7 +2429,8 @@
         "parameters": [
           {
             "name": "landUseBlockID",
-            "in": "query",
+            "in": "path",
+            "required": true,
             "schema": {
               "type": "integer",
               "format": "int32"
@@ -17995,6 +17998,9 @@
             "nullable": true
           },
           "HasLandUseBlocks": {
+            "type": "boolean"
+          },
+          "HasOVTAAreas": {
             "type": "boolean"
           },
           "HasOVTAResults": {

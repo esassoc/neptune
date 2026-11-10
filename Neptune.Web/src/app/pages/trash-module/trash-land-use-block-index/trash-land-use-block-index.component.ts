@@ -1,7 +1,7 @@
 import { Component } from "@angular/core";
 import { PageHeaderComponent } from "../../../shared/components/page-header/page-header.component";
 import { AlertDisplayComponent } from "../../../shared/components/alert-display/alert-display.component";
-import { Observable, map, of, shareReplay, switchMap, tap } from "rxjs";
+import { first, forkJoin, map, Observable, of, shareReplay, switchMap, tap } from "rxjs";
 import { LandUseBlockService } from "../../../shared/generated/api/land-use-block.service";
 import { UtilityFunctionsService } from "../../../services/utility-functions.service";
 import { ColDef, RowNode } from "ag-grid-community";
@@ -18,6 +18,7 @@ import { Map, Control } from "leaflet";
 import { BoundingBoxDto } from "src/app/shared/generated/model/bounding-box-dto";
 import { StormwaterJurisdictionService } from "src/app/shared/generated/api/stormwater-jurisdiction.service";
 import { SelectedLandUseBlockLayerComponent } from "src/app/shared/components/leaflet/layers/selected-land-use-block-layer/selected-land-use-block-layer.component";
+import { LandUseBlockLayerComponent } from "src/app/shared/components/leaflet/layers/land-use-block-layer/land-use-block-layer.component";
 import { DelineationsLayerComponent } from "src/app/shared/components/leaflet/layers/delineations-layer/delineations-layer.component";
 import { JurisdictionsLayerComponent } from "src/app/shared/components/leaflet/layers/jurisdictions-layer/jurisdictions-layer.component";
 import { WqmpsLayerComponent } from "src/app/shared/components/leaflet/layers/wqmps-layer/wqmps-layer.component";
@@ -40,6 +41,7 @@ import { OverlayMode } from "src/app/shared/components/leaflet/layers/generic-wm
         IconComponent,
         HybridMapGridComponent,
         SelectedLandUseBlockLayerComponent,
+        LandUseBlockLayerComponent,
         JurisdictionsLayerComponent,
         WqmpsLayerComponent,
         DelineationsLayerComponent,
@@ -82,12 +84,58 @@ export class TrashLandUseBlockIndexComponent {
     ) {}
 
     ngOnInit() {
-        this.landUseBlockColumnDefs = [
-            this.utilityFunctionsService.createActionsColumnDef((params: any) => {
-                return [
-                    { ActionName: "Update Attributes", ActionIcon: "fas fa-info-circle", ActionHandler: () => this.updateAttributesModal(params.data.LandUseBlockID, params.node) },
-                ];
+        // NPT-1145: the column defs depend on the user's role, so build them once the user has loaded (on a hard
+        // refresh, currentUser can still be null here). Skip the null the subject can replay before the
+        // user-claims call returns; the route's auth guard means a real user always follows.
+        const currentUser$ = this.authenticationService.currentUserSetObservable.pipe(first((user) => !!user));
+        this.landUseBlocks$ = forkJoin([currentUser$, this.landUseBlockService.listLandUseBlock()]).pipe(
+            tap(() => {
+                this.landUseBlockColumnDefs = this.buildColumnDefs(this.authenticationService.doesCurrentUserHaveJurisdictionEditPermission());
+                this.isLoading = false;
             }),
+            map(([, landUseBlocks]) => landUseBlocks)
+        );
+        // NPT-1135: built from the same non-null user, so a replayed null can't lock in an empty scope.
+        this.mapScope$ = currentUser$.pipe(
+            switchMap((user) => {
+                if (this.authenticationService.isUserUnassigned(user)) {
+                    return of({ jurisdictionIDs: [] as number[], boundingBox: null });
+                }
+                const boundingBox$ = this.stormwaterJurisdictionService.getBoundingBoxStormwaterJurisdiction();
+                if (this.authenticationService.isUserAnAdministrator(user)) {
+                    return boundingBox$.pipe(map((boundingBox) => ({ jurisdictionIDs: undefined, boundingBox })));
+                }
+                // Same list the bounding-box endpoint uses, so the filter and the zoom agree. Not derived from the
+                // grid rows: an assigned jurisdiction with no blocks would drop out of those.
+                return forkJoin([this.stormwaterJurisdictionService.listViewableStormwaterJurisdiction(), boundingBox$]).pipe(
+                    map(([jurisdictions, boundingBox]) => ({
+                        jurisdictionIDs: jurisdictions.map((x) => x.StormwaterJurisdictionID),
+                        boundingBox,
+                    }))
+                );
+            }),
+            shareReplay(1)
+        );
+    }
+
+    // NPT-1145: only roles that can edit get the actions column. The grid is already scoped to the user's
+    // jurisdictions, and the API rejects saves outside them, so no per-row check is needed.
+    private buildColumnDefs(canEdit: boolean): ColDef[] {
+        const actionsColumnDefs: ColDef[] = canEdit
+            ? [
+                  this.utilityFunctionsService.createActionsColumnDef((params: any) => {
+                      return [
+                          {
+                              ActionName: "Update Attributes",
+                              ActionIcon: "fas fa-info-circle",
+                              ActionHandler: () => this.updateAttributesModal(params.data.LandUseBlockID, params.node),
+                          },
+                      ];
+                  }),
+              ]
+            : [];
+        return [
+            ...actionsColumnDefs,
             this.utilityFunctionsService.createBasicColumnDef("Block ID", "LandUseBlockID"),
             this.utilityFunctionsService.createBasicColumnDef("Land Use Type", "PriorityLandUseTypeName", {
                 CustomDropdownFilterField: "PriorityLandUseTypeName",
@@ -108,31 +156,6 @@ export class TrashLandUseBlockIndexComponent {
             this.utilityFunctionsService.createBasicColumnDef("Permit Type", "PermitTypeName"),
             this.utilityFunctionsService.createBasicColumnDef("Land Use for TGR", "LandUseForTGR"),
         ];
-        this.landUseBlocks$ = this.landUseBlockService.listLandUseBlock().pipe(tap((x) => (this.isLoading = false)));
-        this.mapScope$ = this.authenticationService.getCurrentUser().pipe(
-            switchMap((user) => {
-                if (!user || this.authenticationService.isUserUnassigned(user)) {
-                    return of({ jurisdictionIDs: [] as number[], boundingBox: null });
-                }
-                const boundingBox$ = this.stormwaterJurisdictionService.getBoundingBoxStormwaterJurisdiction();
-                if (this.authenticationService.isUserAnAdministrator(user)) {
-                    return boundingBox$.pipe(map((boundingBox) => ({ jurisdictionIDs: undefined, boundingBox })));
-                }
-                // Same list the bounding-box endpoint uses, so the filter and the zoom agree. Not derived from the
-                // grid rows: an assigned jurisdiction with no blocks would drop out of those.
-                return this.stormwaterJurisdictionService.listViewableStormwaterJurisdiction().pipe(
-                    switchMap((jurisdictions) =>
-                        boundingBox$.pipe(
-                            map((boundingBox) => ({
-                                jurisdictionIDs: jurisdictions.map((x) => x.StormwaterJurisdictionID),
-                                boundingBox,
-                            }))
-                        )
-                    )
-                );
-            }),
-            shareReplay(1)
-        );
     }
 
     public currentUserHasJurisdictionEditPermission(): boolean {

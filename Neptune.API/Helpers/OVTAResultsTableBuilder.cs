@@ -6,20 +6,24 @@ using Neptune.Models.DataTransferObjects;
 
 namespace Neptune.API.Helpers;
 
-// NPT-1126: builds the OVTA-Based Results table rows (one per land use type) from two inputs:
-// Phase I MS4 Land Use Block acres (the "Total Mapped Land Use" denominator) and Phase I MS4 TGU acres
-// attributed to an OVTA Area's scores and completed assessment count. Kept free of the DbContext so the
-// bucketing can be unit tested.
+// NPT-1126: builds the OVTA-Based Results table rows (one per land use type) from three inputs:
+// Phase I MS4 Land Use Block acres (the "Total Mapped Land Use" denominator), Phase I MS4 TGU acres
+// attributed to an OVTA Area's scores, and Land Use Block acres covered by OVTA Areas with at least 1, 2 and 3
+// completed assessments. Kept free of the DbContext so the bucketing can be unit tested.
 public static class OVTAResultsTableBuilder
 {
     public const string UnspecifiedLandUseTypeName = "Unspecified";
 
     public record LandUseAcres(int? PriorityLandUseTypeID, string LandUseForTGR, double Acres);
 
-    public record TrashGeneratingUnitAcres(int? PriorityLandUseTypeID, string LandUseForTGR, int? BaselineScoreID, int? ProgressScoreID,
-        int CompletedAssessmentCount, double Acres);
+    public record TrashGeneratingUnitAcres(int? PriorityLandUseTypeID, string LandUseForTGR, int? BaselineScoreID, int? ProgressScoreID, double Acres);
 
-    public static List<OVTAResultsLandUseRowDto> BuildRows(IEnumerable<LandUseAcres> landUseAcres, IEnumerable<TrashGeneratingUnitAcres> trashGeneratingUnitAcres)
+    // From vLandUseBlockOVTAAssessmentCoverage, not TGUs: the overlay only links a TGU to an OVTA Area with 2 or
+    // more assessments, so land assessed once would be missing. Each tier includes the ones above it.
+    public record LandUseAssessmentAcres(int? PriorityLandUseTypeID, string LandUseForTGR, double OnceOrMoreAcres, double TwiceOrMoreAcres, double ThreeOrMoreAcres);
+
+    public static List<OVTAResultsLandUseRowDto> BuildRows(IEnumerable<LandUseAcres> landUseAcres, IEnumerable<TrashGeneratingUnitAcres> trashGeneratingUnitAcres,
+        IEnumerable<LandUseAssessmentAcres> landUseAssessmentAcres)
     {
         // Case-insensitive like the database collation: the land use totals are grouped in SQL, which merges
         // "Residential" and "RESIDENTIAL", so the TGU rows must land in the same row. The first spelling seen is displayed.
@@ -47,26 +51,20 @@ public static class OVTAResultsTableBuilder
             var row = GetOrAddRow(tgu.PriorityLandUseTypeID, tgu.LandUseForTGR);
             AddScoreAcres(row, tgu.BaselineScoreID, tgu.Acres, isProgress: false);
             AddScoreAcres(row, tgu.ProgressScoreID, tgu.Acres, isProgress: true);
-            switch (tgu.CompletedAssessmentCount)
-            {
-                case <= 0:
-                    break;
-                case 1:
-                    row.AssessedOnceAcres += tgu.Acres;
-                    break;
-                case 2:
-                    row.AssessedTwiceAcres += tgu.Acres;
-                    break;
-                default:
-                    row.AssessedThreeOrMoreAcres += tgu.Acres;
-                    break;
-            }
+        }
+
+        foreach (var assessed in landUseAssessmentAcres)
+        {
+            var row = GetOrAddRow(assessed.PriorityLandUseTypeID, assessed.LandUseForTGR);
+            row.AssessedOnceAcres += assessed.OnceOrMoreAcres - assessed.TwiceOrMoreAcres;
+            row.AssessedTwiceAcres += assessed.TwiceOrMoreAcres - assessed.ThreeOrMoreAcres;
+            row.AssessedThreeOrMoreAcres += assessed.ThreeOrMoreAcres;
         }
 
         foreach (var row in rowsByKey.Values)
         {
-            // TGU and Land Use Block geometry can differ slightly, so clamp rather than show a negative area.
-            // The caller logs rows where the assessed area exceeds the mapped total.
+            // The assessed area is the same blocks' geometry intersected with OVTA Areas, so it can't exceed the
+            // total; the clamp only stops floating-point noise from showing as a tiny negative area.
             row.NotYetAssessedAcres = Math.Max(0, row.TotalMappedAcres - AssessedAcres(row));
         }
 

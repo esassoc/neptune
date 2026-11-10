@@ -1,4 +1,19 @@
 @use "/src/scss/abstracts" as *;
+@use "./ovta-results-layout" as layout;
+
+// NPT-1126 rework (Jira 54953): OVTA-Based Results swaps the 50/50 dropdown row for the columns ovta-results-table uses,
+// so the dropdowns sit over the Track switch and the score rules note over the table's note.
+.grid-12.ovta-results-layout {
+    @include layout.ovta-results-layout;
+
+    & > .g-col-6 {
+        grid-column: auto;
+    }
+
+    & > .g-col-12 {
+        grid-column: 1 / -1;
+    }
+}
 
 .hero {
     display: grid;

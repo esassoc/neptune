@@ -309,14 +309,13 @@ export class LandUseBlockService extends BaseService {
      * @param observe set whether or not to return the data Observable as the body, response or events. defaults to returning the body.
      * @param reportProgress flag to report request and response progress.
      */
-    public updateLandUseBlock(landUseBlockID?: number, landUseBlockUpsertDto?: LandUseBlockUpsertDto, observe?: 'body', reportProgress?: boolean, options?: {httpHeaderAccept?: undefined, context?: HttpContext, transferCache?: boolean}): Observable<any>;
-    public updateLandUseBlock(landUseBlockID?: number, landUseBlockUpsertDto?: LandUseBlockUpsertDto, observe?: 'response', reportProgress?: boolean, options?: {httpHeaderAccept?: undefined, context?: HttpContext, transferCache?: boolean}): Observable<HttpResponse<any>>;
-    public updateLandUseBlock(landUseBlockID?: number, landUseBlockUpsertDto?: LandUseBlockUpsertDto, observe?: 'events', reportProgress?: boolean, options?: {httpHeaderAccept?: undefined, context?: HttpContext, transferCache?: boolean}): Observable<HttpEvent<any>>;
-    public updateLandUseBlock(landUseBlockID?: number, landUseBlockUpsertDto?: LandUseBlockUpsertDto, observe: any = 'body', reportProgress: boolean = false, options?: {httpHeaderAccept?: undefined, context?: HttpContext, transferCache?: boolean}): Observable<any> {
-
-        let localVarQueryParameters = new HttpParams({encoder: this.encoder});
-        localVarQueryParameters = this.addToHttpParams(localVarQueryParameters,
-          <any>landUseBlockID, 'landUseBlockID');
+    public updateLandUseBlock(landUseBlockID: number, landUseBlockUpsertDto?: LandUseBlockUpsertDto, observe?: 'body', reportProgress?: boolean, options?: {httpHeaderAccept?: undefined, context?: HttpContext, transferCache?: boolean}): Observable<any>;
+    public updateLandUseBlock(landUseBlockID: number, landUseBlockUpsertDto?: LandUseBlockUpsertDto, observe?: 'response', reportProgress?: boolean, options?: {httpHeaderAccept?: undefined, context?: HttpContext, transferCache?: boolean}): Observable<HttpResponse<any>>;
+    public updateLandUseBlock(landUseBlockID: number, landUseBlockUpsertDto?: LandUseBlockUpsertDto, observe?: 'events', reportProgress?: boolean, options?: {httpHeaderAccept?: undefined, context?: HttpContext, transferCache?: boolean}): Observable<HttpEvent<any>>;
+    public updateLandUseBlock(landUseBlockID: number, landUseBlockUpsertDto?: LandUseBlockUpsertDto, observe: any = 'body', reportProgress: boolean = false, options?: {httpHeaderAccept?: undefined, context?: HttpContext, transferCache?: boolean}): Observable<any> {
+        if (landUseBlockID === null || landUseBlockID === undefined) {
+            throw new Error('Required parameter landUseBlockID was null or undefined when calling updateLandUseBlock.');
+        }
 
         let localVarHeaders = this.defaultHeaders;
 
@@ -353,13 +352,12 @@ export class LandUseBlockService extends BaseService {
             }
         }
 
-        let localVarPath = `/land-use-blocks`;
+        let localVarPath = `/land-use-blocks/${this.configuration.encodeParam({name: "landUseBlockID", value: landUseBlockID, in: "path", style: "simple", explode: false, dataType: "number", dataFormat: "int32"})}`;
         const { basePath, withCredentials } = this.configuration;
         return this.httpClient.request<any>('put', `${basePath}${localVarPath}`,
             {
                 context: localVarHttpContext,
                 body: landUseBlockUpsertDto,
-                params: localVarQueryParameters,
                 responseType: <any>responseType_,
                 ...(withCredentials ? { withCredentials } : {}),
                 headers: localVarHeaders,

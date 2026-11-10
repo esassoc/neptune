@@ -18,17 +18,22 @@ export class SelectedLandUseBlockLayerComponent extends MapLayerBase implements 
     @Input() selectedLandUseBlockIDs: number[] = [];
     /** When set, restricts the WFS fetch to a single jurisdiction. Omit to render all blocks. */
     @Input() stormwaterJurisdictionID?: number;
-    /** NPT-1135: restricts the WFS fetch to several jurisdictions (e.g. a non-admin's assigned ones on the
-     * LUB index page). An empty array renders nothing; omit (undefined) to fall back to stormwaterJurisdictionID. */
-    @Input() stormwaterJurisdictionIDs?: number[];
     /** Single-select callers (e.g. the LUB index page) want the map to fit-bounds on each
      * external selection change. Multi-select callers (Select Assessment Area) opt out. */
     @Input() zoomToSelectionOnChange: boolean = false;
     /** NPT-1066: only fetch + render blocks within the current map view, re-fetching on pan/zoom.
      * Without this, picking jurisdictions with thousands of blocks (e.g. Tustin ~3k, Irvine ~61k)
-     * renders every block as an interactive vector and locks up the browser. Opt-in so the LUB
-     * index page (browse-all, single-select) keeps loading the full set. */
+     * renders every block as an interactive vector and locks up the browser. Opt-in; the LUB index
+     * page uses selectedOnly instead. */
     @Input() restrictToViewport: boolean = false;
+    /** NPT-1145: fetch and draw only the selected block(s), re-fetching on each selection change, and
+     * select from a map click via a point query. For pages with no jurisdiction to scope to (the LUB
+     * index), where the unfiltered fetch is ~130 MB of GeoJSON and runs the browser out of memory.
+     * Pair it with the WMS <land-use-block-layer> to show the unselected blocks. */
+    @Input() selectedOnly: boolean = false;
+    /** NPT-1135 (selectedOnly): limits map-click selection to these jurisdictions, so a click outside the
+     * caller's scope doesn't select a block their grid doesn't have. Omit for no limit. */
+    @Input() clickableJurisdictionIDs?: number[];
 
     @Output() layerBoundsCalculated = new EventEmitter();
     @Output() landUseBlockClicked = new EventEmitter<number>();
@@ -45,6 +50,12 @@ export class SelectedLandUseBlockLayerComponent extends MapLayerBase implements 
      * re-fetching. */
     private featureGroups: { [landUseBlockID: string]: any[] } | null = null;
     private featureGroupBounds: { [landUseBlockID: string]: L.LatLngBounds | null } = {};
+
+    /** Bumped per fetch so a slow response for an earlier selection can't overwrite a newer one. */
+    private fetchSequence: number = 0;
+    /** Same for map-click point queries: only the latest click counts, and a selection made elsewhere (the grid)
+     * cancels any click still in flight. */
+    private clickSequence: number = 0;
 
     private styleDictionary = {
         [PriorityLandUseTypeEnum.Commercial]: {
@@ -106,12 +117,23 @@ export class SelectedLandUseBlockLayerComponent extends MapLayerBase implements 
     }
 
     ngOnChanges(changes: any): void {
-        if (
-            (changes.stormwaterJurisdictionID && !changes.stormwaterJurisdictionID.firstChange) ||
-            (changes.stormwaterJurisdictionIDs && !changes.stormwaterJurisdictionIDs.firstChange)
-        ) {
-            // Jurisdiction(s) changed mid-flight — re-fetch the feature set.
+        if (changes.stormwaterJurisdictionID && !changes.stormwaterJurisdictionID.firstChange) {
+            // Jurisdiction changed mid-flight — re-fetch the feature set.
             this.updateLayer();
+            return;
+        }
+        if (changes.selectedLandUseBlockIDs && this.selectedOnly) {
+            if (changes.selectedLandUseBlockIDs.firstChange) {
+                return;
+            }
+            // Only the selection is on the map, so a new selection means a new fetch. Don't zoom when the
+            // user picked the block on the map — they're already looking at it.
+            const zoomAfterLoad = this.zoomToSelectionOnChange && !this.clickedWithinLayer;
+            if (!this.clickedWithinLayer) {
+                this.clickSequence++;
+            }
+            this.clickedWithinLayer = false;
+            this.updateLayer(zoomAfterLoad);
             return;
         }
         if (changes.selectedLandUseBlockIDs) {
@@ -139,14 +161,33 @@ export class SelectedLandUseBlockLayerComponent extends MapLayerBase implements 
         if (this.restrictToViewport) {
             this.map.on("moveend", this.onMapMoveEnd);
         }
+        if (this.selectedOnly) {
+            this.map.on("click", this.onMapClick);
+        }
     }
 
     override ngOnDestroy(): void {
         if (this.restrictToViewport && this.map) {
             this.map.off("moveend", this.onMapMoveEnd);
         }
+        if (this.selectedOnly && this.map) {
+            this.map.off("click", this.onMapClick);
+        }
         super.ngOnDestroy();
     }
+
+    /** NPT-1145 (selectedOnly): the unselected blocks are WMS tiles, so find the clicked block with a point query. */
+    private onMapClick = (event: L.LeafletMouseEvent) => {
+        if (!this.map.hasLayer(this.layer)) return;
+        const clickSequence = ++this.clickSequence;
+        this.wfsService.getLandUseBlockIDsByCoordinate(event.latlng.lng, event.latlng.lat, this.clickableJurisdictionIDs).subscribe((response) => {
+            if (clickSequence !== this.clickSequence) return;
+            const landUseBlockID = response.features[0]?.properties?.LandUseBlockID;
+            if (landUseBlockID) {
+                this.onLandUseBlockClicked(landUseBlockID);
+            }
+        });
+    };
 
     /** NPT-1066: re-render (not re-fetch) the visible blocks after the user pans/zooms. The whole
      * jurisdiction's features are cached from the single fetch; we just re-filter to the viewport. */
@@ -156,33 +197,31 @@ export class SelectedLandUseBlockLayerComponent extends MapLayerBase implements 
         }
     };
 
-    private updateLayer() {
+    private updateLayer(zoomAfterLoad: boolean = this.zoomToSelectionOnChange) {
         this.layer.clearLayers();
         // Drop the cached features up front so a moveend during the in-flight refetch (e.g. after a
         // jurisdiction change) can't re-render the previous jurisdiction's blocks.
         this.featureGroups = null;
         this.featureGroupBounds = {};
-        this.addLandUseBlocksToLayer();
+        this.addLandUseBlocksToLayer(zoomAfterLoad);
         this.layer.addTo(this.map);
     }
 
-    private addLandUseBlocksToLayer() {
+    private addLandUseBlocksToLayer(zoomAfterLoad: boolean) {
         // Fetch the jurisdiction's blocks once (no spatial filter — the GeoServer BBOX CQL path
         // returned nothing here, and rendering, not fetching, was the bottleneck). When
         // restrictToViewport is set we cache everything and only render what's in view, so dense
         // jurisdictions (Tustin ~3k, Irvine ~61k) don't lock up the browser drawing every polygon.
-        if (this.stormwaterJurisdictionIDs && this.stormwaterJurisdictionIDs.length === 0) {
-            // Scoped to no jurisdictions: nothing to draw, so skip the request.
-            this.featureGroups = {};
-            this.featureGroupBounds = {};
-            return;
-        }
-
-        let cql_filter = ``;
-        if (this.stormwaterJurisdictionIDs?.length) {
-            cql_filter = `StormwaterJurisdictionID IN (${this.stormwaterJurisdictionIDs.join(",")})`;
-        } else if (this.stormwaterJurisdictionID) {
-            cql_filter = `StormwaterJurisdictionID = ${this.stormwaterJurisdictionID}`;
+        // selectedOnly fetches just the selected block(s), and nothing when there's no selection.
+        let cql_filter = this.stormwaterJurisdictionID ? `StormwaterJurisdictionID = ${this.stormwaterJurisdictionID}` : ``;
+        // Taken before the no-selection return so clearing the selection also invalidates a pending fetch.
+        const fetchSequence = ++this.fetchSequence;
+        if (this.selectedOnly) {
+            if (!this.selectedLandUseBlockIDs.length) {
+                this.featureGroups = {};
+                return;
+            }
+            cql_filter = `LandUseBlockID IN (${this.selectedLandUseBlockIDs.join(",")})`;
         }
 
         const request$ = this.wfsService.getGeoserverWFSLayerWithCQLFilter("OCStormwater:LandUseBlocks", cql_filter, "LandUseBlockID");
@@ -190,6 +229,7 @@ export class SelectedLandUseBlockLayerComponent extends MapLayerBase implements 
 
         this.isLoading = true;
         tracked$.pipe(finalize(() => (this.isLoading = false))).subscribe((response) => {
+            if (fetchSequence !== this.fetchSequence) return;
             if (response.length == 0) {
                 this.featureGroups = {};
                 this.featureGroupBounds = {};
@@ -208,7 +248,7 @@ export class SelectedLandUseBlockLayerComponent extends MapLayerBase implements 
 
             this.renderFeatures();
 
-            if (this.zoomToSelectionOnChange) {
+            if (zoomAfterLoad) {
                 this.zoomToSelection();
             }
         });
@@ -238,9 +278,13 @@ export class SelectedLandUseBlockLayerComponent extends MapLayerBase implements 
             geoJson.on("mouseout", () => {
                 geoJson.setStyle({ fillOpacity: 0.5 });
             });
-            geoJson.on("click", () => {
-                this.onLandUseBlockClicked(idAsNumber);
-            });
+            // In selectedOnly mode the map-level click handler does the selecting; a second handler
+            // here would emit twice, since vector clicks bubble up to the map.
+            if (!this.selectedOnly) {
+                geoJson.on("click", () => {
+                    this.onLandUseBlockClicked(idAsNumber);
+                });
+            }
             geoJson.addTo(this.layer);
         });
     }

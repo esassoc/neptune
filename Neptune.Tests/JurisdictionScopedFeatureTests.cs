@@ -1,9 +1,11 @@
 using System;
 using System.Linq;
+using System.Reflection;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Storage;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
+using Neptune.API.Controllers;
 using Neptune.API.Services.Authorization;
 using Neptune.EFModels.Entities;
 
@@ -169,6 +171,40 @@ namespace Neptune.Tests
             }
 
             AssertScoped(new TreatmentBMPEditFeature(), RoleEnum.JurisdictionEditor, row.TreatmentBMPID, row.StormwaterJurisdictionID);
+        }
+
+        [TestMethod]
+        public void LandUseBlockEditFeature_IsJurisdictionScoped()
+        {
+            // NPT-1145: Editors and Managers can edit attributes on blocks in their assigned jurisdictions.
+            var row = _dbContext.LandUseBlocks.AsNoTracking()
+                .Select(x => new { x.LandUseBlockID, x.StormwaterJurisdictionID })
+                .FirstOrDefault();
+            if (row == null)
+            {
+                Assert.Inconclusive("No LandUseBlocks in local DB.");
+                return;
+            }
+
+            AssertScoped(new LandUseBlockEditFeature(), RoleEnum.JurisdictionEditor, row.LandUseBlockID, row.StormwaterJurisdictionID);
+            AssertScoped(new LandUseBlockEditFeature(), RoleEnum.JurisdictionManager, row.LandUseBlockID, row.StormwaterJurisdictionID);
+        }
+
+        [TestMethod]
+        public void LandUseBlockUpdate_UsesScopedFeatureWithRoutedID()
+        {
+            // NPT-1145: JurisdictionScopedFeature reads the id from RouteData and skips the jurisdiction check when
+            // it's missing, so the PUT template must carry {landUseBlockID} — a query-string id would let any
+            // Editor edit any jurisdiction's blocks.
+            var method = typeof(LandUseBlockController).GetMethod(nameof(LandUseBlockController.Update), BindingFlags.Public | BindingFlags.Instance);
+            Assert.IsNotNull(method);
+            Assert.IsTrue(method.GetCustomAttributes(typeof(LandUseBlockEditFeature), true).Any(), "Update must use [LandUseBlockEditFeature].");
+            Assert.IsFalse(method.GetCustomAttributes(typeof(AdminFeature), true).Any(), "Update must not be Admin-only.");
+            Assert.IsFalse(method.GetCustomAttributes(typeof(JurisdictionEditFeature), true).Any(), "Update needs the scoped attribute, not the role-only one.");
+            Assert.IsFalse(method.GetCustomAttributes(typeof(JurisdictionManageFeature), true).Any(), "Update must not be Manager-only.");
+
+            var httpPut = method.GetCustomAttributes(typeof(HttpPutAttribute), true).Cast<HttpPutAttribute>().Single();
+            StringAssert.Contains(httpPut.Template, "{landUseBlockID}", "The landUseBlockID must be a route value for the scoped check to run.");
         }
 
         [TestMethod]

@@ -24,15 +24,15 @@ namespace Neptune.Tests
         private const int C = (int)OnlandVisualTrashAssessmentScoreEnum.C;
         private const int D = (int)OnlandVisualTrashAssessmentScoreEnum.D;
 
-        private static TrashGeneratingUnitAcres Tgu(int? priorityLandUseTypeID, string landUseForTGR, double acres,
-            int? baseline = null, int? progress = null, int completedAssessments = 0)
+        private static TrashGeneratingUnitAcres Tgu(int? priorityLandUseTypeID, string landUseForTGR, double acres, int? baseline = null, int? progress = null)
         {
-            return new TrashGeneratingUnitAcres(priorityLandUseTypeID, landUseForTGR, baseline, progress, completedAssessments, acres);
+            return new TrashGeneratingUnitAcres(priorityLandUseTypeID, landUseForTGR, baseline, progress, acres);
         }
 
-        private static OVTAResultsLandUseRowDtoLookup Build(IEnumerable<LandUseAcres> landUse, IEnumerable<TrashGeneratingUnitAcres> tgus)
+        private static OVTAResultsLandUseRowDtoLookup Build(IEnumerable<LandUseAcres> landUse, IEnumerable<TrashGeneratingUnitAcres> tgus,
+            IEnumerable<LandUseAssessmentAcres> assessed = null)
         {
-            return new OVTAResultsLandUseRowDtoLookup(BuildRows(landUse, tgus));
+            return new OVTAResultsLandUseRowDtoLookup(BuildRows(landUse, tgus, assessed ?? new LandUseAssessmentAcres[0]));
         }
 
         [TestMethod]
@@ -91,9 +91,9 @@ namespace Neptune.Tests
                 new[] { new LandUseAcres(Commercial, null, 100) },
                 new[]
                 {
-                    Tgu(Commercial, null, 10, baseline: A, progress: B, completedAssessments: 3),
-                    Tgu(Commercial, null, 4, baseline: C, completedAssessments: 2),
-                    Tgu(Commercial, null, 6, progress: D, completedAssessments: 1),
+                    Tgu(Commercial, null, 10, baseline: A, progress: B),
+                    Tgu(Commercial, null, 4, baseline: C),
+                    Tgu(Commercial, null, 6, progress: D),
                 });
 
             var row = rows.Priority("Commercial");
@@ -106,33 +106,49 @@ namespace Neptune.Tests
         }
 
         [TestMethod]
-        public void AssessmentCountBuckets_SumToTotalMappedLandUse()
+        public void AssessmentCountBuckets_AreTierDifferences_AndSumToTotalMappedLandUse()
         {
+            // Two block groups of the same type: their tiers add up before the buckets are taken.
             var rows = Build(
                 new[] { new LandUseAcres(ALU, "Residential", 100) },
+                new TrashGeneratingUnitAcres[0],
                 new[]
                 {
-                    Tgu(ALU, "Residential", 40, completedAssessments: 0),
-                    Tgu(ALU, "Residential", 11, completedAssessments: 1),
-                    Tgu(ALU, "Residential", 12, completedAssessments: 2),
-                    Tgu(ALU, "Residential", 13, completedAssessments: 3),
-                    Tgu(ALU, "Residential", 14, completedAssessments: 7),
+                    new LandUseAssessmentAcres(ALU, "Residential", 30, 20, 10),
+                    new LandUseAssessmentAcres(ALU, "Residential", 30, 5, 3),
                 });
 
             var row = rows.Alternate("Residential");
-            Assert.AreEqual(11, row.AssessedOnceAcres, 1e-9);
+            Assert.AreEqual(35, row.AssessedOnceAcres, 1e-9);
             Assert.AreEqual(12, row.AssessedTwiceAcres, 1e-9);
-            Assert.AreEqual(27, row.AssessedThreeOrMoreAcres, 1e-9);
-            Assert.AreEqual(50, row.NotYetAssessedAcres, 1e-9);
+            Assert.AreEqual(13, row.AssessedThreeOrMoreAcres, 1e-9);
+            Assert.AreEqual(40, row.NotYetAssessedAcres, 1e-9);
             Assert.AreEqual(row.TotalMappedAcres, row.NotYetAssessedAcres + AssessedAcres(row), 1e-9);
+        }
+
+        [TestMethod]
+        public void AssessmentCountBuckets_IgnoreTrashGeneratingUnits()
+        {
+            // Scored TGUs feed the score columns only; land assessed once still counts even with no TGU link.
+            var rows = Build(
+                new[] { new LandUseAcres(Commercial, null, 50) },
+                new[] { Tgu(Commercial, null, 20, baseline: A) },
+                new[] { new LandUseAssessmentAcres(Commercial, null, 8, 0, 0) });
+
+            var commercial = rows.Priority("Commercial");
+            Assert.AreEqual(20, commercial.BaselineAcresA, 1e-9);
+            Assert.AreEqual(8, commercial.AssessedOnceAcres, 1e-9);
+            Assert.AreEqual(42, commercial.NotYetAssessedAcres, 1e-9);
         }
 
         [TestMethod]
         public void AssessedAreaOverTotal_NotYetAssessedClampsToZero()
         {
+            // Floating-point noise from the geometry sums must not show as a negative area.
             var rows = Build(
                 new[] { new LandUseAcres(Commercial, null, 10) },
-                new[] { Tgu(Commercial, null, 10.5, baseline: A, completedAssessments: 2) });
+                new TrashGeneratingUnitAcres[0],
+                new[] { new LandUseAssessmentAcres(Commercial, null, 10.0000001, 10.0000001, 0) });
 
             Assert.AreEqual(0, rows.Priority("Commercial").NotYetAssessedAcres);
         }
@@ -154,11 +170,13 @@ namespace Neptune.Tests
             // The totals are grouped by a case-insensitive SQL collation, so the TGU spellings must merge into the same row.
             var rows = Build(
                 new[] { new LandUseAcres(ALU, "Residential", 100) },
-                new[] { Tgu(ALU, "RESIDENTIAL", 30, baseline: A, completedAssessments: 2), Tgu(ALU, "residential ", 10, completedAssessments: 1) });
+                new[] { Tgu(ALU, "RESIDENTIAL", 30, baseline: A), Tgu(ALU, "residential ", 10, progress: B) },
+                new[] { new LandUseAssessmentAcres(ALU, " residential", 40, 30, 0) });
 
             var residential = rows.Alternate("Residential");
             Assert.AreEqual(1, rows.All.Count);
             Assert.AreEqual(30, residential.BaselineAcresA, 1e-9);
+            Assert.AreEqual(10, residential.ProgressAcresB, 1e-9);
             Assert.AreEqual(60, residential.NotYetAssessedAcres, 1e-9);
         }
 
@@ -173,7 +191,8 @@ namespace Neptune.Tests
                     new LandUseAcres(Commercial, null, 50),
                     new LandUseAcres(ALU, "Other", 80),
                 },
-                new TrashGeneratingUnitAcres[0]);
+                new TrashGeneratingUnitAcres[0],
+                new LandUseAssessmentAcres[0]);
 
             CollectionAssert.AreEqual(new[] { "Commercial", "Industrial", "Residential", "Other" }, rows.Select(x => x.LandUseTypeName).ToArray());
             CollectionAssert.AreEqual(new[] { 1, 2, 3, 4 }, rows.Select(x => x.SortOrder).ToArray());

@@ -24,18 +24,26 @@
         (selectedValueChange)="onSelectedLandUseBlockChangedFromGrid($event)">
         @if (mapIsReady) {
         <div mapLayers>
-            @if (mapIsReady) {
+            <!-- NPT-1135: an empty scope (Unassigned) shows no blocks or outlines. The layers treat an empty
+                 filter as "show all", so skip them rather than pass []. undefined (Admin) means no filter. -->
+            @if (mapIsReady && mapScope.jurisdictionIDs?.length !== 0) {
+            <land-use-block-layer
+                [displayOnLoad]="true"
+                [map]="map"
+                [layerControl]="layerControl"
+                [sortOrder]="5"
+                [stormwaterJurisdictionIDs]="mapScope.jurisdictionIDs"></land-use-block-layer>
             <selected-land-use-block-layer
                 [displayOnLoad]="true"
                 [map]="map"
                 [layerControl]="layerControl"
                 [sortOrder]="10"
                 [selectedLandUseBlockIDs]="selectedLandUseBlockIDs"
-                [stormwaterJurisdictionIDs]="mapScope.jurisdictionIDs"
+                [selectedOnly]="true"
+                [clickableJurisdictionIDs]="mapScope.jurisdictionIDs"
                 [zoomToSelectionOnChange]="true"
                 (layerBoundsCalculated)="handleLayerBoundsCalculated($event)"
                 (landUseBlockClicked)="onSelectedLandUseBlockChanged($event)"></selected-land-use-block-layer>
-            } @if (mapIsReady) {
             <jurisdictions-layer [mode]="OverlayMode.ReferenceWithInteractivity" [filterToIDs]="mapScope.jurisdictionIDs" [map]="map" [layerControl]="layerControl" [sortOrder]="10"></jurisdictions-layer>
             } @if (mapIsReady) {
             <wqmps-layer [displayOnLoad]="false" [map]="map" [layerControl]="layerControl" [sortOrder]="20"></wqmps-layer>

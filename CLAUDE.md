@@ -118,6 +118,7 @@ Custom `BaseAuthorizationAttribute` (implements `IAuthorizationFilter`). Derived
 | `FieldVisitEditFeature` / `FieldVisitManageFeature` | Edit / Manage roles + jurisdiction match against the routed field visit's BMP |
 | `MaintenanceRecordEditFeature` / `MaintenanceRecordManageFeature` | Edit / Manage roles + jurisdiction match against the routed maintenance record's BMP |
 | `TreatmentBMPAssessmentEditFeature` | Same as JurisdictionEditFeature + jurisdiction match against the routed assessment's BMP (also covers its photo endpoints) |
+| `LandUseBlockEditFeature` | Same as JurisdictionEditFeature + jurisdiction match against the routed land use block |
 | `UserViewFeature` | Any authenticated user |
 | `LoggedInUnclassifiedFeature` | Unassigned users |
 
