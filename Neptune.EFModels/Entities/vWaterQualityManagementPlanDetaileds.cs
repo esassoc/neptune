@@ -8,6 +8,16 @@ public static class vWaterQualityManagementPlanDetaileds
 
     public static async Task<List<vWaterQualityManagementPlanDetailed>> ListViewableByPersonDtoAsync(NeptuneDbContext dbContext, PersonDto personDto)
     {
+        var waterQualityManagementPlans = await GetViewableByPersonQueryableAsync(dbContext, personDto);
+        return await waterQualityManagementPlans.ToListAsync();
+    }
+
+    /// <summary>
+    /// The WQMPs a person can see on the WQMP list page, as an un-materialized query so other
+    /// grids (e.g. the Simple BMP grid, NPT-1137) can join to it and stay scoped identically.
+    /// </summary>
+    public static async Task<IQueryable<vWaterQualityManagementPlanDetailed>> GetViewableByPersonQueryableAsync(NeptuneDbContext dbContext, PersonDto personDto)
+    {
         var isAnonymousOrUnassigned = personDto == null || personDto.RoleID == (int)RoleEnum.Unassigned;
 
         List<int> stormwaterJurisdictionIDsPersonCanView;
@@ -35,16 +45,16 @@ public static class vWaterQualityManagementPlanDetaileds
 
         if (isAnonymousOrUnassigned)
         {
-            return await waterQualityManagementPlans.Where(x =>
+            return waterQualityManagementPlans.Where(x =>
                 x.WaterQualityManagementPlanStatusID ==
                 (int)WaterQualityManagementPlanStatusEnum.Active ||
                 (x.WaterQualityManagementPlanStatusID ==
                 (int)WaterQualityManagementPlanStatusEnum.Inactive &&
                 x.StormwaterJurisdictionPublicWQMPVisibilityTypeID ==
-                (int)StormwaterJurisdictionPublicWQMPVisibilityTypeEnum.ActiveAndInactive)).ToListAsync();
+                (int)StormwaterJurisdictionPublicWQMPVisibilityTypeEnum.ActiveAndInactive));
         }
 
-        return await waterQualityManagementPlans.ToListAsync();
+        return waterQualityManagementPlans;
     }
 
     /// <summary>

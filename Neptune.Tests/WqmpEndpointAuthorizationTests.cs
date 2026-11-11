@@ -59,6 +59,21 @@ namespace Neptune.Tests
             AssertWqmpEditGated("GetExtractionResult", "the review wizard loads this on mount; JEs need it (NPT-1109 Bug 2).");
 
         [TestMethod]
+        public void ListQuickBMPsAsGridDto_MatchesWqmpGridAccess()
+        {
+            // NPT-1137 AC 12: anyone who sees a WQMP on the list page sees its simple BMPs, including
+            // anonymous viewers of public WQMPs. Row scoping is in QuickBMPs.ListViewableByPersonAsGridDtoAsync.
+            var wqmpGrid = GetControllerMethod("ListAsGridDto");
+            var quickBMPGrid = GetControllerMethod("ListQuickBMPsAsGridDto");
+            foreach (var attributeType in new[] { typeof(Microsoft.AspNetCore.Authorization.AllowAnonymousAttribute), typeof(Neptune.API.Services.Attributes.OptionalAuthAttribute) })
+            {
+                Assert.IsTrue(wqmpGrid.GetCustomAttributes(attributeType, true).Any(), $"ListAsGridDto is expected to be [{attributeType.Name}].");
+                Assert.IsTrue(quickBMPGrid.GetCustomAttributes(attributeType, true).Any(),
+                    $"ListQuickBMPsAsGridDto must be [{attributeType.Name}] like ListAsGridDto.");
+            }
+        }
+
+        [TestMethod]
         public void UploadDocument_IsJurisdictionEditGated()
         {
             var method = GetControllerMethod("UploadDocument");

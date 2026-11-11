@@ -7,6 +7,7 @@ import { Alert } from "src/app/shared/models/alert";
 import { AlertContext } from "src/app/shared/models/enums/alert-context.enum";
 import { PageHeaderComponent } from "src/app/shared/components/page-header/page-header.component";
 import { AlertDisplayComponent } from "src/app/shared/components/alert-display/alert-display.component";
+import { jurisdictionErrorMessage, STAGED_JURISDICTION_FORBIDDEN_MESSAGE } from "src/app/shared/helpers/jurisdiction-forbidden";
 
 @Component({
     selector: "land-use-block-upload-approve",
@@ -63,9 +64,10 @@ export class LandUseBlockUploadApproveComponent implements OnInit {
                     this.alertService.pushAlert(new Alert(message, AlertContext.Success, true));
                 });
             },
-            error: () => {
+            error: (err) => {
                 this.isWorking.set(false);
-                this.alertService.pushAlert(new Alert("Failed to approve the staged Land Use Blocks.", AlertContext.Danger, true));
+                const message = jurisdictionErrorMessage(err, "Failed to approve the staged Land Use Blocks.", STAGED_JURISDICTION_FORBIDDEN_MESSAGE);
+                this.alertService.pushAlert(new Alert(message, AlertContext.Danger, true));
             },
         });
     }

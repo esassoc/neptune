@@ -94,7 +94,7 @@ namespace Neptune.GDALAPI.Controllers
 
             var args = BuildCommandLineArgumentsForGeoJsonToFileGdb(disposableJsonTempFile.FileInfo.FullName,
                 gdbInput.CoordinateSystemID, gdbOutputPath, gdbInput.LayerName, update,
-                gdbInput.GeometryTypeName);
+                gdbInput.GeometryTypeName, gdbInput.Where);
 
             _ogr2OgrService.Run(args);
         }
@@ -161,7 +161,7 @@ namespace Neptune.GDALAPI.Controllers
             Directory.Delete(gdbDirectoryFullPath, true);
         }
 
-        private static List<string> BuildCommandLineArgumentsForGeoJsonToFileGdb(string pathToSourceGeoJsonFile, int coordinateSystemId, string outputPath, string outputLayerName, bool update, string geometryType)
+        private static List<string> BuildCommandLineArgumentsForGeoJsonToFileGdb(string pathToSourceGeoJsonFile, int coordinateSystemId, string outputPath, string outputLayerName, bool update, string geometryType, string? where = null)
         {
             var commandLineArguments = new List<string>
             {
@@ -180,6 +180,13 @@ namespace Neptune.GDALAPI.Controllers
                 geometryType,
                 "-append",
             };
+
+            // ogr2ogr still creates the layer with the source schema when the filter leaves no features.
+            if (!string.IsNullOrWhiteSpace(where))
+            {
+                commandLineArguments.Add("-where");
+                commandLineArguments.Add(where);
+            }
 
             return commandLineArguments.Where(x => !string.IsNullOrWhiteSpace(x)).ToList();
         }

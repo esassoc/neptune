@@ -2418,7 +2418,9 @@
           }
         },
         "x-anonymous": true
-      },
+      }
+    },
+    "/land-use-blocks/{landUseBlockID}": {
       "put": {
         "tags": [
           "LandUseBlock"
@@ -2427,7 +2429,8 @@
         "parameters": [
           {
             "name": "landUseBlockID",
-            "in": "query",
+            "in": "path",
+            "required": true,
             "schema": {
               "type": "integer",
               "format": "int32"
@@ -8107,6 +8110,38 @@
         "x-anonymous": true
       }
     },
+    "/trash-generating-units/download-gdb": {
+      "post": {
+        "tags": [
+          "TrashGeneratingUnit"
+        ],
+        "operationId": "DownloadGdb_TrashGeneratingUnit",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/TrashGeneratingUnitGdbDownloadRequestDto"
+              }
+            },
+            "text/json": {
+              "schema": {
+                "$ref": "#/components/schemas/TrashGeneratingUnitGdbDownloadRequestDto"
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "$ref": "#/components/schemas/TrashGeneratingUnitGdbDownloadRequestDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
     "/trash-results-by-jurisdiction/{jurisdictionID}/area-based-results-calculations": {
       "get": {
         "tags": [
@@ -12605,6 +12640,47 @@
                   "type": "array",
                   "items": {
                     "$ref": "#/components/schemas/WaterQualityManagementPlanGridDto"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "x-anonymous": true,
+        "x-optional-auth": true
+      }
+    },
+    "/water-quality-management-plans/quick-bmps/grid": {
+      "get": {
+        "tags": [
+          "WaterQualityManagementPlan"
+        ],
+        "operationId": "ListQuickBMPsAsGridDto_WaterQualityManagementPlan",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/QuickBMPGridDto"
+                  }
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/QuickBMPGridDto"
+                  }
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/QuickBMPGridDto"
                   }
                 }
               }
@@ -17890,46 +17966,114 @@
         },
         "additionalProperties": false
       },
+      "OVTAResultsAreaDataIssueDto": {
+        "type": "object",
+        "properties": {
+          "OnlandVisualTrashAssessmentAreaID": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "OnlandVisualTrashAssessmentAreaName": {
+            "type": "string",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
       "OVTAResultsDto": {
         "type": "object",
         "properties": {
-          "PLUSumAcresWhereOVTAIsA": {
-            "type": "number",
-            "format": "double"
+          "Rows": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/OVTAResultsLandUseRowDto"
+            },
+            "nullable": true
           },
-          "PLUSumAcresWhereOVTAIsB": {
-            "type": "number",
-            "format": "double"
-          },
-          "PLUSumAcresWhereOVTAIsC": {
-            "type": "number",
-            "format": "double"
-          },
-          "PLUSumAcresWhereOVTAIsD": {
-            "type": "number",
-            "format": "double"
-          },
-          "ALUSumAcresWhereOVTAIsA": {
-            "type": "number",
-            "format": "double"
-          },
-          "ALUSumAcresWhereOVTAIsB": {
-            "type": "number",
-            "format": "double"
-          },
-          "ALUSumAcresWhereOVTAIsC": {
-            "type": "number",
-            "format": "double"
-          },
-          "ALUSumAcresWhereOVTAIsD": {
-            "type": "number",
-            "format": "double"
+          "AreasWithProgressButNoBaseline": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/OVTAResultsAreaDataIssueDto"
+            },
+            "nullable": true
           },
           "HasLandUseBlocks": {
             "type": "boolean"
           },
+          "HasOVTAAreas": {
+            "type": "boolean"
+          },
           "HasOVTAResults": {
             "type": "boolean"
+          }
+        },
+        "additionalProperties": false
+      },
+      "OVTAResultsLandUseRowDto": {
+        "type": "object",
+        "properties": {
+          "IsPriorityLandUse": {
+            "type": "boolean"
+          },
+          "LandUseTypeName": {
+            "type": "string",
+            "nullable": true
+          },
+          "SortOrder": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "TotalMappedAcres": {
+            "type": "number",
+            "format": "double"
+          },
+          "BaselineAcresA": {
+            "type": "number",
+            "format": "double"
+          },
+          "BaselineAcresB": {
+            "type": "number",
+            "format": "double"
+          },
+          "BaselineAcresC": {
+            "type": "number",
+            "format": "double"
+          },
+          "BaselineAcresD": {
+            "type": "number",
+            "format": "double"
+          },
+          "ProgressAcresA": {
+            "type": "number",
+            "format": "double"
+          },
+          "ProgressAcresB": {
+            "type": "number",
+            "format": "double"
+          },
+          "ProgressAcresC": {
+            "type": "number",
+            "format": "double"
+          },
+          "ProgressAcresD": {
+            "type": "number",
+            "format": "double"
+          },
+          "NotYetAssessedAcres": {
+            "type": "number",
+            "format": "double"
+          },
+          "AssessedOnceAcres": {
+            "type": "number",
+            "format": "double"
+          },
+          "AssessedTwiceAcres": {
+            "type": "number",
+            "format": "double"
+          },
+          "AssessedThreeOrMoreAcres": {
+            "type": "number",
+            "format": "double"
           }
         },
         "additionalProperties": false
@@ -18832,7 +18976,7 @@
             "nullable": true
           },
           "PrimaryContactPerson": {
-            "$ref": "#/components/schemas/PersonSimpleDto"
+            "$ref": "#/components/schemas/PersonDisplayDto"
           },
           "IsActive": {
             "type": "boolean"
@@ -19533,11 +19677,6 @@
           },
           "ReceiveRSBRevisionRequestEmails": {
             "type": "boolean"
-          },
-          "WebServiceAccessToken": {
-            "type": "string",
-            "format": "uuid",
-            "nullable": true
           },
           "IsOCTAGrantReviewer": {
             "type": "boolean"
@@ -20562,6 +20701,99 @@
         },
         "additionalProperties": false
       },
+      "QuickBMPGridDto": {
+        "type": "object",
+        "properties": {
+          "QuickBMPID": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "QuickBMPName": {
+            "type": "string",
+            "nullable": true
+          },
+          "TreatmentBMPTypeID": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "TreatmentBMPTypeName": {
+            "type": "string",
+            "nullable": true
+          },
+          "NumberOfIndividualBMPs": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "WaterQualityManagementPlanID": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "WaterQualityManagementPlanName": {
+            "type": "string",
+            "nullable": true
+          },
+          "StormwaterJurisdictionID": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "StormwaterJurisdictionName": {
+            "type": "string",
+            "nullable": true
+          },
+          "WaterQualityManagementPlanStatusDisplayName": {
+            "type": "string",
+            "nullable": true
+          },
+          "HydrologicSubareaName": {
+            "type": "string",
+            "nullable": true
+          },
+          "PercentOfSiteTreated": {
+            "type": "number",
+            "format": "double",
+            "nullable": true
+          },
+          "RecordedWQMPAreaInAcres": {
+            "type": "number",
+            "format": "double",
+            "nullable": true
+          },
+          "CalculatedBoundaryAcreage": {
+            "type": "number",
+            "format": "double",
+            "nullable": true
+          },
+          "DrainageAreaTreatedAcres": {
+            "type": "number",
+            "format": "double",
+            "nullable": true
+          },
+          "PercentCaptured": {
+            "type": "number",
+            "format": "double",
+            "nullable": true
+          },
+          "PercentRetained": {
+            "type": "number",
+            "format": "double",
+            "nullable": true
+          },
+          "DryWeatherFlowOverrideID": {
+            "type": "integer",
+            "format": "int32",
+            "nullable": true
+          },
+          "DryWeatherFlowOverrideDisplayName": {
+            "type": "string",
+            "nullable": true
+          },
+          "QuickBMPNote": {
+            "type": "string",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
       "QuickBMPMergeSkipDto": {
         "type": "object",
         "properties": {
@@ -21225,6 +21457,16 @@
             "type": "integer",
             "format": "int32",
             "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "TrashGeneratingUnitGdbDownloadRequestDto": {
+        "type": "object",
+        "properties": {
+          "StormwaterJurisdictionID": {
+            "type": "integer",
+            "format": "int32"
           }
         },
         "additionalProperties": false

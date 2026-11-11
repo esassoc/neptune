@@ -1,7 +1,7 @@
 import { AsyncPipe } from "@angular/common";
 import { Component, signal, ViewChild } from "@angular/core";
 import { HttpClient } from "@angular/common/http";
-import { Router, RouterLink } from "@angular/router";
+import { ActivatedRoute, Router, RouterLink } from "@angular/router";
 import { environment } from "src/environments/environment";
 import { saveBlobResponse } from "src/app/shared/helpers/download-file";
 import { ColDef } from "ag-grid-community";
@@ -29,12 +29,31 @@ import { DropdownToggleDirective } from "src/app/shared/directives/dropdown-togg
 import { WqmpModalComponent } from "./wqmp-modal/wqmp-modal.component";
 import { WqmpUploadModalComponent } from "./wqmp-upload-modal/wqmp-upload-modal.component";
 import { NeptunePageTypeEnum } from "src/app/shared/generated/enum/neptune-page-type-enum";
+import { QuickBMPGridDto } from "src/app/shared/generated/model/quick-bmp-grid-dto";
+import { NeptuneGridComponent } from "src/app/shared/components/neptune-grid/neptune-grid.component";
+import { BtnGroupRadioInputComponent, IBtnGroupRadioInputOption } from "src/app/shared/components/inputs/btn-group-radio-input/btn-group-radio-input.component";
+
+type ActiveTab = "wqmps" | "simple-bmps";
 
 @Component({
     selector: "wqmps",
     standalone: true,
-    imports: [PageHeaderComponent, AlertDisplayComponent, HybridMapGridComponent, AsyncPipe, WqmpsLayerComponent, ParcelLayerComponent, DelineationsLayerComponent, JurisdictionsLayerComponent, DropdownToggleDirective, RouterLink],
+    imports: [
+        PageHeaderComponent,
+        AlertDisplayComponent,
+        HybridMapGridComponent,
+        NeptuneGridComponent,
+        BtnGroupRadioInputComponent,
+        AsyncPipe,
+        WqmpsLayerComponent,
+        ParcelLayerComponent,
+        DelineationsLayerComponent,
+        JurisdictionsLayerComponent,
+        DropdownToggleDirective,
+        RouterLink,
+    ],
     templateUrl: "./wqmps.component.html",
+    styleUrl: "./wqmps.component.scss",
 })
 export class WqmpsComponent {
     public OverlayMode = OverlayMode;
@@ -51,6 +70,21 @@ export class WqmpsComponent {
     public wqmpJurisdictionIDs: number[];
     public currentPersonCanEdit$: Observable<boolean>;
     public isDownloadingGdb = signal(false);
+    public quickBMPs$: Observable<QuickBMPGridDto[]>;
+    public quickBMPColumnDefs: ColDef[];
+
+    /** NPT-1137: tabs are sync'd to a `?tab=` query param so refresh and back-button preserve the user's view. */
+    public activeTab: ActiveTab = "wqmps";
+    public tabOptions: IBtnGroupRadioInputOption[] = [
+        { label: "Water Quality Management Plans", value: "wqmps" },
+        { label: "Simple BMPs", value: "simple-bmps" },
+    ];
+
+    // BtnGroupRadioInputComponent matches `[default]` against the option label, not its value (NPT-984).
+    public get activeTabLabel(): string {
+        return this.tabOptions.find((o) => o.value === this.activeTab)?.label ?? "";
+    }
+
     @ViewChild(HybridMapGridComponent) private hybridGrid: HybridMapGridComponent;
     private wqmps: WaterQualityManagementPlanGridDto[] = [];
     private reload$ = new BehaviorSubject<void>(undefined);
@@ -64,6 +98,7 @@ export class WqmpsComponent {
         private alertService: AlertService,
         private dialogService: DialogService,
         private router: Router,
+        private route: ActivatedRoute,
         private httpClient: HttpClient
     ) {}
 
@@ -125,8 +160,45 @@ export class WqmpsComponent {
             map(() => this.authenticationService.doesCurrentUserHaveJurisdictionEditPermission())
         );
 
-        this.wqmps$ = this.reload$.pipe(switchMap(() => this.loadWqmps$()));
-        this.boundingBox$ = this.stormwaterJurisdictionService.getBoundingBoxStormwaterJurisdiction();
+        // shareReplay: the tab @switch rebuilds the map/grid on each return to the WQMP tab; replay the last
+        // load instead of refetching. reload$.next() (after adding a WQMP) still flows through.
+        this.wqmps$ = this.reload$.pipe(
+            switchMap(() => this.loadWqmps$()),
+            shareReplay(1)
+        );
+        this.boundingBox$ = this.stormwaterJurisdictionService.getBoundingBoxStormwaterJurisdiction().pipe(shareReplay(1));
+
+        const initialTab = this.route.snapshot.queryParamMap.get("tab") as ActiveTab | null;
+        if (initialTab && this.tabOptions.some((o) => o.value === initialTab)) {
+            this.activeTab = initialTab;
+        }
+        // Only subscribed while the Simple BMPs tab is shown; shareReplay keeps tab switches from refetching.
+        this.quickBMPs$ = this.waterQualityManagementPlanService.listQuickBMPsAsGridDtoWaterQualityManagementPlan().pipe(shareReplay(1));
+        this.quickBMPColumnDefs = this.buildQuickBMPColumnDefs();
+    }
+
+    public onTabChange(value: string): void {
+        const next = value as ActiveTab;
+        if (this.activeTab === next) return;
+        this.activeTab = next;
+        if (next !== "wqmps") {
+            // @switch destroys the hybrid map/grid; drop the stale map so its layers wait for the new
+            // map's onMapLoad when the user comes back to the WQMP tab. Also drop the selection: the
+            // recreated hybrid grid applies a non-null selectedValue in its first ngOnChanges, before
+            // onGridReady has set gridApi, and throws.
+            this.mapIsReady = false;
+            this.map = undefined;
+            this.layerControl = undefined;
+            this.selectedWaterQualityManagementPlanID = undefined;
+            this.zoomOnNextSelection = true;
+            this.alertService.removeAlertByUniqueCode(WqmpsComponent.NO_BOUNDARY_ALERT);
+        }
+        this.router.navigate([], {
+            relativeTo: this.route,
+            queryParams: { tab: next },
+            queryParamsHandling: "merge",
+            replaceUrl: true,
+        });
     }
 
     // Loads the WQMP grid data AND derives wqmpJurisdictionIDs for the map's CQL filter from
@@ -216,6 +288,7 @@ export class WqmpsComponent {
             this.utilityFunctionsService.createDecimalColumnDef("Recorded Parcel Acreage", "RecordedWQMPAreaInAcres", { DecimalPlacesToDisplay: 2 }),
             this.utilityFunctionsService.createDecimalColumnDef("Calculated Boundary Acreage", "CalculatedWQMPAcreage", {
                 DecimalPlacesToDisplay: 1,
+                FieldDefinitionType: "CalculatedBoundaryAcreage",
             }),
             this.utilityFunctionsService.createBasicColumnDef("Associated APNs", "AssociatedAPNs"),
             this.utilityFunctionsService.createDateColumnDef("Latest O&M Verification", "VerificationDate", "MM/dd/yyyy"),
@@ -229,6 +302,69 @@ export class WqmpsComponent {
         return isAnonymousOrUnassigned
             ? defs.filter((c) => !this.maintenanceContactHeaders.has(c.headerName as string))
             : defs;
+    }
+
+    // NPT-1137: one row per simple BMP across the WQMPs the user can view, in the story's column order.
+    // Headers wrap so long labels don't set the column width (NPT-1137 rework: columns were too wide).
+    private buildQuickBMPColumnDefs(): ColDef[] {
+        const defs: ColDef[] = [
+            this.utilityFunctionsService.createBasicColumnDef("Simple BMP Name", "QuickBMPName"),
+            this.utilityFunctionsService.createBasicColumnDef("BMP Type", "TreatmentBMPTypeName", {
+                UseCustomDropdownFilter: true,
+                FieldDefinitionType: "TreatmentBMPType",
+                FieldDefinitionLabelOverride: "BMP Type",
+            }),
+            this.utilityFunctionsService.createDecimalColumnDef("Number of Individual BMPs", "NumberOfIndividualBMPs", {
+                DecimalPlacesToDisplay: 0,
+                FieldDefinitionType: "NumberOfIndividualBMPs",
+                FieldDefinitionLabelOverride: "Number of Individual BMPs",
+            }),
+            this.utilityFunctionsService.createLinkColumnDef("WQMP Name", "WaterQualityManagementPlanName", "WaterQualityManagementPlanID", {
+                InRouterLink: "/water-quality-management-plans/",
+                FieldDefinitionType: "WaterQualityManagementPlan",
+                FieldDefinitionLabelOverride: "WQMP Name",
+                MaxWidth: 300,
+            }),
+            this.utilityFunctionsService.createLinkColumnDef("Jurisdiction", "StormwaterJurisdictionName", "StormwaterJurisdictionID", {
+                InRouterLink: "/jurisdictions/",
+                FieldDefinitionType: "Jurisdiction",
+                UseCustomDropdownFilter: true,
+            }),
+            this.utilityFunctionsService.createBasicColumnDef("WQMP Status", "WaterQualityManagementPlanStatusDisplayName", {
+                UseCustomDropdownFilter: true,
+            }),
+            this.utilityFunctionsService.createBasicColumnDef("Hydrologic Subarea", "HydrologicSubareaName", {
+                UseCustomDropdownFilter: true,
+            }),
+            this.utilityFunctionsService.createDecimalColumnDef("% of Site Treated", "PercentOfSiteTreated", {
+                DecimalPlacesToDisplay: 1,
+                FieldDefinitionType: "PercentOfSiteTreated",
+            }),
+            this.utilityFunctionsService.createDecimalColumnDef("Recorded WQMP Area (ac)", "RecordedWQMPAreaInAcres"),
+            this.utilityFunctionsService.createDecimalColumnDef("Calculated Boundary Acreage", "CalculatedBoundaryAcreage", {
+                FieldDefinitionType: "CalculatedBoundaryAcreage",
+            }),
+            this.utilityFunctionsService.createDecimalColumnDef("Drainage Area Treated (ac)", "DrainageAreaTreatedAcres", {
+                FieldDefinitionType: "DrainageAreaTreated",
+            }),
+            this.utilityFunctionsService.createDecimalColumnDef("% Captured", "PercentCaptured", {
+                DecimalPlacesToDisplay: 1,
+                FieldDefinitionType: "PercentCaptured",
+                FieldDefinitionLabelOverride: "% Captured",
+            }),
+            this.utilityFunctionsService.createDecimalColumnDef("% Retained", "PercentRetained", {
+                DecimalPlacesToDisplay: 1,
+                FieldDefinitionType: "PercentRetained",
+                FieldDefinitionLabelOverride: "% Retained",
+            }),
+            this.utilityFunctionsService.createBasicColumnDef("Dry Weather Flow Override", "DryWeatherFlowOverrideDisplayName", {
+                UseCustomDropdownFilter: true,
+                FieldDefinitionType: "DryWeatherFlowOverrideID",
+                FieldDefinitionLabelOverride: "Dry Weather Flow Override",
+            }),
+            this.utilityFunctionsService.createBasicColumnDef("Notes", "QuickBMPNote", { Width: 200 }),
+        ];
+        return defs.map((def) => ({ ...def, wrapHeaderText: true, autoHeaderHeight: true }));
     }
 
     public handleMapReady(event: NeptuneMapInitEvent, boundingBox?: BoundingBoxDto) {

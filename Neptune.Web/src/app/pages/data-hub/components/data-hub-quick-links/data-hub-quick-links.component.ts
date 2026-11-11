@@ -29,6 +29,7 @@ export class DataHubQuickLinksComponent {
         trash: [
             { label: "OVTA List", routerLink: "/trash/onland-visual-trash-assessments" },
             { label: "Trash Analysis Areas", routerLink: "/trash/trash-analysis-areas" },
+            { label: "Trash Analysis Area Download", routerLink: "/data-hub/trash-analysis-area-download" },
             { label: "Land Use Blocks", routerLink: "/trash/land-use-blocks" },
         ],
         county: [

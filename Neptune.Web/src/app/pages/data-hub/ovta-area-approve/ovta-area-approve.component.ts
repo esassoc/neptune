@@ -8,6 +8,7 @@ import { PageHeaderComponent } from "src/app/shared/components/page-header/page-
 import { Alert } from "src/app/shared/models/alert";
 import { AlertContext } from "src/app/shared/models/enums/alert-context.enum";
 import { AlertService } from "src/app/shared/services/alert.service";
+import { jurisdictionErrorMessage, STAGED_JURISDICTION_FORBIDDEN_MESSAGE } from "src/app/shared/helpers/jurisdiction-forbidden";
 
 @Component({
     selector: "ovta-area-approve",
@@ -59,9 +60,10 @@ export class OvtaAreaApproveComponent implements OnInit {
                     this.alertService.pushAlert(new Alert(`${count} OVTA Area(s) successfully uploaded.`, AlertContext.Success, true));
                 });
             },
-            error: () => {
+            error: (err) => {
                 this.isWorking.set(false);
-                this.alertService.pushAlert(new Alert("Approval failed. Refresh to see the latest staging report.", AlertContext.Danger, true));
+                const message = jurisdictionErrorMessage(err, "Approval failed. Refresh to see the latest staging report.", STAGED_JURISDICTION_FORBIDDEN_MESSAGE);
+                this.alertService.pushAlert(new Alert(message, AlertContext.Danger, true));
                 this.loadReport();
             },
         });

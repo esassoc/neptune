@@ -20,6 +20,7 @@ import {
     filter,
     finalize,
     map,
+    merge,
     of,
     scan,
     shareReplay,
@@ -60,6 +61,9 @@ import { MarkerHelper } from "src/app/shared/helpers/marker-helper";
 import { PermitTypeLayerComponent } from "src/app/shared/components/leaflet/layers/permit-type-layer/permit-type-layer.component";
 import { OverlayMode } from "src/app/shared/components/leaflet/layers/generic-wms-wfs-layer/overlay-mode.enum";
 import { OnlandVisualTrashAssessmentAreaService } from "src/app/shared/generated/api/onland-visual-trash-assessment-area.service";
+import { OvtaAreaScoreType } from "src/app/shared/components/leaflet/layers/ovta-areas-layer/ovta-areas-layer.component";
+import { BtnGroupRadioInputComponent, IBtnGroupRadioInputOption } from "src/app/shared/components/inputs/btn-group-radio-input/btn-group-radio-input.component";
+import { OvtaResultsTableComponent } from "src/app/pages/trash-module/trash-home/ovta-results-table/ovta-results-table.component";
 
 @Component({
     selector: "trash-home",
@@ -88,6 +92,8 @@ import { OnlandVisualTrashAssessmentAreaService } from "src/app/shared/generated
         DatePipe,
         LoadingDirective,
         NoteComponent,
+        BtnGroupRadioInputComponent,
+        OvtaResultsTableComponent,
     ],
 })
 export class TrashHomeComponent implements OnInit {
@@ -123,6 +129,18 @@ export class TrashHomeComponent implements OnInit {
         "OVTA-Based Results",
         "No Metric, Map Overlay",
     ];
+
+    // NPT-1126: which score the OVTA Areas map layer is colored by. Independent of the results table's switches.
+    public ovtaMapScoreType: OvtaAreaScoreType = "MostRecent";
+    public readonly ovtaMapScoreTypeOptions: IBtnGroupRadioInputOption[] = [
+        { label: "Most Recent", value: "MostRecent" },
+        { label: "Baseline", value: "Baseline" },
+        { label: "Progress", value: "Progress" },
+    ];
+    // The toggle is re-created whenever OVTA-Based Results is re-selected, so highlight the current choice, not the first option.
+    public get ovtaMapScoreTypeLabel(): string {
+        return this.ovtaMapScoreTypeOptions.find((x) => x.value == this.ovtaMapScoreType)?.label;
+    }
 
     public areaBasedResults$: Observable<ResultsViewModel<AreaBasedAcreCalculationsDto>>;
     public loadResults$: Observable<ResultsViewModel<LoadResultsDto>>;
@@ -203,6 +221,13 @@ export class TrashHomeComponent implements OnInit {
         );
     }
 
+    // NPT-1126 rework: also true again from each jurisdiction change until the new results arrive. The spinner covers the
+    // section, so the last jurisdiction's notes (e.g. the Progress-without-Baseline list) don't linger while loading.
+    // The section stays rendered underneath, so the OVTA table keeps its Track and View choices.
+    private isLoadingSection$<T>(results$: Observable<ResultsViewModel<T>>): Observable<boolean> {
+        return merge(this.currentStormwaterJurisdiction$.pipe(map(() => true)), results$.pipe(map(() => false))).pipe(startWith(true), distinctUntilChanged());
+    }
+
     private trackRequest$<T>(source$: Observable<T>): Observable<T> {
         return defer(() => {
             this.loadingDeltaSubject.next(1);
@@ -270,18 +295,9 @@ export class TrashHomeComponent implements OnInit {
         // Per-section loading: true until that section's own request settles (success or failure).
         // Deliberately not OR'd with the page-wide isLoading$: an unrelated slow request (BMPs, bounding box)
         // must not pin a section's spinner after its own data has arrived.
-        this.isLoadingAreaBased$ = this.areaBasedResults$.pipe(
-            map(() => false),
-            startWith(true)
-        );
-        this.isLoadingLoadResults$ = this.loadResults$.pipe(
-            map(() => false),
-            startWith(true)
-        );
-        this.isLoadingOvtaResults$ = this.ovtaResults$.pipe(
-            map(() => false),
-            startWith(true)
-        );
+        this.isLoadingAreaBased$ = this.isLoadingSection$(this.areaBasedResults$);
+        this.isLoadingLoadResults$ = this.isLoadingSection$(this.loadResults$);
+        this.isLoadingOvtaResults$ = this.isLoadingSection$(this.ovtaResults$);
 
         this.treatmentBMPs$ = this.currentStormwaterJurisdiction$.pipe(
             switchMap((x) =>
@@ -507,6 +523,10 @@ export class TrashHomeComponent implements OnInit {
 
     public signUp(): void {
         this.authenticationService.signUp();
+    }
+
+    public onOvtaMapScoreTypeChange(scoreType: OvtaAreaScoreType): void {
+        this.ovtaMapScoreType = scoreType;
     }
 
     showScoreDefinitions() {

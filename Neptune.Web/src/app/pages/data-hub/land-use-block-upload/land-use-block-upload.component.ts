@@ -11,6 +11,7 @@ import { PageHeaderComponent } from "src/app/shared/components/page-header/page-
 import { Alert } from "src/app/shared/models/alert";
 import { AlertContext } from "src/app/shared/models/enums/alert-context.enum";
 import { AlertService } from "src/app/shared/services/alert.service";
+import { jurisdictionErrorMessage } from "src/app/shared/helpers/jurisdiction-forbidden";
 
 @Component({
     selector: "land-use-block-upload",
@@ -39,7 +40,7 @@ export class LandUseBlockUploadComponent implements OnInit {
 
     ngOnInit(): void {
         this.jurisdictionOptions$ = this.stormwaterJurisdictionService
-            .listStormwaterJurisdiction()
+            .listViewableStormwaterJurisdiction()
             .pipe(map((js) => js.map((j) => ({ Label: j.StormwaterJurisdictionName, Value: j.StormwaterJurisdictionID, disabled: false }) as FormInputOption)));
     }
 
@@ -71,9 +72,9 @@ export class LandUseBlockUploadComponent implements OnInit {
                 // enqueues the job via POST /land-use-blocks/staging/approve.
                 this.router.navigate(["/data-hub/land-use-block-upload/approve"]);
             },
-            error: () => {
+            error: (err) => {
                 this.isUploading.set(false);
-                this.alertService.pushAlert(new Alert("Upload failed. Check the file format and try again.", AlertContext.Danger, true));
+                this.alertService.pushAlert(new Alert(jurisdictionErrorMessage(err, "Upload failed. Check the file format and try again."), AlertContext.Danger, true));
             },
         });
     }

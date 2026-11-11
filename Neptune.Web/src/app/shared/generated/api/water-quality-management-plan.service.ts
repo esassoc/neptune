@@ -25,6 +25,8 @@ import { ProjectLoadReducingResultDto } from '../model/project-load-reducing-res
 // @ts-ignore
 import { QuickBMPDto } from '../model/quick-bmp-dto';
 // @ts-ignore
+import { QuickBMPGridDto } from '../model/quick-bmp-grid-dto';
+// @ts-ignore
 import { QuickBMPUpsertDto } from '../model/quick-bmp-upsert-dto';
 // @ts-ignore
 import { SourceControlBMPDto } from '../model/source-control-bmp-dto';
@@ -1602,6 +1604,57 @@ export class WaterQualityManagementPlanService extends BaseService {
         let localVarPath = `/water-quality-management-plans/lgu-audit-grid`;
         const { basePath, withCredentials } = this.configuration;
         return this.httpClient.request<Array<WaterQualityManagementPlanLGUAuditGridDto>>('get', `${basePath}${localVarPath}`,
+            {
+                context: localVarHttpContext,
+                responseType: <any>responseType_,
+                ...(withCredentials ? { withCredentials } : {}),
+                headers: localVarHeaders,
+                observe: observe,
+                transferCache: localVarTransferCache,
+                reportProgress: reportProgress
+            }
+        );
+    }
+
+    /**
+     * @param observe set whether or not to return the data Observable as the body, response or events. defaults to returning the body.
+     * @param reportProgress flag to report request and response progress.
+     */
+    public listQuickBMPsAsGridDtoWaterQualityManagementPlan(observe?: 'body', reportProgress?: boolean, options?: {httpHeaderAccept?: 'text/plain' | 'application/json' | 'text/json', context?: HttpContext, transferCache?: boolean}): Observable<Array<QuickBMPGridDto>>;
+    public listQuickBMPsAsGridDtoWaterQualityManagementPlan(observe?: 'response', reportProgress?: boolean, options?: {httpHeaderAccept?: 'text/plain' | 'application/json' | 'text/json', context?: HttpContext, transferCache?: boolean}): Observable<HttpResponse<Array<QuickBMPGridDto>>>;
+    public listQuickBMPsAsGridDtoWaterQualityManagementPlan(observe?: 'events', reportProgress?: boolean, options?: {httpHeaderAccept?: 'text/plain' | 'application/json' | 'text/json', context?: HttpContext, transferCache?: boolean}): Observable<HttpEvent<Array<QuickBMPGridDto>>>;
+    public listQuickBMPsAsGridDtoWaterQualityManagementPlan(observe: any = 'body', reportProgress: boolean = false, options?: {httpHeaderAccept?: 'text/plain' | 'application/json' | 'text/json', context?: HttpContext, transferCache?: boolean}): Observable<any> {
+
+        let localVarHeaders = this.defaultHeaders;
+
+        const localVarHttpHeaderAcceptSelected: string | undefined = options?.httpHeaderAccept ?? this.configuration.selectHeaderAccept([
+            'text/plain',
+            'application/json',
+            'text/json'
+        ]);
+        if (localVarHttpHeaderAcceptSelected !== undefined) {
+            localVarHeaders = localVarHeaders.set('Accept', localVarHttpHeaderAcceptSelected);
+        }
+
+        const localVarHttpContext: HttpContext = options?.context ?? new HttpContext();
+
+        const localVarTransferCache: boolean = options?.transferCache ?? true;
+
+
+        let responseType_: 'text' | 'json' | 'blob' = 'json';
+        if (localVarHttpHeaderAcceptSelected) {
+            if (localVarHttpHeaderAcceptSelected.startsWith('text')) {
+                responseType_ = 'text';
+            } else if (this.configuration.isJsonMime(localVarHttpHeaderAcceptSelected)) {
+                responseType_ = 'json';
+            } else {
+                responseType_ = 'blob';
+            }
+        }
+
+        let localVarPath = `/water-quality-management-plans/quick-bmps/grid`;
+        const { basePath, withCredentials } = this.configuration;
+        return this.httpClient.request<Array<QuickBMPGridDto>>('get', `${basePath}${localVarPath}`,
             {
                 context: localVarHttpContext,
                 responseType: <any>responseType_,

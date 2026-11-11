@@ -109,5 +109,42 @@ namespace Neptune.Tests
 
             Assert.IsNull(found);
         }
+
+        [TestMethod]
+        public async Task GetWebServiceUserByTokenAsync_ReturnsActiveStaff()
+        {
+            var token = await SetPersonAndGenerateTokenAsync(RoleEnum.JurisdictionEditor, isActive: true);
+
+            var found = await People.GetWebServiceUserByTokenAsync(_dbContext, token);
+
+            Assert.IsNotNull(found);
+            Assert.AreEqual(_personID, found!.PersonID);
+        }
+
+        [TestMethod]
+        public async Task GetWebServiceUserByTokenAsync_RefusesUnassigned()
+        {
+            // ExternalAPI exports skip the jurisdiction visibility rules, so a self sign-up's token must not work.
+            var token = await SetPersonAndGenerateTokenAsync(RoleEnum.Unassigned, isActive: true);
+
+            Assert.IsNull(await People.GetWebServiceUserByTokenAsync(_dbContext, token));
+        }
+
+        [TestMethod]
+        public async Task GetWebServiceUserByTokenAsync_RefusesInactiveStaff()
+        {
+            var token = await SetPersonAndGenerateTokenAsync(RoleEnum.Admin, isActive: false);
+
+            Assert.IsNull(await People.GetWebServiceUserByTokenAsync(_dbContext, token));
+        }
+
+        private async Task<Guid> SetPersonAndGenerateTokenAsync(RoleEnum role, bool isActive)
+        {
+            var person = _dbContext.People.Single(x => x.PersonID == _personID);
+            person.RoleID = (int)role;
+            person.IsActive = isActive;
+            await _dbContext.SaveChangesAsync();
+            return await People.GenerateAndPersistWebServiceAccessTokenAsync(_dbContext, _personID);
+        }
     }
 }

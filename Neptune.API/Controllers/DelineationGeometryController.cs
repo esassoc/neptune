@@ -52,6 +52,12 @@ namespace Neptune.API.Controllers
                 return Ok(dto);
             }
 
+            // NPT-1135: checked before the file is staged in blob storage, so a rejected upload leaves nothing behind.
+            if (!await CallerIsAssignedToJurisdictionAsync(stormwaterJurisdictionID))
+            {
+                return Forbid();
+            }
+
             var currentPerson = People.GetByID(DbContext, CallingUser.PersonID);
 
             // Stage the upload in blob storage first so both the feature-class validation below and the
@@ -176,6 +182,14 @@ namespace Neptune.API.Controllers
         [JurisdictionEditFeature]
         public async Task<ActionResult<int>> Approve()
         {
+            // NPT-1135: every staged row must be in one of the caller's jurisdictions (covers rows staged
+            // before the upload check existed, or a caller unassigned since uploading).
+            var stagedJurisdictionIDs = await DelineationStagings.ListStagedStormwaterJurisdictionIDsAsync(DbContext, CallingUser.PersonID);
+            if (!await CallerIsAssignedToJurisdictionsAsync(stagedJurisdictionIDs))
+            {
+                return Forbid();
+            }
+
             var currentPerson = People.GetByID(DbContext, CallingUser.PersonID);
 
             // Re-validate server-side so a client that bypasses the SPA's gate can't commit a staging batch with errors.
@@ -201,8 +215,13 @@ namespace Neptune.API.Controllers
         [HttpPost("download")]
         [JurisdictionEditFeature]
         [Produces("application/zip")]
-        public async Task<FileResult> Download([FromBody] DelineationGdbDownloadRequestDto dto)
+        public async Task<IActionResult> Download([FromBody] DelineationGdbDownloadRequestDto dto)
         {
+            if (!await CallerIsAssignedToJurisdictionAsync(dto.StormwaterJurisdictionID))
+            {
+                return Forbid();
+            }
+
             var (bytes, fileName) = await DelineationGdbExport.BuildJurisdictionGdbExportAsync(DbContext, gdalApiService, dto.StormwaterJurisdictionID, dto.DelineationTypeID);
             return File(bytes, "application/zip", fileName);
         }

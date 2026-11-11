@@ -85,9 +85,17 @@ namespace Neptune.EFModels.Entities
             return dto;
         }
 
-        public static List<int> ListProjectIDs(NeptuneDbContext dbContext)
+        // Every project for admins, otherwise only those in jurisdictions the person is assigned to. Unlike
+        // ListByPersonIDAsDtoAsync this never falls back to the public jurisdictions, so it is safe as a permission scope.
+        public static Task<List<int>> ListProjectIDsInAssignedJurisdictionsAsync(NeptuneDbContext dbContext, PersonDto person)
         {
-            return dbContext.Projects.AsNoTracking().Select(x => x.ProjectID).ToList();
+            var projects = dbContext.Projects.AsNoTracking();
+            if (person.RoleID is not ((int)RoleEnum.Admin or (int)RoleEnum.SitkaAdmin))
+            {
+                projects = projects.Where(x => x.StormwaterJurisdiction.StormwaterJurisdictionPeople.Any(sjp => sjp.PersonID == person.PersonID));
+            }
+
+            return projects.Select(x => x.ProjectID).ToListAsync();
         }
 
         public static async Task<List<ProjectDto>> ListByPersonIDAsDtoAsync(NeptuneDbContext dbContext, int personID)

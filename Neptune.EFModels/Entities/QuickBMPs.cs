@@ -30,6 +30,35 @@ public static class QuickBMPs
     }
 
     /// <summary>
+    /// One row per simple BMP on every WQMP the person can see on the WQMP list page (NPT-1137).
+    /// Scoping comes from <see cref="vWaterQualityManagementPlanDetaileds.GetViewableByPersonQueryableAsync"/>
+    /// so the two grids can't drift apart.
+    /// </summary>
+    public static async Task<List<QuickBMPGridDto>> ListViewableByPersonAsGridDtoAsync(NeptuneDbContext dbContext, PersonDto personDto)
+    {
+        var viewableWaterQualityManagementPlans = await vWaterQualityManagementPlanDetaileds.GetViewableByPersonQueryableAsync(dbContext, personDto);
+
+        var rows = await dbContext.QuickBMPs
+            .AsNoTracking()
+            .Join(viewableWaterQualityManagementPlans,
+                x => x.WaterQualityManagementPlanID,
+                x => x.WaterQualityManagementPlanID,
+                (quickBMP, waterQualityManagementPlan) => new
+                {
+                    QuickBMP = quickBMP,
+                    quickBMP.TreatmentBMPType.TreatmentBMPTypeName,
+                    WaterQualityManagementPlan = waterQualityManagementPlan,
+                })
+            .ToListAsync();
+
+        return rows
+            .Select(x => x.QuickBMP.AsGridDto(x.TreatmentBMPTypeName, x.WaterQualityManagementPlan))
+            .OrderBy(x => x.WaterQualityManagementPlanName)
+            .ThenBy(x => x.QuickBMPName)
+            .ToList();
+    }
+
+    /// <summary>
     /// Validates a list of QuickBMPUpsertDto against the rules shared between the manual
     /// merge endpoint and the AI-extraction approve endpoint (NPT-1047): unique names per
     /// WQMP, note length, percent ranges, captured ≥ retained, and total site treated ≤ 100%.

@@ -27,7 +27,6 @@ export class PersonSimpleDto {
     OrganizationName?: string | null;
     ReceiveSupportEmails?: boolean;
     ReceiveRSBRevisionRequestEmails?: boolean;
-    WebServiceAccessToken?: string | null;
     IsOCTAGrantReviewer?: boolean;
     readonly FullName?: string | null;
     HasAssignedStormwaterJurisdiction?: boolean;
@@ -53,7 +52,6 @@ export interface PersonSimpleDtoForm {
     OrganizationName?: FormControl<string>;
     ReceiveSupportEmails?: FormControl<boolean>;
     ReceiveRSBRevisionRequestEmails?: FormControl<boolean>;
-    WebServiceAccessToken?: FormControl<string>;
     IsOCTAGrantReviewer?: FormControl<boolean>;
     FullName?: FormControl<string>;
     HasAssignedStormwaterJurisdiction?: FormControl<boolean>;
@@ -211,16 +209,6 @@ export class PersonSimpleDtoFormControls {
         }
     );
     public static ReceiveRSBRevisionRequestEmails = (value: FormControlState<boolean> | boolean = undefined, formControlOptions?: FormControlOptions | null) => new FormControl<boolean>(
-        value,
-        formControlOptions ?? 
-        {
-            nonNullable: false,
-            validators: 
-            [
-            ],
-        }
-    );
-    public static WebServiceAccessToken = (value: FormControlState<string> | string = undefined, formControlOptions?: FormControlOptions | null) => new FormControl<string>(
         value,
         formControlOptions ?? 
         {

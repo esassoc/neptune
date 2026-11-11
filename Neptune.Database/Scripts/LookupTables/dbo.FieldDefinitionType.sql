@@ -145,7 +145,9 @@ USING (VALUES
 (144, 'CurrentLoadingRate', 'Current Net Loading Rate'),
 (145, 'BMPTrashTreatmentStatus', 'BMP Trash Treatment Status'),
 (146, 'WQMPTrashTreatmentStatus', 'WQMP Trash Treatment Status'),
-(147, 'DownstreamOfNonModeledBMP', 'Downstream of Non-Modeled BMP?')
+(147, 'DownstreamOfNonModeledBMP', 'Downstream of Non-Modeled BMP?'),
+(148, 'CalculatedBoundaryAcreage', 'Calculated Boundary Acreage'),
+(149, 'DrainageAreaTreated', 'Drainage Area Treated (ac)')
 )
 AS Source (FieldDefinitionTypeID, FieldDefinitionTypeName, FieldDefinitionTypeDisplayName)
 ON Target.FieldDefinitionTypeID = Source.FieldDefinitionTypeID

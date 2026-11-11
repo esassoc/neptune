@@ -1,9 +1,11 @@
 using System;
 using System.Linq;
+using System.Reflection;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Storage;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
+using Neptune.API.Controllers;
 using Neptune.API.Services.Authorization;
 using Neptune.EFModels.Entities;
 
@@ -169,6 +171,67 @@ namespace Neptune.Tests
             }
 
             AssertScoped(new TreatmentBMPEditFeature(), RoleEnum.JurisdictionEditor, row.TreatmentBMPID, row.StormwaterJurisdictionID);
+        }
+
+        [TestMethod]
+        public void LandUseBlockEditFeature_IsJurisdictionScoped()
+        {
+            // NPT-1145: Editors and Managers can edit attributes on blocks in their assigned jurisdictions.
+            var row = _dbContext.LandUseBlocks.AsNoTracking()
+                .Select(x => new { x.LandUseBlockID, x.StormwaterJurisdictionID })
+                .FirstOrDefault();
+            if (row == null)
+            {
+                Assert.Inconclusive("No LandUseBlocks in local DB.");
+                return;
+            }
+
+            AssertScoped(new LandUseBlockEditFeature(), RoleEnum.JurisdictionEditor, row.LandUseBlockID, row.StormwaterJurisdictionID);
+            AssertScoped(new LandUseBlockEditFeature(), RoleEnum.JurisdictionManager, row.LandUseBlockID, row.StormwaterJurisdictionID);
+        }
+
+        [TestMethod]
+        public void LandUseBlockUpdate_UsesScopedFeatureWithRoutedID()
+        {
+            // NPT-1145: JurisdictionScopedFeature reads the id from RouteData and skips the jurisdiction check when
+            // it's missing, so the PUT template must carry {landUseBlockID} — a query-string id would let any
+            // Editor edit any jurisdiction's blocks.
+            var method = typeof(LandUseBlockController).GetMethod(nameof(LandUseBlockController.Update), BindingFlags.Public | BindingFlags.Instance);
+            Assert.IsNotNull(method);
+            Assert.IsTrue(method.GetCustomAttributes(typeof(LandUseBlockEditFeature), true).Any(), "Update must use [LandUseBlockEditFeature].");
+            Assert.IsFalse(method.GetCustomAttributes(typeof(AdminFeature), true).Any(), "Update must not be Admin-only.");
+            Assert.IsFalse(method.GetCustomAttributes(typeof(JurisdictionEditFeature), true).Any(), "Update needs the scoped attribute, not the role-only one.");
+            Assert.IsFalse(method.GetCustomAttributes(typeof(JurisdictionManageFeature), true).Any(), "Update must not be Manager-only.");
+
+            var httpPut = method.GetCustomAttributes(typeof(HttpPutAttribute), true).Cast<HttpPutAttribute>().Single();
+            StringAssert.Contains(httpPut.Template, "{landUseBlockID}", "The landUseBlockID must be a route value for the scoped check to run.");
+        }
+
+        [TestMethod]
+        public void ProjectViewFeature_IsJurisdictionScoped_WithOCTAReviewerException()
+        {
+            var project = _dbContext.Projects.FirstOrDefault();
+            if (project == null)
+            {
+                Assert.Inconclusive("No Projects in local DB.");
+                return;
+            }
+
+            project.ShareOCTAM2Tier2Scores = false;
+            _dbContext.SaveChanges();
+            var feature = new ProjectViewFeature();
+            AssertScoped(feature, RoleEnum.JurisdictionEditor, project.ProjectID, project.StormwaterJurisdictionID);
+
+            var unassignedReviewer = new Person { RoleID = (int)RoleEnum.Unassigned, IsOCTAGrantReviewer = true };
+            Assert.IsInstanceOfType(feature.Evaluate(_dbContext, unassignedReviewer, project.ProjectID), typeof(ForbidResult),
+                "An OCTA grant reviewer must get 403 on a project that isn't shared with the program.");
+
+            project.ShareOCTAM2Tier2Scores = true;
+            _dbContext.SaveChanges();
+            Assert.IsNull(feature.Evaluate(_dbContext, unassignedReviewer, project.ProjectID),
+                "An Unassigned OCTA grant reviewer must be allowed on a shared project.");
+            Assert.IsInstanceOfType(feature.Evaluate(_dbContext, new Person { RoleID = (int)RoleEnum.Unassigned }, project.ProjectID), typeof(ForbidResult),
+                "An Unassigned non-reviewer must get 403 even on a shared project.");
         }
 
         [TestMethod]

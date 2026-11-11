@@ -100,6 +100,14 @@ public static class People
         return GetImpl(dbContext).AsNoTracking().SingleOrDefaultAsync(x => x.WebServiceAccessToken == webServiceAccessToken);
     }
 
+    // What the ExternalAPI authenticates with: the token's owner, but only while they may use web services.
+    // A token outlives a role change or deactivation, so the owner is checked on every request.
+    public static async Task<Person?> GetWebServiceUserByTokenAsync(NeptuneDbContext dbContext, Guid webServiceAccessToken)
+    {
+        var person = await GetByWebServiceAccessTokenAsync(dbContext, webServiceAccessToken);
+        return person != null && person.CanUseWebServices() ? person : null;
+    }
+
     public static async Task<Guid> GenerateAndPersistWebServiceAccessTokenAsync(NeptuneDbContext dbContext, int personID)
     {
         var person = await dbContext.People.SingleAsync(x => x.PersonID == personID);

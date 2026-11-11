@@ -9,10 +9,13 @@ import { PageHeaderComponent } from "../../../shared/components/page-header/page
 import { TrashGeneratingUnitService } from "../../../shared/generated/api/trash-generating-unit.service";
 import { TrashGeneratingUnitGridDto } from "../../../shared/generated/model/trash-generating-unit-grid-dto";
 import { LoadingDirective } from "src/app/shared/directives/loading.directive";
+import { RouterLink } from "@angular/router";
+import { IconComponent } from "src/app/shared/components/icon/icon.component";
+import { AuthenticationService } from "src/app/services/authentication.service";
 
 @Component({
     selector: "trash-trash-generating-unit-index",
-    imports: [PageHeaderComponent, AlertDisplayComponent, NeptuneGridComponent, AsyncPipe, LoadingDirective],
+    imports: [PageHeaderComponent, AlertDisplayComponent, NeptuneGridComponent, AsyncPipe, LoadingDirective, RouterLink, IconComponent],
     templateUrl: "./trash-trash-generating-unit-index.component.html",
     styleUrl: "./trash-trash-generating-unit-index.component.scss",
 })
@@ -21,7 +24,15 @@ export class TrashTrashGeneratingUnitIndexComponent {
     public trashGeneratingUnitsColumnDefs: ColDef[];
     public isLoading = true;
 
-    constructor(private trashGeneratingUnitService: TrashGeneratingUnitService, private utilityFunctionsService: UtilityFunctionsService) {}
+    constructor(
+        private trashGeneratingUnitService: TrashGeneratingUnitService,
+        private utilityFunctionsService: UtilityFunctionsService,
+        private authenticationService: AuthenticationService
+    ) {}
+
+    public currentUserHasJurisdictionEditPermission(): boolean {
+        return this.authenticationService.doesCurrentUserHaveJurisdictionEditPermission();
+    }
 
     ngOnInit() {
         this.trashGeneratingUnitsColumnDefs = [

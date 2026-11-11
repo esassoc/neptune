@@ -12,6 +12,7 @@ import { PageHeaderComponent } from "src/app/shared/components/page-header/page-
 import { Alert } from "src/app/shared/models/alert";
 import { AlertContext } from "src/app/shared/models/enums/alert-context.enum";
 import { AlertService } from "src/app/shared/services/alert.service";
+import { jurisdictionErrorMessage } from "src/app/shared/helpers/jurisdiction-forbidden";
 
 @Component({
     selector: "land-use-block-download",
@@ -35,7 +36,7 @@ export class LandUseBlockDownloadComponent implements OnInit {
 
     ngOnInit(): void {
         this.jurisdictionOptions$ = this.stormwaterJurisdictionService
-            .listStormwaterJurisdiction()
+            .listViewableStormwaterJurisdiction()
             .pipe(map((js) => js.map((j) => ({ Label: j.StormwaterJurisdictionName, Value: j.StormwaterJurisdictionID, disabled: false }) as FormInputOption)));
     }
 
@@ -57,9 +58,9 @@ export class LandUseBlockDownloadComponent implements OnInit {
                     a.click();
                     window.URL.revokeObjectURL(url);
                 },
-                error: () => {
+                error: (err) => {
                     this.isWorking.set(false);
-                    this.alertService.pushAlert(new Alert("Failed to build Land Use Block export.", AlertContext.Danger, true));
+                    this.alertService.pushAlert(new Alert(jurisdictionErrorMessage(err, "Failed to build Land Use Block export."), AlertContext.Danger, true));
                 },
             });
     }

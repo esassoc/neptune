@@ -33,17 +33,20 @@ public class LandUseBlockController(
 {
     [HttpGet]
     [AllowAnonymous]
-    public ActionResult<List<LandUseBlockGridDto>> List()
+    public async Task<ActionResult<List<LandUseBlockGridDto>>> List()
     {
-        var landUseBlockGridDtos = LandUseBlocks.List(dbContext);
-        return landUseBlockGridDtos;
+        // NPT-1135 rework: Admin/SitkaAdmin see every block; everyone else only their assigned jurisdictions'.
+        var landUseBlockGridDtos = await LandUseBlocks.ListForPersonAsync(DbContext, CallingUser);
+        return Ok(landUseBlockGridDtos);
     }
 
-    [HttpPut]
-    [AdminFeature]
-    public async Task<IActionResult> Update(int landUseBlockID, LandUseBlockUpsertDto landUseBlockUpsertDto)
+    // NPT-1145: the id must be a route value — LandUseBlockEditFeature reads it from RouteData, and
+    // skips the jurisdiction check if it isn't there.
+    [HttpPut("{landUseBlockID}")]
+    [LandUseBlockEditFeature]
+    public async Task<IActionResult> Update([FromRoute] int landUseBlockID, [FromBody] LandUseBlockUpsertDto landUseBlockUpsertDto)
     {
-        var landUseBlock = LandUseBlocks.GetByIDWithChangeTracking(dbContext, landUseBlockID);
+        var landUseBlock = LandUseBlocks.GetByIDWithChangeTracking(DbContext, landUseBlockID);
         await LandUseBlocks.Update(DbContext, landUseBlock, landUseBlockUpsertDto, CallingUser.PersonID);
         return Ok();
     }
@@ -60,6 +63,12 @@ public class LandUseBlockController(
         {
             result.Errors.Add("Please select a zipped File Geodatabase to upload.");
             return Ok(result);
+        }
+
+        // NPT-1135: checked before the file is staged in blob storage, so a rejected upload leaves nothing behind.
+        if (!await CallerIsAssignedToJurisdictionAsync(form.StormwaterJurisdictionID))
+        {
+            return Forbid();
         }
 
         var currentPerson = People.GetByID(DbContext, CallingUser.PersonID);
@@ -178,6 +187,14 @@ public class LandUseBlockController(
     [JurisdictionEditFeature]
     public async Task<ActionResult<int>> ApproveStaging()
     {
+        // NPT-1135: every staged row must be in one of the caller's jurisdictions (covers rows staged
+        // before the upload check existed, or a caller unassigned since uploading).
+        var stagedJurisdictionIDs = await LandUseBlockStagings.ListStagedStormwaterJurisdictionIDsAsync(DbContext, CallingUser.PersonID);
+        if (!await CallerIsAssignedToJurisdictionsAsync(stagedJurisdictionIDs))
+        {
+            return Forbid();
+        }
+
         // Re-validate server-side so a client that bypasses the SPA's gate can't commit a staging
         // batch with errors. The background job itself also runs ValidateStagings as a safety net.
         var report = await LandUseBlockStagings.BuildReportForCurrentUserAsync(DbContext, CallingUser.PersonID);
@@ -208,8 +225,13 @@ public class LandUseBlockController(
     [HttpPost("download-gdb")]
     [JurisdictionEditFeature]
     [Produces("application/zip")]
-    public async Task<FileResult> DownloadGdb([FromBody] LandUseBlockGdbDownloadRequestDto dto)
+    public async Task<IActionResult> DownloadGdb([FromBody] LandUseBlockGdbDownloadRequestDto dto)
     {
+        if (!await CallerIsAssignedToJurisdictionAsync(dto.StormwaterJurisdictionID))
+        {
+            return Forbid();
+        }
+
         var (bytes, fileName) = await LandUseBlockGdbExport.BuildJurisdictionGdbExportAsync(DbContext, gdalApiService, dto.StormwaterJurisdictionID);
         return File(bytes, "application/zip", fileName);
     }

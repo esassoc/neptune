@@ -14,6 +14,7 @@ import { NeptunePageTypeEnum } from "src/app/shared/generated/enum/neptune-page-
 import { Alert } from "src/app/shared/models/alert";
 import { AlertContext } from "src/app/shared/models/enums/alert-context.enum";
 import { AlertService } from "src/app/shared/services/alert.service";
+import { jurisdictionErrorMessage } from "src/app/shared/helpers/jurisdiction-forbidden";
 
 @Component({
     selector: "ovta-area-download",
@@ -37,7 +38,7 @@ export class OvtaAreaDownloadComponent implements OnInit {
 
     ngOnInit(): void {
         this.jurisdictionOptions$ = this.stormwaterJurisdictionService
-            .listStormwaterJurisdiction()
+            .listViewableStormwaterJurisdiction()
             .pipe(map((js) => js.map((j) => ({ Label: j.StormwaterJurisdictionName, Value: j.StormwaterJurisdictionID, disabled: false }) as FormInputOption)));
     }
 
@@ -62,9 +63,9 @@ export class OvtaAreaDownloadComponent implements OnInit {
                     a.click();
                     window.URL.revokeObjectURL(url);
                 },
-                error: () => {
+                error: (err) => {
                     this.isWorking.set(false);
-                    this.alertService.pushAlert(new Alert("Failed to build OVTA Area export.", AlertContext.Danger, true));
+                    this.alertService.pushAlert(new Alert(jurisdictionErrorMessage(err, "Failed to build OVTA Area export."), AlertContext.Danger, true));
                 },
             });
     }

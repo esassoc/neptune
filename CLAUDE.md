@@ -118,12 +118,15 @@ Custom `BaseAuthorizationAttribute` (implements `IAuthorizationFilter`). Derived
 | `FieldVisitEditFeature` / `FieldVisitManageFeature` | Edit / Manage roles + jurisdiction match against the routed field visit's BMP |
 | `MaintenanceRecordEditFeature` / `MaintenanceRecordManageFeature` | Edit / Manage roles + jurisdiction match against the routed maintenance record's BMP |
 | `TreatmentBMPAssessmentEditFeature` | Same as JurisdictionEditFeature + jurisdiction match against the routed assessment's BMP (also covers its photo endpoints) |
+| `LandUseBlockEditFeature` | Same as JurisdictionEditFeature + jurisdiction match against the routed land use block |
 | `UserViewFeature` | Any authenticated user |
 | `LoggedInUnclassifiedFeature` | Unassigned users |
 
 Note: the plain `Jurisdiction*Feature` attributes check **role only** — jurisdiction scoping must come from an entity-scoped attribute (the `*EditFeature` / `*ManageFeature` variants above, which resolve the route id and require `IsAssignedToStormwaterJurisdiction`) or an in-controller check against the caller's assigned jurisdictions. Every write endpoint routed by a record id should use one of these, not `JurisdictionEditFeature` / `JurisdictionManageFeature`.
 
 To scope a new record type, derive from `JurisdictionScopedFeature` (`Neptune.API/Services/Authorization/`): pass `EditRoles` or `ManageRoles`, set `RouteKey` to the route parameter name, and implement `GetStormwaterJurisdictionID` with a projection-only lookup that returns null when the record doesn't exist (see `FieldVisits.GetStormwaterJurisdictionIDForFeatureContextCheck`). The base returns 404 for a missing record before 403 for an out-of-jurisdiction caller, and Admin/SitkaAdmin always pass the jurisdiction match. Its public `Evaluate` lets tests check the decision without an HTTP context (see `JurisdictionScopedFeatureTests`).
+
+When the jurisdiction comes in the request body or form instead of the route (Data Hub uploads/downloads, NPT-1135), an attribute can't see it — authorization filters run before model binding. Keep the role attribute and check in the action with `SitkaController.CallerIsAssignedToJurisdictionAsync(id)` (or `CallerIsAssignedToJurisdictionsAsync` for a set, e.g. a staging batch), returning `Forbid()` on failure. Run it before any side effect, such as staging a file in blob storage. Don't use `ListViewableStormwaterJurisdictionIDsByPersonIDForBMPsAsync` as a permission check: it also returns the public jurisdictions for Unassigned users. On the SPA side, scope the jurisdiction picker with `listViewableStormwaterJurisdiction()`.
 
 Roles: Admin(1), SitkaAdmin(2), JurisdictionManager(3), JurisdictionEditor(4), Unassigned(5), Viewer(6), ExternalViewer(7).
 

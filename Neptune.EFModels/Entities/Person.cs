@@ -60,6 +60,14 @@ namespace Neptune.EFModels.Entities
             return IsAnonymousUser() || Role == Role.Unassigned;
         }
 
+        // The ExternalAPI exports skip the jurisdiction visibility rules, so its web-service tokens are for
+        // active staff only (the Data Hub page that issues them is Jurisdiction Manager/Editor-only too).
+        public bool CanUseWebServices()
+        {
+            return IsActive && (IsAdministrator() || RoleID == Role.JurisdictionManager.RoleID ||
+                                RoleID == Role.JurisdictionEditor.RoleID);
+        }
+
 
         public async Task DeleteFull(NeptuneDbContext dbContext)
         {

@@ -137,4 +137,13 @@ public static class LandUseBlockStagings
     {
         await dbContext.Database.ExecuteSqlAsync($"dbo.pLandUseBlockStagingDeleteByPersonID @PersonID = {personID}");
     }
+
+    public static Task<List<int>> ListStagedStormwaterJurisdictionIDsAsync(NeptuneDbContext dbContext, int personID)
+    {
+        return dbContext.LandUseBlockStagings.AsNoTracking()
+            .Where(x => x.UploadedByPersonID == personID)
+            .Select(x => x.StormwaterJurisdictionID)
+            .Distinct()
+            .ToListAsync();
+    }
 }

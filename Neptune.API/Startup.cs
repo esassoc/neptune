@@ -296,7 +296,9 @@ namespace Neptune.API
                 policy.AllowAnyOrigin();
                 policy.AllowAnyHeader();
                 policy.AllowAnyMethod();
-                policy.WithExposedHeaders("WWW-Authenticate");
+                // Content-Disposition lets the SPA (a different origin on QA/prod) read the server's
+                // filename on file downloads; without it saveBlobResponse falls back to a generic name.
+                policy.WithExposedHeaders("WWW-Authenticate", "Content-Disposition");
             });
 
             app.UseAuthentication();
@@ -311,12 +313,16 @@ namespace Neptune.API
             #region Swagger
             // Register swagger middleware and enable the swagger UI which will be 
             // accessible at https://<apihostname>/swagger
-            // NOTE: There is no auth on these endpoints out of the box.
-            app.UseSwagger();
-            app.UseSwaggerUI(c =>
+            // NOTE: There is no auth on these endpoints out of the box, so they are only served in
+            // Development. The checked-in swagger.json the SPA client is generated from is unaffected.
+            if (env.IsDevelopment())
             {
-                c.SwaggerEndpoint($"/swagger/v1/swagger.json", "V1");
-            });
+                app.UseSwagger();
+                app.UseSwaggerUI(c =>
+                {
+                    c.SwaggerEndpoint($"/swagger/v1/swagger.json", "V1");
+                });
+            }
             #endregion
 
             app.UseEndpoints(endpoints =>

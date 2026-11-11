@@ -1,4 +1,19 @@
 @use "/src/scss/abstracts" as *;
+@use "./ovta-results-layout" as layout;
+
+// NPT-1126 rework (Jira 54953): OVTA-Based Results swaps the 50/50 dropdown row for the columns ovta-results-table uses,
+// so the dropdowns sit over the Track switch and the score rules note over the table's note.
+.grid-12.ovta-results-layout {
+    @include layout.ovta-results-layout;
+
+    & > .g-col-6 {
+        grid-column: auto;
+    }
+
+    & > .g-col-12 {
+        grid-column: 1 / -1;
+    }
+}
 
 .hero {
     display: grid;
@@ -255,10 +270,17 @@ table.areaBasedCalculationControlTable td + td {
     border-left: 1px solid rgb(204, 204, 204);
 }
 
-.ovtaResults {
-    font-weight: bold;
-    border: none !important;
-    text-align: center;
+.ovta-map-score-toggle {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.5rem;
+    margin: 1rem 0 0.5rem;
+
+    // match the teal rule under the OVTA results table's switches
+    ::ng-deep .button-group {
+        border-bottom: 2px solid $primary;
+    }
 }
 
 .inline-display a:hover {

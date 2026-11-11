@@ -75,7 +75,7 @@ public class RegionalSubbasinController : SitkaController<RegionalSubbasinContro
     }
 
     [HttpPost("/graph-trace-as-feature-collection-from-point")]
-    [UserViewFeature]
+    [LoggedInUnclassifiedFeature]
     public ActionResult<FeatureCollection> GetRegionalSubbasinGraphTraceAsFeatureCollectionFromPoint([FromBody] CoordinateDto coordinateDto)
     {
         var featureCollection = RegionalSubbasins.GetRegionalSubbasinGraphTraceAsFeatureCollection(DbContext, coordinateDto);

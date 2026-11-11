@@ -6,6 +6,7 @@ using Microsoft.Extensions.Options;
 using Neptune.API.Services;
 using Neptune.API.Services.Authorization;
 using Neptune.Common;
+using Neptune.Common.Services.GDAL;
 using Neptune.EFModels.Entities;
 using Neptune.Models.DataTransferObjects;
 using System;
@@ -20,7 +21,8 @@ namespace Neptune.API.Controllers;
 public class TrashGeneratingUnitController(
     NeptuneDbContext dbContext,
     ILogger<TrashGeneratingUnitController> logger,
-    IOptions<NeptuneConfiguration> neptuneConfiguration)
+    IOptions<NeptuneConfiguration> neptuneConfiguration,
+    GDALAPIService gdalApiService)
     : SitkaController<TrashGeneratingUnitController>(dbContext, logger, neptuneConfiguration)
 {
     [HttpGet]
@@ -76,5 +78,21 @@ public class TrashGeneratingUnitController(
     {
         var lastUpdateDate = (await DbContext.vTrashGeneratingUnitLoadStatistics.FirstOrDefaultAsync())?.LastUpdateDate;
         return Ok(lastUpdateDate);
+    }
+
+    // NPT-1134: same roles as the grid endpoint, and unlike the role-only Land Use Block / OVTA Area /
+    // Delineation downloads, the requested jurisdiction must be one the caller can see in the grid.
+    [HttpPost("download-gdb")]
+    [JurisdictionEditFeature]
+    [Produces("application/zip")]
+    public async Task<IActionResult> DownloadGdb([FromBody] TrashGeneratingUnitGdbDownloadRequestDto dto)
+    {
+        if (!await TrashGeneratingUnitGdbExport.CanDownloadJurisdictionAsync(DbContext, CallingUser.PersonID, dto.StormwaterJurisdictionID))
+        {
+            return Forbid();
+        }
+
+        var (bytes, fileName) = await TrashGeneratingUnitGdbExport.BuildJurisdictionGdbExportAsync(DbContext, gdalApiService, dto.StormwaterJurisdictionID);
+        return File(bytes, "application/zip", fileName);
     }
 }

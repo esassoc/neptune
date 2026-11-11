@@ -7,19 +7,16 @@
  * https://openapi-generator.tech
  * Do not edit the class manually.
  */
+import { OVTAResultsLandUseRowDto } from './ovta-results-land-use-row-dto';
+import { OVTAResultsAreaDataIssueDto } from './ovta-results-area-data-issue-dto';
 
 
 import { FormControl, FormControlOptions, FormControlState, Validators } from "@angular/forms";
 export class OVTAResultsDto { 
-    PLUSumAcresWhereOVTAIsA?: number;
-    PLUSumAcresWhereOVTAIsB?: number;
-    PLUSumAcresWhereOVTAIsC?: number;
-    PLUSumAcresWhereOVTAIsD?: number;
-    ALUSumAcresWhereOVTAIsA?: number;
-    ALUSumAcresWhereOVTAIsB?: number;
-    ALUSumAcresWhereOVTAIsC?: number;
-    ALUSumAcresWhereOVTAIsD?: number;
+    Rows?: Array<OVTAResultsLandUseRowDto> | null;
+    AreasWithProgressButNoBaseline?: Array<OVTAResultsAreaDataIssueDto> | null;
     HasLandUseBlocks?: boolean;
+    HasOVTAAreas?: boolean;
     HasOVTAResults?: boolean;
     constructor(obj?: any) {
         Object.assign(this, obj);
@@ -27,20 +24,15 @@ export class OVTAResultsDto {
 }
 
 export interface OVTAResultsDtoForm { 
-    PLUSumAcresWhereOVTAIsA?: FormControl<number>;
-    PLUSumAcresWhereOVTAIsB?: FormControl<number>;
-    PLUSumAcresWhereOVTAIsC?: FormControl<number>;
-    PLUSumAcresWhereOVTAIsD?: FormControl<number>;
-    ALUSumAcresWhereOVTAIsA?: FormControl<number>;
-    ALUSumAcresWhereOVTAIsB?: FormControl<number>;
-    ALUSumAcresWhereOVTAIsC?: FormControl<number>;
-    ALUSumAcresWhereOVTAIsD?: FormControl<number>;
+    Rows?: FormControl<Array<OVTAResultsLandUseRowDto>>;
+    AreasWithProgressButNoBaseline?: FormControl<Array<OVTAResultsAreaDataIssueDto>>;
     HasLandUseBlocks?: FormControl<boolean>;
+    HasOVTAAreas?: FormControl<boolean>;
     HasOVTAResults?: FormControl<boolean>;
 }
 
 export class OVTAResultsDtoFormControls { 
-    public static PLUSumAcresWhereOVTAIsA = (value: FormControlState<number> | number = undefined, formControlOptions?: FormControlOptions | null) => new FormControl<number>(
+    public static Rows = (value: FormControlState<Array<OVTAResultsLandUseRowDto>> | Array<OVTAResultsLandUseRowDto> = undefined, formControlOptions?: FormControlOptions | null) => new FormControl<Array<OVTAResultsLandUseRowDto>>(
         value,
         formControlOptions ?? 
         {
@@ -50,67 +42,7 @@ export class OVTAResultsDtoFormControls {
             ],
         }
     );
-    public static PLUSumAcresWhereOVTAIsB = (value: FormControlState<number> | number = undefined, formControlOptions?: FormControlOptions | null) => new FormControl<number>(
-        value,
-        formControlOptions ?? 
-        {
-            nonNullable: false,
-            validators: 
-            [
-            ],
-        }
-    );
-    public static PLUSumAcresWhereOVTAIsC = (value: FormControlState<number> | number = undefined, formControlOptions?: FormControlOptions | null) => new FormControl<number>(
-        value,
-        formControlOptions ?? 
-        {
-            nonNullable: false,
-            validators: 
-            [
-            ],
-        }
-    );
-    public static PLUSumAcresWhereOVTAIsD = (value: FormControlState<number> | number = undefined, formControlOptions?: FormControlOptions | null) => new FormControl<number>(
-        value,
-        formControlOptions ?? 
-        {
-            nonNullable: false,
-            validators: 
-            [
-            ],
-        }
-    );
-    public static ALUSumAcresWhereOVTAIsA = (value: FormControlState<number> | number = undefined, formControlOptions?: FormControlOptions | null) => new FormControl<number>(
-        value,
-        formControlOptions ?? 
-        {
-            nonNullable: false,
-            validators: 
-            [
-            ],
-        }
-    );
-    public static ALUSumAcresWhereOVTAIsB = (value: FormControlState<number> | number = undefined, formControlOptions?: FormControlOptions | null) => new FormControl<number>(
-        value,
-        formControlOptions ?? 
-        {
-            nonNullable: false,
-            validators: 
-            [
-            ],
-        }
-    );
-    public static ALUSumAcresWhereOVTAIsC = (value: FormControlState<number> | number = undefined, formControlOptions?: FormControlOptions | null) => new FormControl<number>(
-        value,
-        formControlOptions ?? 
-        {
-            nonNullable: false,
-            validators: 
-            [
-            ],
-        }
-    );
-    public static ALUSumAcresWhereOVTAIsD = (value: FormControlState<number> | number = undefined, formControlOptions?: FormControlOptions | null) => new FormControl<number>(
+    public static AreasWithProgressButNoBaseline = (value: FormControlState<Array<OVTAResultsAreaDataIssueDto>> | Array<OVTAResultsAreaDataIssueDto> = undefined, formControlOptions?: FormControlOptions | null) => new FormControl<Array<OVTAResultsAreaDataIssueDto>>(
         value,
         formControlOptions ?? 
         {
@@ -121,6 +53,16 @@ export class OVTAResultsDtoFormControls {
         }
     );
     public static HasLandUseBlocks = (value: FormControlState<boolean> | boolean = undefined, formControlOptions?: FormControlOptions | null) => new FormControl<boolean>(
+        value,
+        formControlOptions ?? 
+        {
+            nonNullable: false,
+            validators: 
+            [
+            ],
+        }
+    );
+    public static HasOVTAAreas = (value: FormControlState<boolean> | boolean = undefined, formControlOptions?: FormControlOptions | null) => new FormControl<boolean>(
         value,
         formControlOptions ?? 
         {

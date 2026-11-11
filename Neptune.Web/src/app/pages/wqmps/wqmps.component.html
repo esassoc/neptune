@@ -27,36 +27,47 @@
 <page-header pageTitle="Water Quality Management Plans" [customRichTextTypeID]="customRichTextTypeID" [templateRight]="addButton"></page-header>
 <app-alert-display></app-alert-display>
 <div class="page-body">
-    @if (boundingBox$ | async; as boundingBox) {
-        @if (columnDefs$ | async; as columnDefs) {
-            <hybrid-map-grid
-                [rowData]="wqmps$ | async"
-                [columnDefs]="columnDefs"
-                downloadFileName="water-quality-management-plans"
-                entityIDField="WaterQualityManagementPlanID"
-                (onMapLoad)="handleMapReady($event, boundingBox)"
-                [selectedValue]="selectedWaterQualityManagementPlanID"
-                [selectionFromMap]="true"
-                (selectedValueChange)="onSelectedWaterQualityManagementPlanIDChanged($event)"
-                [showGdbDownloadOption]="(currentPersonCanEdit$ | async) ?? false"
-                [isDownloadingGdb]="isDownloadingGdb()"
-                (gdbDownloadRequested)="downloadGdb()"
-                [boundingBox]="boundingBox">
-                <wqmps-layer
-                    [map]="map"
-                    [layerControl]="layerControl"
-                    [mode]="OverlayMode.ReferenceWithInteractivity"
-                    [selectedID]="selectedWaterQualityManagementPlanID"
-                    [fitBoundsOnSelect]="zoomOnNextSelection"
-                    [filterToJurisdictionIDs]="wqmpJurisdictionIDs"
-                    (selected)="onSelectedWaterQualityManagementPlanIDChanged($event, true)">
-                </wqmps-layer>
-                @if (mapIsReady) {
-                    <parcel-layer [map]="map" [layerControl]="layerControl"></parcel-layer>
-                    <delineations-layer [map]="map" [layerControl]="layerControl" [displayOnLoad]="false"></delineations-layer>
-                    <jurisdictions-layer [map]="map" [layerControl]="layerControl" [mode]="OverlayMode.ReferenceOnly"></jurisdictions-layer>
+    <div class="wqmp-tabs">
+        <btn-group-radio-input [options]="tabOptions" [default]="activeTabLabel" (change)="onTabChange($event)"></btn-group-radio-input>
+    </div>
+
+    @switch (activeTab) {
+        @case ("wqmps") {
+            @if (boundingBox$ | async; as boundingBox) {
+                @if (columnDefs$ | async; as columnDefs) {
+                    <hybrid-map-grid
+                        [rowData]="wqmps$ | async"
+                        [columnDefs]="columnDefs"
+                        downloadFileName="water-quality-management-plans"
+                        entityIDField="WaterQualityManagementPlanID"
+                        (onMapLoad)="handleMapReady($event, boundingBox)"
+                        [selectedValue]="selectedWaterQualityManagementPlanID"
+                        [selectionFromMap]="true"
+                        (selectedValueChange)="onSelectedWaterQualityManagementPlanIDChanged($event)"
+                        [showGdbDownloadOption]="(currentPersonCanEdit$ | async) ?? false"
+                        [isDownloadingGdb]="isDownloadingGdb()"
+                        (gdbDownloadRequested)="downloadGdb()"
+                        [boundingBox]="boundingBox">
+                        <wqmps-layer
+                            [map]="map"
+                            [layerControl]="layerControl"
+                            [mode]="OverlayMode.ReferenceWithInteractivity"
+                            [selectedID]="selectedWaterQualityManagementPlanID"
+                            [fitBoundsOnSelect]="zoomOnNextSelection"
+                            [filterToJurisdictionIDs]="wqmpJurisdictionIDs"
+                            (selected)="onSelectedWaterQualityManagementPlanIDChanged($event, true)">
+                        </wqmps-layer>
+                        @if (mapIsReady) {
+                            <parcel-layer [map]="map" [layerControl]="layerControl"></parcel-layer>
+                            <delineations-layer [map]="map" [layerControl]="layerControl" [displayOnLoad]="false"></delineations-layer>
+                            <jurisdictions-layer [map]="map" [layerControl]="layerControl" [mode]="OverlayMode.ReferenceOnly"></jurisdictions-layer>
+                        }
+                    </hybrid-map-grid>
                 }
-            </hybrid-map-grid>
+            }
+        }
+        @case ("simple-bmps") {
+            <neptune-grid [rowData]="quickBMPs$ | async" [columnDefs]="quickBMPColumnDefs" [pagination]="true" downloadFileName="simple-bmps"></neptune-grid>
         }
     }
 </div>

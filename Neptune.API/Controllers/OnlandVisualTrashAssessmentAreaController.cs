@@ -217,6 +217,12 @@ public class OnlandVisualTrashAssessmentAreaController(
             return Ok(report);
         }
 
+        // NPT-1135: checked before the file is staged in blob storage, so a rejected upload leaves nothing behind.
+        if (!await CallerIsAssignedToJurisdictionAsync(form.StormwaterJurisdictionID))
+        {
+            return Forbid();
+        }
+
         var currentPerson = People.GetByID(DbContext, CallingUser.PersonID);
 
         // Stage the upload in blob storage first so both the feature-class validation below and the
@@ -351,6 +357,14 @@ public class OnlandVisualTrashAssessmentAreaController(
     [JurisdictionEditFeature]
     public async Task<ActionResult<int>> GdbApprove()
     {
+        // NPT-1135: every staged row must be in one of the caller's jurisdictions (covers rows staged
+        // before the upload check existed, or a caller unassigned since uploading).
+        var stagedJurisdictionIDs = await OnlandVisualTrashAssessmentAreaGdbExport.ListStagedStormwaterJurisdictionIDsAsync(DbContext, CallingUser.PersonID);
+        if (!await CallerIsAssignedToJurisdictionsAsync(stagedJurisdictionIDs))
+        {
+            return Forbid();
+        }
+
         var currentPerson = People.GetByID(DbContext, CallingUser.PersonID);
 
         // Re-validate server-side so a client that bypasses the SPA gate can't commit a staging batch with errors.
@@ -377,12 +391,18 @@ public class OnlandVisualTrashAssessmentAreaController(
     // OnlandVisualTrashAssessmentExportController.ExportAssessmentGeospatialData which used
     // [NeptuneViewAndRequiresJurisdictionsFeature]. The Data Hub link itself is JM/JE-gated,
     // but a user hitting the URL directly (e.g., from a saved link) shouldn't be locked out
-    // at the API. The export payload is already scoped to a single StormwaterJurisdictionID.
+    // at the API. NPT-1135: the requested jurisdiction must be one the caller is assigned to
+    // (Admin/SitkaAdmin: any).
     [HttpPost("download-gdb")]
     [UserViewFeature]
     [Produces("application/zip")]
-    public async Task<FileResult> DownloadGdb([FromBody] OvtaAreaGdbDownloadRequestDto dto)
+    public async Task<IActionResult> DownloadGdb([FromBody] OvtaAreaGdbDownloadRequestDto dto)
     {
+        if (!await CallerIsAssignedToJurisdictionAsync(dto.StormwaterJurisdictionID))
+        {
+            return Forbid();
+        }
+
         var (bytes, fileName) = await OnlandVisualTrashAssessmentAreaGdbExport.BuildJurisdictionGdbExportAsync(DbContext, gdalApiService, dto.StormwaterJurisdictionID);
         return File(bytes, "application/zip", fileName);
     }

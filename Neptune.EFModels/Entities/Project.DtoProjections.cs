@@ -70,7 +70,6 @@ public static class ProjectDtoProjections
             OrganizationName = x.PrimaryContactPerson.Organization.OrganizationName,
             ReceiveSupportEmails = x.PrimaryContactPerson.ReceiveSupportEmails,
             ReceiveRSBRevisionRequestEmails = x.PrimaryContactPerson.ReceiveRSBRevisionRequestEmails,
-            WebServiceAccessToken = x.PrimaryContactPerson.WebServiceAccessToken,
             IsOCTAGrantReviewer = x.PrimaryContactPerson.IsOCTAGrantReviewer,
             HasAssignedStormwaterJurisdiction = x.PrimaryContactPerson.StormwaterJurisdictionPeople.Any()
         },
@@ -91,7 +90,6 @@ public static class ProjectDtoProjections
             OrganizationName = x.CreatePerson.Organization.OrganizationName,
             ReceiveSupportEmails = x.CreatePerson.ReceiveSupportEmails,
             ReceiveRSBRevisionRequestEmails = x.CreatePerson.ReceiveRSBRevisionRequestEmails,
-            WebServiceAccessToken = x.CreatePerson.WebServiceAccessToken,
             IsOCTAGrantReviewer = x.CreatePerson.IsOCTAGrantReviewer,
             HasAssignedStormwaterJurisdiction = x.CreatePerson.StormwaterJurisdictionPeople.Any()
         },

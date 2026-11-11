@@ -157,6 +157,8 @@ namespace Neptune.EFModels.Entities
         public static readonly FieldDefinitionTypeBMPTrashTreatmentStatus BMPTrashTreatmentStatus = FieldDefinitionTypeBMPTrashTreatmentStatus.Instance;
         public static readonly FieldDefinitionTypeWQMPTrashTreatmentStatus WQMPTrashTreatmentStatus = FieldDefinitionTypeWQMPTrashTreatmentStatus.Instance;
         public static readonly FieldDefinitionTypeDownstreamOfNonModeledBMP DownstreamOfNonModeledBMP = FieldDefinitionTypeDownstreamOfNonModeledBMP.Instance;
+        public static readonly FieldDefinitionTypeCalculatedBoundaryAcreage CalculatedBoundaryAcreage = FieldDefinitionTypeCalculatedBoundaryAcreage.Instance;
+        public static readonly FieldDefinitionTypeDrainageAreaTreated DrainageAreaTreated = FieldDefinitionTypeDrainageAreaTreated.Instance;
 
         public static readonly List<FieldDefinitionType> All;
         public static readonly ReadOnlyDictionary<int, FieldDefinitionType> AllLookupDictionary;
@@ -166,7 +168,7 @@ namespace Neptune.EFModels.Entities
         /// </summary>
         static FieldDefinitionType()
         {
-            All = new List<FieldDefinitionType> { IsPrimaryContactOrganization, Organization, Password, MeasurementUnit, PhotoCaption, PhotoCredit, PhotoTiming, PrimaryContact, OrganizationType, Username, ExternalLinks, RoleName, ChartLastUpdatedDate, TreatmentBMPType, ConveyanceFunctionsAsIntended, AssessmentScoreWeight, ObservationScore, AlternativeScore, AssessmentForInternalUseOnly, TreatmentBMPDesignDepth, ReceivesSystemCommunications, Jurisdiction, Delineation, TreatmentBMP, TreatmentBMPAssessmentObservationType, ObservationCollectionMethod, ObservationThresholdType, ObservationTargetType, MeasurementUnitLabel, PropertiesToObserve, MinimumNumberOfObservations, MaximumNumberOfObservations, MinimumValueOfEachObservation, MaximumValueOfEachObservation, DefaultThresholdValue, DefaultBenchmarkValue, AssessmentFailsIfObservationFails, CustomAttributeType, CustomAttributeDataType, MaintenanceRecordType, MaintenanceRecord, AttributeTypePurpose, FundingSource, IsPostMaintenanceAssessment, FundingEvent, FieldVisit, FieldVisitStatus, WaterQualityManagementPlan, Parcel, RequiredLifespanOfInstallation, RequiredFieldVisitsPerYear, RequiredPostStormFieldVisitsPerYear, WaterQualityManagementPlanDocumentType, HasAllRequiredDocuments, DateOfLastInventoryChange, TrashCaptureStatus, OnlandVisualTrashAssessment, OnlandVisualTrashAssessmentNotes, DelineationType, BaselineScore, SizingBasis, ProgressScore, AssessmentScore, ViaFullCapture, ViaPartialCapture, ViaOVTAScore, TotalAchieved, TargetLoadReduction, TrashGenerationRate, LandUse, Area, ImperviousArea, GrossArea, LandUseStatistics, RegionalSubbasin, AverageDivertedFlowrate, AverageTreatmentFlowrate, DesignDryWeatherTreatmentCapacity, DesignLowFlowDiversionCapacity, DesignMediaFiltrationRate, DesignResidenceTimeForPermanentPool, DiversionRate, DrawdownTimeForWQDetentionVolume, EffectiveFootprint, EffectiveRetentionDepth, InfiltrationDischargeRate, InfiltrationSurfaceArea, MediaBedFootprint, MonthsOfOperationID, PermanentPoolOrWetlandVolume, RoutingConfiguration, StorageVolumeBelowLowestOutletElevation, SummerHarvestedWaterDemand, TimeOfConcentrationID, DrawdownTimeForDetentionVolume, TotalEffectiveBMPVolume, TotalEffectiveDrywellBMPVolume, TreatmentRate, UnderlyingHydrologicSoilGroupID, UnderlyingInfiltrationRate, UpstreamBMP, ExtendedDetentionSurchargeVolume, WettedFootprint, WinterHarvestedWaterDemand, PercentOfSiteTreated, PercentCaptured, PercentRetained, AreaWithinWQMP, Watershed, DesignStormwaterDepth, FullyParameterized, HydromodificationApplies, DelineationStatus, DryWeatherFlowOverrideID, ModeledPerformance, OCTAM2Tier2GrantProgram, SEAScore, TPIScore, WQLRI, PollutantContributiontoSEA, SiteRunoff, TreatedAndDischarged, RetainedOrRecycled, UntreatedBypassOrOverflow, TotalSuspendedSolids, TotalNitrogen, TotalPhosphorous, FecalColiform, TotalCopper, TotalLead, TotalZinc, OCTAWatershed, EffectiveAreaAcres, DesignStormDepth85thPercentile, DesignVolume85thPercentile, LandUseBasedWaterQualityScore, ReceivingWaterScore, NumberOfIndividualBMPs, LandUseType, LandUseDescription, OVTAScoreEquivalentCalculation, BaselineLoadingRate, CurrentLoadingRate, BMPTrashTreatmentStatus, WQMPTrashTreatmentStatus, DownstreamOfNonModeledBMP };
+            All = new List<FieldDefinitionType> { IsPrimaryContactOrganization, Organization, Password, MeasurementUnit, PhotoCaption, PhotoCredit, PhotoTiming, PrimaryContact, OrganizationType, Username, ExternalLinks, RoleName, ChartLastUpdatedDate, TreatmentBMPType, ConveyanceFunctionsAsIntended, AssessmentScoreWeight, ObservationScore, AlternativeScore, AssessmentForInternalUseOnly, TreatmentBMPDesignDepth, ReceivesSystemCommunications, Jurisdiction, Delineation, TreatmentBMP, TreatmentBMPAssessmentObservationType, ObservationCollectionMethod, ObservationThresholdType, ObservationTargetType, MeasurementUnitLabel, PropertiesToObserve, MinimumNumberOfObservations, MaximumNumberOfObservations, MinimumValueOfEachObservation, MaximumValueOfEachObservation, DefaultThresholdValue, DefaultBenchmarkValue, AssessmentFailsIfObservationFails, CustomAttributeType, CustomAttributeDataType, MaintenanceRecordType, MaintenanceRecord, AttributeTypePurpose, FundingSource, IsPostMaintenanceAssessment, FundingEvent, FieldVisit, FieldVisitStatus, WaterQualityManagementPlan, Parcel, RequiredLifespanOfInstallation, RequiredFieldVisitsPerYear, RequiredPostStormFieldVisitsPerYear, WaterQualityManagementPlanDocumentType, HasAllRequiredDocuments, DateOfLastInventoryChange, TrashCaptureStatus, OnlandVisualTrashAssessment, OnlandVisualTrashAssessmentNotes, DelineationType, BaselineScore, SizingBasis, ProgressScore, AssessmentScore, ViaFullCapture, ViaPartialCapture, ViaOVTAScore, TotalAchieved, TargetLoadReduction, TrashGenerationRate, LandUse, Area, ImperviousArea, GrossArea, LandUseStatistics, RegionalSubbasin, AverageDivertedFlowrate, AverageTreatmentFlowrate, DesignDryWeatherTreatmentCapacity, DesignLowFlowDiversionCapacity, DesignMediaFiltrationRate, DesignResidenceTimeForPermanentPool, DiversionRate, DrawdownTimeForWQDetentionVolume, EffectiveFootprint, EffectiveRetentionDepth, InfiltrationDischargeRate, InfiltrationSurfaceArea, MediaBedFootprint, MonthsOfOperationID, PermanentPoolOrWetlandVolume, RoutingConfiguration, StorageVolumeBelowLowestOutletElevation, SummerHarvestedWaterDemand, TimeOfConcentrationID, DrawdownTimeForDetentionVolume, TotalEffectiveBMPVolume, TotalEffectiveDrywellBMPVolume, TreatmentRate, UnderlyingHydrologicSoilGroupID, UnderlyingInfiltrationRate, UpstreamBMP, ExtendedDetentionSurchargeVolume, WettedFootprint, WinterHarvestedWaterDemand, PercentOfSiteTreated, PercentCaptured, PercentRetained, AreaWithinWQMP, Watershed, DesignStormwaterDepth, FullyParameterized, HydromodificationApplies, DelineationStatus, DryWeatherFlowOverrideID, ModeledPerformance, OCTAM2Tier2GrantProgram, SEAScore, TPIScore, WQLRI, PollutantContributiontoSEA, SiteRunoff, TreatedAndDischarged, RetainedOrRecycled, UntreatedBypassOrOverflow, TotalSuspendedSolids, TotalNitrogen, TotalPhosphorous, FecalColiform, TotalCopper, TotalLead, TotalZinc, OCTAWatershed, EffectiveAreaAcres, DesignStormDepth85thPercentile, DesignVolume85thPercentile, LandUseBasedWaterQualityScore, ReceivingWaterScore, NumberOfIndividualBMPs, LandUseType, LandUseDescription, OVTAScoreEquivalentCalculation, BaselineLoadingRate, CurrentLoadingRate, BMPTrashTreatmentStatus, WQMPTrashTreatmentStatus, DownstreamOfNonModeledBMP, CalculatedBoundaryAcreage, DrainageAreaTreated };
             AllLookupDictionary = new ReadOnlyDictionary<int, FieldDefinitionType>(All.ToDictionary(x => x.FieldDefinitionTypeID));
         }
 
@@ -262,6 +264,8 @@ namespace Neptune.EFModels.Entities
                     return BaselineScore;
                 case FieldDefinitionTypeEnum.BMPTrashTreatmentStatus:
                     return BMPTrashTreatmentStatus;
+                case FieldDefinitionTypeEnum.CalculatedBoundaryAcreage:
+                    return CalculatedBoundaryAcreage;
                 case FieldDefinitionTypeEnum.ChartLastUpdatedDate:
                     return ChartLastUpdatedDate;
                 case FieldDefinitionTypeEnum.ConveyanceFunctionsAsIntended:
@@ -302,6 +306,8 @@ namespace Neptune.EFModels.Entities
                     return DiversionRate;
                 case FieldDefinitionTypeEnum.DownstreamOfNonModeledBMP:
                     return DownstreamOfNonModeledBMP;
+                case FieldDefinitionTypeEnum.DrainageAreaTreated:
+                    return DrainageAreaTreated;
                 case FieldDefinitionTypeEnum.DrawdownTimeForDetentionVolume:
                     return DrawdownTimeForDetentionVolume;
                 case FieldDefinitionTypeEnum.DrawdownTimeForWQDetentionVolume:
@@ -681,7 +687,9 @@ namespace Neptune.EFModels.Entities
         CurrentLoadingRate = 144,
         BMPTrashTreatmentStatus = 145,
         WQMPTrashTreatmentStatus = 146,
-        DownstreamOfNonModeledBMP = 147
+        DownstreamOfNonModeledBMP = 147,
+        CalculatedBoundaryAcreage = 148,
+        DrainageAreaTreated = 149
     }
 
     public partial class FieldDefinitionTypeIsPrimaryContactOrganization : FieldDefinitionType
@@ -1558,5 +1566,17 @@ namespace Neptune.EFModels.Entities
     {
         private FieldDefinitionTypeDownstreamOfNonModeledBMP(int fieldDefinitionTypeID, string fieldDefinitionTypeName, string fieldDefinitionTypeDisplayName) : base(fieldDefinitionTypeID, fieldDefinitionTypeName, fieldDefinitionTypeDisplayName) {}
         public static readonly FieldDefinitionTypeDownstreamOfNonModeledBMP Instance = new FieldDefinitionTypeDownstreamOfNonModeledBMP(147, @"DownstreamOfNonModeledBMP", @"Downstream of Non-Modeled BMP?");
+    }
+
+    public partial class FieldDefinitionTypeCalculatedBoundaryAcreage : FieldDefinitionType
+    {
+        private FieldDefinitionTypeCalculatedBoundaryAcreage(int fieldDefinitionTypeID, string fieldDefinitionTypeName, string fieldDefinitionTypeDisplayName) : base(fieldDefinitionTypeID, fieldDefinitionTypeName, fieldDefinitionTypeDisplayName) {}
+        public static readonly FieldDefinitionTypeCalculatedBoundaryAcreage Instance = new FieldDefinitionTypeCalculatedBoundaryAcreage(148, @"CalculatedBoundaryAcreage", @"Calculated Boundary Acreage");
+    }
+
+    public partial class FieldDefinitionTypeDrainageAreaTreated : FieldDefinitionType
+    {
+        private FieldDefinitionTypeDrainageAreaTreated(int fieldDefinitionTypeID, string fieldDefinitionTypeName, string fieldDefinitionTypeDisplayName) : base(fieldDefinitionTypeID, fieldDefinitionTypeName, fieldDefinitionTypeDisplayName) {}
+        public static readonly FieldDefinitionTypeDrainageAreaTreated Instance = new FieldDefinitionTypeDrainageAreaTreated(149, @"DrainageAreaTreated", @"Drainage Area Treated (ac)");
     }
 }
