@@ -45,9 +45,7 @@ public class ProjectWorkflowProgress
                     return true;
                 }
 
-                var treatmentBMPIDsWithNereidResults = project.ProjectNereidResults.Where(x => x.TreatmentBMPID.HasValue).Select(x => x.TreatmentBMPID.Value).Distinct().ToList();
-                var treatmentBMPIDs = project.TreatmentBMPs.Select(x => x.TreatmentBMPID).ToList();
-                return treatmentBMPIDs.Count > 0  && !treatmentBMPIDs.Except(treatmentBMPIDsWithNereidResults).Any();
+                return AllTreatmentBMPsHaveModelResults(project);
             case ProjectWorkflowStep.TreatmentBMPs:
                 if (project.DoesNotIncludeTreatmentBMPs)
                 {
@@ -70,6 +68,17 @@ public class ProjectWorkflowProgress
             default:
                 throw new ArgumentOutOfRangeException(nameof(wellRegistryWorkflowStep), wellRegistryWorkflowStep, null);
         }
+    }
+
+    /// <summary>
+    /// True when the project has at least one Treatment BMP and every one of them has Nereid model results.
+    /// Requires TreatmentBMPs and ProjectNereidResults to be loaded.
+    /// </summary>
+    public static bool AllTreatmentBMPsHaveModelResults(Project project)
+    {
+        var treatmentBMPIDsWithNereidResults = project.ProjectNereidResults.Where(x => x.TreatmentBMPID.HasValue).Select(x => x.TreatmentBMPID.Value).ToHashSet();
+        var treatmentBMPIDs = project.TreatmentBMPs.Select(x => x.TreatmentBMPID).ToList();
+        return treatmentBMPIDs.Count > 0 && treatmentBMPIDs.All(treatmentBMPIDsWithNereidResults.Contains);
     }
 
     public static bool WorkflowStepActive(Project project, ProjectWorkflowStep wellRegistryWorkflowStep)

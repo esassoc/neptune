@@ -27,6 +27,7 @@ export class ConfirmService {
                 buttonTextYes: options.buttonTextYes,
                 buttonTextNo: options.buttonTextNo,
                 buttonClassYes: options.buttonClassYes,
+                buttonDisabledYes: options.buttonDisabledYes,
             },
             size: "sm",
         });
