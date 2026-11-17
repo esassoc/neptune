@@ -99,6 +99,24 @@ namespace Neptune.API.Controllers
             {
                 return Forbid();
             }
+            // Sharing with OCTA requires the OCTA box (as requested) and either model results for every BMP or the "no BMPs" flag.
+            // Revoking (Share = false) is never blocked.
+            if (projectCreateDto.ShareOCTAM2Tier2Scores ?? false)
+            {
+                var shareErrors = Projects.ValidateOCTAShareRequirements(
+                    projectCreateDto.CalculateOCTAM2Tier2Scores ?? false,
+                    projectCreateDto.DoesNotIncludeTreatmentBMPs ?? false,
+                    await Projects.AllTreatmentBMPsHaveModelResultsAsync(DbContext, projectID));
+                if (shareErrors.Count > 0)
+                {
+                    foreach (var shareError in shareErrors)
+                    {
+                        ModelState.AddModelError(nameof(ProjectUpsertDto.ShareOCTAM2Tier2Scores), shareError);
+                    }
+                    return BadRequest(ModelState);
+                }
+            }
+
             var project = Projects.GetByIDWithChangeTracking(DbContext, projectID);
             await Projects.Update(DbContext, project, projectCreateDto, CallingUser.PersonID);
             return Ok();

@@ -8,6 +8,9 @@
     @if (project$ | async; as project) {
         @let treatmentBMPs = (treatmentBMPs$ | async) ?? [];
         @let projectNetworkSolveHistories = (projectNetworkSolveHistories$ | async) ?? [];
+        <!-- null until workflow progress loads; Share stays disabled until then -->
+        @let shareRequirementsMissing = shareRequirementsMissing$ | async;
+        @let canShare = shareRequirementsMissing !== null && shareRequirementsMissing.length === 0;
 
         <div class="grid-12 mt-3 mb-3">
             @if (project.ShareOCTAM2Tier2Scores) {
@@ -82,9 +85,9 @@
                             </div>
                             <div class="g-col-4">
                                 <button
-                                    (click)="shareOrRevokeOCTAScores(project.ProjectID, project, treatmentBMPs, projectNetworkSolveHistories)"
+                                    (click)="shareOrRevokeOCTAScores(project.ProjectID, project, shareRequirementsMissing ?? [])"
                                     class="btn btn-primary btn-sm"
-                                    [disabled]="isLoadingSubmit">
+                                    [disabled]="isLoadingSubmit || (!project.ShareOCTAM2Tier2Scores && !canShare)">
                                     @if (isLoadingSubmit) {
                                         <span class="fa fa-spinner loading-spinner"></span>
                                     }
@@ -92,6 +95,14 @@
                                 </button>
                             </div>
                         </div>
+                        @if (!project.ShareOCTAM2Tier2Scores && shareRequirementsMissing?.length > 0) {
+                            <p class="mt-3 mb-1">Before this project can be shared:</p>
+                            <ul class="mb-0">
+                                @for (requirement of shareRequirementsMissing; track requirement) {
+                                    <li>{{ requirement }}</li>
+                                }
+                            </ul>
+                        }
                     </div>
                 </div>
             </div>

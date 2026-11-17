@@ -141,6 +141,39 @@ namespace Neptune.EFModels.Entities
             return await GetByIDAsDtoAsync(dbContext, project.ProjectID);
         }
 
+        public const string OCTAShareRequiresCheckboxMessage = "Check the OCTA M2 Tier 2 Grant Program box on the Basic Information step.";
+        public const string OCTAShareRequiresModelResultsMessage = "Calculate model results for every Treatment BMP, or check \"My project does not include any Stormwater Treatment BMPs\".";
+
+        /// <summary>
+        /// True when the project has at least one Treatment BMP and every one has a ProjectNereidResult. Same rule as
+        /// ProjectWorkflowProgress.AllTreatmentBMPsHaveModelResults, but answered in the database without loading the results.
+        /// </summary>
+        public static async Task<bool> AllTreatmentBMPsHaveModelResultsAsync(NeptuneDbContext dbContext, int projectID)
+        {
+            var treatmentBMPs = dbContext.TreatmentBMPs.AsNoTracking().Where(x => x.ProjectID == projectID);
+            return await treatmentBMPs.AnyAsync()
+                   && await treatmentBMPs.AllAsync(x => dbContext.ProjectNereidResults.Any(r => r.ProjectID == projectID && r.TreatmentBMPID == x.TreatmentBMPID));
+        }
+
+        /// <summary>
+        /// Returns what's missing before a project can be shared with the OCTA M2 Tier 2 Grant Program; empty when it can be shared.
+        /// </summary>
+        public static List<string> ValidateOCTAShareRequirements(bool calculateOCTAM2Tier2Scores, bool doesNotIncludeTreatmentBMPs, bool allTreatmentBMPsHaveModelResults)
+        {
+            var errors = new List<string>();
+            if (!calculateOCTAM2Tier2Scores)
+            {
+                errors.Add(OCTAShareRequiresCheckboxMessage);
+            }
+
+            if (!doesNotIncludeTreatmentBMPs && !allTreatmentBMPsHaveModelResults)
+            {
+                errors.Add(OCTAShareRequiresModelResultsMessage);
+            }
+
+            return errors;
+        }
+
         public static async Task Update(NeptuneDbContext dbContext, Project project, ProjectUpsertDto projectUpsertDto, int personID)
         {
             project.ProjectName = projectUpsertDto.ProjectName;

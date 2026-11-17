@@ -1,5 +1,6 @@
-import { Component, OnInit } from "@angular/core";
+import { Component, OnInit, signal } from "@angular/core";
 import { Router } from "@angular/router";
+import { HttpErrorResponse } from "@angular/common/http";
 import { Input } from "@angular/core";
 import { combineLatest, map, Observable, of, tap } from "rxjs";
 import { Alert } from "src/app/shared/models/alert";
@@ -38,7 +39,7 @@ export class ProjectBasicsComponent implements OnInit {
     public stormwaterJurisdictionOptions$: Observable<SelectDropdownOption[]>;
 
     public invalidFields: Array<string> = [];
-    public isLoadingSubmit = false;
+    public readonly isLoadingSubmit = signal(false);
     public customRichTextTypeID: number = NeptunePageTypeEnum.HippocampProjectBasics;
     public originalProjectModel: string;
     public projectBasicInfo$: Observable<ProjectDto>;
@@ -86,7 +87,7 @@ export class ProjectBasicsComponent implements OnInit {
                     this.formGroup.controls.PrimaryContactPersonID.setValue(value.Project.PrimaryContactPersonID);
                     this.formGroup.controls.AdditionalContactInformation.setValue(value.Project.AdditionalContactInformation);
                     this.formGroup.controls.CalculateOCTAM2Tier2Scores.setValue(value.Project.CalculateOCTAM2Tier2Scores);
-                    this.isLoadingSubmit = false;
+                    this.isLoadingSubmit.set(false);
                 } else {
                     this.formGroup.controls.PrimaryContactPersonID.setValue(value.CurrentUser.PersonID);
                 }
@@ -121,31 +122,50 @@ export class ProjectBasicsComponent implements OnInit {
     }
 
     public save(andContinue: boolean = false) {
-        this.isLoadingSubmit = true;
+        this.isLoadingSubmit.set(true);
+        this.alertService.clearAlerts();
         if (this.projectID) {
-            this.projectService.updateProject(this.projectID, this.formGroup.getRawValue()).subscribe((response) => {
-                this.isLoadingSubmit = false;
-                this.alertService.clearAlerts();
-                this.alertService.pushAlert(new Alert("Your project was successfully updated.", AlertContext.Success));
-                this.projectWorkflowProgressService.updateProgress(this.projectID);
-                //this.formGroup.patchValue(response);
-                this.formGroup.markAsPristine();
-                if (andContinue) {
-                    this.router.navigate([`/planning/projects/edit/${this.projectID}/stormwater-treatments/treatment-bmps`]);
-                }
+            this.projectService.updateProject(this.projectID, this.formGroup.getRawValue()).subscribe({
+                next: () => {
+                    this.isLoadingSubmit.set(false);
+                    this.alertService.clearAlerts();
+                    this.alertService.pushAlert(new Alert("Your project was successfully updated.", AlertContext.Success));
+                    this.projectWorkflowProgressService.updateProgress(this.projectID);
+                    this.formGroup.markAsPristine();
+                    if (andContinue) {
+                        this.router.navigate([`/planning/projects/edit/${this.projectID}/stormwater-treatments/treatment-bmps`]);
+                    }
+                },
+                error: (error) => this.onSaveError(error),
             });
         } else {
-            this.projectService.createProject(this.formGroup.getRawValue()).subscribe((response) => {
-                this.isLoadingSubmit = false;
-                this.alertService.clearAlerts();
-                this.alertService.pushAlert(new Alert("Your project was successfully created.", AlertContext.Success));
-                this.projectWorkflowProgressService.updateProgress(response.ProjectID);
-                this.formGroup.patchValue(response);
-                this.formGroup.markAsPristine();
-                if (andContinue) {
-                    this.router.navigate([`/planning/projects/edit/${response.ProjectID}/stormwater-treatments/treatment-bmps`]);
-                }
+            this.projectService.createProject(this.formGroup.getRawValue()).subscribe({
+                next: (response) => {
+                    this.alertService.clearAlerts();
+                    this.projectWorkflowProgressService.updateProgress(response.ProjectID);
+                    this.formGroup.patchValue(response);
+                    this.formGroup.markAsPristine();
+                    // Move onto the project's edit URL so the next Save updates it instead of creating it again, and the
+                    // left-nav links resolve under /edit/{id}. The alert display clears on destroy, so alert after navigating.
+                    const nextUrl = andContinue
+                        ? ["/planning/projects/edit", response.ProjectID, "stormwater-treatments", "treatment-bmps"]
+                        : ["/planning/projects/edit", response.ProjectID, "project-basics"];
+                    this.router.navigate(nextUrl, { replaceUrl: !andContinue }).then(() => {
+                        this.isLoadingSubmit.set(false);
+                        this.alertService.pushAlert(new Alert("Your project was successfully created.", AlertContext.Success));
+                    });
+                },
+                error: (error) => this.onSaveError(error),
             });
         }
+    }
+
+    private onSaveError(error: HttpErrorResponse) {
+        this.isLoadingSubmit.set(false);
+        // HttpErrorInterceptor already shows the API's messages for 400s.
+        if (error?.status !== 400) {
+            this.alertService.pushAlert(new Alert("There was an error saving your project. Please try again.", AlertContext.Danger));
+        }
+        window.scroll(0, 0);
     }
 }

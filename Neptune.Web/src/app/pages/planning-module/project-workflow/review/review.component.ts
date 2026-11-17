@@ -102,7 +102,39 @@ export class ReviewComponent {
             switchMap((projectID) => this.projectService.listAttachmentsByProjectIDProject(projectID)),
             shareReplay({ bufferSize: 1, refCount: true })
         );
+
+        // Model runs finish in a background job, so the outlet's progress can be stale by the time the user lands here.
+        const routeProjectID = parseInt(this.route.snapshot.paramMap.get("projectID") ?? "", 10);
+        if (Number.isFinite(routeProjectID)) {
+            this.projectWorkflowProgressService.updateProgress(routeProjectID);
+        }
+
+        const progress$ = combineLatest([this.projectID$, this.projectWorkflowProgressService.progressObservable$]).pipe(
+            filter(([projectID, progress]) => progress?.ProjectID === projectID),
+            map(([, progress]) => progress)
+        );
+
+        this.shareRequirementsMissing$ = combineLatest([this.project$, progress$]).pipe(
+            map(([project, progress]) => {
+                const missing: string[] = [];
+                if (!project.CalculateOCTAM2Tier2Scores) {
+                    missing.push("Check the OCTA M2 Tier 2 Grant Program box on the Basic Information step.");
+                }
+                if (!progress.Steps.ModeledPerformanceAndGrantMetrics.Completed) {
+                    missing.push('Calculate model results for every Treatment BMP, or check "My project does not include any Stormwater Treatment BMPs".');
+                }
+                return missing;
+            }),
+            shareReplay({ bufferSize: 1, refCount: true })
+        );
     }
+
+    /**
+     * What's missing before the project can be shared with OCTA (empty when it can be).
+     * Mirrors Projects.ValidateOCTAShareRequirements in the API (keep the messages identical): the OCTA box on Basic Information, and either model results
+     * for every BMP or "My project does not include any Stormwater Treatment BMPs" (both are the Modeled Performance step's completion).
+     */
+    public shareRequirementsMissing$: Observable<string[]> = of([]);
 
     public showModelResultsPanel(project: ProjectDto | null): boolean {
         return !project?.DoesNotIncludeTreatmentBMPs && project.HasModeledResults;
@@ -121,12 +153,7 @@ export class ReviewComponent {
         });
     }
 
-    public shareOrRevokeOCTAScores(
-        projectID: number,
-        project: ProjectDto,
-        treatmentBMPs: TreatmentBMPUpsertDto[],
-        projectNetworkSolveHistories: ProjectNetworkSolveHistorySimpleDto[]
-    ) {
+    public shareOrRevokeOCTAScores(projectID: number, project: ProjectDto, shareRequirementsMissing: string[]) {
         var modalContents =
             "<p>You are about to revoke sharing of this project with the OCTA M2 Tier 2 grant program. This will allow you to edit this project." +
             "<p>Are you sure you wish to proceed?</p>";
@@ -136,42 +163,43 @@ export class ReviewComponent {
         if (!project.ShareOCTAM2Tier2Scores) {
             buttonTextYes = "Share";
 
-            canSubmit = project.CalculateOCTAM2Tier2Scores && (treatmentBMPs.length > 0 ? projectNetworkSolveHistories.length > 0 : project.DoesNotIncludeTreatmentBMPs);
+            canSubmit = shareRequirementsMissing.length === 0;
 
             modalContents = canSubmit
                 ? "<p>I certify that I have inventoried all upstream BMPs of my project within the OC Stormwater Tools Inventory Module and made them ready for modeling.</p>"
-                : "<p>You are required to check the box to view OCTA M2 Tier 2 Metrics on the Basics step, and to calculate OCTA Metrics for Treatment BMPs before the project can be shared and submitted to the grant agency.</p>";
+                : "<p>Before this project can be shared and submitted to the grant agency:</p><ul>" + shareRequirementsMissing.map((x) => `<li>${x}</li>`).join("") + "</ul>";
         }
 
         this.confirmService
             .confirm({
                 buttonClassYes: "btn-primary",
-                //buttonDisabledYes: !canSubmit,
+                buttonDisabledYes: !canSubmit,
                 buttonTextYes: buttonTextYes,
                 buttonTextNo: "Cancel",
                 title: `${buttonTextYes} Project`,
                 message: modalContents,
             })
             .then((confirmed) => {
-                if (confirmed) {
+                if (confirmed && canSubmit) {
                     this.isLoadingSubmitSubject.next(true);
 
                     var model = this.mapProjectToUpsertDto(project);
                     model.ShareOCTAM2Tier2Scores = !project.ShareOCTAM2Tier2Scores;
 
-                    this.projectService.updateProject(projectID, model).subscribe(
-                        () => {
+                    this.projectService.updateProject(projectID, model).subscribe({
+                        next: () => {
                             this.isLoadingSubmitSubject.next(false);
                             this.projectWorkflowProgressService.updateProgress(projectID);
                             this.reloadSubject.next();
                             this.alertService.pushAlert(new Alert(`Your project was successfully ${buttonTextYes == "Share" ? "shared" : "revoked"}.`, AlertContext.Success));
                             window.scroll(0, 0);
                         },
-                        (error) => {
+                        // 400s (e.g. share requirements not met) are shown by HttpErrorInterceptor.
+                        error: () => {
                             this.isLoadingSubmitSubject.next(false);
                             window.scroll(0, 0);
-                        }
-                    );
+                        },
+                    });
                 }
             });
     }

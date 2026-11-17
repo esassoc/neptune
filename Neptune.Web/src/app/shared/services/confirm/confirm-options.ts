@@ -17,6 +17,10 @@ export interface ConfirmOptions {
     buttonClassYes: string;
     buttonTextYes: string;
     buttonTextNo: string;
+    /**
+     * Disables the confirm button, e.g. when the message explains why the action can't be taken yet.
+     */
+    buttonDisabledYes?: boolean;
     icon?: typeof IconInterface;
     iconColor?: string;
 }
