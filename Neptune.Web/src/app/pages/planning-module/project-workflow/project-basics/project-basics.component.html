@@ -1,6 +1,6 @@
 <page-header pageTitle="Basic Information"></page-header>
 @if (projectBasicInfo$ | async) {
-  <workflow-body [helpCustomRichTextTypeID]="customRichTextTypeID" [showLoadingSpinner]="isLoadingSubmit">
+  <workflow-body [helpCustomRichTextTypeID]="customRichTextTypeID" [showLoadingSpinner]="isLoadingSubmit()">
     <app-alert-display></app-alert-display>
     <form class="form" [formGroup]="formGroup">
       <div class="grid-12">
@@ -56,6 +56,6 @@
 }
 
 <div class="page-footer">
-  <button class="btn btn-primary-outline mr-2" (click)="save()" [disabled]="formGroup.invalid || isLoadingSubmit">Save</button>
-  <button class="btn btn-primary ml-auto" (click)="save(true)" [disabled]="formGroup.invalid || isLoadingSubmit">Save & Continue</button>
+  <button class="btn btn-primary-outline mr-2" (click)="save()" [disabled]="formGroup.invalid || isLoadingSubmit()">Save</button>
+  <button class="btn btn-primary ml-auto" (click)="save(true)" [disabled]="formGroup.invalid || isLoadingSubmit()">Save & Continue</button>
 </div>
