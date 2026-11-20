@@ -15,6 +15,11 @@
                         [src]="images[currentImageIndex]?.FileResourceGUID ? imagePreviewUrls()[images[currentImageIndex].FileResourceGUID] : ''"
                         alt="Image"
                         class="carousel-image"
+                        role="button"
+                        tabindex="0"
+                        title="Click to enlarge"
+                        (click)="openLightbox()"
+                        (keydown.enter)="openLightbox()"
                         style="max-width: 100%; max-height: 300px; margin-bottom: 1rem; border-radius: 8px; box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1)" />
                 } @else {
                     <div [loadingSpinner]="{ isLoading: true, loadingHeight: 200 }"></div>

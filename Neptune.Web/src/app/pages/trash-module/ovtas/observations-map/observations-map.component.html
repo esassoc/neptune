@@ -14,6 +14,9 @@
             @if (onlandVisualTrashAssessmentObservation.FileResourceGUID) {
               <img
                 [src]="getFileResourceUrl(onlandVisualTrashAssessmentObservation.FileResourceGUID)"
+                [class.enlargeable]="enablePhotoLightbox"
+                [attr.title]="enablePhotoLightbox ? 'Click to enlarge' : null"
+                (click)="openPhotoLightbox(onlandVisualTrashAssessmentObservation)"
                 style="width: 300px" />
             } @else {
               <i>No photo provided</i>

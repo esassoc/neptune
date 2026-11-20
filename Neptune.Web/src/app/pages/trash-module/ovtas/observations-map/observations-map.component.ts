@@ -1,4 +1,5 @@
-import { Component, ElementRef, EventEmitter, Input, Output, signal, ViewChild } from "@angular/core";
+import { Component, ElementRef, EventEmitter, inject, Input, Output, signal, ViewChild } from "@angular/core";
+import { DialogService } from "@ngneat/dialog";
 import * as L from "leaflet";
 import { BoundingBoxDto } from "src/app/shared/generated/model/bounding-box-dto";
 import { MarkerHelper } from "src/app/shared/helpers/marker-helper";
@@ -10,6 +11,7 @@ import { ActivatedRoute, Router } from "@angular/router";
 import { LandUseBlockLayerComponent } from "src/app/shared/components/leaflet/layers/land-use-block-layer/land-use-block-layer.component";
 import { OvtaAreaLayerComponent } from "../../../../shared/components/leaflet/layers/ovta-area-layer/ovta-area-layer.component";
 import { TransectLineLayerComponent } from "src/app/shared/components/leaflet/layers/transect-line-layer/transect-line-layer.component";
+import { PhotoLightboxComponent } from "src/app/shared/components/photo-lightbox/photo-lightbox.component";
 
 //This component could use a fair amount of cleanup. It should likely be sent in the treatment bmps and delineations instead of grabbing them itself
 @Component({
@@ -22,6 +24,8 @@ export class ObservationsMapComponent {
     @ViewChild("ovtaObservations") ovtaObservations: ElementRef;
     @Input("observations") onlandVisualTrashAssessmentObservations: Array<OnlandVisualTrashAssessmentObservationWithPhotoDto>;
     @Input() onlandVisualTrashAssessmentID: number;
+    /** Clicking an observation's photo opens it in the photo lightbox. Off by default (the OVTA workflow's Review & Finalize step leaves it off). */
+    @Input() enablePhotoLightbox: boolean = false;
     public boundingBox: BoundingBoxDto;
 
     // Signal (not plain boolean) so zoneless change detection re-runs the template's @if
@@ -49,6 +53,8 @@ export class ObservationsMapComponent {
     private ovtaObservationOverlayName = "<img src='./assets/main/map-icons/marker-icon-violet.png' style='height:17px'> Observations";
 
     public ovtaObservationLayer: L.GeoJSON<any>;
+
+    private dialogService = inject(DialogService);
 
     constructor(private router: Router, private route: ActivatedRoute) {}
 
@@ -123,6 +129,16 @@ export class ObservationsMapComponent {
             } else {
                 layer.setIcon(MarkerHelper.buildDefaultLeafletMarkerFromMarkerPath("/assets/main/map-icons/marker-icon-violet.png"));
             }
+        });
+    }
+
+    // The click also bubbles to the <li>, which selects the observation on the map behind the lightbox.
+    public openPhotoLightbox(observation: OnlandVisualTrashAssessmentObservationWithPhotoDto): void {
+        if (!this.enablePhotoLightbox) return;
+        const observationsWithPhotos = this.onlandVisualTrashAssessmentObservations.filter((x) => x.FileResourceGUID);
+        PhotoLightboxComponent.open(this.dialogService, {
+            photos: observationsWithPhotos.map((x) => ({ url: this.getFileResourceUrl(x.FileResourceGUID), caption: x.Note ?? "No note provided" })),
+            startIndex: Math.max(observationsWithPhotos.indexOf(observation), 0),
         });
     }
 

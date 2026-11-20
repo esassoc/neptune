@@ -12,3 +12,7 @@ li.list-group-item:hover {
 li.list-group-item.selected {
     background-color: #ffff85;
 }
+
+li.list-group-item img.enlargeable {
+    cursor: zoom-in;
+}

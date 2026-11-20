@@ -1,0 +1,26 @@
+@if (current(); as photo) {
+    <div class="photo-lightbox">
+        <div class="stage">
+            @if (photos.length > 1) {
+                <button type="button" class="nav previous" aria-label="Previous photo" (click)="previous()">
+                    <i class="fa fa-chevron-left"></i>
+                </button>
+            }
+            @if (isLoading()) {
+                <div class="loading" [loadingSpinner]="{ isLoading: true, loadingHeight: 200 }"></div>
+            }
+            <img [src]="photo.url" [alt]="photo.caption || 'Photo ' + (currentIndex() + 1)" [class.hidden]="isLoading()" (load)="onImageSettled()" (error)="onImageSettled()" />
+            @if (photos.length > 1) {
+                <button type="button" class="nav next" aria-label="Next photo" (click)="next()">
+                    <i class="fa fa-chevron-right"></i>
+                </button>
+            }
+        </div>
+        <div class="details">
+            @if (photo.caption) {
+                <div class="caption">{{ photo.caption }}</div>
+            }
+            <div class="indicator" aria-live="polite">Photo {{ currentIndex() + 1 }} of {{ photos.length }}</div>
+        </div>
+    </div>
+}
