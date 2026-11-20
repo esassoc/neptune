@@ -9,15 +9,6 @@ import { Layer } from "leaflet";
 export class LeafletHelperService {
     constructor() {}
 
-    public readonly tileLayers = LeafletHelperService.GetDefaultTileLayers();
-
-    public readonly defaultMapOptions: L.MapOptions = {
-        minZoom: 6,
-        maxZoom: 20,
-        layers: [this.tileLayers.Street],
-        gestureHandling: true,
-    } as L.MapOptions;
-
     public static readonly defaultBoundingBox = new BoundingBoxDto({
         Left: -117.5193786621095,
         Top: 33.844679670212059,
