@@ -298,6 +298,15 @@ gdalapi:
   nameOverride: ""
   fullnameOverride: ""
   namespace: h2o
+  # NPT-1154: GDAL now runs in-process in this pod (was a child ogr2ogr process). The limit keeps a
+  # runaway conversion of a large upload/export contained to this pod, which is the reason GDAL has
+  # its own container. Measured locally (Debug build, one request at a time): ~240 MB peak across the
+  # exports, 580 MB peak for a 61k-feature upload. Re-check against Datadog once it has run on QA.
+  resources:
+    requests:
+      memory: "768M"
+    limits:
+      memory: "4G"
   serviceAccount:
     # Specifies whether a service account should be created
     create: true

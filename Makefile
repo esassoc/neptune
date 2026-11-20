@@ -1,9 +1,19 @@
-.PHONY: help auth start stop api web api-test web-test web-build web-lint database download restore build scaffold gen-models
+.PHONY: help auth start stop api gdalapi overlayapi web api-test web-test web-build web-lint database download restore build scaffold gen-models
 
 WORKSPACE := /workspace
 BUILD_DIR := $(WORKSPACE)/Build
 API_PORT ?= 8250
 WEB_PORT ?= 8252
+# Container-internal only: Neptune.API reaches these on localhost (see GDALAPIBaseUrl /
+# OverlayAPIBaseUrl in .devcontainer/.env), so they are not published to the host.
+GDALAPI_PORT ?= 8231
+OVERLAYAPI_PORT ?= 8232
+# Point the API at the services this Makefile starts. Exported here, not only in .devcontainer/.env,
+# so the URLs always follow the ports above and a container created before this change (env_file is
+# read at container creation) works without a rebuild. Override on the command line to aim the API at
+# a GDAL/Overlay API running elsewhere: make api GDALAPIBaseUrl=http://host.docker.internal:8231
+export GDALAPIBaseUrl := http://localhost:$(GDALAPI_PORT)
+export OverlayAPIBaseUrl := http://localhost:$(OVERLAYAPI_PORT)
 
 # ESA laptops: Cato TLS inspection re-signs platform.claude.com, so the Claude CLI that local AI
 # extraction runs (NPT-1133) must trust the Cato root. When the developer has exported it (see
@@ -21,17 +31,35 @@ auth: ## One-time sign-in to Azure (az) + GitHub (gh); persists in shared volume
 
 # --- App ---
 
-start: stop ## Start API and web dev server in parallel (frees stale ports first)
+# The GDAL and Overlay APIs are plain .NET services now (GDAL runs in-process via MaxRev, NPT-1154;
+# the overlay runs on NetTopologySuite, NPT-1105), so they run here beside the API instead of needing
+# the docker-compose/ stack on the host. They are built once up front, one after the other, and then
+# started with --no-build: three parallel builds would race on the shared Neptune.Common obj folder.
+# A build failure in one of them is reported but does not stop the API and web from starting.
+start: stop ## Start API, GDAL API, Overlay API and web dev server (frees stale ports first)
+	-@cd $(WORKSPACE) && dotnet build Neptune.GDALAPI/Neptune.GDALAPI.csproj -v q --nologo
+	-@cd $(WORKSPACE) && dotnet build Neptune.OverlayAPI/Neptune.OverlayAPI.csproj -v q --nologo
 	@trap 'kill 0' EXIT; \
+	$(MAKE) gdalapi SERVICE_RUN_FLAGS=--no-build & \
+	$(MAKE) overlayapi SERVICE_RUN_FLAGS=--no-build & \
 	$(MAKE) api & \
 	$(MAKE) web & \
 	wait
 
-stop: ## Kill stray API/web dev servers from a previous run (frees ports $(API_PORT)/$(WEB_PORT))
+stop: ## Kill stray dev servers from a previous run (frees ports $(API_PORT)/$(WEB_PORT)/$(GDALAPI_PORT)/$(OVERLAYAPI_PORT))
 	@echo "Freeing dev ports (killing any stray watchers/servers from a previous run)..."
 	-@pkill -9 -f "Neptune\.API" 2>/dev/null
+	-@pkill -9 -f "Neptune\.GDALAPI" 2>/dev/null
+	-@pkill -9 -f "Neptune\.OverlayAPI" 2>/dev/null
 	-@pkill -9 -f "ng serve" 2>/dev/null
 	@sleep 1
+
+# --urls is required: the container sets ASPNETCORE_URLS to the API's port for every process.
+gdalapi: ## Start the GDAL API (GDB import/export conversions) on port $(GDALAPI_PORT)
+	cd $(WORKSPACE) && dotnet run --project Neptune.GDALAPI --no-launch-profile $(SERVICE_RUN_FLAGS) -- --urls http://+:$(GDALAPI_PORT)
+
+overlayapi: ## Start the Overlay API (LGU/TGU overlays) on port $(OVERLAYAPI_PORT)
+	cd $(WORKSPACE) && dotnet run --project Neptune.OverlayAPI --no-launch-profile $(SERVICE_RUN_FLAGS) -- --urls http://+:$(OVERLAYAPI_PORT)
 
 api: ## Start API with hot-reload on port $(API_PORT) (Hangfire runs in-process)
 	cd $(WORKSPACE) && dotnet watch --project Neptune.API -- run --urls http://+:$(API_PORT)

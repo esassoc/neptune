@@ -20,21 +20,6 @@ namespace Neptune.Common.Services.GDAL
             _azureBlobStorageService = azureBlobStorageService;
         }
 
-        public async Task Ogr2OgrInputToGdb(GdbInputToGdbRequestDto gdbInputToGdbRequestDto)
-        {
-            var stagedBlobNames = await StageFileContentsToBlobStorage(new[] { gdbInputToGdbRequestDto.GdbInput });
-            try
-            {
-                _logger.LogInformation("Sending request to GDAL API");
-                var response = await _httpClient.PostAsJsonAsync("/ogr2ogr/upsert-gdb", gdbInputToGdbRequestDto);
-                await EnsureSuccessAsync(response, "ogr2ogr/upsert-gdb");
-            }
-            finally
-            {
-                await DeleteStagedBlobs(stagedBlobNames);
-            }
-        }
-
         public async Task<byte[]> Ogr2OgrInputToGdbAsZip(GdbInputsToGdbRequestDto gdbInputsToGdbRequestDto)
         {
             var stagedBlobNames = await StageFileContentsToBlobStorage(gdbInputsToGdbRequestDto.GdbInputs);

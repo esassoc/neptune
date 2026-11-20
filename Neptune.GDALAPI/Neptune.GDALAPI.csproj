@@ -7,7 +7,13 @@
     <DockerDefaultTargetOS>Linux</DockerDefaultTargetOS>
   </PropertyGroup>
   <ItemGroup>
+    <PackageReference Include="Azure.Identity" Version="1.21.0" />
     <PackageReference Include="Azure.Storage.Blobs" Version="12.29.1" />
+    <!-- Native GDAL for the in-process bindings (Neptune.Common/GeoSpatial/Gdal). Linux is what ships in
+         the container; Windows is only so the project also runs natively on a dev machine. -->
+    <PackageReference Include="MaxRev.Gdal.Core" Version="3.13.3.557" />
+    <PackageReference Include="MaxRev.Gdal.LinuxRuntime.Minimal" Version="3.13.3.557" />
+    <PackageReference Include="MaxRev.Gdal.WindowsRuntime.Minimal" Version="3.13.3.557" Condition="$([MSBuild]::IsOSPlatform('Windows'))" />
     <PackageReference Include="NetTopologySuite" Version="2.6.0" />
     <PackageReference Include="NetTopologySuite.Features" Version="2.2.0" />
     <PackageReference Include="NetTopologySuite.IO.GeoJSON4STJ" Version="4.0.0" />
