@@ -11,11 +11,18 @@
                 </button>
 
                 @if (images[currentImageIndex] && imagePreviewUrls()[images[currentImageIndex].FileResourceGUID]) {
-                    <img
-                        [src]="images[currentImageIndex]?.FileResourceGUID ? imagePreviewUrls()[images[currentImageIndex].FileResourceGUID] : ''"
-                        alt="Image"
-                        class="carousel-image"
-                        style="max-width: 100%; max-height: 300px; margin-bottom: 1rem; border-radius: 8px; box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1)" />
+                    <button
+                        type="button"
+                        class="carousel-image-button"
+                        title="Click to enlarge"
+                        [attr.aria-label]="'Enlarge image ' + (currentImageIndex + 1) + ' of ' + images.length"
+                        (click)="openLightbox()">
+                        <img
+                            [src]="images[currentImageIndex]?.FileResourceGUID ? imagePreviewUrls()[images[currentImageIndex].FileResourceGUID] : ''"
+                            alt="Image"
+                            class="carousel-image"
+                            style="max-width: 100%; max-height: 300px; margin-bottom: 1rem; border-radius: 8px; box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1)" />
+                    </button>
                 } @else {
                     <div [loadingSpinner]="{ isLoading: true, loadingHeight: 200 }"></div>
                 }

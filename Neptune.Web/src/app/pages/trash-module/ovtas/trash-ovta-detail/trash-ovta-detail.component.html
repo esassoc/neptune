@@ -115,7 +115,8 @@
           @if (onlandVisualTrashAssessmentObservations$ | async; as onlandVisualTrashAssessmentObservations) {
             <observations-map
               [observations]="onlandVisualTrashAssessmentObservations"
-              [onlandVisualTrashAssessmentID]="onlandVisualTrashAssessment.OnlandVisualTrashAssessmentID">
+              [onlandVisualTrashAssessmentID]="onlandVisualTrashAssessment.OnlandVisualTrashAssessmentID"
+              [enablePhotoLightbox]="true">
             </observations-map>
           }
         </div>
