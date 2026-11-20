@@ -4,7 +4,7 @@ import { Control, LeafletEvent, Map as LeafletMap, MapOptions, DomUtil, ControlP
 import "src/scripts/leaflet.groupedlayercontrol.js";
 import * as L from "leaflet";
 import { FullScreen } from "leaflet.fullscreen";
-import GestureHandling from "leaflet-gesture-handling";
+import { TouchOnlyGestureHandling } from "src/app/shared/components/leaflet/touch-only-gesture-handling";
 import { LeafletHelperService } from "src/app/shared/services/leaflet-helper.service";
 import { BoundingBoxDto } from "src/app/shared/generated/model/models";
 import { IconComponent } from "../../icon/icon.component";
@@ -86,18 +86,22 @@ export class NeptuneMapComponent implements OnInit, AfterViewInit, OnDestroy {
             minZoom: 6,
             maxZoom: 20,
             layers: [this.tileLayers[this.selectedTileLayer]],
-            gestureHandling: true,
+            scrollWheelZoom: true,
             //            attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
         } as MapOptions;
 
         this.map = L.map(this.mapID, mapOptions);
+
+        // NPT-1142: not the stock `gestureHandling` option, which blocks a plain mouse wheel (Ctrl + scroll only).
+        // This handler keeps the plugin's two-finger touch rule and lets the wheel zoom.
+        this.map.addHandler("touchGestureHandling", TouchOnlyGestureHandling);
+        (this.map as any).touchGestureHandling.enable();
 
         this.map.addControl(
             new FullScreen({
                 position: "topleft",
             })
         );
-        L.Map.addInitHook("addHandler", "gestureHandling", GestureHandling);
 
         this.layerControl = new GroupedLayers(this.tileLayers, LeafletHelperService.GetDefaultOverlayTileLayers(), { collapsed: false }).addTo(this.map);
 
