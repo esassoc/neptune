@@ -1,4 +1,5 @@
 using System;
+using Microsoft.Data.SqlClient;
 
 namespace Neptune.Tests;
 
@@ -37,7 +38,16 @@ public static class TestDatabase
                 database = "NeptuneDB";
             }
 
-            return $"Data Source={server};Initial Catalog={database};User ID=sa;Password={password};Encrypt=False;TrustServerCertificate=True;";
+            // A builder, not interpolation: it quotes values containing delimiters (a ';' in the password).
+            return new SqlConnectionStringBuilder
+            {
+                DataSource = server,
+                InitialCatalog = database,
+                UserID = "sa",
+                Password = password,
+                Encrypt = false,
+                TrustServerCertificate = true,
+            }.ConnectionString;
         }
 
         return LocalhostDefault;
