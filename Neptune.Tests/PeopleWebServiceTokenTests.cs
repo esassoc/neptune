@@ -27,7 +27,7 @@ namespace Neptune.Tests
         {
             var optionsBuilder = new DbContextOptionsBuilder<NeptuneDbContext>();
             optionsBuilder.UseSqlServer(
-                "Data Source=localhost;Initial Catalog=NeptuneDB;Persist Security Info=True;Integrated Security=true;Encrypt=False;",
+                TestDatabase.ConnectionString,
                 x =>
                 {
                     x.CommandTimeout((int)TimeSpan.FromMinutes(3).TotalSeconds);
