@@ -5,12 +5,15 @@
 // whole dialog fits without scrolling.
 $backdrop-padding: 60px;
 $chrome-height: 9rem;
+// Widest the lightbox content can be: viewport minus backdrop padding and the dialog border.
+$available-width: calc(100vw - #{$backdrop-padding} - 2px);
 
 .photo-lightbox {
     display: flex;
     flex-direction: column;
     align-items: center;
-    min-width: 320px;
+    box-sizing: border-box;
+    min-width: min(320px, #{$available-width});
     padding: 3rem 1rem 1rem;
 }
 
@@ -22,7 +25,7 @@ $chrome-height: 9rem;
 
     img {
         display: block;
-        max-width: calc(100vw - #{$backdrop-padding} - 2rem);
+        max-width: calc(#{$available-width} - 2rem);
         max-height: calc(100vh - #{$backdrop-padding} - #{$chrome-height});
         object-fit: contain;
 
@@ -32,7 +35,7 @@ $chrome-height: 9rem;
     }
 
     .loading {
-        width: 300px;
+        width: min(300px, calc(#{$available-width} - 2rem));
     }
 }
 
