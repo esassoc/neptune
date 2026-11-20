@@ -1,4 +1,6 @@
 using System.IO.Compression;
+using Azure.Identity;
+using Neptune.Common;
 using Microsoft.AspNetCore.ResponseCompression;
 using Neptune.GDALAPI.Services;
 using Serilog;
@@ -7,6 +9,25 @@ using Serilog.Core;
 var builder = WebApplication.CreateBuilder(args);
 
 builder.Configuration.AddEnvironmentVariables();
+
+// Same configuration sources as Neptune.API and Neptune.OverlayAPI, so that when this service runs
+// beside the API in the devcontainer (`make start`) it resolves the SAME blob storage account the API
+// stages files in. Both are no-ops in the deployed pod, whose configmap supplies the connection string
+// directly and sets neither SECRET_PATH nor KeyVaultName.
+var secretPath = builder.Configuration["SECRET_PATH"];
+if (File.Exists(secretPath))
+{
+    builder.Configuration.AddJsonFile(secretPath, optional: false, reloadOnChange: false);
+}
+
+var keyVaultName = builder.Configuration["KeyVaultName"];
+if (!string.IsNullOrWhiteSpace(keyVaultName))
+{
+    var kvUri = new Uri($"https://{keyVaultName}.vault.azure.net/");
+    builder.Configuration.AddAzureKeyVault(kvUri, new DefaultAzureCredential(),
+        new NeptuneKeyVaultSecretManager());
+    builder.Configuration.AddEnvironmentVariables();
+}
 
 builder.Logging.ClearProviders();
 builder.Logging.AddConsole();
@@ -29,8 +50,6 @@ builder.Services.AddResponseCompression(options =>
 builder.Services.Configure<BrotliCompressionProviderOptions>(options => options.Level = CompressionLevel.Optimal);
 builder.Services.Configure<GzipCompressionProviderOptions>(options => options.Level = CompressionLevel.Optimal);
 
-builder.Services.AddScoped<Ogr2OgrService>();
-builder.Services.AddScoped<OgrInfoService>();
 builder.Services.Configure<GDALAPIConfiguration>(builder.Configuration);
 builder.Services.AddScoped<IAzureStorage, AzureStorage>();
 
@@ -44,6 +63,10 @@ builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 
 var app = builder.Build();
+
+// Load native GDAL at startup so a missing or broken native runtime fails the pod's start (and its
+// readiness) rather than the first upload or export.
+app.Logger.LogInformation("GDAL loaded in-process: {GdalVersion}", Neptune.Common.GeoSpatial.Gdal.GdalSetup.VersionInfo());
 
 // Configure the HTTP request pipeline.
 if (app.Environment.IsDevelopment())

@@ -22,7 +22,7 @@ namespace Neptune.Tests
         {
             var optionsBuilder = new DbContextOptionsBuilder<NeptuneDbContext>();
             optionsBuilder.UseSqlServer(
-                "Data Source=localhost;Initial Catalog=NeptuneDB;Persist Security Info=True;Integrated Security=true;Encrypt=False;", x =>
+                TestDatabase.ConnectionString, x =>
                 {
                     // Match the existing test DbContext pattern (TestTreatmentCSVParser, etc.) — keep
                     // the suite from going flaky on slower dev DBs.

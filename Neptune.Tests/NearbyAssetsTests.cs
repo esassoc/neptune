@@ -17,7 +17,7 @@ namespace Neptune.Tests
         private static NeptuneDbContext GetDbContext()
         {
             var ob = new DbContextOptionsBuilder<NeptuneDbContext>();
-            ob.UseSqlServer("Data Source=localhost;Initial Catalog=NeptuneDB;Persist Security Info=True;Integrated Security=true;Encrypt=False;",
+            ob.UseSqlServer(TestDatabase.ConnectionString,
                 x => { x.CommandTimeout(180); x.UseNetTopologySuite(); });
             return new NeptuneDbContext(ob.Options);
         }

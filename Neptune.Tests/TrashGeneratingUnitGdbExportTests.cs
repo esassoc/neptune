@@ -33,8 +33,7 @@ namespace Neptune.Tests
 
         private static NeptuneDbContext GetDbContext()
         {
-            var connectionString = Environment.GetEnvironmentVariable("NEPTUNE_TEST_CONNECTION_STRING")
-                ?? "Data Source=localhost;Initial Catalog=NeptuneDB;Persist Security Info=True;Integrated Security=true;Encrypt=False;";
+            var connectionString = TestDatabase.ConnectionString;
             var ob = new DbContextOptionsBuilder<NeptuneDbContext>();
             ob.UseSqlServer(connectionString, x => { x.CommandTimeout(180); x.UseNetTopologySuite(); });
             return new NeptuneDbContext(ob.Options);

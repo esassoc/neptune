@@ -10,6 +10,10 @@
       <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
     </PackageReference>
     <PackageReference Include="Humanizer.Core" Version="3.0.10" />
+    <!-- Native GDAL so GdalVectorOperations can be tested in-process, per OS. -->
+    <PackageReference Include="MaxRev.Gdal.Core" Version="3.13.3.557" />
+    <PackageReference Include="MaxRev.Gdal.WindowsRuntime.Minimal" Version="3.13.3.557" Condition="$([MSBuild]::IsOSPlatform('Windows'))" />
+    <PackageReference Include="MaxRev.Gdal.LinuxRuntime.Minimal" Version="3.13.3.557" Condition="$([MSBuild]::IsOSPlatform('Linux'))" />
     <PackageReference Include="Microsoft.Extensions.Configuration.Json" Version="10.0.11" />
     <PackageReference Include="Microsoft.NET.Test.Sdk" Version="18.8.1" />
     <PackageReference Include="MSTest.TestAdapter" Version="4.3.3" />

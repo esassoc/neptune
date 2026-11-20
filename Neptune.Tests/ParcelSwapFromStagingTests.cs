@@ -27,7 +27,7 @@ namespace Neptune.Tests
         {
             var optionsBuilder = new DbContextOptionsBuilder<NeptuneDbContext>();
             optionsBuilder.UseSqlServer(
-                "Data Source=localhost;Initial Catalog=NeptuneDB;Persist Security Info=True;Integrated Security=true;Encrypt=False;", x =>
+                TestDatabase.ConnectionString, x =>
                 {
                     // the swap deletes and rebuilds every live parcel row
                     x.CommandTimeout((int)TimeSpan.FromMinutes(15).TotalSeconds);
