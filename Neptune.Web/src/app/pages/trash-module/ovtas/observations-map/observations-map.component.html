@@ -12,12 +12,19 @@
                 "
             (click)="selectOnlandVisualTrashAssessmentObservation(onlandVisualTrashAssessmentObservation.OnlandVisualTrashAssessmentObservationID)">
             @if (onlandVisualTrashAssessmentObservation.FileResourceGUID) {
-              <img
-                [src]="getFileResourceUrl(onlandVisualTrashAssessmentObservation.FileResourceGUID)"
-                [class.enlargeable]="enablePhotoLightbox"
-                [attr.title]="enablePhotoLightbox ? 'Click to enlarge' : null"
-                (click)="openPhotoLightbox(onlandVisualTrashAssessmentObservation)"
-                style="width: 300px" />
+              @if (enablePhotoLightbox) {
+                <!-- No stopPropagation: the click also reaches the <li>, which selects the observation on the map. -->
+                <button
+                  type="button"
+                  class="enlarge-photo-button"
+                  title="Click to enlarge"
+                  aria-label="Enlarge observation photo"
+                  (click)="openPhotoLightbox(onlandVisualTrashAssessmentObservation)">
+                  <img [src]="getFileResourceUrl(onlandVisualTrashAssessmentObservation.FileResourceGUID)" alt="Observation photo" style="width: 300px" />
+                </button>
+              } @else {
+                <img [src]="getFileResourceUrl(onlandVisualTrashAssessmentObservation.FileResourceGUID)" style="width: 300px" />
+              }
             } @else {
               <i>No photo provided</i>
             }
