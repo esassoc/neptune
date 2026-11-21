@@ -175,7 +175,7 @@ TGUs for some Land Use Blocks total more than the block's area, in many cases al
 
 Traced on one block: the flatten and the union of the hit geometries are correct, but `OverlayEngine.Intersection` / `Difference` of the block against a large unioned polygon return the wrong answer. OverlayNG in floating-precision mode reports an intersection of 0 and a difference equal to the whole block, without throwing, so `OverlayNGRobust` never falls back and the `Buffer(0)` retry never runs. The block is then written twice: once as attributed pieces and once as an unattributed remainder. On the same inputs, OverlayNG with a fixed 1 mm precision model, the legacy overlay, and subtracting the hits one at a time all give the correct result.
 
-Other affected blocks have no delineations, so their duplicates come from a different union step (OVTA Areas or WQMPs). The same failure is likely there but has not been confirmed. The LGU and PLGU pipelines use the same two functions, so some LGU and PLGU overlaps may come from this cause and not from overlapping inputs.
+Other affected blocks have no delineations, so their duplicates come from a different union step (OVTA Areas or WQMPs). The same failure is likely there but has not been confirmed. The LGU and PLGU pipelines use the same two functions, but their overlaps do not come from this cause: a total LGU refresh and a sample of project runs give the same overlapping units with a fixed precision model as without.
 
 ### Table replacement is not atomic
 
