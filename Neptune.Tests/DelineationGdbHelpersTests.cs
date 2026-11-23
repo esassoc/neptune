@@ -228,6 +228,40 @@ namespace Neptune.Tests
         }
 
         [TestMethod]
+        public async Task ApproveAndListAffectedGeometriesAsync_ReturnsTheRemovedAndTheAddedDelineationShapes()
+        {
+            // NPT-1159: the caller queues an LGU refresh over these shapes. Both sides are needed: the
+            // removed delineation's LGUs are deleted with it, and the added one has none yet.
+            var bmp = CreateBMP($"NPT-1159-APPR-{Guid.NewGuid():N}");
+            var poly4326 = new Polygon(new LinearRing(new[]
+            {
+                new Coordinate(-117.86, 33.66), new Coordinate(-117.85, 33.66),
+                new Coordinate(-117.85, 33.67), new Coordinate(-117.86, 33.67), new Coordinate(-117.86, 33.66),
+            })) { SRID = 4326 };
+            var removedShape = poly4326.ProjectTo2771();
+            _dbContext.Delineations.Add(new Delineation
+            {
+                TreatmentBMPID = bmp.TreatmentBMPID,
+                DelineationTypeID = (int)DelineationTypeEnum.Distributed,
+                DelineationGeometry4326 = poly4326,
+                DelineationGeometry = removedShape,
+                DateLastModified = DateTime.UtcNow,
+                IsVerified = false,
+                HasDiscrepancies = false,
+            });
+            _dbContext.SaveChanges();
+
+            await DelineationStagings.ProcessDeserializedStagingAsync(_dbContext, SampleStagingGeoJson(bmp.TreatmentBMPName, "Verified"), _jurisdictionPerson);
+            var (count, affectedGeometries) = await DelineationStagings.ApproveAndListAffectedGeometriesAsync(_dbContext, _jurisdictionPerson);
+
+            Assert.AreEqual(1, count);
+            Assert.AreEqual(2, affectedGeometries.Count, "one removed shape and one added shape");
+            Assert.AreEqual(removedShape.Area, affectedGeometries[0].Area, 0.01, "the removed delineation's shape comes first");
+            var addedShape = _dbContext.Delineations.AsNoTracking().Single(x => x.TreatmentBMPID == bmp.TreatmentBMPID).DelineationGeometry;
+            Assert.AreEqual(addedShape.Area, affectedGeometries[1].Area, 0.01, "the added delineation's stored shape comes second");
+        }
+
+        [TestMethod]
         public async Task ProcessDeserializedStagingAsync_BMPWithUpstreamSetReturnsErrorButPersistsStaging()
         {
             var bmp = CreateBMP($"NPT-981-PR3-UP-{Guid.NewGuid():N}");

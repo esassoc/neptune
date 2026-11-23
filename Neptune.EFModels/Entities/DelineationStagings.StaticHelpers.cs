@@ -2,6 +2,7 @@ using Microsoft.EntityFrameworkCore;
 using Neptune.Common.DesignByContract;
 using Neptune.Common.GeoSpatial;
 using Neptune.Models.DataTransferObjects;
+using NetTopologySuite.Geometries;
 
 namespace Neptune.EFModels.Entities;
 
@@ -139,6 +140,18 @@ public static class DelineationStagings
 
     public static async Task<int> ApproveAsync(NeptuneDbContext dbContext, Person currentPerson)
     {
+        return (await ApproveAndListAffectedGeometriesAsync(dbContext, currentPerson)).DelineationCount;
+    }
+
+    /// <summary>
+    /// Approves the current user's staged upload and also returns the ground it changed: the geometry
+    /// of every delineation it removed and of every one it added (NPT-1159). Removing a delineation
+    /// deletes its Load Generating Units and a new one has none yet, so the caller must queue an LGU
+    /// refresh over these geometries; that lives in Neptune.API, which this project cannot reference.
+    /// </summary>
+    public static async Task<(int DelineationCount, List<Geometry> AffectedGeometries)> ApproveAndListAffectedGeometriesAsync(
+        NeptuneDbContext dbContext, Person currentPerson)
+    {
         var stagings = dbContext.DelineationStagings.AsNoTracking()
             .Where(x => x.UploadedByPersonID == currentPerson.PersonID)
             .ToList();
@@ -156,13 +169,15 @@ public static class DelineationStagings
 
         // Scope to the staging's jurisdiction AND distributed type so a same-named BMP in another jurisdiction
         // (or a centralized delineation in this one) doesn't get deleted by a Distributed-only upload.
-        var delineationsToDelete = dbContext.Delineations.AsNoTracking()
-            .Include(x => x.TreatmentBMP)
+        var distributedDelineationsForStagedBMPs = dbContext.Delineations.AsNoTracking()
             .Where(x => x.TreatmentBMP.StormwaterJurisdictionID == stormwaterJurisdictionID
                         && x.DelineationTypeID == (int)DelineationTypeEnum.Distributed
-                        && stagedNamesQuery.Contains(x.TreatmentBMP.TreatmentBMPName))
-            .Select(x => x.DelineationID)
-            .ToList();
+                        && stagedNamesQuery.Contains(x.TreatmentBMP.TreatmentBMPName));
+        var removed = await distributedDelineationsForStagedBMPs
+            .Select(x => new { x.DelineationID, x.DelineationGeometry })
+            .ToListAsync();
+        var delineationsToDelete = removed.Select(x => x.DelineationID).ToList();
+        var affectedGeometries = removed.Select(x => x.DelineationGeometry).ToList();
         // ExecuteDelete bypasses the change tracker, so detach any tracked instances from earlier in this
         // DbContext's lifetime first — otherwise they'd still occupy the 1:1 nav slot and collide with the new
         // Delineations added below. Then delete the whole set with a fixed number of statements rather than
@@ -208,11 +223,15 @@ public static class DelineationStagings
         // (WMS) and the NTS overlay never see invalid polygons.
         await dbContext.Database.ExecuteSqlRawAsync("EXEC dbo.pDelineationMakeValid");
 
+        // Read the added shapes back after the repair, and while the staging rows the query matches on
+        // still exist: the stored shape, not the uploaded one, is what the overlay will use.
+        affectedGeometries.AddRange(await distributedDelineationsForStagedBMPs.Select(x => x.DelineationGeometry).ToListAsync());
+
         await dbContext.DelineationStagings
             .Where(x => x.UploadedByPersonID == currentPerson.PersonID)
             .ExecuteDeleteAsync();
 
-        return bmpsToUpdate.Count;
+        return (bmpsToUpdate.Count, affectedGeometries);
     }
 
     public static async Task DiscardForUserAsync(NeptuneDbContext dbContext, Person currentPerson)

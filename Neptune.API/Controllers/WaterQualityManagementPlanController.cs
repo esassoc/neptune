@@ -15,6 +15,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using NetTopologySuite.Features;
+using NetTopologySuite.Geometries;
 using Neptune.Common.Services.GDAL;
 using Neptune.API.Common;
 using Neptune.Common.Services;
@@ -154,8 +155,10 @@ namespace Neptune.API.Controllers
                 .Where(x => x.WaterQualityManagementPlanID == waterQualityManagementPlanID)
                 .Select(x => x.WaterQualityManagementPlanStatusID)
                 .FirstAsync();
+            var oldModelingApproachID = await GetModelingApproachIDAsync(waterQualityManagementPlanID);
             var updated = await WaterQualityManagementPlans.UpdateAsync(DbContext, waterQualityManagementPlanID, dto);
             if (updated == null) return NotFound();
+            await QueueLGURefreshIfModelingApproachChangedAsync(waterQualityManagementPlanID, oldModelingApproachID);
             if (await WaterQualityManagementPlans.HandleStatusTransitionAsync(DbContext, waterQualityManagementPlanID, oldStatusID))
             {
                 BackgroundJob.Enqueue<DeltaSolveJob>(x => x.RunJob());
@@ -163,13 +166,85 @@ namespace Neptune.API.Controllers
             return Ok(updated);
         }
 
+        private async Task<int?> GetModelingApproachIDAsync(int waterQualityManagementPlanID)
+        {
+            return await DbContext.WaterQualityManagementPlans.AsNoTracking()
+                .Where(x => x.WaterQualityManagementPlanID == waterQualityManagementPlanID)
+                .Select(x => (int?)x.WaterQualityManagementPlanModelingApproachID)
+                .FirstOrDefaultAsync();
+        }
+
+        private async Task<Geometry?> GetBoundaryGeometryAsync(int waterQualityManagementPlanID)
+        {
+            return await DbContext.WaterQualityManagementPlanBoundaries.AsNoTracking()
+                .Where(x => x.WaterQualityManagementPlanID == waterQualityManagementPlanID)
+                .Select(x => x.GeometryNative)
+                .FirstOrDefaultAsync();
+        }
+
+        // NPT-1159: only Simplified WQMPs are Load Generating Unit inputs (Detailed ones are excluded,
+        // see vPyQgisWaterQualityManagementPlanLGUInput), so a change of modeling approach adds or
+        // removes the boundary as an input and the LGUs under it have to be rebuilt. Call this after
+        // the change is saved, and outside any open transaction: the queued job reads the refresh
+        // area on its own connection.
+        private async Task QueueLGURefreshIfModelingApproachChangedAsync(int waterQualityManagementPlanID, int? oldModelingApproachID)
+        {
+            var newModelingApproachID = await GetModelingApproachIDAsync(waterQualityManagementPlanID);
+            if (newModelingApproachID == oldModelingApproachID)
+            {
+                return;
+            }
+
+            if (newModelingApproachID == (int)WaterQualityManagementPlanModelingApproachEnum.Detailed)
+            {
+                // it is no longer a node in the model, so its cached results are stale
+                await WaterQualityManagementPlans.DeleteModelResultsAsync(DbContext, [waterQualityManagementPlanID]);
+            }
+
+            var boundaryGeometry = await GetBoundaryGeometryAsync(waterQualityManagementPlanID);
+            if (boundaryGeometry != null)
+            {
+                await MarkNodesDownstreamOfBoundaryDirtyAsync(boundaryGeometry);
+                await ModelingEngineUtilities.QueueLGURefreshForArea(boundaryGeometry, null, DbContext);
+            }
+        }
+
+        // NPT-1159: a WQMP entering or leaving the model (modeling approach change, delete) changes the
+        // load reaching the regional subbasins under its boundary. Marking the WQMP itself dirty does
+        // nothing once it is no longer a node, so mark those subbasins and their centralized BMPs.
+        // The subbasins are found from the LGUs on the ground, not from the LGUs that carry the WQMP:
+        // a WQMP that was Detailed has none. Call this before the LGUs are deleted or refreshed.
+        private async Task MarkNodesDownstreamOfBoundaryDirtyAsync(Geometry boundaryGeometry)
+        {
+            var regionalSubbasinIDs = await DbContext.LoadGeneratingUnits.AsNoTracking()
+                .Where(x => x.RegionalSubbasinID != null && x.LoadGeneratingUnitGeometry.Intersects(boundaryGeometry))
+                .Select(x => x.RegionalSubbasinID)
+                .Distinct()
+                .ToListAsync();
+            if (regionalSubbasinIDs.Any())
+            {
+                await NereidUtilities.MarkRegionalSubbasinsAndTheirCentralizedBMPsDirty(regionalSubbasinIDs, DbContext);
+            }
+        }
+
         [HttpDelete("{waterQualityManagementPlanID}")]
         [AdminFeature]
         [EntityNotFound(typeof(WaterQualityManagementPlan), "waterQualityManagementPlanID")]
         public async Task<IActionResult> Delete([FromRoute] int waterQualityManagementPlanID)
         {
+            // NPT-1159: the delete removes the Load Generating Units that carry this WQMP, leaving its
+            // ground with none, so rebuild the LGUs under the boundary it had.
+            var boundaryGeometry = await GetBoundaryGeometryAsync(waterQualityManagementPlanID);
+            if (boundaryGeometry != null)
+            {
+                await MarkNodesDownstreamOfBoundaryDirtyAsync(boundaryGeometry);
+            }
             var deleted = await WaterQualityManagementPlans.DeleteAsync(DbContext, waterQualityManagementPlanID);
             if (!deleted) return NotFound();
+            if (boundaryGeometry != null)
+            {
+                await ModelingEngineUtilities.QueueLGURefreshForArea(boundaryGeometry, null, DbContext);
+            }
             return NoContent();
         }
 
@@ -514,8 +589,10 @@ namespace Neptune.API.Controllers
             }
 
             var wqmp = WaterQualityManagementPlans.GetByIDWithChangeTracking(DbContext, waterQualityManagementPlanID);
+            var oldModelingApproachID = wqmp.WaterQualityManagementPlanModelingApproachID;
             wqmp.WaterQualityManagementPlanModelingApproachID = modelingApproachID;
             await DbContext.SaveChangesAsync();
+            await QueueLGURefreshIfModelingApproachChangedAsync(waterQualityManagementPlanID, oldModelingApproachID);
             await NereidUtilities.MarkWqmpDirty(wqmp, DbContext);
             return NoContent();
         }
@@ -1035,6 +1112,7 @@ namespace Neptune.API.Controllers
 
             var current = WaterQualityManagementPlans.GetByIDWithChangeTracking(DbContext, waterQualityManagementPlanID);
             dto.WaterQualityManagementPlanStatusID = current.WaterQualityManagementPlanStatusID;
+            var oldModelingApproachID = current.WaterQualityManagementPlanModelingApproachID;
 
             await using var transaction = await DbContext.Database.BeginTransactionAsync();
             try
@@ -1046,6 +1124,7 @@ namespace Neptune.API.Controllers
                 await NereidUtilities.MarkWqmpDirty(wqmp, DbContext);
 
                 await transaction.CommitAsync();
+                await QueueLGURefreshIfModelingApproachChangedAsync(waterQualityManagementPlanID, oldModelingApproachID);
                 return Ok(new WaterQualityManagementPlanSectionSaveResponseDto
                 {
                     WaterQualityManagementPlan = updated,
@@ -1169,6 +1248,12 @@ namespace Neptune.API.Controllers
                 return Ok(result);
             }
 
+            // NPT-1159: the parser overwrites the modeling approach on the tracked WQMPs, so note what
+            // each one was first.
+            var oldModelingApproachIDs = await DbContext.WaterQualityManagementPlans.AsNoTracking()
+                .Where(x => x.StormwaterJurisdictionID == form.StormwaterJurisdictionID)
+                .ToDictionaryAsync(x => x.WaterQualityManagementPlanID, x => x.WaterQualityManagementPlanModelingApproachID);
+
             var wqmps = WQMPXSLXParserHelper.ParseWQMPRowsFromXLSX(DbContext, dataTable, form.StormwaterJurisdictionID, out var errorList);
             if (errorList.Any())
             {
@@ -1180,6 +1265,35 @@ namespace Neptune.API.Controllers
             var updated = wqmps.Where(x => x.WaterQualityManagementPlanID > 0).ToList();
             await DbContext.WaterQualityManagementPlans.AddRangeAsync(added);
             await DbContext.SaveChangesAsync();
+
+            // One LGU refresh over the boundaries of every WQMP whose modeling approach the upload
+            // changed (see QueueLGURefreshIfModelingApproachChangedAsync). New WQMPs have no boundary yet.
+            var modelingApproachChangedIDs = updated
+                .Where(x => oldModelingApproachIDs.TryGetValue(x.WaterQualityManagementPlanID, out var oldModelingApproachID)
+                            && oldModelingApproachID != x.WaterQualityManagementPlanModelingApproachID)
+                .Select(x => x.WaterQualityManagementPlanID)
+                .ToList();
+            if (modelingApproachChangedIDs.Any())
+            {
+                // those that became Detailed are no longer nodes in the model, so their cached results are stale
+                var becameDetailedIDs = updated
+                    .Where(x => modelingApproachChangedIDs.Contains(x.WaterQualityManagementPlanID)
+                                && x.WaterQualityManagementPlanModelingApproachID == (int)WaterQualityManagementPlanModelingApproachEnum.Detailed)
+                    .Select(x => x.WaterQualityManagementPlanID)
+                    .ToList();
+                await WaterQualityManagementPlans.DeleteModelResultsAsync(DbContext, becameDetailedIDs);
+
+                var changedBoundaryGeometries = await DbContext.WaterQualityManagementPlanBoundaries.AsNoTracking()
+                    .Where(x => modelingApproachChangedIDs.Contains(x.WaterQualityManagementPlanID) && x.GeometryNative != null)
+                    .Select(x => x.GeometryNative!)
+                    .ToListAsync();
+                var changedArea = changedBoundaryGeometries.UnionListGeometries();
+                if (changedArea != null)
+                {
+                    await MarkNodesDownstreamOfBoundaryDirtyAsync(changedArea);
+                    await ModelingEngineUtilities.QueueLGURefreshForArea(changedArea, null, DbContext);
+                }
+            }
 
             result.AddedCount = added.Count;
             result.UpdatedCount = updated.Count;
