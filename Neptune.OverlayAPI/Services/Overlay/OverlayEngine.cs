@@ -245,6 +245,112 @@ public static class OverlayEngine
         }
     }
 
+    // How far past the refresh area a delta refresh reaches, in metres.
+    private const double DeltaRefreshReachMeters = 0.5;
+
+    // How far past its reach a delta refresh looks for polygons to reconcile, in metres.
+    private const double DeltaRefreshCandidateMarginMeters = 1;
+
+    /// <summary>
+    /// The ground a delta refresh replaces: the refresh area grown by half a metre (NPT-1158).
+    /// Refresh areas are built from the edited shapes, so LGU edges routinely lie exactly on the
+    /// area's own edge; half a metre out, very little does.
+    /// </summary>
+    public static Geometry DeltaRefreshReach(Geometry refreshArea) => ToPolygonal2D(refreshArea.Buffer(DeltaRefreshReachMeters));
+
+    /// <summary>
+    /// Where a delta refresh looks for candidates: its reach plus a margin. Load the stored rows that
+    /// intersect this, and filter the overlay pieces with it, before calling PlanDeltaRefresh.
+    /// </summary>
+    public static Geometry DeltaRefreshCandidateZone(Geometry refreshArea) =>
+        ToPolygonal2D(refreshArea.Buffer(DeltaRefreshReachMeters + DeltaRefreshCandidateMarginMeters));
+
+    /// <summary>
+    /// Decides which stored rows a delta refresh deletes and which new polygons it inserts (NPT-1158).
+    /// The two used to be chosen independently and did not agree, so ground gained one more stored
+    /// copy on every refresh:
+    ///  - whole pieces were inserted when any part touched the area, while only the touching part's
+    ///    stored row was deleted. Here both sides are single polygons;
+    ///  - a stored polygon and its recomputed twin can differ by under a millimetre, so on the edge
+    ///    of the test area one was selected and the other not. Here the two sets are reconciled after
+    ///    the reach test: a stored row holding the same ground as a polygon being inserted is deleted
+    ///    too, and a new polygon holding the same ground as a row being deleted is inserted too,
+    ///    repeated until nothing changes.
+    /// </summary>
+    /// <param name="stored">Stored rows intersecting DeltaRefreshCandidateZone, as single polygons with their attributes.</param>
+    /// <param name="pieces">Overlay pieces intersecting DeltaRefreshCandidateZone.</param>
+    /// <returns>
+    /// MatchedBeyondCandidateZone counts the rows and polygons that reconciliation, not the reach
+    /// test, selected and that extend past the candidate zone. Only candidates near the refresh area
+    /// are considered, on the premise that the overlay result differs only where the refresh area
+    /// says the inputs changed. A non-zero count means a match led outside what was loaded, so that
+    /// premise may not have held and a copy or a gap may remain out there: log it.
+    /// </returns>
+    public static (List<int> StoredIDsToDelete, List<(OverlayFeature Feature, Polygon Polygon)> PolygonsToInsert, int MatchedBeyondCandidateZone)
+        PlanDeltaRefresh(IReadOnlyList<(int ID, OverlayFeature Feature)> stored, IEnumerable<OverlayFeature> pieces, Geometry refreshArea,
+            double minimumArea = 1.0)
+    {
+        var reach = PreparedGeometryFactory.Prepare(DeltaRefreshReach(refreshArea));
+        var candidateZone = PreparedGeometryFactory.Prepare(DeltaRefreshCandidateZone(refreshArea));
+        // parts of a multi-part piece that lie outside the zone have no stored row among the candidates
+        // to reconcile against, so they are left alone
+        var replacements = ExplodeAndDropSlivers(pieces, minimumArea).Where(x => candidateZone.Intersects(x.Polygon)).ToList();
+
+        var deleteByReach = stored.Select(x => reach.Intersects(x.Feature.Geometry)).ToArray();
+        var insertByReach = replacements.Select(x => reach.Intersects(x.Polygon)).ToArray();
+        var delete = (bool[])deleteByReach.Clone();
+        var insert = (bool[])insertByReach.Clone();
+
+        // Same attributes and interiors that share ground. Not an interior-point test: a strip a
+        // millimetre wide and its copy shifted by half that overlap without either covering the
+        // other's interior point.
+        bool HoldSameGround(int storedIndex, int replacementIndex)
+        {
+            var storedFeature = stored[storedIndex].Feature;
+            var (replacementFeature, replacementPolygon) = replacements[replacementIndex];
+            return storedFeature.RegionalSubbasinID == replacementFeature.RegionalSubbasinID
+                   && storedFeature.DelineationID == replacementFeature.DelineationID
+                   && storedFeature.WaterQualityManagementPlanID == replacementFeature.WaterQualityManagementPlanID
+                   && storedFeature.Geometry.EnvelopeInternal.Intersects(replacementPolygon.EnvelopeInternal)
+                   && Relates(storedFeature.Geometry, replacementPolygon, InteriorsIntersect);
+        }
+
+        bool changed;
+        do
+        {
+            changed = false;
+            for (var s = 0; s < stored.Count; s++)
+            {
+                if (delete[s]) continue;
+                for (var r = 0; r < replacements.Count; r++)
+                {
+                    if (!insert[r] || !HoldSameGround(s, r)) continue;
+                    delete[s] = true;
+                    changed = true;
+                    break;
+                }
+            }
+            for (var r = 0; r < replacements.Count; r++)
+            {
+                if (insert[r]) continue;
+                for (var s = 0; s < stored.Count; s++)
+                {
+                    if (!delete[s] || !HoldSameGround(s, r)) continue;
+                    insert[r] = true;
+                    changed = true;
+                    break;
+                }
+            }
+        } while (changed);
+
+        var matchedBeyondCandidateZone =
+            stored.Where((x, i) => delete[i] && !deleteByReach[i] && !candidateZone.Covers(x.Feature.Geometry)).Count()
+            + replacements.Where((x, i) => insert[i] && !insertByReach[i] && !candidateZone.Covers(x.Polygon)).Count();
+
+        return (stored.Where((_, i) => delete[i]).Select(x => x.ID).ToList(),
+            replacements.Where((_, i) => insert[i]).ToList(), matchedBeyondCandidateZone);
+    }
+
     /// <summary>
     /// Spatial predicate via RelateNG — the legacy V1 relate throws "side location conflict"
     /// TopologyExceptions on full-precision DB geometries (hit on the first ported TGU run).

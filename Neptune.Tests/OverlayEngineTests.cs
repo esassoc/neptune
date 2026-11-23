@@ -38,6 +38,13 @@ public class OverlayEngineTests
         });
     }
 
+    // A polygon from its corners in order; the ring is closed for you.
+    private static Geometry Ring(params (double X, double Y)[] corners)
+    {
+        return OverlayEngine.Factory2D.CreatePolygon(
+            corners.Append(corners[0]).Select(c => new Coordinate(c.X, c.Y)).ToArray());
+    }
+
     private static OverlayFeature Delineation(int id, Geometry geometry, double tcEffect = 0, int? sjid = null) => new()
     {
         Geometry = geometry,
@@ -451,6 +458,122 @@ public class OverlayEngineTests
 
         Assert.AreEqual(1, filtered.Count);
         Assert.AreEqual(100, filtered[0].Geometry.Area, AreaTolerance, "intersecting piece must be kept whole, not clipped");
+    }
+
+    [TestMethod]
+    public void PlanDeltaRefresh_ReplacesOnlyThePartsNearTheRefreshArea()
+    {
+        // NPT-1158: one piece in two separate parts, only one of them in the refresh area. Inserting
+        // the far part too, while only the near part's stored row was deleted, left one more copy of
+        // the far part after every refresh.
+        var twoParts = OverlayEngine.Factory2D.CreateMultiPolygon(new[]
+        {
+            (Polygon)Square(0, 0, 10),     // in the refresh area
+            (Polygon)Square(500, 500, 10), // far from it
+        });
+        var pieces = new List<OverlayFeature>
+        {
+            Delineation(1, twoParts),
+            Delineation(2, Square(5, 5, 10)),   // single part clipping the area's corner: replaced whole
+            Delineation(3, Square(50, 50, 10)), // disjoint: left alone
+        };
+        var stored = new List<(int ID, OverlayFeature Feature)>
+        {
+            (101, Delineation(1, Square(0, 0, 10))),
+            (102, Delineation(1, Square(500, 500, 10))),
+            (103, Delineation(2, Square(5, 5, 10))),
+            (104, Delineation(3, Square(50, 50, 10))),
+        };
+        var refreshArea = Square(0, 0, 6);
+
+        Assert.AreEqual(2, OverlayEngine.FilterIntersecting(pieces, refreshArea).Count, "the piece-level filter keeps the two-part piece whole");
+
+        var (deleted, inserted, matchedBeyondCandidateZone) = OverlayEngine.PlanDeltaRefresh(stored, pieces, refreshArea);
+
+        CollectionAssert.AreEquivalent(new[] { 101, 103 }, deleted);
+        Assert.AreEqual(2, inserted.Count);
+        Assert.IsTrue(inserted.Single(x => x.Feature.DelineationID == 1).Polygon.Intersects(refreshArea), "only the part in the refresh area is inserted");
+        Assert.AreEqual(100, inserted.Single(x => x.Feature.DelineationID == 2).Polygon.Area, AreaTolerance, "an inserted polygon is not clipped");
+        Assert.AreEqual(0, matchedBeyondCandidateZone, "everything was selected by the reach test");
+    }
+
+    [TestMethod]
+    public void PlanDeltaRefresh_DeletesAndInsertsTheSamePolygons_WhenStoredCopiesAreSlightlyOff()
+    {
+        // NPT-1158: the stored rows are the polygons of an earlier run and can sit a fraction of a
+        // millimetre from where this run puts them. On the refresh area's own edge, where LGU edges
+        // routinely lie, a polygon and its stored copy 0.3 mm away must still be treated as one.
+        var refreshArea = Square(0, 0, 10);
+        const double storedOffset = 0.0003;
+        var ids = new[] { 1, 2, 3, 4 };
+        Geometry Shape(int id, double offset) => id switch
+        {
+            1 => Square(2, 2, 3),                     // inside the area
+            2 => Square(10 + offset, 0, 5),           // on the area's edge
+            3 => Square(10 + offset, 10 + offset, 5), // on the area's corner
+            _ => Square(40, 40, 5),                   // well clear of the area
+        };
+        var pieces = ids.Select(x => Delineation(x, Shape(x, 0))).ToList();
+        var stored = ids.Select(x => (ID: x, Feature: Delineation(x, Shape(x, storedOffset)))).ToList();
+
+        var (deleted, inserted, matchedBeyondCandidateZone) = OverlayEngine.PlanDeltaRefresh(stored, pieces, refreshArea);
+
+        CollectionAssert.AreEquivalent(new[] { 1, 2, 3 }, deleted);
+        CollectionAssert.AreEquivalent(deleted, inserted.Select(x => x.Feature.DelineationID!.Value).ToList(),
+            "what is deleted and what is inserted must be the same polygons");
+        Assert.AreEqual(0, matchedBeyondCandidateZone, "everything was selected by the reach test");
+    }
+
+    [TestMethod]
+    [DataRow("square", 0, 0.0003, DisplayName = "square: new polygon within reach, stored copy just outside")]
+    [DataRow("square", 0.0003, 0, DisplayName = "square: stored copy within reach, new polygon just outside")]
+    [DataRow("strip", 0, 0.0006, DisplayName = "1 mm strip: new polygon within reach, stored copy just outside")]
+    [DataRow("strip", 0.0006, 0, DisplayName = "1 mm strip: stored copy within reach, new polygon just outside")]
+    [DataRow("neck", 0, 0.0006, DisplayName = "narrow neck: new polygon within reach, stored copy just outside")]
+    [DataRow("neck", 0.0006, 0, DisplayName = "narrow neck: stored copy within reach, new polygon just outside")]
+    public void PlanDeltaRefresh_ReconcilesAPolygonOnTheEdgeOfItsReach(string shape, double newOffset, double storedOffset)
+    {
+        // The reach test alone only moves the sensitive edge half a metre out. A polygon lying exactly
+        // on that edge is selected on one side and not the other: left alone, the first case keeps the
+        // stored copy next to its replacement (a duplicate) and the second deletes the stored row
+        // without replacing it (a gap). Reconciling by shared ground settles both.
+        var refreshArea = Square(0, 0, 10);
+        var reach = OverlayEngine.DeltaRefreshReach(refreshArea);
+        var reachEdge = reach.EnvelopeInternal.MaxX;
+        // The strip and the neck are the shapes an interior-point match gets wrong: shifted by more
+        // than half their 1 mm width, the copies overlap but neither covers the other's interior point.
+        Geometry Shape(double x) => shape switch
+        {
+            "square" => Square(x, 2, 5),
+            // 1 mm wide, 2 km long: 2 m², above the sliver floor
+            "strip" => Ring((x, 2), (x + 0.001, 2), (x + 0.001, 2002), (x, 2002)),
+            // a 1 mm wide, 2 km tall neck on the reach edge, with a 1 mm tall foot running east
+            _ => Ring((x, 2), (x + 3, 2), (x + 3, 2.001), (x + 0.001, 2.001), (x + 0.001, 2002), (x, 2002)),
+        };
+        var newPolygon = Shape(reachEdge + newOffset);
+        var storedPolygon = Shape(reachEdge + storedOffset);
+        Assert.IsTrue(newPolygon.Area >= 1 && newPolygon.IsValid, "sanity: the shape is a valid polygon above the sliver floor");
+        Assert.AreNotEqual(reach.Intersects(newPolygon), reach.Intersects(storedPolygon), "sanity: the reach test alone treats the two differently");
+
+        var pieces = new List<OverlayFeature>
+        {
+            Delineation(1, newPolygon),
+            Delineation(2, Square(reachEdge + 0.2, 8, 5)), // a different unit just outside reach: not part of this
+        };
+        var stored = new List<(int ID, OverlayFeature Feature)>
+        {
+            (101, Delineation(1, storedPolygon)),
+            (102, Delineation(2, Square(reachEdge + 0.2, 8, 5))),
+        };
+
+        var (deleted, inserted, matchedBeyondCandidateZone) = OverlayEngine.PlanDeltaRefresh(stored, pieces, refreshArea);
+
+        CollectionAssert.AreEquivalent(new[] { 101 }, deleted);
+        Assert.AreEqual(1, inserted.Count);
+        Assert.AreEqual(1, inserted[0].Feature.DelineationID);
+        // The matched polygon runs on past the zone the candidates were loaded from, so anything it
+        // overlaps out there was never considered. The plan reports that so the caller can log it.
+        Assert.AreEqual(1, matchedBeyondCandidateZone);
     }
 
     [TestMethod]

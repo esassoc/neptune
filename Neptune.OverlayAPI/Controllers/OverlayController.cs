@@ -122,21 +122,24 @@ public class OverlayController : ControllerBase
         var regionalSubbasins = OverlayEngine.Clean(_dbContext.vPyQgisRegionalSubbasinLGUInputs.AsNoTracking().Select(x =>
             new OverlayFeature { Geometry = x.CatchmentGeometry, RegionalSubbasinID = x.RSBID, ModelBasinID = x.ModelID }).ToList());
 
+        var refreshAreaGeometry = loadGeneratingUnitRefreshArea?.LoadGeneratingUnitRefreshAreaGeometry;
         var pieces = RunLoadGeneratingUnitOverlay(regionalSubbasins, delineations,
-            loadGeneratingUnitRefreshArea?.LoadGeneratingUnitRefreshAreaGeometry);
+            refreshAreaGeometry != null ? OverlayEngine.DeltaRefreshCandidateZone(refreshAreaGeometry) : null);
 
-        if (loadGeneratingUnitRefreshArea != null)
+        IEnumerable<(OverlayFeature Feature, Polygon Polygon)> polygons;
+        if (refreshAreaGeometry != null)
         {
-            await _dbContext.Database.ExecuteSqlAsync($"EXEC dbo.pDeleteLoadGeneratingUnitsPriorToDeltaRefresh @LoadGeneratingUnitRefreshAreaID = {loadGeneratingUnitRefreshArea.LoadGeneratingUnitRefreshAreaID}");
+            polygons = await DeleteLoadGeneratingUnitsForDeltaRefresh(refreshAreaGeometry, pieces);
         }
         else
         {
             await _dbContext.Database.ExecuteSqlRawAsync("EXEC dbo.pDeleteLoadGeneratingUnitsPriorToTotalRefresh");
+            polygons = OverlayEngine.ExplodeAndDropSlivers(pieces);
         }
 
         var loadGeneratingUnits = new List<LoadGeneratingUnit>();
         var exportFeatures = _configuration.OverlayDebugExportFolder != null ? new FeatureCollection() : null;
-        foreach (var (feature, polygon) in OverlayEngine.ExplodeAndDropSlivers(pieces))
+        foreach (var (feature, polygon) in polygons)
         {
             if (feature.RegionalSubbasinID == null) continue;
             loadGeneratingUnits.Add(new LoadGeneratingUnit
@@ -201,9 +204,48 @@ public class OverlayController : ControllerBase
         return Ok();
     }
 
+    // Delta refresh delete (NPT-1158): OverlayEngine.PlanDeltaRefresh decides, in one place, which
+    // stored LGUs go and which new polygons replace them. This deletes those rows, and their HRU
+    // characteristics, and returns the polygons to insert. SQL Server only narrows the candidates.
+    private async Task<List<(OverlayFeature Feature, Polygon Polygon)>> DeleteLoadGeneratingUnitsForDeltaRefresh(
+        Geometry refreshAreaGeometry, List<OverlayFeature> pieces)
+    {
+        var candidateZone = OverlayEngine.DeltaRefreshCandidateZone(refreshAreaGeometry);
+        var stored = (await _dbContext.LoadGeneratingUnits.AsNoTracking()
+                .Where(x => x.LoadGeneratingUnitGeometry.Intersects(candidateZone))
+                .Select(x => new
+                {
+                    x.LoadGeneratingUnitID, x.LoadGeneratingUnitGeometry, x.RegionalSubbasinID, x.DelineationID, x.WaterQualityManagementPlanID,
+                })
+                .ToListAsync())
+            .Select(x => (x.LoadGeneratingUnitID, new OverlayFeature
+            {
+                Geometry = x.LoadGeneratingUnitGeometry, RegionalSubbasinID = x.RegionalSubbasinID,
+                DelineationID = x.DelineationID, WaterQualityManagementPlanID = x.WaterQualityManagementPlanID,
+            }))
+            .ToList();
+
+        var (loadGeneratingUnitIDs, polygonsToInsert, matchedBeyondCandidateZone) = OverlayEngine.PlanDeltaRefresh(stored, pieces, refreshAreaGeometry);
+        if (matchedBeyondCandidateZone > 0)
+        {
+            _logger.LogWarning(
+                "LGU overlay: delta refresh matched {MatchedCount} stored row(s) or polygon(s) that extend past the area it checks around the refresh area. A duplicate or a gap may remain beyond it; a total LGU refresh clears either.",
+                matchedBeyondCandidateZone);
+        }
+        if (loadGeneratingUnitIDs.Count > 0)
+        {
+            await _dbContext.HRUCharacteristics.Where(x => loadGeneratingUnitIDs.Contains(x.LoadGeneratingUnitID)).ExecuteDeleteAsync();
+            await _dbContext.LoadGeneratingUnits.Where(x => loadGeneratingUnitIDs.Contains(x.LoadGeneratingUnitID)).ExecuteDeleteAsync();
+        }
+        _logger.LogInformation("LGU overlay: delta refresh deletes {DeletedRowCount} stored LGUs and inserts {InsertedPolygonCount} polygons",
+            loadGeneratingUnitIDs.Count, polygonsToInsert.Count);
+        return polygonsToInsert;
+    }
+
     // The shared LGU/PLGU overlay, replacing ModelingOverlayAnalysis.py: clip the inputs to the modeling
     // extent (union of model basins — the basins contribute clip geometry only, no attributes), union
-    // RSB+WQMP then delineations, and for a delta refresh keep only pieces touching the refresh area.
+    // RSB+WQMP then delineations, and for a delta refresh keep only pieces near the refresh area
+    // (whole pieces here; OverlayEngine.PlanDeltaRefresh narrows them to single polygons).
     // Note: the python's --rsb_ids branch was dead code (missing `global`), so PLGU runs always clipped
     // to the model-basin extent too — this port replicates that actual behavior.
     private List<OverlayFeature> RunLoadGeneratingUnitOverlay(List<OverlayFeature> regionalSubbasins,
