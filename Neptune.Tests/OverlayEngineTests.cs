@@ -1,8 +1,11 @@
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using Neptune.OverlayAPI.Services.Overlay;
 using NetTopologySuite.Geometries;
+using NetTopologySuite.IO;
+using NetTopologySuite.Operation.Union;
 
 namespace Neptune.Tests;
 
@@ -256,6 +259,31 @@ public class OverlayEngineTests
         }
     }
 
+    [TestMethod]
+    public void Flatten_ResolvesAPairThatBecomesAContainmentAfterAnEarlierCut()
+    {
+        // NPT-1143: feature 1 pokes 0.3 mm out of feature 3, so the containment phase sees a partial
+        // overlap and skips the pair. Cutting feature 2 out of feature 1 then puts feature 1 on the
+        // 1 mm overlay grid, which removes the poke and leaves it wholly inside feature 3. The
+        // overlap phase must still resolve that pair; it used to skip it because a containment is
+        // not a partial overlap, leaving feature 1 whole on feature 3's ground.
+        var poking = OverlayEngine.Factory2D.CreatePolygon(new[]
+        {
+            new Coordinate(8, 8), new Coordinate(20.0003, 8), new Coordinate(20.0003, 12), new Coordinate(8, 12), new Coordinate(8, 8),
+        });
+
+        var flattened = FlattenDelineations(new List<OverlayFeature>
+        {
+            Delineation(1, poking, tcEffect: 0),             // loses to both others
+            Delineation(2, Square(5, 5, 5), tcEffect: 50),   // inside 3, overlaps 1, beats both
+            Delineation(3, Square(0, 0, 20), tcEffect: 0),   // beats 1 on the ID tie-break
+        });
+
+        Assert.IsFalse(flattened.Any(x => x.DelineationID == 1), "feature 1 lies under two winners and must not survive");
+        Assert.AreEqual(25, flattened.Single(x => x.DelineationID == 2).Geometry.Area, 0.001);
+        Assert.AreEqual(375, flattened.Single(x => x.DelineationID == 3).Geometry.Area, 0.001);
+    }
+
     // ---------- UnionLayers ----------
 
     [TestMethod]
@@ -315,6 +343,81 @@ public class OverlayEngineTests
 
         // delineation 1 sits fully inside the grid, so only delineation 2 leaves a remainder
         Assert.AreEqual(expectedFootprint, pieces.Sum(x => x.Geometry.Area), 0.001);
+    }
+
+    // ---------- NPT-1143: overlay that failed silently at floating precision ----------
+
+    // A block lying wholly inside three overlapping areas: one very large (TCEffect 0) and two small
+    // ones (TCEffect 100) that split the block between them. Captured from a case where
+    // OverlayNGRobust returned an empty intersection and an untouched difference for the block
+    // against the union of the flattened areas, without throwing. The coordinates are translated
+    // from the original by a whole number of metres: the failure depends on the exact coordinate
+    // bits, which is why the fixture is hex WKB and not rounded WKT.
+    private static Geometry NestedBlockFixture(string name)
+    {
+        var resourceName = $"Neptune.Tests.OverlayFixtures.NestedBlock.{name}.wkb.hex";
+        using var stream = typeof(OverlayEngineTests).Assembly.GetManifestResourceStream(resourceName);
+        Assert.IsNotNull(stream, $"embedded fixture {resourceName} not found");
+        using var reader = new StreamReader(stream);
+        var geometry = new WKBReader().Read(WKBReader.HexToBytes(reader.ReadToEnd().Trim()));
+        return OverlayEngine.ToPolygonal2D(geometry);
+    }
+
+    private static List<OverlayFeature> FlattenedNestedBlockAreas() => FlattenDelineations(OverlayEngine.Clean(new List<OverlayFeature>
+    {
+        Delineation(1, NestedBlockFixture("Area1"), tcEffect: 0),
+        Delineation(2, NestedBlockFixture("Area2"), tcEffect: 100),
+        Delineation(3, NestedBlockFixture("Area3"), tcEffect: 100),
+    }));
+
+    // Snapping to the 1 mm overlay grid can move the block's ~520 m boundary by under a millimetre,
+    // so areas agree to well under 1 m²; the defect was off by the block's whole 9,179 m².
+    private const double NestedBlockAreaTolerance = 1.0;
+
+    [TestMethod]
+    public void UnionLayers_DoesNotCountABlockTwice_WhenItLiesInsideTheOtherLayer()
+    {
+        var block = LandUseBlock(10, NestedBlockFixture("Block"), sjid: 7);
+
+        var blockPieces = OverlayEngine.UnionLayers(new List<OverlayFeature> { block }, FlattenedNestedBlockAreas())
+            .Where(x => x.LandUseBlockID == 10).ToList();
+
+        Assert.AreEqual(block.Geometry.Area, blockPieces.Sum(x => x.Geometry.Area), NestedBlockAreaTolerance,
+            "the block's pieces must tile the block, not cover it twice");
+        Assert.AreEqual(0, blockPieces.Where(x => x.DelineationID == null).Sum(x => x.Geometry.Area), NestedBlockAreaTolerance,
+            "the areas cover the whole block, so no unattributed remainder is left");
+    }
+
+    [TestMethod]
+    public void IntersectionAndDifference_AreCorrect_WhenFirstOperandLiesInsideTheSecond()
+    {
+        var block = NestedBlockFixture("Block");
+        var areasUnion = UnaryUnionOp.Union(FlattenedNestedBlockAreas().Select(x => x.Geometry).ToList());
+        Assert.IsTrue(areasUnion.Contains(block.InteriorPoint), "fixture sanity: the block sits inside the unioned areas");
+
+        // Both must be checked against known answers: the failing results (0 and the whole block)
+        // add up to the block's area, so a conservation check alone passes on the defect.
+        Assert.AreEqual(block.Area, OverlayEngine.Intersection(block, areasUnion).Area, NestedBlockAreaTolerance);
+        Assert.AreEqual(0, OverlayEngine.Difference(block, areasUnion).Area, NestedBlockAreaTolerance);
+    }
+
+    [TestMethod]
+    public void FindOverCountedSources_ReturnsOnlySourcesWhosePiecesExceedThemBeyondTolerance()
+    {
+        var sourceAreas = new Dictionary<int, double> { { 1, 100 }, { 2, 100 }, { 3, 100 } };
+        var pieces = new List<(int SourceID, double Area)>
+        {
+            (1, 60), (1, 40),      // tiles its source exactly
+            (2, 100), (2, 100),    // counted twice
+            (3, 70), (3, 30.5),    // over, but within tolerance
+        };
+
+        var overCounted = OverlayEngine.FindOverCountedSources(pieces, sourceAreas, tolerance: 1);
+
+        Assert.AreEqual(1, overCounted.Count);
+        Assert.AreEqual(2, overCounted[0].SourceID);
+        Assert.AreEqual(100, overCounted[0].SourceArea, AreaTolerance);
+        Assert.AreEqual(200, overCounted[0].PieceArea, AreaTolerance);
     }
 
     // ---------- Clip / FilterIntersecting / ExplodeAndDropSlivers ----------
