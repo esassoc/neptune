@@ -454,6 +454,69 @@ public class OverlayEngineTests
     }
 
     [TestMethod]
+    public void ExplodeAndDropSliversIntersecting_KeepsOnlyThePartsThatTouchTheFilter()
+    {
+        // NPT-1158: one piece in two separate parts, only one of them in the refresh area. The delta
+        // delete removes only the stored row for the part in the area, so only that part may be
+        // inserted; inserting the far part too left one more copy of it after every refresh.
+        var twoParts = OverlayEngine.Factory2D.CreateMultiPolygon(new[]
+        {
+            (Polygon)Square(0, 0, 10),     // in the refresh area
+            (Polygon)Square(500, 500, 10), // far from it
+        });
+        var pieces = new List<OverlayFeature>
+        {
+            Delineation(1, twoParts),
+            Delineation(2, Square(5, 5, 10)),   // single part clipping the area's corner: kept whole
+            Delineation(3, Square(50, 50, 10)), // disjoint: dropped
+        };
+        var refreshArea = Square(0, 0, 6);
+
+        Assert.AreEqual(2, OverlayEngine.FilterIntersecting(pieces, refreshArea).Count, "the piece-level filter keeps the two-part piece whole");
+
+        var kept = OverlayEngine.ExplodeAndDropSliversIntersecting(pieces, refreshArea).ToList();
+
+        Assert.AreEqual(2, kept.Count);
+        Assert.AreEqual(1, kept.Count(x => x.Feature.DelineationID == 1), "only the part in the refresh area is kept");
+        Assert.IsTrue(kept.Single(x => x.Feature.DelineationID == 1).Polygon.Intersects(refreshArea));
+        Assert.AreEqual(100, kept.Single(x => x.Feature.DelineationID == 2).Polygon.Area, AreaTolerance, "a kept polygon is not clipped");
+    }
+
+    [TestMethod]
+    public void DeltaRefresh_DeletesExactlyTheStoredPolygonsItWouldInsertAgain()
+    {
+        // NPT-1158: the stored rows are the polygons of an earlier run and can sit a fraction of a
+        // millimetre from where this run puts them. A delta refresh must still delete exactly the
+        // rows it is about to insert again. Tested against the bare refresh area, a polygon lying on
+        // the area's edge is inserted while its stored copy, 0.3 mm away, is left in place; that
+        // polygon then gains a copy on every refresh.
+        var refreshArea = Square(0, 0, 10);
+        const double storedOffset = 0.0003;
+        var ids = new[] { 1, 2, 3, 4 };
+        Geometry Shape(int id, double offset) => id switch
+        {
+            1 => Square(2, 2, 3),                  // inside the area
+            2 => Square(10 + offset, 0, 5),        // on the area's edge
+            3 => Square(10 + offset, 10 + offset, 5), // on the area's corner
+            _ => Square(40, 40, 5),                // well clear of the area
+        };
+        var pieces = ids.Select(x => Delineation(x, Shape(x, 0))).ToList();
+        var stored = ids.Select(x => (ID: x, Geometry: Shape(x, storedOffset))).ToList();
+
+        List<int> Inserted(Geometry filter) => OverlayEngine.ExplodeAndDropSliversIntersecting(pieces, filter)
+            .Select(x => x.Feature.DelineationID!.Value).ToList();
+
+        CollectionAssert.AreNotEquivalent(OverlayEngine.FindIDsIntersecting(stored, refreshArea), Inserted(refreshArea),
+            "sanity: against the bare refresh area the delete and the insert disagree");
+
+        var reach = OverlayEngine.DeltaRefreshReach(refreshArea);
+        var deleted = OverlayEngine.FindIDsIntersecting(stored, reach);
+
+        CollectionAssert.AreEquivalent(new[] { 1, 2, 3 }, deleted);
+        CollectionAssert.AreEquivalent(deleted, Inserted(reach), "what is deleted and what is inserted must be the same polygons");
+    }
+
+    [TestMethod]
     public void ExplodeAndDropSlivers_ExplodesMultiPolygons_AndDropsSubMinimumPieces()
     {
         var multi = OverlayEngine.Factory2D.CreateMultiPolygon(new[]

@@ -245,6 +245,44 @@ public static class OverlayEngine
         }
     }
 
+    // How far past the refresh area a delta refresh reaches, in metres.
+    private const double DeltaRefreshReachMeters = 0.5;
+
+    /// <summary>
+    /// The ground a delta refresh replaces: the refresh area grown by half a metre (NPT-1158). The
+    /// delete tests stored rows against it and the insert tests new polygons against it. Refresh
+    /// areas are built from the edited shapes, so LGU edges routinely lie exactly on the area's own
+    /// edge, and there a stored polygon and its recomputed twin, which can differ by under a
+    /// millimetre, were judged differently: the twin was inserted, the stored copy was not deleted.
+    /// Nothing lines up with an edge half a metre out, so both get the same answer.
+    /// </summary>
+    public static Geometry DeltaRefreshReach(Geometry refreshArea) => ToPolygonal2D(refreshArea.Buffer(DeltaRefreshReachMeters));
+
+    /// <summary>
+    /// Explode, drop slivers, and keep only the single polygons that intersect <paramref name="filter"/>.
+    /// A delta refresh must use this, not FilterIntersecting alone (NPT-1158): its delete removes stored
+    /// rows, which are single polygons, that intersect the refresh area. A multi-part piece with one
+    /// part in the area would otherwise have every part inserted while only that one part's old row
+    /// was deleted, leaving one more copy of the other parts after each refresh.
+    /// </summary>
+    public static IEnumerable<(OverlayFeature Feature, Polygon Polygon)> ExplodeAndDropSliversIntersecting(
+        IEnumerable<OverlayFeature> features, Geometry filter, double minimumArea = 1.0)
+    {
+        var prepared = PreparedGeometryFactory.Prepare(filter);
+        return ExplodeAndDropSlivers(features, minimumArea).Where(x => prepared.Intersects(x.Polygon));
+    }
+
+    /// <summary>
+    /// The IDs of the stored geometries a delta refresh must delete: those that intersect
+    /// <paramref name="filter"/>, decided by the same test ExplodeAndDropSliversIntersecting uses to
+    /// choose what to insert (NPT-1158). Pass both the result of DeltaRefreshReach.
+    /// </summary>
+    public static List<int> FindIDsIntersecting(IEnumerable<(int ID, Geometry Geometry)> stored, Geometry filter)
+    {
+        var prepared = PreparedGeometryFactory.Prepare(filter);
+        return stored.Where(x => prepared.Intersects(x.Geometry)).Select(x => x.ID).ToList();
+    }
+
     /// <summary>
     /// Spatial predicate via RelateNG — the legacy V1 relate throws "side location conflict"
     /// TopologyExceptions on full-precision DB geometries (hit on the first ported TGU run).
