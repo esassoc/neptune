@@ -279,9 +279,16 @@ public static class OverlayEngine
     /// </summary>
     /// <param name="stored">Stored rows intersecting DeltaRefreshCandidateZone, as single polygons with their attributes.</param>
     /// <param name="pieces">Overlay pieces intersecting DeltaRefreshCandidateZone.</param>
-    public static (List<int> StoredIDsToDelete, List<(OverlayFeature Feature, Polygon Polygon)> PolygonsToInsert) PlanDeltaRefresh(
-        IReadOnlyList<(int ID, OverlayFeature Feature)> stored, IEnumerable<OverlayFeature> pieces, Geometry refreshArea,
-        double minimumArea = 1.0)
+    /// <returns>
+    /// MatchedBeyondCandidateZone counts the rows and polygons that reconciliation, not the reach
+    /// test, selected and that extend past the candidate zone. Only candidates near the refresh area
+    /// are considered, on the premise that the overlay result differs only where the refresh area
+    /// says the inputs changed. A non-zero count means a match led outside what was loaded, so that
+    /// premise may not have held and a copy or a gap may remain out there: log it.
+    /// </returns>
+    public static (List<int> StoredIDsToDelete, List<(OverlayFeature Feature, Polygon Polygon)> PolygonsToInsert, int MatchedBeyondCandidateZone)
+        PlanDeltaRefresh(IReadOnlyList<(int ID, OverlayFeature Feature)> stored, IEnumerable<OverlayFeature> pieces, Geometry refreshArea,
+            double minimumArea = 1.0)
     {
         var reach = PreparedGeometryFactory.Prepare(DeltaRefreshReach(refreshArea));
         var candidateZone = PreparedGeometryFactory.Prepare(DeltaRefreshCandidateZone(refreshArea));
@@ -289,8 +296,10 @@ public static class OverlayEngine
         // to reconcile against, so they are left alone
         var replacements = ExplodeAndDropSlivers(pieces, minimumArea).Where(x => candidateZone.Intersects(x.Polygon)).ToList();
 
-        var delete = stored.Select(x => reach.Intersects(x.Feature.Geometry)).ToArray();
-        var insert = replacements.Select(x => reach.Intersects(x.Polygon)).ToArray();
+        var deleteByReach = stored.Select(x => reach.Intersects(x.Feature.Geometry)).ToArray();
+        var insertByReach = replacements.Select(x => reach.Intersects(x.Polygon)).ToArray();
+        var delete = (bool[])deleteByReach.Clone();
+        var insert = (bool[])insertByReach.Clone();
 
         // Same attributes and interiors that share ground. Not an interior-point test: a strip a
         // millimetre wide and its copy shifted by half that overlap without either covering the
@@ -334,8 +343,12 @@ public static class OverlayEngine
             }
         } while (changed);
 
+        var matchedBeyondCandidateZone =
+            stored.Where((x, i) => delete[i] && !deleteByReach[i] && !candidateZone.Covers(x.Feature.Geometry)).Count()
+            + replacements.Where((x, i) => insert[i] && !insertByReach[i] && !candidateZone.Covers(x.Polygon)).Count();
+
         return (stored.Where((_, i) => delete[i]).Select(x => x.ID).ToList(),
-            replacements.Where((_, i) => insert[i]).ToList());
+            replacements.Where((_, i) => insert[i]).ToList(), matchedBeyondCandidateZone);
     }
 
     /// <summary>

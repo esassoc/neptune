@@ -488,12 +488,13 @@ public class OverlayEngineTests
 
         Assert.AreEqual(2, OverlayEngine.FilterIntersecting(pieces, refreshArea).Count, "the piece-level filter keeps the two-part piece whole");
 
-        var (deleted, inserted) = OverlayEngine.PlanDeltaRefresh(stored, pieces, refreshArea);
+        var (deleted, inserted, matchedBeyondCandidateZone) = OverlayEngine.PlanDeltaRefresh(stored, pieces, refreshArea);
 
         CollectionAssert.AreEquivalent(new[] { 101, 103 }, deleted);
         Assert.AreEqual(2, inserted.Count);
         Assert.IsTrue(inserted.Single(x => x.Feature.DelineationID == 1).Polygon.Intersects(refreshArea), "only the part in the refresh area is inserted");
         Assert.AreEqual(100, inserted.Single(x => x.Feature.DelineationID == 2).Polygon.Area, AreaTolerance, "an inserted polygon is not clipped");
+        Assert.AreEqual(0, matchedBeyondCandidateZone, "everything was selected by the reach test");
     }
 
     [TestMethod]
@@ -515,11 +516,12 @@ public class OverlayEngineTests
         var pieces = ids.Select(x => Delineation(x, Shape(x, 0))).ToList();
         var stored = ids.Select(x => (ID: x, Feature: Delineation(x, Shape(x, storedOffset)))).ToList();
 
-        var (deleted, inserted) = OverlayEngine.PlanDeltaRefresh(stored, pieces, refreshArea);
+        var (deleted, inserted, matchedBeyondCandidateZone) = OverlayEngine.PlanDeltaRefresh(stored, pieces, refreshArea);
 
         CollectionAssert.AreEquivalent(new[] { 1, 2, 3 }, deleted);
         CollectionAssert.AreEquivalent(deleted, inserted.Select(x => x.Feature.DelineationID!.Value).ToList(),
             "what is deleted and what is inserted must be the same polygons");
+        Assert.AreEqual(0, matchedBeyondCandidateZone, "everything was selected by the reach test");
     }
 
     [TestMethod]
@@ -564,11 +566,14 @@ public class OverlayEngineTests
             (102, Delineation(2, Square(reachEdge + 0.2, 8, 5))),
         };
 
-        var (deleted, inserted) = OverlayEngine.PlanDeltaRefresh(stored, pieces, refreshArea);
+        var (deleted, inserted, matchedBeyondCandidateZone) = OverlayEngine.PlanDeltaRefresh(stored, pieces, refreshArea);
 
         CollectionAssert.AreEquivalent(new[] { 101 }, deleted);
         Assert.AreEqual(1, inserted.Count);
         Assert.AreEqual(1, inserted[0].Feature.DelineationID);
+        // The matched polygon runs on past the zone the candidates were loaded from, so anything it
+        // overlaps out there was never considered. The plan reports that so the caller can log it.
+        Assert.AreEqual(1, matchedBeyondCandidateZone);
     }
 
     [TestMethod]

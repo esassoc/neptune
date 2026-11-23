@@ -225,7 +225,13 @@ public class OverlayController : ControllerBase
             }))
             .ToList();
 
-        var (loadGeneratingUnitIDs, polygonsToInsert) = OverlayEngine.PlanDeltaRefresh(stored, pieces, refreshAreaGeometry);
+        var (loadGeneratingUnitIDs, polygonsToInsert, matchedBeyondCandidateZone) = OverlayEngine.PlanDeltaRefresh(stored, pieces, refreshAreaGeometry);
+        if (matchedBeyondCandidateZone > 0)
+        {
+            _logger.LogWarning(
+                "LGU overlay: delta refresh matched {MatchedCount} stored row(s) or polygon(s) that extend past the area it checks around the refresh area. A duplicate or a gap may remain beyond it; a total LGU refresh clears either.",
+                matchedBeyondCandidateZone);
+        }
         if (loadGeneratingUnitIDs.Count > 0)
         {
             await _dbContext.HRUCharacteristics.Where(x => loadGeneratingUnitIDs.Contains(x.LoadGeneratingUnitID)).ExecuteDeleteAsync();
