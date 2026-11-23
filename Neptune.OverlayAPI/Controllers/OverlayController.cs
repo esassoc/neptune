@@ -347,6 +347,7 @@ public class OverlayController : ControllerBase
             await _dbContext.Database.ExecuteSqlRawAsync("EXEC dbo.pTrashGeneratingUnit4326MakeValid");
         }
         _logger.LogInformation("TGU overlay: inserted {RowCount} rows (x2 with 4326); total {Elapsed}s", trashGeneratingUnits.Count, stopwatch.Elapsed.TotalSeconds);
+        LogLandUseBlocksWithMoreTrashGeneratingUnitAreaThanTheirOwn(landUseBlocks, trashGeneratingUnits);
 
         if (exportFeatures != null)
         {
@@ -357,6 +358,35 @@ public class OverlayController : ControllerBase
         }
 
         return Ok();
+    }
+
+    // ≈ 0.005 ac, the tolerance of the NPT-1143 detection query. A correct run is over by square
+    // millimetres at most; the defect this guards against counted whole blocks twice.
+    private const double LandUseBlockOverCountToleranceSquareMeters = 20;
+    private const int MaximumOverCountedLandUseBlocksToName = 50;
+
+    // NPT-1143 guard: TGUs are cut from land use blocks, so a block's TGUs can never total more than
+    // the block. The run still completes (the rows are already written); the error makes a
+    // recurrence visible in the logs at block level instead of waiting for someone to compare exports.
+    private void LogLandUseBlocksWithMoreTrashGeneratingUnitAreaThanTheirOwn(List<OverlayFeature> landUseBlocks,
+        List<TrashGeneratingUnit> trashGeneratingUnits)
+    {
+        var landUseBlockAreas = landUseBlocks.ToDictionary(x => x.LandUseBlockID!.Value, x => x.Geometry.Area);
+        var overCounted = OverlayEngine.FindOverCountedSources(
+            trashGeneratingUnits.Select(x => (x.LandUseBlockID!.Value, x.TrashGeneratingUnitGeometry.Area)),
+            landUseBlockAreas, LandUseBlockOverCountToleranceSquareMeters);
+        if (overCounted.Count == 0)
+        {
+            _logger.LogInformation("TGU overlay: no land use block has more TGU area than its own area");
+            return;
+        }
+
+        var named = string.Join("; ", overCounted.Take(MaximumOverCountedLandUseBlocksToName).Select(x =>
+            $"{x.SourceID} (block {x.SourceArea:F1} m², TGUs {x.PieceArea:F1} m²)"));
+        _logger.LogError(
+            "TGU overlay: {OverCountedBlockCount} land use block(s) have more TGU area than their own area (tolerance {Tolerance} m²), {ExcessArea} m² in total — the overlay counted ground twice. First {NamedCount} LandUseBlockIDs: {OverCountedBlocks}",
+            overCounted.Count, LandUseBlockOverCountToleranceSquareMeters, Math.Round(overCounted.Sum(x => x.PieceArea - x.SourceArea), 1),
+            Math.Min(overCounted.Count, MaximumOverCountedLandUseBlocksToName), named);
     }
 
     // Winner rule for delineations and WQMPs: higher TCEffect wins; TCEffect tie → better trash capture

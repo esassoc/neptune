@@ -18,7 +18,7 @@ namespace Neptune.OverlayAPI.Services.Overlay;
 ///  - deterministic winner tie-breaks in Flatten (QGIS was iteration-order-dependent and did not
 ///    reproduce its own output run-to-run on contested boundaries);
 ///  - no self-snap step (qgis:snapgeometries existed to stop GeometryCollection fallout from
-///    union; OverlayNGRobust handles robustness, validated against the golden outputs);
+///    union); intersections and differences are noded on a fixed 1 mm grid instead (see Overlay);
 ///  - all geometries normalized to strictly-2D packed sequences (mixed 2D/3D coordinates make
 ///    OverlayNG's elevation model throw).
 /// </summary>
@@ -100,18 +100,23 @@ public static class OverlayEngine
             }
         }
 
-        // phase 3: partial overlaps — loser keeps (loser - winner)
+        // phase 3: every remaining pair whose interiors share ground — loser keeps (loser - winner).
+        // Deliberately not just Overlaps(): that predicate is false when one polygon contains the
+        // other, and a pair can be a partial overlap when phase 2 looks at it and a containment by
+        // the time phase 3 does (NPT-1143). Results come back on the 1 mm overlay grid, so a
+        // neighbour that was exactly inside an untouched polygon pokes out of the cut one by a
+        // fraction of a millimetre, then sits inside it again once it has been cut itself. Phase 2
+        // skipped such a pair as "not within" and Overlaps() skipped it as "not a partial overlap",
+        // leaving both features whole on the same ground.
         foreach (var (idA, idB) in CandidatePairs(alive, idOf))
         {
             if (!alive.TryGetValue(idA, out var a) || !alive.TryGetValue(idB, out var b)) continue;
-            if (!Relates(a.Geometry, b.Geometry, RelatePredicate.Overlaps())) continue;
-            if (firstLoses(a, b))
+            if (!Relates(a.Geometry, b.Geometry, InteriorsIntersect)) continue;
+            var (loserId, loser, winner) = firstLoses(a, b) ? (idA, a, b) : (idB, b, a);
+            loser.Geometry = Difference(loser.Geometry, winner.Geometry);
+            if (loser.Geometry.IsEmpty)
             {
-                a.Geometry = Difference(a.Geometry, b.Geometry);
-            }
-            else
-            {
-                b.Geometry = Difference(b.Geometry, a.Geometry);
+                alive.Remove(loserId);
             }
         }
 
@@ -245,6 +250,10 @@ public static class OverlayEngine
     /// TopologyExceptions on full-precision DB geometries (hit on the first ported TGU run).
     /// Falls back to fixing both operands and retrying if even NG objects.
     /// </summary>
+    // DE-9IM "T********": the two interiors have at least a point in common. For polygons that is
+    // any shared ground — partial overlap, containment either way, or equality — but not a shared edge.
+    private static TopologyPredicate InteriorsIntersect => RelatePredicate.Matches("T********");
+
     private static bool Relates(Geometry a, Geometry b, TopologyPredicate predicate)
     {
         try
@@ -257,28 +266,50 @@ public static class OverlayEngine
         }
     }
 
-    public static Geometry Difference(Geometry a, Geometry b)
+    public static Geometry Difference(Geometry a, Geometry b) => Overlay(a, b, SpatialFunction.Difference);
+
+    public static Geometry Intersection(Geometry a, Geometry b) => Overlay(a, b, SpatialFunction.Intersection);
+
+    /// <summary>
+    /// Every overlay is noded on a fixed 1 mm grid (snap-rounding), not at floating precision
+    /// (NPT-1143). OverlayNGRobust tries floating-precision noding first and only falls back to
+    /// snapping when that attempt THROWS; on some inputs it instead returns a wrong answer without
+    /// throwing — an empty intersection and an untouched difference for a polygon lying wholly
+    /// inside the other operand — which made UnionLayers emit a block's area twice. The two wrong
+    /// answers still add up to the first operand's area, so comparing
+    /// area(A ∩ B) + area(A − B) with area(A) cannot detect it; snap-rounding avoids the failure
+    /// instead of trying to spot it. Result vertices land on the grid, so they can sit up to
+    /// ~0.7 mm from the input's.
+    /// </summary>
+    private static Geometry Overlay(Geometry a, Geometry b, SpatialFunction operation)
     {
         try
         {
-            return ToPolygonal2D(OverlayNGRobust.Overlay(a, b, SpatialFunction.Difference));
+            return ToPolygonal2D(OverlayNG.Overlay(a, b, operation, OverlayPrecisionModel));
         }
         catch (TopologyException)
         {
-            return ToPolygonal2D(OverlayNGRobust.Overlay(a.Buffer(0), b.Buffer(0), SpatialFunction.Difference));
+            return ToPolygonal2D(OverlayNG.Overlay(a.Buffer(0), b.Buffer(0), operation, OverlayPrecisionModel));
         }
     }
 
-    public static Geometry Intersection(Geometry a, Geometry b)
+    // Grid cells per coordinate unit. The overlay inputs are in metres (NAD83(HARN) California
+    // zone VI), so 1000 is a 1 mm grid: three orders of magnitude finer than the 1 m² sliver floor.
+    private static readonly PrecisionModel OverlayPrecisionModel = new(1000);
+
+    /// <summary>
+    /// Post-run check for a layer union whose pieces must tile their source features (TGUs tile
+    /// their land use block): returns each source whose pieces total more than the source's own
+    /// area by more than <paramref name="tolerance"/>, i.e. ground that was counted twice.
+    /// </summary>
+    public static List<(int SourceID, double SourceArea, double PieceArea)> FindOverCountedSources(
+        IEnumerable<(int SourceID, double Area)> pieces, IReadOnlyDictionary<int, double> sourceAreas, double tolerance)
     {
-        try
-        {
-            return ToPolygonal2D(OverlayNGRobust.Overlay(a, b, SpatialFunction.Intersection));
-        }
-        catch (TopologyException)
-        {
-            return ToPolygonal2D(OverlayNGRobust.Overlay(a.Buffer(0), b.Buffer(0), SpatialFunction.Intersection));
-        }
+        return pieces.GroupBy(x => x.SourceID)
+            .Select(x => (SourceID: x.Key, SourceArea: sourceAreas.GetValueOrDefault(x.Key), PieceArea: x.Sum(y => y.Area)))
+            .Where(x => x.PieceArea - x.SourceArea > tolerance)
+            .OrderBy(x => x.SourceID)
+            .ToList();
     }
 
     /// <summary>

@@ -38,4 +38,8 @@
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </None>
   </ItemGroup>
+  <ItemGroup>
+    <!-- Hex WKB geometry for OverlayEngineTests: hex keeps every coordinate bit, which the cases depend on. -->
+    <EmbeddedResource Include="OverlayFixtures\*.wkb.hex" />
+  </ItemGroup>
 </Project>
