@@ -7,6 +7,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
+using Neptune.API.Common;
 using Neptune.API.Services;
 using Neptune.Common.Services;
 using Neptune.API.Services.Authorization;
@@ -199,7 +200,17 @@ namespace Neptune.API.Controllers
                 return BadRequest(report);
             }
 
-            var count = await DelineationStagings.ApproveAsync(DbContext, currentPerson);
+            var (count, affectedGeometries) = await DelineationStagings.ApproveAndListAffectedGeometriesAsync(DbContext, currentPerson);
+
+            // NPT-1159: the approval deleted the replaced delineations' LGUs and the uploaded ones have
+            // none yet, so rebuild the LGUs over everything the upload removed or added. One refresh
+            // area for the whole upload.
+            var affectedArea = affectedGeometries.UnionListGeometries();
+            if (affectedArea != null)
+            {
+                await ModelingEngineUtilities.QueueLGURefreshForArea(affectedArea, null, DbContext);
+            }
+
             return Ok(count);
         }
 
