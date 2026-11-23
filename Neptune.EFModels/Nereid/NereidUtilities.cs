@@ -110,8 +110,18 @@ namespace Neptune.EFModels.Nereid
             var regionalSubbasinIDs = waterQualityManagementPlan.LoadGeneratingUnits.Select(x => x.RegionalSubbasinID)
                 .Distinct().ToList();
 
+            await MarkRegionalSubbasinsAndTheirCentralizedBMPsDirty(regionalSubbasinIDs, dbContext);
+        }
+
+        /// <summary>
+        /// Marks each regional subbasin, and its centralized BMP if it has one, as needing a re-solve.
+        /// For a change that adds or removes a node upstream of them (a WQMP entering or leaving the
+        /// model, NPT-1159): marking only the node that changed does nothing once that node is gone.
+        /// </summary>
+        public static async Task MarkRegionalSubbasinsAndTheirCentralizedBMPsDirty(List<int?> regionalSubbasinIDs, NeptuneDbContext dbContext)
+        {
             var centralizedBMP = dbContext.vNereidRegionalSubbasinCentralizedBMPs.Where(x =>
-                regionalSubbasinIDs.Contains(x.RegionalSubbasinID) && x.RowNumber == 1);
+                regionalSubbasinIDs.Contains(x.RegionalSubbasinID) && x.RowNumber == 1).ToList();
 
             foreach (var bmp in centralizedBMP)
             {

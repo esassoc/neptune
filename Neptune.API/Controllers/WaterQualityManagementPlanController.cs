@@ -198,7 +198,26 @@ namespace Neptune.API.Controllers
             var boundaryGeometry = await GetBoundaryGeometryAsync(waterQualityManagementPlanID);
             if (boundaryGeometry != null)
             {
+                await MarkNodesDownstreamOfBoundaryDirtyAsync(boundaryGeometry);
                 await ModelingEngineUtilities.QueueLGURefreshForArea(boundaryGeometry, null, DbContext);
+            }
+        }
+
+        // NPT-1159: a WQMP entering or leaving the model (modeling approach change, delete) changes the
+        // load reaching the regional subbasins under its boundary. Marking the WQMP itself dirty does
+        // nothing once it is no longer a node, so mark those subbasins and their centralized BMPs.
+        // The subbasins are found from the LGUs on the ground, not from the LGUs that carry the WQMP:
+        // a WQMP that was Detailed has none. Call this before the LGUs are deleted or refreshed.
+        private async Task MarkNodesDownstreamOfBoundaryDirtyAsync(Geometry boundaryGeometry)
+        {
+            var regionalSubbasinIDs = await DbContext.LoadGeneratingUnits.AsNoTracking()
+                .Where(x => x.RegionalSubbasinID != null && x.LoadGeneratingUnitGeometry.Intersects(boundaryGeometry))
+                .Select(x => x.RegionalSubbasinID)
+                .Distinct()
+                .ToListAsync();
+            if (regionalSubbasinIDs.Any())
+            {
+                await NereidUtilities.MarkRegionalSubbasinsAndTheirCentralizedBMPsDirty(regionalSubbasinIDs, DbContext);
             }
         }
 
@@ -210,6 +229,10 @@ namespace Neptune.API.Controllers
             // NPT-1159: the delete removes the Load Generating Units that carry this WQMP, leaving its
             // ground with none, so rebuild the LGUs under the boundary it had.
             var boundaryGeometry = await GetBoundaryGeometryAsync(waterQualityManagementPlanID);
+            if (boundaryGeometry != null)
+            {
+                await MarkNodesDownstreamOfBoundaryDirtyAsync(boundaryGeometry);
+            }
             var deleted = await WaterQualityManagementPlans.DeleteAsync(DbContext, waterQualityManagementPlanID);
             if (!deleted) return NotFound();
             if (boundaryGeometry != null)
@@ -1253,6 +1276,7 @@ namespace Neptune.API.Controllers
                 var changedArea = changedBoundaryGeometries.UnionListGeometries();
                 if (changedArea != null)
                 {
+                    await MarkNodesDownstreamOfBoundaryDirtyAsync(changedArea);
                     await ModelingEngineUtilities.QueueLGURefreshForArea(changedArea, null, DbContext);
                 }
             }
