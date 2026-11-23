@@ -454,11 +454,11 @@ public class OverlayEngineTests
     }
 
     [TestMethod]
-    public void ExplodeAndDropSliversIntersecting_KeepsOnlyThePartsThatTouchTheFilter()
+    public void PlanDeltaRefresh_ReplacesOnlyThePartsNearTheRefreshArea()
     {
-        // NPT-1158: one piece in two separate parts, only one of them in the refresh area. The delta
-        // delete removes only the stored row for the part in the area, so only that part may be
-        // inserted; inserting the far part too left one more copy of it after every refresh.
+        // NPT-1158: one piece in two separate parts, only one of them in the refresh area. Inserting
+        // the far part too, while only the near part's stored row was deleted, left one more copy of
+        // the far part after every refresh.
         var twoParts = OverlayEngine.Factory2D.CreateMultiPolygon(new[]
         {
             (Polygon)Square(0, 0, 10),     // in the refresh area
@@ -467,53 +467,86 @@ public class OverlayEngineTests
         var pieces = new List<OverlayFeature>
         {
             Delineation(1, twoParts),
-            Delineation(2, Square(5, 5, 10)),   // single part clipping the area's corner: kept whole
-            Delineation(3, Square(50, 50, 10)), // disjoint: dropped
+            Delineation(2, Square(5, 5, 10)),   // single part clipping the area's corner: replaced whole
+            Delineation(3, Square(50, 50, 10)), // disjoint: left alone
+        };
+        var stored = new List<(int ID, OverlayFeature Feature)>
+        {
+            (101, Delineation(1, Square(0, 0, 10))),
+            (102, Delineation(1, Square(500, 500, 10))),
+            (103, Delineation(2, Square(5, 5, 10))),
+            (104, Delineation(3, Square(50, 50, 10))),
         };
         var refreshArea = Square(0, 0, 6);
 
         Assert.AreEqual(2, OverlayEngine.FilterIntersecting(pieces, refreshArea).Count, "the piece-level filter keeps the two-part piece whole");
 
-        var kept = OverlayEngine.ExplodeAndDropSliversIntersecting(pieces, refreshArea).ToList();
+        var (deleted, inserted) = OverlayEngine.PlanDeltaRefresh(stored, pieces, refreshArea);
 
-        Assert.AreEqual(2, kept.Count);
-        Assert.AreEqual(1, kept.Count(x => x.Feature.DelineationID == 1), "only the part in the refresh area is kept");
-        Assert.IsTrue(kept.Single(x => x.Feature.DelineationID == 1).Polygon.Intersects(refreshArea));
-        Assert.AreEqual(100, kept.Single(x => x.Feature.DelineationID == 2).Polygon.Area, AreaTolerance, "a kept polygon is not clipped");
+        CollectionAssert.AreEquivalent(new[] { 101, 103 }, deleted);
+        Assert.AreEqual(2, inserted.Count);
+        Assert.IsTrue(inserted.Single(x => x.Feature.DelineationID == 1).Polygon.Intersects(refreshArea), "only the part in the refresh area is inserted");
+        Assert.AreEqual(100, inserted.Single(x => x.Feature.DelineationID == 2).Polygon.Area, AreaTolerance, "an inserted polygon is not clipped");
     }
 
     [TestMethod]
-    public void DeltaRefresh_DeletesExactlyTheStoredPolygonsItWouldInsertAgain()
+    public void PlanDeltaRefresh_DeletesAndInsertsTheSamePolygons_WhenStoredCopiesAreSlightlyOff()
     {
         // NPT-1158: the stored rows are the polygons of an earlier run and can sit a fraction of a
-        // millimetre from where this run puts them. A delta refresh must still delete exactly the
-        // rows it is about to insert again. Tested against the bare refresh area, a polygon lying on
-        // the area's edge is inserted while its stored copy, 0.3 mm away, is left in place; that
-        // polygon then gains a copy on every refresh.
+        // millimetre from where this run puts them. On the refresh area's own edge, where LGU edges
+        // routinely lie, a polygon and its stored copy 0.3 mm away must still be treated as one.
         var refreshArea = Square(0, 0, 10);
         const double storedOffset = 0.0003;
         var ids = new[] { 1, 2, 3, 4 };
         Geometry Shape(int id, double offset) => id switch
         {
-            1 => Square(2, 2, 3),                  // inside the area
-            2 => Square(10 + offset, 0, 5),        // on the area's edge
+            1 => Square(2, 2, 3),                     // inside the area
+            2 => Square(10 + offset, 0, 5),           // on the area's edge
             3 => Square(10 + offset, 10 + offset, 5), // on the area's corner
-            _ => Square(40, 40, 5),                // well clear of the area
+            _ => Square(40, 40, 5),                   // well clear of the area
         };
         var pieces = ids.Select(x => Delineation(x, Shape(x, 0))).ToList();
-        var stored = ids.Select(x => (ID: x, Geometry: Shape(x, storedOffset))).ToList();
+        var stored = ids.Select(x => (ID: x, Feature: Delineation(x, Shape(x, storedOffset)))).ToList();
 
-        List<int> Inserted(Geometry filter) => OverlayEngine.ExplodeAndDropSliversIntersecting(pieces, filter)
-            .Select(x => x.Feature.DelineationID!.Value).ToList();
-
-        CollectionAssert.AreNotEquivalent(OverlayEngine.FindIDsIntersecting(stored, refreshArea), Inserted(refreshArea),
-            "sanity: against the bare refresh area the delete and the insert disagree");
-
-        var reach = OverlayEngine.DeltaRefreshReach(refreshArea);
-        var deleted = OverlayEngine.FindIDsIntersecting(stored, reach);
+        var (deleted, inserted) = OverlayEngine.PlanDeltaRefresh(stored, pieces, refreshArea);
 
         CollectionAssert.AreEquivalent(new[] { 1, 2, 3 }, deleted);
-        CollectionAssert.AreEquivalent(deleted, Inserted(reach), "what is deleted and what is inserted must be the same polygons");
+        CollectionAssert.AreEquivalent(deleted, inserted.Select(x => x.Feature.DelineationID!.Value).ToList(),
+            "what is deleted and what is inserted must be the same polygons");
+    }
+
+    [TestMethod]
+    [DataRow(0, 0.0003, DisplayName = "new polygon within reach, stored copy just outside")]
+    [DataRow(0.0003, 0, DisplayName = "stored copy within reach, new polygon just outside")]
+    public void PlanDeltaRefresh_ReconcilesAPolygonOnTheEdgeOfItsReach(double newOffset, double storedOffset)
+    {
+        // The reach test alone only moves the sensitive edge half a metre out. A polygon lying exactly
+        // on that edge is selected on one side and not the other: left alone, the first case keeps the
+        // stored copy next to its replacement (a duplicate) and the second deletes the stored row
+        // without replacing it (a gap). Reconciling by shared ground settles both.
+        var refreshArea = Square(0, 0, 10);
+        var reach = OverlayEngine.DeltaRefreshReach(refreshArea);
+        var reachEdge = reach.EnvelopeInternal.MaxX;
+        var newPolygon = Square(reachEdge + newOffset, 2, 5);
+        var storedPolygon = Square(reachEdge + storedOffset, 2, 5);
+        Assert.AreNotEqual(reach.Intersects(newPolygon), reach.Intersects(storedPolygon), "sanity: the reach test alone treats the two differently");
+
+        var pieces = new List<OverlayFeature>
+        {
+            Delineation(1, newPolygon),
+            Delineation(2, Square(reachEdge + 0.2, 8, 5)), // a different unit just outside reach: not part of this
+        };
+        var stored = new List<(int ID, OverlayFeature Feature)>
+        {
+            (101, Delineation(1, storedPolygon)),
+            (102, Delineation(2, Square(reachEdge + 0.2, 8, 5))),
+        };
+
+        var (deleted, inserted) = OverlayEngine.PlanDeltaRefresh(stored, pieces, refreshArea);
+
+        CollectionAssert.AreEquivalent(new[] { 101 }, deleted);
+        Assert.AreEqual(1, inserted.Count);
+        Assert.AreEqual(1, inserted[0].Feature.DelineationID);
     }
 
     [TestMethod]

@@ -248,39 +248,94 @@ public static class OverlayEngine
     // How far past the refresh area a delta refresh reaches, in metres.
     private const double DeltaRefreshReachMeters = 0.5;
 
+    // How far past its reach a delta refresh looks for polygons to reconcile, in metres.
+    private const double DeltaRefreshCandidateMarginMeters = 1;
+
     /// <summary>
-    /// The ground a delta refresh replaces: the refresh area grown by half a metre (NPT-1158). The
-    /// delete tests stored rows against it and the insert tests new polygons against it. Refresh
-    /// areas are built from the edited shapes, so LGU edges routinely lie exactly on the area's own
-    /// edge, and there a stored polygon and its recomputed twin, which can differ by under a
-    /// millimetre, were judged differently: the twin was inserted, the stored copy was not deleted.
-    /// Nothing lines up with an edge half a metre out, so both get the same answer.
+    /// The ground a delta refresh replaces: the refresh area grown by half a metre (NPT-1158).
+    /// Refresh areas are built from the edited shapes, so LGU edges routinely lie exactly on the
+    /// area's own edge; half a metre out, very little does.
     /// </summary>
     public static Geometry DeltaRefreshReach(Geometry refreshArea) => ToPolygonal2D(refreshArea.Buffer(DeltaRefreshReachMeters));
 
     /// <summary>
-    /// Explode, drop slivers, and keep only the single polygons that intersect <paramref name="filter"/>.
-    /// A delta refresh must use this, not FilterIntersecting alone (NPT-1158): its delete removes stored
-    /// rows, which are single polygons, that intersect the refresh area. A multi-part piece with one
-    /// part in the area would otherwise have every part inserted while only that one part's old row
-    /// was deleted, leaving one more copy of the other parts after each refresh.
+    /// Where a delta refresh looks for candidates: its reach plus a margin. Load the stored rows that
+    /// intersect this, and filter the overlay pieces with it, before calling PlanDeltaRefresh.
     /// </summary>
-    public static IEnumerable<(OverlayFeature Feature, Polygon Polygon)> ExplodeAndDropSliversIntersecting(
-        IEnumerable<OverlayFeature> features, Geometry filter, double minimumArea = 1.0)
-    {
-        var prepared = PreparedGeometryFactory.Prepare(filter);
-        return ExplodeAndDropSlivers(features, minimumArea).Where(x => prepared.Intersects(x.Polygon));
-    }
+    public static Geometry DeltaRefreshCandidateZone(Geometry refreshArea) =>
+        ToPolygonal2D(refreshArea.Buffer(DeltaRefreshReachMeters + DeltaRefreshCandidateMarginMeters));
 
     /// <summary>
-    /// The IDs of the stored geometries a delta refresh must delete: those that intersect
-    /// <paramref name="filter"/>, decided by the same test ExplodeAndDropSliversIntersecting uses to
-    /// choose what to insert (NPT-1158). Pass both the result of DeltaRefreshReach.
+    /// Decides which stored rows a delta refresh deletes and which new polygons it inserts (NPT-1158).
+    /// The two used to be chosen independently and did not agree, so ground gained one more stored
+    /// copy on every refresh:
+    ///  - whole pieces were inserted when any part touched the area, while only the touching part's
+    ///    stored row was deleted. Here both sides are single polygons;
+    ///  - a stored polygon and its recomputed twin can differ by under a millimetre, so on the edge
+    ///    of the test area one was selected and the other not. Here the two sets are reconciled after
+    ///    the reach test: a stored row holding the same ground as a polygon being inserted is deleted
+    ///    too, and a new polygon holding the same ground as a row being deleted is inserted too,
+    ///    repeated until nothing changes.
     /// </summary>
-    public static List<int> FindIDsIntersecting(IEnumerable<(int ID, Geometry Geometry)> stored, Geometry filter)
+    /// <param name="stored">Stored rows intersecting DeltaRefreshCandidateZone, as single polygons with their attributes.</param>
+    /// <param name="pieces">Overlay pieces intersecting DeltaRefreshCandidateZone.</param>
+    public static (List<int> StoredIDsToDelete, List<(OverlayFeature Feature, Polygon Polygon)> PolygonsToInsert) PlanDeltaRefresh(
+        IReadOnlyList<(int ID, OverlayFeature Feature)> stored, IEnumerable<OverlayFeature> pieces, Geometry refreshArea,
+        double minimumArea = 1.0)
     {
-        var prepared = PreparedGeometryFactory.Prepare(filter);
-        return stored.Where(x => prepared.Intersects(x.Geometry)).Select(x => x.ID).ToList();
+        var reach = PreparedGeometryFactory.Prepare(DeltaRefreshReach(refreshArea));
+        var candidateZone = PreparedGeometryFactory.Prepare(DeltaRefreshCandidateZone(refreshArea));
+        // parts of a multi-part piece that lie outside the zone have no stored row among the candidates
+        // to reconcile against, so they are left alone
+        var replacements = ExplodeAndDropSlivers(pieces, minimumArea).Where(x => candidateZone.Intersects(x.Polygon)).ToList();
+
+        var delete = stored.Select(x => reach.Intersects(x.Feature.Geometry)).ToArray();
+        var insert = replacements.Select(x => reach.Intersects(x.Polygon)).ToArray();
+        var storedInteriorPoints = stored.Select(x => x.Feature.Geometry.InteriorPoint).ToArray();
+        var replacementInteriorPoints = replacements.Select(x => x.Polygon.InteriorPoint).ToArray();
+
+        bool HoldSameGround(int storedIndex, int replacementIndex)
+        {
+            var storedFeature = stored[storedIndex].Feature;
+            var (replacementFeature, replacementPolygon) = replacements[replacementIndex];
+            return storedFeature.RegionalSubbasinID == replacementFeature.RegionalSubbasinID
+                   && storedFeature.DelineationID == replacementFeature.DelineationID
+                   && storedFeature.WaterQualityManagementPlanID == replacementFeature.WaterQualityManagementPlanID
+                   && storedFeature.Geometry.EnvelopeInternal.Intersects(replacementPolygon.EnvelopeInternal)
+                   && (storedFeature.Geometry.Covers(replacementInteriorPoints[replacementIndex])
+                       || replacementPolygon.Covers(storedInteriorPoints[storedIndex]));
+        }
+
+        bool changed;
+        do
+        {
+            changed = false;
+            for (var s = 0; s < stored.Count; s++)
+            {
+                if (delete[s]) continue;
+                for (var r = 0; r < replacements.Count; r++)
+                {
+                    if (!insert[r] || !HoldSameGround(s, r)) continue;
+                    delete[s] = true;
+                    changed = true;
+                    break;
+                }
+            }
+            for (var r = 0; r < replacements.Count; r++)
+            {
+                if (insert[r]) continue;
+                for (var s = 0; s < stored.Count; s++)
+                {
+                    if (!delete[s] || !HoldSameGround(s, r)) continue;
+                    insert[r] = true;
+                    changed = true;
+                    break;
+                }
+            }
+        } while (changed);
+
+        return (stored.Where((_, i) => delete[i]).Select(x => x.ID).ToList(),
+            replacements.Where((_, i) => insert[i]).ToList());
     }
 
     /// <summary>
