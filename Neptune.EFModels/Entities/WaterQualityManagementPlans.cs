@@ -204,6 +204,26 @@ public static partial class WaterQualityManagementPlans
         }
     }
 
+    /// <summary>
+    /// Deletes the cached model results of WQMPs that have left the modeling graph (NPT-1159: a change
+    /// from Simplified to Detailed). The Delta Solve only adds and updates results, so a departed
+    /// node's rows would otherwise stay, and be exported, until the nightly Total Network Solve.
+    /// </summary>
+    public static async Task DeleteModelResultsAsync(NeptuneDbContext dbContext, List<int> waterQualityManagementPlanIDs)
+    {
+        if (waterQualityManagementPlanIDs.Count == 0)
+        {
+            return;
+        }
+
+        await dbContext.NereidResults
+            .Where(x => x.WaterQualityManagementPlanID != null && waterQualityManagementPlanIDs.Contains(x.WaterQualityManagementPlanID.Value))
+            .ExecuteDeleteAsync();
+        await dbContext.ProjectNereidResults
+            .Where(x => x.WaterQualityManagementPlanID != null && waterQualityManagementPlanIDs.Contains(x.WaterQualityManagementPlanID.Value))
+            .ExecuteDeleteAsync();
+    }
+
     public static async Task<bool> DeleteAsync(NeptuneDbContext dbContext, int waterQualityManagementPlanID)
     {
         var entity = await dbContext.WaterQualityManagementPlans.FirstOrDefaultAsync(x => x.WaterQualityManagementPlanID == waterQualityManagementPlanID);

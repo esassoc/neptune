@@ -195,6 +195,12 @@ namespace Neptune.API.Controllers
                 return;
             }
 
+            if (newModelingApproachID == (int)WaterQualityManagementPlanModelingApproachEnum.Detailed)
+            {
+                // it is no longer a node in the model, so its cached results are stale
+                await WaterQualityManagementPlans.DeleteModelResultsAsync(DbContext, [waterQualityManagementPlanID]);
+            }
+
             var boundaryGeometry = await GetBoundaryGeometryAsync(waterQualityManagementPlanID);
             if (boundaryGeometry != null)
             {
@@ -1269,6 +1275,14 @@ namespace Neptune.API.Controllers
                 .ToList();
             if (modelingApproachChangedIDs.Any())
             {
+                // those that became Detailed are no longer nodes in the model, so their cached results are stale
+                var becameDetailedIDs = updated
+                    .Where(x => modelingApproachChangedIDs.Contains(x.WaterQualityManagementPlanID)
+                                && x.WaterQualityManagementPlanModelingApproachID == (int)WaterQualityManagementPlanModelingApproachEnum.Detailed)
+                    .Select(x => x.WaterQualityManagementPlanID)
+                    .ToList();
+                await WaterQualityManagementPlans.DeleteModelResultsAsync(DbContext, becameDetailedIDs);
+
                 var changedBoundaryGeometries = await DbContext.WaterQualityManagementPlanBoundaries.AsNoTracking()
                     .Where(x => modelingApproachChangedIDs.Contains(x.WaterQualityManagementPlanID) && x.GeometryNative != null)
                     .Select(x => x.GeometryNative!)
