@@ -291,9 +291,10 @@ public static class OverlayEngine
 
         var delete = stored.Select(x => reach.Intersects(x.Feature.Geometry)).ToArray();
         var insert = replacements.Select(x => reach.Intersects(x.Polygon)).ToArray();
-        var storedInteriorPoints = stored.Select(x => x.Feature.Geometry.InteriorPoint).ToArray();
-        var replacementInteriorPoints = replacements.Select(x => x.Polygon.InteriorPoint).ToArray();
 
+        // Same attributes and interiors that share ground. Not an interior-point test: a strip a
+        // millimetre wide and its copy shifted by half that overlap without either covering the
+        // other's interior point.
         bool HoldSameGround(int storedIndex, int replacementIndex)
         {
             var storedFeature = stored[storedIndex].Feature;
@@ -302,8 +303,7 @@ public static class OverlayEngine
                    && storedFeature.DelineationID == replacementFeature.DelineationID
                    && storedFeature.WaterQualityManagementPlanID == replacementFeature.WaterQualityManagementPlanID
                    && storedFeature.Geometry.EnvelopeInternal.Intersects(replacementPolygon.EnvelopeInternal)
-                   && (storedFeature.Geometry.Covers(replacementInteriorPoints[replacementIndex])
-                       || replacementPolygon.Covers(storedInteriorPoints[storedIndex]));
+                   && Relates(storedFeature.Geometry, replacementPolygon, InteriorsIntersect);
         }
 
         bool changed;

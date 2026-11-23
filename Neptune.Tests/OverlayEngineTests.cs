@@ -38,6 +38,13 @@ public class OverlayEngineTests
         });
     }
 
+    // A polygon from its corners in order; the ring is closed for you.
+    private static Geometry Ring(params (double X, double Y)[] corners)
+    {
+        return OverlayEngine.Factory2D.CreatePolygon(
+            corners.Append(corners[0]).Select(c => new Coordinate(c.X, c.Y)).ToArray());
+    }
+
     private static OverlayFeature Delineation(int id, Geometry geometry, double tcEffect = 0, int? sjid = null) => new()
     {
         Geometry = geometry,
@@ -516,9 +523,13 @@ public class OverlayEngineTests
     }
 
     [TestMethod]
-    [DataRow(0, 0.0003, DisplayName = "new polygon within reach, stored copy just outside")]
-    [DataRow(0.0003, 0, DisplayName = "stored copy within reach, new polygon just outside")]
-    public void PlanDeltaRefresh_ReconcilesAPolygonOnTheEdgeOfItsReach(double newOffset, double storedOffset)
+    [DataRow("square", 0, 0.0003, DisplayName = "square: new polygon within reach, stored copy just outside")]
+    [DataRow("square", 0.0003, 0, DisplayName = "square: stored copy within reach, new polygon just outside")]
+    [DataRow("strip", 0, 0.0006, DisplayName = "1 mm strip: new polygon within reach, stored copy just outside")]
+    [DataRow("strip", 0.0006, 0, DisplayName = "1 mm strip: stored copy within reach, new polygon just outside")]
+    [DataRow("neck", 0, 0.0006, DisplayName = "narrow neck: new polygon within reach, stored copy just outside")]
+    [DataRow("neck", 0.0006, 0, DisplayName = "narrow neck: stored copy within reach, new polygon just outside")]
+    public void PlanDeltaRefresh_ReconcilesAPolygonOnTheEdgeOfItsReach(string shape, double newOffset, double storedOffset)
     {
         // The reach test alone only moves the sensitive edge half a metre out. A polygon lying exactly
         // on that edge is selected on one side and not the other: left alone, the first case keeps the
@@ -527,8 +538,19 @@ public class OverlayEngineTests
         var refreshArea = Square(0, 0, 10);
         var reach = OverlayEngine.DeltaRefreshReach(refreshArea);
         var reachEdge = reach.EnvelopeInternal.MaxX;
-        var newPolygon = Square(reachEdge + newOffset, 2, 5);
-        var storedPolygon = Square(reachEdge + storedOffset, 2, 5);
+        // The strip and the neck are the shapes an interior-point match gets wrong: shifted by more
+        // than half their 1 mm width, the copies overlap but neither covers the other's interior point.
+        Geometry Shape(double x) => shape switch
+        {
+            "square" => Square(x, 2, 5),
+            // 1 mm wide, 2 km long: 2 m², above the sliver floor
+            "strip" => Ring((x, 2), (x + 0.001, 2), (x + 0.001, 2002), (x, 2002)),
+            // a 1 mm wide, 2 km tall neck on the reach edge, with a 1 mm tall foot running east
+            _ => Ring((x, 2), (x + 3, 2), (x + 3, 2.001), (x + 0.001, 2.001), (x + 0.001, 2002), (x, 2002)),
+        };
+        var newPolygon = Shape(reachEdge + newOffset);
+        var storedPolygon = Shape(reachEdge + storedOffset);
+        Assert.IsTrue(newPolygon.Area >= 1 && newPolygon.IsValid, "sanity: the shape is a valid polygon above the sliver floor");
         Assert.AreNotEqual(reach.Intersects(newPolygon), reach.Intersects(storedPolygon), "sanity: the reach test alone treats the two differently");
 
         var pieces = new List<OverlayFeature>
