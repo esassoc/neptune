@@ -189,8 +189,18 @@ public class OverlayController : ControllerBase
 
         if (loadGeneratingUnitRefreshArea != null)
         {
+            // NPT-1158: the only place ProcessDate is set, so an empty one means the refresh is still
+            // queued, is running, or failed (a failure also emails support and shows as a failed
+            // Hangfire job).
             loadGeneratingUnitRefreshArea.ProcessDate = DateTime.UtcNow;
             await _dbContext.SaveChangesAsync();
+
+            var prunedCount = await LoadGeneratingUnitRefreshAreas.DeleteOlderThanRetentionPeriodAsync(_dbContext, DateTime.UtcNow);
+            if (prunedCount > 0)
+            {
+                _logger.LogInformation("LGU overlay: removed {PrunedCount} refresh areas older than {RetentionDays} days",
+                    prunedCount, LoadGeneratingUnitRefreshAreas.RetentionDays);
+            }
         }
 
         if (exportFeatures != null)

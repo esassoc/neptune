@@ -30,10 +30,12 @@ namespace Neptune.API.Common
                 loadGeneratingUnitRefreshAreaGeometry = oldShape.Union(newShape);
             }
 
+            // NPT-1158: ProcessDate stays empty until the refresh has finished (the Overlay API sets it).
+            // It used to be set here as well, which made a refresh that failed or never ran look the
+            // same as one that completed.
             var loadGeneratingUnitRefreshArea = new LoadGeneratingUnitRefreshArea()
             {
                 LoadGeneratingUnitRefreshAreaGeometry = loadGeneratingUnitRefreshAreaGeometry,
-                ProcessDate = DateTime.UtcNow
             };
 
             await dbContext.LoadGeneratingUnitRefreshAreas.AddAsync(loadGeneratingUnitRefreshArea);
