@@ -16,4 +16,5 @@ where
 	DelineationTypeID = 1 
 	and rsb.IsInModelBasin = 1 
 	and bmp.ProjectID is null
+	and d.IsVerified = 1 -- provisional delineations are not modeled (NPT-1155)
 GO

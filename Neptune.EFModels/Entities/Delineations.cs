@@ -25,6 +25,7 @@ using Neptune.Common;
 using Neptune.Common.DesignByContract;
 using Neptune.Common.GeoSpatial;
 using NetTopologySuite.Features;
+using NetTopologySuite.Geometries;
 
 namespace Neptune.EFModels.Entities
 {
@@ -105,6 +106,29 @@ namespace Neptune.EFModels.Entities
             return dtos;
         }
 
+        /// <summary>
+        /// The geometries of the given delineations that are (isVerified: true) or would become
+        /// (isVerified: false) Load Generating Unit inputs: distributed, on a modeled BMP type, not on a
+        /// project BMP. Mirrors vPyQgisDelineationLGUInput, which only takes verified ones (NPT-1155), so
+        /// verifying or un-verifying one of these adds or removes an input and the LGUs under it have to
+        /// be rebuilt.
+        /// </summary>
+        public static async Task<Dictionary<int, Geometry>> ListLoadGeneratingUnitInputGeometriesAsync(NeptuneDbContext dbContext, ICollection<int> delineationIDs, bool isVerified)
+        {
+            if (delineationIDs.Count == 0)
+            {
+                return new Dictionary<int, Geometry>();
+            }
+
+            return await dbContext.Delineations.AsNoTracking()
+                .Where(x => delineationIDs.Contains(x.DelineationID)
+                            && x.IsVerified == isVerified
+                            && x.DelineationTypeID == (int)DelineationTypeEnum.Distributed
+                            && x.TreatmentBMP.TreatmentBMPType.TreatmentBMPModelingTypeID != null
+                            && x.TreatmentBMP.ProjectID == null)
+                .ToDictionaryAsync(x => x.DelineationID, x => x.DelineationGeometry);
+        }
+
         // Manager Dashboard: bulk-verify a set of delineations. Jurisdiction-scoped via
         // TreatmentBMP.CanView. Calls NereidUtilities.MarkDelineationDirty so the model
         // queue knows these need re-running. Returns verified count.
@@ -123,6 +147,16 @@ namespace Neptune.EFModels.Entities
                 delineation.MarkAsVerified(currentPerson);
             }
             await Nereid.NereidUtilities.MarkDelineationDirty(delineations, dbContext);
+            // NPT-1155: a centralized delineation has no node of its own; verifying it puts its BMP
+            // into the model, so that is the node to re-solve.
+            var centralizedTreatmentBMPs = delineations
+                .Where(x => x.DelineationTypeID == (int)DelineationTypeEnum.Centralized && x.TreatmentBMP.ProjectID == null)
+                .Select(x => x.TreatmentBMP)
+                .ToList();
+            if (centralizedTreatmentBMPs.Any())
+            {
+                await Nereid.NereidUtilities.MarkTreatmentBMPDirty(centralizedTreatmentBMPs, dbContext);
+            }
             // MarkDelineationDirty does its own SaveChangesAsync internally; defensive call
             // ensures the IsVerified/DateLastVerified flags persist if the helper changes shape.
             await dbContext.SaveChangesAsync();

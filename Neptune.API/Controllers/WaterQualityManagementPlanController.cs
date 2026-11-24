@@ -158,12 +158,38 @@ namespace Neptune.API.Controllers
             var oldModelingApproachID = await GetModelingApproachIDAsync(waterQualityManagementPlanID);
             var updated = await WaterQualityManagementPlans.UpdateAsync(DbContext, waterQualityManagementPlanID, dto);
             if (updated == null) return NotFound();
-            await QueueLGURefreshIfModelingApproachChangedAsync(waterQualityManagementPlanID, oldModelingApproachID);
-            if (await WaterQualityManagementPlans.HandleStatusTransitionAsync(DbContext, waterQualityManagementPlanID, oldStatusID))
+            var refreshQueued = await QueueLGURefreshIfModelingApproachChangedAsync(waterQualityManagementPlanID, oldModelingApproachID);
+            // the status handler reads the WQMP's LGUs, so it runs before the refresh below replaces them
+            var statusCrossedActive = await WaterQualityManagementPlans.HandleStatusTransitionAsync(DbContext, waterQualityManagementPlanID, oldStatusID);
+            if (statusCrossedActive && !refreshQueued)
+            {
+                await QueueLGURefreshForStatusChangeAsync(waterQualityManagementPlanID);
+            }
+            if (statusCrossedActive)
             {
                 BackgroundJob.Enqueue<DeltaSolveJob>(x => x.RunJob());
             }
             return Ok(updated);
+        }
+
+        // NPT-1155: only Active WQMPs are Load Generating Unit inputs (see
+        // vPyQgisWaterQualityManagementPlanLGUInput), so a status change to or from Active adds or
+        // removes the boundary as an input and the LGUs under it have to be rebuilt. A Detailed WQMP
+        // is not an input in any status. Call this after the change is saved.
+        private async Task QueueLGURefreshForStatusChangeAsync(int waterQualityManagementPlanID)
+        {
+            var modelingApproachID = await GetModelingApproachIDAsync(waterQualityManagementPlanID);
+            if (modelingApproachID == (int)WaterQualityManagementPlanModelingApproachEnum.Detailed)
+            {
+                return;
+            }
+
+            var boundaryGeometry = await GetBoundaryGeometryAsync(waterQualityManagementPlanID);
+            if (boundaryGeometry != null)
+            {
+                await MarkNodesDownstreamOfBoundaryDirtyAsync(boundaryGeometry);
+                await ModelingEngineUtilities.QueueLGURefreshForArea(boundaryGeometry, null, DbContext);
+            }
         }
 
         private async Task<int?> GetModelingApproachIDAsync(int waterQualityManagementPlanID)
@@ -187,12 +213,13 @@ namespace Neptune.API.Controllers
         // removes the boundary as an input and the LGUs under it have to be rebuilt. Call this after
         // the change is saved, and outside any open transaction: the queued job reads the refresh
         // area on its own connection.
-        private async Task QueueLGURefreshIfModelingApproachChangedAsync(int waterQualityManagementPlanID, int? oldModelingApproachID)
+        // Returns true when a refresh was queued.
+        private async Task<bool> QueueLGURefreshIfModelingApproachChangedAsync(int waterQualityManagementPlanID, int? oldModelingApproachID)
         {
             var newModelingApproachID = await GetModelingApproachIDAsync(waterQualityManagementPlanID);
             if (newModelingApproachID == oldModelingApproachID)
             {
-                return;
+                return false;
             }
 
             if (newModelingApproachID == (int)WaterQualityManagementPlanModelingApproachEnum.Detailed)
@@ -206,7 +233,10 @@ namespace Neptune.API.Controllers
             {
                 await MarkNodesDownstreamOfBoundaryDirtyAsync(boundaryGeometry);
                 await ModelingEngineUtilities.QueueLGURefreshForArea(boundaryGeometry, null, DbContext);
+                return true;
             }
+
+            return false;
         }
 
         // NPT-1159: a WQMP entering or leaving the model (modeling approach change, delete) changes the
@@ -1168,6 +1198,8 @@ namespace Neptune.API.Controllers
             // results until then.
             if (await WaterQualityManagementPlans.HandleStatusTransitionAsync(DbContext, waterQualityManagementPlanID, oldStatusID))
             {
+                // NPT-1155: a Draft WQMP's boundary was not a Load Generating Unit input until now
+                await QueueLGURefreshForStatusChangeAsync(waterQualityManagementPlanID);
                 BackgroundJob.Enqueue<DeltaSolveJob>(x => x.RunJob());
             }
 
@@ -1253,6 +1285,10 @@ namespace Neptune.API.Controllers
             var oldModelingApproachIDs = await DbContext.WaterQualityManagementPlans.AsNoTracking()
                 .Where(x => x.StormwaterJurisdictionID == form.StormwaterJurisdictionID)
                 .ToDictionaryAsync(x => x.WaterQualityManagementPlanID, x => x.WaterQualityManagementPlanModelingApproachID);
+            // NPT-1155: the same for the status, which decides whether the boundary is an LGU input at all.
+            var oldStatusIDs = await DbContext.WaterQualityManagementPlans.AsNoTracking()
+                .Where(x => x.StormwaterJurisdictionID == form.StormwaterJurisdictionID)
+                .ToDictionaryAsync(x => x.WaterQualityManagementPlanID, x => x.WaterQualityManagementPlanStatusID);
 
             var wqmps = WQMPXSLXParserHelper.ParseWQMPRowsFromXLSX(DbContext, dataTable, form.StormwaterJurisdictionID, out var errorList);
             if (errorList.Any())
@@ -1273,7 +1309,21 @@ namespace Neptune.API.Controllers
                             && oldModelingApproachID != x.WaterQualityManagementPlanModelingApproachID)
                 .Select(x => x.WaterQualityManagementPlanID)
                 .ToList();
-            if (modelingApproachChangedIDs.Any())
+            // NPT-1155: and of every WQMP whose status the upload moved to or from Active. The status
+            // handler cleans up or re-dirties the model for each; it reads the WQMP's LGUs, so it runs
+            // before the refresh is queued.
+            var statusCrossedActiveIDs = updated
+                .Where(x => oldStatusIDs.TryGetValue(x.WaterQualityManagementPlanID, out var oldStatusID)
+                            && WaterQualityManagementPlans.ClassifyStatusTransition(oldStatusID, x.WaterQualityManagementPlanStatusID) != StatusTransitionEffect.None)
+                .Select(x => x.WaterQualityManagementPlanID)
+                .ToList();
+            foreach (var statusCrossedActiveID in statusCrossedActiveIDs)
+            {
+                await WaterQualityManagementPlans.HandleStatusTransitionAsync(DbContext, statusCrossedActiveID, oldStatusIDs[statusCrossedActiveID]);
+            }
+
+            var lguInputChangedIDs = modelingApproachChangedIDs.Union(statusCrossedActiveIDs).ToList();
+            if (lguInputChangedIDs.Any())
             {
                 // those that became Detailed are no longer nodes in the model, so their cached results are stale
                 var becameDetailedIDs = updated
@@ -1284,7 +1334,7 @@ namespace Neptune.API.Controllers
                 await WaterQualityManagementPlans.DeleteModelResultsAsync(DbContext, becameDetailedIDs);
 
                 var changedBoundaryGeometries = await DbContext.WaterQualityManagementPlanBoundaries.AsNoTracking()
-                    .Where(x => modelingApproachChangedIDs.Contains(x.WaterQualityManagementPlanID) && x.GeometryNative != null)
+                    .Where(x => lguInputChangedIDs.Contains(x.WaterQualityManagementPlanID) && x.GeometryNative != null)
                     .Select(x => x.GeometryNative!)
                     .ToListAsync();
                 var changedArea = changedBoundaryGeometries.UnionListGeometries();
@@ -1293,6 +1343,11 @@ namespace Neptune.API.Controllers
                     await MarkNodesDownstreamOfBoundaryDirtyAsync(changedArea);
                     await ModelingEngineUtilities.QueueLGURefreshForArea(changedArea, null, DbContext);
                 }
+            }
+
+            if (statusCrossedActiveIDs.Any())
+            {
+                BackgroundJob.Enqueue<DeltaSolveJob>(x => x.RunJob());
             }
 
             result.AddedCount = added.Count;

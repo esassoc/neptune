@@ -1,3 +1,4 @@
+using System.Linq.Expressions;
 using Microsoft.EntityFrameworkCore;
 using Neptune.Common;
 using Neptune.Common.DesignByContract;
@@ -7,6 +8,19 @@ namespace Neptune.EFModels.Entities;
 
 public static class QuickBMPs
 {
+    /// <summary>
+    /// Whether a simple BMP is sent to the model as a treatment site (NPT-1155). It needs a modeled
+    /// BMP type, the share of the site it treats and the share of runoff it captures. A blank
+    /// % Retained counts as zero: the captured flow is still treated, it just is not retained.
+    /// Every place that builds treatment sites uses this, so they cannot drift apart.
+    /// </summary>
+    public static readonly Expression<Func<QuickBMP, bool>> IsSentToModel = x =>
+        x.PercentOfSiteTreated != null && x.PercentCaptured != null &&
+        x.TreatmentBMPType.IsAnalyzedInModelingModule;
+
+    /// <summary><see cref="IsSentToModel"/> for a simple BMP already in memory (its type has to be loaded).</summary>
+    public static readonly Func<QuickBMP, bool> IsSentToModelCompiled = IsSentToModel.Compile();
+
     public static IQueryable<QuickBMP> GetImpl(NeptuneDbContext dbContext)
     {
         return dbContext.QuickBMPs

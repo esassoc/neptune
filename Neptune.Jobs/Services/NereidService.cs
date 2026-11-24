@@ -174,15 +174,15 @@ public class NereidService : BaseAPIService<NereidService>
                 SlopePercentage = x.SlopePercentage,
                 RelationallyAssociatedModelingApproach = x.RelationallyAssociatedModelingApproach,
                 SpatiallyAssociatedModelingApproach = x.SpatiallyAssociatedModelingApproach,
+                SpatiallyAssociatedWaterQualityManagementPlanStatusID = x.SpatiallyAssociatedWaterQualityManagementPlanStatusID,
                 WaterQualityManagementPlanID = x.WaterQualityManagementPlanID
             }).ToList() : dbContext.vNereidLoadingInputs.ToList();
         var allModelingBMPs = TreatmentBMPs.ListModelingTreatmentBMPs(dbContext, projectID, projectRegionalSubbasinIDs).ToList();
         var allWQMPNodes =
             GetWaterQualityManagementPlanNodes(dbContext, projectID, projectRegionalSubbasinIDs).ToList();
         //This will get taken care of inside of SolveSubgraph based on the WQMP nodes above, so no need to filter it here
-        var allModelingQuickBMPs = dbContext.QuickBMPs.Include(x => x.TreatmentBMPType).Include(x => x.WaterQualityManagementPlan).Where(x =>
-                x.PercentOfSiteTreated != null && x.PercentCaptured != null && x.PercentRetained != null &&
-                x.TreatmentBMPType.IsAnalyzedInModelingModule)
+        var allModelingQuickBMPs = dbContext.QuickBMPs.Include(x => x.TreatmentBMPType).Include(x => x.WaterQualityManagementPlan)
+            .Where(QuickBMPs.IsSentToModel)
             .ToList();
         var delineations = vTreatmentBMPUpstreams.ListWithDelineationAsDictionary(dbContext);
 
@@ -343,7 +343,8 @@ public class NereidService : BaseAPIService<NereidService>
                     NodeID = NereidUtilities.WaterQualityManagementPlanTreatmentNodeID(x.node.WaterQualityManagementPlanID,
                         x.node.OCSurveyCatchmentID),
                     AreaPercentage = x.bmp.PercentOfSiteTreated,
-                    CapturedPercentage = x.bmp.PercentCaptured ?? 0,
+                    CapturedPercentage = x.bmp.PercentCaptured,
+                    // a blank % Retained counts as zero (see QuickBMPs.IsSentToModel)
                     RetainedPercentage = x.bmp.PercentRetained ?? 0,
                     // treat wqmps built after 2003 as if they don't exist.
                     FacilityType = (isBaselineCondition && x.node.DateOfConstruction.HasValue && x.node.DateOfConstruction.Value.Year > Constants.NEREID_BASELINE_CUTOFF_YEAR) ? "NoTreatment" : x.bmp.TreatmentBMPType.TreatmentBMPModelingType.TreatmentBMPModelingTypeName,

@@ -1,10 +1,13 @@
 using System.Collections.Generic;
+using System.Linq;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
+using Neptune.API.Common;
 using Neptune.API.Services;
 using Neptune.API.Services.Authorization;
+using Neptune.Common.GeoSpatial;
 using Neptune.EFModels.Entities;
 using Neptune.Models.DataTransferObjects.ManagerDashboard;
 
@@ -68,7 +71,18 @@ namespace Neptune.API.Controllers
         public async Task<ActionResult<BulkVerifyResponseDto>> BulkVerifyDelineations([FromBody] BulkVerifyRequestDto request)
         {
             var person = UserContext.GetUserFromHttpContext(DbContext, HttpContext);
+            // NPT-1155: only verified delineations are Load Generating Unit inputs, so each one this
+            // call verifies becomes an input and the LGUs under it have to be rebuilt. Note which of
+            // the requested ones are provisional now, then refresh those that came out verified (the
+            // helper skips delineations outside the caller's jurisdictions).
+            var provisionalIDs = (await Delineations.ListLoadGeneratingUnitInputGeometriesAsync(DbContext, request.IDs ?? [], false)).Keys;
             var count = await Delineations.BulkMarkAsVerifiedAsync(DbContext, request.IDs, person);
+            var newlyVerifiedGeometries = await Delineations.ListLoadGeneratingUnitInputGeometriesAsync(DbContext, provisionalIDs, true);
+            var newlyVerifiedArea = newlyVerifiedGeometries.Values.ToList().UnionListGeometries();
+            if (newlyVerifiedArea != null)
+            {
+                await ModelingEngineUtilities.QueueLGURefreshForArea(newlyVerifiedArea, null, DbContext);
+            }
             return Ok(new BulkVerifyResponseDto { VerifiedCount = count });
         }
     }

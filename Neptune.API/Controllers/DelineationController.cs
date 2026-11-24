@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Threading.Tasks;
 using Hangfire;
 using Microsoft.AspNetCore.Mvc;
@@ -139,18 +140,50 @@ namespace Neptune.API.Controllers
                 return Forbid();
             }
 
+            var wasVerified = delineation.IsVerified;
             delineation.IsVerified = dto.IsVerified;
             delineation.DateLastVerified = DateTime.UtcNow;
             delineation.VerifiedByPersonID = currentPerson.PersonID;
             await DbContext.SaveChangesAsync();
 
-            if (delineation.IsVerified)
+            var isExistingCentralized = delineation.DelineationTypeID == (int)DelineationTypeEnum.Centralized
+                                        && delineation.TreatmentBMP.ProjectID == null;
+            if (isExistingCentralized && wasVerified != delineation.IsVerified)
+            {
+                // NPT-1155: a provisional centralized delineation is not modeled (see
+                // vNereidRegionalSubbasinCentralizedBMP), so this change puts its BMP into the model or
+                // takes it out. It has no delineation node; the BMP sits just downstream of its subbasin.
+                if (delineation.IsVerified)
+                {
+                    await NereidUtilities.MarkTreatmentBMPDirty(delineation.TreatmentBMP, DbContext);
+                }
+                else
+                {
+                    // the BMP is no longer a node, so its cached results are stale and marking it would
+                    // do nothing: re-solve its subbasin, which now flows straight on downstream
+                    await DbContext.NereidResults.Where(x => x.TreatmentBMPID == delineation.TreatmentBMPID).ExecuteDeleteAsync();
+                    await NereidUtilities.MarkRegionalSubbasinsAndTheirCentralizedBMPsDirty([delineation.TreatmentBMP.RegionalSubbasinID], DbContext);
+                }
+            }
+            else if (delineation.IsVerified)
             {
                 await NereidUtilities.MarkDelineationDirty(delineation, DbContext);
             }
             else
             {
                 await NereidUtilities.MarkTreatmentBMPDirty(delineation.TreatmentBMP, DbContext);
+            }
+
+            // NPT-1155: only verified delineations are Load Generating Unit inputs (see
+            // vPyQgisDelineationLGUInput), so a change of status adds or removes this one as an input
+            // and the LGUs under it have to be rebuilt.
+            if (wasVerified != delineation.IsVerified)
+            {
+                var lguInputGeometries = await Delineations.ListLoadGeneratingUnitInputGeometriesAsync(DbContext, [delineationID], delineation.IsVerified);
+                if (lguInputGeometries.TryGetValue(delineationID, out var lguInputGeometry))
+                {
+                    await ModelingEngineUtilities.QueueLGURefreshForArea(lguInputGeometry, null, DbContext);
+                }
             }
 
             return NoContent();
