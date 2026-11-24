@@ -195,11 +195,20 @@ public class OverlayController : ControllerBase
             loadGeneratingUnitRefreshArea.ProcessDate = DateTime.UtcNow;
             await _dbContext.SaveChangesAsync();
 
-            var prunedCount = await LoadGeneratingUnitRefreshAreas.DeleteOlderThanRetentionPeriodAsync(_dbContext, DateTime.UtcNow);
-            if (prunedCount > 0)
+            // Housekeeping only: the refresh has already completed and been recorded, so a failure
+            // here must not turn it into a failed job and a support email.
+            try
             {
-                _logger.LogInformation("LGU overlay: removed {PrunedCount} refresh areas older than {RetentionDays} days",
-                    prunedCount, LoadGeneratingUnitRefreshAreas.RetentionDays);
+                var prunedCount = await LoadGeneratingUnitRefreshAreas.DeleteOlderThanRetentionPeriodAsync(_dbContext, DateTime.UtcNow);
+                if (prunedCount > 0)
+                {
+                    _logger.LogInformation("LGU overlay: removed {PrunedCount} refresh areas older than {RetentionDays} days",
+                        prunedCount, LoadGeneratingUnitRefreshAreas.RetentionDays);
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.LogWarning(ex, "LGU overlay: could not remove old refresh areas; the refresh itself completed");
             }
         }
 

@@ -63,32 +63,52 @@ namespace Neptune.Tests
             _dbContext.LoadGeneratingUnitRefreshAreas.AsNoTracking().Any(x => x.LoadGeneratingUnitRefreshAreaID == refreshAreaID);
 
         [TestMethod]
-        public async Task DeleteOlderThanRetentionPeriod_RemovesEverythingQueuedBeforeTheOldestRowInsideThePeriod()
+        public async Task DeleteOlderThanRetentionPeriod_RemovesTheNewestRowKnownToBeOldAndEverythingQueuedBeforeIt()
         {
-            var completedLongAgo = AddRefreshArea(FarFuture.AddDays(-LoadGeneratingUnitRefreshAreas.RetentionDays - 30));
+            var longAgo = FarFuture.AddDays(-LoadGeneratingUnitRefreshAreas.RetentionDays - 30);
+            var completedLongAgo = AddRefreshArea(longAgo);
             var neverCompletedAndOld = AddRefreshArea(null);
+            var newestCompletedLongAgo = AddRefreshArea(longAgo.AddDays(1));
             var completedInsidePeriod = AddRefreshArea(FarFuture.AddDays(-10));
             var stillQueued = AddRefreshArea(null);
             var completedJustNow = AddRefreshArea(FarFuture);
 
             var deletedCount = await LoadGeneratingUnitRefreshAreas.DeleteOlderThanRetentionPeriodAsync(_dbContext, FarFuture);
 
-            Assert.IsTrue(deletedCount >= 2);
+            Assert.IsTrue(deletedCount >= 3);
             Assert.IsFalse(Exists(completedLongAgo), "completed before the retention period");
-            Assert.IsFalse(Exists(neverCompletedAndOld), "never completed, and queued before the oldest row inside the period");
+            Assert.IsFalse(Exists(neverCompletedAndOld), "never completed, but queued before a row that is itself older than the period");
+            Assert.IsFalse(Exists(newestCompletedLongAgo), "completed before the retention period");
             Assert.IsTrue(Exists(completedInsidePeriod));
-            Assert.IsTrue(Exists(stillQueued), "queued after the oldest row inside the period, so it may still be waiting to run");
+            Assert.IsTrue(Exists(stillQueued), "nothing queued after it is known to be old, so it may still be waiting to run");
             Assert.IsTrue(Exists(completedJustNow));
         }
 
         [TestMethod]
-        public async Task DeleteOlderThanRetentionPeriod_DeletesNothing_WhenNoRowCompletedInsideThePeriod()
+        public async Task DeleteOlderThanRetentionPeriod_KeepsARecentFailure_AfterALongQuietSpell()
+        {
+            // Nothing has completed for longer than the retention period (every row already in the
+            // database is far older than FarFuture). A refresh then fails, and the next one succeeds.
+            // The failed row is recent and holds the geometry needed to retry it, so it must stay,
+            // even though it was queued before the only row that completed inside the period.
+            var failedToday = AddRefreshArea(null);
+            var succeededToday = AddRefreshArea(FarFuture);
+
+            await LoadGeneratingUnitRefreshAreas.DeleteOlderThanRetentionPeriodAsync(_dbContext, FarFuture);
+
+            Assert.IsTrue(Exists(failedToday), "a recent failure is kept");
+            Assert.IsTrue(Exists(succeededToday));
+        }
+
+        [TestMethod]
+        public async Task DeleteOlderThanRetentionPeriod_DeletesNothing_WhenNoRowIsKnownToBeOld()
         {
             var neverCompleted = AddRefreshArea(null);
             var countBefore = _dbContext.LoadGeneratingUnitRefreshAreas.Count();
 
-            // every row in the table completed long before this date, or never completed
-            var deletedCount = await LoadGeneratingUnitRefreshAreas.DeleteOlderThanRetentionPeriodAsync(_dbContext, FarFuture);
+            // a date before anything in the table completed, so no row is older than the period
+            var deletedCount = await LoadGeneratingUnitRefreshAreas.DeleteOlderThanRetentionPeriodAsync(
+                _dbContext, new DateTime(2000, 1, 1, 0, 0, 0, DateTimeKind.Utc));
 
             Assert.AreEqual(0, deletedCount);
             Assert.AreEqual(countBefore, _dbContext.LoadGeneratingUnitRefreshAreas.Count());
