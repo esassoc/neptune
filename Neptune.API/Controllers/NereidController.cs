@@ -356,7 +356,7 @@ namespace Neptune.API.Controllers
             var waterQualityManagementPlanNodes = nereidService.GetWaterQualityManagementPlanNodes(DbContext);
 
             var list = DbContext.QuickBMPs.Include(x => x.TreatmentBMPType).AsNoTracking()
-                .Where(y => y.TreatmentBMPType.IsAnalyzedInModelingModule).ToList().Join(
+                .Where(QuickBMPs.IsSentToModel).ToList().Join(
                     waterQualityManagementPlanNodes, x => x.WaterQualityManagementPlanID,
                     x => x.WaterQualityManagementPlanID, (bmp, node) => new { bmp, node }).ToList();
 
@@ -367,7 +367,7 @@ namespace Neptune.API.Controllers
                         x.node.RegionalSubbasinID),
                     AreaPercentage = x.bmp.PercentOfSiteTreated,
                     CapturedPercentage = x.bmp.PercentCaptured,
-                    RetainedPercentage = x.bmp.PercentRetained,
+                    RetainedPercentage = x.bmp.PercentRetained ?? 0,
                     FacilityType = x.bmp.TreatmentBMPType.TreatmentBMPModelingType.TreatmentBMPModelingTypeName
                 }).ToList();
 
@@ -435,7 +435,7 @@ namespace Neptune.API.Controllers
             var allModelingBMPs = TreatmentBMPs.ListModelingTreatmentBMPs(DbContext).ToList();
             var allWQMPNodes = nereidService.GetWaterQualityManagementPlanNodes(DbContext).ToList();
             var allModelingQuickBMPs = DbContext.QuickBMPs.AsNoTracking().Include(x => x.TreatmentBMPType).Include(x => x.WaterQualityManagementPlan)
-                .Where(x => x.PercentOfSiteTreated != null && x.TreatmentBMPType.IsAnalyzedInModelingModule).ToList();
+                .Where(QuickBMPs.IsSentToModel).ToList();
 
             var modelBasins = DbContext.ModelBasins.AsNoTracking().ToDictionary(x => x.ModelBasinID, x => x.ModelBasinKey);
             var precipitationZones = DbContext.PrecipitationZones.AsNoTracking().ToDictionary(x => x.PrecipitationZoneID, x => x.DesignStormwaterDepthInInches);

@@ -311,12 +311,9 @@ public static partial class WaterQualityManagementPlans
 
             if (!quickBMPs.Any()) return;
 
-            // Mirrors Neptune.WebMvc.Models.QuickBMPModelExtensions.IsFullyParameterized — kept inline to
-            // avoid a cross-project reference; if this logic gets reused elsewhere in the SPA stack,
-            // lift it into a shared QuickBMPExtensionMethods.cs entry per the static-helpers convention.
-            bool IsParameterized(QuickBMP bmp) =>
-                bmp is { PercentOfSiteTreated: not null, PercentCaptured: not null, PercentRetained: not null }
-                && bmp.TreatmentBMPType.IsAnalyzedInModelingModule;
+            // NPT-1155: the same test the solve uses, so the guidance matches what is modeled. A blank
+            // % Retained counts as zero and no longer makes a simple BMP "not fully parameterized".
+            bool IsParameterized(QuickBMP bmp) => QuickBMPs.IsSentToModelCompiled(bmp);
 
             dto.AnySimpleBMPsNotFullyParameterized = quickBMPs.Any(b => !IsParameterized(b));
             dto.AllSimpleBMPsNotFullyParameterized = quickBMPs.All(b => !IsParameterized(b));

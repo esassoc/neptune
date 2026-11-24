@@ -17,6 +17,7 @@ select
 	BaselineImperviousAcres,
 	d.IsVerified as DelineationIsVerified,
 	wqmp.WaterQualityManagementPlanModelingApproachID as SpatiallyAssociatedModelingApproach,
+	wqmp.WaterQualityManagementPlanStatusID as SpatiallyAssociatedWaterQualityManagementPlanStatusID,
 	bwqmp.WaterQualityManagementPlanModelingApproachID as RelationallyAssociatedModelingApproach
 from
 	dbo.ProjectHRUCharacteristic hru join dbo.ProjectLoadGeneratingUnit lgu

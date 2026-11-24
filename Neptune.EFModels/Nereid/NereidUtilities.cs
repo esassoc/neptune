@@ -45,8 +45,12 @@ namespace Neptune.EFModels.Nereid
                 return DelineationNodeID(loadGeneratingUnit.DelineationID.Value);
             }
 
-            // Parcel Boundaries of Detailed WQMPs should not be considered
+            // Parcel Boundaries of Detailed WQMPs should not be considered.
+            // NPT-1155: neither should those of a WQMP that is not Active. The graph has no node for it
+            // (NereidService.GetWaterQualityManagementPlanNodes), and Nereid silently discards a land
+            // surface whose node it does not know, so the ground goes to its Regional Subbasin instead.
             if (loadGeneratingUnit.WaterQualityManagementPlanID != null &&
+                loadGeneratingUnit.SpatiallyAssociatedWaterQualityManagementPlanStatusID == WaterQualityManagementPlanStatus.Active.WaterQualityManagementPlanStatusID &&
                 loadGeneratingUnit.SpatiallyAssociatedModelingApproach != WaterQualityManagementPlanModelingApproach.Detailed.WaterQualityManagementPlanModelingApproachID)
             {
                 return WaterQualityManagementPlanNodeID(loadGeneratingUnit.WaterQualityManagementPlanID.Value,

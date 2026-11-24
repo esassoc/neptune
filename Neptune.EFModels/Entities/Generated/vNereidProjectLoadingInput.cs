@@ -47,5 +47,7 @@ public partial class vNereidProjectLoadingInput
 
     public int? SpatiallyAssociatedModelingApproach { get; set; }
 
+    public int? SpatiallyAssociatedWaterQualityManagementPlanStatusID { get; set; }
+
     public int? RelationallyAssociatedModelingApproach { get; set; }
 }
