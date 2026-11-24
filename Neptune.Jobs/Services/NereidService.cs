@@ -616,19 +616,60 @@ public class NereidService : BaseAPIService<NereidService>
         {
             bmpColocations = bmpColocations.Where(x => x.DownstreamRSBID != null && x.UpstreamRSBID != null && projectRegionalSubbasinIDs.Contains(x.DownstreamRSBID.Value) && projectRegionalSubbasinIDs.Contains(x.UpstreamRSBID.Value)).ToList();
         }
-        colocationNodes = bmpColocations
-            .Select(x => new Node()
-            {
-                ID = NereidUtilities.TreatmentBMPNodeID(x.UpstreamBMPID),
-                TreatmentBMPID = x.UpstreamBMPID
-            }).ToList();
 
-        colocationEdges = bmpColocations
-            .Select(x => new Edge()
+        // NPT-1155: an existing centralized BMP whose delineation is provisional is not modeled (see
+        // vNereidRegionalSubbasinCentralizedBMP), so it is not a node and a chain cannot run through it.
+        var notModeledCentralizedBMPIDs = dbContext.Delineations.AsNoTracking()
+            .Where(x => x.DelineationTypeID == (int)DelineationTypeEnum.Centralized && !x.IsVerified && x.TreatmentBMP.ProjectID == null)
+            .Select(x => x.TreatmentBMPID)
+            .ToHashSet();
+        var ocSurveyCatchmentIDsByRegionalSubbasinID = notModeledCentralizedBMPIDs.Any()
+            ? dbContext.RegionalSubbasins.AsNoTracking().Where(x => x.IsInModelBasin == true)
+                .ToDictionary(x => x.RegionalSubbasinID, x => x.OCSurveyCatchmentID)
+            : new Dictionary<int, int>();
+
+        MakeUpstreamBMPNodesAndEdges(bmpColocations, notModeledCentralizedBMPIDs, ocSurveyCatchmentIDsByRegionalSubbasinID, out colocationEdges, out colocationNodes);
+    }
+
+    /// <summary>
+    /// The nodes and edges of BMP chains (one BMP flowing into the next). A link with a centralized
+    /// BMP that is not modeled at either end is left out, so no edge points at a node the graph does
+    /// not have: the BMP upstream of it flows to its own Regional Subbasin, as a BMP with nothing
+    /// downstream does (see vNereidTreatmentBMPRegionalSubbasin), and the not-modeled BMP itself gets
+    /// no node.
+    /// </summary>
+    public static void MakeUpstreamBMPNodesAndEdges(List<vNereidBMPColocation> bmpColocations, HashSet<int> notModeledCentralizedBMPIDs,
+        Dictionary<int, int> ocSurveyCatchmentIDsByRegionalSubbasinID, out List<Edge> colocationEdges, out List<Node> colocationNodes)
+    {
+        colocationNodes = new List<Node>();
+        colocationEdges = new List<Edge>();
+
+        foreach (var bmpColocation in bmpColocations)
+        {
+            if (notModeledCentralizedBMPIDs.Contains(bmpColocation.UpstreamBMPID))
             {
-                SourceID = NereidUtilities.TreatmentBMPNodeID(x.UpstreamBMPID),
-                TargetID = NereidUtilities.TreatmentBMPNodeID(x.DownstreamBMPID)
-            }).ToList();
+                continue;
+            }
+
+            var upstreamNodeID = NereidUtilities.TreatmentBMPNodeID(bmpColocation.UpstreamBMPID);
+            string targetNodeID;
+            if (!notModeledCentralizedBMPIDs.Contains(bmpColocation.DownstreamBMPID))
+            {
+                targetNodeID = NereidUtilities.TreatmentBMPNodeID(bmpColocation.DownstreamBMPID);
+            }
+            else if (bmpColocation.UpstreamRSBID != null && ocSurveyCatchmentIDsByRegionalSubbasinID.TryGetValue(bmpColocation.UpstreamRSBID.Value, out var ocSurveyCatchmentID))
+            {
+                targetNodeID = NereidUtilities.RegionalSubbasinNodeID(ocSurveyCatchmentID);
+            }
+            else
+            {
+                // nowhere modeled to flow to, so it is not part of the graph either
+                continue;
+            }
+
+            colocationNodes.Add(new Node { ID = upstreamNodeID, TreatmentBMPID = bmpColocation.UpstreamBMPID });
+            colocationEdges.Add(new Edge { SourceID = upstreamNodeID, TargetID = targetNodeID });
+        }
     }
 
     private void MakeWQMPNodesAndEdges(NeptuneDbContext dbContext, out List<Edge> wqmpEdges, out List<Node> wqmpNodes, int? projectID = null, List<int> projectRegionalSubbasinIDs = null)

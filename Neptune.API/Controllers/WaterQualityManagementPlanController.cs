@@ -163,9 +163,9 @@ namespace Neptune.API.Controllers
             var statusCrossedActive = await WaterQualityManagementPlans.HandleStatusTransitionAsync(DbContext, waterQualityManagementPlanID, oldStatusID);
             if (statusCrossedActive && !refreshQueued)
             {
-                await QueueLGURefreshForStatusChangeAsync(waterQualityManagementPlanID);
+                refreshQueued = await QueueLGURefreshForStatusChangeAsync(waterQualityManagementPlanID);
             }
-            if (statusCrossedActive)
+            if (statusCrossedActive && !refreshQueued)
             {
                 BackgroundJob.Enqueue<DeltaSolveJob>(x => x.RunJob());
             }
@@ -176,20 +176,28 @@ namespace Neptune.API.Controllers
         // vPyQgisWaterQualityManagementPlanLGUInput), so a status change to or from Active adds or
         // removes the boundary as an input and the LGUs under it have to be rebuilt. A Detailed WQMP
         // is not an input in any status. Call this after the change is saved.
-        private async Task QueueLGURefreshForStatusChangeAsync(int waterQualityManagementPlanID)
+        //
+        // Returns true when a refresh was queued. The caller must then NOT start a Delta Solve itself:
+        // the rebuilt LGUs have no land-use (HRU) rows until the HRU refresh that follows the LGU
+        // refresh has run, and a solve in between would leave their load out and use up the dirty
+        // markers. The markers wait for the scheduled Delta Solve instead.
+        private async Task<bool> QueueLGURefreshForStatusChangeAsync(int waterQualityManagementPlanID)
         {
             var modelingApproachID = await GetModelingApproachIDAsync(waterQualityManagementPlanID);
             if (modelingApproachID == (int)WaterQualityManagementPlanModelingApproachEnum.Detailed)
             {
-                return;
+                return false;
             }
 
             var boundaryGeometry = await GetBoundaryGeometryAsync(waterQualityManagementPlanID);
-            if (boundaryGeometry != null)
+            if (boundaryGeometry == null)
             {
-                await MarkNodesDownstreamOfBoundaryDirtyAsync(boundaryGeometry);
-                await ModelingEngineUtilities.QueueLGURefreshForArea(boundaryGeometry, null, DbContext);
+                return false;
             }
+
+            await MarkNodesDownstreamOfBoundaryDirtyAsync(boundaryGeometry);
+            await ModelingEngineUtilities.QueueLGURefreshForArea(boundaryGeometry, null, DbContext);
+            return true;
         }
 
         private async Task<int?> GetModelingApproachIDAsync(int waterQualityManagementPlanID)
@@ -1198,9 +1206,12 @@ namespace Neptune.API.Controllers
             // results until then.
             if (await WaterQualityManagementPlans.HandleStatusTransitionAsync(DbContext, waterQualityManagementPlanID, oldStatusID))
             {
-                // NPT-1155: a Draft WQMP's boundary was not a Load Generating Unit input until now
-                await QueueLGURefreshForStatusChangeAsync(waterQualityManagementPlanID);
-                BackgroundJob.Enqueue<DeltaSolveJob>(x => x.RunJob());
+                // NPT-1155: a Draft WQMP's boundary was not a Load Generating Unit input until now. When
+                // its LGUs are being rebuilt the solve has to wait for them (see the helper).
+                if (!await QueueLGURefreshForStatusChangeAsync(waterQualityManagementPlanID))
+                {
+                    BackgroundJob.Enqueue<DeltaSolveJob>(x => x.RunJob());
+                }
             }
 
             var dto = await WaterQualityManagementPlans.GetByIDAsDtoAsync(DbContext, waterQualityManagementPlanID);
@@ -1322,7 +1333,15 @@ namespace Neptune.API.Controllers
                 await WaterQualityManagementPlans.HandleStatusTransitionAsync(DbContext, statusCrossedActiveID, oldStatusIDs[statusCrossedActiveID]);
             }
 
-            var lguInputChangedIDs = modelingApproachChangedIDs.Union(statusCrossedActiveIDs).ToList();
+            // A Detailed WQMP is not an LGU input in any status, so a change of status alone does not
+            // call for a refresh of its boundary.
+            var statusChangedLguInputIDs = updated
+                .Where(x => statusCrossedActiveIDs.Contains(x.WaterQualityManagementPlanID)
+                            && x.WaterQualityManagementPlanModelingApproachID != (int)WaterQualityManagementPlanModelingApproachEnum.Detailed)
+                .Select(x => x.WaterQualityManagementPlanID)
+                .ToList();
+            var lguInputChangedIDs = modelingApproachChangedIDs.Union(statusChangedLguInputIDs).ToList();
+            var refreshQueued = false;
             if (lguInputChangedIDs.Any())
             {
                 // those that became Detailed are no longer nodes in the model, so their cached results are stale
@@ -1342,10 +1361,14 @@ namespace Neptune.API.Controllers
                 {
                     await MarkNodesDownstreamOfBoundaryDirtyAsync(changedArea);
                     await ModelingEngineUtilities.QueueLGURefreshForArea(changedArea, null, DbContext);
+                    refreshQueued = true;
                 }
             }
 
-            if (statusCrossedActiveIDs.Any())
+            // With a refresh queued the solve has to wait for the rebuilt LGUs to get their land-use
+            // rows (see QueueLGURefreshForStatusChangeAsync); the dirty markers stay for the scheduled
+            // Delta Solve.
+            if (statusCrossedActiveIDs.Any() && !refreshQueued)
             {
                 BackgroundJob.Enqueue<DeltaSolveJob>(x => x.RunJob());
             }
