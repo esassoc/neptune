@@ -1,4 +1,5 @@
 using System;
+using System.Globalization;
 using System.Linq;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Storage;
@@ -12,7 +13,8 @@ namespace Neptune.Tests
     /// (vPyQgisOnlandVisualTrashAssessmentAreaDated). An area is an input when it has a Baseline Score
     /// or a Progress Score; a single progress assessment in the last 5 years is enough, a single
     /// baseline assessment is not, and an assessment returned to edit does not count. Integration tests
-    /// against the local DB, rolled back; they need the updated view deployed there.
+    /// against the local DB; each creates its own area and assessments inside a transaction that is
+    /// rolled back. They need the updated view deployed there.
     /// </summary>
     [TestClass]
     public class OvtaOverlayInputViewTests
@@ -22,6 +24,9 @@ namespace Neptune.Tests
 
         private NeptuneDbContext _dbContext = null!;
         private IDbContextTransaction _transaction = null!;
+        private int _jurisdictionID;
+        private int _personID;
+        private int _scoreID;
 
         private static NeptuneDbContext GetDbContext()
         {
@@ -41,6 +46,14 @@ namespace Neptune.Tests
         {
             _dbContext = GetDbContext();
             _transaction = _dbContext.Database.BeginTransaction();
+
+            _jurisdictionID = ScalarInts("SELECT TOP 1 StormwaterJurisdictionID AS Value FROM dbo.StormwaterJurisdiction ORDER BY StormwaterJurisdictionID").FirstOrDefault();
+            _personID = ScalarInts("SELECT TOP 1 PersonID AS Value FROM dbo.Person ORDER BY PersonID").FirstOrDefault();
+            _scoreID = ScalarInts("SELECT TOP 1 OnlandVisualTrashAssessmentScoreID AS Value FROM dbo.OnlandVisualTrashAssessmentScore ORDER BY OnlandVisualTrashAssessmentScoreID").FirstOrDefault();
+            if (_jurisdictionID == 0 || _personID == 0 || _scoreID == 0)
+            {
+                Assert.Inconclusive("The local database needs a jurisdiction, a person and an OVTA score.");
+            }
         }
 
         [TestCleanup]
@@ -51,120 +64,124 @@ namespace Neptune.Tests
             _dbContext.Dispose();
         }
 
-        private bool IsOverlayInput(int onlandVisualTrashAssessmentAreaID)
+        [TestMethod]
+        public void SingleRecentProgressAssessment_IsAnInput()
         {
-            return _dbContext.vPyQgisOnlandVisualTrashAssessmentAreaDateds.AsNoTracking().Any(x => x.OVTAID == onlandVisualTrashAssessmentAreaID);
-        }
+            var areaID = InsertArea();
+            InsertAssessment(areaID, Complete, isProgress: true, completedDate: YearsAgo(1));
 
-        /// <summary>
-        /// An area whose only assessment is one completed progress assessment from the last 5 years
-        /// (comfortably inside the window, so the test does not depend on today's date).
-        /// </summary>
-        private OnlandVisualTrashAssessment? AnySingleRecentProgressAssessment()
-        {
-            var cutoff = DateOnly.FromDateTime(DateTime.UtcNow.AddYears(-4));
-            return _dbContext.OnlandVisualTrashAssessments.AsNoTracking()
-                .Where(x => x.OnlandVisualTrashAssessmentAreaID != null
-                            && x.IsProgressAssessment
-                            && x.OnlandVisualTrashAssessmentStatusID == Complete
-                            && x.OnlandVisualTrashAssessmentScoreID != null
-                            && x.CompletedDate >= cutoff
-                            && x.OnlandVisualTrashAssessmentArea!.OnlandVisualTrashAssessmentBaselineScoreID == null
-                            && x.OnlandVisualTrashAssessmentArea.OnlandVisualTrashAssessments.Count == 1)
-                .OrderBy(x => x.OnlandVisualTrashAssessmentID)
-                .FirstOrDefault();
+            Assert.IsTrue(IsOverlayInput(areaID));
         }
 
         [TestMethod]
-        public void EveryInput_HasABaselineScoreOrAProgressScore()
+        public void SingleProgressAssessment_ReturnedToEdit_IsNotAnInput()
         {
-            var inputIDs = _dbContext.vPyQgisOnlandVisualTrashAssessmentAreaDateds.AsNoTracking().Select(x => x.OVTAID).ToList();
-            if (!inputIDs.Any()) Assert.Inconclusive("No OVTA Areas are overlay inputs in the local DB.");
+            // returning to edit sets the status back and leaves the completed date and the score
+            var areaID = InsertArea();
+            InsertAssessment(areaID, InProgress, isProgress: true, completedDate: YearsAgo(1));
 
+            Assert.IsFalse(IsOverlayInput(areaID));
+        }
+
+        [TestMethod]
+        public void SingleProgressAssessment_OlderThanFiveYears_IsNotAnInput()
+        {
+            var areaID = InsertArea();
+            InsertAssessment(areaID, Complete, isProgress: true, completedDate: YearsAgo(6));
+
+            Assert.IsFalse(IsOverlayInput(areaID));
+        }
+
+        [TestMethod]
+        public void SingleBaselineAssessment_IsNotAnInput()
+        {
+            var areaID = InsertArea();
+            InsertAssessment(areaID, Complete, isProgress: false, completedDate: YearsAgo(1));
+
+            Assert.IsFalse(IsOverlayInput(areaID));
+        }
+
+        [TestMethod]
+        public void TwoCompletedAssessments_WithNoScore_IsNotAnInput()
+        {
+            // the old gate took any area with two completed assessments; one baseline plus one lapsed
+            // progress assessment gives neither a Baseline Score nor a Progress Score
+            var areaID = InsertArea();
+            InsertAssessment(areaID, Complete, isProgress: false, completedDate: YearsAgo(7));
+            InsertAssessment(areaID, Complete, isProgress: true, completedDate: YearsAgo(6));
+
+            Assert.IsFalse(IsOverlayInput(areaID));
+        }
+
+        [TestMethod]
+        public void AreaWithABaselineScore_IsAnInput_DatedByItsLatestCompletedAssessment()
+        {
+            // the Baseline Score is stored on the area (the application sets it once there are two
+            // completed baseline assessments), so the fixture stores it too
+            var areaID = InsertArea(hasBaselineScore: true);
+            var latestCompleted = YearsAgo(2);
+            InsertAssessment(areaID, Complete, isProgress: false, completedDate: YearsAgo(3));
+            InsertAssessment(areaID, Complete, isProgress: false, completedDate: latestCompleted);
+            // returned to edit with a later date: must not date the area
+            InsertAssessment(areaID, InProgress, isProgress: false, completedDate: YearsAgo(1));
+
+            var assessDates = _dbContext.vPyQgisOnlandVisualTrashAssessmentAreaDateds.AsNoTracking()
+                .Where(x => x.OVTAID == areaID)
+                .Select(x => x.AssessDate)
+                .ToList();
+
+            Assert.AreEqual(1, assessDates.Count);
+            Assert.AreEqual(latestCompleted.ToDateTime(TimeOnly.MinValue), assessDates.Single());
+        }
+
+        [TestMethod]
+        public void EveryInput_IsListedOnce_AndHasABaselineScoreOrAProgressScore()
+        {
+            var areaID = InsertArea();
+            InsertAssessment(areaID, Complete, isProgress: true, completedDate: YearsAgo(1));
+            InsertAssessment(areaID, Complete, isProgress: true, completedDate: YearsAgo(2));
+
+            var inputIDs = _dbContext.vPyQgisOnlandVisualTrashAssessmentAreaDateds.AsNoTracking().Select(x => x.OVTAID).ToList();
             var withBaselineScore = _dbContext.OnlandVisualTrashAssessmentAreas.AsNoTracking()
                 .Where(x => x.OnlandVisualTrashAssessmentBaselineScoreID != null)
                 .Select(x => x.OnlandVisualTrashAssessmentAreaID).ToHashSet();
             var withProgressScore = _dbContext.vOnlandVisualTrashAssessmentAreaProgresses.AsNoTracking()
                 .Select(x => x.OnlandVisualTrashAssessmentAreaID).ToHashSet();
 
+            Assert.AreEqual(1, inputIDs.Count(x => x == areaID));
             Assert.AreEqual(inputIDs.Count, inputIDs.Distinct().Count(), "An area is listed more than once.");
             Assert.IsTrue(inputIDs.All(x => withBaselineScore.Contains(x) || withProgressScore.Contains(x)));
         }
 
-        [TestMethod]
-        public void SingleRecentProgressAssessment_IsAnInput()
+        private bool IsOverlayInput(int onlandVisualTrashAssessmentAreaID)
         {
-            var assessment = AnySingleRecentProgressAssessment();
-            if (assessment == null) Assert.Inconclusive("No area with a single recent progress assessment in the local DB.");
-
-            Assert.IsTrue(IsOverlayInput(assessment.OnlandVisualTrashAssessmentAreaID!.Value));
+            return _dbContext.vPyQgisOnlandVisualTrashAssessmentAreaDateds.AsNoTracking().Any(x => x.OVTAID == onlandVisualTrashAssessmentAreaID);
         }
 
-        [TestMethod]
-        public void SingleProgressAssessment_ReturnedToEdit_IsNotAnInput()
+        private static DateOnly YearsAgo(int years) => DateOnly.FromDateTime(DateTime.UtcNow).AddYears(-years);
+
+        // A 100 m square far outside Orange County.
+        private const string FixtureGeometry = "POLYGON((100000 100000, 100100 100000, 100100 100100, 100000 100100, 100000 100000))";
+
+        private int InsertArea(bool hasBaselineScore = false) =>
+            ScalarInts($@"
+                INSERT INTO dbo.OnlandVisualTrashAssessmentArea (OnlandVisualTrashAssessmentAreaName, StormwaterJurisdictionID, OnlandVisualTrashAssessmentAreaGeometry, OnlandVisualTrashAssessmentBaselineScoreID)
+                OUTPUT inserted.OnlandVisualTrashAssessmentAreaID AS Value
+                VALUES ('NPT-1144 test {Guid.NewGuid():N}', {_jurisdictionID}, geometry::STGeomFromText('{FixtureGeometry}', 2771), {(hasBaselineScore ? _scoreID.ToString() : "NULL")})").Single();
+
+        /// <summary>
+        /// An assessment with a completed date and a score whatever its status, which is what an
+        /// assessment returned to edit looks like.
+        /// </summary>
+        private void InsertAssessment(int areaID, int statusID, bool isProgress, DateOnly completedDate)
         {
-            var assessment = AnySingleRecentProgressAssessment();
-            if (assessment == null) Assert.Inconclusive("No area with a single recent progress assessment in the local DB.");
-
-            // returning to edit sets the status back and leaves the completed date
-            _dbContext.Database.ExecuteSqlRaw("UPDATE dbo.OnlandVisualTrashAssessment SET OnlandVisualTrashAssessmentStatusID = {0} WHERE OnlandVisualTrashAssessmentID = {1}",
-                InProgress, assessment.OnlandVisualTrashAssessmentID);
-
-            Assert.IsFalse(IsOverlayInput(assessment.OnlandVisualTrashAssessmentAreaID!.Value));
+            _dbContext.Database.ExecuteSqlRaw($@"
+                INSERT INTO dbo.OnlandVisualTrashAssessment (CreatedByPersonID, CreatedDate, StormwaterJurisdictionID, OnlandVisualTrashAssessmentAreaID,
+                    OnlandVisualTrashAssessmentStatusID, CompletedDate, OnlandVisualTrashAssessmentScoreID, IsTransectBackingAssessment, IsProgressAssessment)
+                VALUES ({_personID}, GETDATE(), {_jurisdictionID}, {areaID},
+                    {statusID}, '{completedDate.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture)}', {_scoreID}, 0, {(isProgress ? 1 : 0)})");
         }
 
-        [TestMethod]
-        public void SingleProgressAssessment_OlderThanFiveYears_IsNotAnInput()
-        {
-            var assessment = AnySingleRecentProgressAssessment();
-            if (assessment == null) Assert.Inconclusive("No area with a single recent progress assessment in the local DB.");
-
-            _dbContext.Database.ExecuteSqlRaw("UPDATE dbo.OnlandVisualTrashAssessment SET CompletedDate = {0} WHERE OnlandVisualTrashAssessmentID = {1}",
-                DateOnly.FromDateTime(DateTime.UtcNow.AddYears(-6)), assessment.OnlandVisualTrashAssessmentID);
-
-            Assert.IsFalse(IsOverlayInput(assessment.OnlandVisualTrashAssessmentAreaID!.Value));
-        }
-
-        [TestMethod]
-        public void SingleBaselineAssessment_IsNotAnInput()
-        {
-            var assessment = _dbContext.OnlandVisualTrashAssessments.AsNoTracking()
-                .Where(x => x.OnlandVisualTrashAssessmentAreaID != null
-                            && !x.IsProgressAssessment
-                            && x.OnlandVisualTrashAssessmentStatusID == Complete
-                            && x.OnlandVisualTrashAssessmentArea!.OnlandVisualTrashAssessmentBaselineScoreID == null
-                            && x.OnlandVisualTrashAssessmentArea.OnlandVisualTrashAssessments.Count == 1)
-                .OrderBy(x => x.OnlandVisualTrashAssessmentID)
-                .FirstOrDefault();
-            if (assessment == null) Assert.Inconclusive("No area with a single baseline assessment in the local DB.");
-
-            Assert.IsFalse(IsOverlayInput(assessment.OnlandVisualTrashAssessmentAreaID!.Value));
-        }
-
-        [TestMethod]
-        public void AreaWithABaselineScore_IsAnInput_DatedByItsLatestCompletedAssessment()
-        {
-            var area = _dbContext.OnlandVisualTrashAssessmentAreas.AsNoTracking()
-                .Where(x => x.OnlandVisualTrashAssessmentBaselineScoreID != null
-                            && x.OnlandVisualTrashAssessments.Count(y => y.OnlandVisualTrashAssessmentStatusID == Complete && y.CompletedDate != null) >= 2)
-                .OrderBy(x => x.OnlandVisualTrashAssessmentAreaID)
-                .Select(x => new
-                {
-                    x.OnlandVisualTrashAssessmentAreaID,
-                    LatestCompletedDate = x.OnlandVisualTrashAssessments
-                        .Where(y => y.OnlandVisualTrashAssessmentStatusID == Complete && y.CompletedDate != null)
-                        .Max(y => y.CompletedDate),
-                })
-                .FirstOrDefault();
-            if (area == null) Assert.Inconclusive("No area with a Baseline Score in the local DB.");
-
-            var input = _dbContext.vPyQgisOnlandVisualTrashAssessmentAreaDateds.AsNoTracking()
-                .Where(x => x.OVTAID == area.OnlandVisualTrashAssessmentAreaID)
-                .Select(x => x.AssessDate)
-                .ToList();
-
-            Assert.AreEqual(1, input.Count);
-            Assert.AreEqual(area.LatestCompletedDate!.Value.ToDateTime(TimeOnly.MinValue), input.Single());
-        }
+        private int[] ScalarInts(string sql) => _dbContext.Database.SqlQueryRaw<int>(sql).AsEnumerable().ToArray();
     }
 }
