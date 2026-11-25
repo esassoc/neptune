@@ -4,6 +4,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Storage;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using Neptune.EFModels.Entities;
+using NetTopologySuite.Geometries;
 
 namespace Neptune.Tests
 {
@@ -115,6 +116,52 @@ namespace Neptune.Tests
             Assert.AreEqual(treatsRunoff, dto.TreatsRunoff);
             Assert.AreEqual(overlappingTreatsRunoff, dto.OverlappingTreatsRunoff);
             Assert.AreEqual(1.0, dto.AreaOfOverlapInAcres, 0.001);
+        }
+
+        [TestMethod]
+        public void GridRow_IsNotCountedTwice_WhenTheSharedGroundGoesToAnotherPlan()
+        {
+            var overlap = new vWaterQualityManagementPlanBoundaryOverlap { WaterQualityManagementPlanID = 1, OverlappingWaterQualityManagementPlanID = 2, OverlapAreaInSquareMeters = 4046.8564 };
+
+            var dto = vWaterQualityManagementPlanBoundaryOverlaps.AsGridDto(overlap, false, false, sharedGroundGoesToAnotherPlan: true);
+
+            Assert.IsFalse(dto.IsCountedTwice);
+        }
+
+        private static Polygon Square(double minX, double minY, double maxX, double maxY)
+        {
+            return new GeometryFactory().CreatePolygon([
+                new Coordinate(minX, minY), new Coordinate(maxX, minY), new Coordinate(maxX, maxY), new Coordinate(minX, maxY), new Coordinate(minX, minY),
+            ]);
+        }
+
+        [TestMethod]
+        public void SharedAreaLeftAfterTreatingPlans_IsZero_WhenAThirdTreatingPlanCoversTheSharedGround()
+        {
+            // two plans that treat nothing share the strip x 80..100; a third, treating plan covers all of it
+            var area = vWaterQualityManagementPlanBoundaryOverlaps.SharedAreaLeftAfterTreatingPlans(
+                Square(0, 0, 100, 100), Square(80, 0, 180, 100), [Square(70, -10, 110, 110)]);
+
+            Assert.AreEqual(0, area, 0.001);
+        }
+
+        [TestMethod]
+        public void SharedAreaLeftAfterTreatingPlans_KeepsWhatTheTreatingPlansDoNotCover()
+        {
+            // the treating plan covers only the lower half of the shared strip (20 x 100)
+            var area = vWaterQualityManagementPlanBoundaryOverlaps.SharedAreaLeftAfterTreatingPlans(
+                Square(0, 0, 100, 100), Square(80, 0, 180, 100), [Square(70, -10, 110, 50)]);
+
+            Assert.AreEqual(1000, area, 0.001);
+        }
+
+        [TestMethod]
+        public void SharedAreaLeftAfterTreatingPlans_IsTheWholeOverlap_WithNoTreatingPlans()
+        {
+            var area = vWaterQualityManagementPlanBoundaryOverlaps.SharedAreaLeftAfterTreatingPlans(
+                Square(0, 0, 100, 100), Square(80, 0, 180, 100), []);
+
+            Assert.AreEqual(2000, area, 0.001);
         }
     }
 }
