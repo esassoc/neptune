@@ -17,10 +17,10 @@ public class TrashGeneratingUnitRefreshJob
     }
 
     // DisableConcurrentExecution: the nightly 22:30 scheduled refresh and any manually-enqueued run must not
-    // overlap — the full-county overlay runs for hours and races pTrashGeneratingUnitDelete + insert. Defense
-    // in depth — today the single Hangfire worker (WorkerCount = 1) already serializes jobs, but this survives
-    // that ever being raised. No AutomaticRetry on purpose: the delete proc runs before insert, so a retry
-    // would restart a multi-hour run (global default is 0).
+    // overlap — the full-county overlay takes a few minutes and races pTrashGeneratingUnitDelete + insert.
+    // Defense in depth — today the single Hangfire worker (WorkerCount = 1) already serializes jobs, but this
+    // survives that ever being raised. No AutomaticRetry on purpose: the delete proc runs before the insert,
+    // so a retry would start again from emptied tables (global default is 0).
     [DisableConcurrentExecution(timeoutInSeconds: 3600)]
     public async Task RunJob()
     {

@@ -175,7 +175,7 @@ namespace Neptune.API.Controllers
             }
 
             // NPT-1155: only verified delineations are Load Generating Unit inputs (see
-            // vPyQgisDelineationLGUInput), so a change of status adds or removes this one as an input
+            // Delineations.ListLoadGeneratingUnitInputs), so a change of status adds or removes this one as an input
             // and the LGUs under it have to be rebuilt.
             if (wasVerified != delineation.IsVerified)
             {

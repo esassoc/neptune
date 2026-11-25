@@ -19,9 +19,10 @@ namespace Neptune.Jobs.Hangfire
         // DisableConcurrentExecution: LGU refreshes are enqueued on every delineation/BMP/WQMP boundary edit and
         // chained from RSB refreshes; two overlapping overlay runs would race the delete-then-insert stored
         // procs. Defense in depth — today the single Hangfire worker (WorkerCount = 1) already serializes jobs,
-        // but this survives that ever being raised. Timeout is generous because a full refresh runs for hours;
-        // a delta refresh queued behind one should wait rather than fail fast. No AutomaticRetry on purpose:
-        // the delete procs run before insert, so a retry would restart a multi-hour run (global default is 0).
+        // but this survives that ever being raised. A total refresh takes seconds to a few minutes, so the
+        // timeout is generous; a delta refresh queued behind one should wait rather than fail fast. No
+        // AutomaticRetry on purpose: the delete runs before the insert, so a retry would start again from
+        // emptied tables (global default is 0).
         [DisableConcurrentExecution(timeoutInSeconds: 3600)]
         public async Task RunJob(int? loadGeneratingUnitRefreshAreaID)
         {

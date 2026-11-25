@@ -76,20 +76,12 @@ public class OverlayController : ControllerBase
             return NotFound($"Project with ID {projectID} does not exist!");
         }
 
-        var regionalSubbasinIDs = requestDto.RegionalSubbasinIDs;
-        var regionalSubbasins = OverlayEngine.Clean(_dbContext.vPyQgisRegionalSubbasinLGUInputs.AsNoTracking()
-            .Where(x => regionalSubbasinIDs.Contains(x.RSBID)).Select(x =>
-                new OverlayFeature { Geometry = x.CatchmentGeometry, RegionalSubbasinID = x.RSBID, ModelBasinID = x.ModelID }).ToList());
-        var delineations = OverlayEngine.Clean(_dbContext.vPyQgisProjectDelineationLGUInputs.AsNoTracking()
-            .Where(x => x.ProjectID == null || x.ProjectID == projectID).Select(x =>
-                new OverlayFeature { Geometry = x.DelineationGeometry, DelineationID = x.DelinID }).ToList());
-
-        var pieces = RunLoadGeneratingUnitOverlay(regionalSubbasins, delineations, null);
+        var inputs = await LoadGeneratingUnitOverlay.LoadProjectInputsAsync(_dbContext, projectID, requestDto.RegionalSubbasinIDs);
+        var pieces = LoadGeneratingUnitOverlay.Run(inputs);
 
         var projectLoadGeneratingUnits = new List<ProjectLoadGeneratingUnit>();
-        foreach (var (feature, polygon) in OverlayEngine.ExplodeAndDropSlivers(pieces))
+        foreach (var (feature, polygon) in LoadGeneratingUnitOverlay.ToUnits(pieces))
         {
-            if (feature.RegionalSubbasinID == null) continue;
             projectLoadGeneratingUnits.Add(new ProjectLoadGeneratingUnit
             {
                 ProjectLoadGeneratingUnitGeometry = polygon,
@@ -117,31 +109,27 @@ public class OverlayController : ControllerBase
     {
         var loadGeneratingUnitRefreshArea = await GetLoadGeneratingUnitRefreshAreaIfProvided(requestDto);
 
-        var delineations = OverlayEngine.Clean(_dbContext.vPyQgisDelineationLGUInputs.AsNoTracking().Select(x =>
-            new OverlayFeature { Geometry = x.DelineationGeometry, DelineationID = x.DelinID }).ToList());
-        var regionalSubbasins = OverlayEngine.Clean(_dbContext.vPyQgisRegionalSubbasinLGUInputs.AsNoTracking().Select(x =>
-            new OverlayFeature { Geometry = x.CatchmentGeometry, RegionalSubbasinID = x.RSBID, ModelBasinID = x.ModelID }).ToList());
+        var inputs = await LoadGeneratingUnitOverlay.LoadInputsAsync(_dbContext);
 
         var refreshAreaGeometry = loadGeneratingUnitRefreshArea?.LoadGeneratingUnitRefreshAreaGeometry;
-        var pieces = RunLoadGeneratingUnitOverlay(regionalSubbasins, delineations,
+        var pieces = LoadGeneratingUnitOverlay.Run(inputs,
             refreshAreaGeometry != null ? OverlayEngine.DeltaRefreshCandidateZone(refreshAreaGeometry) : null);
 
-        IEnumerable<(OverlayFeature Feature, Polygon Polygon)> polygons;
+        IEnumerable<(OverlayFeature Feature, Polygon Polygon)> units;
         if (refreshAreaGeometry != null)
         {
-            polygons = await DeleteLoadGeneratingUnitsForDeltaRefresh(refreshAreaGeometry, pieces);
+            units = LoadGeneratingUnitOverlay.InARegionalSubbasin(await DeleteLoadGeneratingUnitsForDeltaRefresh(refreshAreaGeometry, pieces));
         }
         else
         {
             await _dbContext.Database.ExecuteSqlRawAsync("EXEC dbo.pDeleteLoadGeneratingUnitsPriorToTotalRefresh");
-            polygons = OverlayEngine.ExplodeAndDropSlivers(pieces);
+            units = LoadGeneratingUnitOverlay.ToUnits(pieces);
         }
 
         var loadGeneratingUnits = new List<LoadGeneratingUnit>();
         var exportFeatures = _configuration.OverlayDebugExportFolder != null ? new FeatureCollection() : null;
-        foreach (var (feature, polygon) in polygons)
+        foreach (var (feature, polygon) in units)
         {
-            if (feature.RegionalSubbasinID == null) continue;
             loadGeneratingUnits.Add(new LoadGeneratingUnit
             {
                 LoadGeneratingUnitGeometry = polygon,
@@ -161,8 +149,8 @@ public class OverlayController : ControllerBase
         // NPT-981: the delineation input set is snapshotted at the top of this action; a user can delete a
         // delineation while the overlay runs. That would leave an LGU pointing at a now-deleted DelineationID
         // and trip FK_LoadGeneratingUnit_Delineation_DelineationID. Drop any orphaned rows just before the
-        // insert (a null DelineationID is valid — those are regional-subbasin-only LGUs). The in-process
-        // overlay shrank the window from ~minutes to ~seconds, but it hasn't closed.
+        // insert (a null DelineationID is valid — those are regional-subbasin-only LGUs). The run takes
+        // seconds, so the window is short, but it is not closed.
         var referencedDelineationIDs = loadGeneratingUnits
             .Where(x => x.DelineationID.HasValue)
             .Select(x => x.DelineationID!.Value)
@@ -261,132 +249,29 @@ public class OverlayController : ControllerBase
         return polygonsToInsert;
     }
 
-    // The shared LGU/PLGU overlay, replacing ModelingOverlayAnalysis.py: clip the inputs to the modeling
-    // extent (union of model basins — the basins contribute clip geometry only, no attributes), union
-    // RSB+WQMP then delineations, and for a delta refresh keep only pieces near the refresh area
-    // (whole pieces here; OverlayEngine.PlanDeltaRefresh narrows them to single polygons).
-    // Note: the python's --rsb_ids branch was dead code (missing `global`), so PLGU runs always clipped
-    // to the model-basin extent too — this port replicates that actual behavior.
-    private List<OverlayFeature> RunLoadGeneratingUnitOverlay(List<OverlayFeature> regionalSubbasins,
-        List<OverlayFeature> delineations, Geometry? refreshAreaFilter)
-    {
-        var modelBasinGeometries = OverlayEngine.Clean(_dbContext.vPyQgisModelBasinLGUInputs.AsNoTracking().Select(x =>
-            new OverlayFeature { Geometry = x.ModelBasinGeometry }).ToList());
-        // NPT-1155: a WQMP that treats nothing gives up the ground it shares with one that treats.
-        // "Treats" is the solve's own test for a simple BMP it sends to the model, so the two agree.
-        var waterQualityManagementPlanIDsThatTreat = _dbContext.QuickBMPs.AsNoTracking()
-            .Where(QuickBMPs.IsSentToModel)
-            .Select(x => x.WaterQualityManagementPlanID)
-            .Distinct()
-            .ToHashSet();
-        var wqmps = OverlayEngine.YieldToTreatingPlans(OverlayEngine.Clean(_dbContext.vPyQgisWaterQualityManagementPlanLGUInputs.AsNoTracking()
-            .Where(x => x.WaterQualityManagementPlanBoundary != null)
-            .Select(x => new { x.WQMPID, x.WaterQualityManagementPlanBoundary })
-            .ToList()
-            .Select(x => new OverlayFeature
-            {
-                Geometry = x.WaterQualityManagementPlanBoundary!,
-                WaterQualityManagementPlanID = x.WQMPID,
-                TreatsRunoff = waterQualityManagementPlanIDsThatTreat.Contains(x.WQMPID),
-            })));
-
-        var modelingExtent = OverlayEngine.ToPolygonal2D(
-            NetTopologySuite.Operation.Union.UnaryUnionOp.Union(modelBasinGeometries.Select(x => x.Geometry).ToList()));
-        var clippedRegionalSubbasins = OverlayEngine.Clip(regionalSubbasins, modelingExtent);
-        var clippedDelineations = OverlayEngine.Clip(delineations, modelingExtent);
-        var clippedWqmps = OverlayEngine.Clip(wqmps, modelingExtent);
-
-        var rsbWqmp = OverlayEngine.UnionLayers(clippedRegionalSubbasins, clippedWqmps);
-        var master = OverlayEngine.UnionLayers(rsbWqmp, clippedDelineations);
-
-        return refreshAreaFilter != null ? OverlayEngine.FilterIntersecting(master, refreshAreaFilter) : master;
-    }
-
-    // NPT-1105 Part 2: TGU generation runs in-process on NetTopologySuite (OverlayEngine) — no python
-    // subprocess, no temp GeoJSON. Winner rules match the retired ComputeTrashGeneratingUnits.py
-    // (delineations/WQMPs: higher TCEffect wins; OVTAs: later AssessDate wins) with one deliberate
-    // improvement: TCEffect ties break on trash capture STATUS (Full > Partial > None), then ID —
-    // QGIS was iteration-order-dependent on ties, which flipped Partial/Untreated acreage run-to-run
-    // (e.g. an in-stream trash boom vs an unscreened inlet, both TCEffect 0, different statuses).
+    // The rules (what goes in, who wins an overlap, which pieces are units) are in
+    // TrashGeneratingUnitOverlay; this action only loads, runs and stores.
     private async Task<IActionResult> GenerateTrashGeneratingUnitsImpl(GenerateTrashGeneratingUnitRequestDto requestDto)
     {
         var stopwatch = Stopwatch.StartNew();
 
-        // status ranks for the TCEffect tie-break — the vPyQgis views don't carry status
-        var delineationStatusPriorities = await _dbContext.Delineations.AsNoTracking()
-            .Select(x => new { x.DelineationID, x.TreatmentBMP.TrashCaptureStatusTypeID })
-            .ToDictionaryAsync(x => x.DelineationID, x => TrashCaptureStatusPriority(x.TrashCaptureStatusTypeID));
-        var wqmpStatusPriorities = await _dbContext.WaterQualityManagementPlans.AsNoTracking()
-            .Select(x => new { x.WaterQualityManagementPlanID, x.TrashCaptureStatusTypeID })
-            .ToDictionaryAsync(x => x.WaterQualityManagementPlanID, x => TrashCaptureStatusPriority(x.TrashCaptureStatusTypeID));
+        var inputs = await TrashGeneratingUnitOverlay.LoadInputsAsync(_dbContext);
+        _logger.LogInformation("TGU overlay: loaded delin={DelinCount} ovta={OvtaCount} wqmp={WqmpCount} lub={LubCount} in {Elapsed}s",
+            inputs.Delineations.Count, inputs.OnlandVisualTrashAssessmentAreas.Count, inputs.WaterQualityManagementPlans.Count,
+            inputs.LandUseBlocks.Count, stopwatch.Elapsed.TotalSeconds);
 
-        var delineations = OverlayEngine.Clean(_dbContext.vPyQgisDelineationTGUInputs.AsNoTracking().Select(x =>
-            new OverlayFeature
-            {
-                Geometry = x.DelineationGeometry,
-                DelineationID = x.DelinID,
-                StormwaterJurisdictionID = x.SJID,
-                TrashCaptureEffectiveness = x.TCEffect,
-                TrashCaptureStatusPriority = delineationStatusPriorities.GetValueOrDefault(x.DelinID, 1),
-            }).ToList());
-        var ovtas = OverlayEngine.Clean(_dbContext.vPyQgisOnlandVisualTrashAssessmentAreaDateds.AsNoTracking().Select(x =>
-            new OverlayFeature
-            {
-                Geometry = x.OnlandVisualTrashAssessmentAreaGeometry,
-                OnlandVisualTrashAssessmentAreaID = x.OVTAID,
-                AssessmentDate = x.AssessDate,
-            }).ToList());
-        var wqmps = OverlayEngine.Clean(_dbContext.vPyQgisWaterQualityManagementPlanTGUInputs.AsNoTracking()
-            .Where(x => x.WaterQualityManagementPlanBoundary != null).Select(x =>
-            new OverlayFeature
-            {
-                Geometry = x.WaterQualityManagementPlanBoundary!,
-                WaterQualityManagementPlanID = x.WQMPID,
-                TrashCaptureEffectiveness = x.TCEffect,
-                TrashCaptureStatusPriority = wqmpStatusPriorities.GetValueOrDefault(x.WQMPID, 1),
-            }).ToList());
-        var landUseBlocks = OverlayEngine.Clean(_dbContext.vPyQgisLandUseBlockTGUInputs.AsNoTracking().Select(x =>
-            new OverlayFeature
-            {
-                Geometry = x.LandUseBlockGeometry,
-                LandUseBlockID = x.LUBID,
-                StormwaterJurisdictionID = x.SJID,
-            }).ToList());
-        _logger.LogInformation("TGU overlay: loaded+cleaned delin={DelinCount} ovta={OvtaCount} wqmp={WqmpCount} lub={LubCount} in {Elapsed}s",
-            delineations.Count, ovtas.Count, wqmps.Count, landUseBlocks.Count, stopwatch.Elapsed.TotalSeconds);
-
-        // de-overlap each layer by its winner rule; TCEffect ties break on capture status, then ID
-        delineations = OverlayEngine.Flatten(delineations, x => x.DelineationID!.Value,
-            (a, b) => LosesByTrashCaptureEffectiveness(a, b, x => x.DelineationID!.Value));
-        ovtas = OverlayEngine.Flatten(ovtas, x => x.OnlandVisualTrashAssessmentAreaID!.Value,
-            (a, b) =>
-            {
-                var (dateA, dateB) = (a.AssessmentDate ?? DateTime.MinValue, b.AssessmentDate ?? DateTime.MinValue);
-                return dateA != dateB
-                    ? dateA < dateB
-                    : a.OnlandVisualTrashAssessmentAreaID!.Value < b.OnlandVisualTrashAssessmentAreaID!.Value;
-            });
-        wqmps = OverlayEngine.Flatten(wqmps, x => x.WaterQualityManagementPlanID!.Value,
-            (a, b) => LosesByTrashCaptureEffectiveness(a, b, x => x.WaterQualityManagementPlanID!.Value));
-
-        // union order matches the python: (OVTA ∪ Delin) ∪ WQMP, then LUB first so its SJID wins the merge
-        var odw = OverlayEngine.UnionLayers(ovtas, delineations);
-        odw = OverlayEngine.UnionLayers(odw, wqmps);
-        var pieces = OverlayEngine.UnionLayers(landUseBlocks, odw);
-        _logger.LogInformation("TGU overlay: flatten+union produced {PieceCount} pieces at {Elapsed}s", pieces.Count, stopwatch.Elapsed.TotalSeconds);
+        var result = TrashGeneratingUnitOverlay.Run(inputs);
+        _logger.LogInformation("TGU overlay: produced {UnitCount} units at {Elapsed}s", result.Units.Count, stopwatch.Elapsed.TotalSeconds);
 
         var trashGeneratingUnits = new List<TrashGeneratingUnit>();
         var trashGeneratingUnit4326s = new List<TrashGeneratingUnit4326>();
         var exportFeatures = _configuration.OverlayDebugExportFolder != null ? new FeatureCollection() : null;
         var lastUpdateDate = DateTime.UtcNow;
-        foreach (var (feature, polygon) in OverlayEngine.ExplodeAndDropSlivers(pieces))
+        foreach (var (feature, polygon) in result.Units)
         {
-            // pieces without a land use block (delineation remainders over unmapped ground) are not TGUs
-            if (feature.LandUseBlockID == null || feature.StormwaterJurisdictionID == null) continue;
-
             var trashGeneratingUnit = new TrashGeneratingUnit
             {
-                StormwaterJurisdictionID = feature.StormwaterJurisdictionID.Value,
+                StormwaterJurisdictionID = feature.StormwaterJurisdictionID!.Value,
                 TrashGeneratingUnitGeometry = polygon,
                 DelineationID = feature.DelineationID,
                 WaterQualityManagementPlanID = feature.WaterQualityManagementPlanID,
@@ -397,7 +282,7 @@ public class OverlayController : ControllerBase
             trashGeneratingUnits.Add(trashGeneratingUnit);
             trashGeneratingUnit4326s.Add(new TrashGeneratingUnit4326
             {
-                StormwaterJurisdictionID = feature.StormwaterJurisdictionID.Value,
+                StormwaterJurisdictionID = feature.StormwaterJurisdictionID!.Value,
                 TrashGeneratingUnit4326Geometry = polygon.ProjectTo4326(),
                 DelineationID = feature.DelineationID,
                 WaterQualityManagementPlanID = feature.WaterQualityManagementPlanID,
@@ -414,7 +299,7 @@ public class OverlayController : ControllerBase
             }));
         }
 
-        await _dbContext.Database.ExecuteSqlRawAsync($"EXEC dbo.pTrashGeneratingUnitDelete");
+        await _dbContext.Database.ExecuteSqlRawAsync("EXEC dbo.pTrashGeneratingUnitDelete");
         await InsertTrashGeneratingUnitsChunked(trashGeneratingUnits, trashGeneratingUnit4326s);
         if (trashGeneratingUnits.Count > 0)
         {
@@ -422,7 +307,7 @@ public class OverlayController : ControllerBase
             await _dbContext.Database.ExecuteSqlRawAsync("EXEC dbo.pTrashGeneratingUnit4326MakeValid");
         }
         _logger.LogInformation("TGU overlay: inserted {RowCount} rows (x2 with 4326); total {Elapsed}s", trashGeneratingUnits.Count, stopwatch.Elapsed.TotalSeconds);
-        LogLandUseBlocksWithMoreTrashGeneratingUnitAreaThanTheirOwn(landUseBlocks, trashGeneratingUnits);
+        LogLandUseBlocksWithMoreTrashGeneratingUnitAreaThanTheirOwn(result.LandUseBlockAreas, trashGeneratingUnits);
 
         if (exportFeatures != null)
         {
@@ -443,10 +328,9 @@ public class OverlayController : ControllerBase
     // NPT-1143 guard: TGUs are cut from land use blocks, so a block's TGUs can never total more than
     // the block. The run still completes (the rows are already written); the error makes a
     // recurrence visible in the logs at block level instead of waiting for someone to compare exports.
-    private void LogLandUseBlocksWithMoreTrashGeneratingUnitAreaThanTheirOwn(List<OverlayFeature> landUseBlocks,
+    private void LogLandUseBlocksWithMoreTrashGeneratingUnitAreaThanTheirOwn(IReadOnlyDictionary<int, double> landUseBlockAreas,
         List<TrashGeneratingUnit> trashGeneratingUnits)
     {
-        var landUseBlockAreas = landUseBlocks.ToDictionary(x => x.LandUseBlockID!.Value, x => x.Geometry.Area);
         var overCounted = OverlayEngine.FindOverCountedSources(
             trashGeneratingUnits.Select(x => (x.LandUseBlockID!.Value, x.TrashGeneratingUnitGeometry.Area)),
             landUseBlockAreas, LandUseBlockOverCountToleranceSquareMeters);
@@ -463,28 +347,6 @@ public class OverlayController : ControllerBase
             overCounted.Count, LandUseBlockOverCountToleranceSquareMeters, Math.Round(overCounted.Sum(x => x.PieceArea - x.SourceArea), 1),
             Math.Min(overCounted.Count, MaximumOverCountedLandUseBlocksToName), named);
     }
-
-    // Winner rule for delineations and WQMPs: higher TCEffect wins; TCEffect tie → better trash capture
-    // STATUS wins (a Partial in-stream boom must beat a No-Capture inlet even though both are TCEffect 0,
-    // because the Full/Partial/Untreated trash results classify by status); status tie → higher ID wins.
-    private static bool LosesByTrashCaptureEffectiveness(OverlayFeature a, OverlayFeature b, Func<OverlayFeature, int> idOf)
-    {
-        var (effectA, effectB) = (a.TrashCaptureEffectiveness ?? double.MinValue, b.TrashCaptureEffectiveness ?? double.MinValue);
-        if (effectA != effectB)
-        {
-            return effectA < effectB;
-        }
-        var (priorityA, priorityB) = (a.TrashCaptureStatusPriority ?? 1, b.TrashCaptureStatusPriority ?? 1);
-        return priorityA != priorityB ? priorityA < priorityB : idOf(a) < idOf(b);
-    }
-
-    // TrashCaptureStatusType: 1=Full, 2=Partial, 3=None, 4=NotProvided → rank capture "goodness"
-    private static int TrashCaptureStatusPriority(int trashCaptureStatusTypeID) => trashCaptureStatusTypeID switch
-    {
-        1 => 3, // Full
-        2 => 2, // Partial
-        _ => 1, // None / NotProvided
-    };
 
     // Chunked inserts: ~300K entities in one SaveChanges was the pipeline's real memory peak (5.5 GiB
     // measured). Each TGU chunk carries its 4326 twins so EF's navigation fixup resolves the FK in-chunk.
@@ -508,7 +370,7 @@ public class OverlayController : ControllerBase
             return null;
         }
 
-        await _dbContext.Database.ExecuteSqlRawAsync($"EXEC dbo.pLoadGeneratingUnitRefreshAreaMakeValid @LoadGeneratingUnitRefreshAreaID = {loadGeneratingUnitRefreshAreaID.Value}");
+        await _dbContext.Database.ExecuteSqlAsync($"EXEC dbo.pLoadGeneratingUnitRefreshAreaMakeValid @LoadGeneratingUnitRefreshAreaID = {loadGeneratingUnitRefreshAreaID.Value}");
         var loadGeneratingUnitRefreshArea = await _dbContext.LoadGeneratingUnitRefreshAreas.FindAsync(loadGeneratingUnitRefreshAreaID.Value);
         if (loadGeneratingUnitRefreshArea == null)
         {

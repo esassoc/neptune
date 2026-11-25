@@ -257,8 +257,6 @@ public partial class NeptuneDbContext : DbContext
 
     public virtual DbSet<vPowerBIWaterQualityManagementPlanOAndMVerification> vPowerBIWaterQualityManagementPlanOAndMVerifications { get; set; }
 
-    public virtual DbSet<vProjectDryWeatherWQLRIScore> vProjectDryWeatherWQLRIScores { get; set; }
-
     public virtual DbSet<vProjectGrantScore> vProjectGrantScores { get; set; }
 
     public virtual DbSet<vProjectLoadGeneratingResult> vProjectLoadGeneratingResults { get; set; }
@@ -267,25 +265,9 @@ public partial class NeptuneDbContext : DbContext
 
     public virtual DbSet<vProjectLoadReducingResult> vProjectLoadReducingResults { get; set; }
 
-    public virtual DbSet<vProjectWetWeatherWQLRIScore> vProjectWetWeatherWQLRIScores { get; set; }
-
-    public virtual DbSet<vPyQgisDelineationLGUInput> vPyQgisDelineationLGUInputs { get; set; }
-
-    public virtual DbSet<vPyQgisDelineationTGUInput> vPyQgisDelineationTGUInputs { get; set; }
-
-    public virtual DbSet<vPyQgisLandUseBlockTGUInput> vPyQgisLandUseBlockTGUInputs { get; set; }
-
-    public virtual DbSet<vPyQgisModelBasinLGUInput> vPyQgisModelBasinLGUInputs { get; set; }
-
     public virtual DbSet<vPyQgisOnlandVisualTrashAssessmentAreaDated> vPyQgisOnlandVisualTrashAssessmentAreaDateds { get; set; }
 
-    public virtual DbSet<vPyQgisProjectDelineationLGUInput> vPyQgisProjectDelineationLGUInputs { get; set; }
-
-    public virtual DbSet<vPyQgisRegionalSubbasinLGUInput> vPyQgisRegionalSubbasinLGUInputs { get; set; }
-
     public virtual DbSet<vPyQgisWaterQualityManagementPlanLGUInput> vPyQgisWaterQualityManagementPlanLGUInputs { get; set; }
-
-    public virtual DbSet<vPyQgisWaterQualityManagementPlanTGUInput> vPyQgisWaterQualityManagementPlanTGUInputs { get; set; }
 
     public virtual DbSet<vRegionalSubbasinUpstream> vRegionalSubbasinUpstreams { get; set; }
 
@@ -1274,11 +1256,6 @@ public partial class NeptuneDbContext : DbContext
             entity.ToView("vPowerBIWaterQualityManagementPlanOAndMVerification");
         });
 
-        modelBuilder.Entity<vProjectDryWeatherWQLRIScore>(entity =>
-        {
-            entity.ToView("vProjectDryWeatherWQLRIScore");
-        });
-
         modelBuilder.Entity<vProjectGrantScore>(entity =>
         {
             entity.ToView("vProjectGrantScore");
@@ -1299,60 +1276,14 @@ public partial class NeptuneDbContext : DbContext
             entity.ToView("vProjectLoadReducingResult");
         });
 
-        modelBuilder.Entity<vProjectWetWeatherWQLRIScore>(entity =>
-        {
-            entity.ToView("vProjectWetWeatherWQLRIScore");
-        });
-
-        modelBuilder.Entity<vPyQgisDelineationLGUInput>(entity =>
-        {
-            entity.ToView("vPyQgisDelineationLGUInput");
-        });
-
-        modelBuilder.Entity<vPyQgisDelineationTGUInput>(entity =>
-        {
-            entity.ToView("vPyQgisDelineationTGUInput");
-        });
-
-        modelBuilder.Entity<vPyQgisLandUseBlockTGUInput>(entity =>
-        {
-            entity.ToView("vPyQgisLandUseBlockTGUInput");
-
-            entity.Property(e => e.LUBID).ValueGeneratedOnAdd();
-        });
-
-        modelBuilder.Entity<vPyQgisModelBasinLGUInput>(entity =>
-        {
-            entity.ToView("vPyQgisModelBasinLGUInput");
-
-            entity.Property(e => e.ModelID).ValueGeneratedOnAdd();
-        });
-
         modelBuilder.Entity<vPyQgisOnlandVisualTrashAssessmentAreaDated>(entity =>
         {
             entity.ToView("vPyQgisOnlandVisualTrashAssessmentAreaDated");
         });
 
-        modelBuilder.Entity<vPyQgisProjectDelineationLGUInput>(entity =>
-        {
-            entity.ToView("vPyQgisProjectDelineationLGUInput");
-        });
-
-        modelBuilder.Entity<vPyQgisRegionalSubbasinLGUInput>(entity =>
-        {
-            entity.ToView("vPyQgisRegionalSubbasinLGUInput");
-
-            entity.Property(e => e.RSBID).ValueGeneratedOnAdd();
-        });
-
         modelBuilder.Entity<vPyQgisWaterQualityManagementPlanLGUInput>(entity =>
         {
             entity.ToView("vPyQgisWaterQualityManagementPlanLGUInput");
-        });
-
-        modelBuilder.Entity<vPyQgisWaterQualityManagementPlanTGUInput>(entity =>
-        {
-            entity.ToView("vPyQgisWaterQualityManagementPlanTGUInput");
         });
 
         modelBuilder.Entity<vRegionalSubbasinUpstream>(entity =>
