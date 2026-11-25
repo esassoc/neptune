@@ -109,7 +109,7 @@ namespace Neptune.EFModels.Entities
         /// <summary>
         /// The geometries of the given delineations that are (isVerified: true) or would become
         /// (isVerified: false) Load Generating Unit inputs: distributed, on a modeled BMP type, not on a
-        /// project BMP. Mirrors vPyQgisDelineationLGUInput, which only takes verified ones (NPT-1155), so
+        /// project BMP. Only verified ones are inputs (<see cref="ListLoadGeneratingUnitInputs"/>), so
         /// verifying or un-verifying one of these adds or removes an input and the LGUs under it have to
         /// be rebuilt.
         /// </summary>
@@ -120,13 +120,48 @@ namespace Neptune.EFModels.Entities
                 return new Dictionary<int, Geometry>();
             }
 
-            return await dbContext.Delineations.AsNoTracking()
-                .Where(x => delineationIDs.Contains(x.DelineationID)
-                            && x.IsVerified == isVerified
+            return await ListLoadGeneratingUnitInputs(dbContext, isVerified)
+                .Where(x => delineationIDs.Contains(x.DelineationID))
+                .ToDictionaryAsync(x => x.DelineationID, x => x.DelineationGeometry);
+        }
+
+        /// <summary>
+        /// The delineations that take ground in the Load Generating Unit overlay: distributed, on a
+        /// modeled BMP type, not on a project BMP, and verified. A provisional delineation is not
+        /// modeled, so it does not take ground from the layers below it (NPT-1155). Pass
+        /// isVerified: false for the ones that would become inputs if they were verified.
+        /// </summary>
+        public static IQueryable<Delineation> ListLoadGeneratingUnitInputs(NeptuneDbContext dbContext, bool isVerified = true)
+        {
+            return dbContext.Delineations.AsNoTracking()
+                .Where(x => x.IsVerified == isVerified
                             && x.DelineationTypeID == (int)DelineationTypeEnum.Distributed
                             && x.TreatmentBMP.TreatmentBMPType.TreatmentBMPModelingTypeID != null
-                            && x.TreatmentBMP.ProjectID == null)
-                .ToDictionaryAsync(x => x.DelineationID, x => x.DelineationGeometry);
+                            && x.TreatmentBMP.ProjectID == null);
+        }
+
+        /// <summary>
+        /// The delineations that take ground in a project's Load Generating Unit overlay: the existing
+        /// inputs (<see cref="ListLoadGeneratingUnitInputs"/>) plus the project's own distributed
+        /// delineations on modeled BMP types. A project's own delineations are provisional by nature
+        /// and are modeled in that project's solve, so they count whatever their verified status.
+        /// </summary>
+        public static IQueryable<Delineation> ListProjectLoadGeneratingUnitInputs(NeptuneDbContext dbContext, int projectID)
+        {
+            return dbContext.Delineations.AsNoTracking()
+                .Where(x => x.DelineationTypeID == (int)DelineationTypeEnum.Distributed
+                            && x.TreatmentBMP.TreatmentBMPType.TreatmentBMPModelingTypeID != null
+                            && ((x.IsVerified && x.TreatmentBMP.ProjectID == null) || x.TreatmentBMP.ProjectID == projectID));
+        }
+
+        /// <summary>
+        /// The delineations that take ground in the Trash Generating Unit overlay: verified, of either
+        /// type, and not on a project BMP. Project BMPs are planned, and belong to the planning module.
+        /// </summary>
+        public static IQueryable<Delineation> ListTrashGeneratingUnitInputs(NeptuneDbContext dbContext)
+        {
+            return dbContext.Delineations.AsNoTracking()
+                .Where(x => x.IsVerified && x.TreatmentBMP.ProjectID == null);
         }
 
         // Manager Dashboard: bulk-verify a set of delineations. Jurisdiction-scoped via

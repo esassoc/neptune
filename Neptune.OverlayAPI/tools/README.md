@@ -1,96 +1,62 @@
-# QGISAPI parity tools (NPT-1105 Part 2)
+# Overlay comparison tools
 
-Tooling for validating the QGIS → NetTopologySuite engine replacement: capture a
-"golden" baseline from the current QGIS pipeline, then compare any candidate run
-(reworked script, NTS port) against it on identical inputs.
+For checking that a change to the overlay code does not change its output: run the
+overlay before and after the change on the same database, and compare the two results.
+
+The overlays run in-process on NetTopologySuite (`Services/Overlay/`). The rules are in
+`TrashGeneratingUnitOverlay` and `LoadGeneratingUnitOverlay`, the geometry operations in
+`OverlayEngine`. QGIS and the Python scripts these tools were first written against
+were retired in July 2026 (NPT-1105).
+
+## Getting an output file from a run
+
+Set `OverlayDebugExportFolder` in the Overlay API's configuration (local only; leave it
+unset in QA and prod). Each TGU or LGU run then also writes its result as GeoJSON to
+that folder, as `TGU<ticks>_nts.geojson` or `LGU<ticks>_nts.geojson`.
+
+Trigger a run through the app, or directly against the Overlay API:
+`POST /overlay/generate-tgus` with `{}` for a total TGU refresh, and
+`POST /overlay/generate-lgus` with `{}` for a total LGU refresh (omit
+`loadGeneratingUnitRefreshAreaID`).
+
+A run replaces the contents of the TGU or LGU tables. On a database you want to keep as
+it is, back those tables up first and restore them afterwards.
+
+Output files are county-sized. Keep them in a local folder outside the repo.
 
 ## compare_geojson.py
 
-Order/fid-insensitive comparison of two TGU or LGU output GeoJSON files. Pure
-Python 3 standard library (planar shoelace areas — exact for EPSG:2771), so it
-runs on a dev host, in the QGIS container, or against NTS output without
-installing anything.
+Compares two TGU or LGU output GeoJSON files, ignoring feature order and IDs. Pure
+Python 3 standard library (planar shoelace areas, exact for EPSG:2771), so it needs
+nothing installed.
 
 ```bash
-python3 compare_geojson.py golden/TGU_output.geojson candidate/TGU_output.geojson --type tgu
-python3 compare_geojson.py golden/LGU_output.geojson candidate/LGU_output.geojson --type lgu
+python3 compare_geojson.py before/TGU_output.geojson after/TGU_output.geojson --type tgu
+python3 compare_geojson.py before/LGU_output.geojson after/LGU_output.geojson --type lgu
 ```
 
-Reports feature/group counts, total area, groups present in only one output, and
-per-group area deltas above `--tolerance` (default 0.5 m²). Exit code 0 = match
-within tolerance, 1 = differences, 2 = input error — usable in scripts/CI.
+It reports feature and group counts, total area, groups present in only one output, and
+per-group area differences above `--tolerance` (default 0.5 m²). A group is one
+combination of IDs (for example land use block, delineation, WQMP and OVTA Area).
+Exit code 0 means the files match within tolerance, 1 means they differ, 2 means an
+input error.
 
-## Capturing a golden run
+## What to expect
 
-Golden sets are county-sized — keep them in a **local folder outside the repo**
-(convention: `C:\neptune-golden-runs\<yyyy-MM-dd>\`), never committed.
+The engine is deterministic: two runs of the same code on the same inputs give the
+same output. A change that is meant to leave the output alone should therefore give no
+missing or extra groups and no area differences.
 
-> Temp-file cleanup is **disabled** during the Part 2 capture/port window
-> (`DeleteTempFiles` is a logging no-op — see `OverlayController`), so every
-> run keeps its inputs, intermediates, and output in the container's `/tmp` with
-> no timing pressure. Nothing releases to prod before the NTS cutover; the whole
-> temp-file pipeline is deleted at retirement.
+For a change that is meant to alter the output, also compare acreage grouped by trash
+capture status per jurisdiction. Grouping by IDs cannot see a status flip: two runs can
+agree on total and per-group area while giving contested ground to delineations with
+different capture statuses, which moves acreage between Partial and Untreated in the
+trash results. That happened once (July 2026) and is why effectiveness ties are now
+broken on capture status before ID.
 
-1. Restore a recent prod backup locally (`Build/DatabaseRestore.ps1`) and run the
-   stack via Visual Studio Container Tools as usual.
-2. Trigger a run — either through the app (nightly TGU job / delineation edit for
-   LGU) or directly against the Overlay API swagger at `http://localhost:8232/swagger`:
-   `POST /overlay/generate-tgus` with `{}` (full TGU) and `POST /overlay/generate-lgus`
-   with `{}` (full LGU; omit `loadGeneratingUnitRefreshAreaID` for a total refresh).
-3. After the run completes, copy everything for its prefix out of the container:
+## Tests
 
-   ```powershell
-   $dest = "C:\neptune-golden-runs\$(Get-Date -Format yyyy-MM-dd)"
-   New-Item -ItemType Directory -Force $dest
-   $qgis = docker ps --format '{{.Names}}' | Select-String overlayapi
-   # everything for one run shares one prefix, e.g. TGU638…
-   docker exec $qgis sh -c "ls /tmp/TGU* /tmp/LGU* 2>/dev/null"
-   docker cp "${qgis}:/tmp/." $dest   # or cp individual <prefix>* files
-   ```
-
-   The `<prefix>{delineation,ovta,wqmp,landUseBlock}Layer.geojson` files are the
-   **inputs**; `<prefix>.geojson` is the golden **output**; the rest are Python
-   intermediates (useful for debugging, not needed for parity).
-4. Record the baseline numbers alongside the files in a `baseline.md`: wall time
-   (Hangfire dashboard or container log timestamps around `Starting Process:`)
-   and peak container memory (`docker stats` during the run).
-5. `/tmp` accumulates a few hundred MB per run while cleanup is disabled — clear
-   it occasionally (`docker exec $qgis sh -c "rm /tmp/TGU* /tmp/LGU* /tmp/PLGU*"`)
-   or just restart the container.
-
-The captured **inputs** are what the NTS spike and any script rework must be fed;
-the captured **output** is the golden file `compare_geojson.py` compares against.
-
-## Expected (whitelisted) differences for the NTS port
-
-- Diffs traceable to the Flatten stale-pair fix (pairs referencing already-deleted
-  features are now skipped and logged instead of corrupting an unrelated feature) —
-  the log lines identify the pair IDs; verify each flagged group against them.
-- Sub-tolerance vertex-level noise from GEOS/JTS version differences. Use area
-  tolerances; do not expect exact vertex equality.
-
-## The parity bar is calibrated by QGIS's own nondeterminism
-
-Two back-to-back QGIS LGU total refreshes on **checksum-identical inputs** (2026-07-08
-capture, see `C:\neptune-golden-runs\2026-07-08\LGU\baseline.md`) differed by: ±1
-feature, 29 of ~12,700 groups with area deltas > 0.5 m² (max 53 m²), total area within
-3.5e-6 relative — with **zero** missing/extra groups. The engine cannot reproduce
-itself exactly (the wobble starts at the `bufferSnapFix` snap stage).
-
-Candidate acceptance therefore is:
-1. **zero missing/extra attribute groups** (hard requirement),
-2. per-group area deltas of the same order as the QGIS self-noise envelope,
-3. total-area delta within ~1e-5 relative.
-
-Do not chase individual sub-envelope area deltas — they are indistinguishable from
-re-running QGIS itself.
-
-## Lesson from the Tustin trash-map regression (2026-07-09)
-
-ID-tuple grouping cannot see *status* flips: two runs can agree on total and per-group area
-while attributing contested pieces to delineations with different trash capture **statuses**,
-silently moving acreage between Partial and Untreated in the results. When validating overlay
-changes, ALSO compare acreage grouped by capture status per jurisdiction (the trash module's
-header numbers are exactly this rollup — a prod-vs-local eyeball of one jurisdiction caught
-what the ID-grouped harness could not). The engine now breaks TCEffect ties on capture status
-(Full > Partial > None) before ID, so this class of flip is deterministic going forward.
+The rules have tests that need no database: `TrashGeneratingUnitOverlayTests`,
+`LoadGeneratingUnitOverlayTests` and `OverlayEngineTests` in `Neptune.Tests`. The input
+queries are covered by `ModelingInputViewTests` and `OvtaOverlayInputViewTests`, which
+run against the local database.

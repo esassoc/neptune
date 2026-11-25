@@ -7,8 +7,8 @@
     <DockerDefaultTargetOS>Linux</DockerDefaultTargetOS>
   </PropertyGroup>
   <ItemGroup>
-    <!-- tools/ holds standalone utilities (parity scripts, the NTS benchmark spike project) that
-         must not be compiled into the service -->
+    <!-- tools/ holds standalone utilities (the output comparison script) that must not be
+         compiled into the service -->
     <Compile Remove="tools\**" />
     <Content Remove="tools\**" />
     <None Remove="tools\**" />

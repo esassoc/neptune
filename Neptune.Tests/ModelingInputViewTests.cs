@@ -8,11 +8,11 @@ using Neptune.EFModels.Entities;
 namespace Neptune.Tests
 {
     /// <summary>
-    /// NPT-1155: the views that decide what goes into the Load Generating Unit overlay and the model.
-    /// Only what is modeled may take ground: a verified delineation (or a project's own), an Active
-    /// WQMP. Integration tests against the local DB, rolled back; each one takes a record that is an
-    /// input today, changes its status and checks it drops out (or stays). Requires the updated views
-    /// to be deployed to the local DB.
+    /// NPT-1155, NPT-1157: the queries and views that decide what goes into the overlays and the model.
+    /// Only what is modeled may take ground in the Load Generating Unit overlay: a verified
+    /// delineation (or a project's own), an Active WQMP. Integration tests against the local DB,
+    /// rolled back; each one takes a record, changes its status and checks it drops out (or stays).
+    /// The view tests need the current views deployed to the local DB.
     /// </summary>
     [TestClass]
     public class ModelingInputViewTests
@@ -61,37 +61,123 @@ namespace Neptune.Tests
             _dbContext.Database.ExecuteSqlRaw("UPDATE dbo.Delineation SET IsVerified = {0} WHERE DelineationID = {1}", isVerified, delineationID);
         }
 
-        [TestMethod]
-        public void DelineationLGUInput_DropsADelineationThatBecomesProvisional()
+        private bool IsLoadGeneratingUnitInput(int delineationID) =>
+            Delineations.ListLoadGeneratingUnitInputs(_dbContext).Any(x => x.DelineationID == delineationID);
+
+        private bool IsProjectLoadGeneratingUnitInput(int delineationID, int projectID) =>
+            Delineations.ListProjectLoadGeneratingUnitInputs(_dbContext, projectID).Any(x => x.DelineationID == delineationID);
+
+        private bool IsTrashGeneratingUnitInput(int delineationID) =>
+            Delineations.ListTrashGeneratingUnitInputs(_dbContext).Any(x => x.DelineationID == delineationID);
+
+        // a distributed delineation on a modeled BMP type; projectFilter picks existing or project BMPs
+        private int? FirstModeledDistributedDelineationID(string projectFilter, bool? isVerified = null)
         {
-            var delineationID = FirstIDOrNull("SELECT TOP 1 DelinID AS Value FROM dbo.vPyQgisDelineationLGUInput");
+            var verifiedFilter = isVerified == null ? "" : $" AND d.IsVerified = {(isVerified.Value ? 1 : 0)}";
+            return FirstIDOrNull($@"
+                SELECT TOP 1 d.DelineationID AS Value
+                FROM dbo.Delineation d
+                    JOIN dbo.TreatmentBMP t ON d.TreatmentBMPID = t.TreatmentBMPID
+                    JOIN dbo.TreatmentBMPType tt ON t.TreatmentBMPTypeID = tt.TreatmentBMPTypeID
+                WHERE d.DelineationTypeID = {(int)DelineationTypeEnum.Distributed} AND tt.TreatmentBMPModelingTypeID IS NOT NULL
+                    AND t.ProjectID {projectFilter}{verifiedFilter}
+                ORDER BY d.DelineationID");
+        }
+
+        private int ProjectIDOfDelineation(int delineationID) => ScalarInt(
+            $"SELECT t.ProjectID AS Value FROM dbo.Delineation d JOIN dbo.TreatmentBMP t ON d.TreatmentBMPID = t.TreatmentBMPID WHERE d.DelineationID = {delineationID}");
+
+        [TestMethod]
+        public void LoadGeneratingUnitInputs_DropADelineationThatBecomesProvisional()
+        {
+            var delineationID = FirstModeledDistributedDelineationID("IS NULL", isVerified: true);
             if (delineationID == null) Assert.Inconclusive("No delineation LGU inputs in the local DB.");
+            Assert.IsTrue(IsLoadGeneratingUnitInput(delineationID.Value));
 
             SetDelineationVerified(delineationID.Value, false);
 
-            Assert.AreEqual(0, ScalarInt($"SELECT COUNT(*) AS Value FROM dbo.vPyQgisDelineationLGUInput WHERE DelinID = {delineationID}"));
+            Assert.IsFalse(IsLoadGeneratingUnitInput(delineationID.Value));
         }
 
         [TestMethod]
-        public void ProjectDelineationLGUInput_DropsAnExistingDelineationThatBecomesProvisional()
+        public void LoadGeneratingUnitInputs_LeaveOutAProjectDelineation_EvenWhenVerified()
         {
-            var delineationID = FirstIDOrNull("SELECT TOP 1 DelinID AS Value FROM dbo.vPyQgisProjectDelineationLGUInput WHERE ProjectID IS NULL");
-            if (delineationID == null) Assert.Inconclusive("No existing delineation PLGU inputs in the local DB.");
+            var delineationID = FirstModeledDistributedDelineationID("IS NOT NULL");
+            if (delineationID == null) Assert.Inconclusive("No project delineations in the local DB.");
 
-            SetDelineationVerified(delineationID.Value, false);
+            SetDelineationVerified(delineationID.Value, true);
 
-            Assert.AreEqual(0, ScalarInt($"SELECT COUNT(*) AS Value FROM dbo.vPyQgisProjectDelineationLGUInput WHERE DelinID = {delineationID}"));
+            Assert.IsFalse(IsLoadGeneratingUnitInput(delineationID.Value));
         }
 
         [TestMethod]
-        public void ProjectDelineationLGUInput_KeepsAProjectsOwnProvisionalDelineation()
+        public void ProjectLoadGeneratingUnitInputs_DropAnExistingDelineationThatBecomesProvisional()
         {
-            var delineationID = FirstIDOrNull("SELECT TOP 1 DelinID AS Value FROM dbo.vPyQgisProjectDelineationLGUInput WHERE ProjectID IS NOT NULL");
-            if (delineationID == null) Assert.Inconclusive("No project delineation PLGU inputs in the local DB.");
+            var delineationID = FirstModeledDistributedDelineationID("IS NULL", isVerified: true);
+            var projectID = FirstIDOrNull("SELECT TOP 1 ProjectID AS Value FROM dbo.Project ORDER BY ProjectID");
+            if (delineationID == null || projectID == null) Assert.Inconclusive("The local DB needs a delineation LGU input and a project.");
+            Assert.IsTrue(IsProjectLoadGeneratingUnitInput(delineationID.Value, projectID.Value));
 
             SetDelineationVerified(delineationID.Value, false);
 
-            Assert.AreEqual(1, ScalarInt($"SELECT COUNT(*) AS Value FROM dbo.vPyQgisProjectDelineationLGUInput WHERE DelinID = {delineationID}"));
+            Assert.IsFalse(IsProjectLoadGeneratingUnitInput(delineationID.Value, projectID.Value));
+        }
+
+        [TestMethod]
+        public void ProjectLoadGeneratingUnitInputs_KeepTheProjectsOwnProvisionalDelineation()
+        {
+            var delineationID = FirstModeledDistributedDelineationID("IS NOT NULL");
+            if (delineationID == null) Assert.Inconclusive("No project delineations in the local DB.");
+            var projectID = ProjectIDOfDelineation(delineationID.Value);
+
+            SetDelineationVerified(delineationID.Value, false);
+
+            Assert.IsTrue(IsProjectLoadGeneratingUnitInput(delineationID.Value, projectID));
+        }
+
+        [TestMethod]
+        public void ProjectLoadGeneratingUnitInputs_LeaveOutAnotherProjectsDelineation_EvenWhenVerified()
+        {
+            var delineationID = FirstModeledDistributedDelineationID("IS NOT NULL");
+            if (delineationID == null) Assert.Inconclusive("No project delineations in the local DB.");
+            var otherProjectID = FirstIDOrNull($"SELECT TOP 1 ProjectID AS Value FROM dbo.Project WHERE ProjectID <> {ProjectIDOfDelineation(delineationID.Value)} ORDER BY ProjectID");
+            if (otherProjectID == null) Assert.Inconclusive("The local DB needs a second project.");
+
+            SetDelineationVerified(delineationID.Value, true);
+
+            Assert.IsFalse(IsProjectLoadGeneratingUnitInput(delineationID.Value, otherProjectID.Value));
+        }
+
+        [TestMethod]
+        public void TrashGeneratingUnitInputs_AreVerifiedDelineationsOfEitherType()
+        {
+            // a centralized one where there is one: the trash overlay takes both types
+            var delineationID = FirstIDOrNull($@"
+                SELECT TOP 1 d.DelineationID AS Value
+                FROM dbo.Delineation d JOIN dbo.TreatmentBMP t ON d.TreatmentBMPID = t.TreatmentBMPID
+                WHERE t.ProjectID IS NULL AND d.IsVerified = 1
+                ORDER BY CASE WHEN d.DelineationTypeID = {(int)DelineationTypeEnum.Centralized} THEN 0 ELSE 1 END, d.DelineationID");
+            if (delineationID == null) Assert.Inconclusive("No verified delineations in the local DB.");
+            Assert.IsTrue(IsTrashGeneratingUnitInput(delineationID.Value));
+
+            SetDelineationVerified(delineationID.Value, false);
+
+            Assert.IsFalse(IsTrashGeneratingUnitInput(delineationID.Value));
+        }
+
+        [TestMethod]
+        public void TrashGeneratingUnitInputs_LeaveOutAProjectDelineation_EvenWhenVerified()
+        {
+            // NPT-1157: this used to hold only because no project delineation happened to be verified
+            var delineationID = FirstIDOrNull(@"
+                SELECT TOP 1 d.DelineationID AS Value
+                FROM dbo.Delineation d JOIN dbo.TreatmentBMP t ON d.TreatmentBMPID = t.TreatmentBMPID
+                WHERE t.ProjectID IS NOT NULL ORDER BY d.DelineationID");
+            if (delineationID == null) Assert.Inconclusive("No project delineations in the local DB.");
+
+            SetDelineationVerified(delineationID.Value, true);
+
+            Assert.IsFalse(IsTrashGeneratingUnitInput(delineationID.Value));
         }
 
         [TestMethod]
