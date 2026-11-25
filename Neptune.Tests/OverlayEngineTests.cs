@@ -592,4 +592,93 @@ public class OverlayEngineTests
         Assert.IsTrue(exploded.All(x => x.Polygon.Area >= 1));
         Assert.IsTrue(exploded.All(x => x.Feature.DelineationID == 1), "exploded pieces keep their source attributes");
     }
+
+    // ---------- YieldToTreatingPlans (NPT-1155) ----------
+
+    private static OverlayFeature Wqmp(int id, Geometry geometry, bool treats) => new()
+    {
+        Geometry = geometry,
+        WaterQualityManagementPlanID = id,
+        TreatsRunoff = treats,
+    };
+
+    private static double AreaOf(IEnumerable<OverlayFeature> plans, int id) =>
+        plans.Where(x => x.WaterQualityManagementPlanID == id).Sum(x => x.Geometry.Area);
+
+    [TestMethod]
+    public void YieldToTreatingPlans_PlanThatTreatsNothing_GivesUpTheSharedGround()
+    {
+        // two 10 x 10 squares sharing a 5 x 10 strip
+        var plans = new List<OverlayFeature> { Wqmp(1, Square(0, 0, 10), treats: true), Wqmp(2, Square(5, 0, 10), treats: false) };
+
+        var result = OverlayEngine.YieldToTreatingPlans(plans);
+
+        Assert.AreEqual(100, AreaOf(result, 1), AreaTolerance, "the plan that treats keeps all of its ground");
+        Assert.AreEqual(50, AreaOf(result, 2), AreaTolerance, "the plan that treats nothing keeps only what the other does not cover");
+        var treating = result.Single(x => x.WaterQualityManagementPlanID == 1).Geometry;
+        var notTreating = result.Single(x => x.WaterQualityManagementPlanID == 2).Geometry;
+        Assert.AreEqual(0, treating.Intersection(notTreating).Area, AreaTolerance);
+    }
+
+    [TestMethod]
+    public void YieldToTreatingPlans_PlanThatTreatsNothing_InsideATreatingPlan_DropsOut()
+    {
+        var plans = new List<OverlayFeature> { Wqmp(1, Square(0, 0, 10), treats: true), Wqmp(2, Square(2, 2, 3), treats: false) };
+
+        var result = OverlayEngine.YieldToTreatingPlans(plans);
+
+        Assert.AreEqual(1, result.Count);
+        Assert.AreEqual(1, result.Single().WaterQualityManagementPlanID);
+    }
+
+    [TestMethod]
+    public void YieldToTreatingPlans_TreatingPlanInsideOneThatTreatsNothing_IsPunchedOut()
+    {
+        var plans = new List<OverlayFeature> { Wqmp(1, Square(0, 0, 10), treats: false), Wqmp(2, Square(2, 2, 3), treats: true) };
+
+        var result = OverlayEngine.YieldToTreatingPlans(plans);
+
+        Assert.AreEqual(91, AreaOf(result, 1), AreaTolerance);
+        Assert.AreEqual(9, AreaOf(result, 2), AreaTolerance);
+    }
+
+    [TestMethod]
+    [DataRow(true)]
+    [DataRow(false)]
+    public void YieldToTreatingPlans_TwoPlansAlike_AreLeftOverlapping(bool bothTreat)
+    {
+        // nothing says which of two plans that both treat (or both treat nothing) is right
+        var plans = new List<OverlayFeature> { Wqmp(1, Square(0, 0, 10), bothTreat), Wqmp(2, Square(5, 0, 10), bothTreat) };
+
+        var result = OverlayEngine.YieldToTreatingPlans(plans);
+
+        Assert.AreEqual(100, AreaOf(result, 1), AreaTolerance);
+        Assert.AreEqual(100, AreaOf(result, 2), AreaTolerance);
+    }
+
+    [TestMethod]
+    public void YieldToTreatingPlans_SharedEdgeOnly_ChangesNothing()
+    {
+        var plans = new List<OverlayFeature> { Wqmp(1, Square(0, 0, 10), treats: true), Wqmp(2, Square(10, 0, 10), treats: false) };
+
+        var result = OverlayEngine.YieldToTreatingPlans(plans);
+
+        Assert.AreEqual(100, AreaOf(result, 2), AreaTolerance);
+        Assert.AreSame(plans[1], result.Single(x => x.WaterQualityManagementPlanID == 2), "an untouched plan is passed through as it came in");
+    }
+
+    [TestMethod]
+    public void YieldToTreatingPlans_PlanThatTreatsNothing_UnderTwoTreatingPlans_LosesBoth()
+    {
+        var plans = new List<OverlayFeature>
+        {
+            Wqmp(1, Square(0, 0, 4), treats: true),
+            Wqmp(2, Square(6, 0, 4), treats: true),
+            Wqmp(3, Square(0, 0, 10), treats: false),
+        };
+
+        var result = OverlayEngine.YieldToTreatingPlans(plans);
+
+        Assert.AreEqual(100 - 16 - 16, AreaOf(result, 3), AreaTolerance);
+    }
 }

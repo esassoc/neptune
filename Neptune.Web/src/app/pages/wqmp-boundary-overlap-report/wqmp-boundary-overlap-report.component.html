@@ -1,0 +1,26 @@
+<page-header pageTitle="WQMP Boundary Overlap Report"></page-header>
+
+<app-alert-display></app-alert-display>
+
+<section class="report-intro">
+    <p>
+        Each row is a pair of Water Quality Management Plan boundaries that cover the same ground. Only Active plans that use the Simplified modeling approach are compared,
+        and only overlaps larger than 0.05 acres are listed.
+    </p>
+    <p>
+        A plan treats runoff when it has at least one simple BMP of a modeled type with % of Site Treated and Wet Weather % Captured filled in. Where only one plan of a pair
+        treats runoff, the model gives the shared ground to that plan. Where both do, or neither does, the model counts the shared ground under both plans until one of the
+        boundaries is corrected.
+    </p>
+</section>
+
+<section class="report-section">
+    <h2 class="section-title">WQMP boundaries that are overlapping</h2>
+    <neptune-grid
+        height="600px"
+        [rowData]="(overlaps$ | async) ?? []"
+        [columnDefs]="columnDefs"
+        downloadFileName="wqmp-boundary-overlaps"
+        [pagination]="true"
+        [sizeColumnsToFitGrid]="true"></neptune-grid>
+</section>

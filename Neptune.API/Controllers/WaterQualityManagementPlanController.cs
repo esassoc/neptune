@@ -104,6 +104,16 @@ namespace Neptune.API.Controllers
             return Ok(dtos);
         }
 
+        // NPT-1155: the WQMP Boundary Overlap Report. Same role gate as the Delineation Reconciliation
+        // Report; the helper scopes the pairs to the caller's jurisdictions.
+        [HttpGet("boundary-overlap-report")]
+        [JurisdictionEditFeature]
+        public async Task<ActionResult<List<WaterQualityManagementPlanBoundaryOverlapGridDto>>> ListBoundaryOverlaps()
+        {
+            var currentPerson = People.GetByID(DbContext, CallingUser.PersonID);
+            return Ok(await vWaterQualityManagementPlanBoundaryOverlaps.ListAsGridDtoAsync(DbContext, currentPerson));
+        }
+
         [HttpGet("display-dtos")]
         // NPT-1104: reference list consumed by JE/JM-facing flows (BMP Edit Basics WQMP dropdown /
         // BMP create) — AdminFeature 403'd those flows on open.
@@ -245,6 +255,37 @@ namespace Neptune.API.Controllers
             }
 
             return false;
+        }
+
+        // NPT-1155: a WQMP that treats nothing gives up the ground it shares with one that treats (see
+        // OverlayEngine.YieldToTreatingPlans), so when a change to a plan's simple BMPs flips whether
+        // it treats, the LGUs under its boundary have to be rebuilt. Pass the plans whose simple BMPs
+        // were just saved and which of them treated beforehand. Only plans that are LGU inputs
+        // (Active, not Detailed, with a boundary) are refreshed. Call this after the change is saved,
+        // and outside any open transaction.
+        private async Task QueueLGURefreshIfTreatmentChangedAsync(ICollection<int> waterQualityManagementPlanIDs, HashSet<int> waterQualityManagementPlanIDsThatTreated)
+        {
+            var waterQualityManagementPlanIDsThatTreat = await WaterQualityManagementPlans.ListIDsThatTreatAsync(DbContext, waterQualityManagementPlanIDs);
+            var changedIDs = waterQualityManagementPlanIDs
+                .Where(x => waterQualityManagementPlanIDsThatTreated.Contains(x) != waterQualityManagementPlanIDsThatTreat.Contains(x))
+                .ToList();
+            if (changedIDs.Count == 0)
+            {
+                return;
+            }
+
+            var changedBoundaryGeometries = await DbContext.WaterQualityManagementPlanBoundaries.AsNoTracking()
+                .Where(x => changedIDs.Contains(x.WaterQualityManagementPlanID) && x.GeometryNative != null
+                            && x.WaterQualityManagementPlan.WaterQualityManagementPlanStatusID == (int)WaterQualityManagementPlanStatusEnum.Active
+                            && x.WaterQualityManagementPlan.WaterQualityManagementPlanModelingApproachID != (int)WaterQualityManagementPlanModelingApproachEnum.Detailed)
+                .Select(x => x.GeometryNative!)
+                .ToListAsync();
+            var changedArea = changedBoundaryGeometries.UnionListGeometries();
+            if (changedArea != null)
+            {
+                await MarkNodesDownstreamOfBoundaryDirtyAsync(changedArea);
+                await ModelingEngineUtilities.QueueLGURefreshForArea(changedArea, null, DbContext);
+            }
         }
 
         // NPT-1159: a WQMP entering or leaving the model (modeling approach change, delete) changes the
@@ -682,9 +723,11 @@ namespace Neptune.API.Controllers
                 return BadRequest(validationError);
             }
 
+            var treatedBefore = await WaterQualityManagementPlans.ListIDsThatTreatAsync(DbContext, [waterQualityManagementPlanID]);
             await QuickBMPs.MergeAsync(DbContext, waterQualityManagementPlanID, quickBMPs);
             var wqmp = WaterQualityManagementPlans.GetByIDWithChangeTracking(DbContext, waterQualityManagementPlanID);
             await NereidUtilities.MarkWqmpDirty(wqmp, DbContext);
+            await QueueLGURefreshIfTreatmentChangedAsync([waterQualityManagementPlanID], treatedBefore);
             return NoContent();
         }
 
@@ -1236,6 +1279,7 @@ namespace Neptune.API.Controllers
                 return BadRequest(quickBMPValidationError);
             }
 
+            var treatedBefore = await WaterQualityManagementPlans.ListIDsThatTreatAsync(DbContext, [waterQualityManagementPlanID]);
             await using var transaction = await DbContext.Database.BeginTransactionAsync();
             try
             {
@@ -1246,6 +1290,7 @@ namespace Neptune.API.Controllers
                 var updated = await WaterQualityManagementPlans.GetByIDAsDtoAsync(DbContext, waterQualityManagementPlanID);
 
                 await transaction.CommitAsync();
+                await QueueLGURefreshIfTreatmentChangedAsync([waterQualityManagementPlanID], treatedBefore);
                 return Ok(new WaterQualityManagementPlanSectionSaveResponseDto
                 {
                     WaterQualityManagementPlan = updated,
@@ -1410,6 +1455,14 @@ namespace Neptune.API.Controllers
                 return Ok(result);
             }
 
+            // NPT-1155: note which of the jurisdiction's WQMPs treat anything before the upload changes
+            // their simple BMPs (the parser edits the tracked rows).
+            var jurisdictionWaterQualityManagementPlanIDs = await DbContext.WaterQualityManagementPlans.AsNoTracking()
+                .Where(x => x.StormwaterJurisdictionID == form.StormwaterJurisdictionID)
+                .Select(x => x.WaterQualityManagementPlanID)
+                .ToListAsync();
+            var treatedBefore = await WaterQualityManagementPlans.ListIDsThatTreatAsync(DbContext, jurisdictionWaterQualityManagementPlanIDs);
+
             var quickBMPs = SimplifiedBMPsExcelParserHelper.ParseWQMPRowsFromXLSX(DbContext, form.StormwaterJurisdictionID, dataTable, out var errorList);
             if (errorList.Any())
             {
@@ -1421,6 +1474,7 @@ namespace Neptune.API.Controllers
             var updated = quickBMPs.Where(x => x.QuickBMPID > 0).ToList();
             await DbContext.QuickBMPs.AddRangeAsync(added);
             await DbContext.SaveChangesAsync();
+            await QueueLGURefreshIfTreatmentChangedAsync(jurisdictionWaterQualityManagementPlanIDs, treatedBefore);
 
             result.AddedCount = added.Count;
             result.UpdatedCount = updated.Count;

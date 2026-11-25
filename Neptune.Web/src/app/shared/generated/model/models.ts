@@ -220,6 +220,7 @@ export * from './verify-treatment-bmp-upsert-dto';
 export * from './wqmp-boundary-upload-result-dto';
 export * from './water-quality-management-plan-annual-report-options-dto';
 export * from './water-quality-management-plan-approval-summary-grid-dto';
+export * from './water-quality-management-plan-boundary-overlap-grid-dto';
 export * from './water-quality-management-plan-boundary-response-dto';
 export * from './water-quality-management-plan-boundary-upsert-dto';
 export * from './water-quality-management-plan-display-dto';

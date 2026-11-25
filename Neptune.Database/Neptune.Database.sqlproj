@@ -348,6 +348,7 @@
     <Build Include="dbo\Views\dbo.vTrashGeneratingUnitLoadStatistic.sql" />
     <Build Include="dbo\Views\dbo.vTreatmentBMPDetailed.sql" />
     <Build Include="dbo\Views\dbo.vWaterQualityManagementPlanLGUAudit.sql" />
+    <Build Include="dbo\Views\dbo.vWaterQualityManagementPlanBoundaryOverlap.sql" />
     <Build Include="dbo\Functions\dbo.fGetTGUInputGeometry.sql" />
     <Build Include="dbo\Functions\dbo.fProjectGrantScore.sql" />
     <Build Include="dbo\Procs\dbo.pDeleteNereidResults.sql" />

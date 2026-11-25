@@ -12762,6 +12762,45 @@
         }
       }
     },
+    "/water-quality-management-plans/boundary-overlap-report": {
+      "get": {
+        "tags": [
+          "WaterQualityManagementPlan"
+        ],
+        "operationId": "ListBoundaryOverlaps_WaterQualityManagementPlan",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/WaterQualityManagementPlanBoundaryOverlapGridDto"
+                  }
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/WaterQualityManagementPlanBoundaryOverlapGridDto"
+                  }
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/WaterQualityManagementPlanBoundaryOverlapGridDto"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/water-quality-management-plans/display-dtos": {
       "get": {
         "tags": [
@@ -24102,6 +24141,57 @@
             "type": "string",
             "format": "date-time",
             "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "WaterQualityManagementPlanBoundaryOverlapGridDto": {
+        "type": "object",
+        "properties": {
+          "WaterQualityManagementPlanID": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "WaterQualityManagementPlanName": {
+            "type": "string",
+            "nullable": true
+          },
+          "StormwaterJurisdictionID": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "StormwaterJurisdictionName": {
+            "type": "string",
+            "nullable": true
+          },
+          "TreatsRunoff": {
+            "type": "boolean"
+          },
+          "OverlappingWaterQualityManagementPlanID": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "OverlappingWaterQualityManagementPlanName": {
+            "type": "string",
+            "nullable": true
+          },
+          "OverlappingStormwaterJurisdictionID": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "OverlappingStormwaterJurisdictionName": {
+            "type": "string",
+            "nullable": true
+          },
+          "OverlappingTreatsRunoff": {
+            "type": "boolean"
+          },
+          "AreaOfOverlapInAcres": {
+            "type": "number",
+            "format": "double"
+          },
+          "IsCountedTwice": {
+            "type": "boolean"
           }
         },
         "additionalProperties": false

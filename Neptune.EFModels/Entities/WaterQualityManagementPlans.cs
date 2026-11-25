@@ -205,6 +205,28 @@ public static partial class WaterQualityManagementPlans
     }
 
     /// <summary>
+    /// Which of the given WQMPs treat anything: those with at least one simple BMP the solve sends
+    /// to the model (<see cref="QuickBMPs.IsSentToModel"/>). A plan that treats nothing gives up
+    /// ground it shares with one that does (NPT-1155), so a change in this answer changes the Load
+    /// Generating Unit inputs.
+    /// </summary>
+    public static async Task<HashSet<int>> ListIDsThatTreatAsync(NeptuneDbContext dbContext, ICollection<int> waterQualityManagementPlanIDs)
+    {
+        if (waterQualityManagementPlanIDs.Count == 0)
+        {
+            return [];
+        }
+
+        var ids = await dbContext.QuickBMPs.AsNoTracking()
+            .Where(QuickBMPs.IsSentToModel)
+            .Where(x => waterQualityManagementPlanIDs.Contains(x.WaterQualityManagementPlanID))
+            .Select(x => x.WaterQualityManagementPlanID)
+            .Distinct()
+            .ToListAsync();
+        return ids.ToHashSet();
+    }
+
+    /// <summary>
     /// Deletes the cached model results of WQMPs that have left the modeling graph (NPT-1159: a change
     /// from Simplified to Detailed). The Delta Solve only adds and updates results, so a departed
     /// node's rows would otherwise stay, and be exported, until the nightly Total Network Solve.

@@ -272,9 +272,23 @@ public class OverlayController : ControllerBase
     {
         var modelBasinGeometries = OverlayEngine.Clean(_dbContext.vPyQgisModelBasinLGUInputs.AsNoTracking().Select(x =>
             new OverlayFeature { Geometry = x.ModelBasinGeometry }).ToList());
-        var wqmps = OverlayEngine.Clean(_dbContext.vPyQgisWaterQualityManagementPlanLGUInputs.AsNoTracking()
-            .Where(x => x.WaterQualityManagementPlanBoundary != null).Select(x =>
-                new OverlayFeature { Geometry = x.WaterQualityManagementPlanBoundary!, WaterQualityManagementPlanID = x.WQMPID }).ToList());
+        // NPT-1155: a WQMP that treats nothing gives up the ground it shares with one that treats.
+        // "Treats" is the solve's own test for a simple BMP it sends to the model, so the two agree.
+        var waterQualityManagementPlanIDsThatTreat = _dbContext.QuickBMPs.AsNoTracking()
+            .Where(QuickBMPs.IsSentToModel)
+            .Select(x => x.WaterQualityManagementPlanID)
+            .Distinct()
+            .ToHashSet();
+        var wqmps = OverlayEngine.YieldToTreatingPlans(OverlayEngine.Clean(_dbContext.vPyQgisWaterQualityManagementPlanLGUInputs.AsNoTracking()
+            .Where(x => x.WaterQualityManagementPlanBoundary != null)
+            .Select(x => new { x.WQMPID, x.WaterQualityManagementPlanBoundary })
+            .ToList()
+            .Select(x => new OverlayFeature
+            {
+                Geometry = x.WaterQualityManagementPlanBoundary!,
+                WaterQualityManagementPlanID = x.WQMPID,
+                TreatsRunoff = waterQualityManagementPlanIDsThatTreat.Contains(x.WQMPID),
+            })));
 
         var modelingExtent = OverlayEngine.ToPolygonal2D(
             NetTopologySuite.Operation.Union.UnaryUnionOp.Union(modelBasinGeometries.Select(x => x.Geometry).ToList()));
