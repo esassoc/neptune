@@ -2,8 +2,8 @@
 -- assessments, for the OVTA-Based Results "Acres of Land Use Type by # of Assessments" view.
 --
 -- Deliberately does not go through TrashGeneratingUnit: the overlay pipeline only links a TGU to an OVTA Area
--- with 2 or more assessments (vPyQgisOnlandVisualTrashAssessmentAreaDated), so land assessed once would be
--- reported as not yet assessed.
+-- that has a Baseline or Progress Score (vPyQgisOnlandVisualTrashAssessmentAreaDated), so land with a single
+-- baseline assessment would be reported as not yet assessed.
 --
 -- Overlapping OVTA Areas are unioned per tier before intersecting, so overlapped land counts once, at the highest
 -- assessment count among the areas covering it. Areas are SRID 2771 (metres); the areas are square metres.
