@@ -31,6 +31,11 @@ public sealed class OverlayFeature
     // run-to-run; ranking by status is the correct deterministic rule.
     public int? TrashCaptureStatusPriority { get; init; }
 
+    // LGU overlay only (NPT-1155): whether this WQMP has a simple BMP the model uses. A plan that
+    // treats nothing gives up ground it shares with one that does (OverlayEngine.YieldToTreatingPlans).
+    // Never carried into outputs.
+    public bool? TreatsRunoff { get; init; }
+
     /// <summary>
     /// Merge for the attribute-carrying layer union: this feature's values win, the other side
     /// fills the gaps. (Fields are disjoint between layers except StormwaterJurisdictionID,
@@ -61,5 +66,6 @@ public sealed class OverlayFeature
         TrashCaptureEffectiveness = TrashCaptureEffectiveness,
         AssessmentDate = AssessmentDate,
         TrashCaptureStatusPriority = TrashCaptureStatusPriority,
+        TreatsRunoff = TreatsRunoff,
     };
 }

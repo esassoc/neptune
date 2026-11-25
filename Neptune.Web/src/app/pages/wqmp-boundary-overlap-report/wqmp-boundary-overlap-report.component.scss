@@ -1,0 +1,10 @@
+@use "/src/scss/abstracts" as *;
+
+.report-intro {
+    margin-bottom: $type-size-400;
+}
+
+.section-title {
+    font-size: $type-size-400;
+    margin-bottom: 0.5rem;
+}

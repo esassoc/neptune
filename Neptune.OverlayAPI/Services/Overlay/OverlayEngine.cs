@@ -124,6 +124,46 @@ public static class OverlayEngine
     }
 
     /// <summary>
+    /// NPT-1155: a WQMP that treats nothing gives up the ground it shares with a WQMP that treats
+    /// (<see cref="OverlayFeature.TreatsRunoff"/>). It keeps whatever no treating plan covers; one
+    /// lying wholly inside treating plans drops out. This is not a flatten: two plans that both
+    /// treat, or that both treat nothing, are left overlapping, because nothing says which of
+    /// them is right. Those are for the jurisdiction to reconcile.
+    /// </summary>
+    public static List<OverlayFeature> YieldToTreatingPlans(IReadOnlyList<OverlayFeature> waterQualityManagementPlans)
+    {
+        var treatingPlans = waterQualityManagementPlans.Where(x => x.TreatsRunoff == true).ToList();
+        var result = new List<OverlayFeature>(waterQualityManagementPlans.Count);
+        foreach (var plan in waterQualityManagementPlans)
+        {
+            if (plan.TreatsRunoff == true)
+            {
+                result.Add(plan);
+                continue;
+            }
+
+            var treatingPlansOnSharedGround = treatingPlans
+                .Where(x => x.Geometry.EnvelopeInternal.Intersects(plan.Geometry.EnvelopeInternal)
+                            && Relates(x.Geometry, plan.Geometry, InteriorsIntersect))
+                .Select(x => x.Geometry)
+                .ToList();
+            if (treatingPlansOnSharedGround.Count == 0)
+            {
+                result.Add(plan);
+                continue;
+            }
+
+            var remainder = Difference(plan.Geometry, ToPolygonal2D(UnaryUnionOp.Union(treatingPlansOnSharedGround)));
+            if (!remainder.IsEmpty)
+            {
+                result.Add(plan.WithGeometry(remainder));
+            }
+        }
+
+        return result;
+    }
+
+    /// <summary>
     /// Attribute-carrying union of two layers (qgis native:union): intersection pieces merge both
     /// sides' attributes (first layer wins name clashes), remainders keep their own. The dominant
     /// pipeline cost — parallel over the first layer's features (97% of spike wall time).

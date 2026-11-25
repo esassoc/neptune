@@ -806,6 +806,13 @@ export const routes: Routes = [
                 canActivate: [authGuardFn, JurisdictionManagerOrEditorOnlyGuard],
             },
             {
+                path: "wqmp-boundary-overlap-report",
+                title: "WQMP Boundary Overlap Report",
+                loadComponent: () =>
+                    import("./pages/wqmp-boundary-overlap-report/wqmp-boundary-overlap-report.component").then((m) => m.WqmpBoundaryOverlapReportComponent),
+                canActivate: [authGuardFn, JurisdictionManagerOrEditorOnlyGuard],
+            },
+            {
                 path: "parcels",
                 title: "Parcels",
                 loadComponent: () => import("./pages/parcels/parcels.component").then((m) => m.ParcelsComponent),
