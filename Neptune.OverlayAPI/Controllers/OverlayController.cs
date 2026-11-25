@@ -34,9 +34,9 @@ public class OverlayController : ControllerBase
     }
 
     // The in-process overlay is fast enough that direct/manual endpoint calls can realistically overlap
-    // (Hangfire's single worker only serializes the job path). Overlapping runs deadlock on the
-    // TRUNCATE + constraint-drop delete procs — observed locally — so one service-wide gate serializes
-    // all three overlay endpoints; a second caller gets 409 instead of corrupting the target tables.
+    // (Hangfire's single worker only serializes the job path). Overlapping runs would fill the one
+    // staging table at the same time (NPT-1156), and used to deadlock on the delete procs, so one
+    // service-wide gate serializes all three overlay endpoints; a second caller gets 409.
     private static readonly SemaphoreSlim OverlayGate = new(1, 1);
 
     private async Task<IActionResult> RunGated(Func<Task<IActionResult>> overlayAction)
@@ -122,7 +122,8 @@ public class OverlayController : ControllerBase
         }
         else
         {
-            await _dbContext.Database.ExecuteSqlRawAsync("EXEC dbo.pDeleteLoadGeneratingUnitsPriorToTotalRefresh");
+            // NPT-1156: nothing is deleted here; the total refresh replaces the stored units in one
+            // transaction further down, once the new ones are staged.
             units = LoadGeneratingUnitOverlay.ToUnits(pieces);
         }
 
@@ -168,7 +169,25 @@ public class OverlayController : ControllerBase
                 .ToList();
         }
 
-        if (loadGeneratingUnits.Any())
+        if (loadGeneratingUnitRefreshArea == null)
+        {
+            // NPT-1156: total refresh. The units go to a staging table first and replace the stored
+            // ones (and their HRU characteristics) in one transaction, so a failure leaves the
+            // previous units in place.
+            var loadGeneratingUnitStagings = loadGeneratingUnits.Select(x => new LoadGeneratingUnitStaging
+            {
+                LoadGeneratingUnitGeometry = x.LoadGeneratingUnitGeometry,
+                LoadGeneratingUnitGeometry4326 = x.LoadGeneratingUnitGeometry4326!,
+                DelineationID = x.DelineationID,
+                WaterQualityManagementPlanID = x.WaterQualityManagementPlanID,
+                ModelBasinID = x.ModelBasinID,
+                RegionalSubbasinID = x.RegionalSubbasinID,
+            }).ToList();
+            await LoadGeneratingUnits.ReplaceStagingAsync(_dbContext, loadGeneratingUnitStagings);
+            await LoadGeneratingUnits.SwapFromStagingAsync(_dbContext, loadGeneratingUnitStagings.Count);
+            _logger.LogInformation("LGU overlay: total refresh swapped in {RowCount} units", loadGeneratingUnitStagings.Count);
+        }
+        else if (loadGeneratingUnits.Any())
         {
             await _dbContext.LoadGeneratingUnits.AddRangeAsync(loadGeneratingUnits);
             await _dbContext.SaveChangesAsync();
@@ -263,33 +282,21 @@ public class OverlayController : ControllerBase
         var result = TrashGeneratingUnitOverlay.Run(inputs);
         _logger.LogInformation("TGU overlay: produced {UnitCount} units at {Elapsed}s", result.Units.Count, stopwatch.Elapsed.TotalSeconds);
 
-        var trashGeneratingUnits = new List<TrashGeneratingUnit>();
-        var trashGeneratingUnit4326s = new List<TrashGeneratingUnit4326>();
+        var trashGeneratingUnits = new List<TrashGeneratingUnitStaging>();
         var exportFeatures = _configuration.OverlayDebugExportFolder != null ? new FeatureCollection() : null;
         var lastUpdateDate = DateTime.UtcNow;
         foreach (var (feature, polygon) in result.Units)
         {
-            var trashGeneratingUnit = new TrashGeneratingUnit
+            trashGeneratingUnits.Add(new TrashGeneratingUnitStaging
             {
                 StormwaterJurisdictionID = feature.StormwaterJurisdictionID!.Value,
                 TrashGeneratingUnitGeometry = polygon,
+                TrashGeneratingUnitGeometry4326 = polygon.ProjectTo4326(),
                 DelineationID = feature.DelineationID,
                 WaterQualityManagementPlanID = feature.WaterQualityManagementPlanID,
                 LandUseBlockID = feature.LandUseBlockID,
                 OnlandVisualTrashAssessmentAreaID = feature.OnlandVisualTrashAssessmentAreaID,
                 LastUpdateDate = lastUpdateDate
-            };
-            trashGeneratingUnits.Add(trashGeneratingUnit);
-            trashGeneratingUnit4326s.Add(new TrashGeneratingUnit4326
-            {
-                StormwaterJurisdictionID = feature.StormwaterJurisdictionID!.Value,
-                TrashGeneratingUnit4326Geometry = polygon.ProjectTo4326(),
-                DelineationID = feature.DelineationID,
-                WaterQualityManagementPlanID = feature.WaterQualityManagementPlanID,
-                LandUseBlockID = feature.LandUseBlockID,
-                OnlandVisualTrashAssessmentAreaID = feature.OnlandVisualTrashAssessmentAreaID,
-                LastUpdateDate = lastUpdateDate,
-                TrashGeneratingUnit = trashGeneratingUnit
             });
             exportFeatures?.Add(new Feature(polygon, new AttributesTable
             {
@@ -299,14 +306,12 @@ public class OverlayController : ControllerBase
             }));
         }
 
-        await _dbContext.Database.ExecuteSqlRawAsync("EXEC dbo.pTrashGeneratingUnitDelete");
-        await InsertTrashGeneratingUnitsChunked(trashGeneratingUnits, trashGeneratingUnit4326s);
-        if (trashGeneratingUnits.Count > 0)
-        {
-            await _dbContext.Database.ExecuteSqlRawAsync("EXEC dbo.pTrashGeneratingUnitMakeValid");
-            await _dbContext.Database.ExecuteSqlRawAsync("EXEC dbo.pTrashGeneratingUnit4326MakeValid");
-        }
-        _logger.LogInformation("TGU overlay: inserted {RowCount} rows (x2 with 4326); total {Elapsed}s", trashGeneratingUnits.Count, stopwatch.Elapsed.TotalSeconds);
+        // NPT-1156: the units go to a staging table first and replace the live tables in one
+        // transaction, so a failure leaves last night's units in place and nobody reads a half-filled table.
+        await TrashGeneratingUnits.ReplaceStagingAsync(_dbContext, trashGeneratingUnits);
+        _logger.LogInformation("TGU overlay: staged {RowCount} rows at {Elapsed}s", trashGeneratingUnits.Count, stopwatch.Elapsed.TotalSeconds);
+        await TrashGeneratingUnits.SwapFromStagingAsync(_dbContext, trashGeneratingUnits.Count);
+        _logger.LogInformation("TGU overlay: swapped in {RowCount} rows (x2 with 4326); total {Elapsed}s", trashGeneratingUnits.Count, stopwatch.Elapsed.TotalSeconds);
         LogLandUseBlocksWithMoreTrashGeneratingUnitAreaThanTheirOwn(result.LandUseBlockAreas, trashGeneratingUnits);
 
         if (exportFeatures != null)
@@ -329,7 +334,7 @@ public class OverlayController : ControllerBase
     // the block. The run still completes (the rows are already written); the error makes a
     // recurrence visible in the logs at block level instead of waiting for someone to compare exports.
     private void LogLandUseBlocksWithMoreTrashGeneratingUnitAreaThanTheirOwn(IReadOnlyDictionary<int, double> landUseBlockAreas,
-        List<TrashGeneratingUnit> trashGeneratingUnits)
+        List<TrashGeneratingUnitStaging> trashGeneratingUnits)
     {
         var overCounted = OverlayEngine.FindOverCountedSources(
             trashGeneratingUnits.Select(x => (x.LandUseBlockID!.Value, x.TrashGeneratingUnitGeometry.Area)),
@@ -346,20 +351,6 @@ public class OverlayController : ControllerBase
             "TGU overlay: {OverCountedBlockCount} land use block(s) have more TGU area than their own area (tolerance {Tolerance} m²), {ExcessArea} m² in total — the overlay counted ground twice. First {NamedCount} LandUseBlockIDs: {OverCountedBlocks}",
             overCounted.Count, LandUseBlockOverCountToleranceSquareMeters, Math.Round(overCounted.Sum(x => x.PieceArea - x.SourceArea), 1),
             Math.Min(overCounted.Count, MaximumOverCountedLandUseBlocksToName), named);
-    }
-
-    // Chunked inserts: ~300K entities in one SaveChanges was the pipeline's real memory peak (5.5 GiB
-    // measured). Each TGU chunk carries its 4326 twins so EF's navigation fixup resolves the FK in-chunk.
-    private async Task InsertTrashGeneratingUnitsChunked(List<TrashGeneratingUnit> trashGeneratingUnits, List<TrashGeneratingUnit4326> trashGeneratingUnit4326s, int chunkSize = 2000)
-    {
-        for (var offset = 0; offset < trashGeneratingUnits.Count; offset += chunkSize)
-        {
-            var count = Math.Min(chunkSize, trashGeneratingUnits.Count - offset);
-            _dbContext.TrashGeneratingUnits.AddRange(trashGeneratingUnits.GetRange(offset, count));
-            _dbContext.TrashGeneratingUnit4326s.AddRange(trashGeneratingUnit4326s.GetRange(offset, count));
-            await _dbContext.SaveChangesAsync();
-            _dbContext.ChangeTracker.Clear();
-        }
     }
 
     private async Task<LoadGeneratingUnitRefreshArea?> GetLoadGeneratingUnitRefreshAreaIfProvided(GenerateLoadGeneratingUnitRequestDto requestDto)

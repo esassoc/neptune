@@ -55,6 +55,8 @@ public partial class NeptuneDbContext : DbContext
 
     public virtual DbSet<LoadGeneratingUnitRefreshArea> LoadGeneratingUnitRefreshAreas { get; set; }
 
+    public virtual DbSet<LoadGeneratingUnitStaging> LoadGeneratingUnitStagings { get; set; }
+
     public virtual DbSet<MaintenanceRecord> MaintenanceRecords { get; set; }
 
     public virtual DbSet<MaintenanceRecordObservation> MaintenanceRecordObservations { get; set; }
@@ -154,6 +156,8 @@ public partial class NeptuneDbContext : DbContext
     public virtual DbSet<TrashGeneratingUnit4326> TrashGeneratingUnit4326s { get; set; }
 
     public virtual DbSet<TrashGeneratingUnitAdjustment> TrashGeneratingUnitAdjustments { get; set; }
+
+    public virtual DbSet<TrashGeneratingUnitStaging> TrashGeneratingUnitStagings { get; set; }
 
     public virtual DbSet<TreatmentBMP> TreatmentBMPs { get; set; }
 
@@ -485,6 +489,11 @@ public partial class NeptuneDbContext : DbContext
         modelBuilder.Entity<LoadGeneratingUnitRefreshArea>(entity =>
         {
             entity.HasKey(e => e.LoadGeneratingUnitRefreshAreaID).HasName("PK_LoadGeneratingUnitRefreshArea_LoadGeneratingUnitRefreshAreaID");
+        });
+
+        modelBuilder.Entity<LoadGeneratingUnitStaging>(entity =>
+        {
+            entity.HasKey(e => e.LoadGeneratingUnitStagingID).HasName("PK_LoadGeneratingUnitStaging_LoadGeneratingUnitStagingID");
         });
 
         modelBuilder.Entity<MaintenanceRecord>(entity =>
@@ -885,6 +894,11 @@ public partial class NeptuneDbContext : DbContext
             entity.HasOne(d => d.AdjustedByPerson).WithMany(p => p.TrashGeneratingUnitAdjustments)
                 .OnDelete(DeleteBehavior.ClientSetNull)
                 .HasConstraintName("FK_TrashGeneratingUnitAdjustment_Person_AdjustedByPersonID_PersonID");
+        });
+
+        modelBuilder.Entity<TrashGeneratingUnitStaging>(entity =>
+        {
+            entity.HasKey(e => e.TrashGeneratingUnitStagingID).HasName("PK_TrashGeneratingUnitStaging_TrashGeneratingUnitStagingID");
         });
 
         modelBuilder.Entity<TreatmentBMP>(entity =>

@@ -120,6 +120,7 @@
     <Build Include="dbo\Tables\dbo.LandUseBlockStaging.sql" />
     <Build Include="dbo\Tables\dbo.LoadGeneratingUnit.sql" />
     <Build Include="dbo\Tables\dbo.LoadGeneratingUnitRefreshArea.sql" />
+    <Build Include="dbo\Tables\dbo.LoadGeneratingUnitStaging.sql" />
     <Build Include="dbo\Tables\dbo.MaintenanceRecord.sql" />
     <Build Include="dbo\Tables\dbo.MaintenanceRecordObservation.sql" />
     <Build Include="dbo\Tables\dbo.MaintenanceRecordObservationValue.sql" />
@@ -198,6 +199,7 @@
     <Build Include="dbo\Tables\dbo.TrashGeneratingUnit.sql" />
     <Build Include="dbo\Tables\dbo.TrashGeneratingUnit4326.sql" />
     <Build Include="dbo\Tables\dbo.TrashGeneratingUnitAdjustment.sql" />
+    <Build Include="dbo\Tables\dbo.TrashGeneratingUnitStaging.sql" />
     <Build Include="dbo\Tables\dbo.TreatmentBMP.sql" />
     <Build Include="dbo\Tables\dbo.TreatmentBMPAssessment.sql" />
     <Build Include="dbo\Tables\dbo.TreatmentBMPAssessmentObservationType.sql" />
@@ -393,7 +395,10 @@
     <Build Include="dbo\Views\dbo.vTreatmentBMPObservation.sql" />
     <Build Include="dbo\Views\dbo.vRegionalSubbasinUpstreamCatchmentGeometry.sql" />
     <Build Include="dbo\Views\dbo.vHRUCharacteristic.sql" />
-    <Build Include="dbo\Procs\dbo.pTrashGeneratingUnitDelete.sql" />
+    <Build Include="dbo\Procs\dbo.pTrashGeneratingUnitStagingDelete.sql" />
+    <Build Include="dbo\Procs\dbo.pTrashGeneratingUnitUpdateFromStaging.sql" />
+    <Build Include="dbo\Procs\dbo.pLoadGeneratingUnitStagingDelete.sql" />
+    <Build Include="dbo\Procs\dbo.pLoadGeneratingUnitUpdateFromStaging.sql" />
     <Build Include="dbo\Procs\dbo.pProjectLoadGeneratingUnitMakeValid.sql" />
     <Build Include="dbo\Procs\dbo.pLoadGeneratingUnitMakeValid.sql" />
     <Build Include="dbo\Procs\dbo.pTrashGeneratingUnitMakeValid.sql" />

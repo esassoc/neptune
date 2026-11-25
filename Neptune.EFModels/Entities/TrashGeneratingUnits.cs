@@ -50,4 +50,40 @@ public static class TrashGeneratingUnits
         Area = x.Area * Constants.SquareMetersToAcres,
         LoadingRateDelta = x.LoadingRateDelta,
     };
+
+    /// <summary>
+    /// NPT-1156: empties TrashGeneratingUnitStaging and fills it with the units of one overlay run.
+    /// Nothing reads the staging table, so this needs no transaction.
+    /// </summary>
+    public static async Task ReplaceStagingAsync(NeptuneDbContext dbContext, IReadOnlyList<TrashGeneratingUnitStaging> trashGeneratingUnitStagings)
+    {
+        await dbContext.Database.ExecuteSqlRawAsync("EXEC dbo.pTrashGeneratingUnitStagingDelete");
+        await StagingSwap.InsertChunkedAsync(dbContext, trashGeneratingUnitStagings);
+    }
+
+    /// <summary>
+    /// NPT-1156: replaces TrashGeneratingUnit and TrashGeneratingUnit4326 with the contents of
+    /// TrashGeneratingUnitStaging in one transaction. The swap is checked before commit (every
+    /// staged unit is in both tables); any failure rolls back and the units that were there before
+    /// stay in place.
+    /// </summary>
+    public static async Task SwapFromStagingAsync(NeptuneDbContext dbContext, int expectedTrashGeneratingUnitCount)
+    {
+        await StagingSwap.RunInTransactionAsync(dbContext, "TguSwapFromStaging", async () =>
+        {
+            await dbContext.Database.ExecuteSqlRawAsync("EXEC dbo.pTrashGeneratingUnitUpdateFromStaging");
+
+            var trashGeneratingUnitCount = await dbContext.TrashGeneratingUnits.CountAsync();
+            if (trashGeneratingUnitCount != expectedTrashGeneratingUnitCount)
+            {
+                throw new InvalidOperationException($"Trash Generating Unit swap loaded {trashGeneratingUnitCount:N0} units but {expectedTrashGeneratingUnitCount:N0} were staged.");
+            }
+
+            var trashGeneratingUnit4326Count = await dbContext.TrashGeneratingUnit4326s.CountAsync(x => x.TrashGeneratingUnitID != null);
+            if (trashGeneratingUnit4326Count != expectedTrashGeneratingUnitCount)
+            {
+                throw new InvalidOperationException($"Trash Generating Unit swap loaded {trashGeneratingUnit4326Count:N0} map (4326) units but {expectedTrashGeneratingUnitCount:N0} were staged.");
+            }
+        });
+    }
 }

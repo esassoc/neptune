@@ -138,8 +138,8 @@ public static class TrashGeneratingUnitGdbExport
     /// <summary>
     /// One query for the grid's attributes and the 2771 polygon. The view drives the row set (it applies the grid's
     /// Phase 1 MS4 / polygon filters), but its TrashGeneratingUnitGeometry column is the 4326 geometry, so the polygon
-    /// comes from the table. A single statement matters because the TGU refresh truncates and reinserts the table
-    /// (pTrashGeneratingUnitDelete), which reuses IDs: two separate reads could pair a row with another's polygon.
+    /// comes from the table. A single statement matters because the TGU refresh replaces every row
+    /// (pTrashGeneratingUnitUpdateFromStaging) and reuses IDs: two separate reads could pair a row with another's polygon.
     /// </summary>
     public static IQueryable<ExportRow> ExportRowsQuery(NeptuneDbContext dbContext, int stormwaterJurisdictionID)
     {
